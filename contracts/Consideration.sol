@@ -117,7 +117,7 @@ interface ERC721Interface {
 }
 
 interface ERC1155Interface {
-    function transferFrom(address, address, uint256, uint256) external;
+    function safeTransferFrom(address, address, uint256, uint256) external;
 }
 
 contract Consideration {
@@ -169,6 +169,10 @@ contract Consideration {
     error ERC721TransferGenericFailure(address token, address account, uint256 identifier);
     error ERC1155TransferGenericFailure(address token, address account, uint256 identifier, uint256 amount);
     error BadReturnValueFromERC20OnTransfer(address token, address account, uint256 amount);
+
+    error ERC20TransferNoContract(address);
+    error ERC721TransferNoContract(address);
+    error ERC1155TransferNoContract(address);
 
     constructor() {
         DOMAIN_SEPARATOR = keccak256(
@@ -418,12 +422,13 @@ contract Consideration {
             }
 
             if (data.length == 0) {
+                address token = asset.token;
                 uint256 size;
                 assembly {
-                    size := extcodesize(asset.token);
+                    size := extcodesize(token)
                 }
                 if (size == 0) {
-                    revert ERC20TransferNoContract(asset.token);
+                    revert ERC20TransferNoContract(token);
                 }
             } else {
                 if (!(
@@ -452,6 +457,15 @@ contract Consideration {
                 } else {
                     revert ERC721TransferGenericFailure(asset.token, asset.account, asset.identifier);
                 }
+            } else if (data.length == 0) {
+                address token = asset.token;
+                uint256 size;
+                assembly {
+                    size := extcodesize(token)
+                }
+                if (size == 0) {
+                    revert ERC721TransferNoContract(token);
+                }
             }
         } else if (asset.assetType == AssetType.ERC1155) {
             // Bubble up reverts on failed primary recipient transfers.
@@ -472,6 +486,15 @@ contract Consideration {
                     }
                 } else {
                     revert ERC1155TransferGenericFailure(asset.token, asset.account, asset.identifier, asset.amount);
+                }
+            } else if (data.length == 0) {
+                address token = asset.token;
+                uint256 size;
+                assembly {
+                    size := extcodesize(token)
+                }
+                if (size == 0) {
+                    revert ERC1155TransferNoContract(token);
                 }
             }
         }
