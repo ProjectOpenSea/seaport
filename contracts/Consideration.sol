@@ -185,26 +185,31 @@ contract Consideration {
     }
 
     function fulfillOrder(Order memory order) public payable nonReentrant() returns (bool) {
-        if (order.parameters.startTime > block.timestamp || order.parameters.endTime < block.timestamp) {
+        if (
+            order.parameters.startTime > block.timestamp ||
+            order.parameters.endTime < block.timestamp
+        ) {
             revert InvalidTime();
         }
 
-        if (order.parameters.offerer != msg.sender && order.parameters.offer.length != 0) {
-            bytes32 orderHash = hash(order.parameters);
-            if (orderUsed[orderHash] != 0) {
-                revert OrderUsed(orderHash);
-            }
-            orderUsed[orderHash] = type(uint256).max;
-            verifySignature(
-                order.parameters.offerer, orderHash, order.signature
-            );
+        order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
+
+        bytes32 orderHash = hash(order.parameters);
+        if (orderUsed[orderHash] != 0) {
+            revert OrderUsed(orderHash);
         }
+        orderUsed[orderHash] = type(uint256).max;
+        verifySignature(
+            order.parameters.offerer, orderHash, order.signature
+        );
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             if (uint256(order.parameters.consideration[i].assetType) > 3) {
                 revert NoAdvancedConsiderationOnBasicMatch();
             }
-            _fulfill(order.parameters.consideration[i], msg.sender);
+            if (order.parameters.consideration[i].account != msg.sender) {
+                _fulfill(order.parameters.consideration[i], msg.sender);
+            }
         }
 
         for (uint256 i = 0; i < order.parameters.offer.length; i++) {
@@ -407,21 +412,26 @@ contract Consideration {
                         returndatacopy(0, 0, returndatasize())
                         revert(0, returndatasize())
                     }
+                } else {
+                    revert ERC20TransferGenericFailure(asset.token, asset.account, asset.amount);
                 }
-            } else {
-                revert ERC20TransferGenericFailure(asset.token, asset.account, asset.amount);
             }
 
-            bool transferSucceeded = (
-                (
+            if (data.length == 0) {
+                uint256 size;
+                assembly {
+                    size := extcodesize(asset.token);
+                }
+                if (size == 0) {
+                    revert ERC20TransferNoContract(asset.token);
+                }
+            } else {
+                if (!(
                     data.length == 32 &&
                     abi.decode(data, (bool))
-                ) ||
-                data.length == 0
-            );
-
-            if (!transferSucceeded) {
-                revert BadReturnValueFromERC20OnTransfer(asset.token, asset.account, asset.amount);
+                )) {
+                    revert BadReturnValueFromERC20OnTransfer(asset.token, asset.account, asset.amount);
+                }
             }
         } else if (asset.assetType == AssetType.ERC721) {
             // Bubble up reverts on failed primary recipient transfers.
@@ -447,7 +457,7 @@ contract Consideration {
             // Bubble up reverts on failed primary recipient transfers.
             (ok, data) = asset.token.call(
                 abi.encodeWithSelector(
-                    ERC1155Interface.transferFrom.selector,
+                    ERC1155Interface.safeTransferFrom.selector,
                     offerer,
                     asset.account,
                     asset.identifier,
