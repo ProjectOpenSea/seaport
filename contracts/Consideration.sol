@@ -1,18 +1,20 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+enum OrderType {
+    FULL_OPEN,         // no partial fills, anyone can execute
+    PARTIAL_OPEN,      // partial fills supported, anyone can execute
+    FULL_RESTRICTED,   // no partial fills, only offerer or facilitator can execute
+    PARTIAL_RESTRICTED // partial fills supported, only offerer or facilitator can execute
+}
+
 enum AssetType {
     ETH,
     ERC20,
     ERC721,
     ERC1155,
-    ETH_WITH_PARTIAL_FILLS,
-    ERC_20_WITH_PARTIAL_FILLS,
     ERC721_WITH_CRITERIA,
-    ERC721_WITH_CRITERIA_AND_PARTIAL_FILLS,
-    ERC_1155_WITH_PARTIAL_FILLS,
-    ERC_1155_WITH_CRITERIA,
-    ERC_1155_WITH_CRITERIA_AND_PARTIAL_FILLS
+    ERC_1155_WITH_CRITERIA
 }
 
 struct Asset {
@@ -31,6 +33,7 @@ struct ReceivedAsset {
 }
 
 struct OrderParameters {
+    OrderType orderType;
     Asset[] offer;
     ReceivedAsset[] consideration;
     uint256 startTime;
@@ -134,9 +137,12 @@ contract Consideration {
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;
 
+    uint256 private constant _FULLY_FILLED = 1e18;
+    uint256 private constant _ENSURE_ROUND_UP = 999999999999999999;
+
     uint256 private _reentrancyGuard;
 
-    mapping (bytes32 => uint256) public orderUsed;
+    mapping (bytes32 => uint256) public orderUsed; // 1e18 => 100%
 
     // offerer => facilitator => nonce (cancel offerer's orders with given facilitator)
     mapping (address => mapping (address => uint256)) public facilitatorNonces;
@@ -145,6 +151,7 @@ contract Consideration {
     error NoAdvancedConsiderationOnBasicMatch();
     error OrderUsed(bytes32);
     error InvalidTime();
+    error InvalidSubmitterOnRestrictedOrder();
 
     error NoOfferOnFulfillment();
     error NoConsiderationOnFulfillment();
@@ -196,13 +203,45 @@ contract Consideration {
             revert InvalidTime();
         }
 
+        if (
+            uint256(order.parameters.orderType) > 1 &&
+            msg.sender != order.parameters.facilitator &&
+            msg.sender != order.parameters.offerer
+        ) {
+            revert InvalidSubmitterOnRestrictedOrder();
+        }
+
         order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
 
         bytes32 orderHash = hash(order.parameters);
-        if (orderUsed[orderHash] != 0) {
-            revert OrderUsed(orderHash);
+        uint256 orderFilledAmount = orderUsed[orderHash];
+        if (orderFilledAmount != 0) {
+            if (orderFilledAmount >= _FULLY_FILLED) {
+                revert OrderUsed(orderHash);
+            }
+
+            uint256 leftToFill;
+            unchecked {
+                leftToFill = _FULLY_FILLED - orderFilledAmount;
+            }
+
+            for (uint256 i = 0; i < order.parameters.offer.length; i++) {
+                // round offer amounts down (todo: div in assembly as we know it's not zero)
+                order.parameters.offer[i].amount = (
+                    order.parameters.offer[i].amount * leftToFill
+                ) / _FULLY_FILLED;
+            }
+
+            for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
+                // round consideration amounts up (todo: div in assembly as we know it's not zero)
+                order.parameters.consideration[i].amount = (
+                    (order.parameters.consideration[i].amount * leftToFill) + _ENSURE_ROUND_UP
+                ) / _FULLY_FILLED;
+            }
         }
-        orderUsed[orderHash] = type(uint256).max;
+
+        orderUsed[orderHash] = _FULLY_FILLED;
+
         verifySignature(
             order.parameters.offerer, orderHash, order.signature
         );
@@ -239,6 +278,17 @@ contract Consideration {
         // verify soundness of each order — either 712 signature/1271 or msg.sender
         for (uint256 i = 0; i < orders.length; i++) {
             OrderParameters memory order = orders[i].parameters;
+
+            if (
+                uint256(order.orderType) > 1 &&
+                msg.sender != order.facilitator &&
+                msg.sender != order.offerer
+            ) {
+                revert InvalidSubmitterOnRestrictedOrder();
+            }
+
+            order.nonce = facilitatorNonces[order.offerer][order.facilitator];
+
             for (uint256 j = 0; j < order.offer.length; j++) {
                 Asset memory asset = order.offer[j];
                 if (uint256(asset.assetType) > 3) {
@@ -259,10 +309,34 @@ contract Consideration {
 
             if (order.offerer != msg.sender && order.offer.length != 0) {
                 bytes32 orderHash = hash(order);
-                if (orderUsed[orderHash] != 0) {
-                    revert OrderUsed(orderHash);
+                uint256 orderFilledAmount = orderUsed[orderHash];
+                if (orderFilledAmount != 0) {
+                    if (orderFilledAmount >= _FULLY_FILLED) {
+                        revert OrderUsed(orderHash);
+                    }
+
+                    uint256 leftToFill;
+                    unchecked {
+                        leftToFill = _FULLY_FILLED - orderFilledAmount;
+                    }
+
+                    for (uint256 j = 0; j < order.offer.length; j++) {
+                        // round offer amounts down (todo: div in assembly as we know it's not zero)
+                        orders[i].parameters.offer[j].amount = (
+                            order.offer[j].amount * leftToFill
+                        ) / _FULLY_FILLED;
+                    }
+
+                    for (uint256 j = 0; j < order.consideration.length; j++) {
+                        // round consideration amounts up (todo: div in assembly as we know it's not zero)
+                        orders[i].parameters.consideration[j].amount = (
+                            (order.consideration[j].amount * leftToFill) + _ENSURE_ROUND_UP
+                        ) / _FULLY_FILLED;
+                    }
                 }
-                orderUsed[orderHash] = type(uint256).max;
+
+                orderUsed[orderHash] = _FULLY_FILLED;
+
                 verifySignature(order.offerer, orderHash, orders[i].signature);
             }
         }
@@ -500,7 +574,7 @@ contract Consideration {
         }
     }
 
-    function matchAdvancedOrders(AdvancedOrder[] memory orders, AdvancedFulfillment[] memory fulfillments) public payable nonReentrant() returns (bool ok) {
+    function matchAdvancedOrders(AdvancedOrder[] memory orders, AdvancedFulfillment[] memory fulfillments) public payable nonReentrant() returns (Execution[] memory) {
         // ...
     }
 
@@ -512,6 +586,7 @@ contract Consideration {
         return keccak256(
             abi.encode(
                 ORDER_HASH,
+                orderParameters.orderType,
                 keccak256(abi.encode(orderParameters.offer)),
                 keccak256(abi.encode(orderParameters.consideration)),
                 orderParameters.startTime,
@@ -520,7 +595,7 @@ contract Consideration {
                 orderParameters.offerer,
                 orderParameters.salt,
                 orderParameters.facilitator,
-                orderParameters.nonce // TODO: pull this from facilitator nonces
+                orderParameters.nonce
             )
         );
     }
@@ -591,7 +666,6 @@ contract Consideration {
         }
     }
 
-
     modifier nonReentrant() {
         // On the first call to nonReentrant, _notEntered will be true
         if (_reentrancyGuard == _ENTERED) {
@@ -603,5 +677,28 @@ contract Consideration {
         _;
 
         _reentrancyGuard = _NOT_ENTERED;
+    }
+
+    function verify(bytes32[] memory proof, bytes32 leaf, bytes32 root) internal pure returns (bool) {
+        bytes32 computedHash = leaf;
+        for (uint256 i = 0; i < proof.length; i++) {
+            bytes32 proofElement = proof[i];
+            if (computedHash <= proofElement) {
+                // Hash(current computed hash + current element of the proof)
+                computedHash = _efficientHash(computedHash, proofElement);
+            } else {
+                // Hash(current element of the proof + current computed hash)
+                computedHash = _efficientHash(proofElement, computedHash);
+            }
+        }
+        return computedHash == root;
+    }
+
+    function _efficientHash(bytes32 a, bytes32 b) private pure returns (bytes32 value) {
+        assembly {
+            mstore(0x00, a)
+            mstore(0x20, b)
+            value := keccak256(0x00, 0x40)
+        }
     }
 }
