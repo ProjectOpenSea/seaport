@@ -181,6 +181,8 @@ contract Consideration {
     error ERC721TransferNoContract(address);
     error ERC1155TransferNoContract(address);
 
+    error Overfill();
+
     constructor() {
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
@@ -238,13 +240,95 @@ contract Consideration {
                     (order.parameters.consideration[i].amount * leftToFill) + _ENSURE_ROUND_UP
                 ) / _FULLY_FILLED;
             }
+        } else {
+            _verifySignature(
+                order.parameters.offerer, orderHash, order.signature
+            );
         }
 
         orderUsed[orderHash] = _FULLY_FILLED;
 
-        verifySignature(
-            order.parameters.offerer, orderHash, order.signature
-        );
+        for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
+            if (uint256(order.parameters.consideration[i].assetType) > 3) {
+                revert NoAdvancedConsiderationOnBasicMatch();
+            }
+            if (order.parameters.consideration[i].account != msg.sender) {
+                _fulfill(order.parameters.consideration[i], msg.sender);
+            }
+        }
+
+        for (uint256 i = 0; i < order.parameters.offer.length; i++) {
+            if (uint256(order.parameters.offer[i].assetType) > 3) {
+                revert NoAdvancedOffersOnBasicMatch();
+            }
+            _fulfill(
+                ReceivedAsset(
+                    order.parameters.offer[i].assetType,
+                    order.parameters.offer[i].token,
+                    order.parameters.offer[i].identifier,
+                    order.parameters.offer[i].amount,
+                    payable(msg.sender)
+                ),
+                order.parameters.offerer
+            );
+        }
+
+        return true;
+    }
+
+    function fulfillPartialOrder(Order memory order, uint256 amountToFill) public payable nonReentrant() returns (bool) {
+        if (amountToFill > _FULLY_FILLED) {
+            revert Overfill();
+        }
+
+        if (
+            order.parameters.startTime > block.timestamp ||
+            order.parameters.endTime < block.timestamp
+        ) {
+            revert InvalidTime();
+        }
+
+        if (
+            uint256(order.parameters.orderType) > 1 &&
+            msg.sender != order.parameters.facilitator &&
+            msg.sender != order.parameters.offerer
+        ) {
+            revert InvalidSubmitterOnRestrictedOrder();
+        }
+
+        order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
+
+        bytes32 orderHash = hash(order.parameters);
+        uint256 orderFilledAmount = orderUsed[orderHash];
+        if (orderFilledAmount != 0) {
+            if (orderFilledAmount >= _FULLY_FILLED) {
+                revert OrderUsed(orderHash);
+            }
+
+            if (orderFilledAmount + amountToFill > _FULLY_FILLED) {
+                revert Overfill();
+            }
+
+            for (uint256 i = 0; i < order.parameters.offer.length; i++) {
+                // round offer amounts down (todo: div in assembly as we know it's not zero)
+                order.parameters.offer[i].amount = (
+                    order.parameters.offer[i].amount * amountToFill
+                ) / _FULLY_FILLED;
+            }
+
+            for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
+                // round consideration amounts up (todo: div in assembly as we know it's not zero)
+                order.parameters.consideration[i].amount = (
+                    (order.parameters.consideration[i].amount * amountToFill) + _ENSURE_ROUND_UP
+                ) / _FULLY_FILLED;
+            }
+        } else {
+            _verifySignature(
+                order.parameters.offerer, orderHash, order.signature
+            );
+        }
+
+        orderUsed[orderHash] = orderFilledAmount + amountToFill;
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             if (uint256(order.parameters.consideration[i].assetType) > 3) {
@@ -333,11 +417,11 @@ contract Consideration {
                             (order.consideration[j].amount * leftToFill) + _ENSURE_ROUND_UP
                         ) / _FULLY_FILLED;
                     }
+                } else {
+                    _verifySignature(order.offerer, orderHash, orders[i].signature);
                 }
 
                 orderUsed[orderHash] = _FULLY_FILLED;
-
-                verifySignature(order.offerer, orderHash, orders[i].signature);
             }
         }
 
@@ -459,6 +543,32 @@ contract Consideration {
         return execution;
     }
 
+    function matchAdvancedOrders(AdvancedOrder[] memory orders, AdvancedFulfillment[] memory fulfillments) public payable nonReentrant() returns (Execution[] memory) {
+        // ...
+    }
+
+    function cancel(Order[] memory orders) external returns (bool ok) {
+        // ...
+    }
+
+    function hash(OrderParameters memory orderParameters) public pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                ORDER_HASH,
+                orderParameters.orderType,
+                keccak256(abi.encode(orderParameters.offer)),
+                keccak256(abi.encode(orderParameters.consideration)),
+                orderParameters.startTime,
+                orderParameters.endTime,
+                orderParameters.nonce,
+                orderParameters.offerer,
+                orderParameters.salt,
+                orderParameters.facilitator,
+                orderParameters.nonce
+            )
+        );
+    }
+
     function _fulfill(ReceivedAsset memory asset, address offerer) internal {
         bool ok;
         bytes memory data;
@@ -574,33 +684,7 @@ contract Consideration {
         }
     }
 
-    function matchAdvancedOrders(AdvancedOrder[] memory orders, AdvancedFulfillment[] memory fulfillments) public payable nonReentrant() returns (Execution[] memory) {
-        // ...
-    }
-
-    function cancel(Order[] memory orders) external returns (bool ok) {
-        // ...
-    }
-
-    function hash(OrderParameters memory orderParameters) public pure returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                ORDER_HASH,
-                orderParameters.orderType,
-                keccak256(abi.encode(orderParameters.offer)),
-                keccak256(abi.encode(orderParameters.consideration)),
-                orderParameters.startTime,
-                orderParameters.endTime,
-                orderParameters.nonce,
-                orderParameters.offerer,
-                orderParameters.salt,
-                orderParameters.facilitator,
-                orderParameters.nonce
-            )
-        );
-    }
-
-    function verifySignature(
+    function _verifySignature(
         address account,
         bytes32 orderHash,
         bytes memory signature
