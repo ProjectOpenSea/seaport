@@ -217,43 +217,12 @@ contract Consideration {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    function fulfillOrder(Order memory order) public payable nonReentrant() returns (bool) {
+    function fulfillOrder(
+        Order memory order
+    ) public payable nonReentrant() returns (bool) {
         _assertBasicOrderValidity(order.parameters);
 
-        order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
-
-        bytes32 orderHash = hash(order.parameters);
-        uint256 orderFilledAmount = orderUsed[orderHash];
-        if (orderFilledAmount != 0) {
-            if (orderFilledAmount >= _FULLY_FILLED) {
-                revert OrderUsed(orderHash);
-            }
-
-            uint256 leftToFill;
-            unchecked {
-                leftToFill = _FULLY_FILLED - orderFilledAmount;
-            }
-
-            for (uint256 i = 0; i < order.parameters.offer.length; i++) {
-                // round offer amounts down (todo: div in assembly as we know it's not zero)
-                order.parameters.offer[i].amount = (
-                    order.parameters.offer[i].amount * leftToFill
-                ) / _FULLY_FILLED;
-            }
-
-            for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
-                // round consideration amounts up (todo: div in assembly as we know it's not zero)
-                order.parameters.consideration[i].amount = (
-                    (order.parameters.consideration[i].amount * leftToFill) + _ENSURE_ROUND_UP
-                ) / _FULLY_FILLED;
-            }
-        } else {
-            _verifySignature(
-                order.parameters.offerer, orderHash, order.signature
-            );
-        }
-
-        orderUsed[orderHash] = _FULLY_FILLED;
+        bytes32 orderHash = _applyUsedPartialOrderOrVerifySignature(order);
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             if (uint256(order.parameters.consideration[i].assetType) > 3) {
@@ -289,40 +258,7 @@ contract Consideration {
     ) public payable nonReentrant() returns (bool) {
         _assertBasicOrderValidity(order.parameters);
 
-        order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
-
-        bytes32 orderHash = hash(order.parameters);
-        uint256 orderFilledAmount = orderUsed[orderHash];
-        if (orderFilledAmount != 0) {
-            if (orderFilledAmount >= _FULLY_FILLED) {
-                revert OrderUsed(orderHash);
-            }
-
-            uint256 leftToFill;
-            unchecked {
-                leftToFill = _FULLY_FILLED - orderFilledAmount;
-            }
-
-            for (uint256 i = 0; i < order.parameters.offer.length; i++) {
-                // round offer amounts down (todo: div in assembly as we know it's not zero)
-                order.parameters.offer[i].amount = (
-                    order.parameters.offer[i].amount * leftToFill
-                ) / _FULLY_FILLED;
-            }
-
-            for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
-                // round consideration amounts up (todo: div in assembly as we know it's not zero)
-                order.parameters.consideration[i].amount = (
-                    (order.parameters.consideration[i].amount * leftToFill) + _ENSURE_ROUND_UP
-                ) / _FULLY_FILLED;
-            }
-        } else {
-            _verifySignature(
-                order.parameters.offerer, orderHash, order.signature
-            );
-        }
-
-        orderUsed[orderHash] = _FULLY_FILLED;
+        bytes32 orderHash = _applyUsedPartialOrderOrVerifySignature(order);
 
         for (uint256 i = 0; i < criteriaResolvers.length; i++) {
             CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
@@ -415,7 +351,10 @@ contract Consideration {
         return true;
     }
 
-    function fulfillPartialOrder(Order memory order, uint256 amountToFill) public payable nonReentrant() returns (bool) {
+    function fulfillPartialOrder(
+        Order memory order,
+        uint256 amountToFill
+    ) public payable nonReentrant() returns (bool) {
         if (
             order.parameters.orderType != OrderType.PARTIAL_OPEN &&
             order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
@@ -430,8 +369,8 @@ contract Consideration {
         _assertBasicOrderValidity(order.parameters);
 
         order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
-
         bytes32 orderHash = hash(order.parameters);
+
         uint256 orderFilledAmount = orderUsed[orderHash];
         if (orderFilledAmount != 0) {
             if (orderFilledAmount >= _FULLY_FILLED) {
@@ -491,7 +430,10 @@ contract Consideration {
         return true;
     }
 
-    function matchOrders(Order[] memory orders, Fulfillment[] memory fulfillments) public payable nonReentrant() returns (Execution[] memory) {
+    function matchOrders(
+        Order[] memory orders,
+        Fulfillment[] memory fulfillments
+    ) public payable nonReentrant() returns (Execution[] memory) {
         // verify soundness of each order — either 712 signature/1271 or msg.sender
         for (uint256 i = 0; i < orders.length; i++) {
             OrderParameters memory order = orders[i].parameters;
@@ -666,7 +608,10 @@ contract Consideration {
         return execution;
     }
 
-    function matchAdvancedOrders(AdvancedOrder[] memory orders, AdvancedFulfillment[] memory fulfillments) public payable nonReentrant() returns (Execution[] memory) {
+    function matchAdvancedOrders(
+        AdvancedOrder[] memory orders,
+        AdvancedFulfillment[] memory fulfillments
+    ) public payable nonReentrant() returns (Execution[] memory) {
         // ...
     }
 
@@ -704,6 +649,47 @@ contract Consideration {
         ) {
             revert InvalidSubmitterOnRestrictedOrder();
         }
+    }
+
+    function _applyUsedPartialOrderOrVerifySignature(
+        Order memory order
+    ) internal returns (bytes32 orderHash) {
+        order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
+
+        orderHash = hash(order.parameters);
+        uint256 orderFilledAmount = orderUsed[orderHash];
+        if (orderFilledAmount != 0) {
+            if (orderFilledAmount >= _FULLY_FILLED) {
+                revert OrderUsed(orderHash);
+            }
+
+            uint256 leftToFill;
+            unchecked {
+                leftToFill = _FULLY_FILLED - orderFilledAmount;
+            }
+
+            for (uint256 i = 0; i < order.parameters.offer.length; i++) {
+                // round offer amounts down (todo: div in assembly as we know it's not zero)
+                order.parameters.offer[i].amount = (
+                    order.parameters.offer[i].amount * leftToFill
+                ) / _FULLY_FILLED;
+            }
+
+            for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
+                // round consideration amounts up (todo: div in assembly as we know it's not zero)
+                order.parameters.consideration[i].amount = (
+                    (order.parameters.consideration[i].amount * leftToFill) + _ENSURE_ROUND_UP
+                ) / _FULLY_FILLED;
+            }
+        } else {
+            _verifySignature(
+                order.parameters.offerer, orderHash, order.signature
+            );
+        }
+
+        orderUsed[orderHash] = _FULLY_FILLED;
+
+        return orderHash;
     }
 
     function _fulfill(ReceivedAsset memory asset, address offerer) internal {
