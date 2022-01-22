@@ -14,20 +14,25 @@ enum AssetType {
     ERC721,
     ERC1155,
     ERC721_WITH_CRITERIA,
-    ERC_1155_WITH_CRITERIA
+    ERC1155_WITH_CRITERIA
+}
+
+enum Side {
+    OFFER,
+    CONSIDERATION
 }
 
 struct Asset {
-    AssetType assetType; // must be 0-3
+    AssetType assetType;
     address token;
-    uint256 identifier;
+    uint256 identifierOrCriteria;
     uint256 amount;
 }
 
 struct ReceivedAsset {
-    AssetType assetType; // must be 0-3
+    AssetType assetType;
     address token;
-    uint256 identifier;
+    uint256 identifierOrCriteria;
     uint256 amount;
     address payable account;
 }
@@ -64,6 +69,13 @@ struct Order {
     bytes signature;
 }
 
+struct CriteriaResolver {
+    Side side;
+    uint256 index;
+    uint256 identifier;
+    bytes32[] criteriaProof;
+}
+
 struct AdvancedAsset {
     AssetType assetType; // can be any valid enum
     address token;
@@ -84,7 +96,6 @@ struct AdvancedReceivedAsset {
 struct AdvancedFulfillmentComponent {
     uint256 orderIndex;
     uint256 assetIndex;
-    uint256 maximumFulfillmentAmount;
     bytes32[] criteriaProof;
 }
 
@@ -147,8 +158,8 @@ contract Consideration {
     // offerer => facilitator => nonce (cancel offerer's orders with given facilitator)
     mapping (address => mapping (address => uint256)) public facilitatorNonces;
 
-    error NoAdvancedOffersOnBasicMatch();
-    error NoAdvancedConsiderationOnBasicMatch();
+    error NoOffersWithCriteriaOnBasicMatch();
+    error NoConsiderationWithCriteriaOnBasicMatch();
     error OrderUsed(bytes32);
     error InvalidTime();
     error InvalidSubmitterOnRestrictedOrder();
@@ -182,6 +193,15 @@ contract Consideration {
     error ERC1155TransferNoContract(address);
 
     error Overfill();
+    error PartialFillsNotEnabledForOrder();
+
+    error UnresolvedOfferCriteria();
+    error UnresolvedConsiderationCriteria();
+    error OfferCriteriaResolverOutOfRange();
+    error ConsiderationCriteriaResolverOutOfRange();
+    error CriteriaNotEnabledForOfferedAsset();
+    error CriteriaNotEnabledForConsideredAsset();
+    error InvalidProof();
 
     constructor() {
         DOMAIN_SEPARATOR = keccak256(
@@ -198,20 +218,7 @@ contract Consideration {
     }
 
     function fulfillOrder(Order memory order) public payable nonReentrant() returns (bool) {
-        if (
-            order.parameters.startTime > block.timestamp ||
-            order.parameters.endTime < block.timestamp
-        ) {
-            revert InvalidTime();
-        }
-
-        if (
-            uint256(order.parameters.orderType) > 1 &&
-            msg.sender != order.parameters.facilitator &&
-            msg.sender != order.parameters.offerer
-        ) {
-            revert InvalidSubmitterOnRestrictedOrder();
-        }
+        _assertBasicOrderValidity(order.parameters);
 
         order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
 
@@ -250,7 +257,7 @@ contract Consideration {
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             if (uint256(order.parameters.consideration[i].assetType) > 3) {
-                revert NoAdvancedConsiderationOnBasicMatch();
+                revert NoConsiderationWithCriteriaOnBasicMatch();
             }
             if (order.parameters.consideration[i].account != msg.sender) {
                 _fulfill(order.parameters.consideration[i], msg.sender);
@@ -259,13 +266,145 @@ contract Consideration {
 
         for (uint256 i = 0; i < order.parameters.offer.length; i++) {
             if (uint256(order.parameters.offer[i].assetType) > 3) {
-                revert NoAdvancedOffersOnBasicMatch();
+                revert NoOffersWithCriteriaOnBasicMatch();
             }
             _fulfill(
                 ReceivedAsset(
                     order.parameters.offer[i].assetType,
                     order.parameters.offer[i].token,
-                    order.parameters.offer[i].identifier,
+                    order.parameters.offer[i].identifierOrCriteria,
+                    order.parameters.offer[i].amount,
+                    payable(msg.sender)
+                ),
+                order.parameters.offerer
+            );
+        }
+
+        return true;
+    }
+
+    function fulfillOrderWithCriteria(
+        Order memory order,
+        CriteriaResolver[] memory criteriaResolvers
+    ) public payable nonReentrant() returns (bool) {
+        _assertBasicOrderValidity(order.parameters);
+
+        order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
+
+        bytes32 orderHash = hash(order.parameters);
+        uint256 orderFilledAmount = orderUsed[orderHash];
+        if (orderFilledAmount != 0) {
+            if (orderFilledAmount >= _FULLY_FILLED) {
+                revert OrderUsed(orderHash);
+            }
+
+            uint256 leftToFill;
+            unchecked {
+                leftToFill = _FULLY_FILLED - orderFilledAmount;
+            }
+
+            for (uint256 i = 0; i < order.parameters.offer.length; i++) {
+                // round offer amounts down (todo: div in assembly as we know it's not zero)
+                order.parameters.offer[i].amount = (
+                    order.parameters.offer[i].amount * leftToFill
+                ) / _FULLY_FILLED;
+            }
+
+            for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
+                // round consideration amounts up (todo: div in assembly as we know it's not zero)
+                order.parameters.consideration[i].amount = (
+                    (order.parameters.consideration[i].amount * leftToFill) + _ENSURE_ROUND_UP
+                ) / _FULLY_FILLED;
+            }
+        } else {
+            _verifySignature(
+                order.parameters.offerer, orderHash, order.signature
+            );
+        }
+
+        orderUsed[orderHash] = _FULLY_FILLED;
+
+        for (uint256 i = 0; i < criteriaResolvers.length; i++) {
+            CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
+            if (criteriaResolver.side == Side.OFFER) {
+                if (criteriaResolver.index >= order.parameters.offer.length) {
+                    revert OfferCriteriaResolverOutOfRange();
+                }
+
+                Asset memory offer = order.parameters.offer[criteriaResolver.index];
+                if (
+                    offer.assetType != AssetType.ERC721_WITH_CRITERIA &&
+                    offer.assetType != AssetType.ERC1155_WITH_CRITERIA
+                ) {
+                    revert CriteriaNotEnabledForOfferedAsset();
+                }
+
+                // empty criteria signifies a collection-wide offer (sell any asset)
+                if (offer.identifierOrCriteria != uint256(0)) {
+                    _verifyProof(
+                        criteriaResolver.identifier,
+                        offer.identifierOrCriteria,
+                        criteriaResolver.criteriaProof
+                    );
+                }
+
+                if (offer.assetType == AssetType.ERC721_WITH_CRITERIA) {
+                    order.parameters.offer[criteriaResolver.index].assetType = AssetType.ERC721;
+                } else {
+                    order.parameters.offer[criteriaResolver.index].assetType = AssetType.ERC1155;
+                }
+
+                order.parameters.offer[criteriaResolver.index].identifierOrCriteria = criteriaResolver.identifier;
+            } else {
+                if (criteriaResolver.index >= order.parameters.consideration.length) {
+                    revert ConsiderationCriteriaResolverOutOfRange();
+                }
+
+                ReceivedAsset memory consideration = order.parameters.consideration[criteriaResolver.index];
+                if (
+                    consideration.assetType != AssetType.ERC721_WITH_CRITERIA &&
+                    consideration.assetType != AssetType.ERC1155_WITH_CRITERIA
+                ) {
+                    revert CriteriaNotEnabledForConsideredAsset();
+                }
+
+                // empty criteria signifies a collection-wide consideration (buy any asset)
+                if (consideration.identifierOrCriteria != uint256(0)) {
+                    _verifyProof(
+                        criteriaResolver.identifier,
+                        consideration.identifierOrCriteria,
+                        criteriaResolver.criteriaProof
+                    );
+                }
+
+                if (consideration.assetType == AssetType.ERC721_WITH_CRITERIA) {
+                    order.parameters.consideration[criteriaResolver.index].assetType = AssetType.ERC721;
+                } else {
+                    order.parameters.consideration[criteriaResolver.index].assetType = AssetType.ERC1155;
+                }
+
+                order.parameters.consideration[criteriaResolver.index].identifierOrCriteria = criteriaResolver.identifier;
+            }
+        }
+
+        for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
+            if (uint256(order.parameters.consideration[i].assetType) > 3) {
+                revert UnresolvedConsiderationCriteria();
+            }
+            if (order.parameters.consideration[i].account != msg.sender) {
+                _fulfill(order.parameters.consideration[i], msg.sender);
+            }
+        }
+
+        for (uint256 i = 0; i < order.parameters.offer.length; i++) {
+            if (uint256(order.parameters.offer[i].assetType) > 3) {
+                revert UnresolvedOfferCriteria();
+            }
+            _fulfill(
+                ReceivedAsset(
+                    order.parameters.offer[i].assetType,
+                    order.parameters.offer[i].token,
+                    order.parameters.offer[i].identifierOrCriteria,
                     order.parameters.offer[i].amount,
                     payable(msg.sender)
                 ),
@@ -277,24 +416,18 @@ contract Consideration {
     }
 
     function fulfillPartialOrder(Order memory order, uint256 amountToFill) public payable nonReentrant() returns (bool) {
+        if (
+            order.parameters.orderType != OrderType.PARTIAL_OPEN &&
+            order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
+        ) {
+            revert PartialFillsNotEnabledForOrder();
+        }
+
         if (amountToFill > _FULLY_FILLED) {
             revert Overfill();
         }
 
-        if (
-            order.parameters.startTime > block.timestamp ||
-            order.parameters.endTime < block.timestamp
-        ) {
-            revert InvalidTime();
-        }
-
-        if (
-            uint256(order.parameters.orderType) > 1 &&
-            msg.sender != order.parameters.facilitator &&
-            msg.sender != order.parameters.offerer
-        ) {
-            revert InvalidSubmitterOnRestrictedOrder();
-        }
+        _assertBasicOrderValidity(order.parameters);
 
         order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
 
@@ -332,7 +465,7 @@ contract Consideration {
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             if (uint256(order.parameters.consideration[i].assetType) > 3) {
-                revert NoAdvancedConsiderationOnBasicMatch();
+                revert NoConsiderationWithCriteriaOnBasicMatch();
             }
             if (order.parameters.consideration[i].account != msg.sender) {
                 _fulfill(order.parameters.consideration[i], msg.sender);
@@ -341,13 +474,13 @@ contract Consideration {
 
         for (uint256 i = 0; i < order.parameters.offer.length; i++) {
             if (uint256(order.parameters.offer[i].assetType) > 3) {
-                revert NoAdvancedOffersOnBasicMatch();
+                revert NoOffersWithCriteriaOnBasicMatch();
             }
             _fulfill(
                 ReceivedAsset(
                     order.parameters.offer[i].assetType,
                     order.parameters.offer[i].token,
-                    order.parameters.offer[i].identifier,
+                    order.parameters.offer[i].identifierOrCriteria,
                     order.parameters.offer[i].amount,
                     payable(msg.sender)
                 ),
@@ -363,32 +496,22 @@ contract Consideration {
         for (uint256 i = 0; i < orders.length; i++) {
             OrderParameters memory order = orders[i].parameters;
 
-            if (
-                uint256(order.orderType) > 1 &&
-                msg.sender != order.facilitator &&
-                msg.sender != order.offerer
-            ) {
-                revert InvalidSubmitterOnRestrictedOrder();
-            }
+            _assertBasicOrderValidity(order);
 
             order.nonce = facilitatorNonces[order.offerer][order.facilitator];
 
             for (uint256 j = 0; j < order.offer.length; j++) {
                 Asset memory asset = order.offer[j];
                 if (uint256(asset.assetType) > 3) {
-                    revert NoAdvancedOffersOnBasicMatch();
+                    revert NoOffersWithCriteriaOnBasicMatch();
                 }
             }
 
             for (uint256 j = 0; j < order.consideration.length; j++) {
                 ReceivedAsset memory asset = order.consideration[j];
                 if (uint256(asset.assetType) > 3) {
-                    revert NoAdvancedConsiderationOnBasicMatch();
+                    revert NoConsiderationWithCriteriaOnBasicMatch();
                 }
-            }
-
-            if (order.startTime > block.timestamp || order.endTime < block.timestamp) {
-                revert InvalidTime();
             }
 
             if (order.offerer != msg.sender && order.offer.length != 0) {
@@ -469,7 +592,7 @@ contract Consideration {
                     offerer != additionalOfferer ||
                     offeredAsset.assetType != additionalOfferedAsset.assetType ||
                     offeredAsset.token != additionalOfferedAsset.token ||
-                    offeredAsset.identifier != additionalOfferedAsset.identifier
+                    offeredAsset.identifierOrCriteria != additionalOfferedAsset.identifierOrCriteria
                 ) {
                     revert MismatchedFulfillmentOfferComponents();
                 }
@@ -506,7 +629,7 @@ contract Consideration {
                     requiredConsideration.account != additionalRequiredConsideration.account ||
                     requiredConsideration.assetType != additionalRequiredConsideration.assetType ||
                     requiredConsideration.token != additionalRequiredConsideration.token ||
-                    requiredConsideration.identifier != additionalRequiredConsideration.identifier
+                    requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria
                 ) {
                     revert MismatchedFulfillmentConsiderationComponents();
                 }
@@ -569,6 +692,20 @@ contract Consideration {
         );
     }
 
+    function _assertBasicOrderValidity(OrderParameters memory order) internal view {
+        if (order.startTime > block.timestamp || order.endTime < block.timestamp) {
+            revert InvalidTime();
+        }
+
+        if (
+            uint256(order.orderType) > 1 &&
+            msg.sender != order.facilitator &&
+            msg.sender != order.offerer
+        ) {
+            revert InvalidSubmitterOnRestrictedOrder();
+        }
+    }
+
     function _fulfill(ReceivedAsset memory asset, address offerer) internal {
         bool ok;
         bytes memory data;
@@ -629,7 +766,7 @@ contract Consideration {
                     ERC721Interface.transferFrom.selector,
                     offerer,
                     asset.account,
-                    asset.identifier
+                    asset.identifierOrCriteria
                 )
             );
             if (!ok) {
@@ -639,7 +776,7 @@ contract Consideration {
                         revert(0, returndatasize())
                     }
                 } else {
-                    revert ERC721TransferGenericFailure(asset.token, asset.account, asset.identifier);
+                    revert ERC721TransferGenericFailure(asset.token, asset.account, asset.identifierOrCriteria);
                 }
             } else if (data.length == 0) {
                 address token = asset.token;
@@ -658,7 +795,7 @@ contract Consideration {
                     ERC1155Interface.safeTransferFrom.selector,
                     offerer,
                     asset.account,
-                    asset.identifier,
+                    asset.identifierOrCriteria,
                     asset.amount
                 )
             );
@@ -669,7 +806,12 @@ contract Consideration {
                         revert(0, returndatasize())
                     }
                 } else {
-                    revert ERC1155TransferGenericFailure(asset.token, asset.account, asset.identifier, asset.amount);
+                    revert ERC1155TransferGenericFailure(
+                        asset.token,
+                        asset.account,
+                        asset.identifierOrCriteria,
+                        asset.amount
+                    );
                 }
             } else if (data.length == 0) {
                 address token = asset.token;
@@ -763,8 +905,8 @@ contract Consideration {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    function verify(bytes32[] memory proof, bytes32 leaf, bytes32 root) internal pure returns (bool) {
-        bytes32 computedHash = leaf;
+    function _verifyProof(uint256 leaf, uint256 root, bytes32[] memory proof) internal pure {
+        bytes32 computedHash = bytes32(leaf);
         for (uint256 i = 0; i < proof.length; i++) {
             bytes32 proofElement = proof[i];
             if (computedHash <= proofElement) {
@@ -775,7 +917,9 @@ contract Consideration {
                 computedHash = _efficientHash(proofElement, computedHash);
             }
         }
-        return computedHash == root;
+        if (computedHash != bytes32(root)) {
+            revert InvalidProof();
+        }
     }
 
     function _efficientHash(bytes32 a, bytes32 b) private pure returns (bytes32 value) {
