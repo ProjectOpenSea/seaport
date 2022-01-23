@@ -145,29 +145,45 @@ interface ERC1155Interface {
     function safeTransferFrom(address, address, uint256, uint256) external;
 }
 
-contract Consideration {
-    string public constant name = "Consideration";
+interface ConsiderationInterface {
+    function fulfillOrder(Order memory order) external payable returns (bool);
+    function fulfillOrderWithCriteria(
+        Order memory order,
+        CriteriaResolver[] memory criteriaResolvers
+    ) external payable returns (bool);
+    function fulfillPartialOrder(
+        Order memory order,
+        uint256 amountToFill
+    ) external payable returns (bool);
+    function matchOrders(
+        Order[] memory orders,
+        Fulfillment[] memory fulfillments
+    ) external payable returns (Execution[] memory);
+    function matchAdvancedOrders(
+        AdvancedOrder[] memory orders,
+        AdvancedFulfillment[] memory fulfillments
+    ) external payable returns (Execution[] memory);
+    function cancel(
+        OrderComponents[] memory orders
+    ) external returns (bool ok);
+    function incrementFacilitatorNonce(
+        address offerer,
+        address facilitator
+    ) external returns (uint256 nonce);
 
-    // keccak256("OrderComponents(address offerer,address facilitator,uint8 offerType,uint256 startTime,uint256 endTime,uint256 salt,Asset[] offer,ReceivedAsset[] consideration,uint256 nonce)Asset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount,address account)")
-    bytes32 private constant _ORDER_HASH = 0xc4c9aebe0f2ad41d5dea01ee013e80a4db9924a6db6b805b74fb6e257f2f3910;
+    function getOrderHash(
+        OrderComponents memory order
+    ) external view returns (bytes32);
+    function name() external view returns (string memory);
+    function version() external view returns (string memory);
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+    function orderUsedOrCancelled(bytes32 orderHash) external view returns (uint256);
+    function facilitatorNonce(address offerer, address facilitator) external view returns (uint256);
 
-    // keccak256("AdvancedOrderParameters(AdvancedAsset[] offer,AdvancedReceivedAsset[] consideration,uint256 startTime,uint256 endTime,address offerer,uint256 salt,address facilitator,uint256 nonce)AdvancedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)AdvancedReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
-    bytes32 private constant _ADVANCED_ORDER_HASH = 0x418addaabd220f7e0798199c1dee87b4fd26b5ef7595dfbb8f3eef1ae9d5ff87;
-
-    uint256 private constant _NOT_ENTERED = 1;
-    uint256 private constant _ENTERED = 2;
-    uint256 private constant _FULLY_FILLED = 1e18;
-    uint256 private constant _ENSURE_ROUND_UP = 999999999999999999;
-
-    bytes32 private immutable _DOMAIN_SEPARATOR;
-    uint256 private immutable _CHAIN_ID;
-
-    uint256 private _reentrancyGuard;
-
-    mapping (bytes32 => uint256) public orderUsed; // 1e18 => 100%
-
-    // offerer => facilitator => nonce (cancel offerer's orders with given facilitator)
-    mapping (address => mapping (address => uint256)) public facilitatorNonces;
+    // TODO: decide what data is required here
+    event OrderFulfilled(bytes32 orderHash, address indexed offerer, address facilitator);
+    event OrderCancelled(bytes32 orderHash, address indexed offerer, address facilitator);
+    event FacilitatorNonceIncremented(address indexed offerer, address facilitator, uint256 nonce);
 
     error NoOffersWithCriteriaOnBasicMatch();
     error NoConsiderationWithCriteriaOnBasicMatch();
@@ -214,8 +230,37 @@ contract Consideration {
     error CriteriaNotEnabledForConsideredAsset();
     error InvalidProof();
 
+    error OnlyOffererOrFacilitatorMayCancel();
+    error OnlyOffererOrFacilitatorMayIncrementNonce();
+}
+
+contract Consideration is ConsiderationInterface {
+    string private constant _NAME = "Consideration";
+    string private constant _VERSION = "1";
+
+    // keccak256("OrderComponents(address offerer,address facilitator,uint8 offerType,uint256 startTime,uint256 endTime,uint256 salt,Asset[] offer,ReceivedAsset[] consideration,uint256 nonce)Asset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount,address account)")
+    bytes32 private constant _ORDER_HASH = 0xc4c9aebe0f2ad41d5dea01ee013e80a4db9924a6db6b805b74fb6e257f2f3910;
+
+    // keccak256("AdvancedOrderParameters(AdvancedAsset[] offer,AdvancedReceivedAsset[] consideration,uint256 startTime,uint256 endTime,address offerer,uint256 salt,address facilitator,uint256 nonce)AdvancedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)AdvancedReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
+    bytes32 private constant _ADVANCED_ORDER_HASH = 0x418addaabd220f7e0798199c1dee87b4fd26b5ef7595dfbb8f3eef1ae9d5ff87;
+
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+    uint256 private constant _FULLY_FILLED = 1e18;
+    uint256 private constant _ENSURE_ROUND_UP = 999999999999999999;
+
+    bytes32 private immutable _DOMAIN_SEPARATOR;
+    uint256 private immutable _CHAIN_ID;
+
+    uint256 private _reentrancyGuard;
+
+    mapping (bytes32 => uint256) private _orderUsedOrCancelled; // 1e18 => 100%
+
+    // offerer => facilitator => nonce (cancel offerer's orders with given facilitator)
+    mapping (address => mapping (address => uint256)) private _facilitatorNonces;
+
     constructor() {
-        _DOMAIN_SEPARATOR = _getDomainSeparator();
+        _DOMAIN_SEPARATOR = _deriveDomainSeparator();
         _CHAIN_ID = block.chainid;
 
         _reentrancyGuard = _NOT_ENTERED;
@@ -223,7 +268,7 @@ contract Consideration {
 
     function fulfillOrder(
         Order memory order
-    ) public payable nonReentrant() returns (bool) {
+    ) external payable override nonReentrant() returns (bool) {
         _assertBasicOrderValidity(order.parameters);
 
         bytes32 orderHash = _applyUsedPartialOrderOrVerifySignature(order);
@@ -253,13 +298,14 @@ contract Consideration {
             );
         }
 
+        emit OrderFulfilled(orderHash, order.parameters.offerer, order.parameters.facilitator);
         return true;
     }
 
     function fulfillOrderWithCriteria(
         Order memory order,
         CriteriaResolver[] memory criteriaResolvers
-    ) public payable nonReentrant() returns (bool) {
+    ) external payable override nonReentrant() returns (bool) {
         _assertBasicOrderValidity(order.parameters);
 
         bytes32 orderHash = _applyUsedPartialOrderOrVerifySignature(order);
@@ -352,13 +398,14 @@ contract Consideration {
             );
         }
 
+        emit OrderFulfilled(orderHash, order.parameters.offerer, order.parameters.facilitator);
         return true;
     }
 
     function fulfillPartialOrder(
         Order memory order,
         uint256 amountToFill
-    ) public payable nonReentrant() returns (bool) {
+    ) external payable override nonReentrant() returns (bool) {
         if (
             order.parameters.orderType != OrderType.PARTIAL_OPEN &&
             order.parameters.orderType != OrderType.PARTIAL_RESTRICTED
@@ -374,10 +421,10 @@ contract Consideration {
 
         bytes32 orderHash = _getOrderHash(
             order.parameters,
-            facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
+            _facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
         );
 
-        uint256 orderFilledAmount = orderUsed[orderHash];
+        uint256 orderFilledAmount = _orderUsedOrCancelled[orderHash];
         if (orderFilledAmount != 0) {
             if (orderFilledAmount >= _FULLY_FILLED) {
                 revert OrderUsed(orderHash);
@@ -406,7 +453,7 @@ contract Consideration {
             );
         }
 
-        orderUsed[orderHash] = orderFilledAmount + amountToFill;
+        _orderUsedOrCancelled[orderHash] = orderFilledAmount + amountToFill;
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             if (uint256(order.parameters.consideration[i].assetType) > 3) {
@@ -433,13 +480,14 @@ contract Consideration {
             );
         }
 
+        emit OrderFulfilled(orderHash, order.parameters.offerer, order.parameters.facilitator);
         return true;
     }
 
     function matchOrders(
         Order[] memory orders,
         Fulfillment[] memory fulfillments
-    ) public payable nonReentrant() returns (Execution[] memory) {
+    ) external payable override nonReentrant() returns (Execution[] memory) {
         // verify soundness of each order — either 712 signature/1271 or msg.sender
         for (uint256 i = 0; i < orders.length; i++) {
             OrderParameters memory order = orders[i].parameters;
@@ -463,9 +511,9 @@ contract Consideration {
             if (order.offerer != msg.sender && order.offer.length != 0) {
                 bytes32 orderHash = _getOrderHash(
                     order,
-                    facilitatorNonces[order.offerer][order.facilitator]
+                    _facilitatorNonces[order.offerer][order.facilitator]
                 );
-                uint256 orderFilledAmount = orderUsed[orderHash];
+                uint256 orderFilledAmount = _orderUsedOrCancelled[orderHash];
                 if (orderFilledAmount != 0) {
                     if (orderFilledAmount >= _FULLY_FILLED) {
                         revert OrderUsed(orderHash);
@@ -493,7 +541,7 @@ contract Consideration {
                     _verifySignature(order.offerer, orderHash, orders[i].signature);
                 }
 
-                orderUsed[orderHash] = _FULLY_FILLED;
+                _orderUsedOrCancelled[orderHash] = _FULLY_FILLED;
             }
         }
 
@@ -612,25 +660,83 @@ contract Consideration {
             _fulfill(execution[i].asset, execution[i].offerer);
         }
 
+        // TODO: emit events
         return execution;
     }
 
     function matchAdvancedOrders(
         AdvancedOrder[] memory orders,
         AdvancedFulfillment[] memory fulfillments
-    ) public payable nonReentrant() returns (Execution[] memory) {
+    ) external payable override nonReentrant() returns (Execution[] memory) {
         // ...
     }
 
     function cancel(
-        Order[] memory orders
-    ) external returns (bool ok) {
-        // ...
+        OrderComponents[] memory orders
+    ) external override returns (bool ok) {
+        for (uint256 i = 0; i < orders.length; i++) {
+            OrderComponents memory order = orders[i];
+            if (msg.sender != order.offerer && msg.sender != order.facilitator) {
+                revert OnlyOffererOrFacilitatorMayCancel();
+            }
+
+            bytes32 orderHash = _getOrderHash(
+                OrderParameters(
+                    order.offerer,
+                    order.facilitator,
+                    order.orderType,
+                    order.startTime,
+                    order.endTime,
+                    order.salt,
+                    order.offer,
+                    order.consideration
+                ),
+                order.nonce
+            );
+
+            _orderUsedOrCancelled[orderHash] = _FULLY_FILLED;
+
+            emit OrderCancelled(orderHash, order.offerer, order.facilitator);
+        }
+
+        return true;
+    }
+
+    function incrementFacilitatorNonce(
+        address offerer,
+        address facilitator
+    ) external override returns (uint256 nonce) {
+        if (msg.sender != offerer && msg.sender != facilitator) {
+            revert OnlyOffererOrFacilitatorMayIncrementNonce();
+        }
+
+        nonce = _facilitatorNonces[offerer][facilitator]++;
+
+        emit FacilitatorNonceIncremented(offerer, facilitator, nonce);
+
+        return nonce;
+    }
+
+    function orderUsedOrCancelled(
+        bytes32 orderHash
+    ) external view override returns (uint256) {
+        return _orderUsedOrCancelled[orderHash];
+    }
+
+    function facilitatorNonce(
+        address offerer,
+        address facilitator
+    ) external view override returns (uint256) {
+        return _facilitatorNonces[offerer][facilitator];
+    }
+
+    function DOMAIN_SEPARATOR() external view override returns (bytes32) {
+        return _domainSeparator();
     }
 
     function getOrderHash(
         OrderComponents memory order
-    ) external pure returns (bytes32) {
+    ) external pure override returns (bytes32) {
         return _getOrderHash(
             OrderParameters(
                 order.offerer,
@@ -646,8 +752,12 @@ contract Consideration {
         );
     }
 
-    function DOMAIN_SEPARATOR() public view returns (bytes32) {
-        return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _getDomainSeparator();
+    function name() external pure override returns (string memory) {
+        return _NAME;
+    }
+
+    function version() external pure override returns (string memory) {
+        return _VERSION;
     }
 
     modifier nonReentrant() {
@@ -665,12 +775,12 @@ contract Consideration {
 
     function _applyUsedPartialOrderOrVerifySignature(
         Order memory order
-    ) internal returns (bytes32 orderHash) {
+    ) private returns (bytes32 orderHash) {
         orderHash = _getOrderHash(
             order.parameters,
-            facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
+            _facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
         );
-        uint256 orderFilledAmount = orderUsed[orderHash];
+        uint256 orderFilledAmount = _orderUsedOrCancelled[orderHash];
         if (orderFilledAmount != 0) {
             if (orderFilledAmount >= _FULLY_FILLED) {
                 revert OrderUsed(orderHash);
@@ -700,7 +810,7 @@ contract Consideration {
             );
         }
 
-        orderUsed[orderHash] = _FULLY_FILLED;
+        _orderUsedOrCancelled[orderHash] = _FULLY_FILLED;
 
         return orderHash;
     }
@@ -708,7 +818,7 @@ contract Consideration {
     function _fulfill(
         ReceivedAsset memory asset,
         address offerer
-    ) internal {
+    ) private {
         bool ok;
         bytes memory data;
         if (asset.assetType == AssetType.ETH) {
@@ -830,7 +940,7 @@ contract Consideration {
 
     function _assertBasicOrderValidity(
         OrderParameters memory order
-    ) internal view {
+    ) private view {
         if (order.startTime > block.timestamp || order.endTime < block.timestamp) {
             revert InvalidTime();
         }
@@ -848,9 +958,9 @@ contract Consideration {
         address offerer,
         bytes32 orderHash,
         bytes memory signature
-    ) internal view {
+    ) private view {
         bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), orderHash)
+            abi.encodePacked("\x19\x01", _domainSeparator(), orderHash)
         );
 
         bytes32 r;
@@ -910,7 +1020,11 @@ contract Consideration {
         }
     }
 
-    function _getDomainSeparator() internal view returns (bytes32) {
+    function _domainSeparator() private view returns (bytes32) {
+        return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _deriveDomainSeparator();
+    }
+
+    function _deriveDomainSeparator() private view returns (bytes32) {
         return keccak256(
             abi.encode(
                 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f, // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
@@ -925,7 +1039,7 @@ contract Consideration {
     function _getOrderHash(
         OrderParameters memory orderParameters,
         uint256 nonce
-    ) internal pure returns (bytes32) {
+    ) private pure returns (bytes32) {
         return keccak256(
             abi.encode(
                 _ORDER_HASH,
@@ -946,7 +1060,7 @@ contract Consideration {
         uint256 leaf,
         uint256 root,
         bytes32[] memory proof
-    ) internal pure {
+    ) private pure {
         bytes32 computedHash = bytes32(leaf);
         for (uint256 i = 0; i < proof.length; i++) {
             bytes32 proofElement = proof[i];
