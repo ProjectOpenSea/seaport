@@ -864,7 +864,7 @@ contract Consideration {
     }
 
     function _verifySignature(
-        address account,
+        address offerer,
         bytes32 orderHash,
         bytes memory signature
     ) internal view {
@@ -905,8 +905,8 @@ contract Consideration {
 
         if (signer == address(0)) {
             revert InvalidSignature();
-        } else if (signer != account) {
-            (bool success, bytes memory result) = signer.staticcall(
+        } else if (signer != offerer) {
+            (bool success, bytes memory result) = offerer.staticcall(
                 abi.encodeWithSelector(0x1626ba7e, digest, signature)
             );
             if (!success) {
