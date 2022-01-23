@@ -650,52 +650,17 @@ contract Consideration {
         return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _getDomainSeparator();
     }
 
-    function _getDomainSeparator() internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f, // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
-                0x64987f6373075400d7cbff689f2b7bc23753c7e6ce20688196489b8f5d9d7e6c, // keccak256("Consideration")
-                0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6, // keccak256(bytes("1")) for versionId = 1
-                block.chainid,
-                address(this)
-            )
-        );
-    }
-
-    function _getOrderHash(
-        OrderParameters memory orderParameters,
-        uint256 nonce
-    ) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _ORDER_HASH,
-                orderParameters.offerer,
-                orderParameters.facilitator,
-                orderParameters.orderType,
-                orderParameters.startTime,
-                orderParameters.endTime,
-                orderParameters.salt,
-                keccak256(abi.encode(orderParameters.offer)),
-                keccak256(abi.encode(orderParameters.consideration)),
-                nonce
-            )
-        );
-    }
-
-    function _assertBasicOrderValidity(
-        OrderParameters memory order
-    ) internal view {
-        if (order.startTime > block.timestamp || order.endTime < block.timestamp) {
-            revert InvalidTime();
+    modifier nonReentrant() {
+        // On the first call to nonReentrant, _notEntered will be true
+        if (_reentrancyGuard == _ENTERED) {
+            revert("No reentrant calls");
         }
 
-        if (
-            uint256(order.orderType) > 1 &&
-            msg.sender != order.facilitator &&
-            msg.sender != order.offerer
-        ) {
-            revert InvalidSubmitterOnRestrictedOrder();
-        }
+        _reentrancyGuard = _ENTERED;
+
+        _;
+
+        _reentrancyGuard = _NOT_ENTERED;
     }
 
     function _applyUsedPartialOrderOrVerifySignature(
@@ -863,6 +828,22 @@ contract Consideration {
         }
     }
 
+    function _assertBasicOrderValidity(
+        OrderParameters memory order
+    ) internal view {
+        if (order.startTime > block.timestamp || order.endTime < block.timestamp) {
+            revert InvalidTime();
+        }
+
+        if (
+            uint256(order.orderType) > 1 &&
+            msg.sender != order.facilitator &&
+            msg.sender != order.offerer
+        ) {
+            revert InvalidSubmitterOnRestrictedOrder();
+        }
+    }
+
     function _verifySignature(
         address offerer,
         bytes32 orderHash,
@@ -929,17 +910,36 @@ contract Consideration {
         }
     }
 
-    modifier nonReentrant() {
-        // On the first call to nonReentrant, _notEntered will be true
-        if (_reentrancyGuard == _ENTERED) {
-            revert("No reentrant calls");
-        }
+    function _getDomainSeparator() internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f, // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
+                0x64987f6373075400d7cbff689f2b7bc23753c7e6ce20688196489b8f5d9d7e6c, // keccak256("Consideration")
+                0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6, // keccak256(bytes("1")) for versionId = 1
+                block.chainid,
+                address(this)
+            )
+        );
+    }
 
-        _reentrancyGuard = _ENTERED;
-
-        _;
-
-        _reentrancyGuard = _NOT_ENTERED;
+    function _getOrderHash(
+        OrderParameters memory orderParameters,
+        uint256 nonce
+    ) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _ORDER_HASH,
+                orderParameters.offerer,
+                orderParameters.facilitator,
+                orderParameters.orderType,
+                orderParameters.startTime,
+                orderParameters.endTime,
+                orderParameters.salt,
+                keccak256(abi.encode(orderParameters.offer)),
+                keccak256(abi.encode(orderParameters.consideration)),
+                nonce
+            )
+        );
     }
 
     function _verifyProof(
