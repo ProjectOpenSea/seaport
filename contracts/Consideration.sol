@@ -38,14 +38,25 @@ struct ReceivedAsset {
 }
 
 struct OrderParameters {
+    address offerer;
+    address facilitator;
     OrderType orderType;
-    Asset[] offer;
-    ReceivedAsset[] consideration;
     uint256 startTime;
     uint256 endTime;
-    address offerer;
     uint256 salt;
+    Asset[] offer;
+    ReceivedAsset[] consideration;
+}
+
+struct OrderComponents {
+    address offerer;
     address facilitator;
+    OrderType orderType;
+    uint256 startTime;
+    uint256 endTime;
+    uint256 salt;
+    Asset[] offer;
+    ReceivedAsset[] consideration;
     uint256 nonce;
 }
 
@@ -137,19 +148,19 @@ interface ERC1155Interface {
 contract Consideration {
     string public constant name = "Consideration";
 
-    bytes32 public immutable DOMAIN_SEPARATOR;
-
-    // keccak256("OrderParameters(Asset[] offer,ReceivedAsset[] consideration,uint256 startTime,uint256 endTime,address offerer,uint256 salt,address facilitator,uint256 nonce)Asset(uint8 assetType,address token,uint256 identifier,uint256 amount)ReceivedAsset(uint8 assetType,address token,uint256 identifier,uint256 amount,address account)")
-    bytes32 internal constant ORDER_HASH = 0x900b0433e3177449dd2e6d48dfbbe46df9309e9adf1327887bf378dbc5f36b1d;
+    // keccak256("OrderComponents(address offerer,address facilitator,uint8 offerType,uint256 startTime,uint256 endTime,uint256 salt,Asset[] offer,ReceivedAsset[] consideration,uint256 nonce)Asset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount,address account)")
+    bytes32 private constant _ORDER_HASH = 0xc4c9aebe0f2ad41d5dea01ee013e80a4db9924a6db6b805b74fb6e257f2f3910;
 
     // keccak256("AdvancedOrderParameters(AdvancedAsset[] offer,AdvancedReceivedAsset[] consideration,uint256 startTime,uint256 endTime,address offerer,uint256 salt,address facilitator,uint256 nonce)AdvancedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)AdvancedReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
-    bytes32 internal constant ADVANCED_ORDER_HASH = 0x418addaabd220f7e0798199c1dee87b4fd26b5ef7595dfbb8f3eef1ae9d5ff87;
+    bytes32 private constant _ADVANCED_ORDER_HASH = 0x418addaabd220f7e0798199c1dee87b4fd26b5ef7595dfbb8f3eef1ae9d5ff87;
 
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;
-
     uint256 private constant _FULLY_FILLED = 1e18;
     uint256 private constant _ENSURE_ROUND_UP = 999999999999999999;
+
+    bytes32 private immutable _DOMAIN_SEPARATOR;
+    uint256 private immutable _CHAIN_ID;
 
     uint256 private _reentrancyGuard;
 
@@ -204,15 +215,8 @@ contract Consideration {
     error InvalidProof();
 
     constructor() {
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f, // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
-                0x64987f6373075400d7cbff689f2b7bc23753c7e6ce20688196489b8f5d9d7e6c, // keccak256("Consideration")
-                0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6, // keccak256(bytes("1")) for versionId = 1
-                block.chainid,
-                address(this)
-            )
-        );
+        _DOMAIN_SEPARATOR = _getDomainSeparator();
+        _CHAIN_ID = block.chainid;
 
         _reentrancyGuard = _NOT_ENTERED;
     }
@@ -368,8 +372,10 @@ contract Consideration {
 
         _assertBasicOrderValidity(order.parameters);
 
-        order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
-        bytes32 orderHash = hash(order.parameters);
+        bytes32 orderHash = _getOrderHash(
+            order.parameters,
+            facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
+        );
 
         uint256 orderFilledAmount = orderUsed[orderHash];
         if (orderFilledAmount != 0) {
@@ -440,8 +446,6 @@ contract Consideration {
 
             _assertBasicOrderValidity(order);
 
-            order.nonce = facilitatorNonces[order.offerer][order.facilitator];
-
             for (uint256 j = 0; j < order.offer.length; j++) {
                 Asset memory asset = order.offer[j];
                 if (uint256(asset.assetType) > 3) {
@@ -457,7 +461,10 @@ contract Consideration {
             }
 
             if (order.offerer != msg.sender && order.offer.length != 0) {
-                bytes32 orderHash = hash(order);
+                bytes32 orderHash = _getOrderHash(
+                    order,
+                    facilitatorNonces[order.offerer][order.facilitator]
+                );
                 uint256 orderFilledAmount = orderUsed[orderHash];
                 if (orderFilledAmount != 0) {
                     if (orderFilledAmount >= _FULLY_FILLED) {
@@ -615,29 +622,69 @@ contract Consideration {
         // ...
     }
 
-    function cancel(Order[] memory orders) external returns (bool ok) {
+    function cancel(
+        Order[] memory orders
+    ) external returns (bool ok) {
         // ...
     }
 
-    function hash(OrderParameters memory orderParameters) public pure returns (bytes32) {
+    function getOrderHash(
+        OrderComponents memory order
+    ) external pure returns (bytes32) {
+        return _getOrderHash(
+            OrderParameters(
+                order.offerer,
+                order.facilitator,
+                order.orderType,
+                order.startTime,
+                order.endTime,
+                order.salt,
+                order.offer,
+                order.consideration
+            ),
+            order.nonce
+        );
+    }
+
+    function DOMAIN_SEPARATOR() public view returns (bytes32) {
+        return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _getDomainSeparator();
+    }
+
+    function _getDomainSeparator() internal view returns (bytes32) {
         return keccak256(
             abi.encode(
-                ORDER_HASH,
-                orderParameters.orderType,
-                keccak256(abi.encode(orderParameters.offer)),
-                keccak256(abi.encode(orderParameters.consideration)),
-                orderParameters.startTime,
-                orderParameters.endTime,
-                orderParameters.nonce,
-                orderParameters.offerer,
-                orderParameters.salt,
-                orderParameters.facilitator,
-                orderParameters.nonce
+                0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f, // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
+                0x64987f6373075400d7cbff689f2b7bc23753c7e6ce20688196489b8f5d9d7e6c, // keccak256("Consideration")
+                0xc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc6, // keccak256(bytes("1")) for versionId = 1
+                block.chainid,
+                address(this)
             )
         );
     }
 
-    function _assertBasicOrderValidity(OrderParameters memory order) internal view {
+    function _getOrderHash(
+        OrderParameters memory orderParameters,
+        uint256 nonce
+    ) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _ORDER_HASH,
+                orderParameters.offerer,
+                orderParameters.facilitator,
+                orderParameters.orderType,
+                orderParameters.startTime,
+                orderParameters.endTime,
+                orderParameters.salt,
+                keccak256(abi.encode(orderParameters.offer)),
+                keccak256(abi.encode(orderParameters.consideration)),
+                nonce
+            )
+        );
+    }
+
+    function _assertBasicOrderValidity(
+        OrderParameters memory order
+    ) internal view {
         if (order.startTime > block.timestamp || order.endTime < block.timestamp) {
             revert InvalidTime();
         }
@@ -654,9 +701,10 @@ contract Consideration {
     function _applyUsedPartialOrderOrVerifySignature(
         Order memory order
     ) internal returns (bytes32 orderHash) {
-        order.parameters.nonce = facilitatorNonces[order.parameters.offerer][order.parameters.facilitator];
-
-        orderHash = hash(order.parameters);
+        orderHash = _getOrderHash(
+            order.parameters,
+            facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
+        );
         uint256 orderFilledAmount = orderUsed[orderHash];
         if (orderFilledAmount != 0) {
             if (orderFilledAmount >= _FULLY_FILLED) {
@@ -692,7 +740,10 @@ contract Consideration {
         return orderHash;
     }
 
-    function _fulfill(ReceivedAsset memory asset, address offerer) internal {
+    function _fulfill(
+        ReceivedAsset memory asset,
+        address offerer
+    ) internal {
         bool ok;
         bytes memory data;
         if (asset.assetType == AssetType.ETH) {
@@ -818,7 +869,7 @@ contract Consideration {
         bytes memory signature
     ) internal view {
         bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, orderHash)
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), orderHash)
         );
 
         bytes32 r;
@@ -891,7 +942,11 @@ contract Consideration {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    function _verifyProof(uint256 leaf, uint256 root, bytes32[] memory proof) internal pure {
+    function _verifyProof(
+        uint256 leaf,
+        uint256 root,
+        bytes32[] memory proof
+    ) internal pure {
         bytes32 computedHash = bytes32(leaf);
         for (uint256 i = 0; i < proof.length; i++) {
             bytes32 proofElement = proof[i];
@@ -908,7 +963,10 @@ contract Consideration {
         }
     }
 
-    function _efficientHash(bytes32 a, bytes32 b) private pure returns (bytes32 value) {
+    function _efficientHash(
+        bytes32 a,
+        bytes32 b
+    ) private pure returns (bytes32 value) {
         assembly {
             mstore(0x00, a)
             mstore(0x20, b)
