@@ -2,7 +2,6 @@ import { Wallet } from "@ethersproject/wallet";
 import { expect } from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
-// eslint-disable-next-line node/no-missing-import
 import { Consideration, TestERC721 } from "../typechain-types";
 import { OrderParametersStruct } from "../typechain-types/Consideration";
 
