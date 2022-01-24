@@ -5,50 +5,56 @@
 import { Contract, Signer, utils } from "ethers";
 import { Provider } from "@ethersproject/providers";
 import type {
-  ERC1155Interface,
-  ERC1155InterfaceInterface,
-} from "../ERC1155Interface";
+  IERC721Receiver,
+  IERC721ReceiverInterface,
+} from "../IERC721Receiver";
 
 const _abi = [
   {
     inputs: [
       {
         internalType: "address",
-        name: "",
+        name: "operator",
         type: "address",
       },
       {
         internalType: "address",
-        name: "",
+        name: "from",
         type: "address",
       },
       {
         internalType: "uint256",
-        name: "",
+        name: "tokenId",
         type: "uint256",
       },
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
       },
     ],
-    name: "safeTransferFrom",
-    outputs: [],
+    name: "onERC721Received",
+    outputs: [
+      {
+        internalType: "bytes4",
+        name: "",
+        type: "bytes4",
+      },
+    ],
     stateMutability: "nonpayable",
     type: "function",
   },
 ];
 
-export class ERC1155Interface__factory {
+export class IERC721Receiver__factory {
   static readonly abi = _abi;
-  static createInterface(): ERC1155InterfaceInterface {
-    return new utils.Interface(_abi) as ERC1155InterfaceInterface;
+  static createInterface(): IERC721ReceiverInterface {
+    return new utils.Interface(_abi) as IERC721ReceiverInterface;
   }
   static connect(
     address: string,
     signerOrProvider: Signer | Provider
-  ): ERC1155Interface {
-    return new Contract(address, _abi, signerOrProvider) as ERC1155Interface;
+  ): IERC721Receiver {
+    return new Contract(address, _abi, signerOrProvider) as IERC721Receiver;
   }
 }
