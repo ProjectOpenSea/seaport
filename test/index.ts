@@ -51,6 +51,36 @@ describe("Consideration functional tests", function () {
     ],
   };
 
+  const considerationTypesEip712HashUint256 = {
+    OrderComponents: [
+      {
+        name: "offerer",
+        type: "address",
+      },
+      { name: "facilitator", type: "address" },
+      { name: "orderType", type: "uint256" },
+      { name: "startTime", type: "uint256" },
+      { name: "endTime", type: "uint256" },
+      { name: "salt", type: "uint256" },
+      { name: "offer", type: "Asset[]" },
+      { name: "consideration", type: "ReceivedAsset[]" },
+      { name: "nonce", type: "uint256" },
+    ],
+    Asset: [
+      { name: "assetType", type: "uint256" },
+      { name: "token", type: "address" },
+      { name: "identifierOrCriteria", type: "uint256" },
+      { name: "amount", type: "uint256" },
+    ],
+    ReceivedAsset: [
+      { name: "assetType", type: "uint256" },
+      { name: "token", type: "address" },
+      { name: "identifierOrCriteria", type: "uint256" },
+      { name: "amount", type: "uint256" },
+      { name: "account", type: "address" },
+    ],
+  };
+
   before(async () => {
     const network = await provider.getNetwork();
     chainId = network.chainId;
@@ -124,6 +154,8 @@ describe("Consideration functional tests", function () {
         message: orderComponents,
       };
 
+      console.log("TypedData:", typedData);
+
       const digest = TypedDataUtils.encodeDigest(typedData);
       const digestHex = ethers.utils.hexlify(digest);
       console.log("digest: ", digest);
@@ -193,10 +225,6 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           );
           console.log("sigFromEip712Lib:", sigFromEip712Lib);
 
-          const order = {
-            parameters: orderParameters,
-            signature: sigFromEip712Lib,
-          };
           const orderHash = await marketplaceContract
             .connect(buyer.address)
             .getOrderHash(orderComponents);
@@ -208,6 +236,24 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           console.log("domainSeparator", domainSeparator);
 
           // recover signer from signature and domain separator + order hash
+
+          const digest = await marketplaceContract.getDigest(orderHash);
+          console.log("Digest from contract:", digest);
+
+          // Sign digest directly
+          const signatureUsingContractDigest = await seller.signMessage(
+            ethers.utils.arrayify(digest)
+          );
+
+          console.log(
+            "signatureUsingContractDigest:",
+            signatureUsingContractDigest
+          );
+
+          const order = {
+            parameters: orderParameters,
+            signature: signatureUsingContractDigest,
+          };
 
           await whileImpersonating(buyer.address, provider, async () => {
             await expect(marketplaceContract.connect(buyer).fulfillOrder(order))
