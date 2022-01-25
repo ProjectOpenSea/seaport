@@ -294,8 +294,8 @@ export type FulfillmentStructOutput = [
   considerationComponents: FulfillmentComponentStructOutput[];
 };
 
-export interface ConsiderationInterface extends utils.Interface {
-  contractName: "Consideration";
+export interface ConsiderationInterfaceInterface extends utils.Interface {
+  contractName: "ConsiderationInterface";
   functions: {
     "DOMAIN_SEPARATOR()": FunctionFragment;
     "cancel((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[],uint256)[])": FunctionFragment;
@@ -438,13 +438,13 @@ export type OrderFulfilledEvent = TypedEvent<
 
 export type OrderFulfilledEventFilter = TypedEventFilter<OrderFulfilledEvent>;
 
-export interface Consideration extends BaseContract {
-  contractName: "Consideration";
+export interface ConsiderationInterface extends BaseContract {
+  contractName: "ConsiderationInterface";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: ConsiderationInterface;
+  interface: ConsiderationInterfaceInterface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,

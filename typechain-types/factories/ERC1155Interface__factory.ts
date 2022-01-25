@@ -33,7 +33,7 @@ const _abi = [
         type: "uint256",
       },
     ],
-    name: "transferFrom",
+    name: "safeTransferFrom",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

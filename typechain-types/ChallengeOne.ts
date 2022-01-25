@@ -7,8 +7,6 @@ import {
   BigNumberish,
   BytesLike,
   CallOverrides,
-  ContractTransaction,
-  Overrides,
   PopulatedTransaction,
   Signer,
   utils,
@@ -17,32 +15,32 @@ import { FunctionFragment, Result } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
-export interface ERC1155InterfaceInterface extends utils.Interface {
-  contractName: "ERC1155Interface";
+export interface ChallengeOneInterface extends utils.Interface {
+  contractName: "ChallengeOne";
   functions: {
-    "safeTransferFrom(address,address,uint256,uint256)": FunctionFragment;
+    "exactDivide(uint128,uint128,uint256)": FunctionFragment;
   };
 
   encodeFunctionData(
-    functionFragment: "safeTransferFrom",
-    values: [string, string, BigNumberish, BigNumberish]
+    functionFragment: "exactDivide",
+    values: [BigNumberish, BigNumberish, BigNumberish]
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "safeTransferFrom",
+    functionFragment: "exactDivide",
     data: BytesLike
   ): Result;
 
   events: {};
 }
 
-export interface ERC1155Interface extends BaseContract {
-  contractName: "ERC1155Interface";
+export interface ChallengeOne extends BaseContract {
+  contractName: "ChallengeOne";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
 
-  interface: ERC1155InterfaceInterface;
+  interface: ChallengeOneInterface;
 
   queryFilter<TEvent extends TypedEvent>(
     event: TypedEventFilter<TEvent>,
@@ -64,52 +62,47 @@ export interface ERC1155Interface extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    safeTransferFrom(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
+    exactDivide(
+      numerator: BigNumberish,
+      denominator: BigNumberish,
+      value: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber] & { newValue: BigNumber }>;
   };
 
-  safeTransferFrom(
-    arg0: string,
-    arg1: string,
-    arg2: BigNumberish,
-    arg3: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
+  exactDivide(
+    numerator: BigNumberish,
+    denominator: BigNumberish,
+    value: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   callStatic: {
-    safeTransferFrom(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BigNumberish,
+    exactDivide(
+      numerator: BigNumberish,
+      denominator: BigNumberish,
+      value: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<BigNumber>;
   };
 
   filters: {};
 
   estimateGas: {
-    safeTransferFrom(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+    exactDivide(
+      numerator: BigNumberish,
+      denominator: BigNumberish,
+      value: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
   };
 
   populateTransaction: {
-    safeTransferFrom(
-      arg0: string,
-      arg1: string,
-      arg2: BigNumberish,
-      arg3: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
+    exactDivide(
+      numerator: BigNumberish,
+      denominator: BigNumberish,
+      value: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
   };
 }

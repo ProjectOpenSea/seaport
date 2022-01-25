@@ -80,6 +80,13 @@ struct Order {
     bytes signature;
 }
 
+struct OrderStatus {
+    bool isValidated;
+    bool isCancelled;
+    uint120 numerator;
+    uint120 denominator;
+}
+
 struct CriteriaResolver {
     Side side;
     uint256 index;
@@ -232,6 +239,9 @@ interface ConsiderationInterface {
 
     error OnlyOffererOrFacilitatorMayCancel();
     error OnlyOffererOrFacilitatorMayIncrementNonce();
+
+    error BadFraction();
+    error InexactFraction();
 }
 
 contract Consideration is ConsiderationInterface {
@@ -404,7 +414,8 @@ contract Consideration is ConsiderationInterface {
 
     function fulfillPartialOrder(
         Order memory order,
-        uint256 amountToFill
+        uint120 numerator,
+        uint120 denominator
     ) external payable override nonReentrant() returns (bool) {
         if (
             order.parameters.orderType != OrderType.PARTIAL_OPEN &&
@@ -413,8 +424,8 @@ contract Consideration is ConsiderationInterface {
             revert PartialFillsNotEnabledForOrder();
         }
 
-        if (amountToFill > _FULLY_FILLED) {
-            revert Overfill();
+        if (numerator > denominator || numerator == 0 || denominator == 0) {
+            revert BadFraction();
         }
 
         _assertBasicOrderValidity(order.parameters);
@@ -424,43 +435,63 @@ contract Consideration is ConsiderationInterface {
             _facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
         );
 
-        uint256 orderFilledAmount = _orderUsedOrCancelled[orderHash];
-        if (orderFilledAmount != 0) {
-            if (orderFilledAmount >= _FULLY_FILLED) {
-                revert OrderUsed(orderHash);
-            }
+        OrderStatus memory orderStatus = _orderUsedOrCancelled[orderHash];
 
-            if (orderFilledAmount + amountToFill > _FULLY_FILLED) {
-                revert Overfill();
-            }
 
-            for (uint256 i = 0; i < order.parameters.offer.length; i++) {
-                // round offer amounts down (todo: div in assembly as we know it's not zero)
-                order.parameters.offer[i].amount = (
-                    order.parameters.offer[i].amount * amountToFill
-                ) / _FULLY_FILLED;
-            }
+        if (orderStatus.isCancelled) {
+            revert OrderCancelled();
+        }
 
-            for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
-                // round consideration amounts up (todo: div in assembly as we know it's not zero)
-                order.parameters.consideration[i].amount = (
-                    (order.parameters.consideration[i].amount * amountToFill) + _ENSURE_ROUND_UP
-                ) / _FULLY_FILLED;
+        if (orderStatus.denominator != 0) {
+            if (orderStatus.numerator >= orderStatus.denominator) {
+                revert OrderUsed();
             }
-        } else {
+        } else if (!orderStatus.isValidated) {
             _verifySignature(
                 order.parameters.offerer, orderHash, order.signature
             );
         }
 
-        _orderUsedOrCancelled[orderHash] = orderFilledAmount + amountToFill;
+        // denominator of zero: this is the first fill on this order
+        if (orderStatus.denominator != 0) {
+            if (orderStatus.denominator != denominator) { // different denominator
+                orderStatus.numerator *= denominator;
+                numerator *= orderStatus.denominator;
+                denominator *= orderStatus.denominator;
+            }
+
+            if (orderStatus.numerator + numerator > denominator) {
+                numerator = denominator - orderStatus.numerator; // adjust down
+            }
+
+            _orderUsedOrCancelled[orderHash] = OrderStatus(
+                true,       // is validated
+                false,      // not cancelled
+                orderStatus.numerator + numerator,
+                denominator
+            );
+        } else {
+            _orderUsedOrCancelled[orderHash] = OrderStatus(
+                true,       // is validated
+                false,      // not cancelled
+                numerator,
+                denominator
+            );
+        }
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             if (uint256(order.parameters.consideration[i].assetType) > 3) {
                 revert NoConsiderationWithCriteriaOnBasicMatch();
             }
             if (order.parameters.consideration[i].account != msg.sender) {
-                _fulfill(order.parameters.consideration[i], msg.sender);
+                _fulfill(
+                    _getFraction(
+                        numerator,
+                        denominator,
+                        order.parameters.consideration[i].amount
+                    ),
+                    msg.sender
+                );
             }
         }
 
@@ -473,7 +504,11 @@ contract Consideration is ConsiderationInterface {
                     order.parameters.offer[i].assetType,
                     order.parameters.offer[i].token,
                     order.parameters.offer[i].identifierOrCriteria,
-                    order.parameters.offer[i].amount,
+                    _getFraction(
+                        numerator,
+                        denominator,
+                        order.parameters.offer[i].amount
+                    ),
                     payable(msg.sender)
                 ),
                 order.parameters.offerer
@@ -1054,6 +1089,23 @@ contract Consideration is ConsiderationInterface {
                 nonce
             )
         );
+    }
+
+    function _getFraction(
+        uint120 numerator,
+        uint120 denominator,
+        uint256 value
+    ) internal returns (uint256 newValue) {
+        bool inexact;
+
+        assembly {
+            newValue := div(mul(value, numerator), denominator) // TODO: ensure value * numerator does not overflow
+            inexact := iszero(iszero(mulmod(value, numerator, denominator)))
+        }
+
+        if (inexact) {
+            revert InexactFraction();
+        }
     }
 
     function _verifyProof(

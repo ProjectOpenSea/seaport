@@ -13,9 +13,17 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "ChallengeOne",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ChallengeOne__factory>;
+    getContractFactory(
       name: "Consideration",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Consideration__factory>;
+    getContractFactory(
+      name: "ConsiderationInterface",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ConsiderationInterface__factory>;
     getContractFactory(
       name: "ERC1155Interface",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -30,10 +38,20 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.ERC721Interface__factory>;
 
     getContractAt(
+      name: "ChallengeOne",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ChallengeOne>;
+    getContractAt(
       name: "Consideration",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Consideration>;
+    getContractAt(
+      name: "ConsiderationInterface",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ConsiderationInterface>;
     getContractAt(
       name: "ERC1155Interface",
       address: string,
