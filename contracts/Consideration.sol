@@ -238,8 +238,8 @@ contract Consideration is ConsiderationInterface {
     string private constant _NAME = "Consideration";
     string private constant _VERSION = "1";
 
-    // keccak256("OrderComponents(address offerer,address facilitator,uint8 offerType,uint256 startTime,uint256 endTime,uint256 salt,Asset[] offer,ReceivedAsset[] consideration,uint256 nonce)Asset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount,address account)")
-    bytes32 private constant _ORDER_HASH = 0xc4c9aebe0f2ad41d5dea01ee013e80a4db9924a6db6b805b74fb6e257f2f3910;
+    // keccak256("OrderComponents(address offerer,address facilitator,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,Asset[] offer,ReceivedAsset[] consideration,uint256 nonce)Asset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount,address account)")
+    bytes32 private constant _ORDER_HASH = 0x7ba8ff96e77e78a86ef4f36b47e92a41c6247302b8be004fdd4d45f381266479;
 
     // keccak256("AdvancedOrderParameters(AdvancedAsset[] offer,AdvancedReceivedAsset[] consideration,uint256 startTime,uint256 endTime,address offerer,uint256 salt,address facilitator,uint256 nonce)AdvancedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)AdvancedReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
     bytes32 private constant _ADVANCED_ORDER_HASH = 0x418addaabd220f7e0798199c1dee87b4fd26b5ef7595dfbb8f3eef1ae9d5ff87;
@@ -954,6 +954,12 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    function getDigest(bytes32 orderHash) public view returns (bytes32) {
+        return keccak256(
+            abi.encodePacked("\x19\x01", _domainSeparator(), orderHash)
+        );
+    }
+
     function _verifySignature(
         address offerer,
         bytes32 orderHash,
@@ -1036,10 +1042,50 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
+    // keccak256("Asset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount)")
+    bytes32 constant ASSET_TYPEHASH = 0x35611bcd5dc3b2fcb8632e4efa1d9f437fd340f197c7461e733288620f1c423d;
+
+    // keccak256("ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 amount,address account)")
+    bytes32 constant RECEIVED_ASSET_TYPEHASH = 0xd6e96781c4a7e2ab792cf056883f03ccab2aebcdfd549ac80d6fe659a42a77b9;
+
+    function hashAsset(Asset memory asset) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            ASSET_TYPEHASH,
+            asset.assetType,
+            asset.token,
+            asset.identifierOrCriteria,
+            asset.amount
+        ));
+    }
+
+    function hashReceivedAsset(ReceivedAsset memory receivedAsset) internal pure returns (bytes32) {
+        return keccak256(abi.encode(
+            RECEIVED_ASSET_TYPEHASH,
+            receivedAsset.assetType,
+            receivedAsset.token,
+            receivedAsset.identifierOrCriteria,
+            receivedAsset.amount,
+            receivedAsset.account
+        ));
+    }
+
     function _getOrderHash(
         OrderParameters memory orderParameters,
         uint256 nonce
     ) private pure returns (bytes32) {
+        uint256 offerLength = orderParameters.offer.length;
+        uint256 considerationLength = orderParameters.consideration.length;
+        bytes32[] memory offerHashes = new bytes32[](offerLength);
+        bytes32[] memory considerationHashes = new bytes32[](considerationLength);
+
+        for (uint256 i = 0; i < offerLength; i++) {
+            offerHashes[i] = hashAsset(orderParameters.offer[i]);
+        }
+
+        for (uint256 i = 0; i < considerationLength; i++) {
+            considerationHashes[i] = hashReceivedAsset(orderParameters.consideration[i]);
+        }
+
         return keccak256(
             abi.encode(
                 _ORDER_HASH,
@@ -1049,8 +1095,8 @@ contract Consideration is ConsiderationInterface {
                 orderParameters.startTime,
                 orderParameters.endTime,
                 orderParameters.salt,
-                keccak256(abi.encode(orderParameters.offer)),
-                keccak256(abi.encode(orderParameters.consideration)),
+                keccak256(abi.encodePacked(offerHashes)),
+                keccak256(abi.encodePacked(considerationHashes)),
                 nonce
             )
         );

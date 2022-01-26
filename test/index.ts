@@ -252,7 +252,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
 
           const order = {
             parameters: orderParameters,
-            signature: signatureUsingContractDigest,
+            signature: flatSig,
           };
 
           await whileImpersonating(buyer.address, provider, async () => {
