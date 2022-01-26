@@ -181,9 +181,18 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           // Seller mints nft
           const nftId = 0;
           await testERC721.mint(seller.address, nftId);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
           const oneHourIntoFutureInSecs = Math.floor(
             new Date().getTime() / 1000 + 60 * 60
           );
+
           // Seller creates a sell order of 10 eth for nft
           const orderParameters: OrderParametersStruct = {
             offerer: seller.address,
@@ -217,38 +226,10 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           };
 
           const flatSig = await signOrder(orderComponents, seller);
-          console.log("flatsig:", flatSig);
-
-          const sigFromEip712Lib = await signOrderWithEip712Lib(
-            orderComponents,
-            seller
-          );
-          console.log("sigFromEip712Lib:", sigFromEip712Lib);
 
           const orderHash = await marketplaceContract
             .connect(buyer.address)
             .getOrderHash(orderComponents);
-          console.log("orderHash", orderHash);
-
-          const domainSeparator = await marketplaceContract
-            .connect(buyer.address)
-            .DOMAIN_SEPARATOR();
-          console.log("domainSeparator", domainSeparator);
-
-          // recover signer from signature and domain separator + order hash
-
-          const digest = await marketplaceContract.getDigest(orderHash);
-          console.log("Digest from contract:", digest);
-
-          // Sign digest directly
-          const signatureUsingContractDigest = await seller.signMessage(
-            ethers.utils.arrayify(digest)
-          );
-
-          console.log(
-            "signatureUsingContractDigest:",
-            signatureUsingContractDigest
-          );
 
           const order = {
             parameters: orderParameters,
@@ -256,7 +237,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           };
 
           await whileImpersonating(buyer.address, provider, async () => {
-            await expect(marketplaceContract.connect(buyer).fulfillOrder(order))
+            await expect(marketplaceContract.connect(buyer).fulfillOrder(order, {value: order.parameters.consideration[0].amount}))
               .to.emit(marketplaceContract, "OrderFulfilled")
               .withArgs(orderHash, seller.address, constants.AddressZero);
           });
