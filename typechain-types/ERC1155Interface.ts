@@ -20,16 +20,16 @@ import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 export interface ERC1155InterfaceInterface extends utils.Interface {
   contractName: "ERC1155Interface";
   functions: {
-    "transferFrom(address,address,uint256,uint256)": FunctionFragment;
+    "safeTransferFrom(address,address,uint256,uint256)": FunctionFragment;
   };
 
   encodeFunctionData(
-    functionFragment: "transferFrom",
+    functionFragment: "safeTransferFrom",
     values: [string, string, BigNumberish, BigNumberish]
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "transferFrom",
+    functionFragment: "safeTransferFrom",
     data: BytesLike
   ): Result;
 
@@ -64,7 +64,7 @@ export interface ERC1155Interface extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    transferFrom(
+    safeTransferFrom(
       arg0: string,
       arg1: string,
       arg2: BigNumberish,
@@ -73,7 +73,7 @@ export interface ERC1155Interface extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
-  transferFrom(
+  safeTransferFrom(
     arg0: string,
     arg1: string,
     arg2: BigNumberish,
@@ -82,7 +82,7 @@ export interface ERC1155Interface extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    transferFrom(
+    safeTransferFrom(
       arg0: string,
       arg1: string,
       arg2: BigNumberish,
@@ -94,7 +94,7 @@ export interface ERC1155Interface extends BaseContract {
   filters: {};
 
   estimateGas: {
-    transferFrom(
+    safeTransferFrom(
       arg0: string,
       arg1: string,
       arg2: BigNumberish,
@@ -104,7 +104,7 @@ export interface ERC1155Interface extends BaseContract {
   };
 
   populateTransaction: {
-    transferFrom(
+    safeTransferFrom(
       arg0: string,
       arg1: string,
       arg2: BigNumberish,
