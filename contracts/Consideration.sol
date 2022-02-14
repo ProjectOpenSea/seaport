@@ -88,6 +88,7 @@ struct OrderStatus {
 }
 
 struct CriteriaResolver {
+    uint256 orderIndex;
     Side side;
     uint256 index;
     uint256 identifier;
@@ -113,8 +114,7 @@ struct AdvancedReceivedAsset {
 
 struct AdvancedFulfillmentComponent {
     uint256 orderIndex;
-    uint256 assetIndex;
-    bytes32[] criteriaProof;
+    CriteriaResolver[] criteriaResolvers;
 }
 
 struct AdvancedFulfillment {
@@ -165,6 +165,7 @@ interface ConsiderationInterface {
     ) external payable returns (bool);
     function matchOrders(
         Order[] memory orders,
+        CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable returns (Execution[] memory);
     function matchAdvancedOrders(
@@ -231,6 +232,7 @@ interface ConsiderationInterface {
     error PartialFillsNotEnabledForOrder();
     error OrderIsCancelled(bytes32);
 
+    error OrderCriteriaResolverOutOfRange();
     error UnresolvedOfferCriteria();
     error UnresolvedConsiderationCriteria();
     error OfferCriteriaResolverOutOfRange();
@@ -283,7 +285,11 @@ contract Consideration is ConsiderationInterface {
     ) external payable override nonReentrant() returns (bool) {
         _assertBasicOrderValidity(order.parameters);
 
-        (bytes32 orderHash, uint120 numerator, uint120 denominator) = _validateOrderAndUpdateStatus(order, 1, 1);
+        (
+            bytes32 orderHash,
+            uint120 numerator,
+            uint120 denominator
+        ) = _validateOrderAndUpdateStatus(order, 1, 1);
 
         for (uint256 i = 0; i < order.parameters.consideration.length; i++) {
             if (uint256(order.parameters.consideration[i].assetType) > 3) {
@@ -327,6 +333,94 @@ contract Consideration is ConsiderationInterface {
         return true;
     }
 
+    function _applyCriteriaResolvers(
+        Order[] memory orders,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal pure {
+        for (uint256 i = 0; i < criteriaResolvers.length; i++) {
+            CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
+
+            if (criteriaResolver.orderIndex >= orders.length) {
+                revert OrderCriteriaResolverOutOfRange();
+            }
+
+            if (criteriaResolver.side == Side.OFFER) {
+                if (criteriaResolver.index >= orders[criteriaResolver.orderIndex].parameters.offer.length) {
+                    revert OfferCriteriaResolverOutOfRange();
+                }
+
+                Asset memory offer = orders[criteriaResolver.orderIndex].parameters.offer[criteriaResolver.index];
+                if (
+                    offer.assetType != AssetType.ERC721_WITH_CRITERIA &&
+                    offer.assetType != AssetType.ERC1155_WITH_CRITERIA
+                ) {
+                    revert CriteriaNotEnabledForOfferedAsset();
+                }
+
+                // empty criteria signifies a collection-wide offer (sell any asset)
+                if (offer.identifierOrCriteria != uint256(0)) {
+                    _verifyProof(
+                        criteriaResolver.identifier,
+                        offer.identifierOrCriteria,
+                        criteriaResolver.criteriaProof
+                    );
+                }
+
+                if (offer.assetType == AssetType.ERC721_WITH_CRITERIA) {
+                    orders[criteriaResolver.orderIndex].parameters.offer[criteriaResolver.index].assetType = AssetType.ERC721;
+                } else {
+                    orders[criteriaResolver.orderIndex].parameters.offer[criteriaResolver.index].assetType = AssetType.ERC1155;
+                }
+
+                orders[criteriaResolver.orderIndex].parameters.offer[criteriaResolver.index].identifierOrCriteria = criteriaResolver.identifier;
+            } else {
+                if (criteriaResolver.index >= orders[criteriaResolver.orderIndex].parameters.consideration.length) {
+                    revert ConsiderationCriteriaResolverOutOfRange();
+                }
+
+                ReceivedAsset memory consideration = orders[criteriaResolver.orderIndex].parameters.consideration[criteriaResolver.index];
+                if (
+                    consideration.assetType != AssetType.ERC721_WITH_CRITERIA &&
+                    consideration.assetType != AssetType.ERC1155_WITH_CRITERIA
+                ) {
+                    revert CriteriaNotEnabledForConsideredAsset();
+                }
+
+                // empty criteria signifies a collection-wide consideration (buy any asset)
+                if (consideration.identifierOrCriteria != uint256(0)) {
+                    _verifyProof(
+                        criteriaResolver.identifier,
+                        consideration.identifierOrCriteria,
+                        criteriaResolver.criteriaProof
+                    );
+                }
+
+                if (consideration.assetType == AssetType.ERC721_WITH_CRITERIA) {
+                    orders[criteriaResolver.orderIndex].parameters.consideration[criteriaResolver.index].assetType = AssetType.ERC721;
+                } else {
+                    orders[criteriaResolver.orderIndex].parameters.consideration[criteriaResolver.index].assetType = AssetType.ERC1155;
+                }
+
+                orders[criteriaResolver.orderIndex].parameters.consideration[criteriaResolver.index].identifierOrCriteria = criteriaResolver.identifier;
+            }
+        }
+
+        for (uint256 i = 0; i < orders.length; i++) {
+            Order memory order = orders[i];
+            for (uint256 j = 0; j < order.parameters.consideration.length; j++) {
+                if (uint256(order.parameters.consideration[j].assetType) > 3) {
+                    revert UnresolvedConsiderationCriteria();
+                }
+            }
+
+            for (uint256 j = 0; j < order.parameters.offer.length; j++) {
+                if (uint256(order.parameters.offer[j].assetType) > 3) {
+                    revert UnresolvedOfferCriteria();
+                }
+            }
+        }
+    }
+
     function fulfillOrderWithCriteria(
         Order memory order,
         CriteriaResolver[] memory criteriaResolvers
@@ -337,6 +431,11 @@ contract Consideration is ConsiderationInterface {
 
         for (uint256 i = 0; i < criteriaResolvers.length; i++) {
             CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
+
+            if (criteriaResolver.orderIndex >= 1) {
+                revert OrderCriteriaResolverOutOfRange();
+            }
+
             if (criteriaResolver.side == Side.OFFER) {
                 if (criteriaResolver.index >= order.parameters.offer.length) {
                     revert OfferCriteriaResolverOutOfRange();
@@ -575,6 +674,7 @@ contract Consideration is ConsiderationInterface {
 
     function matchOrders(
         Order[] memory orders,
+        CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable override nonReentrant() returns (Execution[] memory) {
         // verify soundness of each order — either 712 signature/1271 or msg.sender
@@ -582,20 +682,6 @@ contract Consideration is ConsiderationInterface {
             Order memory order = orders[i];
 
             _assertBasicOrderValidity(order.parameters);
-
-            for (uint256 j = 0; j < order.parameters.offer.length; j++) {
-                Asset memory asset = order.parameters.offer[j];
-                if (uint256(asset.assetType) > 3) {
-                    revert NoOffersWithCriteriaOnBasicMatch();
-                }
-            }
-
-            for (uint256 j = 0; j < order.parameters.consideration.length; j++) {
-                ReceivedAsset memory asset = order.parameters.consideration[j];
-                if (uint256(asset.assetType) > 3) {
-                    revert NoConsiderationWithCriteriaOnBasicMatch();
-                }
-            }
 
             (bytes32 orderHash, uint120 numerator, uint120 denominator) = _validateOrderAndUpdateStatus(order, 1, 1);
 
@@ -617,6 +703,8 @@ contract Consideration is ConsiderationInterface {
 
             emit OrderFulfilled(orderHash, orders[i].parameters.offerer, orders[i].parameters.facilitator);
         }
+
+        _applyCriteriaResolvers(orders, criteriaResolvers);
 
         // allocate fulfillment and schedule execution
         Execution[] memory execution = new Execution[](fulfillments.length);
