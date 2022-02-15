@@ -33,13 +33,13 @@ contract Consideration is ConsiderationInterface {
     string private constant _VERSION = "1";
 
     // keccak256("OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)")
-    bytes32 constant ASSET_TYPEHASH = 0xe21b718ec3d6fc8aff01dbd32260ad89de5b3e4d1e370cfad6d5a6a221a9ea25;
+    bytes32 constant OFFERED_ASSET_TYPEHASH = 0xe21b718ec3d6fc8aff01dbd32260ad89de5b3e4d1e370cfad6d5a6a221a9ea25;
 
     // keccak256("ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
     bytes32 constant RECEIVED_ASSET_TYPEHASH = 0x6898daae7bd07ccae00c38117149e10d924f61e47f298a530f6f0a0d90b1ba42;
 
-    // keccak256("OrderComponents(address offerer,address facilitator,uint8 offerType,uint256 startTime,uint256 endTime,uint256 salt,OfferedAsset[] offer,ReceivedAsset[] consideration,uint256 nonce)OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
-    bytes32 private constant _ORDER_HASH = 0xe8e81a11c409c7f5760c344f9d9107e90ebc343953faba9ed8c073e24e357740;
+    // keccak256("OrderComponents(address offerer,address facilitator,OfferedAsset[] offer,ReceivedAsset[] consideration,uint8 offerType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
+    bytes32 private constant _ORDER_HASH = 0x2cb4a0c5885a2983939ea4221ccc5bdd03f038854fc5764ccef28d5063be6896;
 
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;
@@ -1041,13 +1041,16 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
-    function _hashAsset(Asset memory asset) internal pure returns (bytes32) {
+    function _hashOfferedAsset(
+        OfferedAsset memory offeredAsset
+    ) internal pure returns (bytes32) {
         return keccak256(abi.encode(
-            ASSET_TYPEHASH,
-            asset.assetType,
-            asset.token,
-            asset.identifierOrCriteria,
-            asset.amount
+            OFFERED_ASSET_TYPEHASH,
+            offeredAsset.assetType,
+            offeredAsset.token,
+            offeredAsset.identifierOrCriteria,
+            offeredAsset.startAmount,
+            offeredAsset.endAmount
         ));
     }
 
@@ -1059,7 +1062,8 @@ contract Consideration is ConsiderationInterface {
             receivedAsset.assetType,
             receivedAsset.token,
             receivedAsset.identifierOrCriteria,
-            receivedAsset.amount,
+            receivedAsset.startAmount,
+            receivedAsset.endAmount,
             receivedAsset.account
         ));
     }
@@ -1074,7 +1078,7 @@ contract Consideration is ConsiderationInterface {
         bytes32[] memory considerationHashes = new bytes32[](considerationLength);
 
         for (uint256 i = 0; i < offerLength; i++) {
-            offerHashes[i] = _hashAsset(orderParameters.offer[i]);
+            offerHashes[i] = _hashOfferedAsset(orderParameters.offer[i]);
         }
 
         for (uint256 i = 0; i < considerationLength; i++) {
@@ -1086,12 +1090,12 @@ contract Consideration is ConsiderationInterface {
                 _ORDER_HASH,
                 orderParameters.offerer,
                 orderParameters.facilitator,
+                keccak256(abi.encodePacked(offerHashes)),
+                keccak256(abi.encodePacked(considerationHashes)),
                 orderParameters.orderType,
                 orderParameters.startTime,
                 orderParameters.endTime,
                 orderParameters.salt,
-                keccak256(abi.encodePacked(offerHashes)),
-                keccak256(abi.encodePacked(considerationHashes)),
                 nonce
             )
         );
