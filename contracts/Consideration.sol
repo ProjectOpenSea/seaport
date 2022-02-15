@@ -8,6 +8,7 @@ import {
 } from "./Enums.sol";
 
 import {
+    BasicOrderParameters,
     OfferedAsset,
     ReceivedAsset,
     OrderParameters,
@@ -62,10 +63,138 @@ contract Consideration is ConsiderationInterface {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
+    // NOTE: should support fees as well
+    function fulfillBasicEthForERC721Order(
+        BasicOrderParameters calldata parameters
+    ) external payable override returns (bool) {
+        _ensureValidTime(parameters.startTime, parameters.endTime);
+
+        OfferedAsset[] memory offer = new OfferedAsset[](1);
+        ReceivedAsset[] memory consideration = new ReceivedAsset[](1);
+        offer[0] = OfferedAsset(
+            AssetType.ERC721,
+            parameters.token,
+            parameters.identifier,
+            1,
+            1
+        );
+        consideration[0] = ReceivedAsset(
+            AssetType.ETH,
+            address(0),
+            0,
+            msg.value,
+            msg.value,
+            parameters.offerer
+        );
+
+        uint256 nonce = _facilitatorNonces[parameters.offerer][parameters.facilitator];
+
+        bytes32 orderHash = _getOrderHash(
+            OrderParameters(
+                parameters.offerer,
+                parameters.facilitator,
+                OrderType.FULL_OPEN,
+                parameters.startTime,
+                parameters.endTime,
+                parameters.salt,
+                offer,
+                consideration
+            ),
+            nonce
+        );
+
+        _validateBasicOrderAndUpdateStatus(
+            orderHash,
+            parameters.offerer,
+            parameters.signature
+        );
+
+        (bool ok, bytes memory data) = parameters.token.call(
+            abi.encodeWithSelector(
+                ERC721Interface.transferFrom.selector,
+                parameters.offerer,
+                msg.sender,
+                parameters.identifier
+            )
+        );
+        if (!ok) {
+            if (data.length != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            } else {
+                revert ERC721TransferGenericFailure(parameters.token, parameters.offerer, parameters.identifier);
+            }
+        } else if (data.length == 0) {
+            address token = parameters.token;
+            uint256 size;
+            assembly {
+                size := extcodesize(token)
+            }
+            if (size == 0) {
+                revert ERC721TransferNoContract(token);
+            }
+        }
+
+        (ok, data) = parameters.offerer.call{value: msg.value}("");
+        if (!ok) {
+            if (data.length != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            } else {
+                revert EtherTransferGenericFailure(parameters.offerer, msg.value);
+            }
+        }
+
+        emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
+        return true;
+    }
+
+    function fulfillBasicEthForERC1155Order(
+        BasicOrderParameters calldata parameters
+    ) external payable override returns (bool) {
+        _ensureValidTime(parameters.startTime, parameters.endTime);
+    }
+
+    function fulfillBasicERC20ForERC721Order(
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters calldata parameters
+    ) external override returns (bool) {
+        _ensureValidTime(parameters.startTime, parameters.endTime);
+    }
+
+    function fulfillBasicERC20ForERC1155Order(
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters calldata parameters
+    ) external override returns (bool) {
+        _ensureValidTime(parameters.startTime, parameters.endTime);
+    }
+
+    function fulfillBasicERC721ForERC20Order(
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters calldata parameters
+    ) external override returns (bool) {
+        _ensureValidTime(parameters.startTime, parameters.endTime);
+    }
+
+    function fulfillBasicERC1155ForERC20Order(
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters calldata parameters
+    ) external override returns (bool) {
+        _ensureValidTime(parameters.startTime, parameters.endTime);
+    }
+
     function fulfillOrder(
         Order memory order
     ) external payable override nonReentrant() returns (bool) {
-        _assertBasicOrderValidity(order.parameters);
+        _assertHighLevelOrderValidity(order.parameters);
 
         (
             bytes32 orderHash,
@@ -122,7 +251,7 @@ contract Consideration is ConsiderationInterface {
         Order memory order,
         CriteriaResolver[] memory criteriaResolvers
     ) external payable override nonReentrant() returns (bool) {
-        _assertBasicOrderValidity(order.parameters);
+        _assertHighLevelOrderValidity(order.parameters);
 
         (bytes32 orderHash, uint120 numerator, uint120 denominator) = _validateOrderAndUpdateStatus(order, 1, 1);
 
@@ -251,7 +380,7 @@ contract Consideration is ConsiderationInterface {
             revert PartialFillsNotEnabledForOrder();
         }
 
-        _assertBasicOrderValidity(order.parameters);
+        _assertHighLevelOrderValidity(order.parameters);
 
         (
             bytes32 orderHash,
@@ -312,7 +441,7 @@ contract Consideration is ConsiderationInterface {
         for (uint256 i = 0; i < orders.length; i++) {
             Order memory order = orders[i];
 
-            _assertBasicOrderValidity(order.parameters);
+            _assertHighLevelOrderValidity(order.parameters);
 
             (bytes32 orderHash, uint120 numerator, uint120 denominator) = _validateOrderAndUpdateStatus(order, 1, 1);
 
@@ -674,6 +803,33 @@ contract Consideration is ConsiderationInterface {
         return (orderHash, numerator, denominator);
     }
 
+    function _validateBasicOrderAndUpdateStatus(
+        bytes32 orderHash,
+        address offerer,
+        bytes memory signature
+    ) private {
+        OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+        if (orderStatus.isCancelled) {
+            revert OrderIsCancelled(orderHash);
+        }
+
+        if (orderStatus.numerator != 0) {
+            revert OrderNotUnused(orderHash);
+        }
+
+        if (!orderStatus.isValidated) {
+            _verifySignature(offerer, orderHash, signature);
+        }
+
+        _orderStatus[orderHash] = OrderStatus(
+            true,       // is validated
+            false,      // not cancelled
+            1,          // numerator of 1
+            1           // denominator of 1
+        );
+    }
+
     function _adjustPrices(
         Order[] memory orders
     ) internal view {
@@ -939,12 +1095,10 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
-    function _assertBasicOrderValidity(
+    function _assertHighLevelOrderValidity(
         OrderParameters memory order
     ) private view {
-        if (order.startTime > block.timestamp || order.endTime < block.timestamp) {
-            revert InvalidTime();
-        }
+        _ensureValidTime(order.startTime, order.endTime);
 
         if (
             uint256(order.orderType) > 1 &&
@@ -952,6 +1106,15 @@ contract Consideration is ConsiderationInterface {
             msg.sender != order.offerer
         ) {
             revert InvalidSubmitterOnRestrictedOrder();
+        }
+    }
+
+    function _ensureValidTime(
+        uint256 startTime,
+        uint256 endTime
+    ) internal view {
+        if (startTime > block.timestamp || endTime < block.timestamp) {
+            revert InvalidTime();
         }
     }
 

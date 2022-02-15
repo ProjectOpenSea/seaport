@@ -8,6 +8,7 @@ import {
 } from "./Enums.sol";
 
 import {
+    BasicOrderParameters,
     OfferedAsset,
     ReceivedAsset,
     OrderParameters,
@@ -21,6 +22,38 @@ import {
 } from "./Structs.sol";
 
 interface ConsiderationInterface {
+    function fulfillBasicEthForERC721Order(
+        BasicOrderParameters calldata parameters
+    ) external payable returns (bool);
+
+    function fulfillBasicEthForERC1155Order(
+        BasicOrderParameters calldata parameters
+    ) external payable returns (bool);
+
+    function fulfillBasicERC20ForERC721Order(
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters calldata parameters
+    ) external returns (bool);
+
+    function fulfillBasicERC20ForERC1155Order(
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters calldata parameters
+    ) external returns (bool);
+
+    function fulfillBasicERC721ForERC20Order(
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters calldata parameters
+    ) external returns (bool);
+
+    function fulfillBasicERC1155ForERC20Order(
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters calldata parameters
+    ) external returns (bool);
+
     function fulfillOrder(Order memory order) external payable returns (bool);
     function fulfillOrderWithCriteria(
         Order memory order,
@@ -93,6 +126,7 @@ interface ConsiderationInterface {
     error PartialFillsNotEnabledForOrder();
     error OrderIsCancelled(bytes32);
     error OrderAlreadyValidated(bytes32);
+    error OrderNotUnused(bytes32);
     error OrderCriteriaResolverOutOfRange();
     error UnresolvedOfferCriteria();
     error UnresolvedConsiderationCriteria();
