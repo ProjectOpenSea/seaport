@@ -7,7 +7,9 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
+    "@openzeppelin/contracts": "^4.4.2",
     "eip-712": "^0.4.3",
+    "ethers-eip712": "^0.2.0",
     "hardhat": "^2.8.2"
   },
   "devDependencies": {
