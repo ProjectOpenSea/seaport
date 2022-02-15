@@ -28,55 +28,27 @@ describe("Consideration functional tests", function () {
         type: "address",
       },
       { name: "facilitator", type: "address" },
+      { name: "offer", type: "OfferedAsset[]" },
+      { name: "consideration", type: "ReceivedAsset[]" },
       { name: "orderType", type: "uint8" },
       { name: "startTime", type: "uint256" },
       { name: "endTime", type: "uint256" },
       { name: "salt", type: "uint256" },
-      { name: "offer", type: "Asset[]" },
-      { name: "consideration", type: "ReceivedAsset[]" },
       { name: "nonce", type: "uint256" },
     ],
-    Asset: [
+    OfferedAsset: [
       { name: "assetType", type: "uint8" },
       { name: "token", type: "address" },
       { name: "identifierOrCriteria", type: "uint256" },
-      { name: "amount", type: "uint256" },
+      { name: "startAmount", type: "uint256" },
+      { name: "endAmount", type: "uint256" },
     ],
     ReceivedAsset: [
       { name: "assetType", type: "uint8" },
       { name: "token", type: "address" },
       { name: "identifierOrCriteria", type: "uint256" },
-      { name: "amount", type: "uint256" },
-      { name: "account", type: "address" },
-    ],
-  };
-
-  const considerationTypesEip712HashUint256 = {
-    OrderComponents: [
-      {
-        name: "offerer",
-        type: "address",
-      },
-      { name: "facilitator", type: "address" },
-      { name: "orderType", type: "uint256" },
-      { name: "startTime", type: "uint256" },
-      { name: "endTime", type: "uint256" },
-      { name: "salt", type: "uint256" },
-      { name: "offer", type: "Asset[]" },
-      { name: "consideration", type: "ReceivedAsset[]" },
-      { name: "nonce", type: "uint256" },
-    ],
-    Asset: [
-      { name: "assetType", type: "uint256" },
-      { name: "token", type: "address" },
-      { name: "identifierOrCriteria", type: "uint256" },
-      { name: "amount", type: "uint256" },
-    ],
-    ReceivedAsset: [
-      { name: "assetType", type: "uint256" },
-      { name: "token", type: "address" },
-      { name: "identifierOrCriteria", type: "uint256" },
-      { name: "amount", type: "uint256" },
+      { name: "startAmount", type: "uint256" },
+      { name: "endAmount", type: "uint256" },
       { name: "account", type: "address" },
     ],
   };
@@ -197,16 +169,13 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           const orderParameters: OrderParametersStruct = {
             offerer: seller.address,
             facilitator: constants.AddressZero,
-            orderType: 0, // FULL_OPEN
-            salt: 1,
-            startTime: 0,
-            endTime: oneHourIntoFutureInSecs,
             offer: [
               {
                 assetType: 2, // ERC721
                 token: testERC721.address,
                 identifierOrCriteria: nftId,
-                amount: 1,
+                startAmount: 1,
+                endAmount: 1,
               },
             ],
             consideration: [
@@ -214,10 +183,15 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
                 assetType: 0, // ETH
                 token: constants.AddressZero,
                 identifierOrCriteria: 0, // ignored for ETH
-                amount: ethers.utils.parseEther("10"),
+                startAmount: ethers.utils.parseEther("10"),
+                endAmount: ethers.utils.parseEther("10"),
                 account: seller.address,
               },
             ],
+            orderType: 0, // FULL_OPEN
+            salt: 1,
+            startTime: 0,
+            endTime: oneHourIntoFutureInSecs,
           };
 
           const orderComponents = {
@@ -237,7 +211,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           };
 
           await whileImpersonating(buyer.address, provider, async () => {
-            await expect(marketplaceContract.connect(buyer).fulfillOrder(order, {value: order.parameters.consideration[0].amount}))
+            await expect(marketplaceContract.connect(buyer).fulfillOrder(order, {value: order.parameters.consideration[0].endAmount}))
               .to.emit(marketplaceContract, "OrderFulfilled")
               .withArgs(orderHash, seller.address, constants.AddressZero);
           });

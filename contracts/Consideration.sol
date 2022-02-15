@@ -38,8 +38,8 @@ contract Consideration is ConsiderationInterface {
     // keccak256("ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
     bytes32 constant RECEIVED_ASSET_TYPEHASH = 0x6898daae7bd07ccae00c38117149e10d924f61e47f298a530f6f0a0d90b1ba42;
 
-    // keccak256("OrderComponents(address offerer,address facilitator,OfferedAsset[] offer,ReceivedAsset[] consideration,uint8 offerType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
-    bytes32 private constant _ORDER_HASH = 0x2cb4a0c5885a2983939ea4221ccc5bdd03f038854fc5764ccef28d5063be6896;
+    // keccak256("OrderComponents(address offerer,address facilitator,OfferedAsset[] offer,ReceivedAsset[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
+    bytes32 private constant _ORDER_HASH = 0x840ff5c58a3a2409dca7476f1db217211d30b9a96ce4726fa069c5531c3b7a89;
 
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;
