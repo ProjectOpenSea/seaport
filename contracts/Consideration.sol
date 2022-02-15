@@ -207,7 +207,6 @@ contract Consideration is ConsiderationInterface {
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;
     uint256 private constant _FULLY_FILLED = 1e18;
-    uint256 private constant _ENSURE_ROUND_UP = 999999999999999999;
 
     bytes32 private immutable _DOMAIN_SEPARATOR;
     uint256 private immutable _CHAIN_ID;
