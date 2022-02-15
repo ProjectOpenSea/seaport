@@ -128,6 +128,9 @@ interface ConsiderationInterface {
     function cancel(
         OrderComponents[] memory orders
     ) external returns (bool ok);
+    function validate(
+        Order[] memory orders
+    ) external returns (bool ok);
     function incrementFacilitatorNonce(
         address offerer,
         address facilitator
@@ -145,6 +148,7 @@ interface ConsiderationInterface {
     // TODO: decide what data is required here
     event OrderFulfilled(bytes32 orderHash, address indexed offerer, address facilitator);
     event OrderCancelled(bytes32 orderHash, address indexed offerer, address facilitator);
+    event OrderValidated(bytes32 orderHash, address indexed offerer, address facilitator);
     event FacilitatorNonceIncremented(address indexed offerer, address facilitator, uint256 nonce);
 
     error NoOffersWithCriteriaOnBasicMatch();
@@ -181,9 +185,9 @@ interface ConsiderationInterface {
     error ERC721TransferNoContract(address);
     error ERC1155TransferNoContract(address);
 
-    error Overfill();
     error PartialFillsNotEnabledForOrder();
     error OrderIsCancelled(bytes32);
+    error OrderAlreadyValidated(bytes32);
 
     error OrderCriteriaResolverOutOfRange();
     error UnresolvedOfferCriteria();
@@ -656,6 +660,50 @@ contract Consideration is ConsiderationInterface {
         return true;
     }
 
+    function validate(
+        Order[] memory orders
+    ) external override returns (bool ok) {
+        for (uint256 i = 0; i < orders.length; i++) {
+            Order memory order = orders[i];
+
+            bytes32 orderHash = _getOrderHash(
+                order.parameters,
+                _facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
+            );
+
+            OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+            if (orderStatus.isCancelled) {
+                revert OrderIsCancelled(orderHash);
+            }
+
+            if (
+                orderStatus.numerator != 0 &&
+                orderStatus.numerator >= orderStatus.denominator
+            ) {
+                revert OrderUsed(orderHash);
+            }
+
+            if (orderStatus.isValidated) {
+                revert OrderAlreadyValidated(orderHash);
+            }
+
+            _verifySignature(
+                order.parameters.offerer, orderHash, order.signature
+            );
+
+            _orderStatus[orderHash].isValidated = true;
+
+            emit OrderValidated(
+                orderHash,
+                order.parameters.offerer,
+                order.parameters.facilitator
+            );
+        }
+
+        return true;
+    }
+
     function incrementFacilitatorNonce(
         address offerer,
         address facilitator
@@ -1084,6 +1132,10 @@ contract Consideration is ConsiderationInterface {
         bytes32 orderHash,
         bytes memory signature
     ) private view {
+        if (offerer == msg.sender) {
+            return;
+        }
+
         bytes32 digest = keccak256(
             abi.encodePacked("\x19\x01", _domainSeparator(), orderHash)
         );
