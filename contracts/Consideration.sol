@@ -109,45 +109,14 @@ contract Consideration is ConsiderationInterface {
             parameters.signature
         );
 
-        (bool ok, bytes memory data) = parameters.token.call(
-            abi.encodeWithSelector(
-                ERC721Interface.transferFrom.selector,
-                parameters.offerer,
-                msg.sender,
-                parameters.identifier
-            )
+        _transferERC721(
+            parameters.token,
+            parameters.offerer,
+            msg.sender,
+            parameters.identifier
         );
-        if (!ok) {
-            if (data.length != 0) {
-                assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
-                }
-            } else {
-                revert ERC721TransferGenericFailure(parameters.token, parameters.offerer, parameters.identifier);
-            }
-        } else if (data.length == 0) {
-            address token = parameters.token;
-            uint256 size;
-            assembly {
-                size := extcodesize(token)
-            }
-            if (size == 0) {
-                revert ERC721TransferNoContract(token);
-            }
-        }
 
-        (ok, data) = parameters.offerer.call{value: msg.value}("");
-        if (!ok) {
-            if (data.length != 0) {
-                assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
-                }
-            } else {
-                revert EtherTransferGenericFailure(parameters.offerer, msg.value);
-            }
-        }
+        _transferEth(parameters.offerer, msg.value);
 
         emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
         return true;
@@ -979,118 +948,160 @@ contract Consideration is ConsiderationInterface {
         bool ok;
         bytes memory data;
         if (asset.assetType == AssetType.ETH) {
-            (ok, data) = asset.account.call{value: asset.endAmount}("");
-            if (!ok) {
-                if (data.length != 0) {
-                    assembly {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
-                } else {
-                    revert EtherTransferGenericFailure(asset.account, asset.endAmount);
-                }
-            }
+            _transferEth(asset.account, asset.endAmount);
         } else if (asset.assetType == AssetType.ERC20) {
-            // Bubble up reverts on failed primary recipient transfers.
-            (ok, data) = asset.token.call(
-                abi.encodeWithSelector(
-                    ERC20Interface.transferFrom.selector,
-                    offerer,
-                    asset.account,
-                    asset.endAmount
-                )
+            _transferERC20(
+                asset.token,
+                offerer,
+                asset.account,
+                asset.endAmount
             );
-            if (!ok) {
-                if (data.length != 0) {
-                    assembly {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
-                } else {
-                    revert ERC20TransferGenericFailure(asset.token, asset.account, asset.endAmount);
-                }
-            }
+        } else if (asset.assetType == AssetType.ERC721) {
+            _transferERC721(
+                asset.token,
+                offerer,
+                asset.account,
+                asset.identifierOrCriteria
+            );
+        } else if (asset.assetType == AssetType.ERC1155) {
+            _transferERC1155(
+                asset.token,
+                offerer,
+                asset.account,
+                asset.identifierOrCriteria,
+                asset.endAmount
+            );
+        }
+    }
 
-            if (data.length == 0) {
-                address token = asset.token;
-                uint256 size;
+    function _transferEth(address payable to, uint256 amount) internal {
+        (bool ok, bytes memory data) = to.call{value: amount}("");
+        if (!ok) {
+            if (data.length != 0) {
                 assembly {
-                    size := extcodesize(token)
-                }
-                if (size == 0) {
-                    revert ERC20TransferNoContract(token);
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
                 }
             } else {
-                if (!(
-                    data.length == 32 &&
-                    abi.decode(data, (bool))
-                )) {
-                    revert BadReturnValueFromERC20OnTransfer(asset.token, asset.account, asset.endAmount);
-                }
+                revert EtherTransferGenericFailure(to, amount);
             }
-        } else if (asset.assetType == AssetType.ERC721) {
-            // Bubble up reverts on failed primary recipient transfers.
-            (ok, data) = asset.token.call(
-                abi.encodeWithSelector(
-                    ERC721Interface.transferFrom.selector,
-                    offerer,
-                    asset.account,
-                    asset.identifierOrCriteria
-                )
-            );
-            if (!ok) {
-                if (data.length != 0) {
-                    assembly {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
-                } else {
-                    revert ERC721TransferGenericFailure(asset.token, asset.account, asset.identifierOrCriteria);
-                }
-            } else if (data.length == 0) {
-                address token = asset.token;
-                uint256 size;
+        }
+    }
+
+    function _transferERC20(
+        address token,
+        address from,
+        address to,
+        uint256 amount
+    ) internal {
+        (bool ok, bytes memory data) = token.call(
+            abi.encodeWithSelector(
+                ERC20Interface.transferFrom.selector,
+                from,
+                to,
+                amount
+            )
+        );
+        if (!ok) {
+            if (data.length != 0) {
                 assembly {
-                    size := extcodesize(token)
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
                 }
-                if (size == 0) {
-                    revert ERC721TransferNoContract(token);
-                }
+            } else {
+                revert ERC20TransferGenericFailure(token, from, amount);
             }
-        } else if (asset.assetType == AssetType.ERC1155) {
-            // Bubble up reverts on failed primary recipient transfers.
-            (ok, data) = asset.token.call(
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeTransferFrom.selector,
-                    offerer,
-                    asset.account,
-                    asset.identifierOrCriteria,
-                    asset.endAmount
-                )
-            );
-            if (!ok) {
-                if (data.length != 0) {
-                    assembly {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
-                } else {
-                    revert ERC1155TransferGenericFailure(
-                        asset.token,
-                        asset.account,
-                        asset.identifierOrCriteria,
-                        asset.endAmount
-                    );
-                }
-            } else if (data.length == 0) {
-                address token = asset.token;
-                uint256 size;
+        }
+
+        if (data.length == 0) {
+            uint256 size;
+            assembly {
+                size := extcodesize(token)
+            }
+            if (size == 0) {
+                revert ERC20TransferNoContract(token);
+            }
+        } else {
+            if (!(
+                data.length == 32 &&
+                abi.decode(data, (bool))
+            )) {
+                revert BadReturnValueFromERC20OnTransfer(token, from, amount);
+            }
+        }
+    }
+
+    function _transferERC721(
+        address token,
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal {
+        (bool ok, bytes memory data) = token.call(
+            abi.encodeWithSelector(
+                ERC721Interface.transferFrom.selector,
+                from,
+                to,
+                tokenId
+            )
+        );
+        if (!ok) {
+            if (data.length != 0) {
                 assembly {
-                    size := extcodesize(token)
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
                 }
-                if (size == 0) {
-                    revert ERC1155TransferNoContract(token);
+            } else {
+                revert ERC721TransferGenericFailure(token, from, tokenId);
+            }
+        } else if (data.length == 0) {
+            uint256 size;
+            assembly {
+                size := extcodesize(token)
+            }
+            if (size == 0) {
+                revert ERC721TransferNoContract(token);
+            }
+        }
+    }
+
+    function _transferERC1155(
+        address token,
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 amount
+    ) internal {
+        (bool ok, bytes memory data) = token.call(
+            abi.encodeWithSelector(
+                ERC1155Interface.safeTransferFrom.selector,
+                from,
+                to,
+                tokenId,
+                amount
+            )
+        );
+        if (!ok) {
+            if (data.length != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
                 }
+            } else {
+                revert ERC1155TransferGenericFailure(
+                    token,
+                    from,
+                    tokenId,
+                    amount
+                );
+            }
+        } else if (data.length == 0) {
+            uint256 size;
+            assembly {
+                size := extcodesize(token)
+            }
+            if (size == 0) {
+                revert ERC1155TransferNoContract(token);
             }
         }
     }
