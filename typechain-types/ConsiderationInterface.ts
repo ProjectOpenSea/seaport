@@ -18,25 +18,34 @@ import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
 import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
 
-export type AssetStruct = {
+export type OfferedAssetStruct = {
   assetType: BigNumberish;
   token: string;
   identifierOrCriteria: BigNumberish;
-  amount: BigNumberish;
+  startAmount: BigNumberish;
+  endAmount: BigNumberish;
 };
 
-export type AssetStructOutput = [number, string, BigNumber, BigNumber] & {
+export type OfferedAssetStructOutput = [
+  number,
+  string,
+  BigNumber,
+  BigNumber,
+  BigNumber
+] & {
   assetType: number;
   token: string;
   identifierOrCriteria: BigNumber;
-  amount: BigNumber;
+  startAmount: BigNumber;
+  endAmount: BigNumber;
 };
 
 export type ReceivedAssetStruct = {
   assetType: BigNumberish;
   token: string;
   identifierOrCriteria: BigNumberish;
-  amount: BigNumberish;
+  startAmount: BigNumberish;
+  endAmount: BigNumberish;
   account: string;
 };
 
@@ -45,12 +54,14 @@ export type ReceivedAssetStructOutput = [
   string,
   BigNumber,
   BigNumber,
+  BigNumber,
   string
 ] & {
   assetType: number;
   token: string;
   identifierOrCriteria: BigNumber;
-  amount: BigNumber;
+  startAmount: BigNumber;
+  endAmount: BigNumber;
   account: string;
 };
 
@@ -61,7 +72,7 @@ export type OrderComponentsStruct = {
   startTime: BigNumberish;
   endTime: BigNumberish;
   salt: BigNumberish;
-  offer: AssetStruct[];
+  offer: OfferedAssetStruct[];
   consideration: ReceivedAssetStruct[];
   nonce: BigNumberish;
 };
@@ -73,7 +84,7 @@ export type OrderComponentsStructOutput = [
   BigNumber,
   BigNumber,
   BigNumber,
-  AssetStructOutput[],
+  OfferedAssetStructOutput[],
   ReceivedAssetStructOutput[],
   BigNumber
 ] & {
@@ -83,7 +94,7 @@ export type OrderComponentsStructOutput = [
   startTime: BigNumber;
   endTime: BigNumber;
   salt: BigNumber;
-  offer: AssetStructOutput[];
+  offer: OfferedAssetStructOutput[];
   consideration: ReceivedAssetStructOutput[];
   nonce: BigNumber;
 };
@@ -95,7 +106,7 @@ export type OrderParametersStruct = {
   startTime: BigNumberish;
   endTime: BigNumberish;
   salt: BigNumberish;
-  offer: AssetStruct[];
+  offer: OfferedAssetStruct[];
   consideration: ReceivedAssetStruct[];
 };
 
@@ -106,7 +117,7 @@ export type OrderParametersStructOutput = [
   BigNumber,
   BigNumber,
   BigNumber,
-  AssetStructOutput[],
+  OfferedAssetStructOutput[],
   ReceivedAssetStructOutput[]
 ] & {
   offerer: string;
@@ -115,7 +126,7 @@ export type OrderParametersStructOutput = [
   startTime: BigNumber;
   endTime: BigNumber;
   salt: BigNumber;
-  offer: AssetStructOutput[];
+  offer: OfferedAssetStructOutput[];
   consideration: ReceivedAssetStructOutput[];
 };
 
@@ -130,6 +141,7 @@ export type OrderStructOutput = [OrderParametersStructOutput, string] & {
 };
 
 export type CriteriaResolverStruct = {
+  orderIndex: BigNumberish;
   side: BigNumberish;
   index: BigNumberish;
   identifier: BigNumberish;
@@ -137,138 +149,36 @@ export type CriteriaResolverStruct = {
 };
 
 export type CriteriaResolverStructOutput = [
+  BigNumber,
   number,
   BigNumber,
   BigNumber,
   string[]
 ] & {
+  orderIndex: BigNumber;
   side: number;
   index: BigNumber;
   identifier: BigNumber;
   criteriaProof: string[];
 };
 
-export type AdvancedAssetStruct = {
-  assetType: BigNumberish;
-  token: string;
-  identifierOrCriteria: BigNumberish;
-  startAmount: BigNumberish;
-  endAmount: BigNumberish;
+export type OrderStatusStruct = {
+  isValidated: boolean;
+  isCancelled: boolean;
+  numerator: BigNumberish;
+  denominator: BigNumberish;
 };
 
-export type AdvancedAssetStructOutput = [
-  number,
-  string,
-  BigNumber,
+export type OrderStatusStructOutput = [
+  boolean,
+  boolean,
   BigNumber,
   BigNumber
 ] & {
-  assetType: number;
-  token: string;
-  identifierOrCriteria: BigNumber;
-  startAmount: BigNumber;
-  endAmount: BigNumber;
-};
-
-export type AdvancedReceivedAssetStruct = {
-  assetType: BigNumberish;
-  token: string;
-  identifierOrCriteria: BigNumberish;
-  startAmount: BigNumberish;
-  endAmount: BigNumberish;
-  account: string;
-};
-
-export type AdvancedReceivedAssetStructOutput = [
-  number,
-  string,
-  BigNumber,
-  BigNumber,
-  BigNumber,
-  string
-] & {
-  assetType: number;
-  token: string;
-  identifierOrCriteria: BigNumber;
-  startAmount: BigNumber;
-  endAmount: BigNumber;
-  account: string;
-};
-
-export type AdvancedOrderParametersStruct = {
-  offer: AdvancedAssetStruct[];
-  consideration: AdvancedReceivedAssetStruct[];
-  startTime: BigNumberish;
-  endTime: BigNumberish;
-  offerer: string;
-  salt: BigNumberish;
-  facilitator: string;
-  nonce: BigNumberish;
-};
-
-export type AdvancedOrderParametersStructOutput = [
-  AdvancedAssetStructOutput[],
-  AdvancedReceivedAssetStructOutput[],
-  BigNumber,
-  BigNumber,
-  string,
-  BigNumber,
-  string,
-  BigNumber
-] & {
-  offer: AdvancedAssetStructOutput[];
-  consideration: AdvancedReceivedAssetStructOutput[];
-  startTime: BigNumber;
-  endTime: BigNumber;
-  offerer: string;
-  salt: BigNumber;
-  facilitator: string;
-  nonce: BigNumber;
-};
-
-export type AdvancedOrderStruct = {
-  parameters: AdvancedOrderParametersStruct;
-  signature: BytesLike;
-};
-
-export type AdvancedOrderStructOutput = [
-  AdvancedOrderParametersStructOutput,
-  string
-] & { parameters: AdvancedOrderParametersStructOutput; signature: string };
-
-export type AdvancedFulfillmentComponentStruct = {
-  orderIndex: BigNumberish;
-  assetIndex: BigNumberish;
-  criteriaProof: BytesLike[];
-};
-
-export type AdvancedFulfillmentComponentStructOutput = [
-  BigNumber,
-  BigNumber,
-  string[]
-] & { orderIndex: BigNumber; assetIndex: BigNumber; criteriaProof: string[] };
-
-export type AdvancedFulfillmentStruct = {
-  identifier: BigNumberish;
-  offerComponents: AdvancedFulfillmentComponentStruct[];
-  considerationComponents: AdvancedFulfillmentComponentStruct[];
-};
-
-export type AdvancedFulfillmentStructOutput = [
-  BigNumber,
-  AdvancedFulfillmentComponentStructOutput[],
-  AdvancedFulfillmentComponentStructOutput[]
-] & {
-  identifier: BigNumber;
-  offerComponents: AdvancedFulfillmentComponentStructOutput[];
-  considerationComponents: AdvancedFulfillmentComponentStructOutput[];
-};
-
-export type ExecutionStruct = { asset: ReceivedAssetStruct; offerer: string };
-
-export type ExecutionStructOutput = [ReceivedAssetStructOutput, string] & {
-  asset: ReceivedAssetStructOutput;
-  offerer: string;
+  isValidated: boolean;
+  isCancelled: boolean;
+  numerator: BigNumber;
+  denominator: BigNumber;
 };
 
 export type FulfillmentComponentStruct = {
@@ -294,21 +204,28 @@ export type FulfillmentStructOutput = [
   considerationComponents: FulfillmentComponentStructOutput[];
 };
 
+export type ExecutionStruct = { asset: ReceivedAssetStruct; offerer: string };
+
+export type ExecutionStructOutput = [ReceivedAssetStructOutput, string] & {
+  asset: ReceivedAssetStructOutput;
+  offerer: string;
+};
+
 export interface ConsiderationInterfaceInterface extends utils.Interface {
   contractName: "ConsiderationInterface";
   functions: {
     "DOMAIN_SEPARATOR()": FunctionFragment;
-    "cancel((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[],uint256)[])": FunctionFragment;
+    "cancel((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256,uint256)[],(uint8,address,uint256,uint256,uint256,address)[],uint256)[])": FunctionFragment;
     "facilitatorNonce(address,address)": FunctionFragment;
-    "fulfillOrder(((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[]),bytes))": FunctionFragment;
-    "fulfillOrderWithCriteria(((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[]),bytes),(uint8,uint256,uint256,bytes32[])[])": FunctionFragment;
-    "fulfillPartialOrder(((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[]),bytes),uint256)": FunctionFragment;
-    "getOrderHash((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[],uint256))": FunctionFragment;
+    "fulfillOrder(((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256,uint256)[],(uint8,address,uint256,uint256,uint256,address)[]),bytes))": FunctionFragment;
+    "fulfillOrderWithCriteria(((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256,uint256)[],(uint8,address,uint256,uint256,uint256,address)[]),bytes),(uint256,uint8,uint256,uint256,bytes32[])[])": FunctionFragment;
+    "fulfillPartialOrder(((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256,uint256)[],(uint8,address,uint256,uint256,uint256,address)[]),bytes),uint120,uint120)": FunctionFragment;
+    "getOrderHash((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256,uint256)[],(uint8,address,uint256,uint256,uint256,address)[],uint256))": FunctionFragment;
+    "getOrderStatus(bytes32)": FunctionFragment;
     "incrementFacilitatorNonce(address,address)": FunctionFragment;
-    "matchAdvancedOrders((((uint8,address,uint256,uint256,uint256)[],(uint8,address,uint256,uint256,uint256,address)[],uint256,uint256,address,uint256,address,uint256),bytes)[],(uint256,(uint256,uint256,bytes32[])[],(uint256,uint256,bytes32[])[])[])": FunctionFragment;
-    "matchOrders(((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[]),bytes)[],((uint256,uint256)[],(uint256,uint256)[])[])": FunctionFragment;
+    "matchOrders(((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256,uint256)[],(uint8,address,uint256,uint256,uint256,address)[]),bytes)[],(uint256,uint8,uint256,uint256,bytes32[])[],((uint256,uint256)[],(uint256,uint256)[])[])": FunctionFragment;
     "name()": FunctionFragment;
-    "orderUsedOrCancelled(bytes32)": FunctionFragment;
+    "validate(((address,address,uint8,uint256,uint256,uint256,(uint8,address,uint256,uint256,uint256)[],(uint8,address,uint256,uint256,uint256,address)[]),bytes)[])": FunctionFragment;
     "version()": FunctionFragment;
   };
 
@@ -334,28 +251,28 @@ export interface ConsiderationInterfaceInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "fulfillPartialOrder",
-    values: [OrderStruct, BigNumberish]
+    values: [OrderStruct, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "getOrderHash",
     values: [OrderComponentsStruct]
   ): string;
   encodeFunctionData(
+    functionFragment: "getOrderStatus",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "incrementFacilitatorNonce",
     values: [string, string]
   ): string;
   encodeFunctionData(
-    functionFragment: "matchAdvancedOrders",
-    values: [AdvancedOrderStruct[], AdvancedFulfillmentStruct[]]
-  ): string;
-  encodeFunctionData(
     functionFragment: "matchOrders",
-    values: [OrderStruct[], FulfillmentStruct[]]
+    values: [OrderStruct[], CriteriaResolverStruct[], FulfillmentStruct[]]
   ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "orderUsedOrCancelled",
-    values: [BytesLike]
+    functionFragment: "validate",
+    values: [OrderStruct[]]
   ): string;
   encodeFunctionData(functionFragment: "version", values?: undefined): string;
 
@@ -385,11 +302,11 @@ export interface ConsiderationInterfaceInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "incrementFacilitatorNonce",
+    functionFragment: "getOrderStatus",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "matchAdvancedOrders",
+    functionFragment: "incrementFacilitatorNonce",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -397,16 +314,14 @@ export interface ConsiderationInterfaceInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "orderUsedOrCancelled",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "validate", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "version", data: BytesLike): Result;
 
   events: {
     "FacilitatorNonceIncremented(address,address,uint256)": EventFragment;
     "OrderCancelled(bytes32,address,address)": EventFragment;
     "OrderFulfilled(bytes32,address,address)": EventFragment;
+    "OrderValidated(bytes32,address,address)": EventFragment;
   };
 
   getEvent(
@@ -414,6 +329,7 @@ export interface ConsiderationInterfaceInterface extends utils.Interface {
   ): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OrderCancelled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OrderFulfilled"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "OrderValidated"): EventFragment;
 }
 
 export type FacilitatorNonceIncrementedEvent = TypedEvent<
@@ -437,6 +353,13 @@ export type OrderFulfilledEvent = TypedEvent<
 >;
 
 export type OrderFulfilledEventFilter = TypedEventFilter<OrderFulfilledEvent>;
+
+export type OrderValidatedEvent = TypedEvent<
+  [string, string, string],
+  { orderHash: string; offerer: string; facilitator: string }
+>;
+
+export type OrderValidatedEventFilter = TypedEventFilter<OrderValidatedEvent>;
 
 export interface ConsiderationInterface extends BaseContract {
   contractName: "ConsiderationInterface";
@@ -492,7 +415,8 @@ export interface ConsiderationInterface extends BaseContract {
 
     fulfillPartialOrder(
       order: OrderStruct,
-      amountToFill: BigNumberish,
+      numerator: BigNumberish,
+      denominator: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -501,30 +425,30 @@ export interface ConsiderationInterface extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string]>;
 
+    getOrderStatus(
+      orderHash: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[OrderStatusStructOutput]>;
+
     incrementFacilitatorNonce(
       offerer: string,
       facilitator: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    matchAdvancedOrders(
-      orders: AdvancedOrderStruct[],
-      fulfillments: AdvancedFulfillmentStruct[],
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     matchOrders(
       orders: OrderStruct[],
+      criteriaResolvers: CriteriaResolverStruct[],
       fulfillments: FulfillmentStruct[],
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     name(overrides?: CallOverrides): Promise<[string]>;
 
-    orderUsedOrCancelled(
-      orderHash: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
+    validate(
+      orders: OrderStruct[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     version(overrides?: CallOverrides): Promise<[string]>;
   };
@@ -555,7 +479,8 @@ export interface ConsiderationInterface extends BaseContract {
 
   fulfillPartialOrder(
     order: OrderStruct,
-    amountToFill: BigNumberish,
+    numerator: BigNumberish,
+    denominator: BigNumberish,
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -564,30 +489,30 @@ export interface ConsiderationInterface extends BaseContract {
     overrides?: CallOverrides
   ): Promise<string>;
 
+  getOrderStatus(
+    orderHash: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<OrderStatusStructOutput>;
+
   incrementFacilitatorNonce(
     offerer: string,
     facilitator: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  matchAdvancedOrders(
-    orders: AdvancedOrderStruct[],
-    fulfillments: AdvancedFulfillmentStruct[],
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   matchOrders(
     orders: OrderStruct[],
+    criteriaResolvers: CriteriaResolverStruct[],
     fulfillments: FulfillmentStruct[],
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   name(overrides?: CallOverrides): Promise<string>;
 
-  orderUsedOrCancelled(
-    orderHash: BytesLike,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
+  validate(
+    orders: OrderStruct[],
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   version(overrides?: CallOverrides): Promise<string>;
 
@@ -618,7 +543,8 @@ export interface ConsiderationInterface extends BaseContract {
 
     fulfillPartialOrder(
       order: OrderStruct,
-      amountToFill: BigNumberish,
+      numerator: BigNumberish,
+      denominator: BigNumberish,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
@@ -627,30 +553,30 @@ export interface ConsiderationInterface extends BaseContract {
       overrides?: CallOverrides
     ): Promise<string>;
 
+    getOrderStatus(
+      orderHash: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<OrderStatusStructOutput>;
+
     incrementFacilitatorNonce(
       offerer: string,
       facilitator: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    matchAdvancedOrders(
-      orders: AdvancedOrderStruct[],
-      fulfillments: AdvancedFulfillmentStruct[],
-      overrides?: CallOverrides
-    ): Promise<ExecutionStructOutput[]>;
-
     matchOrders(
       orders: OrderStruct[],
+      criteriaResolvers: CriteriaResolverStruct[],
       fulfillments: FulfillmentStruct[],
       overrides?: CallOverrides
     ): Promise<ExecutionStructOutput[]>;
 
     name(overrides?: CallOverrides): Promise<string>;
 
-    orderUsedOrCancelled(
-      orderHash: BytesLike,
+    validate(
+      orders: OrderStruct[],
       overrides?: CallOverrides
-    ): Promise<BigNumber>;
+    ): Promise<boolean>;
 
     version(overrides?: CallOverrides): Promise<string>;
   };
@@ -688,6 +614,17 @@ export interface ConsiderationInterface extends BaseContract {
       offerer?: string | null,
       facilitator?: null
     ): OrderFulfilledEventFilter;
+
+    "OrderValidated(bytes32,address,address)"(
+      orderHash?: null,
+      offerer?: string | null,
+      facilitator?: null
+    ): OrderValidatedEventFilter;
+    OrderValidated(
+      orderHash?: null,
+      offerer?: string | null,
+      facilitator?: null
+    ): OrderValidatedEventFilter;
   };
 
   estimateGas: {
@@ -717,12 +654,18 @@ export interface ConsiderationInterface extends BaseContract {
 
     fulfillPartialOrder(
       order: OrderStruct,
-      amountToFill: BigNumberish,
+      numerator: BigNumberish,
+      denominator: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     getOrderHash(
       order: OrderComponentsStruct,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getOrderStatus(
+      orderHash: BytesLike,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -732,23 +675,18 @@ export interface ConsiderationInterface extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    matchAdvancedOrders(
-      orders: AdvancedOrderStruct[],
-      fulfillments: AdvancedFulfillmentStruct[],
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     matchOrders(
       orders: OrderStruct[],
+      criteriaResolvers: CriteriaResolverStruct[],
       fulfillments: FulfillmentStruct[],
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     name(overrides?: CallOverrides): Promise<BigNumber>;
 
-    orderUsedOrCancelled(
-      orderHash: BytesLike,
-      overrides?: CallOverrides
+    validate(
+      orders: OrderStruct[],
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     version(overrides?: CallOverrides): Promise<BigNumber>;
@@ -781,12 +719,18 @@ export interface ConsiderationInterface extends BaseContract {
 
     fulfillPartialOrder(
       order: OrderStruct,
-      amountToFill: BigNumberish,
+      numerator: BigNumberish,
+      denominator: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     getOrderHash(
       order: OrderComponentsStruct,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getOrderStatus(
+      orderHash: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -796,23 +740,18 @@ export interface ConsiderationInterface extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    matchAdvancedOrders(
-      orders: AdvancedOrderStruct[],
-      fulfillments: AdvancedFulfillmentStruct[],
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     matchOrders(
       orders: OrderStruct[],
+      criteriaResolvers: CriteriaResolverStruct[],
       fulfillments: FulfillmentStruct[],
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     name(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    orderUsedOrCancelled(
-      orderHash: BytesLike,
-      overrides?: CallOverrides
+    validate(
+      orders: OrderStruct[],
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     version(overrides?: CallOverrides): Promise<PopulatedTransaction>;

@@ -1,201 +1,32 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.11;
 
-enum OrderType {
-    FULL_OPEN,         // no partial fills, anyone can execute
-    PARTIAL_OPEN,      // partial fills supported, anyone can execute
-    FULL_RESTRICTED,   // no partial fills, only offerer or facilitator can execute
-    PARTIAL_RESTRICTED // partial fills supported, only offerer or facilitator can execute
-}
+import {
+    OrderType,
+    AssetType,
+    Side
+} from "./Enums.sol";
 
-enum AssetType {
-    ETH,
-    ERC20,
-    ERC721,
-    ERC1155,
-    ERC721_WITH_CRITERIA,
-    ERC1155_WITH_CRITERIA
-}
+import {
+    OfferedAsset,
+    ReceivedAsset,
+    OrderParameters,
+    OrderComponents,
+    Fulfillment,
+    FulfillmentComponent,
+    Execution,
+    Order,
+    OrderStatus,
+    CriteriaResolver
+} from "./Structs.sol";
 
-enum Side {
-    OFFER,
-    CONSIDERATION
-}
+import {
+    ERC20Interface,
+    ERC721Interface,
+    ERC1155Interface
+} from "./AbridgedTokenInterfaces.sol";
 
-struct OfferedAsset {
-    AssetType assetType;
-    address token;
-    uint256 identifierOrCriteria;
-    uint256 startAmount;
-    uint256 endAmount;
-}
-
-struct ReceivedAsset {
-    AssetType assetType;
-    address token;
-    uint256 identifierOrCriteria;
-    uint256 startAmount;
-    uint256 endAmount;
-    address payable account;
-}
-
-struct OrderParameters {
-    address offerer;
-    address facilitator;
-    OrderType orderType;
-    uint256 startTime;
-    uint256 endTime;
-    uint256 salt;
-    OfferedAsset[] offer;
-    ReceivedAsset[] consideration;
-}
-
-struct OrderComponents {
-    address offerer;
-    address facilitator;
-    OrderType orderType;
-    uint256 startTime;
-    uint256 endTime;
-    uint256 salt;
-    OfferedAsset[] offer;
-    ReceivedAsset[] consideration;
-    uint256 nonce;
-}
-
-struct FulfillmentComponent {
-    uint256 orderIndex;
-    uint256 assetIndex;
-}
-
-struct Fulfillment {
-    FulfillmentComponent[] offerComponents;
-    FulfillmentComponent[] considerationComponents;
-}
-
-struct Execution {
-    ReceivedAsset asset;
-    address offerer;
-}
-
-struct Order {
-    OrderParameters parameters;
-    bytes signature;
-}
-
-struct OrderStatus {
-    bool isValidated;
-    bool isCancelled;
-    uint120 numerator;
-    uint120 denominator;
-}
-
-struct CriteriaResolver {
-    uint256 orderIndex;
-    Side side;
-    uint256 index;
-    uint256 identifier;
-    bytes32[] criteriaProof;
-}
-
-interface ERC20Interface {
-    function transferFrom(address, address, uint256) external returns (bool);
-}
-
-interface ERC721Interface {
-    function transferFrom(address, address, uint256) external;
-}
-
-interface ERC1155Interface {
-    function safeTransferFrom(address, address, uint256, uint256) external;
-}
-
-interface ConsiderationInterface {
-    function fulfillOrder(Order memory order) external payable returns (bool);
-    function fulfillOrderWithCriteria(
-        Order memory order,
-        CriteriaResolver[] memory criteriaResolvers
-    ) external payable returns (bool);
-    function fulfillPartialOrder(
-        Order memory order,
-        uint120 numerator,
-        uint120 denominator
-    ) external payable returns (bool);
-    function matchOrders(
-        Order[] memory orders,
-        CriteriaResolver[] memory criteriaResolvers,
-        Fulfillment[] memory fulfillments
-    ) external payable returns (Execution[] memory);
-    function cancel(
-        OrderComponents[] memory orders
-    ) external returns (bool ok);
-    function validate(
-        Order[] memory orders
-    ) external returns (bool ok);
-    function incrementFacilitatorNonce(
-        address offerer,
-        address facilitator
-    ) external returns (uint256 nonce);
-
-    function getOrderHash(
-        OrderComponents memory order
-    ) external view returns (bytes32);
-    function name() external view returns (string memory);
-    function version() external view returns (string memory);
-    function DOMAIN_SEPARATOR() external view returns (bytes32);
-    function getOrderStatus(bytes32 orderHash) external view returns (OrderStatus memory);
-    function facilitatorNonce(address offerer, address facilitator) external view returns (uint256);
-
-    // TODO: decide what data is required here
-    event OrderFulfilled(bytes32 orderHash, address indexed offerer, address facilitator);
-    event OrderCancelled(bytes32 orderHash, address indexed offerer, address facilitator);
-    event OrderValidated(bytes32 orderHash, address indexed offerer, address facilitator);
-    event FacilitatorNonceIncremented(address indexed offerer, address facilitator, uint256 nonce);
-
-    error NoOffersWithCriteriaOnBasicMatch();
-    error NoConsiderationWithCriteriaOnBasicMatch();
-    error OrderUsed(bytes32);
-    error InvalidTime();
-    error InvalidSubmitterOnRestrictedOrder();
-    error NoOfferOnFulfillment();
-    error NoConsiderationOnFulfillment();
-    error FulfilledOrderIndexOutOfRange();
-    error FulfilledOrderOfferIndexOutOfRange();
-    error FulfillmentOrderIndexOutOfRange();
-    error FulfillmentOrderConsiderationIndexOutOfRange();
-    error BadSignatureLength(uint256);
-    error BadSignatureV(uint8);
-    error MalleableSignatureS(uint256);
-    error BadSignature();
-    error InvalidSignature();
-    error BadContractSignature();
-    error MismatchedFulfillmentOfferComponents();
-    error MismatchedFulfillmentConsiderationComponents();
-    error ConsiderationNotMet(uint256 orderIndex, uint256 considerationIndex, uint256 shortfallAmount);
-    error EtherTransferGenericFailure(address account, uint256 amount);
-    error ERC20TransferGenericFailure(address token, address account, uint256 amount);
-    error ERC721TransferGenericFailure(address token, address account, uint256 identifier);
-    error ERC1155TransferGenericFailure(address token, address account, uint256 identifier, uint256 amount);
-    error BadReturnValueFromERC20OnTransfer(address token, address account, uint256 amount);
-    error ERC20TransferNoContract(address);
-    error ERC721TransferNoContract(address);
-    error ERC1155TransferNoContract(address);
-    error PartialFillsNotEnabledForOrder();
-    error OrderIsCancelled(bytes32);
-    error OrderAlreadyValidated(bytes32);
-    error OrderCriteriaResolverOutOfRange();
-    error UnresolvedOfferCriteria();
-    error UnresolvedConsiderationCriteria();
-    error OfferCriteriaResolverOutOfRange();
-    error ConsiderationCriteriaResolverOutOfRange();
-    error CriteriaNotEnabledForOfferedAsset();
-    error CriteriaNotEnabledForConsideredAsset();
-    error InvalidProof();
-    error OnlyOffererOrFacilitatorMayCancel();
-    error OnlyOffererOrFacilitatorMayIncrementNonce();
-    error BadFraction();
-    error InexactFraction();
-    error NoReentrantCalls();
-}
+import { ConsiderationInterface } from "./ConsiderationInterface.sol";
 
 contract Consideration is ConsiderationInterface {
     string private constant _NAME = "Consideration";

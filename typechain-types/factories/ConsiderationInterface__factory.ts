@@ -16,6 +16,11 @@ const _abi = [
     type: "error",
   },
   {
+    inputs: [],
+    name: "BadFraction",
+    type: "error",
+  },
+  {
     inputs: [
       {
         internalType: "address",
@@ -238,6 +243,11 @@ const _abi = [
   },
   {
     inputs: [],
+    name: "InexactFraction",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "InvalidProof",
     type: "error",
   },
@@ -299,6 +309,11 @@ const _abi = [
   },
   {
     inputs: [],
+    name: "NoReentrantCalls",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "OfferCriteriaResolverOutOfRange",
     type: "error",
   },
@@ -320,12 +335,34 @@ const _abi = [
         type: "bytes32",
       },
     ],
-    name: "OrderUsed",
+    name: "OrderAlreadyValidated",
     type: "error",
   },
   {
     inputs: [],
-    name: "Overfill",
+    name: "OrderCriteriaResolverOutOfRange",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    name: "OrderIsCancelled",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    name: "OrderUsed",
     type: "error",
   },
   {
@@ -419,6 +456,31 @@ const _abi = [
     type: "event",
   },
   {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "orderHash",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "offerer",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "facilitator",
+        type: "address",
+      },
+    ],
+    name: "OrderValidated",
+    type: "event",
+  },
+  {
     inputs: [],
     name: "DOMAIN_SEPARATOR",
     outputs: [
@@ -484,11 +546,16 @@ const _abi = [
               },
               {
                 internalType: "uint256",
-                name: "amount",
+                name: "startAmount",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "endAmount",
                 type: "uint256",
               },
             ],
-            internalType: "struct Asset[]",
+            internalType: "struct OfferedAsset[]",
             name: "offer",
             type: "tuple[]",
           },
@@ -511,7 +578,12 @@ const _abi = [
               },
               {
                 internalType: "uint256",
-                name: "amount",
+                name: "startAmount",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "endAmount",
                 type: "uint256",
               },
               {
@@ -625,11 +697,16 @@ const _abi = [
                   },
                   {
                     internalType: "uint256",
-                    name: "amount",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
                     type: "uint256",
                   },
                 ],
-                internalType: "struct Asset[]",
+                internalType: "struct OfferedAsset[]",
                 name: "offer",
                 type: "tuple[]",
               },
@@ -652,7 +729,12 @@ const _abi = [
                   },
                   {
                     internalType: "uint256",
-                    name: "amount",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
                     type: "uint256",
                   },
                   {
@@ -747,11 +829,16 @@ const _abi = [
                   },
                   {
                     internalType: "uint256",
-                    name: "amount",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
                     type: "uint256",
                   },
                 ],
-                internalType: "struct Asset[]",
+                internalType: "struct OfferedAsset[]",
                 name: "offer",
                 type: "tuple[]",
               },
@@ -774,7 +861,12 @@ const _abi = [
                   },
                   {
                     internalType: "uint256",
-                    name: "amount",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
                     type: "uint256",
                   },
                   {
@@ -804,6 +896,11 @@ const _abi = [
       },
       {
         components: [
+          {
+            internalType: "uint256",
+            name: "orderIndex",
+            type: "uint256",
+          },
           {
             internalType: "enum Side",
             name: "side",
@@ -896,11 +993,16 @@ const _abi = [
                   },
                   {
                     internalType: "uint256",
-                    name: "amount",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
                     type: "uint256",
                   },
                 ],
-                internalType: "struct Asset[]",
+                internalType: "struct OfferedAsset[]",
                 name: "offer",
                 type: "tuple[]",
               },
@@ -923,7 +1025,12 @@ const _abi = [
                   },
                   {
                     internalType: "uint256",
-                    name: "amount",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
                     type: "uint256",
                   },
                   {
@@ -952,9 +1059,14 @@ const _abi = [
         type: "tuple",
       },
       {
-        internalType: "uint256",
-        name: "amountToFill",
-        type: "uint256",
+        internalType: "uint120",
+        name: "numerator",
+        type: "uint120",
+      },
+      {
+        internalType: "uint120",
+        name: "denominator",
+        type: "uint120",
       },
     ],
     name: "fulfillPartialOrder",
@@ -1021,11 +1133,16 @@ const _abi = [
               },
               {
                 internalType: "uint256",
-                name: "amount",
+                name: "startAmount",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "endAmount",
                 type: "uint256",
               },
             ],
-            internalType: "struct Asset[]",
+            internalType: "struct OfferedAsset[]",
             name: "offer",
             type: "tuple[]",
           },
@@ -1048,7 +1165,12 @@ const _abi = [
               },
               {
                 internalType: "uint256",
-                name: "amount",
+                name: "startAmount",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "endAmount",
                 type: "uint256",
               },
               {
@@ -1086,6 +1208,47 @@ const _abi = [
   {
     inputs: [
       {
+        internalType: "bytes32",
+        name: "orderHash",
+        type: "bytes32",
+      },
+    ],
+    name: "getOrderStatus",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "bool",
+            name: "isValidated",
+            type: "bool",
+          },
+          {
+            internalType: "bool",
+            name: "isCancelled",
+            type: "bool",
+          },
+          {
+            internalType: "uint120",
+            name: "numerator",
+            type: "uint120",
+          },
+          {
+            internalType: "uint120",
+            name: "denominator",
+            type: "uint120",
+          },
+        ],
+        internalType: "struct OrderStatus",
+        name: "",
+        type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "address",
         name: "offerer",
         type: "address",
@@ -1105,233 +1268,6 @@ const _abi = [
       },
     ],
     stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            components: [
-              {
-                components: [
-                  {
-                    internalType: "enum AssetType",
-                    name: "assetType",
-                    type: "uint8",
-                  },
-                  {
-                    internalType: "address",
-                    name: "token",
-                    type: "address",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "identifierOrCriteria",
-                    type: "uint256",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "startAmount",
-                    type: "uint256",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "endAmount",
-                    type: "uint256",
-                  },
-                ],
-                internalType: "struct AdvancedAsset[]",
-                name: "offer",
-                type: "tuple[]",
-              },
-              {
-                components: [
-                  {
-                    internalType: "enum AssetType",
-                    name: "assetType",
-                    type: "uint8",
-                  },
-                  {
-                    internalType: "address",
-                    name: "token",
-                    type: "address",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "identifierOrCriteria",
-                    type: "uint256",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "startAmount",
-                    type: "uint256",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "endAmount",
-                    type: "uint256",
-                  },
-                  {
-                    internalType: "address",
-                    name: "account",
-                    type: "address",
-                  },
-                ],
-                internalType: "struct AdvancedReceivedAsset[]",
-                name: "consideration",
-                type: "tuple[]",
-              },
-              {
-                internalType: "uint256",
-                name: "startTime",
-                type: "uint256",
-              },
-              {
-                internalType: "uint256",
-                name: "endTime",
-                type: "uint256",
-              },
-              {
-                internalType: "address",
-                name: "offerer",
-                type: "address",
-              },
-              {
-                internalType: "uint256",
-                name: "salt",
-                type: "uint256",
-              },
-              {
-                internalType: "address",
-                name: "facilitator",
-                type: "address",
-              },
-              {
-                internalType: "uint256",
-                name: "nonce",
-                type: "uint256",
-              },
-            ],
-            internalType: "struct AdvancedOrderParameters",
-            name: "parameters",
-            type: "tuple",
-          },
-          {
-            internalType: "bytes",
-            name: "signature",
-            type: "bytes",
-          },
-        ],
-        internalType: "struct AdvancedOrder[]",
-        name: "orders",
-        type: "tuple[]",
-      },
-      {
-        components: [
-          {
-            internalType: "uint256",
-            name: "identifier",
-            type: "uint256",
-          },
-          {
-            components: [
-              {
-                internalType: "uint256",
-                name: "orderIndex",
-                type: "uint256",
-              },
-              {
-                internalType: "uint256",
-                name: "assetIndex",
-                type: "uint256",
-              },
-              {
-                internalType: "bytes32[]",
-                name: "criteriaProof",
-                type: "bytes32[]",
-              },
-            ],
-            internalType: "struct AdvancedFulfillmentComponent[]",
-            name: "offerComponents",
-            type: "tuple[]",
-          },
-          {
-            components: [
-              {
-                internalType: "uint256",
-                name: "orderIndex",
-                type: "uint256",
-              },
-              {
-                internalType: "uint256",
-                name: "assetIndex",
-                type: "uint256",
-              },
-              {
-                internalType: "bytes32[]",
-                name: "criteriaProof",
-                type: "bytes32[]",
-              },
-            ],
-            internalType: "struct AdvancedFulfillmentComponent[]",
-            name: "considerationComponents",
-            type: "tuple[]",
-          },
-        ],
-        internalType: "struct AdvancedFulfillment[]",
-        name: "fulfillments",
-        type: "tuple[]",
-      },
-    ],
-    name: "matchAdvancedOrders",
-    outputs: [
-      {
-        components: [
-          {
-            components: [
-              {
-                internalType: "enum AssetType",
-                name: "assetType",
-                type: "uint8",
-              },
-              {
-                internalType: "address",
-                name: "token",
-                type: "address",
-              },
-              {
-                internalType: "uint256",
-                name: "identifierOrCriteria",
-                type: "uint256",
-              },
-              {
-                internalType: "uint256",
-                name: "amount",
-                type: "uint256",
-              },
-              {
-                internalType: "address payable",
-                name: "account",
-                type: "address",
-              },
-            ],
-            internalType: "struct ReceivedAsset",
-            name: "asset",
-            type: "tuple",
-          },
-          {
-            internalType: "address",
-            name: "offerer",
-            type: "address",
-          },
-        ],
-        internalType: "struct Execution[]",
-        name: "",
-        type: "tuple[]",
-      },
-    ],
-    stateMutability: "payable",
     type: "function",
   },
   {
@@ -1389,11 +1325,16 @@ const _abi = [
                   },
                   {
                     internalType: "uint256",
-                    name: "amount",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
                     type: "uint256",
                   },
                 ],
-                internalType: "struct Asset[]",
+                internalType: "struct OfferedAsset[]",
                 name: "offer",
                 type: "tuple[]",
               },
@@ -1416,7 +1357,12 @@ const _abi = [
                   },
                   {
                     internalType: "uint256",
-                    name: "amount",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
                     type: "uint256",
                   },
                   {
@@ -1442,6 +1388,38 @@ const _abi = [
         ],
         internalType: "struct Order[]",
         name: "orders",
+        type: "tuple[]",
+      },
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "orderIndex",
+            type: "uint256",
+          },
+          {
+            internalType: "enum Side",
+            name: "side",
+            type: "uint8",
+          },
+          {
+            internalType: "uint256",
+            name: "index",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "identifier",
+            type: "uint256",
+          },
+          {
+            internalType: "bytes32[]",
+            name: "criteriaProof",
+            type: "bytes32[]",
+          },
+        ],
+        internalType: "struct CriteriaResolver[]",
+        name: "criteriaResolvers",
         type: "tuple[]",
       },
       {
@@ -1509,7 +1487,12 @@ const _abi = [
               },
               {
                 internalType: "uint256",
-                name: "amount",
+                name: "startAmount",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "endAmount",
                 type: "uint256",
               },
               {
@@ -1552,20 +1535,133 @@ const _abi = [
   {
     inputs: [
       {
-        internalType: "bytes32",
-        name: "orderHash",
-        type: "bytes32",
+        components: [
+          {
+            components: [
+              {
+                internalType: "address",
+                name: "offerer",
+                type: "address",
+              },
+              {
+                internalType: "address",
+                name: "facilitator",
+                type: "address",
+              },
+              {
+                internalType: "enum OrderType",
+                name: "orderType",
+                type: "uint8",
+              },
+              {
+                internalType: "uint256",
+                name: "startTime",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "endTime",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "salt",
+                type: "uint256",
+              },
+              {
+                components: [
+                  {
+                    internalType: "enum AssetType",
+                    name: "assetType",
+                    type: "uint8",
+                  },
+                  {
+                    internalType: "address",
+                    name: "token",
+                    type: "address",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "identifierOrCriteria",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
+                    type: "uint256",
+                  },
+                ],
+                internalType: "struct OfferedAsset[]",
+                name: "offer",
+                type: "tuple[]",
+              },
+              {
+                components: [
+                  {
+                    internalType: "enum AssetType",
+                    name: "assetType",
+                    type: "uint8",
+                  },
+                  {
+                    internalType: "address",
+                    name: "token",
+                    type: "address",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "identifierOrCriteria",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "startAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "endAmount",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "address payable",
+                    name: "account",
+                    type: "address",
+                  },
+                ],
+                internalType: "struct ReceivedAsset[]",
+                name: "consideration",
+                type: "tuple[]",
+              },
+            ],
+            internalType: "struct OrderParameters",
+            name: "parameters",
+            type: "tuple",
+          },
+          {
+            internalType: "bytes",
+            name: "signature",
+            type: "bytes",
+          },
+        ],
+        internalType: "struct Order[]",
+        name: "orders",
+        type: "tuple[]",
       },
     ],
-    name: "orderUsedOrCancelled",
+    name: "validate",
     outputs: [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        internalType: "bool",
+        name: "ok",
+        type: "bool",
       },
     ],
-    stateMutability: "view",
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
