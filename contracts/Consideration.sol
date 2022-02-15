@@ -156,39 +156,32 @@ interface ConsiderationInterface {
     error OrderUsed(bytes32);
     error InvalidTime();
     error InvalidSubmitterOnRestrictedOrder();
-
     error NoOfferOnFulfillment();
     error NoConsiderationOnFulfillment();
     error FulfilledOrderIndexOutOfRange();
     error FulfilledOrderOfferIndexOutOfRange();
     error FulfillmentOrderIndexOutOfRange();
     error FulfillmentOrderConsiderationIndexOutOfRange();
-
     error BadSignatureLength(uint256);
     error BadSignatureV(uint8);
     error MalleableSignatureS(uint256);
     error BadSignature();
     error InvalidSignature();
     error BadContractSignature();
-
     error MismatchedFulfillmentOfferComponents();
     error MismatchedFulfillmentConsiderationComponents();
     error ConsiderationNotMet(uint256 orderIndex, uint256 considerationIndex, uint256 shortfallAmount);
-
     error EtherTransferGenericFailure(address account, uint256 amount);
     error ERC20TransferGenericFailure(address token, address account, uint256 amount);
     error ERC721TransferGenericFailure(address token, address account, uint256 identifier);
     error ERC1155TransferGenericFailure(address token, address account, uint256 identifier, uint256 amount);
     error BadReturnValueFromERC20OnTransfer(address token, address account, uint256 amount);
-
     error ERC20TransferNoContract(address);
     error ERC721TransferNoContract(address);
     error ERC1155TransferNoContract(address);
-
     error PartialFillsNotEnabledForOrder();
     error OrderIsCancelled(bytes32);
     error OrderAlreadyValidated(bytes32);
-
     error OrderCriteriaResolverOutOfRange();
     error UnresolvedOfferCriteria();
     error UnresolvedConsiderationCriteria();
@@ -197,12 +190,11 @@ interface ConsiderationInterface {
     error CriteriaNotEnabledForOfferedAsset();
     error CriteriaNotEnabledForConsideredAsset();
     error InvalidProof();
-
     error OnlyOffererOrFacilitatorMayCancel();
     error OnlyOffererOrFacilitatorMayIncrementNonce();
-
     error BadFraction();
     error InexactFraction();
+    error NoReentrantCalls();
 }
 
 contract Consideration is ConsiderationInterface {
@@ -765,7 +757,7 @@ contract Consideration is ConsiderationInterface {
     modifier nonReentrant() {
         // On the first call to nonReentrant, _notEntered will be true
         if (_reentrancyGuard == _ENTERED) {
-            revert("No reentrant calls");
+            revert NoReentrantCalls();
         }
 
         _reentrancyGuard = _ENTERED;
