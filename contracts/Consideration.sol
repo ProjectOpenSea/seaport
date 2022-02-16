@@ -34,35 +34,41 @@ contract Consideration is ConsiderationInterface {
     // TODO: batch 1155 transfers
     // TODO: proxy integration via either order type or asset type
 
-    string private constant _NAME = "Consideration";
-    string private constant _VERSION = "1";
+    string internal constant _NAME = "Consideration";
+    string internal constant _VERSION = "1";
 
-    // keccak256("OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)")
-    bytes32 constant OFFERED_ASSET_TYPEHASH = 0xe21b718ec3d6fc8aff01dbd32260ad89de5b3e4d1e370cfad6d5a6a221a9ea25;
+    uint256 internal constant _NOT_ENTERED = 1;
+    uint256 internal constant _ENTERED = 2;
+    uint256 internal constant _FULLY_FILLED = 1e18;
 
-    // keccak256("ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
-    bytes32 constant RECEIVED_ASSET_TYPEHASH = 0x6898daae7bd07ccae00c38117149e10d924f61e47f298a530f6f0a0d90b1ba42;
+    // Precompute hashes, original chainId, and domain separator on deployment.
+    bytes32 internal immutable _NAME_HASH;
+    bytes32 internal immutable _VERSION_HASH;
+    bytes32 internal immutable _EIP_712_DOMAIN_TYPEHASH;
+    bytes32 internal immutable _OFFERED_ASSET_TYPEHASH;
+    bytes32 internal immutable _RECEIVED_ASSET_TYPEHASH;
+    bytes32 internal immutable _ORDER_HASH;
+    uint256 internal immutable _CHAIN_ID;
+    bytes32 internal immutable _DOMAIN_SEPARATOR;
 
-    // keccak256("OrderComponents(address offerer,address facilitator,OfferedAsset[] offer,ReceivedAsset[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)")
-    bytes32 private constant _ORDER_HASH = 0x840ff5c58a3a2409dca7476f1db217211d30b9a96ce4726fa069c5531c3b7a89;
+    // prevent reentrant calls on protected functions
+    uint256 internal _reentrancyGuard;
 
-    uint256 private constant _NOT_ENTERED = 1;
-    uint256 private constant _ENTERED = 2;
-    uint256 private constant _FULLY_FILLED = 1e18;
-
-    bytes32 private immutable _DOMAIN_SEPARATOR;
-    uint256 private immutable _CHAIN_ID;
-
-    uint256 private _reentrancyGuard;
-
-    mapping (bytes32 => OrderStatus) private _orderStatus;
+    // track status of each order (validated, cancelled, and fraction filled)
+    mapping (bytes32 => OrderStatus) internal _orderStatus;
 
     // offerer => facilitator => nonce (cancel offerer's orders with given facilitator)
-    mapping (address => mapping (address => uint256)) private _facilitatorNonces;
+    mapping (address => mapping (address => uint256)) internal _facilitatorNonces;
 
     constructor() {
-        _DOMAIN_SEPARATOR = _deriveDomainSeparator();
+        _NAME_HASH = keccak256(bytes(_NAME));
+        _VERSION_HASH = keccak256(bytes(_VERSION));
+        _EIP_712_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+        _OFFERED_ASSET_TYPEHASH = keccak256("OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)");
+        _RECEIVED_ASSET_TYPEHASH = keccak256("ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
+        _ORDER_HASH = keccak256("OrderComponents(address offerer,address facilitator,OfferedAsset[] offer,ReceivedAsset[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
         _CHAIN_ID = block.chainid;
+        _DOMAIN_SEPARATOR = _deriveDomainSeparator();
 
         _reentrancyGuard = _NOT_ENTERED;
     }
@@ -658,7 +664,7 @@ contract Consideration is ConsiderationInterface {
 
     function getOrderHash(
         OrderComponents memory order
-    ) external pure override returns (bytes32) {
+    ) external view override returns (bytes32) {
         return _getOrderHash(
             OrderParameters(
                 order.offerer,
@@ -951,7 +957,7 @@ contract Consideration is ConsiderationInterface {
         bytes32 orderHash,
         address offerer,
         bytes memory signature
-    ) private {
+    ) internal {
         OrderStatus memory orderStatus = _orderStatus[orderHash];
 
         if (orderStatus.isCancelled) {
@@ -1165,7 +1171,7 @@ contract Consideration is ConsiderationInterface {
     function _fulfill(
         ReceivedAsset memory asset,
         address offerer
-    ) private {
+    ) internal {
         if (asset.assetType == AssetType.ETH) {
             _transferEth(asset.account, asset.endAmount);
         } else if (asset.assetType == AssetType.ERC20) {
@@ -1327,7 +1333,7 @@ contract Consideration is ConsiderationInterface {
 
     function _assertHighLevelOrderValidity(
         OrderParameters memory order
-    ) private view {
+    ) internal view {
         _ensureValidTime(order.startTime, order.endTime);
 
         if (
@@ -1352,7 +1358,7 @@ contract Consideration is ConsiderationInterface {
         address offerer,
         bytes32 orderHash,
         bytes memory signature
-    ) private view {
+    ) internal view {
         if (offerer == msg.sender) {
             return;
         }
@@ -1418,11 +1424,11 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
-    function _domainSeparator() private view returns (bytes32) {
+    function _domainSeparator() internal view returns (bytes32) {
         return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _deriveDomainSeparator();
     }
 
-    function _deriveDomainSeparator() private view returns (bytes32) {
+    function _deriveDomainSeparator() internal view returns (bytes32) {
         return keccak256(
             abi.encode(
                 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f, // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
@@ -1436,35 +1442,39 @@ contract Consideration is ConsiderationInterface {
 
     function _hashOfferedAsset(
         OfferedAsset memory offeredAsset
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            OFFERED_ASSET_TYPEHASH,
-            offeredAsset.assetType,
-            offeredAsset.token,
-            offeredAsset.identifierOrCriteria,
-            offeredAsset.startAmount,
-            offeredAsset.endAmount
-        ));
+    ) internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _OFFERED_ASSET_TYPEHASH,
+                offeredAsset.assetType,
+                offeredAsset.token,
+                offeredAsset.identifierOrCriteria,
+                offeredAsset.startAmount,
+                offeredAsset.endAmount
+            )
+        );
     }
 
     function _hashReceivedAsset(
         ReceivedAsset memory receivedAsset
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            RECEIVED_ASSET_TYPEHASH,
-            receivedAsset.assetType,
-            receivedAsset.token,
-            receivedAsset.identifierOrCriteria,
-            receivedAsset.startAmount,
-            receivedAsset.endAmount,
-            receivedAsset.account
-        ));
+    ) internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _RECEIVED_ASSET_TYPEHASH,
+                receivedAsset.assetType,
+                receivedAsset.token,
+                receivedAsset.identifierOrCriteria,
+                receivedAsset.startAmount,
+                receivedAsset.endAmount,
+                receivedAsset.account
+            )
+        );
     }
 
     function _getOrderHash(
         OrderParameters memory orderParameters,
         uint256 nonce
-    ) private pure returns (bytes32) {
+    ) internal view returns (bytes32) {
         uint256 offerLength = orderParameters.offer.length;
         uint256 considerationLength = orderParameters.consideration.length;
         bytes32[] memory offerHashes = new bytes32[](offerLength);
@@ -1522,7 +1532,7 @@ contract Consideration is ConsiderationInterface {
         uint256 leaf,
         uint256 root,
         bytes32[] memory proof
-    ) private pure {
+    ) internal pure {
         bytes32 computedHash = bytes32(leaf);
         unchecked {
             for (uint256 i = 0; i < proof.length; ++i) {
@@ -1544,7 +1554,7 @@ contract Consideration is ConsiderationInterface {
     function _efficientHash(
         bytes32 a,
         bytes32 b
-    ) private pure returns (bytes32 value) {
+    ) internal pure returns (bytes32 value) {
         assembly {
             mstore(0x00, a)
             mstore(0x20, b)
