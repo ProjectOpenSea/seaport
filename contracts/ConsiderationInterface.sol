@@ -46,15 +46,20 @@ interface ConsiderationInterface {
         BasicOrderParameters calldata parameters
     ) external returns (bool);
 
-    function fulfillOrder(Order memory order) external payable returns (bool);
+    function fulfillOrder(
+        Order memory order,
+        bool useFulfillerProxy
+    ) external payable returns (bool);
     function fulfillOrderWithCriteria(
         Order memory order,
-        CriteriaResolver[] memory criteriaResolvers
+        CriteriaResolver[] memory criteriaResolvers,
+        bool useFulfillerProxy
     ) external payable returns (bool);
     function fulfillPartialOrder(
         Order memory order,
         uint120 numerator,
-        uint120 denominator
+        uint120 denominator,
+        bool useFulfillerProxy
     ) external payable returns (bool);
     function matchOrders(
         Order[] memory orders,
@@ -132,4 +137,5 @@ interface ConsiderationInterface {
     error BadFraction();
     error InexactFraction();
     error NoReentrantCalls();
+    error InvalidUserProxyImplementation();
 }

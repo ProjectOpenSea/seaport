@@ -21,6 +21,7 @@ struct BasicOrderParameters {
     uint256 startTime;
     uint256 endTime;
     uint256 salt;
+    bool useFulfillerProxy;
     bytes signature;
     AdditionalRecipient[] additionalRecipients;
 }
@@ -78,6 +79,7 @@ struct Fulfillment {
 struct Execution {
     ReceivedAsset asset;
     address offerer;
+    bool useProxy;
 }
 
 struct Order {
