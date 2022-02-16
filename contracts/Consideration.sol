@@ -37,7 +37,6 @@ import { ConsiderationInterface } from "./ConsiderationInterface.sol";
 
 contract Consideration is ConsiderationInterface {
     // TODO: batch 1155 transfers
-    // TODO: proxy integration via either order type or asset type
     // TODO: support partial fills as part of matchOrders?
 
     string internal constant _NAME = "Consideration";
