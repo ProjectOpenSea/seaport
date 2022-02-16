@@ -481,13 +481,13 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
     ) external payable override nonReentrant() returns (Execution[] memory) {
-        bool[] memory useOffererProxyPerOrder = _validateOrdersAndApplyPartials(orders);
+        bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(orders);
 
         _adjustPrices(orders);
 
         _applyCriteriaResolvers(orders, criteriaResolvers);
 
-        return _fulfillOrders(orders, fulfillments, useOffererProxyPerOrder);
+        return _fulfillOrders(orders, fulfillments, useProxyPerOrder);
     }
 
     function cancel(
@@ -496,7 +496,10 @@ contract Consideration is ConsiderationInterface {
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 OrderComponents memory order = orders[i];
-                if (msg.sender != order.offerer && msg.sender != order.facilitator) {
+                if (
+                    msg.sender != order.offerer &&
+                    msg.sender != order.facilitator
+                ) {
                     revert OnlyOffererOrFacilitatorMayCancel();
                 }
 
@@ -516,7 +519,11 @@ contract Consideration is ConsiderationInterface {
 
                 _orderStatus[orderHash].isCancelled = true;
 
-                emit OrderCancelled(orderHash, order.offerer, order.facilitator);
+                emit OrderCancelled(
+                    orderHash,
+                    order.offerer,
+                    order.facilitator
+                );
             }
         }
 
@@ -862,7 +869,8 @@ contract Consideration is ConsiderationInterface {
                 orderWithInitialOffer.offerer != subsequentOrder.offerer ||
                 offeredAsset.assetType != additionalOfferedAsset.assetType ||
                 offeredAsset.token != additionalOfferedAsset.token ||
-                offeredAsset.identifierOrCriteria != additionalOfferedAsset.identifierOrCriteria
+                offeredAsset.identifierOrCriteria != additionalOfferedAsset.identifierOrCriteria ||
+                useProxy != useOffererProxyPerOrder[currentOrderIndex]
             ) {
                 revert MismatchedFulfillmentOfferComponents();
             }
@@ -908,7 +916,8 @@ contract Consideration is ConsiderationInterface {
                 requiredConsideration.account != additionalRequiredConsideration.account ||
                 requiredConsideration.assetType != additionalRequiredConsideration.assetType ||
                 requiredConsideration.token != additionalRequiredConsideration.token ||
-                requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria
+                requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria ||
+                useProxy != useOffererProxyPerOrder[currentOrderIndex]
             ) {
                 revert MismatchedFulfillmentConsiderationComponents();
             }
@@ -922,15 +931,19 @@ contract Consideration is ConsiderationInterface {
         }
 
         if (requiredConsideration.endAmount > offeredAsset.endAmount) {
-            currentOrderIndex = fulfillment.considerationComponents.length - 1;
-            orders[fulfillment.considerationComponents[currentOrderIndex].orderIndex].parameters.consideration[fulfillment.considerationComponents[currentOrderIndex].assetIndex].endAmount = requiredConsideration.endAmount - offeredAsset.endAmount;
+            FulfillmentComponent memory targetComponent = fulfillment.considerationComponents[fulfillment.considerationComponents.length - 1];
+            orders[targetComponent.orderIndex].parameters.consideration[targetComponent.assetIndex].endAmount = requiredConsideration.endAmount - offeredAsset.endAmount;
             requiredConsideration.endAmount = offeredAsset.endAmount;
         } else {
-            currentOrderIndex = fulfillment.offerComponents.length - 1;
-            orders[fulfillment.offerComponents[currentOrderIndex].orderIndex].parameters.offer[fulfillment.offerComponents[currentOrderIndex].assetIndex].endAmount = offeredAsset.endAmount - requiredConsideration.endAmount;
+            FulfillmentComponent memory targetComponent = fulfillment.offerComponents[fulfillment.offerComponents.length - 1];
+            orders[targetComponent.orderIndex].parameters.offer[targetComponent.assetIndex].endAmount = offeredAsset.endAmount - requiredConsideration.endAmount;
         }
 
-        return Execution(requiredConsideration, orderWithInitialOffer.offerer, useProxy);
+        return Execution(
+            requiredConsideration,
+            orderWithInitialOffer.offerer,
+            useProxy
+        );
     }
 
     function _prepareBasicFulfillment(
