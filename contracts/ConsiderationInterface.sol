@@ -2,19 +2,9 @@
 pragma solidity 0.8.11;
 
 import {
-    OrderType,
-    AssetType,
-    Side
-} from "./Enums.sol";
-
-import {
     BasicOrderParameters,
-    OfferedAsset,
-    ReceivedAsset,
-    OrderParameters,
     OrderComponents,
     Fulfillment,
-    FulfillmentComponent,
     Execution,
     Order,
     OrderStatus,
@@ -23,10 +13,12 @@ import {
 
 interface ConsiderationInterface {
     function fulfillBasicEthForERC721Order(
+        uint256 amount,
         BasicOrderParameters calldata parameters
     ) external payable returns (bool);
 
     function fulfillBasicEthForERC1155Order(
+        uint256 amount,
         BasicOrderParameters calldata parameters
     ) external payable returns (bool);
 
