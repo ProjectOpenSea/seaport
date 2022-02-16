@@ -393,30 +393,32 @@ contract Consideration is ConsiderationInterface {
         Fulfillment[] memory fulfillments
     ) external payable override nonReentrant() returns (Execution[] memory) {
         // verify soundness of each order — either 712 signature/1271 or msg.sender
-        for (uint256 i = 0; i < orders.length; i++) {
-            Order memory order = orders[i];
+        unchecked {
+            for (uint256 i = 0; i < orders.length; ++i) {
+                Order memory order = orders[i];
 
-            _assertHighLevelOrderValidity(order.parameters);
+                _assertHighLevelOrderValidity(order.parameters);
 
-            (bytes32 orderHash, uint120 numerator, uint120 denominator) = _validateOrderAndUpdateStatus(order, 1, 1);
+                (bytes32 orderHash, uint120 numerator, uint120 denominator) = _validateOrderAndUpdateStatus(order, 1, 1);
 
-            for (uint256 j = 0; j < order.parameters.offer.length; j++) {
-                orders[i].parameters.offer[j].endAmount = _getFraction(
-                    numerator,
-                    denominator,
-                    orders[i].parameters.offer[j].endAmount
-                );
+                for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
+                    orders[i].parameters.offer[j].endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        orders[i].parameters.offer[j].endAmount
+                    );
+                }
+
+                for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
+                    orders[i].parameters.consideration[j].endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        orders[i].parameters.consideration[j].endAmount
+                    );
+                }
+
+                emit OrderFulfilled(orderHash, orders[i].parameters.offerer, orders[i].parameters.facilitator);
             }
-
-            for (uint256 j = 0; j < order.parameters.consideration.length; j++) {
-                orders[i].parameters.consideration[j].endAmount = _getFraction(
-                    numerator,
-                    denominator,
-                    orders[i].parameters.consideration[j].endAmount
-                );
-            }
-
-            emit OrderFulfilled(orderHash, orders[i].parameters.offerer, orders[i].parameters.facilitator);
         }
 
         _adjustPrices(orders);
@@ -425,7 +427,7 @@ contract Consideration is ConsiderationInterface {
 
         // allocate fulfillment and schedule execution
         Execution[] memory execution = new Execution[](fulfillments.length);
-        for (uint256 i = 0; i < fulfillments.length; i++) {
+        for (uint256 i = 0; i < fulfillments.length; ++i) {
             Fulfillment memory fulfillment = fulfillments[i];
 
             if (fulfillment.offerComponents.length == 0) {
@@ -448,7 +450,7 @@ contract Consideration is ConsiderationInterface {
             OfferedAsset memory offeredAsset = orders[fulfillment.offerComponents[0].orderIndex].parameters.offer[fulfillment.offerComponents[0].assetIndex];
             orders[fulfillment.offerComponents[0].orderIndex].parameters.offer[fulfillment.offerComponents[0].assetIndex].endAmount = 0;
 
-            for (uint256 j = 1; j < fulfillment.offerComponents.length; j++) {
+            for (uint256 j = 1; j < fulfillment.offerComponents.length; ++j) {
                 FulfillmentComponent memory offerComponent = fulfillment.offerComponents[j];
 
                 if (offerComponent.orderIndex >= orders.length) {
@@ -487,7 +489,7 @@ contract Consideration is ConsiderationInterface {
             ReceivedAsset memory requiredConsideration = orders[fulfillment.considerationComponents[0].orderIndex].parameters.consideration[fulfillment.considerationComponents[0].assetIndex];
             orders[fulfillment.considerationComponents[0].orderIndex].parameters.consideration[fulfillment.considerationComponents[0].assetIndex].endAmount = 0;
 
-            for (uint256 j = 1; j < fulfillment.considerationComponents.length; j++) {
+            for (uint256 j = 1; j < fulfillment.considerationComponents.length; ++j) {
                 FulfillmentComponent memory considerationComponent = fulfillment.considerationComponents[j];
 
                 if (considerationComponent.orderIndex >= orders.length) {
@@ -524,18 +526,20 @@ contract Consideration is ConsiderationInterface {
         }
 
         // ensure that all considerations have been met
-        for (uint256 i = 0; i < orders.length; i++) {
-            ReceivedAsset[] memory considerations = orders[i].parameters.consideration;
-            for (uint256 j = 0; j < considerations.length; j++) {
-                if (considerations[j].endAmount != 0) {
-                    revert ConsiderationNotMet(i, j, considerations[j].endAmount);
+        unchecked {
+            for (uint256 i = 0; i < orders.length; ++i) {
+                ReceivedAsset[] memory considerations = orders[i].parameters.consideration;
+                for (uint256 j = 0; j < considerations.length; ++j) {
+                    if (considerations[j].endAmount != 0) {
+                        revert ConsiderationNotMet(i, j, considerations[j].endAmount);
+                    }
                 }
             }
-        }
 
-        // execute fulfillments
-        for (uint256 i = 0; i < execution.length; i++) {
-            _fulfill(execution[i].asset, execution[i].offerer);
+            // execute fulfillments
+            for (uint256 i = 0; i < execution.length; ++i) {
+                _fulfill(execution[i].asset, execution[i].offerer);
+            }
         }
 
         return execution;
@@ -544,29 +548,31 @@ contract Consideration is ConsiderationInterface {
     function cancel(
         OrderComponents[] memory orders
     ) external override returns (bool ok) {
-        for (uint256 i = 0; i < orders.length; i++) {
-            OrderComponents memory order = orders[i];
-            if (msg.sender != order.offerer && msg.sender != order.facilitator) {
-                revert OnlyOffererOrFacilitatorMayCancel();
+        unchecked {
+            for (uint256 i = 0; i < orders.length; ++i) {
+                OrderComponents memory order = orders[i];
+                if (msg.sender != order.offerer && msg.sender != order.facilitator) {
+                    revert OnlyOffererOrFacilitatorMayCancel();
+                }
+
+                bytes32 orderHash = _getOrderHash(
+                    OrderParameters(
+                        order.offerer,
+                        order.facilitator,
+                        order.orderType,
+                        order.startTime,
+                        order.endTime,
+                        order.salt,
+                        order.offer,
+                        order.consideration
+                    ),
+                    order.nonce
+                );
+
+                _orderStatus[orderHash].isCancelled = true;
+
+                emit OrderCancelled(orderHash, order.offerer, order.facilitator);
             }
-
-            bytes32 orderHash = _getOrderHash(
-                OrderParameters(
-                    order.offerer,
-                    order.facilitator,
-                    order.orderType,
-                    order.startTime,
-                    order.endTime,
-                    order.salt,
-                    order.offer,
-                    order.consideration
-                ),
-                order.nonce
-            );
-
-            _orderStatus[orderHash].isCancelled = true;
-
-            emit OrderCancelled(orderHash, order.offerer, order.facilitator);
         }
 
         return true;
@@ -575,42 +581,44 @@ contract Consideration is ConsiderationInterface {
     function validate(
         Order[] memory orders
     ) external override returns (bool ok) {
-        for (uint256 i = 0; i < orders.length; i++) {
-            Order memory order = orders[i];
+        unchecked {
+            for (uint256 i = 0; i < orders.length; ++i) {
+                Order memory order = orders[i];
 
-            bytes32 orderHash = _getOrderHash(
-                order.parameters,
-                _facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
-            );
+                bytes32 orderHash = _getOrderHash(
+                    order.parameters,
+                    _facilitatorNonces[order.parameters.offerer][order.parameters.facilitator]
+                );
 
-            OrderStatus memory orderStatus = _orderStatus[orderHash];
+                OrderStatus memory orderStatus = _orderStatus[orderHash];
 
-            if (orderStatus.isCancelled) {
-                revert OrderIsCancelled(orderHash);
+                if (orderStatus.isCancelled) {
+                    revert OrderIsCancelled(orderHash);
+                }
+
+                if (
+                    orderStatus.numerator != 0 &&
+                    orderStatus.numerator >= orderStatus.denominator
+                ) {
+                    revert OrderUsed(orderHash);
+                }
+
+                if (orderStatus.isValidated) {
+                    revert OrderAlreadyValidated(orderHash);
+                }
+
+                _verifySignature(
+                    order.parameters.offerer, orderHash, order.signature
+                );
+
+                _orderStatus[orderHash].isValidated = true;
+
+                emit OrderValidated(
+                    orderHash,
+                    order.parameters.offerer,
+                    order.parameters.facilitator
+                );
             }
-
-            if (
-                orderStatus.numerator != 0 &&
-                orderStatus.numerator >= orderStatus.denominator
-            ) {
-                revert OrderUsed(orderHash);
-            }
-
-            if (orderStatus.isValidated) {
-                revert OrderAlreadyValidated(orderHash);
-            }
-
-            _verifySignature(
-                order.parameters.offerer, orderHash, order.signature
-            );
-
-            _orderStatus[orderHash].isValidated = true;
-
-            emit OrderValidated(
-                orderHash,
-                order.parameters.offerer,
-                order.parameters.facilitator
-            );
         }
 
         return true;
@@ -624,7 +632,7 @@ contract Consideration is ConsiderationInterface {
             revert OnlyOffererOrFacilitatorMayIncrementNonce();
         }
 
-        nonce = _facilitatorNonces[offerer][facilitator]++;
+        nonce = ++_facilitatorNonces[offerer][facilitator];
 
         emit FacilitatorNonceIncremented(offerer, facilitator, nonce);
 
@@ -1093,7 +1101,7 @@ contract Consideration is ConsiderationInterface {
                 }
             }
 
-            for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 i = 0; i < orders.length; ++i) {
                 Order memory order = orders[i];
                 for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
                     if (uint256(order.parameters.consideration[j].assetType) > 3) {
