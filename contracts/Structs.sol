@@ -15,11 +15,13 @@ struct AdditionalRecipient {
 struct BasicOrderParameters {
     address payable offerer;
     address facilitator;
+    OrderType orderType;
     address token;
     uint256 identifier;
     uint256 startTime;
     uint256 endTime;
     uint256 salt;
+    bool useFulfillerProxy;
     bytes signature;
     AdditionalRecipient[] additionalRecipients;
 }
@@ -77,6 +79,7 @@ struct Fulfillment {
 struct Execution {
     ReceivedAsset asset;
     address offerer;
+    bool useProxy;
 }
 
 struct Order {

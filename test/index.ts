@@ -68,7 +68,10 @@ describe("Consideration functional tests", function () {
       "TestERC721",
       owner
     );
-    marketplaceContract = await considerationFactory.deploy();
+    marketplaceContract = await considerationFactory.deploy(
+      ethers.constants.AddressZero, // TODO: use actual proxy factory
+      ethers.constants.AddressZero, // TODO: use actual proxy implementation
+    );
     testERC721 = await TestERC721Factory.deploy();
 
     // Required for EIP712 signing
@@ -211,7 +214,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           };
 
           await whileImpersonating(buyer.address, provider, async () => {
-            await expect(marketplaceContract.connect(buyer).fulfillOrder(order, {value: order.parameters.consideration[0].endAmount}))
+            await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value: order.parameters.consideration[0].endAmount}))
               .to.emit(marketplaceContract, "OrderFulfilled")
               .withArgs(orderHash, seller.address, constants.AddressZero);
           });
