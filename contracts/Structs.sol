@@ -7,6 +7,23 @@ import {
     Side
 } from "./Enums.sol";
 
+struct AdditionalRecipient {
+    address payable account;
+    uint256 amount;
+}
+
+struct BasicOrderParameters {
+    address payable offerer;
+    address facilitator;
+    address token;
+    uint256 identifier;
+    uint256 startTime;
+    uint256 endTime;
+    uint256 salt;
+    bytes signature;
+    AdditionalRecipient[] additionalRecipients;
+}
+
 struct OfferedAsset {
     AssetType assetType;
     address token;
