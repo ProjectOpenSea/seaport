@@ -431,51 +431,6 @@ contract Consideration is ConsiderationInterface {
         return true;
     }
 
-    function _validateOrdersAndApplyPartials(
-        Order[] memory orders
-    ) internal returns (bool[] memory) {
-        bool[] memory useOffererProxyPerOrder = new bool[](orders.length);
-
-        unchecked {
-            for (uint256 i = 0; i < orders.length; ++i) {
-                Order memory order = orders[i];
-
-                (
-                    bytes32 orderHash,
-                    uint120 numerator,
-                    uint120 denominator,
-                    bool useOffererProxy
-                ) = _validateOrderAndUpdateStatus(order, 1, 1);
-
-                useOffererProxyPerOrder[i] = useOffererProxy;
-
-                for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
-                    orders[i].parameters.offer[j].endAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        orders[i].parameters.offer[j].endAmount
-                    );
-                }
-
-                for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
-                    orders[i].parameters.consideration[j].endAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        orders[i].parameters.consideration[j].endAmount
-                    );
-                }
-
-                emit OrderFulfilled(
-                    orderHash,
-                    orders[i].parameters.offerer,
-                    orders[i].parameters.facilitator
-                );
-            }
-        }
-
-        return useOffererProxyPerOrder;
-    }
-
     function matchOrders(
         Order[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
@@ -642,6 +597,51 @@ contract Consideration is ConsiderationInterface {
         _;
 
         _reentrancyGuard = _NOT_ENTERED;
+    }
+
+    function _validateOrdersAndApplyPartials(
+        Order[] memory orders
+    ) internal returns (bool[] memory) {
+        bool[] memory useOffererProxyPerOrder = new bool[](orders.length);
+
+        unchecked {
+            for (uint256 i = 0; i < orders.length; ++i) {
+                Order memory order = orders[i];
+
+                (
+                    bytes32 orderHash,
+                    uint120 numerator,
+                    uint120 denominator,
+                    bool useOffererProxy
+                ) = _validateOrderAndUpdateStatus(order, 1, 1);
+
+                useOffererProxyPerOrder[i] = useOffererProxy;
+
+                for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
+                    orders[i].parameters.offer[j].endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        orders[i].parameters.offer[j].endAmount
+                    );
+                }
+
+                for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
+                    orders[i].parameters.consideration[j].endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        orders[i].parameters.consideration[j].endAmount
+                    );
+                }
+
+                emit OrderFulfilled(
+                    orderHash,
+                    orders[i].parameters.offerer,
+                    orders[i].parameters.facilitator
+                );
+            }
+        }
+
+        return useOffererProxyPerOrder;
     }
 
     function _fulfillOrderWithCriteria(
