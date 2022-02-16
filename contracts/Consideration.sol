@@ -916,8 +916,7 @@ contract Consideration is ConsiderationInterface {
                 requiredConsideration.account != additionalRequiredConsideration.account ||
                 requiredConsideration.assetType != additionalRequiredConsideration.assetType ||
                 requiredConsideration.token != additionalRequiredConsideration.token ||
-                requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria ||
-                useProxy != useOffererProxyPerOrder[currentOrderIndex]
+                requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria
             ) {
                 revert MismatchedFulfillmentConsiderationComponents();
             }
