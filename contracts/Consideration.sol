@@ -30,6 +30,10 @@ import {
 import { ConsiderationInterface } from "./ConsiderationInterface.sol";
 
 contract Consideration is ConsiderationInterface {
+    // TODO: fees on "basic" functions
+    // TODO: batch 1155 transfers
+    // TODO: proxy integration via either order type or asset type
+
     string private constant _NAME = "Consideration";
     string private constant _VERSION = "1";
 
@@ -63,50 +67,26 @@ contract Consideration is ConsiderationInterface {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    // NOTE: should support fees as well
     function fulfillBasicEthForERC721Order(
         BasicOrderParameters calldata parameters
     ) external payable override returns (bool) {
-        _ensureValidTime(parameters.startTime, parameters.endTime);
-
-        OfferedAsset[] memory offer = new OfferedAsset[](1);
-        ReceivedAsset[] memory consideration = new ReceivedAsset[](1);
-        offer[0] = OfferedAsset(
-            AssetType.ERC721,
-            parameters.token,
-            parameters.identifier,
-            1,
-            1
-        );
-        consideration[0] = ReceivedAsset(
-            AssetType.ETH,
-            address(0),
-            0,
-            msg.value,
-            msg.value,
-            parameters.offerer
-        );
-
-        uint256 nonce = _facilitatorNonces[parameters.offerer][parameters.facilitator];
-
-        bytes32 orderHash = _getOrderHash(
-            OrderParameters(
-                parameters.offerer,
-                parameters.facilitator,
-                OrderType.FULL_OPEN,
-                parameters.startTime,
-                parameters.endTime,
-                parameters.salt,
-                offer,
-                consideration
+        bytes32 orderHash = _prepareBasicFulfillment(
+            parameters,
+            OfferedAsset(
+                AssetType.ERC721,
+                parameters.token,
+                parameters.identifier,
+                1,
+                1
             ),
-            nonce
-        );
-
-        _validateBasicOrderAndUpdateStatus(
-            orderHash,
-            parameters.offerer,
-            parameters.signature
+            ReceivedAsset(
+                AssetType.ETH,
+                address(0),
+                0,
+                msg.value,
+                msg.value,
+                parameters.offerer
+            )
         );
 
         _transferERC721(
@@ -125,7 +105,37 @@ contract Consideration is ConsiderationInterface {
     function fulfillBasicEthForERC1155Order(
         BasicOrderParameters calldata parameters
     ) external payable override returns (bool) {
-        _ensureValidTime(parameters.startTime, parameters.endTime);
+        bytes32 orderHash = _prepareBasicFulfillment(
+            parameters,
+            OfferedAsset(
+                AssetType.ERC1155,
+                parameters.token,
+                parameters.identifier,
+                1,
+                1
+            ),
+            ReceivedAsset(
+                AssetType.ETH,
+                address(0),
+                0,
+                msg.value,
+                msg.value,
+                parameters.offerer
+            )
+        );
+
+        _transferERC1155(
+            parameters.token,
+            parameters.offerer,
+            msg.sender,
+            parameters.identifier,
+            1
+        );
+
+        _transferEth(parameters.offerer, msg.value);
+
+        emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
+        return true;
     }
 
     function fulfillBasicERC20ForERC721Order(
@@ -133,7 +143,36 @@ contract Consideration is ConsiderationInterface {
         uint256 amount,
         BasicOrderParameters calldata parameters
     ) external override returns (bool) {
-        _ensureValidTime(parameters.startTime, parameters.endTime);
+        bytes32 orderHash = _prepareBasicFulfillment(
+            parameters,
+            OfferedAsset(
+                AssetType.ERC721,
+                parameters.token,
+                parameters.identifier,
+                1,
+                1
+            ),
+            ReceivedAsset(
+                AssetType.ERC20,
+                erc20Token,
+                0,
+                amount,
+                amount,
+                parameters.offerer
+            )
+        );
+
+        _transferERC721(
+            parameters.token,
+            parameters.offerer,
+            msg.sender,
+            parameters.identifier
+        );
+
+        _transferERC20(parameters.token, msg.sender, parameters.offerer, amount);
+
+        emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
+        return true;
     }
 
     function fulfillBasicERC20ForERC1155Order(
@@ -141,7 +180,37 @@ contract Consideration is ConsiderationInterface {
         uint256 amount,
         BasicOrderParameters calldata parameters
     ) external override returns (bool) {
-        _ensureValidTime(parameters.startTime, parameters.endTime);
+        bytes32 orderHash = _prepareBasicFulfillment(
+            parameters,
+            OfferedAsset(
+                AssetType.ERC1155,
+                parameters.token,
+                parameters.identifier,
+                1,
+                1
+            ),
+            ReceivedAsset(
+                AssetType.ERC20,
+                erc20Token,
+                0,
+                amount,
+                amount,
+                parameters.offerer
+            )
+        );
+
+        _transferERC1155(
+            parameters.token,
+            parameters.offerer,
+            msg.sender,
+            parameters.identifier,
+            1
+        );
+
+        _transferERC20(parameters.token, msg.sender, parameters.offerer, amount);
+
+        emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
+        return true;
     }
 
     function fulfillBasicERC721ForERC20Order(
@@ -149,7 +218,36 @@ contract Consideration is ConsiderationInterface {
         uint256 amount,
         BasicOrderParameters calldata parameters
     ) external override returns (bool) {
-        _ensureValidTime(parameters.startTime, parameters.endTime);
+        bytes32 orderHash = _prepareBasicFulfillment(
+            parameters,
+            OfferedAsset(
+                AssetType.ERC20,
+                erc20Token,
+                0,
+                amount,
+                amount
+            ),
+            ReceivedAsset(
+                AssetType.ERC721,
+                parameters.token,
+                parameters.identifier,
+                1,
+                1,
+                parameters.offerer
+            )
+        );
+
+        _transferERC20(erc20Token, parameters.offerer, msg.sender, amount);
+
+        _transferERC721(
+            parameters.token,
+            msg.sender,
+            parameters.offerer,
+            parameters.identifier
+        );
+
+        emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
+        return true;
     }
 
     function fulfillBasicERC1155ForERC20Order(
@@ -157,7 +255,37 @@ contract Consideration is ConsiderationInterface {
         uint256 amount,
         BasicOrderParameters calldata parameters
     ) external override returns (bool) {
-        _ensureValidTime(parameters.startTime, parameters.endTime);
+        bytes32 orderHash = _prepareBasicFulfillment(
+            parameters,
+            OfferedAsset(
+                AssetType.ERC20,
+                erc20Token,
+                0,
+                amount,
+                amount
+            ),
+            ReceivedAsset(
+                AssetType.ERC1155,
+                parameters.token,
+                parameters.identifier,
+                1,
+                1,
+                parameters.offerer
+            )
+        );
+
+        _transferERC20(erc20Token, parameters.offerer, msg.sender, amount);
+
+        _transferERC1155(
+            parameters.token,
+            msg.sender,
+            parameters.offerer,
+            parameters.identifier,
+            1
+        );
+
+        emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
+        return true;
     }
 
     function fulfillOrder(
@@ -701,6 +829,43 @@ contract Consideration is ConsiderationInterface {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
+    function _prepareBasicFulfillment(
+        BasicOrderParameters memory parameters,
+        OfferedAsset memory offeredAsset,
+        ReceivedAsset memory receivedAsset
+    ) internal returns (bytes32 orderHash) {
+        _ensureValidTime(parameters.startTime, parameters.endTime);
+
+        OfferedAsset[] memory offer = new OfferedAsset[](1);
+        ReceivedAsset[] memory consideration = new ReceivedAsset[](1);
+        offer[0] = offeredAsset;
+        consideration[0] = receivedAsset;
+
+        uint256 nonce = _facilitatorNonces[parameters.offerer][parameters.facilitator];
+
+        orderHash = _getOrderHash(
+            OrderParameters(
+                parameters.offerer,
+                parameters.facilitator,
+                OrderType.FULL_OPEN,
+                parameters.startTime,
+                parameters.endTime,
+                parameters.salt,
+                offer,
+                consideration
+            ),
+            nonce
+        );
+
+        _validateBasicOrderAndUpdateStatus(
+            orderHash,
+            parameters.offerer,
+            parameters.signature
+        );
+
+        return orderHash;
+    }
+
     function _validateOrderAndUpdateStatus(
         Order memory order,
         uint120 numerator,
@@ -945,8 +1110,6 @@ contract Consideration is ConsiderationInterface {
         ReceivedAsset memory asset,
         address offerer
     ) private {
-        bool ok;
-        bytes memory data;
         if (asset.assetType == AssetType.ETH) {
             _transferEth(asset.account, asset.endAmount);
         } else if (asset.assetType == AssetType.ERC20) {
