@@ -15,6 +15,7 @@ struct AdditionalRecipient {
 struct BasicOrderParameters {
     address payable offerer;
     address facilitator;
+    OrderType orderType;
     address token;
     uint256 identifier;
     uint256 startTime;
