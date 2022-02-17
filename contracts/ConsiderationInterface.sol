@@ -13,36 +13,39 @@ import {
 
 interface ConsiderationInterface {
     function fulfillBasicEthForERC721Order(
-        uint256 amount,
+        uint256 etherAmount,
         BasicOrderParameters calldata parameters
     ) external payable returns (bool);
 
     function fulfillBasicEthForERC1155Order(
-        uint256 amount,
+        uint256 etherAmount,
+        uint256 erc1155Amount,
         BasicOrderParameters calldata parameters
     ) external payable returns (bool);
 
     function fulfillBasicERC20ForERC721Order(
         address erc20Token,
-        uint256 amount,
+        uint256 erc20Amount,
         BasicOrderParameters calldata parameters
     ) external returns (bool);
 
     function fulfillBasicERC20ForERC1155Order(
         address erc20Token,
-        uint256 amount,
+        uint256 erc20Amount,
+        uint256 erc1155Amount,
         BasicOrderParameters calldata parameters
     ) external returns (bool);
 
     function fulfillBasicERC721ForERC20Order(
         address erc20Token,
-        uint256 amount,
+        uint256 erc20Amount,
         BasicOrderParameters calldata parameters
     ) external returns (bool);
 
     function fulfillBasicERC1155ForERC20Order(
         address erc20Token,
-        uint256 amount,
+        uint256 erc20Amount,
+        uint256 erc1155Amount,
         BasicOrderParameters calldata parameters
     ) external returns (bool);
 
