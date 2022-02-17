@@ -38,7 +38,6 @@ import { ConsiderationInterface } from "./ConsiderationInterface.sol";
 /// @title Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
 /// @author 0age
 contract Consideration is ConsiderationInterface {
-    // TODO: support partial fills for criteria-based orders
     // TODO: batch ERC-1155 fulfillments
     // TODO: skip redundant order validation when it has already been validated
     // TODO: employ more compact types (particularly internal types)
@@ -406,19 +405,21 @@ contract Consideration is ConsiderationInterface {
         Order memory order,
         bool useFulfillerProxy
     ) external payable override nonReentrant() returns (bool) {
-        return _fulfillOrderWithCriteria(
+        return _fulfillOrder(
             order,
+            1,
+            1,
             new CriteriaResolver[](0),
             useFulfillerProxy
         );
     }
 
-    /// @dev Fulfill an order with an arbitrary number of items for offer and consideration alongside criteria resolvers containing specific tokenIds and associated proofs.
+    /// @dev Fulfill an order with an arbitrary number of items for offer and consideration alongside criteria resolvers containing specific token identifiers and associated proofs.
     /// Note that this function does not support partial filling of orders (though filling the remainder of a partially-filled order is supported).
     /// @param order The order to fulfill.
     /// Note that both the offerer and the fulfiller must first approve this contract (or their proxy if indicated by the order) to transfer any relevant tokens on their behalf and that contracts must implement `onERC1155Received` in order to receive ERC1155 tokens.
     /// @param criteriaResolvers An array where each element contains a reference to a specific offer or consideration, a token identifier, and a proof that the supplied token identifier is contained in the order's merkle root.
-    /// Note that a root of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
+    /// Note that a criteria of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
     /// @param useFulfillerProxy A flag indicating whether to source approvals for the fulfilled tokens from their respective proxy.
     /// @return A boolean indicating whether the order was successfully fulfilled.
     function fulfillOrderWithCriteria(
@@ -426,8 +427,10 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) external payable override nonReentrant() returns (bool) {
-        return _fulfillOrderWithCriteria(
+        return _fulfillOrder(
             order,
+            1,
+            1,
             criteriaResolvers,
             useFulfillerProxy
         );
@@ -449,96 +452,58 @@ contract Consideration is ConsiderationInterface {
         uint120 denominator,
         bool useFulfillerProxy
     ) external payable override nonReentrant() returns (bool) {
-        if (uint256(order.parameters.orderType) % 2 == 0) {
+        if (
+            numerator < denominator &&
+            uint256(order.parameters.orderType) % 2 == 0
+        ) {
             revert PartialFillsNotEnabledForOrder();
         }
 
-        (
-            bytes32 orderHash,
-            uint120 fillNumerator,
-            uint120 fillDenominator,
-            bool useOffererProxy
-        ) = _validateOrderAndUpdateStatus(order, numerator, denominator);
-
-        _adjustPricesForSingleOrder(order);
-
-        uint256 etherRemaining = msg.value;
-
-        for (uint256 i = 0; i < order.parameters.consideration.length;) {
-            ReceivedAsset memory consideration = order.parameters.consideration[i];
-
-            if (uint256(consideration.assetType) > 3) {
-                revert NoConsiderationWithCriteriaOnBasicMatch();
-            }
-
-            if (consideration.assetType == AssetType.ETH) {
-                etherRemaining -= consideration.endAmount;
-            }
-
-            consideration.endAmount = _getFraction(
-                fillNumerator,
-                fillDenominator,
-                consideration.endAmount
-            );
-
-            _fulfill(
-                consideration,
-                msg.sender,
-                useFulfillerProxy
-            );
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        for (uint256 i = 0; i < order.parameters.offer.length;) {
-            OfferedAsset memory offer = order.parameters.offer[i];
-
-            if (uint256(offer.assetType) > 3) {
-                revert NoOffersWithCriteriaOnBasicMatch();
-            }
-
-            if (offer.assetType == AssetType.ETH) {
-                etherRemaining -= offer.endAmount;
-            }
-
-            _fulfill(
-                ReceivedAsset(
-                    offer.assetType,
-                    offer.token,
-                    offer.identifierOrCriteria,
-                    0,
-                    _getFraction(
-                        fillNumerator,
-                        fillDenominator,
-                        offer.endAmount
-                    ),
-                    payable(msg.sender)
-                ),
-                order.parameters.offerer,
-                useOffererProxy
-            );
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        if (etherRemaining != 0) {
-            _transferEth(payable(msg.sender), etherRemaining);
-        }
-
-        emit OrderFulfilled(
-            orderHash,
-            order.parameters.offerer,
-            order.parameters.facilitator
+        return _fulfillOrder(
+            order,
+            numerator,
+            denominator,
+            new CriteriaResolver[](0),
+            useFulfillerProxy
         );
-
-        return true;
     }
 
-    /// @dev Match an arbitrary number of orders, each with an arbitrary number of items for offer and consideration, supplying criteria resolvers containing specific tokenIds and associated proofs as well as fulfillments allocating offer components to consideration components.
+    /// @dev Partially fill some fraction of an order with an arbitrary number of items for offer and consideration alongside criteria resolvers containing specific token identifiers and associated proofs.
+    /// Note that an amount less than the desired amount may be filled.
+    /// @param order The order to fulfill.
+    /// Note that both the offerer and the fulfiller must first approve this contract (or their proxy if indicated by the order) to transfer any relevant tokens on their behalf and that contracts must implement `onERC1155Received` in order to receive ERC1155 tokens.
+    /// @param numerator A value indicating the portion of the order that should be filled.
+    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
+    /// @param denominator A value indicating the total size of the order.
+    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
+    /// @param criteriaResolvers An array where each element contains a reference to a specific offer or consideration, a token identifier, and a proof that the supplied token identifier is contained in the order's merkle root.
+    /// Note that a criteria of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
+    /// @param useFulfillerProxy A flag indicating whether to source approvals for the fulfilled tokens from their respective proxy.
+    /// @return A boolean indicating whether the order was successfully fulfilled.
+    function fulfillPartialOrderWithCriteria(
+        Order memory order,
+        uint120 numerator,
+        uint120 denominator,
+        CriteriaResolver[] memory criteriaResolvers,
+        bool useFulfillerProxy
+    ) external payable override nonReentrant() returns (bool) {
+        if (
+            numerator < denominator &&
+            uint256(order.parameters.orderType) % 2 == 0
+        ) {
+            revert PartialFillsNotEnabledForOrder();
+        }
+
+        return _fulfillOrder(
+            order,
+            numerator,
+            denominator,
+            criteriaResolvers,
+            useFulfillerProxy
+        );
+    }
+
+    /// @dev Match an arbitrary number of orders, each with an arbitrary number of items for offer and consideration, supplying criteria resolvers containing specific token identifiers and associated proofs as well as fulfillments allocating offer components to consideration components.
     /// Note that this function does not support partial filling of orders (though filling the remainder of a partially-filled order is supported).
     /// @param orders The orders to match.
     /// Note that both the offerer and fulfiller on each order must first approve this contract (or their proxy if indicated by the order) to transfer any relevant tokens on their behalf and each consideration recipient must implement `onERC1155Received` in order to receive ERC1155 tokens.
@@ -776,17 +741,19 @@ contract Consideration is ConsiderationInterface {
         return useOffererProxyPerOrder;
     }
 
-    function _fulfillOrderWithCriteria(
+    function _fulfillOrder(
         Order memory order,
+        uint120 numerator,
+        uint120 denominator,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) internal returns (bool) {
         (
             bytes32 orderHash,
-            uint120 numerator,
-            uint120 denominator,
+            uint120 fillNumerator,
+            uint120 fillDenominator,
             bool useOffererProxy
-        ) = _validateOrderAndUpdateStatus(order, 1, 1);
+        ) = _validateOrderAndUpdateStatus(order, numerator, denominator);
 
         _adjustPricesForSingleOrder(order);
 
@@ -877,8 +844,8 @@ contract Consideration is ConsiderationInterface {
             }
 
             consideration.endAmount = _getFraction(
-                numerator,
-                denominator,
+                fillNumerator,
+                fillDenominator,
                 consideration.endAmount
             );
 
@@ -911,8 +878,8 @@ contract Consideration is ConsiderationInterface {
                     offer.identifierOrCriteria,
                     0,
                     _getFraction(
-                        numerator,
-                        denominator,
+                        fillNumerator,
+                        fillDenominator,
                         offer.endAmount
                     ),
                     payable(msg.sender)
@@ -1468,7 +1435,7 @@ contract Consideration is ConsiderationInterface {
         address token,
         address from,
         address to,
-        uint256 tokenId,
+        uint256 identifier,
         address proxyOwner
     ) internal {
         (bool ok, bytes memory data) = (
@@ -1480,7 +1447,7 @@ contract Consideration is ConsiderationInterface {
                         token,
                         from,
                         to,
-                        tokenId
+                        identifier
                     )
                 )
                 : token.call(
@@ -1488,7 +1455,7 @@ contract Consideration is ConsiderationInterface {
                         ERC721Interface.transferFrom.selector,
                         from,
                         to,
-                        tokenId
+                        identifier
                     )
                 )
         );
@@ -1500,7 +1467,7 @@ contract Consideration is ConsiderationInterface {
                     revert(0, returndatasize())
                 }
             } else {
-                revert ERC721TransferGenericFailure(token, from, tokenId);
+                revert ERC721TransferGenericFailure(token, from, identifier);
             }
         } else if (data.length == 0) {
             uint256 size;
@@ -1517,7 +1484,7 @@ contract Consideration is ConsiderationInterface {
         address token,
         address from,
         address to,
-        uint256 tokenId,
+        uint256 identifier,
         uint256 amount,
         address proxyOwner
     ) internal {
@@ -1530,7 +1497,7 @@ contract Consideration is ConsiderationInterface {
                         token,
                         from,
                         to,
-                        tokenId,
+                        identifier,
                         amount
                     )
                 )
@@ -1539,7 +1506,7 @@ contract Consideration is ConsiderationInterface {
                         ERC1155Interface.safeTransferFrom.selector,
                         from,
                         to,
-                        tokenId,
+                        identifier,
                         amount
                     )
                 )
@@ -1555,7 +1522,7 @@ contract Consideration is ConsiderationInterface {
                 revert ERC1155TransferGenericFailure(
                     token,
                     from,
-                    tokenId,
+                    identifier,
                     amount
                 );
             }

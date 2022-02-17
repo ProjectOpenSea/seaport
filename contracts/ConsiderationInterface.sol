@@ -53,41 +53,63 @@ interface ConsiderationInterface {
         Order memory order,
         bool useFulfillerProxy
     ) external payable returns (bool);
+
     function fulfillOrderWithCriteria(
         Order memory order,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) external payable returns (bool);
+
     function fulfillPartialOrder(
         Order memory order,
         uint120 numerator,
         uint120 denominator,
         bool useFulfillerProxy
     ) external payable returns (bool);
+
+    function fulfillPartialOrderWithCriteria(
+        Order memory order,
+        uint120 numerator,
+        uint120 denominator,
+        CriteriaResolver[] memory criteriaResolvers,
+        bool useFulfillerProxy
+    ) external payable returns (bool);
+
     function matchOrders(
         Order[] memory orders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable returns (Execution[] memory);
+
     function cancel(
         OrderComponents[] memory orders
-    ) external returns (bool ok);
+    ) external returns (bool);
+
     function validate(
         Order[] memory orders
-    ) external returns (bool ok);
+    ) external returns (bool);
+
     function incrementFacilitatorNonce(
         address offerer,
         address facilitator
-    ) external returns (uint256 nonce);
+    ) external returns (uint256 newNonce);
 
     function getOrderHash(
         OrderComponents memory order
     ) external view returns (bytes32);
+
+    function getOrderStatus(
+        bytes32 orderHash
+    ) external view returns (OrderStatus memory);
+
+    function facilitatorNonce(
+        address offerer,
+        address facilitator
+    ) external view returns (uint256);
+
     function name() external view returns (string memory);
     function version() external view returns (string memory);
     function DOMAIN_SEPARATOR() external view returns (bytes32);
-    function getOrderStatus(bytes32 orderHash) external view returns (OrderStatus memory);
-    function facilitatorNonce(address offerer, address facilitator) external view returns (uint256);
 
     // TODO: decide what data is required here
     event OrderFulfilled(bytes32 orderHash, address indexed offerer, address facilitator);
@@ -95,8 +117,7 @@ interface ConsiderationInterface {
     event OrderValidated(bytes32 orderHash, address indexed offerer, address facilitator);
     event FacilitatorNonceIncremented(address indexed offerer, address facilitator, uint256 nonce);
 
-    error NoOffersWithCriteriaOnBasicMatch();
-    error NoConsiderationWithCriteriaOnBasicMatch();
+
     error OrderUsed(bytes32);
     error InvalidTime();
     error InvalidSubmitterOnRestrictedOrder();
