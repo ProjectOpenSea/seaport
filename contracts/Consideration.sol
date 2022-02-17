@@ -45,7 +45,6 @@ contract Consideration is ConsiderationInterface {
 
     string internal constant _NAME = "Consideration";
     string internal constant _VERSION = "1";
-
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
     uint256 internal constant _FULLY_FILLED = 1e18;
@@ -60,8 +59,11 @@ contract Consideration is ConsiderationInterface {
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
-    address internal immutable _REQUIRED_PROXY_IMPLEMENTATION;
+    // Allow for interaction with user proxies on the legacy proxy registry.
     ProxyRegistryInterface internal immutable _LEGACY_PROXY_REGISTRY;
+
+    // Ensure that user proxies adhere to the required proxy implementation.
+    address internal immutable _REQUIRED_PROXY_IMPLEMENTATION;
 
     // Prevent reentrant calls on protected functions.
     uint256 internal _reentrancyGuard;
@@ -69,7 +71,7 @@ contract Consideration is ConsiderationInterface {
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping (bytes32 => OrderStatus) internal _orderStatus;
 
-    // offerer => facilitator => nonce (cancel offerer's orders with given facilitator)
+    // Cancel offerer's orders with given facilitator (offerer => facilitator => nonce).
     mapping (address => mapping (address => uint256)) internal _facilitatorNonces;
 
     /// @dev Derive and set hashes, reference chainId, and associated domain separator during deployment.
@@ -79,6 +81,7 @@ contract Consideration is ConsiderationInterface {
         address legacyProxyRegistry,
         address requiredProxyImplementation
     ) {
+        // Derive hashes, reference chainId, and associated domain separator.
         _NAME_HASH = keccak256(bytes(_NAME));
         _VERSION_HASH = keccak256(bytes(_VERSION));
         _EIP_712_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -92,6 +95,7 @@ contract Consideration is ConsiderationInterface {
         _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
         _REQUIRED_PROXY_IMPLEMENTATION = requiredProxyImplementation;
 
+        // Initialize the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;
     }
 
@@ -532,7 +536,7 @@ contract Consideration is ConsiderationInterface {
     /// @return A boolean indicating whether the orders were successfully cancelled.
     function cancel(
         OrderComponents[] memory orders
-    ) external override returns (bool) {
+    ) external override nonReentrant() returns (bool) {
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 OrderComponents memory order = orders[i];
@@ -576,7 +580,7 @@ contract Consideration is ConsiderationInterface {
     /// @return A boolean indicating whether the orders were successfully validated.
     function validate(
         Order[] memory orders
-    ) external override returns (bool) {
+    ) external override nonReentrant() returns (bool) {
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 Order memory order = orders[i];
@@ -625,7 +629,7 @@ contract Consideration is ConsiderationInterface {
     function incrementFacilitatorNonce(
         address offerer,
         address facilitator
-    ) external override returns (uint256 newNonce) {
+    ) external override nonReentrant() returns (uint256 newNonce) {
         if (msg.sender != offerer && msg.sender != facilitator) {
             revert OnlyOffererOrFacilitatorMayIncrementNonce();
         }
