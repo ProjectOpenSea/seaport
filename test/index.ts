@@ -10,6 +10,7 @@ import { Consideration, TestERC721 } from "../typechain-types";
 import {
   OrderComponentsStruct,
   OrderParametersStruct,
+  BasicOrderParametersStruct,
 } from "../typechain-types/Consideration";
 import { faucet, whileImpersonating } from "./utils/impersonate";
 
@@ -215,6 +216,87 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
 
           await whileImpersonating(buyer.address, provider, async () => {
             await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value: order.parameters.consideration[0].endAmount}))
+              .to.emit(marketplaceContract, "OrderFulfilled")
+              .withArgs(orderHash, seller.address, constants.AddressZero);
+          });
+        });
+        it.only("ERC721 <=> ETH (basic)", async () => {
+          // Seller mints nft
+          const nftId = 1;
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          const oneHourIntoFutureInSecs = Math.floor(
+            new Date().getTime() / 1000 + 60 * 60
+          );
+
+          // Seller creates a sell order of 10 eth for nft
+          const orderParameters: OrderParametersStruct = {
+            offerer: seller.address,
+            facilitator: constants.AddressZero,
+            offer: [
+              {
+                assetType: 2, // ERC721
+                token: testERC721.address,
+                identifierOrCriteria: nftId,
+                startAmount: 1,
+                endAmount: 1,
+              },
+            ],
+            consideration: [
+              {
+                assetType: 0, // ETH
+                token: constants.AddressZero,
+                identifierOrCriteria: 0, // ignored for ETH
+                startAmount: ethers.utils.parseEther("10"),
+                endAmount: ethers.utils.parseEther("10"),
+                account: seller.address,
+              },
+            ],
+            orderType: 0, // FULL_OPEN
+            salt: 1,
+            startTime: 0,
+            endTime: oneHourIntoFutureInSecs,
+          };
+
+          const orderComponents = {
+            ...orderParameters,
+            nonce: 0,
+          };
+
+          const flatSig = await signOrder(orderComponents, seller);
+
+          const orderHash = await marketplaceContract
+            .connect(buyer.address)
+            .getOrderHash(orderComponents);
+
+          const order = {
+            parameters: orderParameters,
+            signature: flatSig,
+          };
+
+          const basicOrderParameters: BasicOrderParametersStruct = {
+            offerer: order.parameters.offerer,
+            facilitator: order.parameters.facilitator,
+            orderType: order.parameters.orderType,
+            token: order.parameters.offer[0].token,
+            identifier: order.parameters.offer[0].identifierOrCriteria,
+            startTime: order.parameters.startTime,
+            endTime: order.parameters.endTime,
+            salt: order.parameters.salt,
+            useFulfillerProxy: false,
+            signature: order.signature,
+            additionalRecipients: [],
+          };
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(marketplaceContract.connect(buyer).fulfillBasicEthForERC721Order(order.parameters.consideration[0].endAmount, basicOrderParameters, {value: order.parameters.consideration[0].endAmount}))
               .to.emit(marketplaceContract, "OrderFulfilled")
               .withArgs(orderHash, seller.address, constants.AddressZero);
           });
