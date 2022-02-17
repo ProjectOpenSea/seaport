@@ -1,7 +1,7 @@
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { parseEther } from "@ethersproject/units";
 
-const ONE_HUNDRED_ETH = parseEther("100").toHexString().replace("0x0", "0x");
+const TEN_THOUSAND_ETH = parseEther("10000").toHexString().replace("0x0", "0x");
 
 export const impersonate = async (
   address: string,
@@ -12,7 +12,7 @@ export const impersonate = async (
 };
 
 export const faucet = async (address: string, provider: JsonRpcProvider) => {
-  await provider.send("hardhat_setBalance", [address, ONE_HUNDRED_ETH]);
+  await provider.send("hardhat_setBalance", [address, TEN_THOUSAND_ETH]);
 };
 
 export const stopImpersonation = async (
