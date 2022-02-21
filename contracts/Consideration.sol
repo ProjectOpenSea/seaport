@@ -875,19 +875,21 @@ contract Consideration is ConsiderationInterface {
                 etherRemaining -= offer.endAmount;
             }
 
-            _fulfill(
-                ReceivedAsset(
-                    offer.assetType,
-                    offer.token,
-                    offer.identifierOrCriteria,
-                    0,
-                    _getFraction(
-                        fillNumerator,
-                        fillDenominator,
-                        offer.endAmount
-                    ),
-                    payable(msg.sender)
+            ReceivedAsset memory asset = ReceivedAsset(
+                offer.assetType,
+                offer.token,
+                offer.identifierOrCriteria,
+                0,
+                _getFraction(
+                    fillNumerator,
+                    fillDenominator,
+                    offer.endAmount
                 ),
+                payable(msg.sender)
+            );
+
+            _fulfill(
+                asset,
                 order.parameters.offerer,
                 useOffererProxy
             );
