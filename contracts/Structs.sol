@@ -82,6 +82,20 @@ struct Execution {
     bool useProxy;
 }
 
+struct Batch {
+    bytes32 hash;
+    uint256[] executionIndices;
+}
+
+struct BatchExecution {
+    address token;
+    address from;
+    address to;
+    uint256[] tokenIds;
+    uint256[] amounts;
+    bool useProxy;
+}
+
 struct Order {
     OrderParameters parameters;
     bytes signature;

@@ -19,7 +19,9 @@ import {
     Execution,
     Order,
     OrderStatus,
-    CriteriaResolver
+    CriteriaResolver,
+    Batch,
+    BatchExecution
 } from "./Structs.sol";
 
 import {
@@ -965,6 +967,160 @@ contract Consideration is ConsiderationInterface {
         }
 
         return executions;
+    }
+
+    function _compressExecutions(
+        Execution[] memory executions
+    ) internal pure returns (
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    ) {
+        uint256 totalExecutions = executions.length;
+
+        if (totalExecutions < 2) {
+            return (executions, new BatchExecution[](0));
+        }
+
+        uint256 total1155Executions = 0;
+        uint256[] memory indexBy1155 = new uint256[](totalExecutions);
+
+        unchecked {
+            for (uint256 i = 0; i < executions.length; ++i) {
+                if (executions[i].asset.assetType == AssetType.ERC1155) {
+                    indexBy1155[total1155Executions] = i;
+                    ++total1155Executions;
+                }
+            }
+        }
+
+        if (total1155Executions < 2) {
+            return (executions, new BatchExecution[](0));
+        }
+
+        Batch[] memory batches = new Batch[](total1155Executions);
+
+        uint256 initialExecutionIndex = indexBy1155[0];
+        Execution memory initialExecution = executions[initialExecutionIndex];
+        ReceivedAsset memory initialAsset = initialExecution.asset;
+        bytes32 hash = keccak256(
+            abi.encode(
+                initialAsset.token,
+                initialExecution.offerer,
+                initialAsset.account,
+                initialExecution.useProxy
+            )
+        );
+
+        uint256[] memory executionIndices = new uint256[](1);
+        executionIndices[0] = initialExecutionIndex;
+
+        batches[0].hash = hash;
+        batches[0].executionIndices = executionIndices;
+
+        uint256 uniqueHashes = 1;
+        unchecked {
+            for (uint256 i = 1; i < total1155Executions; ++i) {
+                uint256 executionIndex = indexBy1155[i];
+                Execution memory execution = executions[executionIndex];
+                ReceivedAsset memory asset = execution.asset;
+                hash = keccak256(
+                    abi.encode(
+                        asset.token,
+                        execution.offerer,
+                        asset.account,
+                        execution.useProxy
+                    )
+                );
+
+                bool hasUniqueHash = true;
+                for (uint256 j = 0; j < uniqueHashes; ++j) {
+                    if (hash == batches[j].hash) {
+                        uint256[] memory existingExecutionIndices = batches[j].executionIndices;
+
+                        uint256 existingLength = existingExecutionIndices.length;
+
+                        uint256[] memory newExecutionIndices = new uint256[](existingLength + 1);
+                        for (uint256 k = 0; k < existingLength; ++k) {
+                            newExecutionIndices[k] = existingExecutionIndices[k];
+                        }
+                        newExecutionIndices[existingLength] = indexBy1155[j];
+
+                        batches[j].executionIndices = newExecutionIndices;
+
+                        hasUniqueHash = false;
+                    }
+                }
+
+                if (hasUniqueHash) {
+                    executionIndices = new uint256[](1);
+                    executionIndices[0] = executionIndex;
+
+                    batches[uniqueHashes++].hash = hash;
+                    batches[uniqueHashes].executionIndices = executionIndices;
+                }
+            }
+        }
+
+        if (uniqueHashes == total1155Executions) {
+            return (executions, new BatchExecution[](0));
+        }
+
+        // add one to the batch ID if it's used in a batch
+        uint256[] memory usedInBatch = new uint256[](totalExecutions);
+        uint256 totalUsedInBatch = 0;
+        uint256 totalBatches = 0;
+        unchecked {
+            for (uint256 i = 0; i < uniqueHashes; ++i) {
+                uint256[] memory indices = batches[i].executionIndices;
+                uint256 indicesLength = indices.length;
+                if (indicesLength > 1) {
+                    ++totalBatches;
+                    totalUsedInBatch += indicesLength;
+                    for (uint256 j = 0; j < indicesLength; ++j) {
+                        usedInBatch[indices[j]] = i + 1;
+                    }
+                }
+            }
+
+            Execution[] memory executeWithoutBatch = new Execution[](
+                totalExecutions - totalUsedInBatch
+            );
+            BatchExecution[] memory executeWithBatch = new BatchExecution[](
+                totalBatches
+            );
+
+            uint256 lastNoBatchIndex = 0;
+            uint256[] memory batchElementCounters = new uint256[](totalBatches);
+            for (uint256 i = 0; i < totalExecutions; ++i) {
+                uint256 isUsedInBatch = usedInBatch[i];
+                if (isUsedInBatch == 0) {
+                    executeWithoutBatch[lastNoBatchIndex++] = executions[i];
+                } else {
+                    uint256 batchUsed = isUsedInBatch - 1;
+
+                    Execution memory execution = executions[i];
+
+                    if (executeWithBatch[batchUsed].token == address(0)) {
+                        uint256 tokenElements = batches[batchUsed].executionIndices.length;
+                        executeWithBatch[batchUsed] = BatchExecution({
+                            token: execution.asset.token,
+                            from: execution.offerer,
+                            to: execution.asset.account,
+                            tokenIds: new uint256[](tokenElements),
+                            amounts: new uint256[](tokenElements),
+                            useProxy: execution.useProxy
+                        });
+                    }
+
+                    uint256 counter = batchElementCounters[batchUsed]++;
+
+                    executeWithBatch[batchUsed].tokenIds[counter] = execution.asset.identifierOrCriteria;
+                    executeWithBatch[batchUsed].amounts[counter] = execution.asset.endAmount;
+                }
+            }
+
+            return (executeWithoutBatch, executeWithBatch);
+        }
     }
 
     function _applyFulfillment(
