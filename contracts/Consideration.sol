@@ -975,50 +975,49 @@ contract Consideration is ConsiderationInterface {
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
-        uint256 totalExecutions = executions.length;
-
-        if (totalExecutions < 2) {
-            return (executions, new BatchExecution[](0));
-        }
-
-        uint256 total1155Executions = 0;
-        uint256[] memory indexBy1155 = new uint256[](totalExecutions);
-
         unchecked {
+            uint256 totalExecutions = executions.length;
+
+            if (totalExecutions < 2) {
+                return (executions, new BatchExecution[](0));
+            }
+
+            uint256 total1155Executions = 0;
+            uint256[] memory indexBy1155 = new uint256[](totalExecutions);
+
             for (uint256 i = 0; i < executions.length; ++i) {
                 if (executions[i].asset.assetType == AssetType.ERC1155) {
                     indexBy1155[total1155Executions] = i;
                     ++total1155Executions;
                 }
             }
-        }
 
-        if (total1155Executions < 2) {
-            return (executions, new BatchExecution[](0));
-        }
+            if (total1155Executions < 2) {
+                return (executions, new BatchExecution[](0));
+            }
 
-        Batch[] memory batches = new Batch[](total1155Executions);
+            Batch[] memory batches = new Batch[](total1155Executions);
 
-        uint256 initialExecutionIndex = indexBy1155[0];
-        Execution memory initialExecution = executions[initialExecutionIndex];
-        ReceivedAsset memory initialAsset = initialExecution.asset;
-        bytes32 hash = keccak256(
-            abi.encode(
-                initialAsset.token,
-                initialExecution.offerer,
-                initialAsset.account,
-                initialExecution.useProxy
-            )
-        );
+            uint256 initialExecutionIndex = indexBy1155[0];
+            Execution memory initialExecution = executions[initialExecutionIndex];
+            ReceivedAsset memory initialAsset = initialExecution.asset;
+            bytes32 hash = keccak256(
+                abi.encode(
+                    initialAsset.token,
+                    initialExecution.offerer,
+                    initialAsset.account,
+                    initialExecution.useProxy
+                )
+            );
 
-        uint256[] memory executionIndices = new uint256[](1);
-        executionIndices[0] = initialExecutionIndex;
+            uint256[] memory executionIndices = new uint256[](1);
+            executionIndices[0] = initialExecutionIndex;
 
-        batches[0].hash = hash;
-        batches[0].executionIndices = executionIndices;
+            batches[0].hash = hash;
+            batches[0].executionIndices = executionIndices;
 
-        uint256 uniqueHashes = 1;
-        unchecked {
+            uint256 uniqueHashes = 1;
+
             for (uint256 i = 1; i < total1155Executions; ++i) {
                 uint256 executionIndex = indexBy1155[i];
                 Execution memory execution = executions[executionIndex];
@@ -1059,17 +1058,16 @@ contract Consideration is ConsiderationInterface {
                     batches[uniqueHashes].executionIndices = executionIndices;
                 }
             }
-        }
 
-        if (uniqueHashes == total1155Executions) {
-            return (executions, new BatchExecution[](0));
-        }
+            if (uniqueHashes == total1155Executions) {
+                return (executions, new BatchExecution[](0));
+            }
 
-        // add one to the batch ID if it's used in a batch
-        uint256[] memory usedInBatch = new uint256[](totalExecutions);
-        uint256 totalUsedInBatch = 0;
-        uint256 totalBatches = 0;
-        unchecked {
+            // add one to the batch ID if it's used in a batch
+            uint256[] memory usedInBatch = new uint256[](totalExecutions);
+            uint256 totalUsedInBatch = 0;
+            uint256 totalBatches = 0;
+
             for (uint256 i = 0; i < uniqueHashes; ++i) {
                 uint256[] memory indices = batches[i].executionIndices;
                 uint256 indicesLength = indices.length;
