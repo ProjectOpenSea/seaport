@@ -1511,7 +1511,8 @@ contract Consideration is ConsiderationInterface {
                         from,
                         to,
                         identifier,
-                        amount
+                        amount,
+                        ""
                     )
                 )
         );
@@ -1537,6 +1538,64 @@ contract Consideration is ConsiderationInterface {
             }
             if (size == 0) {
                 revert ERC1155TransferNoContract(token);
+            }
+        }
+    }
+
+    function _batchTransferERC1155(
+        address token,
+        address from,
+        address to,
+        uint256[] memory identifiers,
+        uint256[] memory amounts,
+        address proxyOwner
+    ) internal {
+        (bool ok, bytes memory data) = (
+            proxyOwner != address(0)
+                ? _callProxy(
+                    proxyOwner,
+                    abi.encodeWithSelector(
+                        ProxyInterface.batchTransferERC1155.selector,
+                        token,
+                        from,
+                        to,
+                        identifiers,
+                        amounts
+                    )
+                )
+                : token.call(
+                    abi.encodeWithSelector(
+                        ERC1155Interface.safeBatchTransferFrom.selector,
+                        from,
+                        to,
+                        identifiers,
+                        amounts,
+                        ""
+                    )
+                )
+        );
+
+        if (!ok) {
+            if (data.length != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            } else {
+                revert ERC1155BatchTransferGenericFailure(
+                    token,
+                    from,
+                    identifiers,
+                    amounts
+                );
+            }
+        } else if (data.length == 0) {
+            uint256 size;
+            assembly {
+                size := extcodesize(token)
+            }
+            if (size == 0) {
+                revert ERC1155BatchTransferNoContract(token);
             }
         }
     }

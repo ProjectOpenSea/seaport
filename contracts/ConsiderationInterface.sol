@@ -140,10 +140,12 @@ interface ConsiderationInterface {
     error ERC20TransferGenericFailure(address token, address account, uint256 amount);
     error ERC721TransferGenericFailure(address token, address account, uint256 identifier);
     error ERC1155TransferGenericFailure(address token, address account, uint256 identifier, uint256 amount);
+    error ERC1155BatchTransferGenericFailure(address token, address account, uint256[] identifiers, uint256[] amounts);
     error BadReturnValueFromERC20OnTransfer(address token, address account, uint256 amount);
     error ERC20TransferNoContract(address);
     error ERC721TransferNoContract(address);
     error ERC1155TransferNoContract(address);
+    error ERC1155BatchTransferNoContract(address);
     error PartialFillsNotEnabledForOrder();
     error OrderIsCancelled(bytes32);
     error OrderAlreadyValidated(bytes32);
