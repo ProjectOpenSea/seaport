@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.11;
+pragma solidity 0.8.12;
 
 import {
     BasicOrderParameters,
@@ -121,12 +121,11 @@ interface ConsiderationInterface {
     error OrderUsed(bytes32);
     error InvalidTime();
     error InvalidSubmitterOnRestrictedOrder();
-    error NoOfferOnFulfillment();
+    error OfferAndConsiderationRequiredOnFulfillment();
     error NoConsiderationOnFulfillment();
     error FulfilledOrderIndexOutOfRange();
     error FulfilledOrderOfferIndexOutOfRange();
-    error FulfillmentOrderIndexOutOfRange();
-    error FulfillmentOrderConsiderationIndexOutOfRange();
+    error FulfilledOrderConsiderationIndexOutOfRange();
     error BadSignatureLength(uint256);
     error BadSignatureV(uint8);
     error MalleableSignatureS(uint256);
@@ -137,13 +136,10 @@ interface ConsiderationInterface {
     error MismatchedFulfillmentConsiderationComponents();
     error ConsiderationNotMet(uint256 orderIndex, uint256 considerationIndex, uint256 shortfallAmount);
     error EtherTransferGenericFailure(address account, uint256 amount);
-    error ERC20TransferGenericFailure(address token, address account, uint256 amount);
-    error ERC721TransferGenericFailure(address token, address account, uint256 identifier);
-    error ERC1155TransferGenericFailure(address token, address account, uint256 identifier, uint256 amount);
-    error BadReturnValueFromERC20OnTransfer(address token, address account, uint256 amount);
-    error ERC20TransferNoContract(address);
-    error ERC721TransferNoContract(address);
-    error ERC1155TransferNoContract(address);
+    error TokenTransferGenericFailure(address token, address from, address to, uint256 identifier, uint256 amount);
+    error ERC1155BatchTransferGenericFailure(address token, address from, address to, uint256[] identifiers, uint256[] amounts);
+    error BadReturnValueFromERC20OnTransfer(address token, address from, address to, uint256 amount);
+    error NoContract(address);
     error PartialFillsNotEnabledForOrder();
     error OrderIsCancelled(bytes32);
     error OrderAlreadyValidated(bytes32);

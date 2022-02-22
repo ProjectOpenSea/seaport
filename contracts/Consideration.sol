@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.11;
+pragma solidity 0.8.12;
 
 import {
     OrderType,
@@ -19,7 +19,9 @@ import {
     Execution,
     Order,
     OrderStatus,
-    CriteriaResolver
+    CriteriaResolver,
+    Batch,
+    BatchExecution
 } from "./Structs.sol";
 
 import {
@@ -33,15 +35,18 @@ import {
     ProxyInterface
 } from "./AbridgedProxyInterfaces.sol";
 
+import { EIP1271Interface } from "./EIP1271Interface.sol";
+
 import { ConsiderationInterface } from "./ConsiderationInterface.sol";
 
 /// @title Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
+/// It prioritizes minimizing external calls to the greatest extent possible and
+/// provides lightweight methods for common routes as well as more heavyweight
+/// methods for composing advanced orders.
 /// @author 0age
 contract Consideration is ConsiderationInterface {
-    // TODO: batch ERC-1155 fulfillments
-    // TODO: skip redundant order validation when it has already been validated
-    // TODO: employ more compact types (particularly internal types)
     // TODO: support partial fills as part of matchOrders?
+    // TODO: skip redundant order validation when it has already been validated?
 
     string internal constant _NAME = "Consideration";
     string internal constant _VERSION = "1";
@@ -108,7 +113,8 @@ contract Consideration is ConsiderationInterface {
     function fulfillBasicEthForERC721Order(
         uint256 etherAmount,
         BasicOrderParameters memory parameters
-    ) external payable override nonReentrant() returns (bool) {
+    ) external payable override returns (bool) {
+        _setReentrancyGuard();
         address payable offerer = parameters.offerer;
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
@@ -137,11 +143,13 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? offerer : address(0)
         );
 
-        return _transferETHAndFinalize(
+        _transferETHAndFinalize(
             orderHash,
             etherAmount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering ERC1155 tokens by supplying Ether as consideration.
@@ -156,7 +164,8 @@ contract Consideration is ConsiderationInterface {
         uint256 etherAmount,
         uint256 erc1155Amount,
         BasicOrderParameters memory parameters
-    ) external payable override nonReentrant() returns (bool) {
+    ) external payable override returns (bool) {
+        _setReentrancyGuard();
         address payable offerer = parameters.offerer;
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
@@ -186,11 +195,13 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? offerer : address(0)
         );
 
-        return _transferETHAndFinalize(
+        _transferETHAndFinalize(
             orderHash,
             etherAmount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering a single ERC721 token by supplying an ERC20 token as consideration.
@@ -204,7 +215,8 @@ contract Consideration is ConsiderationInterface {
         address erc20Token,
         uint256 erc20Amount,
         BasicOrderParameters memory parameters
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _setReentrancyGuard();
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -232,7 +244,7 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? parameters.offerer : address(0)
         );
 
-        return _transferERC20AndFinalize(
+        _transferERC20AndFinalize(
             msg.sender,
             parameters.offerer,
             orderHash,
@@ -240,6 +252,8 @@ contract Consideration is ConsiderationInterface {
             erc20Amount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering ERC1155 tokens by supplying an ERC20 token as consideration.
@@ -256,7 +270,8 @@ contract Consideration is ConsiderationInterface {
         uint256 erc20Amount,
         uint256 erc1155Amount,
         BasicOrderParameters memory parameters
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _setReentrancyGuard();
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -285,7 +300,7 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? parameters.offerer : address(0)
         );
 
-        return _transferERC20AndFinalize(
+        _transferERC20AndFinalize(
             msg.sender,
             parameters.offerer,
             orderHash,
@@ -293,6 +308,8 @@ contract Consideration is ConsiderationInterface {
             erc20Amount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering ERC20 tokens by supplying a single ERC721 token as consideration.
@@ -306,7 +323,8 @@ contract Consideration is ConsiderationInterface {
         address erc20Token,
         uint256 erc20Amount,
         BasicOrderParameters memory parameters
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _setReentrancyGuard();
         address payable offerer = parameters.offerer;
         (bytes32 orderHash,) = _prepareBasicFulfillment(
             parameters,
@@ -335,7 +353,7 @@ contract Consideration is ConsiderationInterface {
             parameters.useFulfillerProxy ? msg.sender : address(0)
         );
 
-        return _transferERC20AndFinalize(
+        _transferERC20AndFinalize(
             offerer,
             msg.sender,
             orderHash,
@@ -343,6 +361,8 @@ contract Consideration is ConsiderationInterface {
             erc20Amount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering ERC20 tokens by supplying ERC1155 tokens as consideration.
@@ -359,7 +379,8 @@ contract Consideration is ConsiderationInterface {
         uint256 erc20Amount,
         uint256 erc1155Amount,
         BasicOrderParameters memory parameters
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _setReentrancyGuard();
         address payable offerer = parameters.offerer;
         (bytes32 orderHash,) = _prepareBasicFulfillment(
             parameters,
@@ -389,7 +410,7 @@ contract Consideration is ConsiderationInterface {
             parameters.useFulfillerProxy ? msg.sender : address(0)
         );
 
-        return _transferERC20AndFinalize(
+        _transferERC20AndFinalize(
             offerer,
             msg.sender,
             orderHash,
@@ -397,6 +418,8 @@ contract Consideration is ConsiderationInterface {
             erc20Amount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order with an arbitrary number of items for offer and consideration.
@@ -408,7 +431,7 @@ contract Consideration is ConsiderationInterface {
     function fulfillOrder(
         Order memory order,
         bool useFulfillerProxy
-    ) external payable override nonReentrant() returns (bool) {
+    ) external payable override returns (bool) {
         return _fulfillOrder(
             order,
             1,
@@ -430,7 +453,7 @@ contract Consideration is ConsiderationInterface {
         Order memory order,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
-    ) external payable override nonReentrant() returns (bool) {
+    ) external payable override returns (bool) {
         return _fulfillOrder(
             order,
             1,
@@ -455,13 +478,12 @@ contract Consideration is ConsiderationInterface {
         uint120 numerator,
         uint120 denominator,
         bool useFulfillerProxy
-    ) external payable override nonReentrant() returns (bool) {
-        if (
-            numerator < denominator &&
-            uint256(order.parameters.orderType) % 2 == 0
-        ) {
-            revert PartialFillsNotEnabledForOrder();
-        }
+    ) external payable override returns (bool) {
+        _ensurePartialFillsEnabled(
+            numerator,
+            denominator,
+            order.parameters.orderType
+        );
 
         return _fulfillOrder(
             order,
@@ -490,13 +512,12 @@ contract Consideration is ConsiderationInterface {
         uint120 denominator,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
-    ) external payable override nonReentrant() returns (bool) {
-        if (
-            numerator < denominator &&
-            uint256(order.parameters.orderType) % 2 == 0
-        ) {
-            revert PartialFillsNotEnabledForOrder();
-        }
+    ) external payable override returns (bool) {
+        _ensurePartialFillsEnabled(
+            numerator,
+            denominator,
+            order.parameters.orderType
+        );
 
         return _fulfillOrder(
             order,
@@ -520,10 +541,14 @@ contract Consideration is ConsiderationInterface {
         Order[] memory orders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
-    ) external payable override nonReentrant() returns (Execution[] memory) {
+    ) external payable override returns (Execution[] memory) {
         bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(orders);
 
-        _adjustPrices(orders);
+        unchecked {
+            for (uint256 i = 0; i < orders.length; ++i) {
+                orders[i] = _adjustOrderPrice(orders[i]);
+            }
+        }
 
         _applyCriteriaResolvers(orders, criteriaResolvers);
 
@@ -536,7 +561,8 @@ contract Consideration is ConsiderationInterface {
     /// @return A boolean indicating whether the orders were successfully cancelled.
     function cancel(
         OrderComponents[] memory orders
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _assertNonReentrant();
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 OrderComponents memory order = orders[i];
@@ -580,33 +606,24 @@ contract Consideration is ConsiderationInterface {
     /// @return A boolean indicating whether the orders were successfully validated.
     function validate(
         Order[] memory orders
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _assertNonReentrant();
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 Order memory order = orders[i];
 
                 bytes32 orderHash = _getNoncedOrderHash(order.parameters);
 
-                OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-                if (orderStatus.isCancelled) {
-                    revert OrderIsCancelled(orderHash);
-                }
-
-                if (
-                    orderStatus.numerator != 0 &&
-                    orderStatus.numerator >= orderStatus.denominator
-                ) {
-                    revert OrderUsed(orderHash);
-                }
+                OrderStatus memory orderStatus = _getOrderStatus(
+                    orderHash,
+                    order.parameters.offerer,
+                    order.signature,
+                    false // allow partially used orders (though they're already valid!)
+                );
 
                 if (orderStatus.isValidated) {
                     revert OrderAlreadyValidated(orderHash);
                 }
-
-                _verifySignature(
-                    order.parameters.offerer, orderHash, order.signature
-                );
 
                 _orderStatus[orderHash].isValidated = true;
 
@@ -629,7 +646,8 @@ contract Consideration is ConsiderationInterface {
     function incrementFacilitatorNonce(
         address offerer,
         address facilitator
-    ) external override nonReentrant() returns (uint256 newNonce) {
+    ) external override returns (uint256 newNonce) {
+        _assertNonReentrant();
         if (msg.sender != offerer && msg.sender != facilitator) {
             revert OnlyOffererOrFacilitatorMayIncrementNonce();
         }
@@ -700,6 +718,39 @@ contract Consideration is ConsiderationInterface {
         return _VERSION;
     }
 
+    function _getOrderStatus(
+        bytes32 orderHash,
+        address offerer,
+        bytes memory signature,
+        bool onlyAllowUnused
+    ) internal view returns (OrderStatus memory) {
+        OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+        if (orderStatus.isCancelled) {
+            revert OrderIsCancelled(orderHash);
+        }
+
+        if (
+            orderStatus.numerator != 0 &&
+            (
+                onlyAllowUnused ||
+                orderStatus.numerator >= orderStatus.denominator
+            )
+        ) {
+            if (orderStatus.numerator < orderStatus.denominator) {
+                revert OrderNotUnused(orderHash);
+            }
+
+            revert OrderUsed(orderHash);
+        }
+
+        _verifySignature(
+            offerer, orderHash, signature
+        );
+
+        return orderStatus;
+    }
+
     function _validateOrdersAndApplyPartials(
         Order[] memory orders
     ) internal returns (bool[] memory) {
@@ -752,6 +803,8 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) internal returns (bool) {
+        _setReentrancyGuard();
+
         (
             bytes32 orderHash,
             uint120 fillNumerator,
@@ -759,89 +812,18 @@ contract Consideration is ConsiderationInterface {
             bool useOffererProxy
         ) = _validateOrderAndUpdateStatus(order, numerator, denominator);
 
-        _adjustPricesForSingleOrder(order);
+        _adjustOrderPrice(order);
 
-        unchecked {
-            for (uint256 i = 0; i < criteriaResolvers.length; ++i) {
-                CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
-                uint256 componentIndex = criteriaResolver.index;
+        Order[] memory orders = new Order[](1);
+        orders[0] = order;
+        order = _applyCriteriaResolvers(orders, criteriaResolvers);
 
-                if (criteriaResolver.orderIndex != 0) {
-                    revert OrderCriteriaResolverOutOfRange();
-                }
-
-                if (criteriaResolver.side == Side.OFFER) {
-                    if (componentIndex >= order.parameters.offer.length) {
-                        revert OfferCriteriaResolverOutOfRange();
-                    }
-
-                    OfferedAsset memory offer = order.parameters.offer[componentIndex];
-                    AssetType assetType = offer.assetType;
-                    if (
-                        assetType != AssetType.ERC721_WITH_CRITERIA &&
-                        assetType != AssetType.ERC1155_WITH_CRITERIA
-                    ) {
-                        revert CriteriaNotEnabledForOfferedAsset();
-                    }
-
-                    // empty criteria signifies a collection-wide offer (sell any asset)
-                    if (offer.identifierOrCriteria != uint256(0)) {
-                        _verifyProof(
-                            criteriaResolver.identifier,
-                            offer.identifierOrCriteria,
-                            criteriaResolver.criteriaProof
-                        );
-                    }
-
-                    order.parameters.offer[componentIndex].assetType = (
-                        assetType == AssetType.ERC721_WITH_CRITERIA
-                            ? AssetType.ERC721
-                            : AssetType.ERC1155
-                    );
-
-                    order.parameters.offer[componentIndex].identifierOrCriteria = criteriaResolver.identifier;
-                } else {
-                    if (componentIndex >= order.parameters.consideration.length) {
-                        revert ConsiderationCriteriaResolverOutOfRange();
-                    }
-
-                    ReceivedAsset memory consideration = order.parameters.consideration[componentIndex];
-                    AssetType assetType = consideration.assetType;
-                    if (
-                        assetType != AssetType.ERC721_WITH_CRITERIA &&
-                        assetType != AssetType.ERC1155_WITH_CRITERIA
-                    ) {
-                        revert CriteriaNotEnabledForConsideredAsset();
-                    }
-
-                    // empty criteria signifies a collection-wide consideration (buy any asset)
-                    if (consideration.identifierOrCriteria != uint256(0)) {
-                        _verifyProof(
-                            criteriaResolver.identifier,
-                            consideration.identifierOrCriteria,
-                            criteriaResolver.criteriaProof
-                        );
-                    }
-
-                    order.parameters.consideration[componentIndex].assetType = (
-                        assetType == AssetType.ERC721_WITH_CRITERIA
-                            ? AssetType.ERC721
-                            : AssetType.ERC1155
-                    );
-
-                    order.parameters.consideration[componentIndex].identifierOrCriteria = criteriaResolver.identifier;
-                }
-            }
-        }
+        address offerer = order.parameters.offerer;
 
         uint256 etherRemaining = msg.value;
 
         for (uint256 i = 0; i < order.parameters.consideration.length;) {
             ReceivedAsset memory consideration = order.parameters.consideration[i];
-
-            if (uint256(consideration.assetType) > 3) {
-                revert UnresolvedConsiderationCriteria();
-            }
 
             if (consideration.assetType == AssetType.ETH) {
                 etherRemaining -= consideration.endAmount;
@@ -867,28 +849,26 @@ contract Consideration is ConsiderationInterface {
         for (uint256 i = 0; i < order.parameters.offer.length;) {
             OfferedAsset memory offer = order.parameters.offer[i];
 
-            if (uint256(offer.assetType) > 3) {
-                revert UnresolvedOfferCriteria();
-            }
-
             if (offer.assetType == AssetType.ETH) {
                 etherRemaining -= offer.endAmount;
             }
 
-            _fulfill(
-                ReceivedAsset(
-                    offer.assetType,
-                    offer.token,
-                    offer.identifierOrCriteria,
-                    0,
-                    _getFraction(
-                        fillNumerator,
-                        fillDenominator,
-                        offer.endAmount
-                    ),
-                    payable(msg.sender)
+            ReceivedAsset memory asset = ReceivedAsset(
+                offer.assetType,
+                offer.token,
+                offer.identifierOrCriteria,
+                0,
+                _getFraction(
+                    fillNumerator,
+                    fillDenominator,
+                    offer.endAmount
                 ),
-                order.parameters.offerer,
+                payable(msg.sender)
+            );
+
+            _fulfill(
+                asset,
+                offerer,
                 useOffererProxy
             );
 
@@ -903,9 +883,11 @@ contract Consideration is ConsiderationInterface {
 
         emit OrderFulfilled(
             orderHash,
-            order.parameters.offerer,
+            offerer,
             order.parameters.facilitator
         );
+
+        _reentrancyGuard = _NOT_ENTERED;
 
         return true;
     }
@@ -915,6 +897,8 @@ contract Consideration is ConsiderationInterface {
         Fulfillment[] memory fulfillments,
         bool[] memory useOffererProxyPerOrder
     ) internal returns (Execution[] memory) {
+        _setReentrancyGuard();
+
         // allocate fulfillment and schedule execution
         Execution[] memory executions = new Execution[](fulfillments.length);
         unchecked {
@@ -938,10 +922,16 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
+        // compress executions
+        Execution[] memory standardExecutions;
+        BatchExecution[] memory batchExecutions;
+
+        (standardExecutions, batchExecutions) = _compressExecutions(executions);
+
         // execute fulfillments
         uint256 etherRemaining = msg.value;
-        for (uint256 i = 0; i < executions.length;) {
-            Execution memory execution = executions[i];
+        for (uint256 i = 0; i < standardExecutions.length;) {
+            Execution memory execution = standardExecutions[i];
 
             if (execution.asset.assetType == AssetType.ETH) {
                 etherRemaining -= execution.asset.endAmount;
@@ -958,139 +948,19 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
+        unchecked {
+            for (uint256 i = 0; i < batchExecutions.length; ++i) {
+                _batchTransferERC1155(batchExecutions[i]);
+            }
+        }
+
         if (etherRemaining != 0) {
             _transferEth(payable(msg.sender), etherRemaining);
         }
 
+        _reentrancyGuard = _NOT_ENTERED;
+
         return executions;
-    }
-
-    function _applyFulfillment(
-        Order[] memory orders,
-        Fulfillment memory fulfillment,
-        bool[] memory useOffererProxyPerOrder
-    ) internal pure returns (
-        Execution memory execution
-    ) {
-        if (fulfillment.offerComponents.length == 0) {
-            revert NoOfferOnFulfillment();
-        }
-
-        uint256 currentOrderIndex = fulfillment.offerComponents[0].orderIndex;
-
-        if (fulfillment.considerationComponents.length == 0) {
-            revert NoConsiderationOnFulfillment();
-        }
-
-        if (currentOrderIndex >= orders.length) {
-            revert FulfilledOrderIndexOutOfRange();
-        }
-
-        OrderParameters memory orderWithInitialOffer = orders[currentOrderIndex].parameters;
-        bool useProxy = useOffererProxyPerOrder[currentOrderIndex];
-
-        uint256 currentAssetIndex = fulfillment.offerComponents[0].assetIndex;
-
-        if (currentAssetIndex >= orderWithInitialOffer.offer.length) {
-            revert FulfilledOrderOfferIndexOutOfRange();
-        }
-        OfferedAsset memory offeredAsset = orderWithInitialOffer.offer[currentAssetIndex];
-
-        orders[currentOrderIndex].parameters.offer[currentAssetIndex].endAmount = 0;
-
-        for (uint256 i = 1; i < fulfillment.offerComponents.length;) {
-            FulfillmentComponent memory offerComponent = fulfillment.offerComponents[i];
-            currentOrderIndex = offerComponent.orderIndex;
-
-            if (currentOrderIndex >= orders.length) {
-                revert FulfilledOrderIndexOutOfRange();
-            }
-            OrderParameters memory subsequentOrder = orders[currentOrderIndex].parameters;
-            currentAssetIndex = offerComponent.assetIndex;
-
-            if (currentAssetIndex >= subsequentOrder.offer.length) {
-                revert FulfilledOrderOfferIndexOutOfRange();
-            }
-            OfferedAsset memory additionalOfferedAsset = subsequentOrder.offer[currentAssetIndex];
-
-            if (
-                orderWithInitialOffer.offerer != subsequentOrder.offerer ||
-                offeredAsset.assetType != additionalOfferedAsset.assetType ||
-                offeredAsset.token != additionalOfferedAsset.token ||
-                offeredAsset.identifierOrCriteria != additionalOfferedAsset.identifierOrCriteria ||
-                useProxy != useOffererProxyPerOrder[currentOrderIndex]
-            ) {
-                revert MismatchedFulfillmentOfferComponents();
-            }
-
-            offeredAsset.endAmount += additionalOfferedAsset.endAmount;
-            orders[currentOrderIndex].parameters.offer[currentAssetIndex].endAmount = 0;
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        currentOrderIndex = fulfillment.considerationComponents[0].orderIndex;
-        if (currentOrderIndex >= orders.length) {
-            revert FulfillmentOrderIndexOutOfRange();
-        }
-        OrderParameters memory orderWithInitialConsideration = orders[currentOrderIndex].parameters;
-
-        currentAssetIndex = fulfillment.considerationComponents[0].assetIndex;
-        if (currentAssetIndex >= orderWithInitialConsideration.consideration.length) {
-            revert FulfillmentOrderConsiderationIndexOutOfRange();
-        }
-        ReceivedAsset memory requiredConsideration = orderWithInitialConsideration.consideration[currentAssetIndex];
-
-        orders[currentOrderIndex].parameters.consideration[currentAssetIndex].endAmount = 0;
-
-        for (uint256 i = 1; i < fulfillment.considerationComponents.length;) {
-            FulfillmentComponent memory considerationComponent = fulfillment.considerationComponents[i];
-            currentOrderIndex = considerationComponent.orderIndex;
-
-            if (currentOrderIndex >= orders.length) {
-                revert FulfillmentOrderIndexOutOfRange();
-            }
-            OrderParameters memory subsequentOrder = orders[currentOrderIndex].parameters;
-            currentAssetIndex = considerationComponent.assetIndex;
-
-            if (currentAssetIndex >= subsequentOrder.consideration.length) {
-                revert FulfillmentOrderConsiderationIndexOutOfRange();
-            }
-            ReceivedAsset memory additionalRequiredConsideration = subsequentOrder.consideration[currentAssetIndex];
-
-            if (
-                requiredConsideration.account != additionalRequiredConsideration.account ||
-                requiredConsideration.assetType != additionalRequiredConsideration.assetType ||
-                requiredConsideration.token != additionalRequiredConsideration.token ||
-                requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria
-            ) {
-                revert MismatchedFulfillmentConsiderationComponents();
-            }
-
-            requiredConsideration.endAmount += additionalRequiredConsideration.endAmount;
-            orders[currentOrderIndex].parameters.consideration[currentAssetIndex].endAmount = 0;
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        if (requiredConsideration.endAmount > offeredAsset.endAmount) {
-            FulfillmentComponent memory targetComponent = fulfillment.considerationComponents[fulfillment.considerationComponents.length - 1];
-            orders[targetComponent.orderIndex].parameters.consideration[targetComponent.assetIndex].endAmount = requiredConsideration.endAmount - offeredAsset.endAmount;
-            requiredConsideration.endAmount = offeredAsset.endAmount;
-        } else {
-            FulfillmentComponent memory targetComponent = fulfillment.offerComponents[fulfillment.offerComponents.length - 1];
-            orders[targetComponent.orderIndex].parameters.offer[targetComponent.assetIndex].endAmount = offeredAsset.endAmount - requiredConsideration.endAmount;
-        }
-
-        return Execution(
-            requiredConsideration,
-            orderWithInitialOffer.offerer,
-            useProxy
-        );
     }
 
     function _prepareBasicFulfillment(
@@ -1148,21 +1018,16 @@ contract Consideration is ConsiderationInterface {
             parameters.signature
         );
 
-        uint256 orderTypeAsUint256 = uint256(parameters.orderType);
+        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
+            parameters.orderType,
+            offerer,
+            facilitator
+        );
 
-        useOffererProxy = orderTypeAsUint256 > 3;
         if (useOffererProxy) {
             unchecked {
-                parameters.orderType = OrderType(uint8(orderTypeAsUint256) - 4);
+                parameters.orderType = OrderType(uint8(parameters.orderType) - 4);
             }
-        }
-
-        if (
-            uint256(parameters.orderType) > 1 &&
-            msg.sender != facilitator &&
-            msg.sender != offerer
-        ) {
-            revert InvalidSubmitterOnRestrictedOrder();
         }
 
         return (orderHash, useOffererProxy);
@@ -1186,40 +1051,26 @@ contract Consideration is ConsiderationInterface {
 
         orderHash = _getNoncedOrderHash(order.parameters);
 
-        uint256 orderTypeAsUint256 = uint256(order.parameters.orderType);
+        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
+            order.parameters.orderType,
+            order.parameters.offerer,
+            order.parameters.facilitator
+        );
 
-        useOffererProxy = orderTypeAsUint256 > 3;
         if (useOffererProxy) {
             unchecked {
                 order.parameters.orderType = OrderType(
-                    uint8(orderTypeAsUint256) - 4
+                    uint8(order.parameters.orderType) - 4
                 );
             }
         }
 
-        if (
-            uint256(order.parameters.orderType) > 1 &&
-            msg.sender != order.parameters.facilitator &&
-            msg.sender != order.parameters.offerer
-        ) {
-            revert InvalidSubmitterOnRestrictedOrder();
-        }
-
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-        if (orderStatus.isCancelled) {
-            revert OrderIsCancelled(orderHash);
-        }
-
-        if (orderStatus.numerator != 0) {
-            if (orderStatus.numerator >= orderStatus.denominator) {
-                revert OrderUsed(orderHash);
-            }
-        } else if (!orderStatus.isValidated) {
-            _verifySignature(
-                order.parameters.offerer, orderHash, order.signature
-            );
-        }
+        OrderStatus memory orderStatus = _getOrderStatus(
+            orderHash,
+            order.parameters.offerer,
+            order.signature,
+            false // allow partially used orders
+        );
 
         // denominator of zero: this is the first fill on this order
         if (orderStatus.denominator != 0) {
@@ -1239,20 +1090,16 @@ contract Consideration is ConsiderationInterface {
             }
 
             unchecked {
-                _orderStatus[orderHash] = OrderStatus(
-                    true,       // is validated
-                    false,      // not cancelled
-                    orderStatus.numerator + numerator,
-                    denominator
-                );
+                _orderStatus[orderHash].isValidated = true;
+                _orderStatus[orderHash].isCancelled = false;
+                _orderStatus[orderHash].numerator = orderStatus.numerator + numerator;
+                _orderStatus[orderHash].denominator = denominator;
             }
         } else {
-            _orderStatus[orderHash] = OrderStatus(
-                true,       // is validated
-                false,      // not cancelled
-                numerator,
-                denominator
-            );
+            _orderStatus[orderHash].isValidated = true;
+            _orderStatus[orderHash].isCancelled = false;
+            _orderStatus[orderHash].numerator = numerator;
+            _orderStatus[orderHash].denominator = denominator;
         }
 
         return (orderHash, numerator, denominator, useOffererProxy);
@@ -1263,33 +1110,24 @@ contract Consideration is ConsiderationInterface {
         address offerer,
         bytes memory signature
     ) internal {
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-        if (orderStatus.isCancelled) {
-            revert OrderIsCancelled(orderHash);
-        }
-
-        if (orderStatus.numerator != 0) {
-            revert OrderNotUnused(orderHash);
-        }
-
-        if (!orderStatus.isValidated) {
-            _verifySignature(offerer, orderHash, signature);
-        }
-
-        _orderStatus[orderHash] = OrderStatus(
-            true,       // is validated
-            false,      // not cancelled
-            1,          // numerator of 1
-            1           // denominator of 1
+        _getOrderStatus(
+            orderHash,
+            offerer,
+            signature,
+            true // only allow unused orders
         );
+
+        _orderStatus[orderHash].isValidated = true;
+        _orderStatus[orderHash].isCancelled = false;
+        _orderStatus[orderHash].numerator = 1;
+        _orderStatus[orderHash].denominator = 1;
     }
 
     function _transferETHAndFinalize(
         bytes32 orderHash,
         uint256 amount,
         BasicOrderParameters memory parameters
-    ) internal returns (bool) {
+    ) internal {
         uint256 etherRemaining = msg.value;
 
         for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
@@ -1306,16 +1144,21 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
-        _transferEth(parameters.offerer, amount);
+        if (parameters.offerer == msg.sender) {
+            _transferEth(parameters.offerer, etherRemaining);
+        } else {
+            _transferEth(parameters.offerer, amount);
 
-        if (etherRemaining > amount) {
-            unchecked {
-                _transferEth(payable(msg.sender), etherRemaining - amount);
+            if (etherRemaining > amount) {
+                unchecked {
+                    _transferEth(payable(msg.sender), etherRemaining - amount);
+                }
             }
         }
 
         emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
-        return true;
+
+        _reentrancyGuard = _NOT_ENTERED;
     }
 
     function _transferERC20AndFinalize(
@@ -1325,7 +1168,7 @@ contract Consideration is ConsiderationInterface {
         address erc20Token,
         uint256 amount,
         BasicOrderParameters memory parameters
-    ) internal returns (bool) {
+    ) internal {
         unchecked {
             for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
                 AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
@@ -1341,7 +1184,8 @@ contract Consideration is ConsiderationInterface {
         _transferERC20(erc20Token, from, to, amount);
 
         emit OrderFulfilled(orderHash, from, parameters.facilitator);
-        return true;
+
+        _reentrancyGuard = _NOT_ENTERED;
     }
 
     function _fulfill(
@@ -1358,23 +1202,26 @@ contract Consideration is ConsiderationInterface {
                 asset.account,
                 asset.endAmount
             );
-        } else if (asset.assetType == AssetType.ERC721) {
-            _transferERC721(
-                asset.token,
-                offerer,
-                asset.account,
-                asset.identifierOrCriteria,
-                useProxy ? offerer : address(0)
-            );
-        } else if (asset.assetType == AssetType.ERC1155) {
-            _transferERC1155(
-                asset.token,
-                offerer,
-                asset.account,
-                asset.identifierOrCriteria,
-                asset.endAmount,
-                useProxy ? offerer : address(0)
-            );
+        } else {
+            address proxyAddress = useProxy ? offerer : address(0);
+            if (asset.assetType == AssetType.ERC721) {
+                _transferERC721(
+                    asset.token,
+                    offerer,
+                    asset.account,
+                    asset.identifierOrCriteria,
+                    proxyAddress
+                );
+            } else {
+                _transferERC1155(
+                    asset.token,
+                    offerer,
+                    asset.account,
+                    asset.identifierOrCriteria,
+                    asset.endAmount,
+                    proxyAddress
+                );
+            }
         }
     }
 
@@ -1399,39 +1246,31 @@ contract Consideration is ConsiderationInterface {
         uint256 amount
     ) internal {
         (bool ok, bytes memory data) = token.call(
-            abi.encodeWithSelector(
-                ERC20Interface.transferFrom.selector,
-                from,
-                to,
-                amount
+            abi.encodeCall(
+                ERC20Interface.transferFrom,
+                (
+                    from,
+                    to,
+                    amount
+                )
             )
         );
-        if (!ok) {
-            if (data.length != 0) {
-                assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
-                }
-            } else {
-                revert ERC20TransferGenericFailure(token, from, amount);
-            }
-        }
 
-        if (data.length == 0) {
-            uint256 size;
-            assembly {
-                size := extcodesize(token)
-            }
-            if (size == 0) {
-                revert ERC20TransferNoContract(token);
-            }
-        } else {
-            if (!(
-                data.length == 32 &&
-                abi.decode(data, (bool))
-            )) {
-                revert BadReturnValueFromERC20OnTransfer(token, from, amount);
-            }
+        _assertValidTokenTransfer(
+            ok,
+            data.length,
+            token,
+            from,
+            to,
+            0,
+            amount
+        );
+
+        if (!(
+            data.length >= 32 &&
+            abi.decode(data, (bool))
+        )) {
+            revert BadReturnValueFromERC20OnTransfer(token, from, to, amount);
         }
     }
 
@@ -1455,33 +1294,26 @@ contract Consideration is ConsiderationInterface {
                     )
                 )
                 : token.call(
-                    abi.encodeWithSelector(
-                        ERC721Interface.transferFrom.selector,
-                        from,
-                        to,
-                        identifier
+                    abi.encodeCall(
+                        ERC721Interface.transferFrom,
+                        (
+                            from,
+                            to,
+                            identifier
+                        )
                     )
                 )
         );
 
-        if (!ok) {
-            if (data.length != 0) {
-                assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
-                }
-            } else {
-                revert ERC721TransferGenericFailure(token, from, identifier);
-            }
-        } else if (data.length == 0) {
-            uint256 size;
-            assembly {
-                size := extcodesize(token)
-            }
-            if (size == 0) {
-                revert ERC721TransferNoContract(token);
-            }
-        }
+        _assertValidTokenTransfer(
+            ok,
+            data.length,
+            token,
+            from,
+            to,
+            identifier,
+            1
+        );
     }
 
     function _transferERC1155(
@@ -1511,7 +1343,52 @@ contract Consideration is ConsiderationInterface {
                         from,
                         to,
                         identifier,
-                        amount
+                        amount,
+                        ""
+                    )
+                )
+        );
+
+        _assertValidTokenTransfer(
+            ok,
+            data.length,
+            token,
+            from,
+            to,
+            identifier,
+            amount
+        );
+    }
+
+    function _batchTransferERC1155(
+        BatchExecution memory batchExecution
+    ) internal {
+        address token = batchExecution.token;
+        address from = batchExecution.from;
+        address to = batchExecution.to;
+        uint256[] memory tokenIds = batchExecution.tokenIds;
+        uint256[] memory amounts = batchExecution.amounts;
+        (bool ok, bytes memory data) = (
+            batchExecution.useProxy
+                ? _callProxy(
+                    batchExecution.from,
+                    abi.encodeWithSelector(
+                        ProxyInterface.batchTransferERC1155.selector,
+                        token,
+                        from,
+                        to,
+                        tokenIds,
+                        amounts
+                    )
+                )
+                : token.call(
+                    abi.encodeWithSelector(
+                        ERC1155Interface.safeBatchTransferFrom.selector,
+                        from,
+                        to,
+                        tokenIds,
+                        amounts,
+                        ""
                     )
                 )
         );
@@ -1523,22 +1400,17 @@ contract Consideration is ConsiderationInterface {
                     revert(0, returndatasize())
                 }
             } else {
-                revert ERC1155TransferGenericFailure(
+                revert ERC1155BatchTransferGenericFailure(
                     token,
                     from,
-                    identifier,
-                    amount
+                    to,
+                    tokenIds,
+                    amounts
                 );
             }
-        } else if (data.length == 0) {
-            uint256 size;
-            assembly {
-                size := extcodesize(token)
-            }
-            if (size == 0) {
-                revert ERC1155TransferNoContract(token);
-            }
         }
+
+        _assetContractIsDeployed(token, data.length);
     }
 
     function _callProxy(
@@ -1557,124 +1429,89 @@ contract Consideration is ConsiderationInterface {
         (ok, data) = proxy.call(callData);
     }
 
-    modifier nonReentrant() {
-        // On the first call to nonReentrant, _notEntered will be true
+    function _setReentrancyGuard() internal {
+        _assertNonReentrant();
+
+        _reentrancyGuard = _ENTERED;
+    }
+
+    function _assertNonReentrant() internal view {
         if (_reentrancyGuard == _ENTERED) {
             revert NoReentrantCalls();
         }
-
-        _reentrancyGuard = _ENTERED;
-
-        _;
-
-        _reentrancyGuard = _NOT_ENTERED;
     }
 
-    function _adjustPrices(
-        Order[] memory orders
+    function _assertValidTokenTransfer(
+        bool ok,
+        uint256 dataLength,
+        address token,
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 amount
     ) internal view {
-        for (uint256 i = 0; i < orders.length;) {
-            uint256 duration;
-            uint256 elapsed;
-            uint256 remaining;
-            unchecked {
-                duration = orders[i].parameters.endTime - orders[i].parameters.startTime;
-                elapsed = block.timestamp - orders[i].parameters.startTime;
-                remaining = duration - elapsed;
+        if (!ok) {
+            if (dataLength != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            } else {
+                revert TokenTransferGenericFailure(token, from, to, tokenId, amount);
             }
+        }
+
+        _assetContractIsDeployed(token, dataLength);
+    }
+
+    function _assetContractIsDeployed(
+        address account,
+        uint256 dataLength
+    ) internal view {
+        if (dataLength == 0) {
+            uint256 size;
+            assembly {
+                size := extcodesize(account)
+            }
+            if (size == 0) {
+                revert NoContract(account);
+            }
+        }
+    }
+
+    function _adjustOrderPrice(
+        Order memory order
+    ) internal view returns (Order memory adjustedOrder) {
+        unchecked {
+            uint256 duration = order.parameters.endTime - order.parameters.startTime;
+            uint256 elapsed = block.timestamp - order.parameters.startTime;
+            uint256 remaining = duration - elapsed;
 
             // adjust offer prices and round down
-            for (uint256 j = 0; j < orders[i].parameters.offer.length;) {
-                uint256 startAmount = orders[i].parameters.offer[j].startAmount;
-                uint256 endAmount = orders[i].parameters.offer[j].endAmount;
-                if (startAmount != endAmount) {
-                    uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed);
-                    uint256 newAmount;
-                    assembly {
-                        newAmount := div(totalBeforeDivision, duration)
-                    }
-                    orders[i].parameters.offer[j].endAmount = newAmount;
-                }
-                unchecked {
-                    ++j;
-                }
+            for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
+                order.parameters.offer[i].endAmount = _locateCurrentPrice(
+                    order.parameters.offer[i].startAmount,
+                    order.parameters.offer[i].endAmount,
+                    elapsed,
+                    remaining,
+                    duration,
+                    false // round down
+                );
             }
 
             // adjust consideration prices and round up
-            for (uint256 j = 0; j < orders[i].parameters.consideration.length;) {
-                uint256 startAmount = orders[i].parameters.consideration[j].startAmount;
-                uint256 endAmount = orders[i].parameters.consideration[j].endAmount;
-                if (startAmount != endAmount) {
-                    uint256 durationLessOne;
-                    unchecked {
-                        durationLessOne = duration - 1;
-                    }
-                    uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed) + durationLessOne;
-                    uint256 newAmount;
-                    assembly {
-                        newAmount := div(totalBeforeDivision, duration)
-                    }
-                    orders[i].parameters.consideration[j].endAmount = newAmount;
-                }
-                unchecked {
-                    ++j;
-                }
+            for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
+                order.parameters.consideration[i].endAmount = _locateCurrentPrice(
+                    order.parameters.consideration[i].startAmount,
+                    order.parameters.consideration[i].endAmount,
+                    elapsed,
+                    remaining,
+                    duration,
+                    true // round up
+                );
             }
 
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    function _adjustPricesForSingleOrder(
-        Order memory order
-    ) internal view {
-        uint256 duration;
-        uint256 elapsed;
-        uint256 remaining;
-        unchecked {
-            duration = order.parameters.endTime - order.parameters.startTime;
-            elapsed = block.timestamp - order.parameters.startTime;
-            remaining = duration - elapsed;
-        }
-
-        // adjust offer prices and round down
-        for (uint256 i = 0; i < order.parameters.offer.length;) {
-            uint256 startAmount = order.parameters.offer[i].startAmount;
-            uint256 endAmount = order.parameters.offer[i].endAmount;
-            if (startAmount != endAmount) {
-                uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed);
-                uint256 newAmount;
-                assembly {
-                    newAmount := div(totalBeforeDivision, duration)
-                }
-                order.parameters.offer[i].endAmount = newAmount;
-            }
-            unchecked {
-                ++i;
-            }
-        }
-
-        // adjust consideration prices and round up
-        for (uint256 i = 0; i < order.parameters.consideration.length;) {
-            uint256 startAmount = order.parameters.consideration[i].startAmount;
-            uint256 endAmount = order.parameters.consideration[i].endAmount;
-            if (startAmount != endAmount) {
-                uint256 durationLessOne;
-                unchecked {
-                    durationLessOne = duration - 1;
-                }
-                uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed) + durationLessOne;
-                uint256 newAmount;
-                assembly {
-                    newAmount := div(totalBeforeDivision, duration)
-                }
-                order.parameters.consideration[i].endAmount = newAmount;
-            }
-            unchecked {
-                ++i;
-            }
+            return order;
         }
     }
 
@@ -1734,11 +1571,16 @@ contract Consideration is ConsiderationInterface {
         if (signer == address(0)) {
             revert InvalidSignature();
         } else if (signer != offerer) {
-            (bool success, bytes memory result) = offerer.staticcall(
-                abi.encodeWithSelector(0x1626ba7e, digest, signature)
+            (bool ok, bytes memory data) = offerer.staticcall(
+                abi.encodeWithSelector(
+                    EIP1271Interface.isValidSignature.selector,
+                    digest,
+                    signature
+                )
             );
-            if (!success) {
-                if (result.length != 0) {
+
+            if (!ok) {
+                if (data.length != 0) {
                     assembly {
                         returndatacopy(0, 0, returndatasize())
                         revert(0, returndatasize())
@@ -1749,8 +1591,8 @@ contract Consideration is ConsiderationInterface {
             }
 
             if (
-                result.length != 32 ||
-                abi.decode(result, (bytes4)) != 0x1626ba7e
+                data.length != 32 ||
+                abi.decode(data, (bytes4)) != EIP1271Interface.isValidSignature.selector
             ) {
                 revert BadSignature();
             }
@@ -1848,10 +1690,77 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
+    function _adjustOrderTypeAndCheckSubmitter(
+        OrderType orderType,
+        address offerer,
+        address facilitator
+    ) internal view returns (bool useOffererProxy) {
+        uint256 orderTypeAsUint256 = uint256(orderType);
+
+        useOffererProxy = orderTypeAsUint256 > 3;
+
+        if (
+            orderTypeAsUint256 > (useOffererProxy ? 5 : 1) &&
+            msg.sender != facilitator &&
+            msg.sender != offerer
+        ) {
+            revert InvalidSubmitterOnRestrictedOrder();
+        }
+    }
+
+    function _hashBatchableAssetIdentifier(
+        address token,
+        address from,
+        address to,
+        bool useProxy
+    ) internal pure returns (bytes32) {
+        // Note: this could use a variant of efficientHash as it's < 64 bytes
+        return keccak256(abi.encode(token, from, to, useProxy));
+    }
+
+    function _locateCurrentPrice(
+        uint256 startAmount,
+        uint256 endAmount,
+        uint256 elapsed,
+        uint256 remaining,
+        uint256 duration,
+        bool roundUp
+    ) internal pure returns (uint256) {
+        if (startAmount != endAmount) {
+            uint256 durationLessOne = 0;
+            if (roundUp) {
+                unchecked {
+                    durationLessOne = duration - 1;
+                }
+            }
+            uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed) + durationLessOne;
+            uint256 newAmount;
+            assembly {
+                newAmount := div(totalBeforeDivision, duration)
+            }
+            return newAmount;
+        }
+
+        return endAmount;
+    }
+
+    function _ensurePartialFillsEnabled(
+        uint120 numerator,
+        uint120 denominator,
+        OrderType orderType
+    ) internal pure {
+        if (
+            numerator < denominator &&
+            uint256(orderType) % 2 == 0
+        ) {
+            revert PartialFillsNotEnabledForOrder();
+        }
+    }
+
     function _applyCriteriaResolvers(
         Order[] memory orders,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal pure {
+    ) internal pure returns (Order memory initialOrder) {
         unchecked {
             for (uint256 i = 0; i < criteriaResolvers.length; ++i) {
                 CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
@@ -1941,7 +1850,341 @@ contract Consideration is ConsiderationInterface {
                     }
                 }
             }
+
+            return orders[0];
         }
+    }
+
+
+    function _compressExecutions(
+        Execution[] memory executions
+    ) internal pure returns (
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    ) {
+        unchecked {
+            uint256 totalExecutions = executions.length;
+
+            if (totalExecutions < 2) {
+                return (executions, new BatchExecution[](0));
+            }
+
+            uint256 total1155Executions = 0;
+            uint256[] memory indexBy1155 = new uint256[](totalExecutions);
+
+            for (uint256 i = 0; i < executions.length; ++i) {
+                if (executions[i].asset.assetType == AssetType.ERC1155) {
+                    indexBy1155[total1155Executions] = i;
+                    ++total1155Executions;
+                }
+            }
+
+            if (total1155Executions < 2) {
+                return (executions, new BatchExecution[](0));
+            }
+
+            Batch[] memory batches = new Batch[](total1155Executions);
+
+            uint256 initialExecutionIndex = indexBy1155[0];
+            Execution memory initialExecution = executions[initialExecutionIndex];
+            ReceivedAsset memory initialAsset = initialExecution.asset;
+            bytes32 hash = _hashBatchableAssetIdentifier(
+                initialAsset.token,
+                initialExecution.offerer,
+                initialAsset.account,
+                initialExecution.useProxy
+            );
+
+            uint256[] memory executionIndices = new uint256[](1);
+            executionIndices[0] = initialExecutionIndex;
+
+            batches[0].hash = hash;
+            batches[0].executionIndices = executionIndices;
+
+            uint256 uniqueHashes = 1;
+
+            for (uint256 i = 1; i < total1155Executions; ++i) {
+                uint256 executionIndex = indexBy1155[i];
+                Execution memory execution = executions[executionIndex];
+                ReceivedAsset memory asset = execution.asset;
+
+                hash = _hashBatchableAssetIdentifier(
+                    asset.token,
+                    execution.offerer,
+                    asset.account,
+                    execution.useProxy
+                );
+
+                bool hasUniqueHash = true;
+                for (uint256 j = 0; j < uniqueHashes; ++j) {
+                    if (hash == batches[j].hash) {
+                        uint256[] memory existingExecutionIndices = batches[j].executionIndices;
+
+                        uint256[] memory newExecutionIndices = new uint256[](existingExecutionIndices.length + 1);
+                        for (uint256 k = 0; k < existingExecutionIndices.length; ++k) {
+                            newExecutionIndices[k] = existingExecutionIndices[k];
+                        }
+                        newExecutionIndices[existingExecutionIndices.length] = indexBy1155[j];
+
+                        batches[j].executionIndices = newExecutionIndices;
+
+                        hasUniqueHash = false;
+                    }
+                }
+
+                if (hasUniqueHash) {
+                    executionIndices = new uint256[](1);
+                    executionIndices[0] = executionIndex;
+
+                    batches[uniqueHashes++].hash = hash;
+                    batches[uniqueHashes].executionIndices = executionIndices;
+                }
+            }
+
+            if (uniqueHashes == total1155Executions) {
+                return (executions, new BatchExecution[](0));
+            }
+
+            // add one to the batch ID if it's used in a batch
+            uint256[] memory usedInBatch = new uint256[](totalExecutions);
+
+            uint256[] memory totals = new uint256[](2);
+            for (uint256 i = 0; i < uniqueHashes; ++i) {
+                uint256[] memory indices = batches[i].executionIndices;
+                uint256 indicesLength = indices.length;
+                if (indicesLength > 1) {
+                    ++totals[1];
+                    totals[0] += indicesLength;
+                    for (uint256 j = 0; j < indicesLength; ++j) {
+                        usedInBatch[indices[j]] = i + 1;
+                    }
+                }
+            }
+
+            return _splitExecution(
+                executions,
+                batches,
+                usedInBatch,
+                totals[0],
+                totals[1]
+            );
+        }
+    }
+
+    function _splitExecution(
+        Execution[] memory executions,
+        Batch[] memory batches,
+        uint256[] memory usedInBatch,
+        uint256 totalUsedInBatch,
+        uint256 totalBatches
+    ) internal pure returns (
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    ) {
+        unchecked {
+            uint256 totalExecutions = executions.length;
+
+            Execution[] memory executeWithoutBatch = new Execution[](
+                totalExecutions - totalUsedInBatch
+            );
+            BatchExecution[] memory executeWithBatch = new BatchExecution[](
+                totalBatches
+            );
+
+            uint256 lastNoBatchIndex = 0;
+            uint256[] memory batchElementCounters = new uint256[](totalBatches);
+            for (uint256 i = 0; i < totalExecutions; ++i) {
+                uint256 isUsedInBatch = usedInBatch[i];
+                if (isUsedInBatch == 0) {
+                    executeWithoutBatch[lastNoBatchIndex++] = executions[i];
+                } else {
+                    uint256 batchUsed = isUsedInBatch - 1;
+
+                    Execution memory execution = executions[i];
+
+                    if (executeWithBatch[batchUsed].token == address(0)) {
+                        uint256 tokenElements = batches[batchUsed].executionIndices.length;
+                        executeWithBatch[batchUsed] = BatchExecution({
+                            token: execution.asset.token,
+                            from: execution.offerer,
+                            to: execution.asset.account,
+                            tokenIds: new uint256[](tokenElements),
+                            amounts: new uint256[](tokenElements),
+                            useProxy: execution.useProxy
+                        });
+                    }
+
+                    uint256 counter = batchElementCounters[batchUsed]++;
+
+                    executeWithBatch[batchUsed].tokenIds[counter] = execution.asset.identifierOrCriteria;
+                    executeWithBatch[batchUsed].amounts[counter] = execution.asset.endAmount;
+                }
+            }
+
+            return (executeWithoutBatch, executeWithBatch);
+        }
+    }
+
+    function _getOrderParametersByFulfillmentIndex(
+        Order[] memory orders,
+        uint256 index
+    ) internal pure returns (OrderParameters memory) {
+        if (index >= orders.length) {
+            revert FulfilledOrderIndexOutOfRange();
+        }
+
+        return orders[index].parameters;
+    }
+
+    function _getOrderOfferComponentByAssetIndex(
+        OrderParameters memory order,
+        uint256 index
+    ) internal pure returns (OfferedAsset memory) {
+        if (index >= order.offer.length) {
+            revert FulfilledOrderOfferIndexOutOfRange();
+        }
+        return order.offer[index];
+    }
+
+    function _getOrderConsiderationComponentByAssetIndex(
+        OrderParameters memory order,
+        uint256 index
+    ) internal pure returns (ReceivedAsset memory) {
+        if (index >= order.consideration.length) {
+            revert FulfilledOrderConsiderationIndexOutOfRange();
+        }
+        return order.consideration[index];
+    }
+
+    function _applyFulfillment(
+        Order[] memory orders,
+        Fulfillment memory fulfillment,
+        bool[] memory useOffererProxyPerOrder
+    ) internal pure returns (
+        Execution memory execution
+    ) {
+        if (
+            fulfillment.offerComponents.length == 0 ||
+            fulfillment.considerationComponents.length == 0
+        ) {
+            revert OfferAndConsiderationRequiredOnFulfillment();
+        }
+
+        uint256 currentOrderIndex = fulfillment.offerComponents[0].orderIndex;
+
+        OrderParameters memory orderWithInitialOffer = _getOrderParametersByFulfillmentIndex(
+            orders,
+            currentOrderIndex
+        );
+
+        bool useProxy = useOffererProxyPerOrder[currentOrderIndex];
+
+        uint256 currentAssetIndex = fulfillment.offerComponents[0].assetIndex;
+
+        OfferedAsset memory offeredAsset = _getOrderOfferComponentByAssetIndex(
+            orderWithInitialOffer,
+            currentAssetIndex
+        );
+
+        orders[currentOrderIndex].parameters.offer[currentAssetIndex].endAmount = 0;
+
+        for (uint256 i = 1; i < fulfillment.offerComponents.length;) {
+            FulfillmentComponent memory offerComponent = fulfillment.offerComponents[i];
+            currentOrderIndex = offerComponent.orderIndex;
+
+            OrderParameters memory subsequentOrder = _getOrderParametersByFulfillmentIndex(
+                orders,
+                currentOrderIndex
+            );
+
+            currentAssetIndex = offerComponent.assetIndex;
+
+            OfferedAsset memory additionalOfferedAsset = _getOrderOfferComponentByAssetIndex(
+                subsequentOrder,
+                currentAssetIndex
+            );
+
+            if (
+                orderWithInitialOffer.offerer != subsequentOrder.offerer ||
+                offeredAsset.assetType != additionalOfferedAsset.assetType ||
+                offeredAsset.token != additionalOfferedAsset.token ||
+                offeredAsset.identifierOrCriteria != additionalOfferedAsset.identifierOrCriteria ||
+                useProxy != useOffererProxyPerOrder[currentOrderIndex]
+            ) {
+                revert MismatchedFulfillmentOfferComponents();
+            }
+
+            offeredAsset.endAmount += additionalOfferedAsset.endAmount;
+            orders[currentOrderIndex].parameters.offer[currentAssetIndex].endAmount = 0;
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        currentOrderIndex = fulfillment.considerationComponents[0].orderIndex;
+
+        OrderParameters memory orderWithInitialConsideration = _getOrderParametersByFulfillmentIndex(
+            orders,
+            currentOrderIndex
+        );
+
+        currentAssetIndex = fulfillment.considerationComponents[0].assetIndex;
+
+        ReceivedAsset memory requiredConsideration = _getOrderConsiderationComponentByAssetIndex(
+            orderWithInitialConsideration,
+            currentAssetIndex
+        );
+
+        orders[currentOrderIndex].parameters.consideration[currentAssetIndex].endAmount = 0;
+
+        for (uint256 i = 1; i < fulfillment.considerationComponents.length;) {
+            FulfillmentComponent memory considerationComponent = fulfillment.considerationComponents[i];
+            currentOrderIndex = considerationComponent.orderIndex;
+
+            OrderParameters memory subsequentOrder = _getOrderParametersByFulfillmentIndex(
+                orders,
+                currentOrderIndex
+            );
+
+            currentAssetIndex = considerationComponent.assetIndex;
+
+            ReceivedAsset memory additionalRequiredConsideration = _getOrderConsiderationComponentByAssetIndex(
+                subsequentOrder,
+                currentAssetIndex
+            );
+
+            if (
+                requiredConsideration.account != additionalRequiredConsideration.account ||
+                requiredConsideration.assetType != additionalRequiredConsideration.assetType ||
+                requiredConsideration.token != additionalRequiredConsideration.token ||
+                requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria
+            ) {
+                revert MismatchedFulfillmentConsiderationComponents();
+            }
+
+            requiredConsideration.endAmount += additionalRequiredConsideration.endAmount;
+            orders[currentOrderIndex].parameters.consideration[currentAssetIndex].endAmount = 0;
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        if (requiredConsideration.endAmount > offeredAsset.endAmount) {
+            FulfillmentComponent memory targetComponent = fulfillment.considerationComponents[fulfillment.considerationComponents.length - 1];
+            orders[targetComponent.orderIndex].parameters.consideration[targetComponent.assetIndex].endAmount = requiredConsideration.endAmount - offeredAsset.endAmount;
+            requiredConsideration.endAmount = offeredAsset.endAmount;
+        } else {
+            FulfillmentComponent memory targetComponent = fulfillment.offerComponents[fulfillment.offerComponents.length - 1];
+            orders[targetComponent.orderIndex].parameters.offer[targetComponent.assetIndex].endAmount = offeredAsset.endAmount - requiredConsideration.endAmount;
+        }
+
+        return Execution(
+            requiredConsideration,
+            orderWithInitialOffer.offerer,
+            useProxy
+        );
     }
 
     function _getFraction(
