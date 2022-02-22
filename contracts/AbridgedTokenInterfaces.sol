@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.11;
+pragma solidity 0.8.12;
 
 interface ERC20Interface {
     function transferFrom(address, address, uint256) external returns (bool);
