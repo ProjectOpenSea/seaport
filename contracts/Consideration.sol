@@ -40,12 +40,13 @@ import { EIP1271Interface } from "./EIP1271Interface.sol";
 import { ConsiderationInterface } from "./ConsiderationInterface.sol";
 
 /// @title Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
+/// It prioritizes minimizing external calls to the greatest extent possible and
+/// provides lightweight methods for common routes as well as more heavyweight
+/// methods for composing advanced orders.
 /// @author 0age
 contract Consideration is ConsiderationInterface {
-    // TODO: batch ERC-1155 fulfillments
-    // TODO: skip redundant order validation when it has already been validated
-    // TODO: employ more compact types (particularly internal types)
     // TODO: support partial fills as part of matchOrders?
+    // TODO: skip redundant order validation when it has already been validated?
 
     string internal constant _NAME = "Consideration";
     string internal constant _VERSION = "1";
@@ -112,7 +113,8 @@ contract Consideration is ConsiderationInterface {
     function fulfillBasicEthForERC721Order(
         uint256 etherAmount,
         BasicOrderParameters memory parameters
-    ) external payable override nonReentrant() returns (bool) {
+    ) external payable override returns (bool) {
+        _setReentrancyGuard();
         address payable offerer = parameters.offerer;
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
@@ -141,11 +143,13 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? offerer : address(0)
         );
 
-        return _transferETHAndFinalize(
+        _transferETHAndFinalize(
             orderHash,
             etherAmount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering ERC1155 tokens by supplying Ether as consideration.
@@ -160,7 +164,8 @@ contract Consideration is ConsiderationInterface {
         uint256 etherAmount,
         uint256 erc1155Amount,
         BasicOrderParameters memory parameters
-    ) external payable override nonReentrant() returns (bool) {
+    ) external payable override returns (bool) {
+        _setReentrancyGuard();
         address payable offerer = parameters.offerer;
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
@@ -190,11 +195,13 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? offerer : address(0)
         );
 
-        return _transferETHAndFinalize(
+        _transferETHAndFinalize(
             orderHash,
             etherAmount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering a single ERC721 token by supplying an ERC20 token as consideration.
@@ -208,7 +215,8 @@ contract Consideration is ConsiderationInterface {
         address erc20Token,
         uint256 erc20Amount,
         BasicOrderParameters memory parameters
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _setReentrancyGuard();
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -236,7 +244,7 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? parameters.offerer : address(0)
         );
 
-        return _transferERC20AndFinalize(
+        _transferERC20AndFinalize(
             msg.sender,
             parameters.offerer,
             orderHash,
@@ -244,6 +252,8 @@ contract Consideration is ConsiderationInterface {
             erc20Amount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering ERC1155 tokens by supplying an ERC20 token as consideration.
@@ -260,7 +270,8 @@ contract Consideration is ConsiderationInterface {
         uint256 erc20Amount,
         uint256 erc1155Amount,
         BasicOrderParameters memory parameters
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _setReentrancyGuard();
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -289,7 +300,7 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? parameters.offerer : address(0)
         );
 
-        return _transferERC20AndFinalize(
+        _transferERC20AndFinalize(
             msg.sender,
             parameters.offerer,
             orderHash,
@@ -297,6 +308,8 @@ contract Consideration is ConsiderationInterface {
             erc20Amount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering ERC20 tokens by supplying a single ERC721 token as consideration.
@@ -310,7 +323,8 @@ contract Consideration is ConsiderationInterface {
         address erc20Token,
         uint256 erc20Amount,
         BasicOrderParameters memory parameters
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _setReentrancyGuard();
         address payable offerer = parameters.offerer;
         (bytes32 orderHash,) = _prepareBasicFulfillment(
             parameters,
@@ -339,7 +353,7 @@ contract Consideration is ConsiderationInterface {
             parameters.useFulfillerProxy ? msg.sender : address(0)
         );
 
-        return _transferERC20AndFinalize(
+        _transferERC20AndFinalize(
             offerer,
             msg.sender,
             orderHash,
@@ -347,6 +361,8 @@ contract Consideration is ConsiderationInterface {
             erc20Amount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order offering ERC20 tokens by supplying ERC1155 tokens as consideration.
@@ -363,7 +379,8 @@ contract Consideration is ConsiderationInterface {
         uint256 erc20Amount,
         uint256 erc1155Amount,
         BasicOrderParameters memory parameters
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _setReentrancyGuard();
         address payable offerer = parameters.offerer;
         (bytes32 orderHash,) = _prepareBasicFulfillment(
             parameters,
@@ -393,7 +410,7 @@ contract Consideration is ConsiderationInterface {
             parameters.useFulfillerProxy ? msg.sender : address(0)
         );
 
-        return _transferERC20AndFinalize(
+        _transferERC20AndFinalize(
             offerer,
             msg.sender,
             orderHash,
@@ -401,6 +418,8 @@ contract Consideration is ConsiderationInterface {
             erc20Amount,
             parameters
         );
+
+        return true;
     }
 
     /// @dev Fulfill an order with an arbitrary number of items for offer and consideration.
@@ -412,7 +431,7 @@ contract Consideration is ConsiderationInterface {
     function fulfillOrder(
         Order memory order,
         bool useFulfillerProxy
-    ) external payable override nonReentrant() returns (bool) {
+    ) external payable override returns (bool) {
         return _fulfillOrder(
             order,
             1,
@@ -434,7 +453,7 @@ contract Consideration is ConsiderationInterface {
         Order memory order,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
-    ) external payable override nonReentrant() returns (bool) {
+    ) external payable override returns (bool) {
         return _fulfillOrder(
             order,
             1,
@@ -459,13 +478,12 @@ contract Consideration is ConsiderationInterface {
         uint120 numerator,
         uint120 denominator,
         bool useFulfillerProxy
-    ) external payable override nonReentrant() returns (bool) {
-        if (
-            numerator < denominator &&
-            uint256(order.parameters.orderType) % 2 == 0
-        ) {
-            revert PartialFillsNotEnabledForOrder();
-        }
+    ) external payable override returns (bool) {
+        _ensurePartialFillsEnabled(
+            numerator,
+            denominator,
+            order.parameters.orderType
+        );
 
         return _fulfillOrder(
             order,
@@ -494,13 +512,12 @@ contract Consideration is ConsiderationInterface {
         uint120 denominator,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
-    ) external payable override nonReentrant() returns (bool) {
-        if (
-            numerator < denominator &&
-            uint256(order.parameters.orderType) % 2 == 0
-        ) {
-            revert PartialFillsNotEnabledForOrder();
-        }
+    ) external payable override returns (bool) {
+        _ensurePartialFillsEnabled(
+            numerator,
+            denominator,
+            order.parameters.orderType
+        );
 
         return _fulfillOrder(
             order,
@@ -524,12 +541,12 @@ contract Consideration is ConsiderationInterface {
         Order[] memory orders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
-    ) external payable override nonReentrant() returns (Execution[] memory) {
+    ) external payable override returns (Execution[] memory) {
         bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(orders);
 
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
-                orders[i] = _adjustPricesForSingleOrder(orders[i]);
+                orders[i] = _adjustOrderPrice(orders[i]);
             }
         }
 
@@ -544,7 +561,8 @@ contract Consideration is ConsiderationInterface {
     /// @return A boolean indicating whether the orders were successfully cancelled.
     function cancel(
         OrderComponents[] memory orders
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _assertNonReentrant();
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 OrderComponents memory order = orders[i];
@@ -588,7 +606,8 @@ contract Consideration is ConsiderationInterface {
     /// @return A boolean indicating whether the orders were successfully validated.
     function validate(
         Order[] memory orders
-    ) external override nonReentrant() returns (bool) {
+    ) external override returns (bool) {
+        _assertNonReentrant();
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 Order memory order = orders[i];
@@ -627,7 +646,8 @@ contract Consideration is ConsiderationInterface {
     function incrementFacilitatorNonce(
         address offerer,
         address facilitator
-    ) external override nonReentrant() returns (uint256 newNonce) {
+    ) external override returns (uint256 newNonce) {
+        _assertNonReentrant();
         if (msg.sender != offerer && msg.sender != facilitator) {
             revert OnlyOffererOrFacilitatorMayIncrementNonce();
         }
@@ -783,6 +803,8 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) internal returns (bool) {
+        _setReentrancyGuard();
+
         (
             bytes32 orderHash,
             uint120 fillNumerator,
@@ -790,7 +812,7 @@ contract Consideration is ConsiderationInterface {
             bool useOffererProxy
         ) = _validateOrderAndUpdateStatus(order, numerator, denominator);
 
-        _adjustPricesForSingleOrder(order);
+        _adjustOrderPrice(order);
 
         Order[] memory orders = new Order[](1);
         orders[0] = order;
@@ -865,6 +887,8 @@ contract Consideration is ConsiderationInterface {
             order.parameters.facilitator
         );
 
+        _reentrancyGuard = _NOT_ENTERED;
+
         return true;
     }
 
@@ -873,6 +897,8 @@ contract Consideration is ConsiderationInterface {
         Fulfillment[] memory fulfillments,
         bool[] memory useOffererProxyPerOrder
     ) internal returns (Execution[] memory) {
+        _setReentrancyGuard();
+
         // allocate fulfillment and schedule execution
         Execution[] memory executions = new Execution[](fulfillments.length);
         unchecked {
@@ -932,8 +958,903 @@ contract Consideration is ConsiderationInterface {
             _transferEth(payable(msg.sender), etherRemaining);
         }
 
+        _reentrancyGuard = _NOT_ENTERED;
+
         return executions;
     }
+
+    function _prepareBasicFulfillment(
+        BasicOrderParameters memory parameters,
+        OfferedAsset memory offeredAsset,
+        ReceivedAsset memory receivedAsset
+    ) internal returns (bytes32 orderHash, bool useOffererProxy) {
+        address payable offerer = parameters.offerer;
+        address facilitator = parameters.facilitator;
+        uint256 startTime = parameters.startTime;
+        uint256 endTime = parameters.endTime;
+
+        _ensureValidTime(startTime, endTime);
+
+        OfferedAsset[] memory offer = new OfferedAsset[](1);
+        ReceivedAsset[] memory consideration = new ReceivedAsset[](
+            1 + parameters.additionalRecipients.length
+        );
+
+        offer[0] = offeredAsset;
+        consideration[0] = receivedAsset;
+
+        if (offeredAsset.assetType == AssetType.ERC20) {
+            receivedAsset.assetType = AssetType.ERC20;
+            receivedAsset.token = offeredAsset.token;
+            receivedAsset.identifierOrCriteria = 0;
+        }
+
+        unchecked {
+            for (uint256 i = 1; i < consideration.length; ++i) {
+                AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i - 1];
+                receivedAsset.account = additionalRecipient.account;
+                receivedAsset.startAmount = additionalRecipient.amount;
+                receivedAsset.endAmount = additionalRecipient.amount;
+                consideration[i] = receivedAsset;
+            }
+        }
+
+        orderHash = _getNoncedOrderHash(
+            OrderParameters(
+                offerer,
+                facilitator,
+                parameters.orderType,
+                startTime,
+                endTime,
+                parameters.salt,
+                offer,
+                consideration
+            )
+        );
+
+        _validateBasicOrderAndUpdateStatus(
+            orderHash,
+            offerer,
+            parameters.signature
+        );
+
+        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
+            parameters.orderType,
+            offerer,
+            facilitator
+        );
+
+        if (useOffererProxy) {
+            unchecked {
+                parameters.orderType = OrderType(uint8(parameters.orderType) - 4);
+            }
+        }
+
+        return (orderHash, useOffererProxy);
+    }
+
+    function _validateOrderAndUpdateStatus(
+        Order memory order,
+        uint120 numerator,
+        uint120 denominator
+    ) internal returns (
+        bytes32 orderHash,
+        uint120 newNumerator,
+        uint120 newDenominator,
+        bool useOffererProxy
+    ) {
+        _ensureValidTime(order.parameters.startTime, order.parameters.endTime);
+
+        if (numerator > denominator || numerator == 0 || denominator == 0) {
+            revert BadFraction();
+        }
+
+        orderHash = _getNoncedOrderHash(order.parameters);
+
+        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
+            order.parameters.orderType,
+            order.parameters.offerer,
+            order.parameters.facilitator
+        );
+
+        if (useOffererProxy) {
+            unchecked {
+                order.parameters.orderType = OrderType(
+                    uint8(order.parameters.orderType) - 4
+                );
+            }
+        }
+
+        OrderStatus memory orderStatus = _getOrderStatus(
+            orderHash,
+            order.parameters.offerer,
+            order.signature,
+            false // allow partially used orders
+        );
+
+        // denominator of zero: this is the first fill on this order
+        if (orderStatus.denominator != 0) {
+            if (denominator == 1) { // full fill — just scale up to current denominator
+                numerator = orderStatus.denominator;
+                denominator = orderStatus.denominator;
+            } else if (orderStatus.denominator != denominator) { // different denominator
+                orderStatus.numerator *= denominator;
+                numerator *= orderStatus.denominator;
+                denominator *= orderStatus.denominator;
+            }
+
+            if (orderStatus.numerator + numerator > denominator) {
+                unchecked {
+                    numerator = denominator - orderStatus.numerator; // adjust down
+                }
+            }
+
+            unchecked {
+                _orderStatus[orderHash].isValidated = true;
+                _orderStatus[orderHash].isCancelled = false;
+                _orderStatus[orderHash].numerator = orderStatus.numerator + numerator;
+                _orderStatus[orderHash].denominator = denominator;
+            }
+        } else {
+            _orderStatus[orderHash].isValidated = true;
+            _orderStatus[orderHash].isCancelled = false;
+            _orderStatus[orderHash].numerator = numerator;
+            _orderStatus[orderHash].denominator = denominator;
+        }
+
+        return (orderHash, numerator, denominator, useOffererProxy);
+    }
+
+    function _validateBasicOrderAndUpdateStatus(
+        bytes32 orderHash,
+        address offerer,
+        bytes memory signature
+    ) internal {
+        _getOrderStatus(
+            orderHash,
+            offerer,
+            signature,
+            true // only allow unused orders
+        );
+
+        _orderStatus[orderHash].isValidated = true;
+        _orderStatus[orderHash].isCancelled = false;
+        _orderStatus[orderHash].numerator = 1;
+        _orderStatus[orderHash].denominator = 1;
+    }
+
+    function _transferETHAndFinalize(
+        bytes32 orderHash,
+        uint256 amount,
+        BasicOrderParameters memory parameters
+    ) internal {
+        uint256 etherRemaining = msg.value;
+
+        for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
+            AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
+            _transferEth(
+                additionalRecipient.account,
+                additionalRecipient.amount
+            );
+
+            etherRemaining -= additionalRecipient.amount;
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        if (parameters.offerer == msg.sender) {
+            _transferEth(parameters.offerer, etherRemaining);
+        } else {
+            _transferEth(parameters.offerer, amount);
+
+            if (etherRemaining > amount) {
+                unchecked {
+                    _transferEth(payable(msg.sender), etherRemaining - amount);
+                }
+            }
+        }
+
+        emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
+
+        _reentrancyGuard = _NOT_ENTERED;
+    }
+
+    function _transferERC20AndFinalize(
+        address from,
+        address to,
+        bytes32 orderHash,
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters memory parameters
+    ) internal {
+        unchecked {
+            for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
+                AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
+                _transferERC20(
+                    erc20Token,
+                    from,
+                    additionalRecipient.account,
+                    additionalRecipient.amount
+                );
+            }
+        }
+
+        _transferERC20(erc20Token, from, to, amount);
+
+        emit OrderFulfilled(orderHash, from, parameters.facilitator);
+
+        _reentrancyGuard = _NOT_ENTERED;
+    }
+
+    function _fulfill(
+        ReceivedAsset memory asset,
+        address offerer,
+        bool useProxy
+    ) internal {
+        if (asset.assetType == AssetType.ETH) {
+            _transferEth(asset.account, asset.endAmount);
+        } else if (asset.assetType == AssetType.ERC20) {
+            _transferERC20(
+                asset.token,
+                offerer,
+                asset.account,
+                asset.endAmount
+            );
+        } else {
+            address proxyAddress = useProxy ? offerer : address(0);
+            if (asset.assetType == AssetType.ERC721) {
+                _transferERC721(
+                    asset.token,
+                    offerer,
+                    asset.account,
+                    asset.identifierOrCriteria,
+                    proxyAddress
+                );
+            } else {
+                _transferERC1155(
+                    asset.token,
+                    offerer,
+                    asset.account,
+                    asset.identifierOrCriteria,
+                    asset.endAmount,
+                    proxyAddress
+                );
+            }
+        }
+    }
+
+    function _transferEth(address payable to, uint256 amount) internal {
+        (bool ok, bytes memory data) = to.call{value: amount}("");
+        if (!ok) {
+            if (data.length != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            } else {
+                revert EtherTransferGenericFailure(to, amount);
+            }
+        }
+    }
+
+    function _transferERC20(
+        address token,
+        address from,
+        address to,
+        uint256 amount
+    ) internal {
+        (bool ok, bytes memory data) = token.call(
+            abi.encodeCall(
+                ERC20Interface.transferFrom,
+                (
+                    from,
+                    to,
+                    amount
+                )
+            )
+        );
+
+        _assertValidTokenTransfer(
+            ok,
+            data.length,
+            token,
+            from,
+            to,
+            0,
+            amount
+        );
+
+        if (!(
+            data.length >= 32 &&
+            abi.decode(data, (bool))
+        )) {
+            revert BadReturnValueFromERC20OnTransfer(token, from, to, amount);
+        }
+    }
+
+    function _transferERC721(
+        address token,
+        address from,
+        address to,
+        uint256 identifier,
+        address proxyOwner
+    ) internal {
+        (bool ok, bytes memory data) = (
+            proxyOwner != address(0)
+                ? _callProxy(
+                    proxyOwner,
+                    abi.encodeWithSelector(
+                        ProxyInterface.transferERC721.selector,
+                        token,
+                        from,
+                        to,
+                        identifier
+                    )
+                )
+                : token.call(
+                    abi.encodeCall(
+                        ERC721Interface.transferFrom,
+                        (
+                            from,
+                            to,
+                            identifier
+                        )
+                    )
+                )
+        );
+
+        _assertValidTokenTransfer(
+            ok,
+            data.length,
+            token,
+            from,
+            to,
+            identifier,
+            1
+        );
+    }
+
+    function _transferERC1155(
+        address token,
+        address from,
+        address to,
+        uint256 identifier,
+        uint256 amount,
+        address proxyOwner
+    ) internal {
+        (bool ok, bytes memory data) = (
+            proxyOwner != address(0)
+                ? _callProxy(
+                    proxyOwner,
+                    abi.encodeWithSelector(
+                        ProxyInterface.transferERC1155.selector,
+                        token,
+                        from,
+                        to,
+                        identifier,
+                        amount
+                    )
+                )
+                : token.call(
+                    abi.encodeWithSelector(
+                        ERC1155Interface.safeTransferFrom.selector,
+                        from,
+                        to,
+                        identifier,
+                        amount,
+                        ""
+                    )
+                )
+        );
+
+        _assertValidTokenTransfer(
+            ok,
+            data.length,
+            token,
+            from,
+            to,
+            identifier,
+            amount
+        );
+    }
+
+    function _batchTransferERC1155(
+        BatchExecution memory batchExecution
+    ) internal {
+        address token = batchExecution.token;
+        address from = batchExecution.from;
+        address to = batchExecution.to;
+        uint256[] memory tokenIds = batchExecution.tokenIds;
+        uint256[] memory amounts = batchExecution.amounts;
+        (bool ok, bytes memory data) = (
+            batchExecution.useProxy
+                ? _callProxy(
+                    batchExecution.from,
+                    abi.encodeWithSelector(
+                        ProxyInterface.batchTransferERC1155.selector,
+                        token,
+                        from,
+                        to,
+                        tokenIds,
+                        amounts
+                    )
+                )
+                : token.call(
+                    abi.encodeWithSelector(
+                        ERC1155Interface.safeBatchTransferFrom.selector,
+                        from,
+                        to,
+                        tokenIds,
+                        amounts,
+                        ""
+                    )
+                )
+        );
+
+        if (!ok) {
+            if (data.length != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            } else {
+                revert ERC1155BatchTransferGenericFailure(
+                    token,
+                    from,
+                    to,
+                    tokenIds,
+                    amounts
+                );
+            }
+        }
+
+        _assetContractIsDeployed(token, data.length);
+    }
+
+    function _callProxy(
+        address proxyOwner,
+        bytes memory callData
+    ) internal returns (bool ok, bytes memory data) {
+        // Retrieve the user proxy from the registry.
+        address proxy = _LEGACY_PROXY_REGISTRY.proxies(proxyOwner);
+
+        // Assert that the user proxy has the correct implementation.
+        if (ProxyInterface(proxy).implementation() != _REQUIRED_PROXY_IMPLEMENTATION) {
+            revert InvalidUserProxyImplementation();
+        }
+
+        // perform the call to the proxy.
+        (ok, data) = proxy.call(callData);
+    }
+
+    function _setReentrancyGuard() internal {
+        _assertNonReentrant();
+
+        _reentrancyGuard = _ENTERED;
+    }
+
+    function _assertNonReentrant() internal view {
+        if (_reentrancyGuard == _ENTERED) {
+            revert NoReentrantCalls();
+        }
+    }
+
+    function _assertValidTokenTransfer(
+        bool ok,
+        uint256 dataLength,
+        address token,
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 amount
+    ) internal view {
+        if (!ok) {
+            if (dataLength != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            } else {
+                revert TokenTransferGenericFailure(token, from, to, tokenId, amount);
+            }
+        }
+
+        _assetContractIsDeployed(token, dataLength);
+    }
+
+    function _assetContractIsDeployed(
+        address account,
+        uint256 dataLength
+    ) internal view {
+        if (dataLength == 0) {
+            uint256 size;
+            assembly {
+                size := extcodesize(account)
+            }
+            if (size == 0) {
+                revert NoContract(account);
+            }
+        }
+    }
+
+    function _adjustOrderPrice(
+        Order memory order
+    ) internal view returns (Order memory adjustedOrder) {
+        unchecked {
+            uint256 duration = order.parameters.endTime - order.parameters.startTime;
+            uint256 elapsed = block.timestamp - order.parameters.startTime;
+            uint256 remaining = duration - elapsed;
+
+            // adjust offer prices and round down
+            for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
+                order.parameters.offer[i].endAmount = _locateCurrentPrice(
+                    order.parameters.offer[i].startAmount,
+                    order.parameters.offer[i].endAmount,
+                    elapsed,
+                    remaining,
+                    duration,
+                    false // round down
+                );
+            }
+
+            // adjust consideration prices and round up
+            for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
+                order.parameters.consideration[i].endAmount = _locateCurrentPrice(
+                    order.parameters.consideration[i].startAmount,
+                    order.parameters.consideration[i].endAmount,
+                    elapsed,
+                    remaining,
+                    duration,
+                    true // round up
+                );
+            }
+
+            return order;
+        }
+    }
+
+    function _ensureValidTime(
+        uint256 startTime,
+        uint256 endTime
+    ) internal view {
+        if (startTime > block.timestamp || endTime < block.timestamp) {
+            revert InvalidTime();
+        }
+    }
+
+    function _verifySignature(
+        address offerer,
+        bytes32 orderHash,
+        bytes memory signature
+    ) internal view {
+        if (offerer == msg.sender) {
+            return;
+        }
+
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", _domainSeparator(), orderHash)
+        );
+
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+
+        if (signature.length == 65) {
+            assembly {
+                r := mload(add(signature, 0x20))
+                s := mload(add(signature, 0x40))
+                v := byte(0, mload(add(signature, 0x60)))
+            }
+        } else if (signature.length == 64) {
+            bytes32 vs;
+            assembly {
+                r := mload(add(signature, 0x20))
+                vs := mload(add(signature, 0x40))
+                s := and(vs, 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)
+                v := add(shr(255, vs), 27)
+            }
+        } else {
+            revert BadSignatureLength(signature.length);
+        }
+
+        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
+            revert MalleableSignatureS(uint256(s));
+        }
+        if (v != 27 && v != 28) {
+            revert BadSignatureV(v);
+        }
+
+        address signer = ecrecover(digest, v, r, s);
+
+        if (signer == address(0)) {
+            revert InvalidSignature();
+        } else if (signer != offerer) {
+            (bool ok, bytes memory data) = offerer.staticcall(
+                abi.encodeWithSelector(
+                    EIP1271Interface.isValidSignature.selector,
+                    digest,
+                    signature
+                )
+            );
+
+            if (!ok) {
+                if (data.length != 0) {
+                    assembly {
+                        returndatacopy(0, 0, returndatasize())
+                        revert(0, returndatasize())
+                    }
+                } else {
+                    revert BadContractSignature();
+                }
+            }
+
+            if (
+                data.length != 32 ||
+                abi.decode(data, (bytes4)) != EIP1271Interface.isValidSignature.selector
+            ) {
+                revert BadSignature();
+            }
+        }
+    }
+
+    function _domainSeparator() internal view returns (bytes32) {
+        return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _deriveDomainSeparator();
+    }
+
+    function _deriveDomainSeparator() internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _EIP_712_DOMAIN_TYPEHASH,
+                _NAME_HASH,
+                _VERSION_HASH,
+                block.chainid,
+                address(this)
+            )
+        );
+    }
+
+    function _hashOfferedAsset(
+        OfferedAsset memory offeredAsset
+    ) internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _OFFERED_ASSET_TYPEHASH,
+                offeredAsset.assetType,
+                offeredAsset.token,
+                offeredAsset.identifierOrCriteria,
+                offeredAsset.startAmount,
+                offeredAsset.endAmount
+            )
+        );
+    }
+
+    function _hashReceivedAsset(
+        ReceivedAsset memory receivedAsset
+    ) internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _RECEIVED_ASSET_TYPEHASH,
+                receivedAsset.assetType,
+                receivedAsset.token,
+                receivedAsset.identifierOrCriteria,
+                receivedAsset.startAmount,
+                receivedAsset.endAmount,
+                receivedAsset.account
+            )
+        );
+    }
+
+    function _getNoncedOrderHash(
+        OrderParameters memory orderParameters
+    ) internal view returns (bytes32) {
+        return _getOrderHash(
+            orderParameters,
+            _facilitatorNonces[orderParameters.offerer][orderParameters.facilitator]
+        );
+    }
+
+    function _getOrderHash(
+        OrderParameters memory orderParameters,
+        uint256 nonce
+    ) internal view returns (bytes32) {
+        uint256 offerLength = orderParameters.offer.length;
+        uint256 considerationLength = orderParameters.consideration.length;
+        bytes32[] memory offerHashes = new bytes32[](offerLength);
+        bytes32[] memory considerationHashes = new bytes32[](considerationLength);
+
+        unchecked {
+            for (uint256 i = 0; i < offerLength; ++i) {
+                offerHashes[i] = _hashOfferedAsset(orderParameters.offer[i]);
+            }
+
+            for (uint256 i = 0; i < considerationLength; ++i) {
+                considerationHashes[i] = _hashReceivedAsset(orderParameters.consideration[i]);
+            }
+        }
+
+        return keccak256(
+            abi.encode(
+                _ORDER_HASH,
+                orderParameters.offerer,
+                orderParameters.facilitator,
+                keccak256(abi.encodePacked(offerHashes)),
+                keccak256(abi.encodePacked(considerationHashes)),
+                orderParameters.orderType,
+                orderParameters.startTime,
+                orderParameters.endTime,
+                orderParameters.salt,
+                nonce
+            )
+        );
+    }
+
+    function _adjustOrderTypeAndCheckSubmitter(
+        OrderType orderType,
+        address offerer,
+        address facilitator
+    ) internal view returns (bool useOffererProxy) {
+        uint256 orderTypeAsUint256 = uint256(orderType);
+
+        useOffererProxy = orderTypeAsUint256 > 3;
+
+        if (
+            orderTypeAsUint256 > (useOffererProxy ? 5 : 1) &&
+            msg.sender != facilitator &&
+            msg.sender != offerer
+        ) {
+            revert InvalidSubmitterOnRestrictedOrder();
+        }
+    }
+
+    function _hashBatchableAssetIdentifier(
+        address token,
+        address from,
+        address to,
+        bool useProxy
+    ) internal pure returns (bytes32) {
+        // Note: this could use a variant of efficientHash as it's < 64 bytes
+        return keccak256(abi.encode(token, from, to, useProxy));
+    }
+
+    function _locateCurrentPrice(
+        uint256 startAmount,
+        uint256 endAmount,
+        uint256 elapsed,
+        uint256 remaining,
+        uint256 duration,
+        bool roundUp
+    ) internal pure returns (uint256) {
+        if (startAmount != endAmount) {
+            uint256 durationLessOne = 0;
+            if (roundUp) {
+                unchecked {
+                    durationLessOne = duration - 1;
+                }
+            }
+            uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed) + durationLessOne;
+            uint256 newAmount;
+            assembly {
+                newAmount := div(totalBeforeDivision, duration)
+            }
+            return newAmount;
+        }
+
+        return endAmount;
+    }
+
+    function _ensurePartialFillsEnabled(
+        uint120 numerator,
+        uint120 denominator,
+        OrderType orderType
+    ) internal pure {
+        if (
+            numerator < denominator &&
+            uint256(orderType) % 2 == 0
+        ) {
+            revert PartialFillsNotEnabledForOrder();
+        }
+    }
+
+    function _applyCriteriaResolvers(
+        Order[] memory orders,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal pure returns (Order memory initialOrder) {
+        unchecked {
+            for (uint256 i = 0; i < criteriaResolvers.length; ++i) {
+                CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
+
+                uint256 orderIndex = criteriaResolver.orderIndex;
+
+                if (orderIndex >= orders.length) {
+                    revert OrderCriteriaResolverOutOfRange();
+                }
+
+                uint256 componentIndex = criteriaResolver.index;
+
+                if (criteriaResolver.side == Side.OFFER) {
+                    if (componentIndex >= orders[orderIndex].parameters.offer.length) {
+                        revert OfferCriteriaResolverOutOfRange();
+                    }
+
+                    OfferedAsset memory offer = orders[orderIndex].parameters.offer[componentIndex];
+                    AssetType assetType = offer.assetType;
+                    if (
+                        assetType != AssetType.ERC721_WITH_CRITERIA &&
+                        assetType != AssetType.ERC1155_WITH_CRITERIA
+                    ) {
+                        revert CriteriaNotEnabledForOfferedAsset();
+                    }
+
+                    // empty criteria signifies a collection-wide offer (sell any asset)
+                    if (offer.identifierOrCriteria != uint256(0)) {
+                        _verifyProof(
+                            criteriaResolver.identifier,
+                            offer.identifierOrCriteria,
+                            criteriaResolver.criteriaProof
+                        );
+                    }
+
+                    orders[orderIndex].parameters.offer[componentIndex].assetType = (
+                        assetType == AssetType.ERC721_WITH_CRITERIA
+                            ? AssetType.ERC721
+                            : AssetType.ERC1155
+                    );
+
+                    orders[orderIndex].parameters.offer[componentIndex].identifierOrCriteria = criteriaResolver.identifier;
+                } else {
+                    if (componentIndex >= orders[orderIndex].parameters.consideration.length) {
+                        revert ConsiderationCriteriaResolverOutOfRange();
+                    }
+
+                    ReceivedAsset memory consideration = orders[orderIndex].parameters.consideration[componentIndex];
+                    AssetType assetType = consideration.assetType;
+                    if (
+                        assetType != AssetType.ERC721_WITH_CRITERIA &&
+                        assetType != AssetType.ERC1155_WITH_CRITERIA
+                    ) {
+                        revert CriteriaNotEnabledForConsideredAsset();
+                    }
+
+                    // empty criteria signifies a collection-wide consideration (buy any asset)
+                    if (consideration.identifierOrCriteria != uint256(0)) {
+                        _verifyProof(
+                            criteriaResolver.identifier,
+                            consideration.identifierOrCriteria,
+                            criteriaResolver.criteriaProof
+                        );
+                    }
+
+                    orders[orderIndex].parameters.consideration[componentIndex].assetType = (
+                        assetType == AssetType.ERC721_WITH_CRITERIA
+                            ? AssetType.ERC721
+                            : AssetType.ERC1155
+                    );
+
+                    orders[orderIndex].parameters.consideration[componentIndex].identifierOrCriteria = criteriaResolver.identifier;
+                }
+            }
+
+            for (uint256 i = 0; i < orders.length; ++i) {
+                Order memory order = orders[i];
+                for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
+                    if (uint256(order.parameters.consideration[j].assetType) > 3) {
+                        revert UnresolvedConsiderationCriteria();
+                    }
+                }
+
+                for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
+                    if (uint256(order.parameters.offer[j].assetType) > 3) {
+                        revert UnresolvedOfferCriteria();
+                    }
+                }
+            }
+
+            return orders[0];
+        }
+    }
+
 
     function _compressExecutions(
         Execution[] memory executions
@@ -967,13 +1888,11 @@ contract Consideration is ConsiderationInterface {
             uint256 initialExecutionIndex = indexBy1155[0];
             Execution memory initialExecution = executions[initialExecutionIndex];
             ReceivedAsset memory initialAsset = initialExecution.asset;
-            bytes32 hash = keccak256(
-                abi.encode(
-                    initialAsset.token,
-                    initialExecution.offerer,
-                    initialAsset.account,
-                    initialExecution.useProxy
-                )
+            bytes32 hash = _hashBatchableAssetIdentifier(
+                initialAsset.token,
+                initialExecution.offerer,
+                initialAsset.account,
+                initialExecution.useProxy
             );
 
             uint256[] memory executionIndices = new uint256[](1);
@@ -988,13 +1907,12 @@ contract Consideration is ConsiderationInterface {
                 uint256 executionIndex = indexBy1155[i];
                 Execution memory execution = executions[executionIndex];
                 ReceivedAsset memory asset = execution.asset;
-                hash = keccak256(
-                    abi.encode(
-                        asset.token,
-                        execution.offerer,
-                        asset.account,
-                        execution.useProxy
-                    )
+
+                hash = _hashBatchableAssetIdentifier(
+                    asset.token,
+                    execution.offerer,
+                    asset.account,
+                    execution.useProxy
                 );
 
                 bool hasUniqueHash = true;
@@ -1267,869 +2185,6 @@ contract Consideration is ConsiderationInterface {
             orderWithInitialOffer.offerer,
             useProxy
         );
-    }
-
-    function _prepareBasicFulfillment(
-        BasicOrderParameters memory parameters,
-        OfferedAsset memory offeredAsset,
-        ReceivedAsset memory receivedAsset
-    ) internal returns (bytes32 orderHash, bool useOffererProxy) {
-        address payable offerer = parameters.offerer;
-        address facilitator = parameters.facilitator;
-        uint256 startTime = parameters.startTime;
-        uint256 endTime = parameters.endTime;
-
-        _ensureValidTime(startTime, endTime);
-
-        OfferedAsset[] memory offer = new OfferedAsset[](1);
-        ReceivedAsset[] memory consideration = new ReceivedAsset[](
-            1 + parameters.additionalRecipients.length
-        );
-
-        offer[0] = offeredAsset;
-        consideration[0] = receivedAsset;
-
-        if (offeredAsset.assetType == AssetType.ERC20) {
-            receivedAsset.assetType = AssetType.ERC20;
-            receivedAsset.token = offeredAsset.token;
-            receivedAsset.identifierOrCriteria = 0;
-        }
-
-        unchecked {
-            for (uint256 i = 1; i < consideration.length; ++i) {
-                AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i - 1];
-                receivedAsset.account = additionalRecipient.account;
-                receivedAsset.startAmount = additionalRecipient.amount;
-                receivedAsset.endAmount = additionalRecipient.amount;
-                consideration[i] = receivedAsset;
-            }
-        }
-
-        orderHash = _getNoncedOrderHash(
-            OrderParameters(
-                offerer,
-                facilitator,
-                parameters.orderType,
-                startTime,
-                endTime,
-                parameters.salt,
-                offer,
-                consideration
-            )
-        );
-
-        _validateBasicOrderAndUpdateStatus(
-            orderHash,
-            offerer,
-            parameters.signature
-        );
-
-        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
-            parameters.orderType,
-            offerer,
-            facilitator
-        );
-
-        if (useOffererProxy) {
-            unchecked {
-                parameters.orderType = OrderType(uint8(parameters.orderType) - 4);
-            }
-        }
-
-        return (orderHash, useOffererProxy);
-    }
-
-    function _adjustOrderTypeAndCheckSubmitter(
-        OrderType orderType,
-        address offerer,
-        address facilitator
-    ) internal view returns (bool useOffererProxy) {
-        uint256 orderTypeAsUint256 = uint256(orderType);
-
-        useOffererProxy = orderTypeAsUint256 > 3;
-
-        if (
-            orderTypeAsUint256 > (useOffererProxy ? 5 : 1) &&
-            msg.sender != facilitator &&
-            msg.sender != offerer
-        ) {
-            revert InvalidSubmitterOnRestrictedOrder();
-        }
-    }
-
-    function _validateOrderAndUpdateStatus(
-        Order memory order,
-        uint120 numerator,
-        uint120 denominator
-    ) internal returns (
-        bytes32 orderHash,
-        uint120 newNumerator,
-        uint120 newDenominator,
-        bool useOffererProxy
-    ) {
-        _ensureValidTime(order.parameters.startTime, order.parameters.endTime);
-
-        if (numerator > denominator || numerator == 0 || denominator == 0) {
-            revert BadFraction();
-        }
-
-        orderHash = _getNoncedOrderHash(order.parameters);
-
-        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
-            order.parameters.orderType,
-            order.parameters.offerer,
-            order.parameters.facilitator
-        );
-
-        if (useOffererProxy) {
-            unchecked {
-                order.parameters.orderType = OrderType(
-                    uint8(order.parameters.orderType) - 4
-                );
-            }
-        }
-
-        OrderStatus memory orderStatus = _getOrderStatus(
-            orderHash,
-            order.parameters.offerer,
-            order.signature,
-            false // allow partially used orders
-        );
-
-        // denominator of zero: this is the first fill on this order
-        if (orderStatus.denominator != 0) {
-            if (denominator == 1) { // full fill — just scale up to current denominator
-                numerator = orderStatus.denominator;
-                denominator = orderStatus.denominator;
-            } else if (orderStatus.denominator != denominator) { // different denominator
-                orderStatus.numerator *= denominator;
-                numerator *= orderStatus.denominator;
-                denominator *= orderStatus.denominator;
-            }
-
-            if (orderStatus.numerator + numerator > denominator) {
-                unchecked {
-                    numerator = denominator - orderStatus.numerator; // adjust down
-                }
-            }
-
-            unchecked {
-                _orderStatus[orderHash] = OrderStatus(
-                    true,       // is validated
-                    false,      // not cancelled
-                    orderStatus.numerator + numerator,
-                    denominator
-                );
-            }
-        } else {
-            _orderStatus[orderHash] = OrderStatus(
-                true,       // is validated
-                false,      // not cancelled
-                numerator,
-                denominator
-            );
-        }
-
-        return (orderHash, numerator, denominator, useOffererProxy);
-    }
-
-    function _validateBasicOrderAndUpdateStatus(
-        bytes32 orderHash,
-        address offerer,
-        bytes memory signature
-    ) internal {
-        OrderStatus memory orderStatus = _getOrderStatus(
-            orderHash,
-            offerer,
-            signature,
-            true // only allow unused orders
-        );
-
-        _orderStatus[orderHash] = OrderStatus(
-            true,       // is validated
-            false,      // not cancelled
-            1,          // numerator of 1
-            1           // denominator of 1
-        );
-    }
-
-    function _transferETHAndFinalize(
-        bytes32 orderHash,
-        uint256 amount,
-        BasicOrderParameters memory parameters
-    ) internal returns (bool) {
-        uint256 etherRemaining = msg.value;
-
-        for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
-            AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
-            _transferEth(
-                additionalRecipient.account,
-                additionalRecipient.amount
-            );
-
-            etherRemaining -= additionalRecipient.amount;
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        if (parameters.offerer == msg.sender) {
-            _transferEth(parameters.offerer, etherRemaining);
-        } else {
-            _transferEth(parameters.offerer, amount);
-
-            if (etherRemaining > amount) {
-                unchecked {
-                    _transferEth(payable(msg.sender), etherRemaining - amount);
-                }
-            }
-        }
-
-        emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
-        return true;
-    }
-
-    function _transferERC20AndFinalize(
-        address from,
-        address to,
-        bytes32 orderHash,
-        address erc20Token,
-        uint256 amount,
-        BasicOrderParameters memory parameters
-    ) internal returns (bool) {
-        unchecked {
-            for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
-                AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
-                _transferERC20(
-                    erc20Token,
-                    from,
-                    additionalRecipient.account,
-                    additionalRecipient.amount
-                );
-            }
-        }
-
-        _transferERC20(erc20Token, from, to, amount);
-
-        emit OrderFulfilled(orderHash, from, parameters.facilitator);
-        return true;
-    }
-
-    function _fulfill(
-        ReceivedAsset memory asset,
-        address offerer,
-        bool useProxy
-    ) internal {
-        if (asset.assetType == AssetType.ETH) {
-            _transferEth(asset.account, asset.endAmount);
-        } else if (asset.assetType == AssetType.ERC20) {
-            _transferERC20(
-                asset.token,
-                offerer,
-                asset.account,
-                asset.endAmount
-            );
-        } else if (asset.assetType == AssetType.ERC721) {
-            _transferERC721(
-                asset.token,
-                offerer,
-                asset.account,
-                asset.identifierOrCriteria,
-                useProxy ? offerer : address(0)
-            );
-        } else if (asset.assetType == AssetType.ERC1155) {
-            _transferERC1155(
-                asset.token,
-                offerer,
-                asset.account,
-                asset.identifierOrCriteria,
-                asset.endAmount,
-                useProxy ? offerer : address(0)
-            );
-        }
-    }
-
-    function _transferEth(address payable to, uint256 amount) internal {
-        (bool ok, bytes memory data) = to.call{value: amount}("");
-        if (!ok) {
-            if (data.length != 0) {
-                assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
-                }
-            } else {
-                revert EtherTransferGenericFailure(to, amount);
-            }
-        }
-    }
-
-    function _transferERC20(
-        address token,
-        address from,
-        address to,
-        uint256 amount
-    ) internal {
-        (bool ok, bytes memory data) = token.call(
-            abi.encodeCall(
-                ERC20Interface.transferFrom,
-                (
-                    from,
-                    to,
-                    amount
-                )
-            )
-        );
-
-        _checkTokenTransfer(
-            ok,
-            data.length,
-            token,
-            from,
-            to,
-            0,
-            amount
-        );
-
-        if (!(
-            data.length == 32 &&
-            abi.decode(data, (bool))
-        )) {
-            revert BadReturnValueFromERC20OnTransfer(token, from, to, amount);
-        }
-
-    }
-
-    function _transferERC721(
-        address token,
-        address from,
-        address to,
-        uint256 identifier,
-        address proxyOwner
-    ) internal {
-        (bool ok, bytes memory data) = (
-            proxyOwner != address(0)
-                ? _callProxy(
-                    proxyOwner,
-                    abi.encodeWithSelector(
-                        ProxyInterface.transferERC721.selector,
-                        token,
-                        from,
-                        to,
-                        identifier
-                    )
-                )
-                : token.call(
-                    abi.encodeCall(
-                        ERC721Interface.transferFrom,
-                        (
-                            from,
-                            to,
-                            identifier
-                        )
-                    )
-                )
-        );
-
-        _checkTokenTransfer(
-            ok,
-            data.length,
-            token,
-            from,
-            to,
-            identifier,
-            1
-        );
-    }
-
-    function _transferERC1155(
-        address token,
-        address from,
-        address to,
-        uint256 identifier,
-        uint256 amount,
-        address proxyOwner
-    ) internal {
-        (bool ok, bytes memory data) = (
-            proxyOwner != address(0)
-                ? _callProxy(
-                    proxyOwner,
-                    abi.encodeWithSelector(
-                        ProxyInterface.transferERC1155.selector,
-                        token,
-                        from,
-                        to,
-                        identifier,
-                        amount
-                    )
-                )
-                : token.call(
-                    abi.encodeWithSelector(
-                        ERC1155Interface.safeTransferFrom.selector,
-                        from,
-                        to,
-                        identifier,
-                        amount,
-                        ""
-                    )
-                )
-        );
-
-        _checkTokenTransfer(
-            ok,
-            data.length,
-            token,
-            from,
-            to,
-            identifier,
-            amount
-        );
-    }
-
-    function _batchTransferERC1155(
-        BatchExecution memory batchExecution
-    ) internal {
-        address token = batchExecution.token;
-        address from = batchExecution.from;
-        address to = batchExecution.to;
-        uint256[] memory tokenIds = batchExecution.tokenIds;
-        uint256[] memory amounts = batchExecution.amounts;
-        (bool ok, bytes memory data) = (
-            batchExecution.useProxy
-                ? _callProxy(
-                    batchExecution.from,
-                    abi.encodeWithSelector(
-                        ProxyInterface.batchTransferERC1155.selector,
-                        token,
-                        from,
-                        to,
-                        tokenIds,
-                        amounts
-                    )
-                )
-                : token.call(
-                    abi.encodeWithSelector(
-                        ERC1155Interface.safeBatchTransferFrom.selector,
-                        from,
-                        to,
-                        tokenIds,
-                        amounts,
-                        ""
-                    )
-                )
-        );
-
-        if (!ok) {
-            if (data.length != 0) {
-                assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
-                }
-            } else {
-                revert ERC1155BatchTransferGenericFailure(
-                    token,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts
-                );
-            }
-        }
-
-        _assetContractIsDeployed(token, data.length);
-    }
-
-    function _checkTokenTransfer(
-        bool ok,
-        uint256 dataLength,
-        address token,
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 amount
-    ) internal view {
-        if (!ok) {
-            if (dataLength != 0) {
-                assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
-                }
-            } else {
-                revert TokenTransferGenericFailure(token, from, to, tokenId, amount);
-            }
-        }
-
-        _assetContractIsDeployed(token, dataLength);
-    }
-
-    function _assetContractIsDeployed(
-        address account,
-        uint256 dataLength
-    ) internal view {
-        if (dataLength == 0) {
-            uint256 size;
-            assembly {
-                size := extcodesize(account)
-            }
-            if (size == 0) {
-                revert NoContract(account);
-            }
-        }
-    }
-
-    function _callProxy(
-        address proxyOwner,
-        bytes memory callData
-    ) internal returns (bool ok, bytes memory data) {
-        // Retrieve the user proxy from the registry.
-        address proxy = _LEGACY_PROXY_REGISTRY.proxies(proxyOwner);
-
-        // Assert that the user proxy has the correct implementation.
-        if (ProxyInterface(proxy).implementation() != _REQUIRED_PROXY_IMPLEMENTATION) {
-            revert InvalidUserProxyImplementation();
-        }
-
-        // perform the call to the proxy.
-        (ok, data) = proxy.call(callData);
-    }
-
-    modifier nonReentrant() {
-        // On the first call to nonReentrant, _notEntered will be true
-        if (_reentrancyGuard == _ENTERED) {
-            revert NoReentrantCalls();
-        }
-
-        _reentrancyGuard = _ENTERED;
-
-        _;
-
-        _reentrancyGuard = _NOT_ENTERED;
-    }
-
-    function _adjustPricesForSingleOrder(
-        Order memory order
-    ) internal view returns (Order memory adjustedOrder) {
-        uint256 duration;
-        uint256 elapsed;
-        uint256 remaining;
-        unchecked {
-            duration = order.parameters.endTime - order.parameters.startTime;
-            elapsed = block.timestamp - order.parameters.startTime;
-            remaining = duration - elapsed;
-        }
-
-        // adjust offer prices and round down
-        for (uint256 i = 0; i < order.parameters.offer.length;) {
-            uint256 startAmount = order.parameters.offer[i].startAmount;
-            uint256 endAmount = order.parameters.offer[i].endAmount;
-            if (startAmount != endAmount) {
-                uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed);
-                uint256 newAmount;
-                assembly {
-                    newAmount := div(totalBeforeDivision, duration)
-                }
-                order.parameters.offer[i].endAmount = newAmount;
-            }
-            unchecked {
-                ++i;
-            }
-        }
-
-        // adjust consideration prices and round up
-        for (uint256 i = 0; i < order.parameters.consideration.length;) {
-            uint256 startAmount = order.parameters.consideration[i].startAmount;
-            uint256 endAmount = order.parameters.consideration[i].endAmount;
-            if (startAmount != endAmount) {
-                uint256 durationLessOne;
-                unchecked {
-                    durationLessOne = duration - 1;
-                }
-                uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed) + durationLessOne;
-                uint256 newAmount;
-                assembly {
-                    newAmount := div(totalBeforeDivision, duration)
-                }
-                order.parameters.consideration[i].endAmount = newAmount;
-            }
-            unchecked {
-                ++i;
-            }
-        }
-
-        return order;
-    }
-
-    function _ensureValidTime(
-        uint256 startTime,
-        uint256 endTime
-    ) internal view {
-        if (startTime > block.timestamp || endTime < block.timestamp) {
-            revert InvalidTime();
-        }
-    }
-
-    function _verifySignature(
-        address offerer,
-        bytes32 orderHash,
-        bytes memory signature
-    ) internal view {
-        if (offerer == msg.sender) {
-            return;
-        }
-
-        bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", _domainSeparator(), orderHash)
-        );
-
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-
-        if (signature.length == 65) {
-            assembly {
-                r := mload(add(signature, 0x20))
-                s := mload(add(signature, 0x40))
-                v := byte(0, mload(add(signature, 0x60)))
-            }
-        } else if (signature.length == 64) {
-            bytes32 vs;
-            assembly {
-                r := mload(add(signature, 0x20))
-                vs := mload(add(signature, 0x40))
-                s := and(vs, 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)
-                v := add(shr(255, vs), 27)
-            }
-        } else {
-            revert BadSignatureLength(signature.length);
-        }
-
-        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
-            revert MalleableSignatureS(uint256(s));
-        }
-        if (v != 27 && v != 28) {
-            revert BadSignatureV(v);
-        }
-
-        address signer = ecrecover(digest, v, r, s);
-
-        if (signer == address(0)) {
-            revert InvalidSignature();
-        } else if (signer != offerer) {
-            (bool ok, bytes memory data) = offerer.staticcall(
-                abi.encodeWithSelector(
-                    EIP1271Interface.isValidSignature.selector,
-                    digest,
-                    signature
-                )
-            );
-
-            if (!ok) {
-                if (data.length != 0) {
-                    assembly {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
-                    }
-                } else {
-                    revert BadContractSignature();
-                }
-            }
-
-            if (
-                data.length != 32 ||
-                abi.decode(data, (bytes4)) != EIP1271Interface.isValidSignature.selector
-            ) {
-                revert BadSignature();
-            }
-        }
-    }
-
-    function _domainSeparator() internal view returns (bytes32) {
-        return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _deriveDomainSeparator();
-    }
-
-    function _deriveDomainSeparator() internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH,
-                block.chainid,
-                address(this)
-            )
-        );
-    }
-
-    function _hashOfferedAsset(
-        OfferedAsset memory offeredAsset
-    ) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _OFFERED_ASSET_TYPEHASH,
-                offeredAsset.assetType,
-                offeredAsset.token,
-                offeredAsset.identifierOrCriteria,
-                offeredAsset.startAmount,
-                offeredAsset.endAmount
-            )
-        );
-    }
-
-    function _hashReceivedAsset(
-        ReceivedAsset memory receivedAsset
-    ) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _RECEIVED_ASSET_TYPEHASH,
-                receivedAsset.assetType,
-                receivedAsset.token,
-                receivedAsset.identifierOrCriteria,
-                receivedAsset.startAmount,
-                receivedAsset.endAmount,
-                receivedAsset.account
-            )
-        );
-    }
-
-    function _getNoncedOrderHash(
-        OrderParameters memory orderParameters
-    ) internal view returns (bytes32) {
-        return _getOrderHash(
-            orderParameters,
-            _facilitatorNonces[orderParameters.offerer][orderParameters.facilitator]
-        );
-    }
-
-    function _getOrderHash(
-        OrderParameters memory orderParameters,
-        uint256 nonce
-    ) internal view returns (bytes32) {
-        uint256 offerLength = orderParameters.offer.length;
-        uint256 considerationLength = orderParameters.consideration.length;
-        bytes32[] memory offerHashes = new bytes32[](offerLength);
-        bytes32[] memory considerationHashes = new bytes32[](considerationLength);
-
-        unchecked {
-            for (uint256 i = 0; i < offerLength; ++i) {
-                offerHashes[i] = _hashOfferedAsset(orderParameters.offer[i]);
-            }
-
-            for (uint256 i = 0; i < considerationLength; ++i) {
-                considerationHashes[i] = _hashReceivedAsset(orderParameters.consideration[i]);
-            }
-        }
-
-        return keccak256(
-            abi.encode(
-                _ORDER_HASH,
-                orderParameters.offerer,
-                orderParameters.facilitator,
-                keccak256(abi.encodePacked(offerHashes)),
-                keccak256(abi.encodePacked(considerationHashes)),
-                orderParameters.orderType,
-                orderParameters.startTime,
-                orderParameters.endTime,
-                orderParameters.salt,
-                nonce
-            )
-        );
-    }
-
-    function _applyCriteriaResolvers(
-        Order[] memory orders,
-        CriteriaResolver[] memory criteriaResolvers
-    ) internal pure returns (Order memory initialOrder) {
-        unchecked {
-            for (uint256 i = 0; i < criteriaResolvers.length; ++i) {
-                CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
-
-                uint256 orderIndex = criteriaResolver.orderIndex;
-
-                if (orderIndex >= orders.length) {
-                    revert OrderCriteriaResolverOutOfRange();
-                }
-
-                uint256 componentIndex = criteriaResolver.index;
-
-                if (criteriaResolver.side == Side.OFFER) {
-                    if (componentIndex >= orders[orderIndex].parameters.offer.length) {
-                        revert OfferCriteriaResolverOutOfRange();
-                    }
-
-                    OfferedAsset memory offer = orders[orderIndex].parameters.offer[componentIndex];
-                    AssetType assetType = offer.assetType;
-                    if (
-                        assetType != AssetType.ERC721_WITH_CRITERIA &&
-                        assetType != AssetType.ERC1155_WITH_CRITERIA
-                    ) {
-                        revert CriteriaNotEnabledForOfferedAsset();
-                    }
-
-                    // empty criteria signifies a collection-wide offer (sell any asset)
-                    if (offer.identifierOrCriteria != uint256(0)) {
-                        _verifyProof(
-                            criteriaResolver.identifier,
-                            offer.identifierOrCriteria,
-                            criteriaResolver.criteriaProof
-                        );
-                    }
-
-                    orders[orderIndex].parameters.offer[componentIndex].assetType = (
-                        assetType == AssetType.ERC721_WITH_CRITERIA
-                            ? AssetType.ERC721
-                            : AssetType.ERC1155
-                    );
-
-                    orders[orderIndex].parameters.offer[componentIndex].identifierOrCriteria = criteriaResolver.identifier;
-                } else {
-                    if (componentIndex >= orders[orderIndex].parameters.consideration.length) {
-                        revert ConsiderationCriteriaResolverOutOfRange();
-                    }
-
-                    ReceivedAsset memory consideration = orders[orderIndex].parameters.consideration[componentIndex];
-                    AssetType assetType = consideration.assetType;
-                    if (
-                        assetType != AssetType.ERC721_WITH_CRITERIA &&
-                        assetType != AssetType.ERC1155_WITH_CRITERIA
-                    ) {
-                        revert CriteriaNotEnabledForConsideredAsset();
-                    }
-
-                    // empty criteria signifies a collection-wide consideration (buy any asset)
-                    if (consideration.identifierOrCriteria != uint256(0)) {
-                        _verifyProof(
-                            criteriaResolver.identifier,
-                            consideration.identifierOrCriteria,
-                            criteriaResolver.criteriaProof
-                        );
-                    }
-
-                    orders[orderIndex].parameters.consideration[componentIndex].assetType = (
-                        assetType == AssetType.ERC721_WITH_CRITERIA
-                            ? AssetType.ERC721
-                            : AssetType.ERC1155
-                    );
-
-                    orders[orderIndex].parameters.consideration[componentIndex].identifierOrCriteria = criteriaResolver.identifier;
-                }
-            }
-
-            for (uint256 i = 0; i < orders.length; ++i) {
-                Order memory order = orders[i];
-                for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
-                    if (uint256(order.parameters.consideration[j].assetType) > 3) {
-                        revert UnresolvedConsiderationCriteria();
-                    }
-                }
-
-                for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
-                    if (uint256(order.parameters.offer[j].assetType) > 3) {
-                        revert UnresolvedOfferCriteria();
-                    }
-                }
-            }
-
-            return orders[0];
-        }
     }
 
     function _getFraction(
