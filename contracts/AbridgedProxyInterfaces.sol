@@ -7,6 +7,9 @@ interface ProxyRegistryInterface {
 
 interface ProxyInterface {
 	function implementation() external view returns (address);
+	function transferERC20(
+		address token, address from, address to, uint256 amount
+	) external returns (bool);
 	function transferERC721(
 		address token, address from, address to, uint256 tokenId
 	) external returns (bool);

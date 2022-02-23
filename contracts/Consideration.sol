@@ -1297,32 +1297,39 @@ contract Consideration is ConsiderationInterface {
         bool useProxy
     ) internal {
         if (asset.assetType == AssetType.ETH) {
+            // Transfer Ether to the recipient.
             _transferEth(asset.account, asset.endAmount);
-        } else if (asset.assetType == AssetType.ERC20) {
-            _transferERC20(
-                asset.token,
-                offerer,
-                asset.account,
-                asset.endAmount
-            );
         } else {
-            address proxyAddress = useProxy ? offerer : address(0);
-            if (asset.assetType == AssetType.ERC721) {
+            // Place proxy owner on stack (or null address if not using proxy).
+            address proxyOwner = useProxy ? offerer : address(0);
+            
+            if (asset.assetType == AssetType.ERC20) {
+                // Transfer ERC20 token from the offerer to the recipient.
+                _transferERC20(
+                    asset.token,
+                    offerer,
+                    asset.account,
+                    asset.endAmount,
+                    proxyOwner
+                );
+            } else if (asset.assetType == AssetType.ERC721) {
+                // Transfer ERC721 token from the offerer to the recipient.
                 _transferERC721(
                     asset.token,
                     offerer,
                     asset.account,
                     asset.identifierOrCriteria,
-                    proxyAddress
+                    proxyOwner
                 );
             } else {
+                // Transfer ERC1155 token from the offerer to the recipient.
                 _transferERC1155(
                     asset.token,
                     offerer,
                     asset.account,
                     asset.identifierOrCriteria,
                     asset.endAmount,
-                    proxyAddress
+                    proxyOwner
                 );
             }
         }
@@ -1346,17 +1353,31 @@ contract Consideration is ConsiderationInterface {
         address token,
         address from,
         address to,
-        uint256 amount
+        uint256 amount,
+        address proxyOwner
     ) internal {
-        (bool ok, bytes memory data) = token.call(
-            abi.encodeCall(
-                ERC20Interface.transferFrom,
-                (
-                    from,
-                    to,
-                    amount
+        (bool ok, bytes memory data) = (
+            proxyOwner != address(0)
+                ? _callProxy(
+                    proxyOwner,
+                    abi.encodeWithSelector(
+                        ProxyInterface.transferERC20.selector,
+                        token,
+                        from,
+                        to,
+                        amount
+                    )
                 )
-            )
+                : token.call(
+                    abi.encodeCall(
+                        ERC20Interface.transferFrom,
+                        (
+                            from,
+                            to,
+                            amount
+                        )
+                    )
+                )
         );
 
         _assertValidTokenTransfer(
@@ -1556,16 +1577,12 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
-        if (parameters.offerer == msg.sender) {
-            _transferEth(parameters.offerer, etherRemaining);
-        } else {
-            _transferEth(parameters.offerer, amount);
+        _transferEth(parameters.offerer, amount);
 
-            if (etherRemaining > amount) {
-                // Skip underflow check as etherRemaining > amount.
-                unchecked {
-                    _transferEth(payable(msg.sender), etherRemaining - amount);
-                }
+        if (etherRemaining > amount) {
+            // Skip underflow check as etherRemaining > amount.
+            unchecked {
+                _transferEth(payable(msg.sender), etherRemaining - amount);
             }
         }
 
@@ -1585,6 +1602,9 @@ contract Consideration is ConsiderationInterface {
         uint256 amount,
         BasicOrderParameters memory parameters
     ) internal {
+        // Place proxy owner on the stack (or null address if not using proxy).
+        address proxyOwner = parameters.useFulfillerProxy ? from : address(0);
+
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             // Iterate over each additional recipient.
@@ -1594,13 +1614,20 @@ contract Consideration is ConsiderationInterface {
                     erc20Token,
                     from,
                     additionalRecipient.account,
-                    additionalRecipient.amount
+                    additionalRecipient.amount,
+                    proxyOwner
                 );
             }
         }
 
         // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(erc20Token, from, to, amount);
+        _transferERC20(
+            erc20Token,
+            from,
+            to,
+            amount,
+            proxyOwner
+        );
 
         // Emit an OrderFulfilled event and clear reentrancy guard.
         _emitOrderFulfilledEventAndClearReentrancyGuard(
