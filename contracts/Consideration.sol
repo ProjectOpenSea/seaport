@@ -763,7 +763,171 @@ contract Consideration is ConsiderationInterface {
         return _VERSION;
     }
 
-    /// @dev Validate a group of orders, update their statuses, and reduce their amounts by their previously filled fractions.
+    function _prepareBasicFulfillment(
+        BasicOrderParameters memory parameters,
+        OfferedAsset memory offeredAsset,
+        ReceivedAsset memory receivedAsset
+    ) internal returns (bytes32 orderHash, bool useOffererProxy) {
+        // Ensure this function cannot be triggered during a reentrant call.
+        _setReentrancyGuard();
+
+        address payable offerer = parameters.offerer;
+        address facilitator = parameters.facilitator;
+        uint256 startTime = parameters.startTime;
+        uint256 endTime = parameters.endTime;
+
+        _ensureValidTime(startTime, endTime);
+
+        OfferedAsset[] memory offer = new OfferedAsset[](1);
+        ReceivedAsset[] memory consideration = new ReceivedAsset[](
+            1 + parameters.additionalRecipients.length
+        );
+
+        offer[0] = offeredAsset;
+        consideration[0] = receivedAsset;
+
+        if (offeredAsset.assetType == AssetType.ERC20) {
+            receivedAsset.assetType = AssetType.ERC20;
+            receivedAsset.token = offeredAsset.token;
+            receivedAsset.identifierOrCriteria = 0;
+        }
+
+        // Skip overflow checks as for loop is indexed starting at one.
+        unchecked {
+            for (uint256 i = 1; i < consideration.length; ++i) {
+                AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i - 1];
+                receivedAsset.account = additionalRecipient.account;
+                receivedAsset.startAmount = additionalRecipient.amount;
+                receivedAsset.endAmount = additionalRecipient.amount;
+                consideration[i] = receivedAsset;
+            }
+        }
+
+        orderHash = _getNoncedOrderHash(
+            OrderParameters(
+                offerer,
+                facilitator,
+                parameters.orderType,
+                startTime,
+                endTime,
+                parameters.salt,
+                offer,
+                consideration
+            )
+        );
+
+        _validateBasicOrderAndUpdateStatus(
+            orderHash,
+            offerer,
+            parameters.signature
+        );
+
+        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
+            parameters.orderType,
+            offerer,
+            facilitator
+        );
+
+        if (useOffererProxy) {
+            unchecked {
+                parameters.orderType = OrderType(uint8(parameters.orderType) - 4);
+            }
+        }
+
+        return (orderHash, useOffererProxy);
+    }
+
+    function _validateBasicOrderAndUpdateStatus(
+        bytes32 orderHash,
+        address offerer,
+        bytes memory signature
+    ) internal {
+        _getOrderStatus(
+            orderHash,
+            offerer,
+            signature,
+            true // only allow unused orders
+        );
+
+        _orderStatus[orderHash].isValidated = true;
+        _orderStatus[orderHash].isCancelled = false;
+        _orderStatus[orderHash].numerator = 1;
+        _orderStatus[orderHash].denominator = 1;
+    }
+
+    function _validateOrderAndUpdateStatus(
+        Order memory order,
+        uint120 numerator,
+        uint120 denominator
+    ) internal returns (
+        bytes32 orderHash,
+        uint120 newNumerator,
+        uint120 newDenominator,
+        bool useOffererProxy
+    ) {
+        _ensureValidTime(order.parameters.startTime, order.parameters.endTime);
+
+        if (numerator > denominator || numerator == 0 || denominator == 0) {
+            revert BadFraction();
+        }
+
+        orderHash = _getNoncedOrderHash(order.parameters);
+
+        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
+            order.parameters.orderType,
+            order.parameters.offerer,
+            order.parameters.facilitator
+        );
+
+        if (useOffererProxy) {
+            unchecked {
+                order.parameters.orderType = OrderType(
+                    uint8(order.parameters.orderType) - 4
+                );
+            }
+        }
+
+        OrderStatus memory orderStatus = _getOrderStatus(
+            orderHash,
+            order.parameters.offerer,
+            order.signature,
+            false // allow partially used orders
+        );
+
+        // denominator of zero: this is the first fill on this order
+        if (orderStatus.denominator != 0) {
+            if (denominator == 1) { // full fill — just scale up to current denominator
+                numerator = orderStatus.denominator;
+                denominator = orderStatus.denominator;
+            } else if (orderStatus.denominator != denominator) { // different denominator
+                orderStatus.numerator *= denominator;
+                numerator *= orderStatus.denominator;
+                denominator *= orderStatus.denominator;
+            }
+
+            if (orderStatus.numerator + numerator > denominator) {
+                unchecked {
+                    numerator = denominator - orderStatus.numerator; // adjust down
+                }
+            }
+
+            unchecked {
+                _orderStatus[orderHash].isValidated = true;
+                _orderStatus[orderHash].isCancelled = false;
+                _orderStatus[orderHash].numerator = orderStatus.numerator + numerator;
+                _orderStatus[orderHash].denominator = denominator;
+            }
+        } else {
+            _orderStatus[orderHash].isValidated = true;
+            _orderStatus[orderHash].isCancelled = false;
+            _orderStatus[orderHash].numerator = numerator;
+            _orderStatus[orderHash].denominator = denominator;
+        }
+
+        return (orderHash, numerator, denominator, useOffererProxy);
+    }
+
+    /// @dev Internal function to validate a group of orders, update their statuses, and reduce their amounts by their previously filled fractions.
     /// @param orders The orders to validate and reduce by previously filled amounts.
     /// @return A list of boolean indicating whether to utilize a proxy for each order.
     function _validateOrdersAndApplyPartials(
@@ -800,7 +964,9 @@ contract Consideration is ConsiderationInterface {
                     );
                 }
 
+                // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
+                    // Apply order fill fraction to each consideration amount.
                     orders[i].parameters.consideration[j].endAmount = _getFraction(
                         numerator,
                         denominator,
@@ -817,6 +983,7 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
+        // Return memory region designating proxy utilization per order.
         return useOffererProxyPerOrder;
     }
 
@@ -916,18 +1083,6 @@ contract Consideration is ConsiderationInterface {
         return true;
     }
 
-    function _emitOrderFulfilledEventAndClearReentrancyGuard(
-        bytes32 orderHash,
-        address offerer,
-        address facilitator
-    ) internal {
-        // Emit an event signifying that the order has been fulfilled.
-        emit OrderFulfilled(orderHash, offerer, facilitator);
-
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
-    }
-
     function _fulfillOrders(
         Order[] memory orders,
         Fulfillment[] memory fulfillments,
@@ -1002,243 +1157,6 @@ contract Consideration is ConsiderationInterface {
         _reentrancyGuard = _NOT_ENTERED;
 
         return executions;
-    }
-
-    function _prepareBasicFulfillment(
-        BasicOrderParameters memory parameters,
-        OfferedAsset memory offeredAsset,
-        ReceivedAsset memory receivedAsset
-    ) internal returns (bytes32 orderHash, bool useOffererProxy) {
-        // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
-
-        address payable offerer = parameters.offerer;
-        address facilitator = parameters.facilitator;
-        uint256 startTime = parameters.startTime;
-        uint256 endTime = parameters.endTime;
-
-        _ensureValidTime(startTime, endTime);
-
-        OfferedAsset[] memory offer = new OfferedAsset[](1);
-        ReceivedAsset[] memory consideration = new ReceivedAsset[](
-            1 + parameters.additionalRecipients.length
-        );
-
-        offer[0] = offeredAsset;
-        consideration[0] = receivedAsset;
-
-        if (offeredAsset.assetType == AssetType.ERC20) {
-            receivedAsset.assetType = AssetType.ERC20;
-            receivedAsset.token = offeredAsset.token;
-            receivedAsset.identifierOrCriteria = 0;
-        }
-
-        // Skip overflow checks as for loop is indexed starting at one.
-        unchecked {
-            for (uint256 i = 1; i < consideration.length; ++i) {
-                AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i - 1];
-                receivedAsset.account = additionalRecipient.account;
-                receivedAsset.startAmount = additionalRecipient.amount;
-                receivedAsset.endAmount = additionalRecipient.amount;
-                consideration[i] = receivedAsset;
-            }
-        }
-
-        orderHash = _getNoncedOrderHash(
-            OrderParameters(
-                offerer,
-                facilitator,
-                parameters.orderType,
-                startTime,
-                endTime,
-                parameters.salt,
-                offer,
-                consideration
-            )
-        );
-
-        _validateBasicOrderAndUpdateStatus(
-            orderHash,
-            offerer,
-            parameters.signature
-        );
-
-        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
-            parameters.orderType,
-            offerer,
-            facilitator
-        );
-
-        if (useOffererProxy) {
-            unchecked {
-                parameters.orderType = OrderType(uint8(parameters.orderType) - 4);
-            }
-        }
-
-        return (orderHash, useOffererProxy);
-    }
-
-    function _validateOrderAndUpdateStatus(
-        Order memory order,
-        uint120 numerator,
-        uint120 denominator
-    ) internal returns (
-        bytes32 orderHash,
-        uint120 newNumerator,
-        uint120 newDenominator,
-        bool useOffererProxy
-    ) {
-        _ensureValidTime(order.parameters.startTime, order.parameters.endTime);
-
-        if (numerator > denominator || numerator == 0 || denominator == 0) {
-            revert BadFraction();
-        }
-
-        orderHash = _getNoncedOrderHash(order.parameters);
-
-        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
-            order.parameters.orderType,
-            order.parameters.offerer,
-            order.parameters.facilitator
-        );
-
-        if (useOffererProxy) {
-            unchecked {
-                order.parameters.orderType = OrderType(
-                    uint8(order.parameters.orderType) - 4
-                );
-            }
-        }
-
-        OrderStatus memory orderStatus = _getOrderStatus(
-            orderHash,
-            order.parameters.offerer,
-            order.signature,
-            false // allow partially used orders
-        );
-
-        // denominator of zero: this is the first fill on this order
-        if (orderStatus.denominator != 0) {
-            if (denominator == 1) { // full fill — just scale up to current denominator
-                numerator = orderStatus.denominator;
-                denominator = orderStatus.denominator;
-            } else if (orderStatus.denominator != denominator) { // different denominator
-                orderStatus.numerator *= denominator;
-                numerator *= orderStatus.denominator;
-                denominator *= orderStatus.denominator;
-            }
-
-            if (orderStatus.numerator + numerator > denominator) {
-                unchecked {
-                    numerator = denominator - orderStatus.numerator; // adjust down
-                }
-            }
-
-            unchecked {
-                _orderStatus[orderHash].isValidated = true;
-                _orderStatus[orderHash].isCancelled = false;
-                _orderStatus[orderHash].numerator = orderStatus.numerator + numerator;
-                _orderStatus[orderHash].denominator = denominator;
-            }
-        } else {
-            _orderStatus[orderHash].isValidated = true;
-            _orderStatus[orderHash].isCancelled = false;
-            _orderStatus[orderHash].numerator = numerator;
-            _orderStatus[orderHash].denominator = denominator;
-        }
-
-        return (orderHash, numerator, denominator, useOffererProxy);
-    }
-
-    function _validateBasicOrderAndUpdateStatus(
-        bytes32 orderHash,
-        address offerer,
-        bytes memory signature
-    ) internal {
-        _getOrderStatus(
-            orderHash,
-            offerer,
-            signature,
-            true // only allow unused orders
-        );
-
-        _orderStatus[orderHash].isValidated = true;
-        _orderStatus[orderHash].isCancelled = false;
-        _orderStatus[orderHash].numerator = 1;
-        _orderStatus[orderHash].denominator = 1;
-    }
-
-    function _transferETHAndFinalize(
-        bytes32 orderHash,
-        uint256 amount,
-        BasicOrderParameters memory parameters
-    ) internal {
-        uint256 etherRemaining = msg.value;
-
-        for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
-            AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
-            _transferEth(
-                additionalRecipient.account,
-                additionalRecipient.amount
-            );
-
-            etherRemaining -= additionalRecipient.amount;
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        if (parameters.offerer == msg.sender) {
-            _transferEth(parameters.offerer, etherRemaining);
-        } else {
-            _transferEth(parameters.offerer, amount);
-
-            if (etherRemaining > amount) {
-                unchecked {
-                    _transferEth(payable(msg.sender), etherRemaining - amount);
-                }
-            }
-        }
-
-        // Emit an OrderFulfilled event and clear reentrancy guard.
-        _emitOrderFulfilledEventAndClearReentrancyGuard(
-            orderHash,
-            parameters.offerer,
-            parameters.facilitator
-        );
-    }
-
-    function _transferERC20AndFinalize(
-        address from,
-        address to,
-        bytes32 orderHash,
-        address erc20Token,
-        uint256 amount,
-        BasicOrderParameters memory parameters
-    ) internal {
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
-                AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
-                _transferERC20(
-                    erc20Token,
-                    from,
-                    additionalRecipient.account,
-                    additionalRecipient.amount
-                );
-            }
-        }
-
-        // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(erc20Token, from, to, amount);
-
-        // Emit an OrderFulfilled event and clear reentrancy guard.
-        _emitOrderFulfilledEventAndClearReentrancyGuard(
-            orderHash,
-            from,
-            parameters.facilitator
-        );
     }
 
     function _fulfill(
@@ -1482,12 +1400,97 @@ contract Consideration is ConsiderationInterface {
         (ok, data) = proxy.call(callData);
     }
 
+    function _transferETHAndFinalize(
+        bytes32 orderHash,
+        uint256 amount,
+        BasicOrderParameters memory parameters
+    ) internal {
+        uint256 etherRemaining = msg.value;
+
+        for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
+            AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
+            _transferEth(
+                additionalRecipient.account,
+                additionalRecipient.amount
+            );
+
+            etherRemaining -= additionalRecipient.amount;
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        if (parameters.offerer == msg.sender) {
+            _transferEth(parameters.offerer, etherRemaining);
+        } else {
+            _transferEth(parameters.offerer, amount);
+
+            if (etherRemaining > amount) {
+                unchecked {
+                    _transferEth(payable(msg.sender), etherRemaining - amount);
+                }
+            }
+        }
+
+        // Emit an OrderFulfilled event and clear reentrancy guard.
+        _emitOrderFulfilledEventAndClearReentrancyGuard(
+            orderHash,
+            parameters.offerer,
+            parameters.facilitator
+        );
+    }
+
+    function _transferERC20AndFinalize(
+        address from,
+        address to,
+        bytes32 orderHash,
+        address erc20Token,
+        uint256 amount,
+        BasicOrderParameters memory parameters
+    ) internal {
+        // Skip overflow check as for loop is indexed starting at zero.
+        unchecked {
+            for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
+                AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
+                _transferERC20(
+                    erc20Token,
+                    from,
+                    additionalRecipient.account,
+                    additionalRecipient.amount
+                );
+            }
+        }
+
+        // Transfer ERC20 token amount (from account must have proper approval).
+        _transferERC20(erc20Token, from, to, amount);
+
+        // Emit an OrderFulfilled event and clear reentrancy guard.
+        _emitOrderFulfilledEventAndClearReentrancyGuard(
+            orderHash,
+            from,
+            parameters.facilitator
+        );
+    }
+
     function _setReentrancyGuard() internal {
         // Ensure that the reentrancy guard is not already set.
         _assertNonReentrant();
 
         // Set the reentrancy guard.
         _reentrancyGuard = _ENTERED;
+    }
+
+    function _emitOrderFulfilledEventAndClearReentrancyGuard(
+        bytes32 orderHash,
+        address offerer,
+        address facilitator
+    ) internal {
+        // Emit an event signifying that the order has been fulfilled.
+        emit OrderFulfilled(orderHash, offerer, facilitator);
+
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
     }
 
     function _assertNonReentrant() internal view {
