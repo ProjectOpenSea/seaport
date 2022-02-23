@@ -1817,6 +1817,8 @@ contract Consideration is ConsiderationInterface {
     }
 
     /// @dev Internal view function to derive the current amount of a given item based on the current price, the starting price, and the ending price. If the start and end prices differ, the current price will be extrapolated on a linear basis.
+    /// @param order The original order.
+    /// @return adjustedOrder An adjusted order with the current price set.
     function _adjustOrderPrice(
         Order memory order
     ) internal view returns (Order memory adjustedOrder) {
@@ -1830,7 +1832,7 @@ contract Consideration is ConsiderationInterface {
             // Iterate over each offer on the order.
             for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
                 // Adjust offer amounts based on current time (round down).
-                order.parameters.offer[i].endAmount = _locateCurrentPrice(
+                order.parameters.offer[i].endAmount = _locateCurrentAmount(
                     order.parameters.offer[i].startAmount,
                     order.parameters.offer[i].endAmount,
                     elapsed,
@@ -1843,7 +1845,7 @@ contract Consideration is ConsiderationInterface {
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
                 // Adjust consideration aniybts based on current time (round up).
-                order.parameters.consideration[i].endAmount = _locateCurrentPrice(
+                order.parameters.consideration[i].endAmount = _locateCurrentAmount(
                     order.parameters.consideration[i].startAmount,
                     order.parameters.consideration[i].endAmount,
                     elapsed,
@@ -2083,17 +2085,31 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal pure function to derive a hash for comparing transfers to see if they can be batched. Only applies to ERC1155 tokens.
+    /// @param token The token to transfer.
+    /// @param from The originator of the transfer.
+    /// @param to The recipient of the transfer.
+    /// @param useProxy A boolean indicating whether to utilize a proxy for the transfer.
+    /// @return The hash.
     function _hashBatchableAssetIdentifier(
         address token,
         address from,
         address to,
         bool useProxy
     ) internal pure returns (bytes32) {
-        // Note: this could use a variant of efficientHash as it's < 64 bytes
+        // Note: this could use a variant of efficientHash as it's < 64 bytes.
         return keccak256(abi.encode(token, from, to, useProxy));
     }
 
-    function _locateCurrentPrice(
+    /// @dev Internal pure function to derive the current amount of a given item based on the current price, the starting price, and the ending price. If the start and end prices differ, the current price will be extrapolated on a linear basis.
+    /// @param startAmount The starting amount of the item.
+    /// @param endAmount The ending amount of the item.
+    /// @param elapsed The amount of time that has elapsed since the order's start time.
+    /// @param remaining The amount of time left until the order's end time.
+    /// @param duration The total duration of the order.
+    /// @param roundUp A boolean indicating whether the resultant amount should be rounded up or down.
+    /// @return The current amount.
+    function _locateCurrentAmount(
         uint256 startAmount,
         uint256 endAmount,
         uint256 elapsed,
@@ -2126,6 +2142,10 @@ contract Consideration is ConsiderationInterface {
         return endAmount;
     }
 
+    /// @dev Internal pure function to ensure that partial fills are not attempted on orders that do not support them.
+    /// @param numerator A value indicating the portion of the order that should be filled.
+    /// @param denominator A value indicating the total size of the order.
+    /// @param orderType The order type.
     function _ensurePartialFillsEnabled(
         uint120 numerator,
         uint120 denominator,
@@ -2414,6 +2434,10 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal pure function to ensure that an order index is in range and, if so, to return the parameters of the associated order.
+    /// @param orders An array of orders.
+    /// @param index The order index specified by the fulfillment component.
+    /// @return The parameters of the order at the given index.
     function _getOrderParametersByFulfillmentIndex(
         Order[] memory orders,
         uint256 index
@@ -2425,26 +2449,42 @@ contract Consideration is ConsiderationInterface {
         return orders[index].parameters;
     }
 
+    /// @dev Internal pure function to ensure that an offer component index is in range and, if so, to return the associated offer item.
+    /// @param orderParameters The parameters of the order.
+    /// @param index The asset index specified by the fulfillment component.
+    /// @return The offer item at the given index.
     function _getOrderOfferComponentByAssetIndex(
-        OrderParameters memory order,
+        OrderParameters memory orderParameters,
         uint256 index
     ) internal pure returns (OfferedAsset memory) {
-        if (index >= order.offer.length) {
+        if (index >= orderParameters.offer.length) {
             revert FulfilledOrderOfferIndexOutOfRange();
         }
-        return order.offer[index];
+        return orderParameters.offer[index];
     }
 
+    /// @dev Internal pure function to ensure that a consideration component index is in range and, if so, to return the associated consideration item.
+    /// @param orderParameters The parameters of the order.
+    /// @param index The asset index specified by the fulfillment component.
+    /// @return The consideration item at the given index.
     function _getOrderConsiderationComponentByAssetIndex(
-        OrderParameters memory order,
+        OrderParameters memory orderParameters,
         uint256 index
     ) internal pure returns (ReceivedAsset memory) {
-        if (index >= order.consideration.length) {
+        if (index >= orderParameters.consideration.length) {
             revert FulfilledOrderConsiderationIndexOutOfRange();
         }
-        return order.consideration[index];
+        return orderParameters.consideration[index];
     }
 
+    /// @dev Internal pure function to match offer items to consideration items on a group of orders via a supplied fulfillment.
+    /// Note that this function does not support partial filling of orders (though filling the remainder of a partially-filled order is supported).
+    /// @param orders The orders to match.
+    /// @param fulfillment An element allocating offer components to consideration components.
+    /// Note that each consideration component must be fully met in order for the match operation to be valid.
+    /// @param useOffererProxyPerOrder An array of booleans indicating whether to source approvals for the fulfilled tokens on each order from their respective proxy.
+    /// @return execution A transfer to performed as part of the supplied fulfillment.
+    /// Note that this execution object may be compressed further in order to batch transfers.
     function _applyFulfillment(
         Order[] memory orders,
         Fulfillment memory fulfillment,
@@ -2579,6 +2619,10 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
+    /// @dev Internal pure function to return a fraction of a given value and to ensure that the resultant value does not have any fractional component.
+    /// @param numerator A value indicating the portion of the order that should be filled.
+    /// @param denominator A value indicating the total size of the order.
+    /// @param value The value for which to compute the fraction.
     function _getFraction(
         uint120 numerator,
         uint120 denominator,
@@ -2605,6 +2649,10 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal pure function to ensure that a given element is contained in a merkle root via a supplied proof.
+    /// @param leaf The element for which to prove inclusion.
+    /// @param root The merkle root that inclusion will be proved against.
+    /// @param proof The merkle proof.
     function _verifyProof(
         uint256 leaf,
         uint256 root,
@@ -2636,6 +2684,10 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal pure function to efficiently hash two bytes32 values.
+    /// @param a The first component of the hash.
+    /// @param b The second component of the hash.
+    /// @return value The hash.
     function _efficientHash(
         bytes32 a,
         bytes32 b
