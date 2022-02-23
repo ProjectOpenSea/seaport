@@ -995,6 +995,16 @@ contract Consideration is ConsiderationInterface {
         return (orderHash, numerator, denominator, useOffererProxy);
     }
 
+    /// @dev Internal function to validate an order and update its status, adjust prices based on current time, apply criteria resolvers, determine what portion to fill, and transfer relevant tokens.
+    /// @param order The order to fulfill.
+    /// @param numerator A value indicating the portion of the order that should be filled.
+    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
+    /// @param denominator A value indicating the total size of the order.
+    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
+    /// @param criteriaResolvers An array where each element contains a reference to a specific offer or consideration, a token identifier, and a proof that the supplied token identifier is contained in the order's merkle root.
+    /// Note that a criteria of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
+    /// @param useFulfillerProxy A flag indicating whether to source approvals for the fulfilled tokens from their respective proxy.
+    /// @return A boolean indicating whether the order was successfully fulfilled.
     function _fulfillOrder(
         Order memory order,
         uint120 numerator,
@@ -1021,24 +1031,30 @@ contract Consideration is ConsiderationInterface {
         orders[0] = order;
         order = _applyCriteriaResolvers(orders, criteriaResolvers);
 
+        // Move the offerer from memory to the stack.
         address offerer = order.parameters.offerer;
 
+        // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
         // Iterate over each consideration on the order.
         for (uint256 i = 0; i < order.parameters.consideration.length;) {
+            // Retrieve the consideration item.
             ReceivedAsset memory consideration = order.parameters.consideration[i];
 
-            if (consideration.assetType == AssetType.ETH) {
-                etherRemaining -= consideration.endAmount;
-            }
-
+            // Apply order fill fraction to each consideration amount.
             consideration.endAmount = _getFraction(
                 fillNumerator,
                 fillDenominator,
                 consideration.endAmount
             );
 
+            // If consideration expects ETH, reduce ether value available.
+            if (consideration.assetType == AssetType.ETH) {
+                etherRemaining -= consideration.endAmount;
+            }
+
+            // Transfer expected token from caller to consideration recipient.
             _fulfill(
                 consideration,
                 msg.sender,
@@ -1053,12 +1069,10 @@ contract Consideration is ConsiderationInterface {
 
         // Iterate over each offer on the order.
         for (uint256 i = 0; i < order.parameters.offer.length;) {
+            // Retrieve the offer item.
             OfferedAsset memory offer = order.parameters.offer[i];
 
-            if (offer.assetType == AssetType.ETH) {
-                etherRemaining -= offer.endAmount;
-            }
-
+            // Apply order fill fraction and set the caller as the receiver.
             ReceivedAsset memory asset = ReceivedAsset(
                 offer.assetType,
                 offer.token,
@@ -1072,6 +1086,12 @@ contract Consideration is ConsiderationInterface {
                 payable(msg.sender)
             );
 
+            // If offer expects ETH, reduce ether value available.
+            if (asset.assetType == AssetType.ETH) {
+                etherRemaining -= asset.endAmount;
+            }
+
+            // Transfer expected token from offerer to caller.
             _fulfill(
                 asset,
                 offerer,
@@ -1084,6 +1104,7 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
+        // If any ether remains after fulfillments, return it to the caller.
         if (etherRemaining != 0) {
             _transferEth(payable(msg.sender), etherRemaining);
         }
@@ -1241,6 +1262,7 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
+        // If any ether remains after fulfillments, return it to the caller.
         if (etherRemaining != 0) {
             _transferEth(payable(msg.sender), etherRemaining);
         }
@@ -1497,6 +1519,7 @@ contract Consideration is ConsiderationInterface {
         uint256 amount,
         BasicOrderParameters memory parameters
     ) internal {
+        // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
         // Iterate over each additional recipient.
