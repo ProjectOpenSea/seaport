@@ -6,6 +6,7 @@ import {
     OrderComponents,
     Fulfillment,
     Execution,
+    BatchExecution,
     Order,
     OrderStatus,
     CriteriaResolver
@@ -79,7 +80,10 @@ interface ConsiderationInterface {
         Order[] memory orders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
-    ) external payable returns (Execution[] memory);
+    ) external payable returns (
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    );
 
     function cancel(
         OrderComponents[] memory orders

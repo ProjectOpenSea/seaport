@@ -562,12 +562,16 @@ contract Consideration is ConsiderationInterface {
     /// Note that a root of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
     /// @param fulfillments An array of elements allocating offer components to consideration components.
     /// Note that each consideration component must be fully met in order for the match operation to be valid.
-    /// @return An array of elements indicating the sequence of transfers performed as part of matching the given orders.
+    /// @return standardExecutions An array of elements indicating the sequence of non-batch transfers performed as part of matching the given orders.
+    /// @return batchExecutions An array of elements indicating the sequence of batch transfers performed as part of matching the given orders.
     function matchOrders(
         Order[] memory orders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
-    ) external payable override returns (Execution[] memory) {
+    ) external payable override returns (
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    ) {
         // Adjust orders by filled amount and determine if they utilize proxies.
         bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(orders);
 
@@ -1182,11 +1186,19 @@ contract Consideration is ConsiderationInterface {
         return useOffererProxyPerOrder;
     }
 
+    /// @dev Internal function to fulfill an arbitrary number of orders after validating, adjusting, and applying criteria resolvers .
+    /// Note that this function does not support partial filling of orders (though filling the remainder of a partially-filled order is supported).
+    /// @param orders The orders to match.
+    /// @param fulfillments An array of elements allocating offer components to consideration components.
+    /// Note that each consideration component must be fully met in order for the match operation to be valid.
+    /// @param useOffererProxyPerOrder An array of booleans indicating whether to source approvals for the fulfilled tokens on each order from their respective proxy.
+    /// @return An array of elements indicating the sequence of non-batch transfers performed as part of matching the given orders.
+    /// @return An array of elements indicating the sequence of batch transfers performed as part of matching the given orders.
     function _fulfillOrders(
         Order[] memory orders,
         Fulfillment[] memory fulfillments,
         bool[] memory useOffererProxyPerOrder
-    ) internal returns (Execution[] memory) {
+    ) internal returns (Execution[] memory, BatchExecution[] memory) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
@@ -1270,7 +1282,8 @@ contract Consideration is ConsiderationInterface {
         // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;
 
-        return executions;
+        // Return the arrays of executions that were triggered.
+        return (executions, batchExecutions);
     }
 
     function _fulfill(
