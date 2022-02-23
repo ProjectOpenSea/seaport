@@ -48,11 +48,11 @@ contract Consideration is ConsiderationInterface {
     // TODO: support partial fills as part of matchOrders?
     // TODO: skip redundant order validation when it has already been validated?
 
+    // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
     string internal constant _VERSION = "1";
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
-    uint256 internal constant _FULLY_FILLED = 1e18;
 
     // Precompute hashes, original chainId, and domain separator on deployment.
     bytes32 internal immutable _NAME_HASH;
@@ -568,15 +568,15 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable override returns (Execution[] memory) {
-        // Adjust orders by filled amount and determine if they utilize proxies.
-        bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(orders);
-
         // Adjust order prices based on current time, startAmount and endAmount.
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 orders[i] = _adjustOrderPrice(orders[i]);
             }
         }
+
+        // Adjust orders by filled amount and determine if they utilize proxies.
+        bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(orders);
 
         // Apply criteria resolvers to each order as applicable.
         _applyCriteriaResolvers(orders, criteriaResolvers);
@@ -594,6 +594,7 @@ contract Consideration is ConsiderationInterface {
     ) external override returns (bool) {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
+
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 OrderComponents memory order = orders[i];
@@ -640,6 +641,7 @@ contract Consideration is ConsiderationInterface {
     ) external override returns (bool) {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
+
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 Order memory order = orders[i];
@@ -758,15 +760,23 @@ contract Consideration is ConsiderationInterface {
         return _VERSION;
     }
 
+    /// @dev Validate a group of orders, update their statuses, and reduce their amounts by their previously filled fractions.
+    /// @param orders The orders to validate and reduce by previously filled amounts.
+    /// @return A list of boolean indicating whether to utilize a proxy for each order.
     function _validateOrdersAndApplyPartials(
         Order[] memory orders
     ) internal returns (bool[] memory) {
+        // Declare memory region to determine proxy utilization per order.
         bool[] memory useOffererProxyPerOrder = new bool[](orders.length);
 
+        // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // Iterate over each order.
             for (uint256 i = 0; i < orders.length; ++i) {
+                // Retrieve the current order.
                 Order memory order = orders[i];
 
+                // Validate it, update status, and determine fraction to fill.
                 (
                     bytes32 orderHash,
                     uint120 numerator,
@@ -774,9 +784,12 @@ contract Consideration is ConsiderationInterface {
                     bool useOffererProxy
                 ) = _validateOrderAndUpdateStatus(order, 1, 1);
 
+                // Mark whether order should utilize offerer's proxy.
                 useOffererProxyPerOrder[i] = useOffererProxy;
 
+                // Iterate over each offered item on the order.
                 for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
+                    // 
                     orders[i].parameters.offer[j].endAmount = _getFraction(
                         numerator,
                         denominator,
@@ -813,14 +826,14 @@ contract Consideration is ConsiderationInterface {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
+        _adjustOrderPrice(order);
+
         (
             bytes32 orderHash,
             uint120 fillNumerator,
             uint120 fillDenominator,
             bool useOffererProxy
         ) = _validateOrderAndUpdateStatus(order, numerator, denominator);
-
-        _adjustOrderPrice(order);
 
         Order[] memory orders = new Order[](1);
         orders[0] = order;
