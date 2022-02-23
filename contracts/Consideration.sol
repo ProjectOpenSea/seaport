@@ -124,13 +124,13 @@ contract Consideration is ConsiderationInterface {
                 AssetType.ERC721,
                 parameters.token,
                 parameters.identifier,
-                1,
-                1
+                1,                     // Amount of 1 for ERC721
+                1                      // Amount of 1 for ERC721
             ),
             ReceivedAsset(
                 AssetType.ETH,
-                address(0),
-                0,
+                address(0),    // No token address for ETH
+                0,             // No identifier for ETH
                 etherAmount,
                 etherAmount,
                 offerer
@@ -184,8 +184,8 @@ contract Consideration is ConsiderationInterface {
             ),
             ReceivedAsset(
                 AssetType.ETH,
-                address(0),
-                0,
+                address(0),    // No token address for ETH
+                0,             // No identifier for ETH
                 etherAmount,
                 etherAmount,
                 offerer
@@ -231,13 +231,13 @@ contract Consideration is ConsiderationInterface {
                 AssetType.ERC721,
                 parameters.token,
                 parameters.identifier,
-                1,
-                1
+                1,                     // Amount of 1 for ERC721
+                1                      // Amount of 1 for ERC721
             ),
             ReceivedAsset(
                 AssetType.ERC20,
                 erc20Token,
-                0,
+                0,                  // No identifier for ERC20 token
                 erc20Amount,
                 erc20Amount,
                 parameters.offerer
@@ -294,7 +294,7 @@ contract Consideration is ConsiderationInterface {
             ReceivedAsset(
                 AssetType.ERC20,
                 erc20Token,
-                0,
+                0,                  // No identifier for ERC20 token
                 erc20Amount,
                 erc20Amount,
                 parameters.offerer
@@ -345,7 +345,7 @@ contract Consideration is ConsiderationInterface {
             OfferedAsset(
                 AssetType.ERC20,
                 erc20Token,
-                0,
+                0,               // No identifier for ERC20 token
                 erc20Amount,
                 erc20Amount
             ),
@@ -353,8 +353,8 @@ contract Consideration is ConsiderationInterface {
                 AssetType.ERC721,
                 parameters.token,
                 parameters.identifier,
-                1,
-                1,
+                1,                     // Amount of 1 for ERC721
+                1,                     // Amount of 1 for ERC721
                 offerer
             )
         );
@@ -405,7 +405,7 @@ contract Consideration is ConsiderationInterface {
             OfferedAsset(
                 AssetType.ERC20,
                 erc20Token,
-                0,
+                0,               // No identifier for ERC20 token
                 erc20Amount,
                 erc20Amount
             ),
@@ -590,6 +590,7 @@ contract Consideration is ConsiderationInterface {
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
+            // Iterate over each order.
             for (uint256 i = 0; i < orders.length; ++i) {
                 OrderComponents memory order = orders[i];
                 if (
@@ -638,6 +639,7 @@ contract Consideration is ConsiderationInterface {
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
+            // Iterate over each order.
             for (uint256 i = 0; i < orders.length; ++i) {
                 // Retrieve the order.
                 Order memory order = orders[i];
@@ -800,6 +802,7 @@ contract Consideration is ConsiderationInterface {
 
         // Skip overflow checks as for loop is indexed starting at one.
         unchecked {
+            // Iterate over each consideration on the order.
             for (uint256 i = 1; i < consideration.length; ++i) {
                 AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i - 1];
                 receivedAsset.account = additionalRecipient.account;
@@ -835,6 +838,7 @@ contract Consideration is ConsiderationInterface {
         );
 
         if (useOffererProxy) {
+            // Skip underflow check: orderType >= 4 when useOffererProxy = true.
             unchecked {
                 parameters.orderType = OrderType(uint8(parameters.orderType) - 4);
             }
@@ -893,6 +897,7 @@ contract Consideration is ConsiderationInterface {
         );
 
         if (useOffererProxy) {
+            // Skip underflow check: orderType >= 4 when useOffererProxy = true.
             unchecked {
                 order.parameters.orderType = OrderType(
                     uint8(order.parameters.orderType) - 4
@@ -919,11 +924,13 @@ contract Consideration is ConsiderationInterface {
             }
 
             if (orderStatus.numerator + numerator > denominator) {
+                // Skip underflow check: denominator >= orderStatus.numerator
                 unchecked {
                     numerator = denominator - orderStatus.numerator; // adjust down
                 }
             }
 
+            // Skip overflow check: checked above unless numerator is reduced.
             unchecked {
                 // Update order status and fill amount, packing struct values.
                 _orderStatus[orderHash].isValidated = true;
@@ -972,6 +979,7 @@ contract Consideration is ConsiderationInterface {
 
         uint256 etherRemaining = msg.value;
 
+        // Iterate over each consideration on the order.
         for (uint256 i = 0; i < order.parameters.consideration.length;) {
             ReceivedAsset memory consideration = order.parameters.consideration[i];
 
@@ -991,11 +999,13 @@ contract Consideration is ConsiderationInterface {
                 useFulfillerProxy
             );
 
+            // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
                  ++i;
             }
         }
 
+        // Iterate over each offer on the order.
         for (uint256 i = 0; i < order.parameters.offer.length;) {
             OfferedAsset memory offer = order.parameters.offer[i];
 
@@ -1022,6 +1032,7 @@ contract Consideration is ConsiderationInterface {
                 useOffererProxy
             );
 
+            // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
                  ++i;
             }
@@ -1117,6 +1128,7 @@ contract Consideration is ConsiderationInterface {
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // Iterate over each fulfillment.
             for (uint256 i = 0; i < fulfillments.length; ++i) {
                 executions[i] = _applyFulfillment(
                     orders,
@@ -1125,11 +1137,16 @@ contract Consideration is ConsiderationInterface {
                 );
             }
 
-            // Ensure that all considerations have been met.
+            // Iterate over each order to ensure all considerations are met.
             for (uint256 i = 0; i < orders.length; ++i) {
                 ReceivedAsset[] memory considerations = orders[i].parameters.consideration;
+
+                // Iterate over each consideration on order to ensure it is met.
                 for (uint256 j = 0; j < considerations.length; ++j) {
+                    // Retrieve the remaining amount on the consideration.
                     uint256 remainingAmount = considerations[j].endAmount;
+
+                    // Revert if the remaining amount is not zero.
                     if (remainingAmount != 0) {
                         revert ConsiderationNotMet(i, j, remainingAmount);
                     }
@@ -1137,27 +1154,34 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
-        // Compress executions.
+        // Allocate memory for "standard" (no batch) and "batch" executions.
         Execution[] memory standardExecutions;
         BatchExecution[] memory batchExecutions;
 
+        // Split executions into "standard" (no batch) and "batch" executions.
         (standardExecutions, batchExecutions) = _compressExecutions(executions);
 
-        // Execute fulfillments.
+        // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
+
+        // Iterate over each standard execution.
         for (uint256 i = 0; i < standardExecutions.length;) {
+            // Retrieve the execution.
             Execution memory execution = standardExecutions[i];
 
+            // If execution transfers ETH, reduce ether value available.
             if (execution.asset.assetType == AssetType.ETH) {
                 etherRemaining -= execution.asset.endAmount;
             }
 
+            // Fulfill the execution.
             _fulfill(
                 execution.asset,
                 execution.offerer,
                 execution.useProxy
             );
 
+            // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
                 ++i;
             }
@@ -1165,6 +1189,7 @@ contract Consideration is ConsiderationInterface {
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
+            // Iterate over each batch execution.
             for (uint256 i = 0; i < batchExecutions.length; ++i) {
                 _batchTransferERC1155(batchExecutions[i]);
             }
@@ -1428,6 +1453,7 @@ contract Consideration is ConsiderationInterface {
     ) internal {
         uint256 etherRemaining = msg.value;
 
+        // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
             AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
             _transferEth(
@@ -1437,6 +1463,7 @@ contract Consideration is ConsiderationInterface {
 
             etherRemaining -= additionalRecipient.amount;
 
+            // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
                 ++i;
             }
@@ -1448,6 +1475,7 @@ contract Consideration is ConsiderationInterface {
             _transferEth(parameters.offerer, amount);
 
             if (etherRemaining > amount) {
+                // Skip underflow check as etherRemaining > amount.
                 unchecked {
                     _transferEth(payable(msg.sender), etherRemaining - amount);
                 }
@@ -1472,6 +1500,7 @@ contract Consideration is ConsiderationInterface {
     ) internal {
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
+            // Iterate over each additional recipient.
             for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
                 AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
                 _transferERC20(
@@ -1610,8 +1639,9 @@ contract Consideration is ConsiderationInterface {
             uint256 elapsed = block.timestamp - order.parameters.startTime;
             uint256 remaining = duration - elapsed;
 
-            // adjust offer prices and round down
+            // Iterate over each offer on the order.
             for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
+                // Adjust offer amounts based on current time (round down).
                 order.parameters.offer[i].endAmount = _locateCurrentPrice(
                     order.parameters.offer[i].startAmount,
                     order.parameters.offer[i].endAmount,
@@ -1622,8 +1652,9 @@ contract Consideration is ConsiderationInterface {
                 );
             }
 
-            // adjust consideration prices and round up
+            // Iterate over each consideration on the order.
             for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
+                // Adjust consideration aniybts based on current time (round up).
                 order.parameters.consideration[i].endAmount = _locateCurrentPrice(
                     order.parameters.consideration[i].startAmount,
                     order.parameters.consideration[i].endAmount,
@@ -1634,6 +1665,7 @@ contract Consideration is ConsiderationInterface {
                 );
             }
 
+            // Return the modified order.
             return order;
         }
     }
@@ -1790,10 +1822,12 @@ contract Consideration is ConsiderationInterface {
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // Iterate over each offer on the order.
             for (uint256 i = 0; i < offerLength; ++i) {
                 offerHashes[i] = _hashOfferedAsset(orderParameters.offer[i]);
             }
 
+            // Iterate over each consideration on the order.
             for (uint256 i = 0; i < considerationLength; ++i) {
                 considerationHashes[i] = _hashReceivedAsset(orderParameters.consideration[i]);
             }
@@ -1855,6 +1889,7 @@ contract Consideration is ConsiderationInterface {
         if (startAmount != endAmount) {
             uint256 durationLessOne = 0;
             if (roundUp) {
+                // Skip underflow check: duration cannot be zero.
                 unchecked {
                     durationLessOne = duration - 1;
                 }
@@ -1894,7 +1929,9 @@ contract Consideration is ConsiderationInterface {
     ) internal pure returns (Order memory initialOrder) {
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // Iterate over each criteria resolver.
             for (uint256 i = 0; i < criteriaResolvers.length; ++i) {
+                // Retrieve the criteria resolver.
                 CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
 
                 uint256 orderIndex = criteriaResolver.orderIndex;
@@ -2004,6 +2041,7 @@ contract Consideration is ConsiderationInterface {
             uint256 total1155Executions = 0;
             uint256[] memory indexBy1155 = new uint256[](totalExecutions);
 
+            // Iterate over each execution.
             for (uint256 i = 0; i < executions.length; ++i) {
                 if (executions[i].asset.assetType == AssetType.ERC1155) {
                     indexBy1155[total1155Executions] = i;
@@ -2126,6 +2164,8 @@ contract Consideration is ConsiderationInterface {
 
             uint256 lastNoBatchIndex = 0;
             uint256[] memory batchElementCounters = new uint256[](totalBatches);
+
+            // Iterate over each execution.
             for (uint256 i = 0; i < totalExecutions; ++i) {
                 uint256 isUsedInBatch = usedInBatch[i];
                 if (isUsedInBatch == 0) {
@@ -2250,6 +2290,7 @@ contract Consideration is ConsiderationInterface {
             offeredAsset.endAmount += additionalOfferedAsset.endAmount;
             orders[currentOrderIndex].parameters.offer[currentAssetIndex].endAmount = 0;
 
+            // Skip overflow check as for loop is indexed starting at one.
             unchecked {
                 ++i;
             }
@@ -2299,6 +2340,7 @@ contract Consideration is ConsiderationInterface {
             requiredConsideration.endAmount += additionalRequiredConsideration.endAmount;
             orders[currentOrderIndex].parameters.consideration[currentAssetIndex].endAmount = 0;
 
+            // Skip overflow check as for loop is indexed starting at one.
             unchecked {
                 ++i;
             }
