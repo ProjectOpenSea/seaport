@@ -114,8 +114,10 @@ contract Consideration is ConsiderationInterface {
         uint256 etherAmount,
         BasicOrderParameters memory parameters
     ) external payable override returns (bool) {
-        _setReentrancyGuard();
+        // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
+
+        // Derive and validate order using parameters and update order status.
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -135,6 +137,7 @@ contract Consideration is ConsiderationInterface {
             )
         );
 
+        // Transfer ERC721 to caller, using offerer's proxy if applicable.
         _transferERC721(
             parameters.token,
             offerer,
@@ -143,6 +146,7 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? offerer : address(0)
         );
 
+        // Transfer ETH to recipients, returning excess to caller, and wrap up.
         _transferETHAndFinalize(
             orderHash,
             etherAmount,
@@ -165,8 +169,10 @@ contract Consideration is ConsiderationInterface {
         uint256 erc1155Amount,
         BasicOrderParameters memory parameters
     ) external payable override returns (bool) {
-        _setReentrancyGuard();
+        // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
+
+        // Derive and validate order using parameters and update order status.
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -186,6 +192,7 @@ contract Consideration is ConsiderationInterface {
             )
         );
 
+        // Transfer ERC1155 to caller, using offerer's proxy if applicable.
         _transferERC1155(
             parameters.token,
             offerer,
@@ -195,6 +202,7 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? offerer : address(0)
         );
 
+        // Transfer ETH to recipients, returning excess to caller, and wrap up.
         _transferETHAndFinalize(
             orderHash,
             etherAmount,
@@ -216,7 +224,7 @@ contract Consideration is ConsiderationInterface {
         uint256 erc20Amount,
         BasicOrderParameters memory parameters
     ) external override returns (bool) {
-        _setReentrancyGuard();
+        // Derive and validate order using parameters and update order status.
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -236,6 +244,7 @@ contract Consideration is ConsiderationInterface {
             )
         );
 
+        // Transfer ERC721 to caller, using offerer's proxy if applicable.
         _transferERC721(
             parameters.token,
             parameters.offerer,
@@ -244,6 +253,7 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? parameters.offerer : address(0)
         );
 
+        // Transfer ERC20 tokens to all recipients and wrap up.
         _transferERC20AndFinalize(
             msg.sender,
             parameters.offerer,
@@ -271,7 +281,7 @@ contract Consideration is ConsiderationInterface {
         uint256 erc1155Amount,
         BasicOrderParameters memory parameters
     ) external override returns (bool) {
-        _setReentrancyGuard();
+        // Derive and validate order using parameters and update order status.
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -291,6 +301,7 @@ contract Consideration is ConsiderationInterface {
             )
         );
 
+        // Transfer ERC1155 to caller, using offerer's proxy if applicable.
         _transferERC1155(
             parameters.token,
             parameters.offerer,
@@ -300,6 +311,7 @@ contract Consideration is ConsiderationInterface {
             useOffererProxy ? parameters.offerer : address(0)
         );
 
+        // Transfer ERC20 tokens to all recipients and wrap up.
         _transferERC20AndFinalize(
             msg.sender,
             parameters.offerer,
@@ -324,8 +336,10 @@ contract Consideration is ConsiderationInterface {
         uint256 erc20Amount,
         BasicOrderParameters memory parameters
     ) external override returns (bool) {
-        _setReentrancyGuard();
+        // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
+
+        // Derive and validate order using parameters and update order status.
         (bytes32 orderHash,) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -345,6 +359,7 @@ contract Consideration is ConsiderationInterface {
             )
         );
 
+        // Transfer ERC721 to offerer, using caller's proxy if applicable.
         _transferERC721(
             parameters.token,
             msg.sender,
@@ -353,6 +368,7 @@ contract Consideration is ConsiderationInterface {
             parameters.useFulfillerProxy ? msg.sender : address(0)
         );
 
+        // Transfer ERC20 tokens to all recipients and wrap up.
         _transferERC20AndFinalize(
             offerer,
             msg.sender,
@@ -380,8 +396,10 @@ contract Consideration is ConsiderationInterface {
         uint256 erc1155Amount,
         BasicOrderParameters memory parameters
     ) external override returns (bool) {
-        _setReentrancyGuard();
+        // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
+
+        // Derive and validate order using parameters and update order status.
         (bytes32 orderHash,) = _prepareBasicFulfillment(
             parameters,
             OfferedAsset(
@@ -401,6 +419,7 @@ contract Consideration is ConsiderationInterface {
             )
         );
 
+        // Transfer ERC1155 to offerer, using caller's proxy if applicable.
         _transferERC1155(
             parameters.token,
             msg.sender,
@@ -410,6 +429,7 @@ contract Consideration is ConsiderationInterface {
             parameters.useFulfillerProxy ? msg.sender : address(0)
         );
 
+        // Transfer ERC20 tokens to all recipients and wrap up.
         _transferERC20AndFinalize(
             offerer,
             msg.sender,
@@ -432,11 +452,12 @@ contract Consideration is ConsiderationInterface {
         Order memory order,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
+        // Validate and fulfill the order.
         return _fulfillOrder(
             order,
-            1,
-            1,
-            new CriteriaResolver[](0),
+            1,                          // numerator of 1
+            1,                          // denominator of 1
+            new CriteriaResolver[](0),  // no criteria resolvers
             useFulfillerProxy
         );
     }
@@ -454,11 +475,12 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
+        // Validate and fulfill the order.
         return _fulfillOrder(
             order,
-            1,
-            1,
-            criteriaResolvers,
+            1,                 // numerator of 1
+            1,                 // denominator of 1
+            criteriaResolvers, // supply criteria resolvers
             useFulfillerProxy
         );
     }
@@ -479,17 +501,19 @@ contract Consideration is ConsiderationInterface {
         uint120 denominator,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
+        // Ensure partial fills are supported by specified order.
         _ensurePartialFillsEnabled(
             numerator,
             denominator,
             order.parameters.orderType
         );
 
+        // Validate and fulfill the order.
         return _fulfillOrder(
             order,
             numerator,
             denominator,
-            new CriteriaResolver[](0),
+            new CriteriaResolver[](0),  // no criteria resolvers
             useFulfillerProxy
         );
     }
@@ -513,12 +537,14 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
+        // Ensure partial fills are supported by specified order.
         _ensurePartialFillsEnabled(
             numerator,
             denominator,
             order.parameters.orderType
         );
 
+        // Validate and fulfill the order.
         return _fulfillOrder(
             order,
             numerator,
@@ -542,16 +568,20 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable override returns (Execution[] memory) {
+        // Adjust orders by filled amount and determine if they utilize proxies.
         bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(orders);
 
+        // Adjust order prices based on current time, startAmount and endAmount.
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 orders[i] = _adjustOrderPrice(orders[i]);
             }
         }
 
+        // Apply criteria resolvers to each order as applicable.
         _applyCriteriaResolvers(orders, criteriaResolvers);
 
+        // Fulfill the orders using the supplied fulfillments.
         return _fulfillOrders(orders, fulfillments, useProxyPerOrder);
     }
 
@@ -562,6 +592,7 @@ contract Consideration is ConsiderationInterface {
     function cancel(
         OrderComponents[] memory orders
     ) external override returns (bool) {
+        // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
@@ -607,6 +638,7 @@ contract Consideration is ConsiderationInterface {
     function validate(
         Order[] memory orders
     ) external override returns (bool) {
+        // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
@@ -647,6 +679,7 @@ contract Consideration is ConsiderationInterface {
         address offerer,
         address facilitator
     ) external override returns (uint256 newNonce) {
+        // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
         if (msg.sender != offerer && msg.sender != facilitator) {
             revert OnlyOffererOrFacilitatorMayIncrementNonce();
@@ -803,6 +836,7 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) internal returns (bool) {
+        // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
         (
@@ -897,6 +931,7 @@ contract Consideration is ConsiderationInterface {
         Fulfillment[] memory fulfillments,
         bool[] memory useOffererProxyPerOrder
     ) internal returns (Execution[] memory) {
+        // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
         // allocate fulfillment and schedule execution
@@ -968,6 +1003,9 @@ contract Consideration is ConsiderationInterface {
         OfferedAsset memory offeredAsset,
         ReceivedAsset memory receivedAsset
     ) internal returns (bytes32 orderHash, bool useOffererProxy) {
+        // Ensure this function cannot be triggered during a reentrant call.
+        _setReentrancyGuard();
+
         address payable offerer = parameters.offerer;
         address facilitator = parameters.facilitator;
         uint256 startTime = parameters.startTime;
@@ -1430,12 +1468,15 @@ contract Consideration is ConsiderationInterface {
     }
 
     function _setReentrancyGuard() internal {
+        // Ensure that the reentrancy guard is not already set.
         _assertNonReentrant();
 
+        // Set the reentrancy guard.
         _reentrancyGuard = _ENTERED;
     }
 
     function _assertNonReentrant() internal view {
+        // Ensure that the reentrancy guard is not currently set.
         if (_reentrancyGuard == _ENTERED) {
             revert NoReentrantCalls();
         }
