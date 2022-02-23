@@ -100,7 +100,7 @@ contract Consideration is ConsiderationInterface {
         _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
         _REQUIRED_PROXY_IMPLEMENTATION = requiredProxyImplementation;
 
-        // Initialize the reentrancy guard.
+        // Initialize the reentrancy guard in a cleared state.
         _reentrancyGuard = _NOT_ENTERED;
     }
 
@@ -808,6 +808,7 @@ contract Consideration is ConsiderationInterface {
                     );
                 }
 
+                // Emit an event signifying that the order will be fulfilled.
                 emit OrderFulfilled(
                     orderHash,
                     orders[i].parameters.offerer,
@@ -905,15 +906,26 @@ contract Consideration is ConsiderationInterface {
             _transferEth(payable(msg.sender), etherRemaining);
         }
 
-        emit OrderFulfilled(
+        // Emit an OrderFulfilled event and clear reentrancy guard.
+        _emitOrderFulfilledEventAndClearReentrancyGuard(
             orderHash,
             offerer,
             order.parameters.facilitator
         );
 
-        _reentrancyGuard = _NOT_ENTERED;
-
         return true;
+    }
+
+    function _emitOrderFulfilledEventAndClearReentrancyGuard(
+        bytes32 orderHash,
+        address offerer,
+        address facilitator
+    ) internal {
+        // Emit an event signifying that the order has been fulfilled.
+        emit OrderFulfilled(orderHash, offerer, facilitator);
+
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
     }
 
     function _fulfillOrders(
@@ -986,6 +998,7 @@ contract Consideration is ConsiderationInterface {
             _transferEth(payable(msg.sender), etherRemaining);
         }
 
+        // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;
 
         return executions;
@@ -1188,9 +1201,12 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
-        emit OrderFulfilled(orderHash, parameters.offerer, parameters.facilitator);
-
-        _reentrancyGuard = _NOT_ENTERED;
+        // Emit an OrderFulfilled event and clear reentrancy guard.
+        _emitOrderFulfilledEventAndClearReentrancyGuard(
+            orderHash,
+            parameters.offerer,
+            parameters.facilitator
+        );
     }
 
     function _transferERC20AndFinalize(
@@ -1214,11 +1230,15 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
+        // Transfer ERC20 token amount (from account must have proper approval).
         _transferERC20(erc20Token, from, to, amount);
 
-        emit OrderFulfilled(orderHash, from, parameters.facilitator);
-
-        _reentrancyGuard = _NOT_ENTERED;
+        // Emit an OrderFulfilled event and clear reentrancy guard.
+        _emitOrderFulfilledEventAndClearReentrancyGuard(
+            orderHash,
+            from,
+            parameters.facilitator
+        );
     }
 
     function _fulfill(
