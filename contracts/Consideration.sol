@@ -1852,6 +1852,7 @@ contract Consideration is ConsiderationInterface {
         uint256 duration,
         bool roundUp
     ) internal pure returns (uint256) {
+        // Only modify end amount if it doesn't already equal start amount.
         if (startAmount != endAmount) {
             uint256 durationLessOne = 0;
             if (roundUp) {
@@ -1859,7 +1860,11 @@ contract Consideration is ConsiderationInterface {
                     durationLessOne = duration - 1;
                 }
             }
-            uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed) + durationLessOne;
+
+            uint256 totalBeforeDivision = (
+                (startAmount * remaining) + (endAmount * elapsed) + durationLessOne
+            );
+
             uint256 newAmount;
             assembly {
                 newAmount := div(totalBeforeDivision, duration)
@@ -1867,6 +1872,7 @@ contract Consideration is ConsiderationInterface {
             return newAmount;
         }
 
+        // Return end amount — from here, endAmount is used in place of amount.
         return endAmount;
     }
 
@@ -1981,7 +1987,6 @@ contract Consideration is ConsiderationInterface {
             return orders[0];
         }
     }
-
 
     function _compressExecutions(
         Execution[] memory executions
@@ -2309,6 +2314,7 @@ contract Consideration is ConsiderationInterface {
             orders[targetComponent.orderIndex].parameters.offer[targetComponent.assetIndex].endAmount = offeredAsset.endAmount - requiredConsideration.endAmount;
         }
 
+        // Return the final execution that will be triggered for relevant items.
         return Execution(
             requiredConsideration,
             orderWithInitialOffer.offerer,
@@ -2321,18 +2327,22 @@ contract Consideration is ConsiderationInterface {
         uint120 denominator,
         uint256 value
     ) internal pure returns (uint256 newValue) {
+        // Return value early in cases where the fraction resolves to 1.
         if (numerator == denominator) {
             return value;
         }
 
-        bool inexact;
+        // Multiply the numerator by the value and ensure no overflow occurs.
         uint256 valueTimesNumerator = value * uint256(numerator);
 
+        // Divide (Note: denominator must not be zero!) and check for remainder.
+        bool inexact;
         assembly {
             newValue := div(valueTimesNumerator, denominator)
             inexact := iszero(iszero(mulmod(value, numerator, denominator)))
         }
 
+        // Ensure that division gave a final result with no remainder.
         if (inexact) {
             revert InexactFraction();
         }
@@ -2343,21 +2353,27 @@ contract Consideration is ConsiderationInterface {
         uint256 root,
         bytes32[] memory proof
     ) internal pure {
+        // Convert the supplied leaf element from uint256 to bytes32.
         bytes32 computedHash = bytes32(leaf);
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
+            // Iterate over each proof element.
             for (uint256 i = 0; i < proof.length; ++i) {
+                // Retrieve the proof element.
                 bytes32 proofElement = proof[i];
+
                 if (computedHash <= proofElement) {
-                    // Hash(current computed hash + current element of the proof)
+                    // Hash(current computed hash + current element of proof)
                     computedHash = _efficientHash(computedHash, proofElement);
                 } else {
-                    // Hash(current element of the proof + current computed hash)
+                    // Hash(current element of proof + current computed hash)
                     computedHash = _efficientHash(proofElement, computedHash);
                 }
             }
         }
+
+        // Ensure that the final derived hash matches the expected root.
         if (computedHash != bytes32(root)) {
             revert InvalidProof();
         }
@@ -2368,9 +2384,9 @@ contract Consideration is ConsiderationInterface {
         bytes32 b
     ) internal pure returns (bytes32 value) {
         assembly {
-            mstore(0x00, a)
-            mstore(0x20, b)
-            value := keccak256(0x00, 0x40)
+            mstore(0x00, a) // Place element a in first word of scratch space.
+            mstore(0x20, b) // Place element b in second word of scratch space.
+            value := keccak256(0x00, 0x40) // Hash scratch space region.
         }
     }
 }
