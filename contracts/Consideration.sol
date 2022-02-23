@@ -592,7 +592,10 @@ contract Consideration is ConsiderationInterface {
         unchecked {
             // Iterate over each order.
             for (uint256 i = 0; i < orders.length; ++i) {
+                // Retrieve the order.
                 OrderComponents memory order = orders[i];
+
+                // Ensure caller is either offerer or facilitator of the order.
                 if (
                     msg.sender != order.offerer &&
                     msg.sender != order.facilitator
@@ -600,6 +603,7 @@ contract Consideration is ConsiderationInterface {
                     revert OnlyOffererOrFacilitatorMayCancel();
                 }
 
+                // Derive order hash using the order parameters and the nonce.
                 bytes32 orderHash = _getOrderHash(
                     OrderParameters(
                         order.offerer,
@@ -614,8 +618,10 @@ contract Consideration is ConsiderationInterface {
                     order.nonce
                 );
 
+                // Update the order status as cancelled.
                 _orderStatus[orderHash].isCancelled = true;
 
+                // Emit an event signifying that the order has been cancelled.
                 emit OrderCancelled(
                     orderHash,
                     order.offerer,
@@ -644,7 +650,7 @@ contract Consideration is ConsiderationInterface {
                 // Retrieve the order.
                 Order memory order = orders[i];
 
-                // Derive the order hash.
+                // Get current nonce and use it w/ params to derive order hash.
                 bytes32 orderHash = _getNoncedOrderHash(order.parameters);
 
                 // Retrieve the order status and verify it.
@@ -777,7 +783,7 @@ contract Consideration is ConsiderationInterface {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
-        // Pull frequently used arguments from memory and place on the stack.
+        // Pull frequently used arguments from memory & place them on the stack.
         address payable offerer = parameters.offerer;
         address facilitator = parameters.facilitator;
         uint256 startTime = parameters.startTime;
@@ -786,14 +792,17 @@ contract Consideration is ConsiderationInterface {
         // Ensure current timestamp falls between order start time and end time.
         _ensureValidTime(startTime, endTime);
 
+        // Allocate memory: 1 offer, 1+additionalRecipients consideration items.
         OfferedAsset[] memory offer = new OfferedAsset[](1);
         ReceivedAsset[] memory consideration = new ReceivedAsset[](
             1 + parameters.additionalRecipients.length
         );
 
+        // Set primary offer + consideration item as respective first elements.
         offer[0] = offeredAsset;
         consideration[0] = receivedAsset;
 
+        // Use offered asset's info for additional recipients if it is an ERC20.
         if (offeredAsset.assetType == AssetType.ERC20) {
             receivedAsset.assetType = AssetType.ERC20;
             receivedAsset.token = offeredAsset.token;
@@ -802,16 +811,22 @@ contract Consideration is ConsiderationInterface {
 
         // Skip overflow checks as for loop is indexed starting at one.
         unchecked {
-            // Iterate over each consideration on the order.
+            // Iterate over each consideration beyond primary one on the order.
             for (uint256 i = 1; i < consideration.length; ++i) {
+                // Retrieve additional recipient corresponding to consideration.
                 AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i - 1];
+
+                // Update consideration item w/ info from additional recipient.
                 receivedAsset.account = additionalRecipient.account;
                 receivedAsset.startAmount = additionalRecipient.amount;
                 receivedAsset.endAmount = additionalRecipient.amount;
+
+                // Set new received item as an additional consideration item.
                 consideration[i] = receivedAsset;
             }
         }
 
+        // Retrieve current nonce and use it w/ parameters to derive order hash.
         orderHash = _getNoncedOrderHash(
             OrderParameters(
                 offerer,
@@ -825,25 +840,30 @@ contract Consideration is ConsiderationInterface {
             )
         );
 
+        // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(
             orderHash,
             offerer,
             parameters.signature
         );
 
+        // Determine if a proxy should be utilized and ensure a valid submitter.
         useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
             parameters.orderType,
             offerer,
             facilitator
         );
 
+        // If the offerer's proxy is being utilized, adjust the order type down.
         if (useOffererProxy) {
             // Skip underflow check: orderType >= 4 when useOffererProxy = true.
             unchecked {
+                // Adjust the order type.
                 parameters.orderType = OrderType(uint8(parameters.orderType) - 4);
             }
         }
 
+        // Return order hash and a bool for whether to utilize offerer's proxy.
         return (orderHash, useOffererProxy);
     }
 
@@ -871,6 +891,17 @@ contract Consideration is ConsiderationInterface {
         _orderStatus[orderHash].denominator = 1;
     }
 
+    /// @dev Internal function to validate an order, determine what portion to fill, and update its status.
+    /// The desired fill amount is supplied as a fraction, and the actual amount to fill is returned as a similar fraction.
+    /// @param order The order to validate and update status for.
+    /// @param numerator A value indicating the portion of the order that should be filled.
+    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
+    /// @param denominator A value indicating the total size of the order.
+    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
+    /// @return orderHash The order hash.
+    /// @return newNumerator A value indicating the portion of the order that will be filled.
+    /// @return newDenominator A value indicating the total size of the order.
+    /// @return useOffererProxy A boolean indicating whether to utilize the offerer's proxy.
     function _validateOrderAndUpdateStatus(
         Order memory order,
         uint120 numerator,
@@ -884,27 +915,33 @@ contract Consideration is ConsiderationInterface {
         // Ensure current timestamp falls between order start time and end time.
         _ensureValidTime(order.parameters.startTime, order.parameters.endTime);
 
+        // Ensure that the supplied numerator and denominator are valid.
         if (numerator > denominator || numerator == 0 || denominator == 0) {
             revert BadFraction();
         }
 
+        // Retrieve current nonce and use it w/ parameters to derive order hash.
         orderHash = _getNoncedOrderHash(order.parameters);
 
+        // Determine if a proxy should be utilized and ensure a valid submitter.
         useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
             order.parameters.orderType,
             order.parameters.offerer,
             order.parameters.facilitator
         );
 
+        // If the offerer's proxy is being utilized, adjust the order type down.
         if (useOffererProxy) {
             // Skip underflow check: orderType >= 4 when useOffererProxy = true.
             unchecked {
+                // Adjust the order type.
                 order.parameters.orderType = OrderType(
                     uint8(order.parameters.orderType) - 4
                 );
             }
         }
 
+        // Retrieve the order status and verify it.
         OrderStatus memory orderStatus = _getOrderStatusAndVerify(
             orderHash,
             order.parameters.offerer,
@@ -912,21 +949,29 @@ contract Consideration is ConsiderationInterface {
             false // allow partially used orders
         );
 
-        // denominator of zero: this is the first fill on this order
+        // If order currently has a non-zero denominator it is partially filled.
         if (orderStatus.denominator != 0) {
-            if (denominator == 1) { // full fill — just scale up to current denominator
+            // If denominator of 1 supplied, fill all remaining amount on order.
+            if (denominator == 1) {
+                // Scale numerator & denominator to match current denominator.
                 numerator = orderStatus.denominator;
                 denominator = orderStatus.denominator;
-            } else if (orderStatus.denominator != denominator) { // different denominator
+            } // Otherwise, if supplied denominator differs from current one...
+            else if (orderStatus.denominator != denominator) {
+                // scale current numerator by the supplied denominator, then...
                 orderStatus.numerator *= denominator;
+
+                // scale supplied numerator & denominator by current denominator.
                 numerator *= orderStatus.denominator;
                 denominator *= orderStatus.denominator;
             }
 
+            // Once adjusted, if current+supplied numerator exceeds denominator:
             if (orderStatus.numerator + numerator > denominator) {
                 // Skip underflow check: denominator >= orderStatus.numerator
                 unchecked {
-                    numerator = denominator - orderStatus.numerator; // adjust down
+                    // Reduce current numerator so it + supplied = denominator.
+                    numerator = denominator - orderStatus.numerator;
                 }
             }
 
@@ -946,6 +991,7 @@ contract Consideration is ConsiderationInterface {
             _orderStatus[orderHash].denominator = denominator;
         }
 
+        // Return order hash, new numerator and denominator, and proxy boolean.
         return (orderHash, numerator, denominator, useOffererProxy);
     }
 
