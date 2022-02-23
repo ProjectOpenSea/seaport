@@ -1335,6 +1335,9 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal function to transfer ether to a given recipient.
+    /// @param to The recipient of the transfer.
+    /// @param amount The amount to transfer.
     function _transferEth(address payable to, uint256 amount) internal {
         (bool ok, bytes memory data) = to.call{value: amount}("");
         if (!ok) {
@@ -1349,6 +1352,12 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal function to transfer ERC20 tokens from a given originator to a given recipient. Sufficient approvals must be set, either on the respective proxy or on this contract itself.
+    /// @param token The ERC20 token to transfer.
+    /// @param from The originator of the transfer.
+    /// @param to The recipient of the transfer.
+    /// @param amount The amount to transfer.
+    /// @param proxyOwner An address indicating the owner of the proxy to use when facilitating the transfer, or the null address if no proxy should be utilized.
     function _transferERC20(
         address token,
         address from,
@@ -1398,6 +1407,12 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal function to transfer an ERC721 token from a given originator to a given recipient. Sufficient approvals must be set, either on the respective proxy or on this contract itself.
+    /// @param token The ERC721 token to transfer.
+    /// @param from The originator of the transfer.
+    /// @param to The recipient of the transfer.
+    /// @param identifier The tokenId to transfer.
+    /// @param proxyOwner An address indicating the owner of the proxy to use when facilitating the transfer, or the null address if no proxy should be utilized.
     function _transferERC721(
         address token,
         address from,
@@ -1440,6 +1455,13 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
+    /// @dev Internal function to transfer ERC1155 tokens from a given originator to a given recipient. Sufficient approvals must be set, either on the respective proxy or on this contract itself.
+    /// @param token The ERC1155 token to transfer.
+    /// @param from The originator of the transfer.
+    /// @param to The recipient of the transfer.
+    /// @param identifier The tokenId to transfer.
+    /// @param amount The amount to transfer.
+    /// @param proxyOwner An address indicating the owner of the proxy to use when facilitating the transfer, or the null address if no proxy should be utilized.
     function _transferERC1155(
         address token,
         address from,
@@ -1484,6 +1506,8 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
+    /// @dev Internal function to transfer a batch of ERC1155 tokens from a given originator to a given recipient. Sufficient approvals must be set, either on the respective proxy or on this contract itself.
+    /// @param batchExecution The batch of 1155 tokens to be transferred.
     function _batchTransferERC1155(
         BatchExecution memory batchExecution
     ) internal {
