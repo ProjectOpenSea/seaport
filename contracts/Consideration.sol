@@ -1561,6 +1561,10 @@ contract Consideration is ConsiderationInterface {
         _assetContractIsDeployed(token, data.length);
     }
 
+    /// @dev Internal function to trigger a call to a proxy contract.
+    /// @param proxyOwner The original owner of the proxy in question.
+    /// Note that this owner may have been modified since the proxy was originally deployed.
+    /// @param callData The calldata to supply when calling the proxy.
     function _callProxy(
         address proxyOwner,
         bytes memory callData
@@ -1577,6 +1581,10 @@ contract Consideration is ConsiderationInterface {
         (ok, data) = proxy.call(callData);
     }
 
+    /// @dev Internal function to transfer Ether to a given recipient and to emit an OrderMatched event.
+    /// @param orderHash The order hash.
+    /// @param amount The amount of Ether to transfer.
+    /// @param parameters The parameters of the order.
     function _transferETHAndFinalize(
         bytes32 orderHash,
         uint256 amount,
@@ -1587,12 +1595,16 @@ contract Consideration is ConsiderationInterface {
 
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
+            // Retrieve the additional recipient.
             AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
+            
+            // Transfer Ether to the additional recipient.
             _transferEth(
                 additionalRecipient.account,
                 additionalRecipient.amount
             );
 
+            // Reduce ether value available.
             etherRemaining -= additionalRecipient.amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
@@ -1601,11 +1613,14 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
+        // Transfer Ether to the offerer.
         _transferEth(parameters.offerer, amount);
 
+        // If any Ether remains after transfers, return it to the caller.
         if (etherRemaining > amount) {
             // Skip underflow check as etherRemaining > amount.
             unchecked {
+                // Transfer remaining Ether to the caller.
                 _transferEth(payable(msg.sender), etherRemaining - amount);
             }
         }
@@ -1618,6 +1633,13 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
+    /// @dev Internal function to transfer ERC20 tokens to a given recipient and to emit an OrderMatched event.
+    /// @param from The originator of the ERC20 token transfer.
+    /// @param to The recipient of the ERC20 token transfer.
+    /// @param orderHash The order hash.
+    /// @param erc20Token The ERC20 token to transfer.
+    /// @param amount The amount of ERC20 tokens to transfer.
+    /// @param parameters The parameters of the order.
     function _transferERC20AndFinalize(
         address from,
         address to,
@@ -1633,7 +1655,10 @@ contract Consideration is ConsiderationInterface {
         unchecked {
             // Iterate over each additional recipient.
             for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
+                // Retrieve the additional recipient.
                 AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
+                
+                // Transfer ERC20 tokens to additional recipient given approval.
                 _transferERC20(
                     erc20Token,
                     from,
@@ -1661,6 +1686,7 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
+    /// @dev Internal function to ensure that the sentinel value for the reentrancy guard is not currently set and, if not, to set the sentinel value for the reentrancy guard.
     function _setReentrancyGuard() internal {
         // Ensure that the reentrancy guard is not already set.
         _assertNonReentrant();
@@ -1669,6 +1695,10 @@ contract Consideration is ConsiderationInterface {
         _reentrancyGuard = _ENTERED;
     }
 
+    /// @dev Internal function to emit an OrderFulfilled event and to clear the reentrancy guard.
+    /// @param orderHash The order hash.
+    /// @param offerer The offerer for the order.
+    /// @param facilitator The facilitator for the order.
     function _emitOrderFulfilledEventAndClearReentrancyGuard(
         bytes32 orderHash,
         address offerer,
@@ -1681,6 +1711,7 @@ contract Consideration is ConsiderationInterface {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
+    /// @dev Internal view function to ensure that the sentinel value for the reentrancy guard is not currently set.
     function _assertNonReentrant() internal view {
         // Ensure that the reentrancy guard is not currently set.
         if (_reentrancyGuard == _ENTERED) {
