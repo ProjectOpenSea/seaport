@@ -502,7 +502,7 @@ contract Consideration is ConsiderationInterface {
         bool useFulfillerProxy
     ) external payable override returns (bool) {
         // Ensure partial fills are supported by specified order.
-        _ensurePartialFillsEnabled(
+        _assertPartialFillsEnabled(
             numerator,
             denominator,
             order.parameters.orderType
@@ -538,7 +538,7 @@ contract Consideration is ConsiderationInterface {
         bool useFulfillerProxy
     ) external payable override returns (bool) {
         // Ensure partial fills are supported by specified order.
-        _ensurePartialFillsEnabled(
+        _assertPartialFillsEnabled(
             numerator,
             denominator,
             order.parameters.orderType
@@ -794,7 +794,7 @@ contract Consideration is ConsiderationInterface {
         uint256 endTime = parameters.endTime;
 
         // Ensure current timestamp falls between order start time and end time.
-        _ensureValidTime(startTime, endTime);
+        _assertValidTime(startTime, endTime);
 
         // Allocate memory: 1 offer, 1+additionalRecipients consideration items.
         OfferedAsset[] memory offer = new OfferedAsset[](1);
@@ -917,7 +917,7 @@ contract Consideration is ConsiderationInterface {
         bool useOffererProxy
     ) {
         // Ensure current timestamp falls between order start time and end time.
-        _ensureValidTime(order.parameters.startTime, order.parameters.endTime);
+        _assertValidTime(order.parameters.startTime, order.parameters.endTime);
 
         // Ensure that the supplied numerator and denominator are valid.
         if (numerator > denominator || numerator == 0 || denominator == 0) {
@@ -1712,13 +1712,6 @@ contract Consideration is ConsiderationInterface {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    /// @dev Internal view function to ensure that the sentinel value for the reentrancy guard is not currently set.
-    function _assertNonReentrant() internal view {
-        // Ensure that the reentrancy guard is not currently set.
-        if (_reentrancyGuard == _ENTERED) {
-            revert NoReentrantCalls();
-        }
-    }
     /// @dev Internal view function to retrieve the order status and verify it.
     /// @param orderHash The order hash.
     /// @param offerer The offerer for the order.
@@ -1766,57 +1759,6 @@ contract Consideration is ConsiderationInterface {
         return orderStatus;
     }
 
-    /// @dev Internal view function to validate whether a token transfer was successful based on the returned status and data. Note that malicious or non-compliant tokens may still return improper data — consider checking token balances before and after for more comprehensive transfer validation.
-    /// @param ok The status of the call to transfer.
-    /// Note that contract size must be checked on status of true and no returned data to rule out undeployed contracts.
-    /// @param dataLength The length of the data returned from the call to transfer.
-    /// Note that this value could also be read directly via returndatasize().
-    /// @param token The token to transfer.
-    /// @param from The originator of the transfer.
-    /// @param to The recipient of the transfer.
-    /// @param tokenId The tokenId to transfer (if applicable).
-    /// @param amount The amount to transfer (if applicable).
-    function _assertValidTokenTransfer(
-        bool ok,
-        uint256 dataLength,
-        address token,
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 amount
-    ) internal view {
-        if (!ok) {
-            if (dataLength != 0) {
-                assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
-                }
-            } else {
-                revert TokenTransferGenericFailure(token, from, to, tokenId, amount);
-            }
-        }
-
-        _assetContractIsDeployed(token, dataLength);
-    }
-
-    /// @dev Internal view function to asset that a contract is deployed to a given account.
-    /// @param account The account to check.
-    /// @param dataLength The length of data returned from the last call to the account.
-    function _assetContractIsDeployed(
-        address account,
-        uint256 dataLength
-    ) internal view {
-        if (dataLength == 0) {
-            uint256 size;
-            assembly {
-                size := extcodesize(account)
-            }
-            if (size == 0) {
-                revert NoContract(account);
-            }
-        }
-    }
-
     /// @dev Internal view function to derive the current amount of a given item based on the current price, the starting price, and the ending price. If the start and end prices differ, the current price will be extrapolated on a linear basis.
     /// @param order The original order.
     /// @return adjustedOrder An adjusted order with the current price set.
@@ -1858,19 +1800,6 @@ contract Consideration is ConsiderationInterface {
 
             // Return the modified order.
             return order;
-        }
-    }
-
-    /// @dev Internal view function to ensure that the current time falls within an order's valid timespan.
-    /// @param startTime The time at which the order becomes active.
-    /// @param endTime The time at which the order becomes inactive.
-    function _ensureValidTime(
-        uint256 startTime,
-        uint256 endTime
-    ) internal view {
-        // Revert if order's timespan hasn't started yet or has already ended.
-        if (startTime > block.timestamp || endTime < block.timestamp) {
-            revert InvalidTime();
         }
     }
 
@@ -2143,11 +2072,83 @@ contract Consideration is ConsiderationInterface {
         return endAmount;
     }
 
+    /// @dev Internal view function to ensure that the sentinel value for the reentrancy guard is not currently set.
+    function _assertNonReentrant() internal view {
+        // Ensure that the reentrancy guard is not currently set.
+        if (_reentrancyGuard == _ENTERED) {
+            revert NoReentrantCalls();
+        }
+    }
+
+    /// @dev Internal view function to ensure that the current time falls within an order's valid timespan.
+    /// @param startTime The time at which the order becomes active.
+    /// @param endTime The time at which the order becomes inactive.
+    function _assertValidTime(
+        uint256 startTime,
+        uint256 endTime
+    ) internal view {
+        // Revert if order's timespan hasn't started yet or has already ended.
+        if (startTime > block.timestamp || endTime < block.timestamp) {
+            revert InvalidTime();
+        }
+    }
+
+    /// @dev Internal view function to validate whether a token transfer was successful based on the returned status and data. Note that malicious or non-compliant tokens may still return improper data — consider checking token balances before and after for more comprehensive transfer validation.
+    /// @param ok The status of the call to transfer.
+    /// Note that contract size must be checked on status of true and no returned data to rule out undeployed contracts.
+    /// @param dataLength The length of the data returned from the call to transfer.
+    /// Note that this value could also be read directly via returndatasize().
+    /// @param token The token to transfer.
+    /// @param from The originator of the transfer.
+    /// @param to The recipient of the transfer.
+    /// @param tokenId The tokenId to transfer (if applicable).
+    /// @param amount The amount to transfer (if applicable).
+    function _assertValidTokenTransfer(
+        bool ok,
+        uint256 dataLength,
+        address token,
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 amount
+    ) internal view {
+        if (!ok) {
+            if (dataLength != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            } else {
+                revert TokenTransferGenericFailure(token, from, to, tokenId, amount);
+            }
+        }
+
+        _assetContractIsDeployed(token, dataLength);
+    }
+
+    /// @dev Internal view function to asset that a contract is deployed to a given account.
+    /// @param account The account to check.
+    /// @param dataLength The length of data returned from the last call to the account.
+    function _assetContractIsDeployed(
+        address account,
+        uint256 dataLength
+    ) internal view {
+        if (dataLength == 0) {
+            uint256 size;
+            assembly {
+                size := extcodesize(account)
+            }
+            if (size == 0) {
+                revert NoContract(account);
+            }
+        }
+    }
+
     /// @dev Internal pure function to ensure that partial fills are not attempted on orders that do not support them.
     /// @param numerator A value indicating the portion of the order that should be filled.
     /// @param denominator A value indicating the total size of the order.
     /// @param orderType The order type.
-    function _ensurePartialFillsEnabled(
+    function _assertPartialFillsEnabled(
         uint120 numerator,
         uint120 denominator,
         OrderType orderType
@@ -2263,6 +2264,11 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal pure function to "compress" executions, splitting them into "standard" (or unbatched) executions and "batch" executions.
+    /// Note that there may be additional compression that could be performed, such as allowing contrarian orders to cancel one another or to better aggregate standard orders.
+    /// @param executions An array of uncompressed executions.
+    /// @return standardExecutions An array of executions that could not be compressed.
+    /// @return batchExecutions An array of executions (all ERC1155 transfers) that have been compressed into batches.
     function _compressExecutions(
         Execution[] memory executions
     ) internal pure returns (
@@ -2380,6 +2386,14 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal pure function to complete the process of "compressing" executions.
+    /// @param executions An array of uncompressed executions.
+    /// @param batches An array of elements indicating which executions form the "baseline" for a batch.
+    /// @param usedInBatch An array of indices (incremented by one as zero indicates no batching) per execution indicating which batch the execution should be applied to.
+    /// @param totalUsedInBatch The total execution elements that can be batched.
+    /// @param totalBatches The total number of batch executions.
+    /// @return standardExecutions An array of executions that could not be compressed.
+    /// @return batchExecutions An array of executions (all ERC1155 transfers) that have been compressed into batches.
     function _splitExecution(
         Execution[] memory executions,
         Batch[] memory batches,
