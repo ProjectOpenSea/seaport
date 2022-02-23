@@ -647,23 +647,29 @@ contract Consideration is ConsiderationInterface {
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
+                // Retrieve the order.
                 Order memory order = orders[i];
 
+                // Derive the order hash.
                 bytes32 orderHash = _getNoncedOrderHash(order.parameters);
 
-                OrderStatus memory orderStatus = _getOrderStatus(
+                // Retrieve the order status and verify it.
+                OrderStatus memory orderStatus = _getOrderStatusAndVerify(
                     orderHash,
                     order.parameters.offerer,
                     order.signature,
-                    false // allow partially used orders (though they're already valid!)
+                    false // Note: partially used orders will fail next check.
                 );
 
+                // Ensure that the retrieved order is not already validated.
                 if (orderStatus.isValidated) {
                     revert OrderAlreadyValidated(orderHash);
                 }
 
+                // Update order status to mark the order as valid.
                 _orderStatus[orderHash].isValidated = true;
 
+                // Emit an event signifying order was successfully validated.
                 emit OrderValidated(
                     orderHash,
                     order.parameters.offerer,
@@ -763,6 +769,11 @@ contract Consideration is ConsiderationInterface {
         return _VERSION;
     }
 
+    /// @dev Internal function to derive and validate an order based on a set of parameters and a primary item for offer and consideration.
+    /// @param order The parameters of the basic order.
+    /// @param offeredAsset The primary item being offered.
+    /// @param receivedAsset The primary item being received as consideration.
+    /// @return The order hash and a boolean indicating whether to utilize the offerer's proxy.
     function _prepareBasicFulfillment(
         BasicOrderParameters memory parameters,
         OfferedAsset memory offeredAsset,
@@ -771,11 +782,13 @@ contract Consideration is ConsiderationInterface {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
+        // Pull frequently used arguments from memory and place on the stack.
         address payable offerer = parameters.offerer;
         address facilitator = parameters.facilitator;
         uint256 startTime = parameters.startTime;
         uint256 endTime = parameters.endTime;
 
+        // Ensure current timestamp falls between order start time and end time.
         _ensureValidTime(startTime, endTime);
 
         OfferedAsset[] memory offer = new OfferedAsset[](1);
@@ -837,18 +850,24 @@ contract Consideration is ConsiderationInterface {
         return (orderHash, useOffererProxy);
     }
 
+    /// @dev Internal function to verify and update the status of a basic order.
+    /// @param orderHash The hash of the order.
+    /// @param offerer The offerer of the order.
+    /// @param signature A signature from the offerer indicating that the order has been approved.
     function _validateBasicOrderAndUpdateStatus(
         bytes32 orderHash,
         address offerer,
         bytes memory signature
     ) internal {
-        _getOrderStatus(
+        // Verify the basic order in question.
+        _getOrderStatusAndVerify(
             orderHash,
             offerer,
             signature,
-            true // only allow unused orders
+            true // Only allow unused orders.
         );
 
+        // Update order status as fully filled, packing struct values.
         _orderStatus[orderHash].isValidated = true;
         _orderStatus[orderHash].isCancelled = false;
         _orderStatus[orderHash].numerator = 1;
@@ -865,6 +884,7 @@ contract Consideration is ConsiderationInterface {
         uint120 newDenominator,
         bool useOffererProxy
     ) {
+        // Ensure current timestamp falls between order start time and end time.
         _ensureValidTime(order.parameters.startTime, order.parameters.endTime);
 
         if (numerator > denominator || numerator == 0 || denominator == 0) {
@@ -887,7 +907,7 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
-        OrderStatus memory orderStatus = _getOrderStatus(
+        OrderStatus memory orderStatus = _getOrderStatusAndVerify(
             orderHash,
             order.parameters.offerer,
             order.signature,
@@ -912,12 +932,14 @@ contract Consideration is ConsiderationInterface {
             }
 
             unchecked {
+                // Update order status and fill amount, packing struct values.
                 _orderStatus[orderHash].isValidated = true;
                 _orderStatus[orderHash].isCancelled = false;
                 _orderStatus[orderHash].numerator = orderStatus.numerator + numerator;
                 _orderStatus[orderHash].denominator = denominator;
             }
         } else {
+            // Update order status and fill amount, packing struct values.
             _orderStatus[orderHash].isValidated = true;
             _orderStatus[orderHash].isCancelled = false;
             _orderStatus[orderHash].numerator = numerator;
@@ -1500,7 +1522,7 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
-    function _getOrderStatus(
+    function _getOrderStatusAndVerify(
         bytes32 orderHash,
         address offerer,
         bytes memory signature,
@@ -1621,6 +1643,7 @@ contract Consideration is ConsiderationInterface {
         uint256 startTime,
         uint256 endTime
     ) internal view {
+        // Revert if order's timespan hasn't started yet or has already ended.
         if (startTime > block.timestamp || endTime < block.timestamp) {
             revert InvalidTime();
         }
