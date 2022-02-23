@@ -952,6 +952,7 @@ contract Consideration is ConsiderationInterface {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
+        // Validate order, update status, and determine fraction to fill.
         (
             bytes32 orderHash,
             uint120 fillNumerator,
@@ -962,6 +963,7 @@ contract Consideration is ConsiderationInterface {
         // Adjust prices based on time, start amount, and end amount.
         _adjustOrderPrice(order);
 
+        // Apply criteria resolvers (requires array of orders to be supplied).
         Order[] memory orders = new Order[](1);
         orders[0] = order;
         order = _applyCriteriaResolvers(orders, criteriaResolvers);
@@ -1061,7 +1063,7 @@ contract Consideration is ConsiderationInterface {
                     uint120 numerator,
                     uint120 denominator,
                     bool useOffererProxy
-                ) = _validateOrderAndUpdateStatus(order, 1, 1);
+                ) = _validateOrderAndUpdateStatus(order, 1, 1); // fill maximum
 
                 // Adjust prices based on time, start amount, and end amount.
                 orders[i] = _adjustOrderPrice(order);
