@@ -568,9 +568,10 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable override returns (Execution[] memory) {
-        // Adjust order prices based on current time, startAmount and endAmount.
+        // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
+                // Adjust prices based on time, start amount, and end amount.
                 orders[i] = _adjustOrderPrice(orders[i]);
             }
         }
@@ -595,6 +596,7 @@ contract Consideration is ConsiderationInterface {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
+        // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 OrderComponents memory order = orders[i];
@@ -642,6 +644,7 @@ contract Consideration is ConsiderationInterface {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
+        // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < orders.length; ++i) {
                 Order memory order = orders[i];
@@ -789,7 +792,7 @@ contract Consideration is ConsiderationInterface {
 
                 // Iterate over each offered item on the order.
                 for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
-                    // 
+                    // Apply order fill fraction to each offer amount.
                     orders[i].parameters.offer[j].endAmount = _getFraction(
                         numerator,
                         denominator,
@@ -921,8 +924,10 @@ contract Consideration is ConsiderationInterface {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
-        // allocate fulfillment and schedule execution
+        // Allocate executions by fulfillment and apply them to each execution.
         Execution[] memory executions = new Execution[](fulfillments.length);
+
+        // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < fulfillments.length; ++i) {
                 executions[i] = _applyFulfillment(
@@ -932,7 +937,7 @@ contract Consideration is ConsiderationInterface {
                 );
             }
 
-            // ensure that all considerations have been met
+            // Ensure that all considerations have been met.
             for (uint256 i = 0; i < orders.length; ++i) {
                 ReceivedAsset[] memory considerations = orders[i].parameters.consideration;
                 for (uint256 j = 0; j < considerations.length; ++j) {
@@ -944,13 +949,13 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
-        // compress executions
+        // Compress executions.
         Execution[] memory standardExecutions;
         BatchExecution[] memory batchExecutions;
 
         (standardExecutions, batchExecutions) = _compressExecutions(executions);
 
-        // execute fulfillments
+        // Execute fulfillments.
         uint256 etherRemaining = msg.value;
         for (uint256 i = 0; i < standardExecutions.length;) {
             Execution memory execution = standardExecutions[i];
@@ -970,6 +975,7 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
+        // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < batchExecutions.length; ++i) {
                 _batchTransferERC1155(batchExecutions[i]);
@@ -1014,6 +1020,7 @@ contract Consideration is ConsiderationInterface {
             receivedAsset.identifierOrCriteria = 0;
         }
 
+        // Skip overflow checks as for loop is indexed starting at one.
         unchecked {
             for (uint256 i = 1; i < consideration.length; ++i) {
                 AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i - 1];
@@ -1194,6 +1201,7 @@ contract Consideration is ConsiderationInterface {
         uint256 amount,
         BasicOrderParameters memory parameters
     ) internal {
+        // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
                 AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i];
@@ -1552,6 +1560,7 @@ contract Consideration is ConsiderationInterface {
     function _adjustOrderPrice(
         Order memory order
     ) internal view returns (Order memory adjustedOrder) {
+        // Skip checks: for loops indexed at zero and durations are validated.
         unchecked {
             uint256 duration = order.parameters.endTime - order.parameters.startTime;
             uint256 elapsed = block.timestamp - order.parameters.startTime;
@@ -1734,6 +1743,7 @@ contract Consideration is ConsiderationInterface {
         bytes32[] memory offerHashes = new bytes32[](offerLength);
         bytes32[] memory considerationHashes = new bytes32[](considerationLength);
 
+        // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < offerLength; ++i) {
                 offerHashes[i] = _hashOfferedAsset(orderParameters.offer[i]);
@@ -1831,6 +1841,7 @@ contract Consideration is ConsiderationInterface {
         Order[] memory orders,
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure returns (Order memory initialOrder) {
+        // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < criteriaResolvers.length; ++i) {
                 CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
@@ -1932,6 +1943,7 @@ contract Consideration is ConsiderationInterface {
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
+        // Skip overflow checks as all incremented values start at low amounts.
         unchecked {
             uint256 totalExecutions = executions.length;
 
@@ -2051,6 +2063,7 @@ contract Consideration is ConsiderationInterface {
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
+        // Skip overflow checks as all incremented values start at low amounts.
         unchecked {
             uint256 totalExecutions = executions.length;
 
@@ -2285,6 +2298,8 @@ contract Consideration is ConsiderationInterface {
         bytes32[] memory proof
     ) internal pure {
         bytes32 computedHash = bytes32(leaf);
+
+        // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             for (uint256 i = 0; i < proof.length; ++i) {
                 bytes32 proofElement = proof[i];
