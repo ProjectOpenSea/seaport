@@ -1033,7 +1033,8 @@ contract Consideration is ConsiderationInterface {
         // Apply criteria resolvers (requires array of orders to be supplied).
         Order[] memory orders = new Order[](1);
         orders[0] = order;
-        order = _applyCriteriaResolvers(orders, criteriaResolvers);
+        _applyCriteriaResolvers(orders, criteriaResolvers);
+        order = orders[0];
 
         // Move the offerer from memory to the stack.
         address offerer = order.parameters.offerer;
@@ -2159,10 +2160,14 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal pure function to apply criteria resolvers containing specific token identifiers and associated proofs as well as fulfillments allocating offer components to consideration components.
+    /// @param orders The orders to apply criteria resolvers to.
+    /// @param criteriaResolvers An array where each element contains a reference to a specific order as well as that order's offer or consideration, a token identifier, and a proof that the supplied token identifier is contained in the order's merkle root.
+    /// Note that a root of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
     function _applyCriteriaResolvers(
         Order[] memory orders,
         CriteriaResolver[] memory criteriaResolvers
-    ) internal pure returns (Order memory initialOrder) {
+    ) internal pure {
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each criteria resolver.
@@ -2255,8 +2260,6 @@ contract Consideration is ConsiderationInterface {
                     }
                 }
             }
-
-            return orders[0];
         }
     }
 
