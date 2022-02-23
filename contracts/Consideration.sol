@@ -1058,8 +1058,8 @@ contract Consideration is ConsiderationInterface {
                 etherRemaining -= consideration.endAmount;
             }
 
-            // Transfer expected token from caller to consideration recipient.
-            _fulfill(
+            // Transfer the item from the caller to the consideration recipient.
+            _transfer(
                 consideration,
                 msg.sender,
                 useFulfillerProxy
@@ -1095,8 +1095,8 @@ contract Consideration is ConsiderationInterface {
                 etherRemaining -= asset.endAmount;
             }
 
-            // Transfer expected token from offerer to caller.
-            _fulfill(
+            // Transfer the item from the offerer to the caller.
+            _transfer(
                 asset,
                 offerer,
                 useOffererProxy
@@ -1186,7 +1186,7 @@ contract Consideration is ConsiderationInterface {
         return useOffererProxyPerOrder;
     }
 
-    /// @dev Internal function to fulfill an arbitrary number of orders after validating, adjusting, and applying criteria resolvers .
+    /// @dev Internal function to fulfill an arbitrary number of orders after validating, adjusting, and applying criteria resolvers.
     /// Note that this function does not support partial filling of orders (though filling the remainder of a partially-filled order is supported).
     /// @param orders The orders to match.
     /// @param fulfillments An array of elements allocating offer components to consideration components.
@@ -1253,8 +1253,8 @@ contract Consideration is ConsiderationInterface {
                 etherRemaining -= execution.asset.endAmount;
             }
 
-            // Fulfill the execution.
-            _fulfill(
+            // Transfer the item specified by the execution.
+            _transfer(
                 execution.asset,
                 execution.offerer,
                 execution.useProxy
@@ -1286,7 +1286,12 @@ contract Consideration is ConsiderationInterface {
         return (executions, batchExecutions);
     }
 
-    function _fulfill(
+    /// @dev Internal function to transfer a given item.
+    /// Note that this function does not support partial filling of orders (though filling the remainder of a partially-filled order is supported).
+    /// @param asset The item to transfer, including the amount and the to address.
+    /// @param offerer The account offering the item, i.e. the from address.
+    /// @param useProxy A boolean indicating whether to source approvals for the fulfilled token from the offer's proxy.
+    function _transfer(
         ReceivedAsset memory asset,
         address offerer,
         bool useProxy
