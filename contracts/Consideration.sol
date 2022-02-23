@@ -568,14 +568,6 @@ contract Consideration is ConsiderationInterface {
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable override returns (Execution[] memory) {
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            for (uint256 i = 0; i < orders.length; ++i) {
-                // Adjust prices based on time, start amount, and end amount.
-                orders[i] = _adjustOrderPrice(orders[i]);
-            }
-        }
-
         // Adjust orders by filled amount and determine if they utilize proxies.
         bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(orders);
 
@@ -770,10 +762,11 @@ contract Consideration is ConsiderationInterface {
     }
 
     /// @dev Internal function to derive and validate an order based on a set of parameters and a primary item for offer and consideration.
-    /// @param order The parameters of the basic order.
+    /// @param parameters The parameters of the basic order.
     /// @param offeredAsset The primary item being offered.
     /// @param receivedAsset The primary item being received as consideration.
-    /// @return The order hash and a boolean indicating whether to utilize the offerer's proxy.
+    /// @return orderHash The order hash.
+    /// @return useOffererProxy A boolean indicating whether to utilize the offerer's proxy.
     function _prepareBasicFulfillment(
         BasicOrderParameters memory parameters,
         OfferedAsset memory offeredAsset,
@@ -949,66 +942,6 @@ contract Consideration is ConsiderationInterface {
         return (orderHash, numerator, denominator, useOffererProxy);
     }
 
-    /// @dev Internal function to validate a group of orders, update their statuses, and reduce their amounts by their previously filled fractions.
-    /// @param orders The orders to validate and reduce by previously filled amounts.
-    /// @return A list of boolean indicating whether to utilize a proxy for each order.
-    function _validateOrdersAndApplyPartials(
-        Order[] memory orders
-    ) internal returns (bool[] memory) {
-        // Declare memory region to determine proxy utilization per order.
-        bool[] memory useOffererProxyPerOrder = new bool[](orders.length);
-
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over each order.
-            for (uint256 i = 0; i < orders.length; ++i) {
-                // Retrieve the current order.
-                Order memory order = orders[i];
-
-                // Validate it, update status, and determine fraction to fill.
-                (
-                    bytes32 orderHash,
-                    uint120 numerator,
-                    uint120 denominator,
-                    bool useOffererProxy
-                ) = _validateOrderAndUpdateStatus(order, 1, 1);
-
-                // Mark whether order should utilize offerer's proxy.
-                useOffererProxyPerOrder[i] = useOffererProxy;
-
-                // Iterate over each offered item on the order.
-                for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
-                    // Apply order fill fraction to each offer amount.
-                    orders[i].parameters.offer[j].endAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        orders[i].parameters.offer[j].endAmount
-                    );
-                }
-
-                // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
-                    // Apply order fill fraction to each consideration amount.
-                    orders[i].parameters.consideration[j].endAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        orders[i].parameters.consideration[j].endAmount
-                    );
-                }
-
-                // Emit an event signifying that the order will be fulfilled.
-                emit OrderFulfilled(
-                    orderHash,
-                    orders[i].parameters.offerer,
-                    orders[i].parameters.facilitator
-                );
-            }
-        }
-
-        // Return memory region designating proxy utilization per order.
-        return useOffererProxyPerOrder;
-    }
-
     function _fulfillOrder(
         Order memory order,
         uint120 numerator,
@@ -1019,14 +952,15 @@ contract Consideration is ConsiderationInterface {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
-        _adjustOrderPrice(order);
-
         (
             bytes32 orderHash,
             uint120 fillNumerator,
             uint120 fillDenominator,
             bool useOffererProxy
         ) = _validateOrderAndUpdateStatus(order, numerator, denominator);
+
+        // Adjust prices based on time, start amount, and end amount.
+        _adjustOrderPrice(order);
 
         Order[] memory orders = new Order[](1);
         orders[0] = order;
@@ -1103,6 +1037,69 @@ contract Consideration is ConsiderationInterface {
         );
 
         return true;
+    }
+
+    /// @dev Internal function to validate a group of orders, update their statuses, and reduce their amounts by their previously filled fractions.
+    /// @param orders The orders to validate and reduce by previously filled amounts.
+    /// @return A list of boolean indicating whether to utilize a proxy for each order.
+    function _validateOrdersAndApplyPartials(
+        Order[] memory orders
+    ) internal returns (bool[] memory) {
+        // Declare memory region to determine proxy utilization per order.
+        bool[] memory useOffererProxyPerOrder = new bool[](orders.length);
+
+        // Skip overflow checks as all for loops are indexed starting at zero.
+        unchecked {
+            // Iterate over each order.
+            for (uint256 i = 0; i < orders.length; ++i) {
+                // Retrieve the current order.
+                Order memory order = orders[i];
+
+                // Validate it, update status, and determine fraction to fill.
+                (
+                    bytes32 orderHash,
+                    uint120 numerator,
+                    uint120 denominator,
+                    bool useOffererProxy
+                ) = _validateOrderAndUpdateStatus(order, 1, 1);
+
+                // Adjust prices based on time, start amount, and end amount.
+                orders[i] = _adjustOrderPrice(order);
+
+                // Mark whether order should utilize offerer's proxy.
+                useOffererProxyPerOrder[i] = useOffererProxy;
+
+                // Iterate over each offered item on the order.
+                for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
+                    // Apply order fill fraction to each offer amount.
+                    orders[i].parameters.offer[j].endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        orders[i].parameters.offer[j].endAmount
+                    );
+                }
+
+                // Iterate over each consideration item on the order.
+                for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
+                    // Apply order fill fraction to each consideration amount.
+                    orders[i].parameters.consideration[j].endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        orders[i].parameters.consideration[j].endAmount
+                    );
+                }
+
+                // Emit an event signifying that the order will be fulfilled.
+                emit OrderFulfilled(
+                    orderHash,
+                    orders[i].parameters.offerer,
+                    orders[i].parameters.facilitator
+                );
+            }
+        }
+
+        // Return memory region designating proxy utilization per order.
+        return useOffererProxyPerOrder;
     }
 
     function _fulfillOrders(
