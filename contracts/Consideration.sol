@@ -852,7 +852,7 @@ contract Consideration is ConsiderationInterface {
         );
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
-        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
+        useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
             parameters.orderType,
             offerer,
             facilitator
@@ -928,7 +928,7 @@ contract Consideration is ConsiderationInterface {
         orderHash = _getNoncedOrderHash(order.parameters);
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
-        useOffererProxy = _adjustOrderTypeAndCheckSubmitter(
+        useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
             order.parameters.orderType,
             order.parameters.offerer,
             order.parameters.facilitator
@@ -1718,7 +1718,11 @@ contract Consideration is ConsiderationInterface {
             revert NoReentrantCalls();
         }
     }
-
+    /// @dev Internal view function to retrieve the order status and verify it.
+    /// @param orderHash The order hash.
+    /// @param offerer The offerer for the order.
+    /// @param signature A signature from the offerer indicating that the order has been approved.
+    /// @param onlyAllowUnused A boolean flag indicating whether partial fills are supported by the calling function.
     function _getOrderStatusAndVerify(
         bytes32 orderHash,
         address offerer,
@@ -1761,6 +1765,16 @@ contract Consideration is ConsiderationInterface {
         return orderStatus;
     }
 
+    /// @dev Internal view function to validate whether a token transfer was successful based on the returned status and data. Note that malicious or non-compliant tokens may still return improper data — consider checking token balances before and after for more comprehensive transfer validation.
+    /// @param ok The status of the call to transfer.
+    /// Note that contract size must be checked on status of true and no returned data to rule out undeployed contracts.
+    /// @param dataLength The length of the data returned from the call to transfer.
+    /// Note that this value could also be read directly via returndatasize().
+    /// @param token The token to transfer.
+    /// @param from The originator of the transfer.
+    /// @param to The recipient of the transfer.
+    /// @param tokenId The tokenId to transfer (if applicable).
+    /// @param amount The amount to transfer (if applicable).
     function _assertValidTokenTransfer(
         bool ok,
         uint256 dataLength,
@@ -1784,6 +1798,9 @@ contract Consideration is ConsiderationInterface {
         _assetContractIsDeployed(token, dataLength);
     }
 
+    /// @dev Internal view function to asset that a contract is deployed to a given account.
+    /// @param account The account to check.
+    /// @param dataLength The length of data returned from the last call to the account.
     function _assetContractIsDeployed(
         address account,
         uint256 dataLength
@@ -1799,11 +1816,13 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal view function to derive the current amount of a given item based on the current price, the starting price, and the ending price. If the start and end prices differ, the current price will be extrapolated on a linear basis.
     function _adjustOrderPrice(
         Order memory order
     ) internal view returns (Order memory adjustedOrder) {
         // Skip checks: for loops indexed at zero and durations are validated.
         unchecked {
+            // Derive total order duration and total time elapsed and remaining.
             uint256 duration = order.parameters.endTime - order.parameters.startTime;
             uint256 elapsed = block.timestamp - order.parameters.startTime;
             uint256 remaining = duration - elapsed;
@@ -1839,6 +1858,9 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal view function to ensure that the current time falls within an order's valid timespan.
+    /// @param startTime The time at which the order becomes active.
+    /// @param endTime The time at which the order becomes inactive.
     function _ensureValidTime(
         uint256 startTime,
         uint256 endTime
@@ -1849,6 +1871,11 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal view function to verify the signature of an order. An ERC-1271 fallback will be attempted should the recovered signature not match the supplied offerer.
+    /// Note that only non-malleable 32-byte or 33-byte ECDSA signatures are supported.
+    /// @param offerer The offerer for the order.
+    /// @param orderHash The order hash.
+    /// @param signature A signature from the offerer indicating that the order has been approved.
     function _verifySignature(
         address offerer,
         bytes32 orderHash,
@@ -1924,10 +1951,12 @@ contract Consideration is ConsiderationInterface {
         }
     }
 
+    /// @dev Internal view function to get the EIP-712 domain separator. If the chainId matches the chainId set on deployment, the cached domain separator will be returned; otherwise, it will be derived from scratch.
     function _domainSeparator() internal view returns (bytes32) {
         return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _deriveDomainSeparator();
     }
 
+    /// @dev Internal view function to derive the EIP-712 domain separator.
     function _deriveDomainSeparator() internal view returns (bytes32) {
         return keccak256(
             abi.encode(
@@ -1940,6 +1969,9 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
+    /// @dev Internal view function to derive the EIP-712 hash for an offererd asset.
+    /// @param offeredAsset The offered asset to hash.
+    /// @return The hash.
     function _hashOfferedAsset(
         OfferedAsset memory offeredAsset
     ) internal view returns (bytes32) {
@@ -1955,6 +1987,9 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
+    /// @dev Internal view function to derive the EIP-712 hash for a received asset.
+    /// @param receivedAsset The received asset to hash.
+    /// @return The hash.
     function _hashReceivedAsset(
         ReceivedAsset memory receivedAsset
     ) internal view returns (bytes32) {
@@ -1971,15 +2006,10 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
-    function _getNoncedOrderHash(
-        OrderParameters memory orderParameters
-    ) internal view returns (bytes32) {
-        return _getOrderHash(
-            orderParameters,
-            _facilitatorNonces[orderParameters.offerer][orderParameters.facilitator]
-        );
-    }
-
+    /// @dev Internal view function to derive the order hash for a given order.
+    /// @param orderParameters The parameters of the order to hash.
+    /// @param nonce The nonce of the order to hash.
+    /// @return The hash.
     function _getOrderHash(
         OrderParameters memory orderParameters,
         uint256 nonce
@@ -2018,7 +2048,24 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
-    function _adjustOrderTypeAndCheckSubmitter(
+    /// @dev Internal view function to retrieve the current nonce for a given order's offerer and facilitator and use that to derive the order hash.
+    /// @param orderParameters The parameters of the order to hash.
+    /// @return The hash.
+    function _getNoncedOrderHash(
+        OrderParameters memory orderParameters
+    ) internal view returns (bytes32) {
+        return _getOrderHash(
+            orderParameters,
+            _facilitatorNonces[orderParameters.offerer][orderParameters.facilitator]
+        );
+    }
+
+    /// @dev Internal view function to determine if a proxy should be utilized for a given order and to ensure that the submitter is allowed by the order type.
+    /// @param orderType The type of the order.
+    /// @param offerer The offerer in question.
+    /// @param facilitator The facilitator in question.
+    /// @return useOffererProxy A boolean indicating whether a proxy should be utilized for the order.
+    function _determineProxyUtilizationAndEnsureValidSubmitter(
         OrderType orderType,
         address offerer,
         address facilitator
