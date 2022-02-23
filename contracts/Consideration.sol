@@ -685,10 +685,11 @@ contract Consideration is ConsiderationInterface {
             revert OnlyOffererOrFacilitatorMayIncrementNonce();
         }
 
+        // Increment current nonce for the supplied offerer + facilitator pair.
         newNonce = ++_facilitatorNonces[offerer][facilitator];
 
+        // Emit an event containing the new nonce and return it.
         emit FacilitatorNonceIncremented(offerer, facilitator, newNonce);
-
         return newNonce;
     }
 
@@ -698,6 +699,7 @@ contract Consideration is ConsiderationInterface {
     function getOrderStatus(
         bytes32 orderHash
     ) external view override returns (OrderStatus memory) {
+        // Return the order status.
         return _orderStatus[orderHash];
     }
 
@@ -709,12 +711,14 @@ contract Consideration is ConsiderationInterface {
         address offerer,
         address facilitator
     ) external view override returns (uint256) {
+        // Return the nonce for the supplied offerer + facilitator pair.
         return _facilitatorNonces[offerer][facilitator];
     }
 
     /// @dev Retrieve the domain separator, used for signing orders via EIP-712.
     /// @return The domain separator.
     function DOMAIN_SEPARATOR() external view override returns (bytes32) {
+        // Get domain separator, either precomputed or derived based on chainId.
         return _domainSeparator();
     }
 
@@ -724,6 +728,7 @@ contract Consideration is ConsiderationInterface {
     function getOrderHash(
         OrderComponents memory order
     ) external view override returns (bytes32) {
+        // Derive order hash by supplying order parameters along with the nonce.
         return _getOrderHash(
             OrderParameters(
                 order.offerer,
@@ -742,46 +747,15 @@ contract Consideration is ConsiderationInterface {
     /// @dev Retrieve the name of this contract.
     /// @return The name of this contract.
     function name() external pure override returns (string memory) {
+        // Return the name of the contract.
         return _NAME;
     }
 
     /// @dev Retrieve the version of this contract.
     /// @return The version of this contract.
     function version() external pure override returns (string memory) {
+        // Return the version.
         return _VERSION;
-    }
-
-    function _getOrderStatus(
-        bytes32 orderHash,
-        address offerer,
-        bytes memory signature,
-        bool onlyAllowUnused
-    ) internal view returns (OrderStatus memory) {
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-        if (orderStatus.isCancelled) {
-            revert OrderIsCancelled(orderHash);
-        }
-
-        if (
-            orderStatus.numerator != 0 &&
-            (
-                onlyAllowUnused ||
-                orderStatus.numerator >= orderStatus.denominator
-            )
-        ) {
-            if (orderStatus.numerator < orderStatus.denominator) {
-                revert OrderNotUnused(orderHash);
-            }
-
-            revert OrderUsed(orderHash);
-        }
-
-        _verifySignature(
-            offerer, orderHash, signature
-        );
-
-        return orderStatus;
     }
 
     function _validateOrdersAndApplyPartials(
@@ -1480,6 +1454,48 @@ contract Consideration is ConsiderationInterface {
         if (_reentrancyGuard == _ENTERED) {
             revert NoReentrantCalls();
         }
+    }
+
+    function _getOrderStatus(
+        bytes32 orderHash,
+        address offerer,
+        bytes memory signature,
+        bool onlyAllowUnused
+    ) internal view returns (OrderStatus memory) {
+        // Retrieve the order status for the given order hash.
+        OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+        // Ensure that the order has not been cancelled.
+        if (orderStatus.isCancelled) {
+            revert OrderIsCancelled(orderHash);
+        }
+
+        // The order must be either entirely unused, or...
+        if (
+            orderStatus.numerator != 0 &&
+            (   // partially unused and able to support partial fills.
+                onlyAllowUnused ||
+                orderStatus.numerator >= orderStatus.denominator
+            )
+        ) {
+            // A partially filled order indicates no support for partial fills.
+            if (orderStatus.numerator < orderStatus.denominator) {
+                revert OrderNotUnused(orderHash);
+            }
+
+            // Otherwise, the order is fully filled.
+            revert OrderUsed(orderHash);
+        }
+
+        // If the order is not already validated, verify the supplied signature.
+        if (!orderStatus.isValidated) {
+            _verifySignature(
+                offerer, orderHash, signature
+            );
+        }
+
+        // Return the order status.
+        return orderStatus;
     }
 
     function _assertValidTokenTransfer(
