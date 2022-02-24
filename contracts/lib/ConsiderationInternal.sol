@@ -642,7 +642,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address proxyOwner
     ) internal {
         // Attempt to transfer the ERC20 token via...
-        (bool ok, bytes memory data) = (
+        (bool ok,) = (
             // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
@@ -671,7 +671,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
             ok,
-            data.length,
             token,
             from,
             to,
@@ -679,18 +678,25 @@ contract ConsiderationInternal is ConsiderationInternalView {
             amount
         );
 
-        // If data is returned...
-        if (data.length >= 32) {
-            // and the returned data evaluates to false...
-            if (!abi.decode(data, (bool))) {
-                // Revert with a "Bad Return Value" error.
-                revert BadReturnValueFromERC20OnTransfer(
-                    token,
-                    from,
-                    to,
-                    amount
-                );
+        // Extract result directly from returndata buffer if one is returned.
+        bool result = true;
+        assembly {
+            // Only put result on the stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) { // If returndata == 32 (one word)...
+                returndatacopy(0, 0, 0x20)  // copy return data to memory in scratch space
+                result := mload(0)          // load return data from memory to the stack
             }
+        }
+
+        // If a falsey result is extracted...
+        if (!result) {
+            // Revert with a "Bad Return Value" error.
+            revert BadReturnValueFromERC20OnTransfer(
+                token,
+                from,
+                to,
+                amount
+            );
         }
     }
 
@@ -708,7 +714,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address proxyOwner
     ) internal {
         // Attempt to transfer the ERC721 token via...
-        (bool ok, bytes memory data) = (
+        (bool ok,) = (
             // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
@@ -737,7 +743,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
             ok,
-            data.length,
             token,
             from,
             to,
@@ -762,7 +767,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address proxyOwner
     ) internal {
         // Attempt to transfer the ERC1155 token via...
-        (bool ok, bytes memory data) = (
+        (bool ok, ) = (
             // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
@@ -792,7 +797,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
             ok,
-            data.length,
             token,
             from,
             to,
@@ -816,7 +820,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory amounts = batchExecution.amounts;
 
         // Attempt to transfer the ERC1155 token via...
-        (bool ok, bytes memory data) = (
+        (bool ok,) = (
             // The proxy if it is specified by the batch execution...
             batchExecution.useProxy
                 ? _callProxy(
@@ -845,8 +849,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // If the call fails...
         if (!ok) {
-            // and there's data returned...
-            if (data.length != 0) {
+            // find out whether data was returned.
+            uint256 returnDataSize;
+            assembly {
+                returnDataSize := returndatasize()
+            }
+
+            // If there's data returned...
+            if (returnDataSize != 0) {
                 // then bubble up the revert reason.
                 assembly {
                     returndatacopy(0, 0, returndatasize()) // Copy returndata to memory.
@@ -865,7 +875,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Ensure that a contract is deployed to the token address.
-        _assertContractIsDeployed(token, data.length);
+        _assertContractIsDeployed(token);
     }
 
     /// @dev Internal function to trigger a call to a proxy contract.

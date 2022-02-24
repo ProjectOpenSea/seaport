@@ -47,11 +47,11 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
-    /// @dev Internal view function to validate whether a token transfer was successful based on the returned status and data. Note that malicious or non-compliant tokens may still return improper data — consider checking token balances before and after for more comprehensive transfer validation.
+    /// @dev Internal view function to validate whether a token transfer was successful based on the returned status and data.
+    /// Note that malicious or non-compliant tokens (like fee-on-transfer tokens) may still return improper data — consider checking token balances before and after for more comprehensive transfer validation.
+    /// Also note that this function must be called after the account in question has been called and before any other contracts have been called.
     /// @param ok The status of the call to transfer.
     /// Note that contract size must be checked on status of true and no returned data to rule out undeployed contracts.
-    /// @param dataLength The length of the data returned from the call to transfer.
-    /// Note that this value could also be read directly via returndatasize().
     /// @param token The token to transfer.
     /// @param from The originator of the transfer.
     /// @param to The recipient of the transfer.
@@ -59,39 +59,56 @@ contract ConsiderationInternalView is ConsiderationPure {
     /// @param amount The amount to transfer (if applicable).
     function _assertValidTokenTransfer(
         bool ok,
-        uint256 dataLength,
         address token,
         address from,
         address to,
         uint256 tokenId,
         uint256 amount
     ) internal view {
+        // If the call failed...
         if (!ok) {
-            if (dataLength != 0) {
+            // find out whether data was returned.
+            uint256 returnDataSize;
+            assembly {
+                returnDataSize := returndatasize()
+            }
+
+            // If data was returned...
+            if (returnDataSize != 0) {
+                // load it into memory and revert, bubbling up revert reason.
                 assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
+                    returndatacopy(0, 0, returndatasize()) // Copy returndata to scratch space
+                    revert(0, returndatasize()) // Revert, returning memory region
                 }
             } else {
+                // Otherwise, revert with a generic error.
                 revert TokenTransferGenericFailure(token, from, to, tokenId, amount);
             }
         }
 
-        _assertContractIsDeployed(token, dataLength);
+        // Ensure that the token contract has code.
+        _assertContractIsDeployed(token);
     }
 
     /// @dev Internal view function to item that a contract is deployed to a given account.
+    /// Note that this function must be called after the account in question has been called and before any other contracts have been called.
     /// @param account The account to check.
-    /// @param dataLength The length of data returned from the last call to the account.
-    function _assertContractIsDeployed(
-        address account,
-        uint256 dataLength
-    ) internal view {
-        if (dataLength == 0) {
+    function _assertContractIsDeployed(address account) internal view {
+        // Find out whether data was returned by inspecting returndata buffer.
+        uint256 returnDataSize;
+        assembly {
+            returnDataSize := returndatasize()
+        }
+
+        // If no data was returned...
+        if (returnDataSize == 0) {
+            // get the codesize of the account.
             uint256 size;
             assembly {
                 size := extcodesize(account)
             }
+
+            // Ensure that the account has code.
             if (size == 0) {
                 revert NoContract(account);
             }
