@@ -613,14 +613,20 @@ contract ConsiderationInternal is ConsiderationBase {
     /// @param to The recipient of the transfer.
     /// @param amount The amount to transfer.
     function _transferEth(address payable to, uint256 amount) internal {
+        // Attempt to transfer the ether to the recipient.
         (bool ok, bytes memory data) = to.call{value: amount}("");
+
+        // If the call fails...
         if (!ok) {
+            // and there's data returned...
             if (data.length != 0) {
+                // then bubble up the revert reason.
                 assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
+                    returndatacopy(0, 0, returndatasize()) // Copy returndata to memory.
+                    revert(0, returndatasize()) // Revert, supplying returndata.
                 }
             } else {
+                // Otherwise, revert with a generic error message.
                 revert EtherTransferGenericFailure(to, amount);
             }
         }
@@ -639,7 +645,9 @@ contract ConsiderationInternal is ConsiderationBase {
         uint256 amount,
         address proxyOwner
     ) internal {
+        // Attempt to transfer the ERC20 token via...
         (bool ok, bytes memory data) = (
+            // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
                     proxyOwner,
@@ -651,6 +659,7 @@ contract ConsiderationInternal is ConsiderationBase {
                         amount
                     )
                 )
+                // otherwise, via the token contract directly.
                 : token.call(
                     abi.encodeCall(
                         ERC20Interface.transferFrom,
@@ -663,6 +672,7 @@ contract ConsiderationInternal is ConsiderationBase {
                 )
         );
 
+        // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
             ok,
             data.length,
@@ -673,11 +683,18 @@ contract ConsiderationInternal is ConsiderationBase {
             amount
         );
 
-        if (!(
-            data.length >= 32 &&
-            abi.decode(data, (bool))
-        )) {
-            revert BadReturnValueFromERC20OnTransfer(token, from, to, amount);
+        // If data is returned...
+        if (data.length >= 32) {
+            // and the returned data evaluates to false...
+            if (!abi.decode(data, (bool))) {
+                // Revert with a "Bad Return Value" error.
+                revert BadReturnValueFromERC20OnTransfer(
+                    token,
+                    from,
+                    to,
+                    amount
+                );
+            }
         }
     }
 
@@ -694,7 +711,9 @@ contract ConsiderationInternal is ConsiderationBase {
         uint256 identifier,
         address proxyOwner
     ) internal {
+        // Attempt to transfer the ERC721 token via...
         (bool ok, bytes memory data) = (
+            // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
                     proxyOwner,
@@ -706,6 +725,7 @@ contract ConsiderationInternal is ConsiderationBase {
                         identifier
                     )
                 )
+                // otherwise, via the token contract directly.
                 : token.call(
                     abi.encodeCall(
                         ERC721Interface.transferFrom,
@@ -718,6 +738,7 @@ contract ConsiderationInternal is ConsiderationBase {
                 )
         );
 
+        // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
             ok,
             data.length,
@@ -744,7 +765,9 @@ contract ConsiderationInternal is ConsiderationBase {
         uint256 amount,
         address proxyOwner
     ) internal {
+        // Attempt to transfer the ERC1155 token via...
         (bool ok, bytes memory data) = (
+            // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
                     proxyOwner,
@@ -757,6 +780,7 @@ contract ConsiderationInternal is ConsiderationBase {
                         amount
                     )
                 )
+                // otherwise, via the token contract directly.
                 : token.call(
                     abi.encodeWithSelector(
                         ERC1155Interface.safeTransferFrom.selector,
@@ -769,6 +793,7 @@ contract ConsiderationInternal is ConsiderationBase {
                 )
         );
 
+        // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
             ok,
             data.length,
@@ -785,12 +810,18 @@ contract ConsiderationInternal is ConsiderationBase {
     function _batchTransferERC1155(
         BatchExecution memory batchExecution
     ) internal {
+        // Place elements of the batch execution in memory onto the stack.
         address token = batchExecution.token;
         address from = batchExecution.from;
         address to = batchExecution.to;
+
+        // Retrieve the tokenIds and amounts.
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
+
+        // Attempt to transfer the ERC1155 token via...
         (bool ok, bytes memory data) = (
+            // The proxy if it is specified by the batch execution...
             batchExecution.useProxy
                 ? _callProxy(
                     batchExecution.from,
@@ -803,6 +834,7 @@ contract ConsiderationInternal is ConsiderationBase {
                         amounts
                     )
                 )
+                // otherwise, via the token contract directly.
                 : token.call(
                     abi.encodeWithSelector(
                         ERC1155Interface.safeBatchTransferFrom.selector,
@@ -815,13 +847,17 @@ contract ConsiderationInternal is ConsiderationBase {
                 )
         );
 
+        // If the call fails...
         if (!ok) {
+            // and there's data returned...
             if (data.length != 0) {
+                // then bubble up the revert reason.
                 assembly {
-                    returndatacopy(0, 0, returndatasize())
-                    revert(0, returndatasize())
+                    returndatacopy(0, 0, returndatasize()) // Copy returndata to memory.
+                    revert(0, returndatasize()) // Revert, supplying returndata.
                 }
             } else {
+                // Otherwise, revert with a generic 1155 batch transfer error.
                 revert ERC1155BatchTransferGenericFailure(
                     token,
                     from,
@@ -832,7 +868,8 @@ contract ConsiderationInternal is ConsiderationBase {
             }
         }
 
-        _itemContractIsDeployed(token, data.length);
+        // Ensure that a contract is deployed to the token address.
+        _assertContractIsDeployed(token, data.length);
     }
 
     /// @dev Internal function to trigger a call to a proxy contract.
@@ -1383,13 +1420,13 @@ contract ConsiderationInternal is ConsiderationBase {
             }
         }
 
-        _itemContractIsDeployed(token, dataLength);
+        _assertContractIsDeployed(token, dataLength);
     }
 
     /// @dev Internal view function to item that a contract is deployed to a given account.
     /// @param account The account to check.
     /// @param dataLength The length of data returned from the last call to the account.
-    function _itemContractIsDeployed(
+    function _assertContractIsDeployed(
         address account,
         uint256 dataLength
     ) internal view {
