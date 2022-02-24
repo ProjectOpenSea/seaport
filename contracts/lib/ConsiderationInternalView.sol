@@ -26,6 +26,78 @@ contract ConsiderationInternalView is ConsiderationPure {
         address requiredProxyImplementation
     ) ConsiderationPure(legacyProxyRegistry, requiredProxyImplementation) {}
 
+    /// @dev Internal view function to ensure that the sentinel value for the reentrancy guard is not currently set.
+    function _assertNonReentrant() internal view {
+        // Ensure that the reentrancy guard is not currently set.
+        if (_reentrancyGuard == _ENTERED) {
+            revert NoReentrantCalls();
+        }
+    }
+
+    /// @dev Internal view function to ensure that the current time falls within an order's valid timespan.
+    /// @param startTime The time at which the order becomes active.
+    /// @param endTime The time at which the order becomes inactive.
+    function _assertValidTime(
+        uint256 startTime,
+        uint256 endTime
+    ) internal view {
+        // Revert if order's timespan hasn't started yet or has already ended.
+        if (startTime > block.timestamp || endTime < block.timestamp) {
+            revert InvalidTime();
+        }
+    }
+
+    /// @dev Internal view function to validate whether a token transfer was successful based on the returned status and data. Note that malicious or non-compliant tokens may still return improper data — consider checking token balances before and after for more comprehensive transfer validation.
+    /// @param ok The status of the call to transfer.
+    /// Note that contract size must be checked on status of true and no returned data to rule out undeployed contracts.
+    /// @param dataLength The length of the data returned from the call to transfer.
+    /// Note that this value could also be read directly via returndatasize().
+    /// @param token The token to transfer.
+    /// @param from The originator of the transfer.
+    /// @param to The recipient of the transfer.
+    /// @param tokenId The tokenId to transfer (if applicable).
+    /// @param amount The amount to transfer (if applicable).
+    function _assertValidTokenTransfer(
+        bool ok,
+        uint256 dataLength,
+        address token,
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 amount
+    ) internal view {
+        if (!ok) {
+            if (dataLength != 0) {
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            } else {
+                revert TokenTransferGenericFailure(token, from, to, tokenId, amount);
+            }
+        }
+
+        _assertContractIsDeployed(token, dataLength);
+    }
+
+    /// @dev Internal view function to item that a contract is deployed to a given account.
+    /// @param account The account to check.
+    /// @param dataLength The length of data returned from the last call to the account.
+    function _assertContractIsDeployed(
+        address account,
+        uint256 dataLength
+    ) internal view {
+        if (dataLength == 0) {
+            uint256 size;
+            assembly {
+                size := extcodesize(account)
+            }
+            if (size == 0) {
+                revert NoContract(account);
+            }
+        }
+    }
+
     /// @dev Internal view function to retrieve the order status and verify it.
     /// @param orderHash The order hash.
     /// @param offerer The offerer for the order.
