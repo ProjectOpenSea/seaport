@@ -48,5 +48,5 @@ interface ConsiderationEventsAndErrors {
     error BadFraction();
     error InexactFraction();
     error NoReentrantCalls();
-    error InvalidUserProxyImplementation();
+    error InvalidProxyImplementation();
 }

@@ -891,7 +891,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Assert that the user proxy has the correct implementation.
         if (ProxyInterface(proxy).implementation() != _REQUIRED_PROXY_IMPLEMENTATION) {
-            revert InvalidUserProxyImplementation();
+            revert InvalidProxyImplementation();
         }
 
         // perform the call to the proxy.
