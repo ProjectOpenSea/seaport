@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import { ItemType } from "./Enums.sol";
+import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol";
+
+import { ItemType } from "./lib/Enums.sol";
 
 import {
     BasicOrderParameters,
@@ -15,11 +17,9 @@ import {
     OrderStatus,
     CriteriaResolver,
     BatchExecution
-} from "./Structs.sol";
+} from "./lib/Structs.sol";
 
-import { ConsiderationInterface } from "./ConsiderationInterface.sol";
-
-import { ConsiderationInternal } from "./ConsiderationInternal.sol";
+import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
 
 /// @title Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
 /// It prioritizes minimizing external calls to the greatest extent possible and

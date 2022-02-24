@@ -2,6 +2,14 @@
 pragma solidity 0.8.12;
 
 import {
+    ERC20Interface,
+    ERC721Interface,
+    ERC1155Interface
+} from "../interfaces/AbridgedTokenInterfaces.sol";
+
+import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
+
+import {
     OrderType,
     ItemType
 } from "./Enums.sol";
@@ -20,14 +28,6 @@ import {
     Batch,
     BatchExecution
 } from "./Structs.sol";
-
-import {
-    ERC20Interface,
-    ERC721Interface,
-    ERC1155Interface
-} from "./AbridgedTokenInterfaces.sol";
-
-import { ProxyInterface } from "./AbridgedProxyInterfaces.sol";
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
 

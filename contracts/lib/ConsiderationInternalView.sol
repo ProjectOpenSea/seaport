@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
+import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
+
 import { OrderType } from "./Enums.sol";
 
 import {
@@ -10,8 +12,6 @@ import {
     Order,
     OrderStatus
 } from "./Structs.sol";
-
-import { EIP1271Interface } from "./EIP1271Interface.sol";
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
 

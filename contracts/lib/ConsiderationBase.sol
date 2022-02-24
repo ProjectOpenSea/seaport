@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
+import { ProxyRegistryInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
+
+import { ConsiderationEventsAndErrors } from "../interfaces/ConsiderationEventsAndErrors.sol";
+
 import { OrderStatus } from "./Structs.sol";
-
-import { ProxyRegistryInterface } from "./AbridgedProxyInterfaces.sol";
-
-import { ConsiderationEventsAndErrors } from "./ConsiderationEventsAndErrors.sol";
 
 /// @title ConsiderationBase contains all storage, constants, and constructor logic.
 /// @author 0age

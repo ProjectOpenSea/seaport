@@ -10,7 +10,7 @@ import {
     Order,
     OrderStatus,
     CriteriaResolver
-} from "./Structs.sol";
+} from "../lib/Structs.sol";
 
 /// @title ConsiderationInterface contains all external function interfaces for Consideration.
 /// @author 0age
