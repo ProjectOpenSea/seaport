@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 
 import {
     OrderType,
-    AssetType,
+    ItemType,
     Side
 } from "./Enums.sol";
 
@@ -26,16 +26,16 @@ struct BasicOrderParameters {
     AdditionalRecipient[] additionalRecipients;
 }
 
-struct OfferedAsset {
-    AssetType assetType;
+struct OfferedItem {
+    ItemType itemType;
     address token;
     uint256 identifierOrCriteria;
     uint256 startAmount;
     uint256 endAmount;
 }
 
-struct ReceivedAsset {
-    AssetType assetType;
+struct ReceivedItem {
+    ItemType itemType;
     address token;
     uint256 identifierOrCriteria;
     uint256 startAmount;
@@ -50,8 +50,8 @@ struct OrderParameters {
     uint256 startTime;
     uint256 endTime;
     uint256 salt;
-    OfferedAsset[] offer;
-    ReceivedAsset[] consideration;
+    OfferedItem[] offer;
+    ReceivedItem[] consideration;
 }
 
 struct OrderComponents {
@@ -61,14 +61,14 @@ struct OrderComponents {
     uint256 startTime;
     uint256 endTime;
     uint256 salt;
-    OfferedAsset[] offer;
-    ReceivedAsset[] consideration;
+    OfferedItem[] offer;
+    ReceivedItem[] consideration;
     uint256 nonce;
 }
 
 struct FulfillmentComponent {
     uint256 orderIndex;
-    uint256 assetIndex;
+    uint256 itemIndex;
 }
 
 struct Fulfillment {
@@ -77,7 +77,7 @@ struct Fulfillment {
 }
 
 struct Execution {
-    ReceivedAsset asset;
+    ReceivedItem item;
     address offerer;
     bool useProxy;
 }

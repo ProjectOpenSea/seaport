@@ -153,8 +153,8 @@ interface ConsiderationInterface {
     error UnresolvedConsiderationCriteria();
     error OfferCriteriaResolverOutOfRange();
     error ConsiderationCriteriaResolverOutOfRange();
-    error CriteriaNotEnabledForOfferedAsset();
-    error CriteriaNotEnabledForConsideredAsset();
+    error CriteriaNotEnabledForOfferedItem();
+    error CriteriaNotEnabledForConsideredItem();
     error InvalidProof();
     error OnlyOffererOrFacilitatorMayCancel();
     error OnlyOffererOrFacilitatorMayIncrementNonce();

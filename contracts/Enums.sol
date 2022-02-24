@@ -12,7 +12,7 @@ enum OrderType {
     PARTIAL_RESTRICTED_VIA_PROXY // partial fills supported, only offerer or facilitator can execute, routed through proxy
 }
 
-enum AssetType {
+enum ItemType {
     ETH,
     ERC20,
     ERC721,
@@ -22,6 +22,6 @@ enum AssetType {
 }
 
 enum Side {
-    OFFER,
-    CONSIDERATION
+    OFFER,          // Items being supplied
+    CONSIDERATION   // Items being received
 }

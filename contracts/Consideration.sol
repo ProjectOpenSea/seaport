@@ -3,15 +3,15 @@ pragma solidity 0.8.12;
 
 import {
     OrderType,
-    AssetType,
+    ItemType,
     Side
 } from "./Enums.sol";
 
 import {
     AdditionalRecipient,
     BasicOrderParameters,
-    OfferedAsset,
-    ReceivedAsset,
+    OfferedItem,
+    ReceivedItem,
     OrderParameters,
     OrderComponents,
     Fulfillment,
@@ -58,8 +58,8 @@ contract Consideration is ConsiderationInterface {
     bytes32 internal immutable _NAME_HASH;
     bytes32 internal immutable _VERSION_HASH;
     bytes32 internal immutable _EIP_712_DOMAIN_TYPEHASH;
-    bytes32 internal immutable _OFFERED_ASSET_TYPEHASH;
-    bytes32 internal immutable _RECEIVED_ASSET_TYPEHASH;
+    bytes32 internal immutable _OFFERED_ITEM_TYPEHASH;
+    bytes32 internal immutable _RECEIVED_ITEM_TYPEHASH;
     bytes32 internal immutable _ORDER_HASH;
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
@@ -90,9 +90,9 @@ contract Consideration is ConsiderationInterface {
         _NAME_HASH = keccak256(bytes(_NAME));
         _VERSION_HASH = keccak256(bytes(_VERSION));
         _EIP_712_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-        _OFFERED_ASSET_TYPEHASH = keccak256("OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)");
-        _RECEIVED_ASSET_TYPEHASH = keccak256("ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
-        _ORDER_HASH = keccak256("OrderComponents(address offerer,address facilitator,OfferedAsset[] offer,ReceivedAsset[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedAsset(uint8 assetType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
+        _OFFERED_ITEM_TYPEHASH = keccak256("OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)");
+        _RECEIVED_ITEM_TYPEHASH = keccak256("ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
+        _ORDER_HASH = keccak256("OrderComponents(address offerer,address facilitator,OfferedItem[] offer,ReceivedItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
 
@@ -120,15 +120,15 @@ contract Consideration is ConsiderationInterface {
         // Derive and validate order using parameters and update order status.
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
-            OfferedAsset(
-                AssetType.ERC721,
+            OfferedItem(
+                ItemType.ERC721,
                 parameters.token,
                 parameters.identifier,
                 1,                     // Amount of 1 for ERC721
                 1                      // Amount of 1 for ERC721
             ),
-            ReceivedAsset(
-                AssetType.ETH,
+            ReceivedItem(
+                ItemType.ETH,
                 address(0),    // No token address for ETH
                 0,             // No identifier for ETH
                 etherAmount,
@@ -175,15 +175,15 @@ contract Consideration is ConsiderationInterface {
         // Derive and validate order using parameters and update order status.
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
-            OfferedAsset(
-                AssetType.ERC1155,
+            OfferedItem(
+                ItemType.ERC1155,
                 parameters.token,
                 parameters.identifier,
                 erc1155Amount,
                 erc1155Amount
             ),
-            ReceivedAsset(
-                AssetType.ETH,
+            ReceivedItem(
+                ItemType.ETH,
                 address(0),    // No token address for ETH
                 0,             // No identifier for ETH
                 etherAmount,
@@ -227,15 +227,15 @@ contract Consideration is ConsiderationInterface {
         // Derive and validate order using parameters and update order status.
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
-            OfferedAsset(
-                AssetType.ERC721,
+            OfferedItem(
+                ItemType.ERC721,
                 parameters.token,
                 parameters.identifier,
                 1,                     // Amount of 1 for ERC721
                 1                      // Amount of 1 for ERC721
             ),
-            ReceivedAsset(
-                AssetType.ERC20,
+            ReceivedItem(
+                ItemType.ERC20,
                 erc20Token,
                 0,                  // No identifier for ERC20 token
                 erc20Amount,
@@ -284,15 +284,15 @@ contract Consideration is ConsiderationInterface {
         // Derive and validate order using parameters and update order status.
         (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
             parameters,
-            OfferedAsset(
-                AssetType.ERC1155,
+            OfferedItem(
+                ItemType.ERC1155,
                 parameters.token,
                 parameters.identifier,
                 erc1155Amount,
                 erc1155Amount
             ),
-            ReceivedAsset(
-                AssetType.ERC20,
+            ReceivedItem(
+                ItemType.ERC20,
                 erc20Token,
                 0,                  // No identifier for ERC20 token
                 erc20Amount,
@@ -342,15 +342,15 @@ contract Consideration is ConsiderationInterface {
         // Derive and validate order using parameters and update order status.
         (bytes32 orderHash,) = _prepareBasicFulfillment(
             parameters,
-            OfferedAsset(
-                AssetType.ERC20,
+            OfferedItem(
+                ItemType.ERC20,
                 erc20Token,
                 0,               // No identifier for ERC20 token
                 erc20Amount,
                 erc20Amount
             ),
-            ReceivedAsset(
-                AssetType.ERC721,
+            ReceivedItem(
+                ItemType.ERC721,
                 parameters.token,
                 parameters.identifier,
                 1,                     // Amount of 1 for ERC721
@@ -402,15 +402,15 @@ contract Consideration is ConsiderationInterface {
         // Derive and validate order using parameters and update order status.
         (bytes32 orderHash,) = _prepareBasicFulfillment(
             parameters,
-            OfferedAsset(
-                AssetType.ERC20,
+            OfferedItem(
+                ItemType.ERC20,
                 erc20Token,
                 0,               // No identifier for ERC20 token
                 erc20Amount,
                 erc20Amount
             ),
-            ReceivedAsset(
-                AssetType.ERC1155,
+            ReceivedItem(
+                ItemType.ERC1155,
                 parameters.token,
                 parameters.identifier,
                 erc1155Amount,
@@ -775,14 +775,14 @@ contract Consideration is ConsiderationInterface {
 
     /// @dev Internal function to derive and validate an order based on a set of parameters and a primary item for offer and consideration.
     /// @param parameters The parameters of the basic order.
-    /// @param offeredAsset The primary item being offered.
-    /// @param receivedAsset The primary item being received as consideration.
+    /// @param offeredItem The primary item being offered.
+    /// @param receivedItem The primary item being received as consideration.
     /// @return orderHash The order hash.
     /// @return useOffererProxy A boolean indicating whether to utilize the offerer's proxy.
     function _prepareBasicFulfillment(
         BasicOrderParameters memory parameters,
-        OfferedAsset memory offeredAsset,
-        ReceivedAsset memory receivedAsset
+        OfferedItem memory offeredItem,
+        ReceivedItem memory receivedItem
     ) internal returns (bytes32 orderHash, bool useOffererProxy) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -797,20 +797,20 @@ contract Consideration is ConsiderationInterface {
         _assertValidTime(startTime, endTime);
 
         // Allocate memory: 1 offer, 1+additionalRecipients consideration items.
-        OfferedAsset[] memory offer = new OfferedAsset[](1);
-        ReceivedAsset[] memory consideration = new ReceivedAsset[](
+        OfferedItem[] memory offer = new OfferedItem[](1);
+        ReceivedItem[] memory consideration = new ReceivedItem[](
             1 + parameters.additionalRecipients.length
         );
 
         // Set primary offer + consideration item as respective first elements.
-        offer[0] = offeredAsset;
-        consideration[0] = receivedAsset;
+        offer[0] = offeredItem;
+        consideration[0] = receivedItem;
 
-        // Use offered asset's info for additional recipients if it is an ERC20.
-        if (offeredAsset.assetType == AssetType.ERC20) {
-            receivedAsset.assetType = AssetType.ERC20;
-            receivedAsset.token = offeredAsset.token;
-            receivedAsset.identifierOrCriteria = 0;
+        // Use offered item's info for additional recipients if it is an ERC20.
+        if (offeredItem.itemType == ItemType.ERC20) {
+            receivedItem.itemType = ItemType.ERC20;
+            receivedItem.token = offeredItem.token;
+            receivedItem.identifierOrCriteria = 0;
         }
 
         // Skip overflow checks as for loop is indexed starting at one.
@@ -821,12 +821,12 @@ contract Consideration is ConsiderationInterface {
                 AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i - 1];
 
                 // Update consideration item w/ info from additional recipient.
-                receivedAsset.account = additionalRecipient.account;
-                receivedAsset.startAmount = additionalRecipient.amount;
-                receivedAsset.endAmount = additionalRecipient.amount;
+                receivedItem.account = additionalRecipient.account;
+                receivedItem.startAmount = additionalRecipient.amount;
+                receivedItem.endAmount = additionalRecipient.amount;
 
                 // Set new received item as an additional consideration item.
-                consideration[i] = receivedAsset;
+                consideration[i] = receivedItem;
             }
         }
 
@@ -1045,7 +1045,7 @@ contract Consideration is ConsiderationInterface {
         // Iterate over each consideration on the order.
         for (uint256 i = 0; i < order.parameters.consideration.length;) {
             // Retrieve the consideration item.
-            ReceivedAsset memory consideration = order.parameters.consideration[i];
+            ReceivedItem memory consideration = order.parameters.consideration[i];
 
             // Apply order fill fraction to each consideration amount.
             consideration.endAmount = _getFraction(
@@ -1055,7 +1055,7 @@ contract Consideration is ConsiderationInterface {
             );
 
             // If consideration expects ETH, reduce ether value available.
-            if (consideration.assetType == AssetType.ETH) {
+            if (consideration.itemType == ItemType.ETH) {
                 etherRemaining -= consideration.endAmount;
             }
 
@@ -1075,11 +1075,11 @@ contract Consideration is ConsiderationInterface {
         // Iterate over each offer on the order.
         for (uint256 i = 0; i < order.parameters.offer.length;) {
             // Retrieve the offer item.
-            OfferedAsset memory offer = order.parameters.offer[i];
+            OfferedItem memory offer = order.parameters.offer[i];
 
             // Apply order fill fraction and set the caller as the receiver.
-            ReceivedAsset memory asset = ReceivedAsset(
-                offer.assetType,
+            ReceivedItem memory item = ReceivedItem(
+                offer.itemType,
                 offer.token,
                 offer.identifierOrCriteria,
                 0,
@@ -1092,13 +1092,13 @@ contract Consideration is ConsiderationInterface {
             );
 
             // If offer expects ETH, reduce ether value available.
-            if (asset.assetType == AssetType.ETH) {
-                etherRemaining -= asset.endAmount;
+            if (item.itemType == ItemType.ETH) {
+                etherRemaining -= item.endAmount;
             }
 
             // Transfer the item from the offerer to the caller.
             _transfer(
-                asset,
+                item,
                 offerer,
                 useOffererProxy
             );
@@ -1219,7 +1219,7 @@ contract Consideration is ConsiderationInterface {
 
             // Iterate over each order to ensure all considerations are met.
             for (uint256 i = 0; i < orders.length; ++i) {
-                ReceivedAsset[] memory considerations = orders[i].parameters.consideration;
+                ReceivedItem[] memory considerations = orders[i].parameters.consideration;
 
                 // Iterate over each consideration on order to ensure it is met.
                 for (uint256 j = 0; j < considerations.length; ++j) {
@@ -1250,13 +1250,13 @@ contract Consideration is ConsiderationInterface {
             Execution memory execution = standardExecutions[i];
 
             // If execution transfers ETH, reduce ether value available.
-            if (execution.asset.assetType == AssetType.ETH) {
-                etherRemaining -= execution.asset.endAmount;
+            if (execution.item.itemType == ItemType.ETH) {
+                etherRemaining -= execution.item.endAmount;
             }
 
             // Transfer the item specified by the execution.
             _transfer(
-                execution.asset,
+                execution.item,
                 execution.offerer,
                 execution.useProxy
             );
@@ -1289,47 +1289,47 @@ contract Consideration is ConsiderationInterface {
 
     /// @dev Internal function to transfer a given item.
     /// Note that this function does not support partial filling of orders (though filling the remainder of a partially-filled order is supported).
-    /// @param asset The item to transfer, including the amount and the to address.
+    /// @param item The item to transfer, including the amount and the to address.
     /// @param offerer The account offering the item, i.e. the from address.
     /// @param useProxy A boolean indicating whether to source approvals for the fulfilled token from the offer's proxy.
     function _transfer(
-        ReceivedAsset memory asset,
+        ReceivedItem memory item,
         address offerer,
         bool useProxy
     ) internal {
-        if (asset.assetType == AssetType.ETH) {
+        if (item.itemType == ItemType.ETH) {
             // Transfer Ether to the recipient.
-            _transferEth(asset.account, asset.endAmount);
+            _transferEth(item.account, item.endAmount);
         } else {
             // Place proxy owner on stack (or null address if not using proxy).
             address proxyOwner = useProxy ? offerer : address(0);
             
-            if (asset.assetType == AssetType.ERC20) {
+            if (item.itemType == ItemType.ERC20) {
                 // Transfer ERC20 token from the offerer to the recipient.
                 _transferERC20(
-                    asset.token,
+                    item.token,
                     offerer,
-                    asset.account,
-                    asset.endAmount,
+                    item.account,
+                    item.endAmount,
                     proxyOwner
                 );
-            } else if (asset.assetType == AssetType.ERC721) {
+            } else if (item.itemType == ItemType.ERC721) {
                 // Transfer ERC721 token from the offerer to the recipient.
                 _transferERC721(
-                    asset.token,
+                    item.token,
                     offerer,
-                    asset.account,
-                    asset.identifierOrCriteria,
+                    item.account,
+                    item.identifierOrCriteria,
                     proxyOwner
                 );
             } else {
                 // Transfer ERC1155 token from the offerer to the recipient.
                 _transferERC1155(
-                    asset.token,
+                    item.token,
                     offerer,
-                    asset.account,
-                    asset.identifierOrCriteria,
-                    asset.endAmount,
+                    item.account,
+                    item.identifierOrCriteria,
+                    item.endAmount,
                     proxyOwner
                 );
             }
@@ -1559,7 +1559,7 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
-        _assetContractIsDeployed(token, data.length);
+        _itemContractIsDeployed(token, data.length);
     }
 
     /// @dev Internal function to trigger a call to a proxy contract.
@@ -1901,39 +1901,39 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
-    /// @dev Internal view function to derive the EIP-712 hash for an offererd asset.
-    /// @param offeredAsset The offered asset to hash.
+    /// @dev Internal view function to derive the EIP-712 hash for an offererd item.
+    /// @param offeredItem The offered item to hash.
     /// @return The hash.
-    function _hashOfferedAsset(
-        OfferedAsset memory offeredAsset
+    function _hashOfferedItem(
+        OfferedItem memory offeredItem
     ) internal view returns (bytes32) {
         return keccak256(
             abi.encode(
-                _OFFERED_ASSET_TYPEHASH,
-                offeredAsset.assetType,
-                offeredAsset.token,
-                offeredAsset.identifierOrCriteria,
-                offeredAsset.startAmount,
-                offeredAsset.endAmount
+                _OFFERED_ITEM_TYPEHASH,
+                offeredItem.itemType,
+                offeredItem.token,
+                offeredItem.identifierOrCriteria,
+                offeredItem.startAmount,
+                offeredItem.endAmount
             )
         );
     }
 
-    /// @dev Internal view function to derive the EIP-712 hash for a received asset.
-    /// @param receivedAsset The received asset to hash.
+    /// @dev Internal view function to derive the EIP-712 hash for a received item.
+    /// @param receivedItem The received item to hash.
     /// @return The hash.
-    function _hashReceivedAsset(
-        ReceivedAsset memory receivedAsset
+    function _hashReceivedItem(
+        ReceivedItem memory receivedItem
     ) internal view returns (bytes32) {
         return keccak256(
             abi.encode(
-                _RECEIVED_ASSET_TYPEHASH,
-                receivedAsset.assetType,
-                receivedAsset.token,
-                receivedAsset.identifierOrCriteria,
-                receivedAsset.startAmount,
-                receivedAsset.endAmount,
-                receivedAsset.account
+                _RECEIVED_ITEM_TYPEHASH,
+                receivedItem.itemType,
+                receivedItem.token,
+                receivedItem.identifierOrCriteria,
+                receivedItem.startAmount,
+                receivedItem.endAmount,
+                receivedItem.account
             )
         );
     }
@@ -1955,12 +1955,12 @@ contract Consideration is ConsiderationInterface {
         unchecked {
             // Iterate over each offer on the order.
             for (uint256 i = 0; i < offerLength; ++i) {
-                offerHashes[i] = _hashOfferedAsset(orderParameters.offer[i]);
+                offerHashes[i] = _hashOfferedItem(orderParameters.offer[i]);
             }
 
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < considerationLength; ++i) {
-                considerationHashes[i] = _hashReceivedAsset(orderParameters.consideration[i]);
+                considerationHashes[i] = _hashReceivedItem(orderParameters.consideration[i]);
             }
         }
 
@@ -2021,7 +2021,7 @@ contract Consideration is ConsiderationInterface {
     /// @param to The recipient of the transfer.
     /// @param useProxy A boolean indicating whether to utilize a proxy for the transfer.
     /// @return The hash.
-    function _hashBatchableAssetIdentifier(
+    function _hashBatchableItemIdentifier(
         address token,
         address from,
         address to,
@@ -2123,13 +2123,13 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
-        _assetContractIsDeployed(token, dataLength);
+        _itemContractIsDeployed(token, dataLength);
     }
 
-    /// @dev Internal view function to asset that a contract is deployed to a given account.
+    /// @dev Internal view function to item that a contract is deployed to a given account.
     /// @param account The account to check.
     /// @param dataLength The length of data returned from the last call to the account.
-    function _assetContractIsDeployed(
+    function _itemContractIsDeployed(
         address account,
         uint256 dataLength
     ) internal view {
@@ -2189,16 +2189,16 @@ contract Consideration is ConsiderationInterface {
                         revert OfferCriteriaResolverOutOfRange();
                     }
 
-                    OfferedAsset memory offer = orders[orderIndex].parameters.offer[componentIndex];
-                    AssetType assetType = offer.assetType;
+                    OfferedItem memory offer = orders[orderIndex].parameters.offer[componentIndex];
+                    ItemType itemType = offer.itemType;
                     if (
-                        assetType != AssetType.ERC721_WITH_CRITERIA &&
-                        assetType != AssetType.ERC1155_WITH_CRITERIA
+                        itemType != ItemType.ERC721_WITH_CRITERIA &&
+                        itemType != ItemType.ERC1155_WITH_CRITERIA
                     ) {
-                        revert CriteriaNotEnabledForOfferedAsset();
+                        revert CriteriaNotEnabledForOfferedItem();
                     }
 
-                    // empty criteria signifies a collection-wide offer (sell any asset)
+                    // empty criteria signifies a collection-wide offer (sell any item)
                     if (offer.identifierOrCriteria != uint256(0)) {
                         _verifyProof(
                             criteriaResolver.identifier,
@@ -2207,10 +2207,10 @@ contract Consideration is ConsiderationInterface {
                         );
                     }
 
-                    orders[orderIndex].parameters.offer[componentIndex].assetType = (
-                        assetType == AssetType.ERC721_WITH_CRITERIA
-                            ? AssetType.ERC721
-                            : AssetType.ERC1155
+                    orders[orderIndex].parameters.offer[componentIndex].itemType = (
+                        itemType == ItemType.ERC721_WITH_CRITERIA
+                            ? ItemType.ERC721
+                            : ItemType.ERC1155
                     );
 
                     orders[orderIndex].parameters.offer[componentIndex].identifierOrCriteria = criteriaResolver.identifier;
@@ -2219,16 +2219,16 @@ contract Consideration is ConsiderationInterface {
                         revert ConsiderationCriteriaResolverOutOfRange();
                     }
 
-                    ReceivedAsset memory consideration = orders[orderIndex].parameters.consideration[componentIndex];
-                    AssetType assetType = consideration.assetType;
+                    ReceivedItem memory consideration = orders[orderIndex].parameters.consideration[componentIndex];
+                    ItemType itemType = consideration.itemType;
                     if (
-                        assetType != AssetType.ERC721_WITH_CRITERIA &&
-                        assetType != AssetType.ERC1155_WITH_CRITERIA
+                        itemType != ItemType.ERC721_WITH_CRITERIA &&
+                        itemType != ItemType.ERC1155_WITH_CRITERIA
                     ) {
-                        revert CriteriaNotEnabledForConsideredAsset();
+                        revert CriteriaNotEnabledForConsideredItem();
                     }
 
-                    // empty criteria signifies a collection-wide consideration (buy any asset)
+                    // empty criteria signifies a collection-wide consideration (buy any item)
                     if (consideration.identifierOrCriteria != uint256(0)) {
                         _verifyProof(
                             criteriaResolver.identifier,
@@ -2237,10 +2237,10 @@ contract Consideration is ConsiderationInterface {
                         );
                     }
 
-                    orders[orderIndex].parameters.consideration[componentIndex].assetType = (
-                        assetType == AssetType.ERC721_WITH_CRITERIA
-                            ? AssetType.ERC721
-                            : AssetType.ERC1155
+                    orders[orderIndex].parameters.consideration[componentIndex].itemType = (
+                        itemType == ItemType.ERC721_WITH_CRITERIA
+                            ? ItemType.ERC721
+                            : ItemType.ERC1155
                     );
 
                     orders[orderIndex].parameters.consideration[componentIndex].identifierOrCriteria = criteriaResolver.identifier;
@@ -2250,13 +2250,13 @@ contract Consideration is ConsiderationInterface {
             for (uint256 i = 0; i < orders.length; ++i) {
                 Order memory order = orders[i];
                 for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
-                    if (uint256(order.parameters.consideration[j].assetType) > 3) {
+                    if (uint256(order.parameters.consideration[j].itemType) > 3) {
                         revert UnresolvedConsiderationCriteria();
                     }
                 }
 
                 for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
-                    if (uint256(order.parameters.offer[j].assetType) > 3) {
+                    if (uint256(order.parameters.offer[j].itemType) > 3) {
                         revert UnresolvedOfferCriteria();
                     }
                 }
@@ -2288,7 +2288,7 @@ contract Consideration is ConsiderationInterface {
 
             // Iterate over each execution.
             for (uint256 i = 0; i < executions.length; ++i) {
-                if (executions[i].asset.assetType == AssetType.ERC1155) {
+                if (executions[i].item.itemType == ItemType.ERC1155) {
                     indexBy1155[total1155Executions] = i;
                     ++total1155Executions;
                 }
@@ -2302,11 +2302,11 @@ contract Consideration is ConsiderationInterface {
 
             uint256 initialExecutionIndex = indexBy1155[0];
             Execution memory initialExecution = executions[initialExecutionIndex];
-            ReceivedAsset memory initialAsset = initialExecution.asset;
-            bytes32 hash = _hashBatchableAssetIdentifier(
-                initialAsset.token,
+            ReceivedItem memory initialItem = initialExecution.item;
+            bytes32 hash = _hashBatchableItemIdentifier(
+                initialItem.token,
                 initialExecution.offerer,
-                initialAsset.account,
+                initialItem.account,
                 initialExecution.useProxy
             );
 
@@ -2321,12 +2321,12 @@ contract Consideration is ConsiderationInterface {
             for (uint256 i = 1; i < total1155Executions; ++i) {
                 uint256 executionIndex = indexBy1155[i];
                 Execution memory execution = executions[executionIndex];
-                ReceivedAsset memory asset = execution.asset;
+                ReceivedItem memory item = execution.item;
 
-                hash = _hashBatchableAssetIdentifier(
-                    asset.token,
+                hash = _hashBatchableItemIdentifier(
+                    item.token,
                     execution.offerer,
-                    asset.account,
+                    item.account,
                     execution.useProxy
                 );
 
@@ -2431,9 +2431,9 @@ contract Consideration is ConsiderationInterface {
                     if (executeWithBatch[batchUsed].token == address(0)) {
                         uint256 tokenElements = batches[batchUsed].executionIndices.length;
                         executeWithBatch[batchUsed] = BatchExecution({
-                            token: execution.asset.token,
+                            token: execution.item.token,
                             from: execution.offerer,
-                            to: execution.asset.account,
+                            to: execution.item.account,
                             tokenIds: new uint256[](tokenElements),
                             amounts: new uint256[](tokenElements),
                             useProxy: execution.useProxy
@@ -2442,8 +2442,8 @@ contract Consideration is ConsiderationInterface {
 
                     uint256 counter = batchElementCounters[batchUsed]++;
 
-                    executeWithBatch[batchUsed].tokenIds[counter] = execution.asset.identifierOrCriteria;
-                    executeWithBatch[batchUsed].amounts[counter] = execution.asset.endAmount;
+                    executeWithBatch[batchUsed].tokenIds[counter] = execution.item.identifierOrCriteria;
+                    executeWithBatch[batchUsed].amounts[counter] = execution.item.endAmount;
                 }
             }
 
@@ -2468,12 +2468,12 @@ contract Consideration is ConsiderationInterface {
 
     /// @dev Internal pure function to ensure that an offer component index is in range and, if so, to return the associated offer item.
     /// @param orderParameters The parameters of the order.
-    /// @param index The asset index specified by the fulfillment component.
+    /// @param index The item index specified by the fulfillment component.
     /// @return The offer item at the given index.
-    function _getOrderOfferComponentByAssetIndex(
+    function _getOrderOfferComponentByItemIndex(
         OrderParameters memory orderParameters,
         uint256 index
-    ) internal pure returns (OfferedAsset memory) {
+    ) internal pure returns (OfferedItem memory) {
         if (index >= orderParameters.offer.length) {
             revert FulfilledOrderOfferIndexOutOfRange();
         }
@@ -2482,12 +2482,12 @@ contract Consideration is ConsiderationInterface {
 
     /// @dev Internal pure function to ensure that a consideration component index is in range and, if so, to return the associated consideration item.
     /// @param orderParameters The parameters of the order.
-    /// @param index The asset index specified by the fulfillment component.
+    /// @param index The item index specified by the fulfillment component.
     /// @return The consideration item at the given index.
-    function _getOrderConsiderationComponentByAssetIndex(
+    function _getOrderConsiderationComponentByItemIndex(
         OrderParameters memory orderParameters,
         uint256 index
-    ) internal pure returns (ReceivedAsset memory) {
+    ) internal pure returns (ReceivedItem memory) {
         if (index >= orderParameters.consideration.length) {
             revert FulfilledOrderConsiderationIndexOutOfRange();
         }
@@ -2525,14 +2525,14 @@ contract Consideration is ConsiderationInterface {
 
         bool useProxy = useOffererProxyPerOrder[currentOrderIndex];
 
-        uint256 currentAssetIndex = fulfillment.offerComponents[0].assetIndex;
+        uint256 currentItemIndex = fulfillment.offerComponents[0].itemIndex;
 
-        OfferedAsset memory offeredAsset = _getOrderOfferComponentByAssetIndex(
+        OfferedItem memory offeredItem = _getOrderOfferComponentByItemIndex(
             orderWithInitialOffer,
-            currentAssetIndex
+            currentItemIndex
         );
 
-        orders[currentOrderIndex].parameters.offer[currentAssetIndex].endAmount = 0;
+        orders[currentOrderIndex].parameters.offer[currentItemIndex].endAmount = 0;
 
         for (uint256 i = 1; i < fulfillment.offerComponents.length;) {
             FulfillmentComponent memory offerComponent = fulfillment.offerComponents[i];
@@ -2543,25 +2543,25 @@ contract Consideration is ConsiderationInterface {
                 currentOrderIndex
             );
 
-            currentAssetIndex = offerComponent.assetIndex;
+            currentItemIndex = offerComponent.itemIndex;
 
-            OfferedAsset memory additionalOfferedAsset = _getOrderOfferComponentByAssetIndex(
+            OfferedItem memory additionalOfferedItem = _getOrderOfferComponentByItemIndex(
                 subsequentOrder,
-                currentAssetIndex
+                currentItemIndex
             );
 
             if (
                 orderWithInitialOffer.offerer != subsequentOrder.offerer ||
-                offeredAsset.assetType != additionalOfferedAsset.assetType ||
-                offeredAsset.token != additionalOfferedAsset.token ||
-                offeredAsset.identifierOrCriteria != additionalOfferedAsset.identifierOrCriteria ||
+                offeredItem.itemType != additionalOfferedItem.itemType ||
+                offeredItem.token != additionalOfferedItem.token ||
+                offeredItem.identifierOrCriteria != additionalOfferedItem.identifierOrCriteria ||
                 useProxy != useOffererProxyPerOrder[currentOrderIndex]
             ) {
                 revert MismatchedFulfillmentOfferComponents();
             }
 
-            offeredAsset.endAmount += additionalOfferedAsset.endAmount;
-            orders[currentOrderIndex].parameters.offer[currentAssetIndex].endAmount = 0;
+            offeredItem.endAmount += additionalOfferedItem.endAmount;
+            orders[currentOrderIndex].parameters.offer[currentItemIndex].endAmount = 0;
 
             // Skip overflow check as for loop is indexed starting at one.
             unchecked {
@@ -2576,14 +2576,14 @@ contract Consideration is ConsiderationInterface {
             currentOrderIndex
         );
 
-        currentAssetIndex = fulfillment.considerationComponents[0].assetIndex;
+        currentItemIndex = fulfillment.considerationComponents[0].itemIndex;
 
-        ReceivedAsset memory requiredConsideration = _getOrderConsiderationComponentByAssetIndex(
+        ReceivedItem memory requiredConsideration = _getOrderConsiderationComponentByItemIndex(
             orderWithInitialConsideration,
-            currentAssetIndex
+            currentItemIndex
         );
 
-        orders[currentOrderIndex].parameters.consideration[currentAssetIndex].endAmount = 0;
+        orders[currentOrderIndex].parameters.consideration[currentItemIndex].endAmount = 0;
 
         for (uint256 i = 1; i < fulfillment.considerationComponents.length;) {
             FulfillmentComponent memory considerationComponent = fulfillment.considerationComponents[i];
@@ -2594,16 +2594,16 @@ contract Consideration is ConsiderationInterface {
                 currentOrderIndex
             );
 
-            currentAssetIndex = considerationComponent.assetIndex;
+            currentItemIndex = considerationComponent.itemIndex;
 
-            ReceivedAsset memory additionalRequiredConsideration = _getOrderConsiderationComponentByAssetIndex(
+            ReceivedItem memory additionalRequiredConsideration = _getOrderConsiderationComponentByItemIndex(
                 subsequentOrder,
-                currentAssetIndex
+                currentItemIndex
             );
 
             if (
                 requiredConsideration.account != additionalRequiredConsideration.account ||
-                requiredConsideration.assetType != additionalRequiredConsideration.assetType ||
+                requiredConsideration.itemType != additionalRequiredConsideration.itemType ||
                 requiredConsideration.token != additionalRequiredConsideration.token ||
                 requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria
             ) {
@@ -2611,7 +2611,7 @@ contract Consideration is ConsiderationInterface {
             }
 
             requiredConsideration.endAmount += additionalRequiredConsideration.endAmount;
-            orders[currentOrderIndex].parameters.consideration[currentAssetIndex].endAmount = 0;
+            orders[currentOrderIndex].parameters.consideration[currentItemIndex].endAmount = 0;
 
             // Skip overflow check as for loop is indexed starting at one.
             unchecked {
@@ -2619,13 +2619,13 @@ contract Consideration is ConsiderationInterface {
             }
         }
 
-        if (requiredConsideration.endAmount > offeredAsset.endAmount) {
+        if (requiredConsideration.endAmount > offeredItem.endAmount) {
             FulfillmentComponent memory targetComponent = fulfillment.considerationComponents[fulfillment.considerationComponents.length - 1];
-            orders[targetComponent.orderIndex].parameters.consideration[targetComponent.assetIndex].endAmount = requiredConsideration.endAmount - offeredAsset.endAmount;
-            requiredConsideration.endAmount = offeredAsset.endAmount;
+            orders[targetComponent.orderIndex].parameters.consideration[targetComponent.itemIndex].endAmount = requiredConsideration.endAmount - offeredItem.endAmount;
+            requiredConsideration.endAmount = offeredItem.endAmount;
         } else {
             FulfillmentComponent memory targetComponent = fulfillment.offerComponents[fulfillment.offerComponents.length - 1];
-            orders[targetComponent.orderIndex].parameters.offer[targetComponent.assetIndex].endAmount = offeredAsset.endAmount - requiredConsideration.endAmount;
+            orders[targetComponent.orderIndex].parameters.offer[targetComponent.itemIndex].endAmount = offeredItem.endAmount - requiredConsideration.endAmount;
         }
 
         // Return the final execution that will be triggered for relevant items.

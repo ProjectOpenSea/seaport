@@ -29,23 +29,23 @@ describe("Consideration functional tests", function () {
         type: "address",
       },
       { name: "facilitator", type: "address" },
-      { name: "offer", type: "OfferedAsset[]" },
-      { name: "consideration", type: "ReceivedAsset[]" },
+      { name: "offer", type: "OfferedItem[]" },
+      { name: "consideration", type: "ReceivedItem[]" },
       { name: "orderType", type: "uint8" },
       { name: "startTime", type: "uint256" },
       { name: "endTime", type: "uint256" },
       { name: "salt", type: "uint256" },
       { name: "nonce", type: "uint256" },
     ],
-    OfferedAsset: [
-      { name: "assetType", type: "uint8" },
+    OfferedItem: [
+      { name: "itemType", type: "uint8" },
       { name: "token", type: "address" },
       { name: "identifierOrCriteria", type: "uint256" },
       { name: "startAmount", type: "uint256" },
       { name: "endAmount", type: "uint256" },
     ],
-    ReceivedAsset: [
-      { name: "assetType", type: "uint8" },
+    ReceivedItem: [
+      { name: "itemType", type: "uint8" },
       { name: "token", type: "address" },
       { name: "identifierOrCriteria", type: "uint256" },
       { name: "startAmount", type: "uint256" },
@@ -175,7 +175,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
             facilitator: constants.AddressZero,
             offer: [
               {
-                assetType: 2, // ERC721
+                itemType: 2, // ERC721
                 token: testERC721.address,
                 identifierOrCriteria: nftId,
                 startAmount: 1,
@@ -184,7 +184,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
             ],
             consideration: [
               {
-                assetType: 0, // ETH
+                itemType: 0, // ETH
                 token: constants.AddressZero,
                 identifierOrCriteria: 0, // ignored for ETH
                 startAmount: ethers.utils.parseEther("10"),
@@ -242,7 +242,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
             facilitator: constants.AddressZero,
             offer: [
               {
-                assetType: 2, // ERC721
+                itemType: 2, // ERC721
                 token: testERC721.address,
                 identifierOrCriteria: nftId,
                 startAmount: 1,
@@ -251,7 +251,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
             ],
             consideration: [
               {
-                assetType: 0, // ETH
+                itemType: 0, // ETH
                 token: constants.AddressZero,
                 identifierOrCriteria: 0, // ignored for ETH
                 startAmount: ethers.utils.parseEther("10"),
