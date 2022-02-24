@@ -1123,49 +1123,66 @@ contract ConsiderationInternal is ConsiderationBase {
         bytes32 orderHash,
         bytes memory signature
     ) internal view {
+        // Skip signature verification if the offerer is the caller.
         if (offerer == msg.sender) {
             return;
         }
 
+        // Derive EIP-712 digest using the domain separator and the order hash.
         bytes32 digest = keccak256(
             abi.encodePacked("\x19\x01", _domainSeparator(), orderHash)
         );
 
+        // Declare r, s, and v signature parameters.
         bytes32 r;
         bytes32 s;
         uint8 v;
 
+        // If signature contains 65 bytes, parse as standard signature. (r+s+v)
         if (signature.length == 65) {
+            // Read each parameter directly from the signature's memory region.
             assembly {
-                r := mload(add(signature, 0x20))
-                s := mload(add(signature, 0x40))
-                v := byte(0, mload(add(signature, 0x60)))
+                r := mload(add(signature, 0x20)) // Put first word on stack at r
+                s := mload(add(signature, 0x40)) // Put next word on stack at s
+                v := byte(0, mload(add(signature, 0x60))) // Put last byte at v
             }
+
+            // Ensure v value is properly formatted.
+            if (v != 27 && v != 28) {
+                revert BadSignatureV(v);
+            }
+        // If signature contains 64 bytes, parse as EIP-2098 signature. (r+s&v)
         } else if (signature.length == 64) {
+            // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
+
+            // Read each parameter directly from the signature's memory region.
             assembly {
-                r := mload(add(signature, 0x20))
-                vs := mload(add(signature, 0x40))
-                s := and(vs, 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)
-                v := add(shr(255, vs), 27)
+                r := mload(add(signature, 0x20)) // Put first word on stack at r
+                vs := mload(add(signature, 0x40)) // Put next word on stack at vs
+                s := and(vs, 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff) // Extract canonical s
+                v := add(shr(255, vs), 27) // Extract yParity from highest bit of vs and add 27 to get v
             }
         } else {
+            // Disallow signatures that are not 64 or 65 bytes long.
             revert BadSignatureLength(signature.length);
         }
 
+        // Ensure s value does not result in a malleable signature.
         if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
             revert MalleableSignatureS(uint256(s));
         }
-        if (v != 27 && v != 28) {
-            revert BadSignatureV(v);
-        }
 
+        // Attempt to recover signer using the digest and signature parameters.
         address signer = ecrecover(digest, v, r, s);
 
+        // Disallow invalid signers.
         if (signer == address(0)) {
             revert InvalidSignature();
+        // Should a signer be recovered, but it doesn't match the offerer...
         } else if (signer != offerer) {
-            (bool ok, bytes memory data) = offerer.staticcall(
+            // Attempt EIP-1271 static call to offerer in case it's a contract.
+            (bool ok, ) = offerer.staticcall(
                 abi.encodeWithSelector(
                     EIP1271Interface.isValidSignature.selector,
                     digest,
@@ -1173,21 +1190,39 @@ contract ConsiderationInternal is ConsiderationBase {
                 )
             );
 
+            // If the call fails...
             if (!ok) {
-                if (data.length != 0) {
+                // Find out whether data was returned.
+                uint256 returnDataSize;
+                assembly {
+                    returnDataSize := returndatasize()
+                }
+
+                // if data was returned...
+                if (returnDataSize != 0) {
+                    // then bubble up the revert reason.
                     assembly {
-                        returndatacopy(0, 0, returndatasize())
-                        revert(0, returndatasize())
+                        returndatacopy(0, 0, returndatasize()) // Copy returndata to memory.
+                        revert(0, returndatasize()) // Revert, supplying returndata.
                     }
                 } else {
+                    // Otherwise, revert with a generic error message.
                     revert BadContractSignature();
                 }
             }
 
-            if (
-                data.length != 32 ||
-                abi.decode(data, (bytes4)) != EIP1271Interface.isValidSignature.selector
-            ) {
+            // Extract result directly from returndata buffer in case of memory overflow.
+            bytes4 result;
+            assembly {
+                // Only put result on the stack if return data is exactly 32 bytes.
+                if eq(returndatasize(), 0x20) { // If returndata == 32 (one word)...
+                    returndatacopy(0, 0, 0x20)  // copy return data to memory in scratch space
+                    result := mload(0)          // load return data from memory to the stack
+                }
+            }
+
+            // Ensure result was extracted and matches EIP-1271 magic value.
+            if (result != EIP1271Interface.isValidSignature.selector) {
                 revert BadSignature();
             }
         }
