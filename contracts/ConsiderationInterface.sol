@@ -95,7 +95,7 @@ interface ConsiderationInterface {
 
     function incrementNonce(
         address offerer,
-        address facilitator
+        address zone
     ) external returns (uint256 newNonce);
 
     function getOrderHash(
@@ -108,18 +108,17 @@ interface ConsiderationInterface {
 
     function getNonce(
         address offerer,
-        address facilitator
+        address zone
     ) external view returns (uint256);
 
     function name() external view returns (string memory);
     function version() external view returns (string memory);
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 
-    // TODO: decide what data is required here
-    event OrderFulfilled(bytes32 orderHash, address indexed offerer, address indexed facilitator);
-    event OrderCancelled(bytes32 orderHash, address indexed offerer, address indexed facilitator);
-    event OrderValidated(bytes32 orderHash, address indexed offerer, address indexed facilitator);
-    event NonceIncremented(address indexed offerer, address facilitator, uint256 nonce);
+    event OrderFulfilled(bytes32 orderHash, address indexed offerer, address indexed zone);
+    event OrderCancelled(bytes32 orderHash, address indexed offerer, address indexed zone);
+    event OrderValidated(bytes32 orderHash, address indexed offerer, address indexed zone);
+    event NonceIncremented(address indexed offerer, address zone, uint256 nonce);
 
     error OrderUsed(bytes32);
     error InvalidTime();

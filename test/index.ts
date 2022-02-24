@@ -28,7 +28,7 @@ describe("Consideration functional tests", function () {
         name: "offerer",
         type: "address",
       },
-      { name: "facilitator", type: "address" },
+      { name: "zone", type: "address" },
       { name: "offer", type: "OfferedItem[]" },
       { name: "consideration", type: "ReceivedItem[]" },
       { name: "orderType", type: "uint8" },
@@ -172,7 +172,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           // Seller creates a sell order of 10 eth for nft
           const orderParameters: OrderParametersStruct = {
             offerer: seller.address,
-            facilitator: constants.AddressZero,
+            zone: constants.AddressZero,
             offer: [
               {
                 itemType: 2, // ERC721
@@ -239,7 +239,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           // Seller creates a sell order of 10 eth for nft
           const orderParameters: OrderParametersStruct = {
             offerer: seller.address,
-            facilitator: constants.AddressZero,
+            zone: constants.AddressZero,
             offer: [
               {
                 itemType: 2, // ERC721
@@ -283,7 +283,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
 
           const basicOrderParameters: BasicOrderParametersStruct = {
             offerer: order.parameters.offerer,
-            facilitator: order.parameters.facilitator,
+            zone: order.parameters.zone,
             orderType: order.parameters.orderType,
             token: order.parameters.offer[0].token,
             identifier: order.parameters.offer[0].identifierOrCriteria,

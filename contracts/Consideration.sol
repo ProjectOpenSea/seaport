@@ -76,7 +76,7 @@ contract Consideration is ConsiderationInterface {
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping (bytes32 => OrderStatus) internal _orderStatus;
 
-    // Cancel offerer's orders with given facilitator (offerer => facilitator => nonce).
+    // Cancel offerer's orders with given zone (offerer => zone => nonce).
     mapping (address => mapping (address => uint256)) internal _nonces;
 
     /// @dev Derive and set hashes, reference chainId, and associated domain separator during deployment.
@@ -92,7 +92,7 @@ contract Consideration is ConsiderationInterface {
         _EIP_712_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
         _OFFERED_ITEM_TYPEHASH = keccak256("OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)");
         _RECEIVED_ITEM_TYPEHASH = keccak256("ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
-        _ORDER_HASH = keccak256("OrderComponents(address offerer,address facilitator,OfferedItem[] offer,ReceivedItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
+        _ORDER_HASH = keccak256("OrderComponents(address offerer,address zone,OfferedItem[] offer,ReceivedItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
 
@@ -583,7 +583,7 @@ contract Consideration is ConsiderationInterface {
     }
 
     /// @dev Cancel an arbitrary number of orders.
-    /// Note that only the offerer or the facilitator of a given order may cancel it.
+    /// Note that only the offerer or the zone of a given order may cancel it.
     /// @param orders The orders to cancel.
     /// @return A boolean indicating whether the orders were successfully cancelled.
     function cancel(
@@ -599,10 +599,10 @@ contract Consideration is ConsiderationInterface {
                 // Retrieve the order.
                 OrderComponents memory order = orders[i];
 
-                // Ensure caller is either offerer or facilitator of the order.
+                // Ensure caller is either offerer or zone of the order.
                 if (
                     msg.sender != order.offerer &&
-                    msg.sender != order.facilitator
+                    msg.sender != order.zone
                 ) {
                     revert InvalidCanceller();
                 }
@@ -611,7 +611,7 @@ contract Consideration is ConsiderationInterface {
                 bytes32 orderHash = _getOrderHash(
                     OrderParameters(
                         order.offerer,
-                        order.facilitator,
+                        order.zone,
                         order.orderType,
                         order.startTime,
                         order.endTime,
@@ -629,7 +629,7 @@ contract Consideration is ConsiderationInterface {
                 emit OrderCancelled(
                     orderHash,
                     order.offerer,
-                    order.facilitator
+                    order.zone
                 );
             }
         }
@@ -677,7 +677,7 @@ contract Consideration is ConsiderationInterface {
                 emit OrderValidated(
                     orderHash,
                     order.parameters.offerer,
-                    order.parameters.facilitator
+                    order.parameters.zone
                 );
             }
         }
@@ -685,26 +685,26 @@ contract Consideration is ConsiderationInterface {
         return true;
     }
 
-    /// @dev Cancel all orders from a given offerer with a given facilitator in bulk by incrementing a nonce.
-    /// Note that only the offerer or the facilitator may increment the nonce.
+    /// @dev Cancel all orders from a given offerer with a given zone in bulk by incrementing a nonce.
+    /// Note that only the offerer or the zone may increment the nonce.
     /// @param offerer The offerer in question.
-    /// @param facilitator The facilitator in question.
+    /// @param zone The zone in question.
     /// @return newNonce The new nonce.
     function incrementNonce(
         address offerer,
-        address facilitator
+        address zone
     ) external override returns (uint256 newNonce) {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
-        if (msg.sender != offerer && msg.sender != facilitator) {
+        if (msg.sender != offerer && msg.sender != zone) {
             revert InvalidNonceIncrementor();
         }
 
-        // Increment current nonce for the supplied offerer + facilitator pair.
-        newNonce = ++_nonces[offerer][facilitator];
+        // Increment current nonce for the supplied offerer + zone pair.
+        newNonce = ++_nonces[offerer][zone];
 
         // Emit an event containing the new nonce and return it.
-        emit NonceIncremented(offerer, facilitator, newNonce);
+        emit NonceIncremented(offerer, zone, newNonce);
         return newNonce;
     }
 
@@ -718,16 +718,16 @@ contract Consideration is ConsiderationInterface {
         return _orderStatus[orderHash];
     }
 
-    /// @dev Retrieve the current nonce for a given combination of offerer and facilitator.
+    /// @dev Retrieve the current nonce for a given combination of offerer and zone.
     /// @param offerer The offerer in question.
-    /// @param facilitator The facilitator in question.
+    /// @param zone The zone in question.
     /// @return The current nonce.
     function getNonce(
         address offerer,
-        address facilitator
+        address zone
     ) external view override returns (uint256) {
-        // Return the nonce for the supplied offerer + facilitator pair.
-        return _nonces[offerer][facilitator];
+        // Return the nonce for the supplied offerer + zone pair.
+        return _nonces[offerer][zone];
     }
 
     /// @dev Retrieve the domain separator, used for signing orders via EIP-712.
@@ -747,7 +747,7 @@ contract Consideration is ConsiderationInterface {
         return _getOrderHash(
             OrderParameters(
                 order.offerer,
-                order.facilitator,
+                order.zone,
                 order.orderType,
                 order.startTime,
                 order.endTime,
@@ -789,7 +789,7 @@ contract Consideration is ConsiderationInterface {
 
         // Pull frequently used arguments from memory & place them on the stack.
         address payable offerer = parameters.offerer;
-        address facilitator = parameters.facilitator;
+        address zone = parameters.zone;
         uint256 startTime = parameters.startTime;
         uint256 endTime = parameters.endTime;
 
@@ -834,7 +834,7 @@ contract Consideration is ConsiderationInterface {
         orderHash = _getNoncedOrderHash(
             OrderParameters(
                 offerer,
-                facilitator,
+                zone,
                 parameters.orderType,
                 startTime,
                 endTime,
@@ -855,7 +855,7 @@ contract Consideration is ConsiderationInterface {
         useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
             parameters.orderType,
             offerer,
-            facilitator
+            zone
         );
 
         // If the offerer's proxy is being utilized, adjust the order type down.
@@ -931,7 +931,7 @@ contract Consideration is ConsiderationInterface {
         useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
             order.parameters.orderType,
             order.parameters.offerer,
-            order.parameters.facilitator
+            order.parameters.zone
         );
 
         // If the offerer's proxy is being utilized, adjust the order type down.
@@ -1118,7 +1118,7 @@ contract Consideration is ConsiderationInterface {
         _emitOrderFulfilledEventAndClearReentrancyGuard(
             orderHash,
             offerer,
-            order.parameters.facilitator
+            order.parameters.zone
         );
 
         return true;
@@ -1178,7 +1178,7 @@ contract Consideration is ConsiderationInterface {
                 emit OrderFulfilled(
                     orderHash,
                     orders[i].parameters.offerer,
-                    orders[i].parameters.facilitator
+                    orders[i].parameters.zone
                 );
             }
         }
@@ -1630,7 +1630,7 @@ contract Consideration is ConsiderationInterface {
         _emitOrderFulfilledEventAndClearReentrancyGuard(
             orderHash,
             parameters.offerer,
-            parameters.facilitator
+            parameters.zone
         );
     }
 
@@ -1683,7 +1683,7 @@ contract Consideration is ConsiderationInterface {
         _emitOrderFulfilledEventAndClearReentrancyGuard(
             orderHash,
             from,
-            parameters.facilitator
+            parameters.zone
         );
     }
 
@@ -1699,14 +1699,14 @@ contract Consideration is ConsiderationInterface {
     /// @dev Internal function to emit an OrderFulfilled event and to clear the reentrancy guard.
     /// @param orderHash The order hash.
     /// @param offerer The offerer for the order.
-    /// @param facilitator The facilitator for the order.
+    /// @param zone The zone for the order.
     function _emitOrderFulfilledEventAndClearReentrancyGuard(
         bytes32 orderHash,
         address offerer,
-        address facilitator
+        address zone
     ) internal {
         // Emit an event signifying that the order has been fulfilled.
-        emit OrderFulfilled(orderHash, offerer, facilitator);
+        emit OrderFulfilled(orderHash, offerer, zone);
 
         // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;
@@ -1968,7 +1968,7 @@ contract Consideration is ConsiderationInterface {
             abi.encode(
                 _ORDER_HASH,
                 orderParameters.offerer,
-                orderParameters.facilitator,
+                orderParameters.zone,
                 keccak256(abi.encodePacked(offerHashes)),
                 keccak256(abi.encodePacked(considerationHashes)),
                 orderParameters.orderType,
@@ -1980,7 +1980,7 @@ contract Consideration is ConsiderationInterface {
         );
     }
 
-    /// @dev Internal view function to retrieve the current nonce for a given order's offerer and facilitator and use that to derive the order hash.
+    /// @dev Internal view function to retrieve the current nonce for a given order's offerer and zone and use that to derive the order hash.
     /// @param orderParameters The parameters of the order to hash.
     /// @return The hash.
     function _getNoncedOrderHash(
@@ -1988,19 +1988,19 @@ contract Consideration is ConsiderationInterface {
     ) internal view returns (bytes32) {
         return _getOrderHash(
             orderParameters,
-            _nonces[orderParameters.offerer][orderParameters.facilitator]
+            _nonces[orderParameters.offerer][orderParameters.zone]
         );
     }
 
     /// @dev Internal view function to determine if a proxy should be utilized for a given order and to ensure that the submitter is allowed by the order type.
     /// @param orderType The type of the order.
     /// @param offerer The offerer in question.
-    /// @param facilitator The facilitator in question.
+    /// @param zone The zone in question.
     /// @return useOffererProxy A boolean indicating whether a proxy should be utilized for the order.
     function _determineProxyUtilizationAndEnsureValidSubmitter(
         OrderType orderType,
         address offerer,
-        address facilitator
+        address zone
     ) internal view returns (bool useOffererProxy) {
         uint256 orderTypeAsUint256 = uint256(orderType);
 
@@ -2008,7 +2008,7 @@ contract Consideration is ConsiderationInterface {
 
         if (
             orderTypeAsUint256 > (useOffererProxy ? 5 : 1) &&
-            msg.sender != facilitator &&
+            msg.sender != zone &&
             msg.sender != offerer
         ) {
             revert InvalidSubmitterOnRestrictedOrder();
