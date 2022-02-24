@@ -77,7 +77,7 @@ contract Consideration is ConsiderationInterface {
     mapping (bytes32 => OrderStatus) internal _orderStatus;
 
     // Cancel offerer's orders with given facilitator (offerer => facilitator => nonce).
-    mapping (address => mapping (address => uint256)) internal _facilitatorNonces;
+    mapping (address => mapping (address => uint256)) internal _nonces;
 
     /// @dev Derive and set hashes, reference chainId, and associated domain separator during deployment.
     /// @param legacyProxyRegistry A proxy registry that stores per-user proxies that may optionally be used to approve transfers.
@@ -124,13 +124,13 @@ contract Consideration is ConsiderationInterface {
                 ItemType.ERC721,
                 parameters.token,
                 parameters.identifier,
-                1,                     // Amount of 1 for ERC721
-                1                      // Amount of 1 for ERC721
+                1, // Amount of 1 for ERC721 tokens
+                1  // Amount of 1 for ERC721 tokens
             ),
             ReceivedItem(
                 ItemType.ETH,
-                address(0),    // No token address for ETH
-                0,             // No identifier for ETH
+                address(0),   // No token address for ETH
+                0,            // No identifier for ETH
                 etherAmount,
                 etherAmount,
                 offerer
@@ -184,8 +184,8 @@ contract Consideration is ConsiderationInterface {
             ),
             ReceivedItem(
                 ItemType.ETH,
-                address(0),    // No token address for ETH
-                0,             // No identifier for ETH
+                address(0),   // No token address for ETH
+                0,            // No identifier for ETH
                 etherAmount,
                 etherAmount,
                 offerer
@@ -231,13 +231,13 @@ contract Consideration is ConsiderationInterface {
                 ItemType.ERC721,
                 parameters.token,
                 parameters.identifier,
-                1,                     // Amount of 1 for ERC721
-                1                      // Amount of 1 for ERC721
+                1, // Amount of 1 for ERC721 tokens
+                1  // Amount of 1 for ERC721 tokens
             ),
             ReceivedItem(
                 ItemType.ERC20,
                 erc20Token,
-                0,                  // No identifier for ERC20 token
+                0, // No identifier for ERC20 tokens
                 erc20Amount,
                 erc20Amount,
                 parameters.offerer
@@ -294,7 +294,7 @@ contract Consideration is ConsiderationInterface {
             ReceivedItem(
                 ItemType.ERC20,
                 erc20Token,
-                0,                  // No identifier for ERC20 token
+                0, // No identifier for ERC20 tokens
                 erc20Amount,
                 erc20Amount,
                 parameters.offerer
@@ -345,7 +345,7 @@ contract Consideration is ConsiderationInterface {
             OfferedItem(
                 ItemType.ERC20,
                 erc20Token,
-                0,               // No identifier for ERC20 token
+                0, // No identifier for ERC20 tokens
                 erc20Amount,
                 erc20Amount
             ),
@@ -353,8 +353,8 @@ contract Consideration is ConsiderationInterface {
                 ItemType.ERC721,
                 parameters.token,
                 parameters.identifier,
-                1,                     // Amount of 1 for ERC721
-                1,                     // Amount of 1 for ERC721
+                1, // Amount of 1 for ERC721 tokens
+                1, // Amount of 1 for ERC721 tokens
                 offerer
             )
         );
@@ -405,7 +405,7 @@ contract Consideration is ConsiderationInterface {
             OfferedItem(
                 ItemType.ERC20,
                 erc20Token,
-                0,               // No identifier for ERC20 token
+                0, // No identifier for ERC20 tokens
                 erc20Amount,
                 erc20Amount
             ),
@@ -604,7 +604,7 @@ contract Consideration is ConsiderationInterface {
                     msg.sender != order.offerer &&
                     msg.sender != order.facilitator
                 ) {
-                    revert OnlyOffererOrFacilitatorMayCancel();
+                    revert InvalidCanceller();
                 }
 
                 // Derive order hash using the order parameters and the nonce.
@@ -690,21 +690,21 @@ contract Consideration is ConsiderationInterface {
     /// @param offerer The offerer in question.
     /// @param facilitator The facilitator in question.
     /// @return newNonce The new nonce.
-    function incrementFacilitatorNonce(
+    function incrementNonce(
         address offerer,
         address facilitator
     ) external override returns (uint256 newNonce) {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
         if (msg.sender != offerer && msg.sender != facilitator) {
-            revert OnlyOffererOrFacilitatorMayIncrementNonce();
+            revert InvalidNonceIncrementor();
         }
 
         // Increment current nonce for the supplied offerer + facilitator pair.
-        newNonce = ++_facilitatorNonces[offerer][facilitator];
+        newNonce = ++_nonces[offerer][facilitator];
 
         // Emit an event containing the new nonce and return it.
-        emit FacilitatorNonceIncremented(offerer, facilitator, newNonce);
+        emit NonceIncremented(offerer, facilitator, newNonce);
         return newNonce;
     }
 
@@ -722,12 +722,12 @@ contract Consideration is ConsiderationInterface {
     /// @param offerer The offerer in question.
     /// @param facilitator The facilitator in question.
     /// @return The current nonce.
-    function facilitatorNonce(
+    function getNonce(
         address offerer,
         address facilitator
     ) external view override returns (uint256) {
         // Return the nonce for the supplied offerer + facilitator pair.
-        return _facilitatorNonces[offerer][facilitator];
+        return _nonces[offerer][facilitator];
     }
 
     /// @dev Retrieve the domain separator, used for signing orders via EIP-712.
@@ -1358,7 +1358,7 @@ contract Consideration is ConsiderationInterface {
     /// @param from The originator of the transfer.
     /// @param to The recipient of the transfer.
     /// @param amount The amount to transfer.
-    /// @param proxyOwner An address indicating the owner of the proxy to use when facilitating the transfer, or the null address if no proxy should be utilized.
+    /// @param proxyOwner An address indicating the owner of the proxy to utilize when performing the transfer, or the null address if no proxy should be utilized.
     function _transferERC20(
         address token,
         address from,
@@ -1413,7 +1413,7 @@ contract Consideration is ConsiderationInterface {
     /// @param from The originator of the transfer.
     /// @param to The recipient of the transfer.
     /// @param identifier The tokenId to transfer.
-    /// @param proxyOwner An address indicating the owner of the proxy to use when facilitating the transfer, or the null address if no proxy should be utilized.
+    /// @param proxyOwner An address indicating the owner of the proxy to utilize when performing the transfer, or the null address if no proxy should be utilized.
     function _transferERC721(
         address token,
         address from,
@@ -1462,7 +1462,7 @@ contract Consideration is ConsiderationInterface {
     /// @param to The recipient of the transfer.
     /// @param identifier The tokenId to transfer.
     /// @param amount The amount to transfer.
-    /// @param proxyOwner An address indicating the owner of the proxy to use when facilitating the transfer, or the null address if no proxy should be utilized.
+    /// @param proxyOwner An address indicating the owner of the proxy to utilize when performing the transfer, or the null address if no proxy should be utilized.
     function _transferERC1155(
         address token,
         address from,
@@ -1988,7 +1988,7 @@ contract Consideration is ConsiderationInterface {
     ) internal view returns (bytes32) {
         return _getOrderHash(
             orderParameters,
-            _facilitatorNonces[orderParameters.offerer][orderParameters.facilitator]
+            _nonces[orderParameters.offerer][orderParameters.facilitator]
         );
     }
 

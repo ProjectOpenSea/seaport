@@ -93,7 +93,7 @@ interface ConsiderationInterface {
         Order[] memory orders
     ) external returns (bool);
 
-    function incrementFacilitatorNonce(
+    function incrementNonce(
         address offerer,
         address facilitator
     ) external returns (uint256 newNonce);
@@ -106,7 +106,7 @@ interface ConsiderationInterface {
         bytes32 orderHash
     ) external view returns (OrderStatus memory);
 
-    function facilitatorNonce(
+    function getNonce(
         address offerer,
         address facilitator
     ) external view returns (uint256);
@@ -116,11 +116,10 @@ interface ConsiderationInterface {
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 
     // TODO: decide what data is required here
-    event OrderFulfilled(bytes32 orderHash, address indexed offerer, address facilitator);
-    event OrderCancelled(bytes32 orderHash, address indexed offerer, address facilitator);
-    event OrderValidated(bytes32 orderHash, address indexed offerer, address facilitator);
-    event FacilitatorNonceIncremented(address indexed offerer, address facilitator, uint256 nonce);
-
+    event OrderFulfilled(bytes32 orderHash, address indexed offerer, address indexed facilitator);
+    event OrderCancelled(bytes32 orderHash, address indexed offerer, address indexed facilitator);
+    event OrderValidated(bytes32 orderHash, address indexed offerer, address indexed facilitator);
+    event NonceIncremented(address indexed offerer, address facilitator, uint256 nonce);
 
     error OrderUsed(bytes32);
     error InvalidTime();
@@ -156,8 +155,8 @@ interface ConsiderationInterface {
     error CriteriaNotEnabledForOfferedItem();
     error CriteriaNotEnabledForConsideredItem();
     error InvalidProof();
-    error OnlyOffererOrFacilitatorMayCancel();
-    error OnlyOffererOrFacilitatorMayIncrementNonce();
+    error InvalidCanceller();
+    error InvalidNonceIncrementor();
     error BadFraction();
     error InexactFraction();
     error NoReentrantCalls();
