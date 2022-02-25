@@ -438,65 +438,88 @@ contract ConsiderationPure is ConsiderationBase {
     /// @dev Internal pure function to complete the process of "compressing" executions.
     /// @param executions An array of uncompressed executions.
     /// @param batches An array of elements indicating which executions form the "baseline" for a batch.
-    /// @param usedInBatch An array of indices (incremented by one as zero indicates no batching) per execution indicating which batch the execution should be applied to.
+    /// @param batchExecutionPointers An array of indices, incremented by one (as zero indicates no batching), that each point to a respective batch per execution.
     /// @param totalUsedInBatch The total execution elements that can be batched.
     /// @param totalBatches The total number of batch executions.
-    /// @return standardExecutions An array of executions that could not be compressed.
-    /// @return batchExecutions An array of executions (all ERC1155 transfers) that have been compressed into batches.
+    /// @return An array of executions that could not be compressed.
+    /// @return An array of executions (all ERC1155 transfers) that have been compressed into batches.
     function _splitExecution(
         Execution[] memory executions,
         Batch[] memory batches,
-        uint256[] memory usedInBatch,
+        uint256[] memory batchExecutionPointers,
         uint256 totalUsedInBatch,
         uint256 totalBatches
     ) internal pure returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
+        Execution[] memory,
+        BatchExecution[] memory
     ) {
         // Skip overflow checks as all incremented values start at low amounts.
         unchecked {
+            // Read executions array length from memory and place on the stack.
             uint256 totalExecutions = executions.length;
 
-            Execution[] memory executeWithoutBatch = new Execution[](
+            // Allocate standard executions array (exclude ones used in batch).
+            Execution[] memory standardExecutions = new Execution[](
                 totalExecutions - totalUsedInBatch
             );
-            BatchExecution[] memory executeWithBatch = new BatchExecution[](
+
+            // Allocate batch executions array (length equal to total batches).
+            BatchExecution[] memory batchExecutions = new BatchExecution[](
                 totalBatches
             );
 
-            uint256 lastNoBatchIndex = 0;
-            uint256[] memory batchElementCounters = new uint256[](totalBatches);
+            // Track the index of the next available standard execution element.
+            uint256 nextStandardExecutionIndex = 0;
+
+            // Allocate array in memory to track next element index per batch.
+            uint256[] memory batchElementIndices = new uint256[](totalBatches);
 
             // Iterate over each execution.
             for (uint256 i = 0; i < totalExecutions; ++i) {
-                uint256 isUsedInBatch = usedInBatch[i];
-                if (isUsedInBatch == 0) {
-                    executeWithoutBatch[lastNoBatchIndex++] = executions[i];
-                } else {
-                    uint256 batchUsed = isUsedInBatch - 1;
+                // Check if execution is standard (0) or part of a batch (1+).
+                uint256 batchExecutionPointer = batchExecutionPointers[i];
 
+                // If the execution is a standard execution...
+                if (batchExecutionPointer == 0) {
+                    // Copy it to next standard index, then increment the index.
+                    standardExecutions[nextStandardExecutionIndex++] = executions[i];
+                // Otherwise, it is a batch execution.
+                } else {
+                    // Retrieve the execution element.
                     Execution memory execution = executions[i];
 
-                    if (executeWithBatch[batchUsed].token == address(0)) {
-                        uint256 tokenElements = batches[batchUsed].executionIndices.length;
-                        executeWithBatch[batchUsed] = BatchExecution({
-                            token: execution.item.token,
-                            from: execution.offerer,
-                            to: execution.item.account,
-                            tokenIds: new uint256[](tokenElements),
-                            amounts: new uint256[](tokenElements),
-                            useProxy: execution.useProxy
-                        });
+                    // Derive batch execution index by decrementing the pointer.
+                    uint256 batchExecutionIndex = batchExecutionPointer - 1;
+
+                    // If it is the first item applied to the batch execution...
+                    if (batchExecutions[batchExecutionIndex].token == address(0)) {
+                        // Allocate an empty array for each tokenId and amount.
+                        uint256[] memory emptyElementsArray = new uint256[](
+                            batches[batchExecutionIndex].executionIndices.length
+                        );
+
+                        // Populate all other fields using execution parameters.
+                        batchExecutions[batchExecutionIndex] = BatchExecution(
+                            execution.item.token,   // token
+                            execution.offerer,      // from
+                            execution.item.account, // to
+                            emptyElementsArray,     // tokenIds
+                            emptyElementsArray,     // amounts
+                            execution.useProxy      // useProxy
+                        );
                     }
 
-                    uint256 counter = batchElementCounters[batchUsed]++;
+                    // Put next batch element index on stack, then increment it.
+                    uint256 batchElementIndex = batchElementIndices[batchExecutionIndex]++;
 
-                    executeWithBatch[batchUsed].tokenIds[counter] = execution.item.identifierOrCriteria;
-                    executeWithBatch[batchUsed].amounts[counter] = execution.item.endAmount;
+                    // Update current element's batch with tokenId and amount.
+                    batchExecutions[batchExecutionIndex].tokenIds[batchElementIndex] = execution.item.identifierOrCriteria;
+                    batchExecutions[batchExecutionIndex].amounts[batchElementIndex] = execution.item.endAmount;
                 }
             }
 
-            return (executeWithoutBatch, executeWithBatch);
+            // Return both the standard and batch execution arrays.
+            return (standardExecutions, batchExecutions);
         }
     }
 
@@ -508,10 +531,12 @@ contract ConsiderationPure is ConsiderationBase {
         Order[] memory orders,
         uint256 index
     ) internal pure returns (OrderParameters memory) {
+        // Ensure that the order index is in range.
         if (index >= orders.length) {
             revert FulfilledOrderIndexOutOfRange();
         }
 
+        // Return the parameters of the order at the given order index.
         return orders[index].parameters;
     }
 
@@ -523,9 +548,12 @@ contract ConsiderationPure is ConsiderationBase {
         OrderParameters memory orderParameters,
         uint256 index
     ) internal pure returns (OfferedItem memory) {
+        // Ensure that the offer index is in range.
         if (index >= orderParameters.offer.length) {
             revert FulfilledOrderOfferIndexOutOfRange();
         }
+
+        // Return the offer item at the given index.
         return orderParameters.offer[index];
     }
 
@@ -537,9 +565,12 @@ contract ConsiderationPure is ConsiderationBase {
         OrderParameters memory orderParameters,
         uint256 index
     ) internal pure returns (ReceivedItem memory) {
+        // Ensure that the consideration index is in range.
         if (index >= orderParameters.consideration.length) {
             revert FulfilledOrderConsiderationIndexOutOfRange();
         }
+
+        // Return the consideration item at the given index.
         return orderParameters.consideration[index];
     }
 
