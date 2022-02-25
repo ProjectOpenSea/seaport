@@ -90,7 +90,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 AdditionalRecipient memory additionalRecipient = parameters.additionalRecipients[i - 1];
 
                 // Update consideration item w/ info from additional recipient.
-                receivedItem.account = additionalRecipient.account;
+                receivedItem.recipient = additionalRecipient.recipient;
                 receivedItem.startAmount = additionalRecipient.amount;
                 receivedItem.endAmount = additionalRecipient.amount;
 
@@ -568,7 +568,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     ) internal {
         if (item.itemType == ItemType.ETH) {
             // Transfer Ether to the recipient.
-            _transferEth(item.account, item.endAmount);
+            _transferEth(item.recipient, item.endAmount);
         } else {
             // Place proxy owner on stack (or null address if not using proxy).
             address proxyOwner = useProxy ? offerer : address(0);
@@ -578,7 +578,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferERC20(
                     item.token,
                     offerer,
-                    item.account,
+                    item.recipient,
                     item.endAmount,
                     proxyOwner
                 );
@@ -587,7 +587,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferERC721(
                     item.token,
                     offerer,
-                    item.account,
+                    item.recipient,
                     item.identifierOrCriteria,
                     proxyOwner
                 );
@@ -596,7 +596,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferERC1155(
                     item.token,
                     offerer,
-                    item.account,
+                    item.recipient,
                     item.identifierOrCriteria,
                     item.endAmount,
                     proxyOwner
@@ -917,7 +917,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
             // Transfer Ether to the additional recipient.
             _transferEth(
-                additionalRecipient.account,
+                additionalRecipient.recipient,
                 additionalRecipient.amount
             );
 
@@ -979,7 +979,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferERC20(
                     erc20Token,
                     from,
-                    additionalRecipient.account,
+                    additionalRecipient.recipient,
                     additionalRecipient.amount,
                     proxyOwner
                 );

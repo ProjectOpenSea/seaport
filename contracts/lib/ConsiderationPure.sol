@@ -302,11 +302,11 @@ contract ConsiderationPure is ConsiderationBase {
             // Retrieve the item of the initial execution element.
             ReceivedItem memory initialItem = initialExecution.item;
 
-            // Derive a hash based on token, offerer, account, and proxy usage.
+            // Derive hash based on token, offerer, recipient, and proxy usage.
             bytes32 hash = _hashBatchableItemIdentifier(
                 initialItem.token,
                 initialExecution.offerer,
-                initialItem.account,
+                initialItem.recipient,
                 initialExecution.useProxy
             );
 
@@ -338,7 +338,7 @@ contract ConsiderationPure is ConsiderationBase {
                 hash = _hashBatchableItemIdentifier(
                     item.token,
                     execution.offerer,
-                    item.account,
+                    item.recipient,
                     execution.useProxy
                 );
 
@@ -500,12 +500,12 @@ contract ConsiderationPure is ConsiderationBase {
 
                         // Populate all other fields using execution parameters.
                         batchExecutions[batchExecutionIndex] = BatchExecution(
-                            execution.item.token,   // token
-                            execution.offerer,      // from
-                            execution.item.account, // to
-                            emptyElementsArray,     // tokenIds
-                            emptyElementsArray,     // amounts
-                            execution.useProxy      // useProxy
+                            execution.item.token,     // token
+                            execution.offerer,        // from
+                            execution.item.recipient, // to
+                            emptyElementsArray,       // tokenIds
+                            emptyElementsArray,       // amounts
+                            execution.useProxy        // useProxy
                         );
                     }
 
@@ -722,7 +722,7 @@ contract ConsiderationPure is ConsiderationBase {
 
             // Ensure key parameters are consistent with initial consideration.
             if (
-                requiredConsideration.account != additionalRequiredConsideration.account ||
+                requiredConsideration.recipient != additionalRequiredConsideration.recipient ||
                 requiredConsideration.itemType != additionalRequiredConsideration.itemType ||
                 requiredConsideration.token != additionalRequiredConsideration.token ||
                 requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria

@@ -353,7 +353,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 receivedItem.identifierOrCriteria,
                 receivedItem.startAmount,
                 receivedItem.endAmount,
-                receivedItem.account
+                receivedItem.recipient
             )
         );
     }

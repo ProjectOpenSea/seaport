@@ -39,7 +39,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {}
 
     /// @dev Fulfill an order offering a single ERC721 token by supplying Ether as consideration.
-    /// @param etherAmount Ether that will be transferred to the initial consideration account on the fulfilled order.
+    /// @param etherAmount Ether that will be transferred to the initial consideration recipient on the fulfilled order.
     /// Note that msg.value must be greater than this amount if additonal recipients are specified.
     /// @param parameters Additional information on the fulfilled order.
     /// Note that the offerer must first approve this contract (or their proxy if indicated by the order) to transfer any offered tokens on its behalf.
@@ -91,7 +91,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /// @dev Fulfill an order offering ERC1155 tokens by supplying Ether as consideration.
-    /// @param etherAmount Ether that will be transferred to the initial consideration account on the fulfilled order.
+    /// @param etherAmount Ether that will be transferred to the initial consideration recipient on the fulfilled order.
     /// Note that msg.value must be greater than this amount if additonal recipients are specified.
     /// @param erc1155Amount Total offererd ERC1155 tokens that will be transferred to the caller.
     /// Note that calling contracts must implement `onERC1155Received` in order to receive tokens.
@@ -148,7 +148,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
     /// @dev Fulfill an order offering a single ERC721 token by supplying an ERC20 token as consideration.
     /// @param erc20Token The address of the ERC20 token being supplied as consideration.
-    /// @param erc20Amount ERC20 tokens that will be transferred to the initial consideration account on the fulfilled order.
+    /// @param erc20Amount ERC20 tokens that will be transferred to the initial consideration recipient on the fulfilled order.
     /// Note that the fulfiller must first approve this contract (or their proxy if indicated by the order) to transfer the tokens on its behalf.
     /// @param parameters Additional information on the fulfilled order.
     /// Note that the offerer must first approve this contract (or their proxy if indicated by the order) to transfer any offered tokens on its behalf.
@@ -202,7 +202,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
     /// @dev Fulfill an order offering ERC1155 tokens by supplying an ERC20 token as consideration.
     /// @param erc20Token The address of the ERC20 token being supplied as consideration.
-    /// @param erc20Amount ERC20 tokens that will be transferred to the initial consideration account on the fulfilled order.
+    /// @param erc20Amount ERC20 tokens that will be transferred to the initial consideration recipient on the fulfilled order.
     /// Note that the fulfiller must first approve this contract (or their proxy if indicated by the order) to transfer the tokens on its behalf.
     /// @param erc1155Amount Total offererd ERC1155 tokens that will be transferred to the caller.
     /// Note that calling contracts must implement `onERC1155Received` in order to receive tokens.

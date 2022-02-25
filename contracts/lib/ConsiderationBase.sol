@@ -53,8 +53,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         _VERSION_HASH = keccak256(bytes(_VERSION));
         _EIP_712_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
         _OFFERED_ITEM_TYPEHASH = keccak256("OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)");
-        _RECEIVED_ITEM_TYPEHASH = keccak256("ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
-        _ORDER_HASH = keccak256("OrderComponents(address offerer,address zone,OfferedItem[] offer,ReceivedItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address account)");
+        _RECEIVED_ITEM_TYPEHASH = keccak256("ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)");
+        _ORDER_HASH = keccak256("OrderComponents(address offerer,address zone,OfferedItem[] offer,ReceivedItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)");
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
 

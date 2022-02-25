@@ -8,7 +8,7 @@ import {
 } from "./Enums.sol";
 
 struct AdditionalRecipient {
-    address payable account;
+    address payable recipient;
     uint256 amount;
 }
 
@@ -40,7 +40,7 @@ struct ReceivedItem {
     uint256 identifierOrCriteria;
     uint256 startAmount;
     uint256 endAmount;
-    address payable account;
+    address payable recipient;
 }
 
 struct OrderParameters {

@@ -50,7 +50,7 @@ describe("Consideration functional tests", function () {
       { name: "identifierOrCriteria", type: "uint256" },
       { name: "startAmount", type: "uint256" },
       { name: "endAmount", type: "uint256" },
-      { name: "account", type: "address" },
+      { name: "recipient", type: "address" },
     ],
   };
 
@@ -189,7 +189,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
                 identifierOrCriteria: 0, // ignored for ETH
                 startAmount: ethers.utils.parseEther("10"),
                 endAmount: ethers.utils.parseEther("10"),
-                account: seller.address,
+                recipient: seller.address,
               },
             ],
             orderType: 0, // FULL_OPEN
@@ -256,7 +256,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
                 identifierOrCriteria: 0, // ignored for ETH
                 startAmount: ethers.utils.parseEther("10"),
                 endAmount: ethers.utils.parseEther("10"),
-                account: seller.address,
+                recipient: seller.address,
               },
             ],
             orderType: 0, // FULL_OPEN
