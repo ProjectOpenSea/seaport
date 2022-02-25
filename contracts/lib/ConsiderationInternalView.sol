@@ -207,7 +207,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /// @dev Internal view function to verify the signature of an order. An ERC-1271 fallback will be attempted should the recovered signature not match the supplied offerer.
-    /// Note that only non-malleable 32-byte or 33-byte ECDSA signatures are supported.
+    /// Note that only 32-byte or 33-byte ECDSA signatures are supported.
     /// @param offerer The offerer for the order.
     /// @param orderHash The order hash.
     /// @param signature A signature from the offerer indicating that the order has been approved.
@@ -259,11 +259,6 @@ contract ConsiderationInternalView is ConsiderationPure {
         } else {
             // Disallow signatures that are not 64 or 65 bytes long.
             revert BadSignatureLength(signature.length);
-        }
-
-        // Ensure s value does not result in a malleable signature.
-        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
-            revert MalleableSignatureS(uint256(s));
         }
 
         // Attempt to recover signer using the digest and signature parameters.

@@ -19,7 +19,6 @@ interface ConsiderationEventsAndErrors {
     error FulfilledOrderConsiderationIndexOutOfRange();
     error BadSignatureLength(uint256);
     error BadSignatureV(uint8);
-    error MalleableSignatureS(uint256);
     error BadSignature();
     error InvalidSignature();
     error BadContractSignature();
