@@ -7,7 +7,7 @@ interface ConsiderationEventsAndErrors {
     event OrderFulfilled(bytes32 orderHash, address indexed offerer, address indexed zone);
     event OrderCancelled(bytes32 orderHash, address indexed offerer, address indexed zone);
     event OrderValidated(bytes32 orderHash, address indexed offerer, address indexed zone);
-    event NonceIncremented(address indexed offerer, address zone, uint256 nonce);
+    event NonceIncremented(uint256 newNonce, address indexed offerer, address indexed zone);
 
     error OrderUsed(bytes32);
     error InvalidTime();

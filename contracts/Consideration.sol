@@ -637,8 +637,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Increment current nonce for the supplied offerer + zone pair.
         newNonce = ++_nonces[offerer][zone];
 
-        // Emit an event containing the new nonce and return it.
-        emit NonceIncremented(offerer, zone, newNonce);
+        // Emit an event containing the new nonce.
+        emit NonceIncremented(newNonce, offerer, zone);
+
+        // Return the new nonce.
         return newNonce;
     }
 
