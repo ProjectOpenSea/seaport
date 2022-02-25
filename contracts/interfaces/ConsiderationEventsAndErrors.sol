@@ -23,6 +23,7 @@ interface ConsiderationEventsAndErrors {
     error BadSignature();
     error InvalidSignature();
     error BadContractSignature();
+    error MismatchedFulfillmentOfferAndConsiderationComponents();
     error MismatchedFulfillmentOfferComponents();
     error MismatchedFulfillmentConsiderationComponents();
     error ConsiderationNotMet(uint256 orderIndex, uint256 considerationIndex, uint256 shortfallAmount);

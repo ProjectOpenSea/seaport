@@ -581,7 +581,7 @@ contract ConsiderationPure is ConsiderationBase {
     /// Note that each consideration component must be fully met in order for the match operation to be valid.
     /// @param useOffererProxyPerOrder An array of booleans indicating whether to source approvals for the fulfilled tokens on each order from their respective proxy.
     /// @return execution A transfer to performed as part of the supplied fulfillment.
-    /// Note that this execution object may be compressed further in order to batch transfers.
+    /// Note that this execution object can be compressed further by aggregating batch transfers.
     function _applyFulfillment(
         Order[] memory orders,
         Fulfillment memory fulfillment,
@@ -589,6 +589,7 @@ contract ConsiderationPure is ConsiderationBase {
     ) internal pure returns (
         Execution memory execution
     ) {
+        // Ensure 1+ of both offer and consideration components are supplied.
         if (
             fulfillment.offerComponents.length == 0 ||
             fulfillment.considerationComponents.length == 0
@@ -596,42 +597,86 @@ contract ConsiderationPure is ConsiderationBase {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
 
+        // Read offer component's initial order index and place it on the stack.
         uint256 currentOrderIndex = fulfillment.offerComponents[0].orderIndex;
 
-        OrderParameters memory orderWithInitialOffer = _getOrderParametersByFulfillmentIndex(
+        // Retrieve order designated by offer component's initial order index.
+        OrderParameters memory initialOfferComponentOrder = _getOrderParametersByFulfillmentIndex(
             orders,
             currentOrderIndex
         );
 
+        // Read proxy usage flag from respective array and place on the stack.
         bool useProxy = useOffererProxyPerOrder[currentOrderIndex];
 
+        // Read offer component's initial item index and place it on the stack.
         uint256 currentItemIndex = fulfillment.offerComponents[0].itemIndex;
 
+        // Retrieve offer designated by the offer component's first item index.
         OfferedItem memory offeredItem = _getOrderOfferComponentByItemIndex(
-            orderWithInitialOffer,
+            initialOfferComponentOrder,
             currentItemIndex
         );
 
+        // Read consideration component's initial order index & place on stack.
+        currentOrderIndex = fulfillment.considerationComponents[0].orderIndex;
+
+        // Retrieve consideration order at the first order component index.
+        OrderParameters memory initialConsiderationComponentOrder = _getOrderParametersByFulfillmentIndex(
+            orders,
+            currentOrderIndex
+        );
+
+        // Read consideration component's initial item index and place on stack.
+        currentItemIndex = fulfillment.considerationComponents[0].itemIndex;
+
+        // Retrieve consideration item designated by first item component index.
+        ReceivedItem memory requiredConsideration = _getOrderConsiderationComponentByItemIndex(
+            initialConsiderationComponentOrder,
+            currentItemIndex
+        );
+
+        // Ensure offer and consideration share types, tokens and identifiers.
+        if (
+            offeredItem.itemType != requiredConsideration.itemType ||
+            offeredItem.token != requiredConsideration.token ||
+            offeredItem.identifierOrCriteria != requiredConsideration.identifierOrCriteria
+        ) {
+            revert MismatchedFulfillmentOfferAndConsiderationComponents();
+        }
+
+        // Clear initial offer amount to indicate offer item has been consumed.
         orders[currentOrderIndex].parameters.offer[currentItemIndex].endAmount = 0;
 
+        // Clear initial consideration amount to indicate item is fulfilled.
+        orders[currentOrderIndex].parameters.consideration[currentItemIndex].endAmount = 0;
+
+        // Iterate over each offer component on the fulfillment.
         for (uint256 i = 1; i < fulfillment.offerComponents.length;) {
+            // Retrieve the offer component from the fulfillment.
             FulfillmentComponent memory offerComponent = fulfillment.offerComponents[i];
+
+            // Read offer component's order index and place it on the stack.
             currentOrderIndex = offerComponent.orderIndex;
 
+            // Retrieve offer designated by the offer component's item index.
             OrderParameters memory subsequentOrder = _getOrderParametersByFulfillmentIndex(
                 orders,
                 currentOrderIndex
             );
 
+            // Read offer component's item index and place it on the stack.
             currentItemIndex = offerComponent.itemIndex;
 
+            // Retrieve offer designated by the offer component's item index.
             OfferedItem memory additionalOfferedItem = _getOrderOfferComponentByItemIndex(
                 subsequentOrder,
                 currentItemIndex
             );
 
+            // Ensure all relevant parameters are consistent with initial offer.
             if (
-                orderWithInitialOffer.offerer != subsequentOrder.offerer ||
+                initialOfferComponentOrder.offerer != subsequentOrder.offerer ||
                 offeredItem.itemType != additionalOfferedItem.itemType ||
                 offeredItem.token != additionalOfferedItem.token ||
                 offeredItem.identifierOrCriteria != additionalOfferedItem.identifierOrCriteria ||
@@ -640,7 +685,10 @@ contract ConsiderationPure is ConsiderationBase {
                 revert MismatchedFulfillmentOfferComponents();
             }
 
+            // Increase the total offer amount by the current amount.
             offeredItem.endAmount += additionalOfferedItem.endAmount;
+
+            // Clear offer amount to indicate that offer item has been consumed.
             orders[currentOrderIndex].parameters.offer[currentItemIndex].endAmount = 0;
 
             // Skip overflow check as for loop is indexed starting at one.
@@ -649,38 +697,30 @@ contract ConsiderationPure is ConsiderationBase {
             }
         }
 
-        currentOrderIndex = fulfillment.considerationComponents[0].orderIndex;
-
-        OrderParameters memory orderWithInitialConsideration = _getOrderParametersByFulfillmentIndex(
-            orders,
-            currentOrderIndex
-        );
-
-        currentItemIndex = fulfillment.considerationComponents[0].itemIndex;
-
-        ReceivedItem memory requiredConsideration = _getOrderConsiderationComponentByItemIndex(
-            orderWithInitialConsideration,
-            currentItemIndex
-        );
-
-        orders[currentOrderIndex].parameters.consideration[currentItemIndex].endAmount = 0;
-
+        // Iterate over each consideration component on the fulfillment.
         for (uint256 i = 1; i < fulfillment.considerationComponents.length;) {
+            // Retrieve the consideration component from the fulfillment.
             FulfillmentComponent memory considerationComponent = fulfillment.considerationComponents[i];
+
+            // Read consideration component's order index and place on stack.
             currentOrderIndex = considerationComponent.orderIndex;
 
+            // Retrieve consideration designated by offer component's item index.
             OrderParameters memory subsequentOrder = _getOrderParametersByFulfillmentIndex(
                 orders,
                 currentOrderIndex
             );
 
+            // Read consideration component's item index and place on the stack.
             currentItemIndex = considerationComponent.itemIndex;
 
+            // Retrieve consideration designated by the component's item index.
             ReceivedItem memory additionalRequiredConsideration = _getOrderConsiderationComponentByItemIndex(
                 subsequentOrder,
                 currentItemIndex
             );
 
+            // Ensure key parameters are consistent with initial consideration.
             if (
                 requiredConsideration.account != additionalRequiredConsideration.account ||
                 requiredConsideration.itemType != additionalRequiredConsideration.itemType ||
@@ -690,7 +730,10 @@ contract ConsiderationPure is ConsiderationBase {
                 revert MismatchedFulfillmentConsiderationComponents();
             }
 
+            // Increase the total consideration amount by the current amount.
             requiredConsideration.endAmount += additionalRequiredConsideration.endAmount;
+
+            // Clear consideration amount to indicate item has been fulfilled.
             orders[currentOrderIndex].parameters.consideration[currentItemIndex].endAmount = 0;
 
             // Skip overflow check as for loop is indexed starting at one.
@@ -699,19 +742,28 @@ contract ConsiderationPure is ConsiderationBase {
             }
         }
 
+        // If total consideration amount exceeds the offer amount...
         if (requiredConsideration.endAmount > offeredItem.endAmount) {
+            // Retrieve the final consideration component from the fulfillment.
             FulfillmentComponent memory targetComponent = fulfillment.considerationComponents[fulfillment.considerationComponents.length - 1];
+
+            // Add excess consideration amount to the original orders array.
             orders[targetComponent.orderIndex].parameters.consideration[targetComponent.itemIndex].endAmount = requiredConsideration.endAmount - offeredItem.endAmount;
+
+            // Reduce total consideration amount to equal the offer amount.
             requiredConsideration.endAmount = offeredItem.endAmount;
         } else {
+            // Retrieve the final offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = fulfillment.offerComponents[fulfillment.offerComponents.length - 1];
+
+            // Add excess offer amount to the original orders array.
             orders[targetComponent.orderIndex].parameters.offer[targetComponent.itemIndex].endAmount = offeredItem.endAmount - requiredConsideration.endAmount;
         }
 
         // Return the final execution that will be triggered for relevant items.
         return Execution(
             requiredConsideration,
-            orderWithInitialOffer.offerer,
+            initialOfferComponentOrder.offerer,
             useProxy
         );
     }
