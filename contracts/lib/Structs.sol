@@ -109,6 +109,18 @@ struct Order {
 }
 
 /*
+ * @dev Parial orders include a numerator (i.e. the fraction to attempt to fill)
+ * and a denominator (the total size of the order) in additon to the signature
+ * and other order parameters.
+ */
+struct PartialOrder {
+    OrderParameters parameters;
+    uint120 numerator;
+    uint120 denominator;
+    bytes signature;
+}
+
+/*
  * @dev Orders can be validated (either explicitly via `validate`, or as a
  * consequence of a full or partial fill), specifically cancelled (they can also
  * be cancelled in bulk via incrementing a per-zone nonce), and partially or

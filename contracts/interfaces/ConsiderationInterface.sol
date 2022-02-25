@@ -8,6 +8,7 @@ import {
     Execution,
     BatchExecution,
     Order,
+    PartialOrder,
     OrderStatus,
     CriteriaResolver
 } from "../lib/Structs.sol";
@@ -64,16 +65,12 @@ interface ConsiderationInterface {
     ) external payable returns (bool);
 
     function fulfillPartialOrder(
-        Order memory order,
-        uint120 numerator,
-        uint120 denominator,
+        PartialOrder memory partialOrder,
         bool useFulfillerProxy
     ) external payable returns (bool);
 
     function fulfillPartialOrderWithCriteria(
-        Order memory order,
-        uint120 numerator,
-        uint120 denominator,
+        PartialOrder memory partialOrder,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) external payable returns (bool);

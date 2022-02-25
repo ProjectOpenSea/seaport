@@ -14,6 +14,7 @@ import {
     Fulfillment,
     Execution,
     Order,
+    PartialOrder,
     OrderStatus,
     CriteriaResolver,
     BatchExecution
@@ -388,9 +389,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
         return _fulfillOrder(
-            order,
-            1,                          // numerator of 1
-            1,                          // denominator of 1
+            PartialOrder(
+                order.parameters,
+                1,
+                1,
+                order.signature
+            ),
             new CriteriaResolver[](0),  // no criteria resolvers
             useFulfillerProxy
         );
@@ -411,9 +415,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
         return _fulfillOrder(
-            order,
-            1,                 // numerator of 1
-            1,                 // denominator of 1
+            PartialOrder(
+                order.parameters,
+                1,
+                1,
+                order.signature
+            ),
             criteriaResolvers, // supply criteria resolvers
             useFulfillerProxy
         );
@@ -421,32 +428,25 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
     /// @dev Partially fill some fraction of an order with an arbitrary number of items for offer and consideration.
     /// Note that an amount less than the desired amount may be filled and that this function does not support criteria-based orders.
-    /// @param order The order to fulfill.
+    /// @param partialOrder The order to fulfill along with the fraction of the order to fill.
     /// Note that both the offerer and the fulfiller must first approve this contract (or their proxy if indicated by the order) to transfer any relevant tokens on their behalf and that contracts must implement `onERC1155Received` in order to receive ERC1155 tokens.
-    /// @param numerator A value indicating the portion of the order that should be filled.
-    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
-    /// @param denominator A value indicating the total size of the order.
-    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
+    /// Also note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
     /// @param useFulfillerProxy A flag indicating whether to source approvals for the fulfilled tokens from their respective proxy.
     /// @return A boolean indicating whether the order was successfully fulfilled.
     function fulfillPartialOrder(
-        Order memory order,
-        uint120 numerator,
-        uint120 denominator,
+        PartialOrder memory partialOrder,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
         // Ensure partial fills are supported by specified order.
         _assertPartialFillsEnabled(
-            numerator,
-            denominator,
-            order.parameters.orderType
+            partialOrder.numerator,
+            partialOrder.denominator,
+            partialOrder.parameters.orderType
         );
 
         // Validate and fulfill the order.
         return _fulfillOrder(
-            order,
-            numerator,
-            denominator,
+            partialOrder,
             new CriteriaResolver[](0),  // no criteria resolvers
             useFulfillerProxy
         );
@@ -454,35 +454,28 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
     /// @dev Partially fill some fraction of an order with an arbitrary number of items for offer and consideration alongside criteria resolvers containing specific token identifiers and associated proofs.
     /// Note that an amount less than the desired amount may be filled.
-    /// @param order The order to fulfill.
+    /// @param partialOrder The order to fulfill along with the fraction of the order to fill.
     /// Note that both the offerer and the fulfiller must first approve this contract (or their proxy if indicated by the order) to transfer any relevant tokens on their behalf and that contracts must implement `onERC1155Received` in order to receive ERC1155 tokens.
-    /// @param numerator A value indicating the portion of the order that should be filled.
-    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
-    /// @param denominator A value indicating the total size of the order.
-    /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
+    /// Also note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
     /// @param criteriaResolvers An array where each element contains a reference to a specific offer or consideration, a token identifier, and a proof that the supplied token identifier is contained in the order's merkle root.
     /// Note that a criteria of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
     /// @param useFulfillerProxy A flag indicating whether to source approvals for the fulfilled tokens from their respective proxy.
     /// @return A boolean indicating whether the order was successfully fulfilled.
     function fulfillPartialOrderWithCriteria(
-        Order memory order,
-        uint120 numerator,
-        uint120 denominator,
+        PartialOrder memory partialOrder,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
         // Ensure partial fills are supported by specified order.
         _assertPartialFillsEnabled(
-            numerator,
-            denominator,
-            order.parameters.orderType
+            partialOrder.numerator,
+            partialOrder.denominator,
+            partialOrder.parameters.orderType
         );
 
         // Validate and fulfill the order.
         return _fulfillOrder(
-            order,
-            numerator,
-            denominator,
+            partialOrder,
             criteriaResolvers,
             useFulfillerProxy
         );
