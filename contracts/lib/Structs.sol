@@ -77,7 +77,7 @@ struct BasicOrderParameters {
 
 /*
  * @dev Basic orders can supply any number of additional recipients, with the
- * implied assumption that they are supplied from the offererd ETH or ERC20
+ * implied assumption that they are supplied from the offered ETH or ERC20
  * token for the order.
  */
 struct AdditionalRecipient {
