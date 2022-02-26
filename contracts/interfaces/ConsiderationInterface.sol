@@ -84,6 +84,15 @@ interface ConsiderationInterface {
         BatchExecution[] memory batchExecutions
     );
 
+    function matchPartialOrders(
+        PartialOrder[] memory orders,
+        CriteriaResolver[] memory criteriaResolvers,
+        Fulfillment[] memory fulfillments
+    ) external payable returns (
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    );
+
     function cancel(
         OrderComponents[] memory orders
     ) external returns (bool);

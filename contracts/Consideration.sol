@@ -437,13 +437,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         PartialOrder memory partialOrder,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
-        // Ensure partial fills are supported by specified order.
-        _assertPartialFillsEnabled(
-            partialOrder.numerator,
-            partialOrder.denominator,
-            partialOrder.parameters.orderType
-        );
-
         // Validate and fulfill the order.
         return _fulfillOrder(
             partialOrder,
@@ -466,13 +459,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
-        // Ensure partial fills are supported by specified order.
-        _assertPartialFillsEnabled(
-            partialOrder.numerator,
-            partialOrder.denominator,
-            partialOrder.parameters.orderType
-        );
-
         // Validate and fulfill the order.
         return _fulfillOrder(
             partialOrder,
@@ -499,14 +485,57 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
-        // Adjust orders by filled amount and determine if they utilize proxies.
-        bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(orders);
+        // Allocate new empty array for each partial order in memory.
+        PartialOrder[] memory partialOrders = new PartialOrder[](orders.length);
 
-        // Apply criteria resolvers to each order as applicable.
-        _applyCriteriaResolvers(orders, criteriaResolvers);
+        // Skip overflow check as the index for the loop starts at zero.
+        unchecked {
+            // Iterate over the given orders.
+            for (uint256 i = 0; i < orders.length; i++) {
+                // Retrive the order.
+                Order memory order = orders[i];
 
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillOrders(orders, fulfillments, useProxyPerOrder);
+                // Convert to partial order (1/1 or full fill) and update array.
+                partialOrders[i] = PartialOrder(
+                    order.parameters,
+                    1,
+                    1,
+                    order.signature
+                );
+            }
+        }
+
+        // Validate and fulfill the orders.
+        return _matchPartialOrders(
+            partialOrders,
+            criteriaResolvers,
+            fulfillments
+        );
+    }
+
+    /// @dev Match an arbitrary number of partial orders, each with an arbitrary number of items for offer and consideration, supplying criteria resolvers containing specific token identifiers and associated proofs as well as fulfillments allocating offer components to consideration components.
+    /// @param partialOrders The partial orders to match.
+    /// Note that both the offerer and fulfiller on each partial order must first approve this contract (or their proxy if indicated by the order) to transfer any relevant tokens on their behalf and each consideration recipient must implement `onERC1155Received` in order to receive ERC1155 tokens.
+    /// @param criteriaResolvers An array where each element contains a reference to a specific order as well as that order's offer or consideration, a token identifier, and a proof that the supplied token identifier is contained in the order's merkle root.
+    /// Note that a root of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
+    /// @param fulfillments An array of elements allocating offer components to consideration components.
+    /// Note that each consideration component must be fully met in order for the match operation to be valid.
+    /// @return standardExecutions An array of elements indicating the sequence of non-batch transfers performed as part of matching the given orders.
+    /// @return batchExecutions An array of elements indicating the sequence of batch transfers performed as part of matching the given orders.
+    function matchPartialOrders(
+        PartialOrder[] memory partialOrders,
+        CriteriaResolver[] memory criteriaResolvers,
+        Fulfillment[] memory fulfillments
+    ) external payable override returns (
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    ) {
+        // Validate and fulfill the orders.
+        return _matchPartialOrders(
+            partialOrders,
+            criteriaResolvers,
+            fulfillments
+        );
     }
 
     /// @dev Cancel an arbitrary number of orders.

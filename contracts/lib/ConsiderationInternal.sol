@@ -43,6 +43,24 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address requiredProxyImplementation
     ) ConsiderationInternalView(legacyProxyRegistry, requiredProxyImplementation) {}
 
+    function _matchPartialOrders(
+        PartialOrder[] memory partialOrders,
+        CriteriaResolver[] memory criteriaResolvers,
+        Fulfillment[] memory fulfillments
+    ) internal returns (
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    ) {
+        // Adjust orders by filled amount and determine if they utilize proxies.
+        bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(partialOrders);
+
+        // Apply criteria resolvers to each order as applicable.
+        _applyCriteriaResolvers(partialOrders, criteriaResolvers);
+
+        // Fulfill the orders using the supplied fulfillments.
+        return _fulfillOrders(partialOrders, fulfillments, useProxyPerOrder);
+    }
+
     /// @dev Internal function to derive and validate an order based on a set of parameters and a primary item for offer and consideration.
     /// @param parameters The parameters of the basic order.
     /// @param offeredItem The primary item being offered.
@@ -196,6 +214,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
             revert BadFraction();
         }
 
+        // If attempting partial fill (n < d) check order type & ensure support.
+        if (
+            numerator < denominator &&
+            uint256(partialOrder.parameters.orderType) % 2 == 0
+        ) {
+            revert PartialFillsNotEnabledForOrder();
+        }
+
         // Retrieve current nonce and use it w/ parameters to derive order hash.
         orderHash = _getNoncedOrderHash(partialOrder.parameters);
 
@@ -295,10 +321,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         ) = _validateOrderAndUpdateStatus(partialOrder);
 
         // Apply criteria resolvers (requires array of orders to be supplied).
-        Order[] memory orders = new Order[](1);
-        orders[0] = Order(partialOrder.parameters, partialOrder.signature);
+        PartialOrder[] memory orders = new PartialOrder[](1);
+        orders[0] = partialOrder;
         _applyCriteriaResolvers(orders, criteriaResolvers);
-        Order memory order = orders[0];
+        PartialOrder memory order = orders[0];
 
         // Adjust prices based on time, start amount, and end amount.
         _adjustOrderPrice(order);
@@ -395,7 +421,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /// @param orders The orders to validate and reduce by previously filled amounts.
     /// @return A list of boolean indicating whether to utilize a proxy for each order.
     function _validateOrdersAndApplyPartials(
-        Order[] memory orders
+        PartialOrder[] memory orders
     ) internal returns (bool[] memory) {
         // Declare memory region to determine proxy utilization per order.
         bool[] memory useOffererProxyPerOrder = new bool[](orders.length);
@@ -405,7 +431,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Iterate over each order.
             for (uint256 i = 0; i < orders.length; ++i) {
                 // Retrieve the current order.
-                Order memory order = orders[i];
+                PartialOrder memory order = orders[i];
 
                 // Validate it, update status, and determine fraction to fill.
                 (
@@ -413,14 +439,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     uint120 numerator,
                     uint120 denominator,
                     bool useOffererProxy
-                ) = _validateOrderAndUpdateStatus(
-                    PartialOrder(
-                        order.parameters,
-                        1,                  // fill maximum available.
-                        1,
-                        order.signature
-                    )
-                );
+                ) = _validateOrderAndUpdateStatus(order);
 
                 // Adjust prices based on time, start amount, and end amount.
                 orders[i] = _adjustOrderPrice(order);
@@ -470,7 +489,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /// @return An array of elements indicating the sequence of non-batch transfers performed as part of matching the given orders.
     /// @return An array of elements indicating the sequence of batch transfers performed as part of matching the given orders.
     function _fulfillOrders(
-        Order[] memory orders,
+        PartialOrder[] memory orders,
         Fulfillment[] memory fulfillments,
         bool[] memory useOffererProxyPerOrder
     ) internal returns (Execution[] memory, BatchExecution[] memory) {

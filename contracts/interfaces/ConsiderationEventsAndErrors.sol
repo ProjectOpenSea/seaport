@@ -40,8 +40,7 @@ interface ConsiderationEventsAndErrors {
     error UnresolvedConsiderationCriteria();
     error OfferCriteriaResolverOutOfRange();
     error ConsiderationCriteriaResolverOutOfRange();
-    error CriteriaNotEnabledForOfferedItem();
-    error CriteriaNotEnabledForConsideredItem();
+    error CriteriaNotEnabledForItem();
     error InvalidProof();
     error InvalidCanceller();
     error InvalidNonceIncrementor();
