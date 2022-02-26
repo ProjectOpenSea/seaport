@@ -754,6 +754,36 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
+    /// @dev Internal pure function to convert an array of orders to an array of partial orders with numerator and denominator of 1.
+    /// @param orders The orders to convert.
+    /// @return The new array of partial orders.
+    function _convertOrdersToPartial(
+        Order[] memory orders
+    ) internal pure returns (PartialOrder[] memory) {
+        // Allocate new empty array for each partial order in memory.
+        PartialOrder[] memory partialOrders = new PartialOrder[](orders.length);
+
+        // Skip overflow check as the index for the loop starts at zero.
+        unchecked {
+            // Iterate over the given orders.
+            for (uint256 i = 0; i < orders.length; i++) {
+                // Retrive the order.
+                Order memory order = orders[i];
+
+                // Convert to partial order (1/1 or full fill) and update array.
+                partialOrders[i] = PartialOrder(
+                    order.parameters,
+                    1,
+                    1,
+                    order.signature
+                );
+            }
+        }
+
+        // Return the array of partial orders.
+        return partialOrders;
+    }
+
     /// @dev Internal pure function to ensure that a given element is contained in a merkle root via a supplied proof.
     /// @param leaf The element for which to prove inclusion.
     /// @param root The merkle root that inclusion will be proved against.
