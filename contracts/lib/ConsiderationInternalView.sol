@@ -131,9 +131,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         OrderStatus memory orderStatus = _orderStatus[orderHash];
 
         // Ensure that the order has not been cancelled.
-        if (orderStatus.isCancelled) {
-            revert OrderIsCancelled(orderHash);
-        }
+        _assertOrderNotCancelled(orderStatus, orderHash);
 
         // The order must be either entirely unused, or...
         if (

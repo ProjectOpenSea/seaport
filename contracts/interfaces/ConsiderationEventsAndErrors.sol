@@ -33,7 +33,6 @@ interface ConsiderationEventsAndErrors {
     error NoContract(address);
     error PartialFillsNotEnabledForOrder();
     error OrderIsCancelled(bytes32);
-    error OrderAlreadyValidated(bytes32);
     error OrderNotUnused(bytes32);
     error OrderCriteriaResolverOutOfRange();
     error UnresolvedOfferCriteria();

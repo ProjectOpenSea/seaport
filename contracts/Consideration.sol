@@ -28,9 +28,6 @@ import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
 /// methods for composing advanced orders.
 /// @author 0age
 contract Consideration is ConsiderationInterface, ConsiderationInternal {
-    // TODO: support partial fills as part of matchOrders?
-    // TODO: skip redundant order validation when it has already been validated?
-
     /// @dev Derive and set hashes, reference chainId, and associated domain separator during deployment.
     /// @param legacyProxyRegistry A proxy registry that stores per-user proxies that may optionally be used to transfer tokens.
     /// @param requiredProxyImplementation The implementation that this contract will require be set on each per-user proxy.
@@ -578,7 +575,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                     order.nonce
                 );
 
-                // Update the order status as cancelled.
+                // Update the order status as not valid and cancelled.
+                _orderStatus[orderHash].isValidated = false;
                 _orderStatus[orderHash].isCancelled = true;
 
                 // Emit an event signifying that the order has been cancelled.
@@ -621,10 +619,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                     false // Note: partially used orders will fail next check.
                 );
 
-                // Ensure that the retrieved order is not already validated.
-                if (orderStatus.isValidated) {
-                    revert OrderAlreadyValidated(orderHash);
-                }
+                // Ensure that the order has not been cancelled.
+                _assertOrderNotCancelled(orderStatus, orderHash);
 
                 // Update order status to mark the order as valid.
                 _orderStatus[orderHash].isValidated = true;

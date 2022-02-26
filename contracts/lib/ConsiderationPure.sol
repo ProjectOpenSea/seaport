@@ -16,6 +16,7 @@ import {
     Execution,
     Order,
     PartialOrder,
+    OrderStatus,
     CriteriaResolver,
     Batch,
     BatchExecution
@@ -97,6 +98,19 @@ contract ConsiderationPure is ConsiderationBase {
 
         // Return the original amount (now expressed as endAmount internally).
         return endAmount;
+    }
+
+    /// @dev Internal pure function to ensure that an order has not been cancelled.
+    /// @param orderStatus The status of the order.
+    /// @param orderHash The hash of the order.
+    function _assertOrderNotCancelled(
+        OrderStatus memory orderStatus,
+        bytes32 orderHash
+    ) internal pure {
+        // Ensure that the order has not been cancelled.
+        if (orderStatus.isCancelled) {
+            revert OrderIsCancelled(orderHash);
+        }
     }
 
     /// @dev Internal pure function to apply criteria resolvers containing specific token identifiers and associated proofs as well as fulfillments allocating offer components to consideration components.
