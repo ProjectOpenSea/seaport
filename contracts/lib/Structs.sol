@@ -109,7 +109,7 @@ struct Order {
 }
 
 /*
- * @dev Parial orders include a numerator (i.e. the fraction to attempt to fill)
+ * @dev Partial orders include a numerator (i.e. the fraction to attempt to fill)
  * and a denominator (the total size of the order) in additon to the signature
  * and other order parameters.
  */
