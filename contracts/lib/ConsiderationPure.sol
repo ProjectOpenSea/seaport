@@ -5,7 +5,7 @@ import {
     OrderType,
     ItemType,
     Side
-} from "./Enums.sol";
+} from "./ConsiderationEnums.sol";
 
 import {
     OfferedItem,
@@ -20,7 +20,7 @@ import {
     CriteriaResolver,
     Batch,
     BatchExecution
-} from "./Structs.sol";
+} from "./ConsiderationStructs.sol";
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
 
@@ -34,84 +34,6 @@ contract ConsiderationPure is ConsiderationBase {
         address legacyProxyRegistry,
         address requiredProxyImplementation
     ) ConsiderationBase(legacyProxyRegistry, requiredProxyImplementation) {}
-
-
-    /// @dev Internal pure function to derive a hash for comparing transfers to see if they can be batched. Only applies to ERC1155 tokens.
-    /// @param token The token to transfer.
-    /// @param from The originator of the transfer.
-    /// @param to The recipient of the transfer.
-    /// @param useProxy A boolean indicating whether to utilize a proxy for the transfer.
-    /// @return The hash.
-    function _hashBatchableItemIdentifier(
-        address token,
-        address from,
-        address to,
-        bool useProxy
-    ) internal pure returns (bytes32) {
-        // Note: this could use a variant of efficientHash as it's < 64 bytes.
-        return keccak256(abi.encode(token, from, to, useProxy));
-    }
-
-    /// @dev Internal pure function to derive the current amount of a given item based on the current price, the starting price, and the ending price. If the start and end prices differ, the current price will be extrapolated on a linear basis.
-    /// @param startAmount The starting amount of the item.
-    /// @param endAmount The ending amount of the item.
-    /// @param elapsed The amount of time that has elapsed since the order's start time.
-    /// @param remaining The amount of time left until the order's end time.
-    /// @param duration The total duration of the order.
-    /// @param roundUp A boolean indicating whether the resultant amount should be rounded up or down.
-    /// @return The current amount.
-    function _locateCurrentAmount(
-        uint256 startAmount,
-        uint256 endAmount,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration,
-        bool roundUp
-    ) internal pure returns (uint256) {
-        // Only modify end amount if it doesn't already equal start amount.
-        if (startAmount != endAmount) {
-            // Leave extra amount to add for rounding at zero (i.e. round down).
-            uint256 roundingFactor = 0;
-
-            // If rounding up, set rounding factor to one less than denominator.
-            if (roundUp) {
-                // Skip underflow check: duration cannot be zero.
-                unchecked {
-                    roundingFactor = duration - 1;
-                }
-            }
-
-            // Aggregate new amounts weighted by time with rounding factor
-            uint256 totalBeforeDivision = (
-                (startAmount * remaining) + (endAmount * elapsed) + roundingFactor
-            );
-
-            // Division is performed without zero check as it cannot be zero.
-            uint256 newAmount;
-            assembly {
-                newAmount := div(totalBeforeDivision, duration)
-            }
-
-            // Return the current amount (expressed as endAmount internally).
-            return newAmount;
-        }
-
-        // Return the original amount (now expressed as endAmount internally).
-        return endAmount;
-    }
-
-    /// @dev Internal pure function to ensure that an order has not been cancelled.
-    /// @param orderStatus The status of the order.
-    /// @param orderHash The hash of the order.
-    function _assertOrderNotCancelled(
-        OrderStatus memory orderStatus,
-        bytes32 orderHash
-    ) internal pure {
-        // Ensure that the order has not been cancelled.
-        if (orderStatus.isCancelled) {
-            revert OrderIsCancelled(orderHash);
-        }
-    }
 
     /// @dev Internal pure function to apply criteria resolvers containing specific token identifiers and associated proofs as well as fulfillments allocating offer components to consideration components.
     /// @param orders The orders to apply criteria resolvers to.
@@ -139,7 +61,7 @@ contract ConsiderationPure is ConsiderationBase {
                 // Read component index from memory and place it on the stack.
                 uint256 componentIndex = criteriaResolver.index;
 
-                // Declare values for item's type and criteria. 
+                // Declare values for item's type and criteria.
                 ItemType itemType;
                 uint256 identifierOrCriteria;
 
@@ -234,27 +156,82 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /// @dev Internal pure function to hash key parameters of a given execution from an array of execution elements by index.
-    /// @param executions An array of execution elements.
-    /// @param executions An index designating which execution element from the array to hash.
-    /// @return A hash of the key parameters of the execution.
-    function _getHashByExecutionIndex(
-        Execution[] memory executions,
-        uint256 executionIndex
-    ) internal pure returns (bytes32) {
-        // Retrieve ERC1155 execution element.
-        Execution memory execution = executions[executionIndex];
+    /// @dev Internal pure function to derive the current amount of a given item based on the current price, the starting price, and the ending price. If the start and end prices differ, the current price will be extrapolated on a linear basis.
+    /// @param startAmount The starting amount of the item.
+    /// @param endAmount The ending amount of the item.
+    /// @param elapsed The amount of time that has elapsed since the order's start time.
+    /// @param remaining The amount of time left until the order's end time.
+    /// @param duration The total duration of the order.
+    /// @param roundUp A boolean indicating whether the resultant amount should be rounded up or down.
+    /// @return The current amount.
+    function _locateCurrentAmount(
+        uint256 startAmount,
+        uint256 endAmount,
+        uint256 elapsed,
+        uint256 remaining,
+        uint256 duration,
+        bool roundUp
+    ) internal pure returns (uint256) {
+        // Only modify end amount if it doesn't already equal start amount.
+        if (startAmount != endAmount) {
+            // Leave extra amount to add for rounding at zero (i.e. round down).
+            uint256 roundingFactor = 0;
 
-        // Retrieve the item of the execution element.
-        ReceivedItem memory item = execution.item;
+            // If rounding up, set rounding factor to one less than denominator.
+            if (roundUp) {
+                // Skip underflow check: duration cannot be zero.
+                unchecked {
+                    roundingFactor = duration - 1;
+                }
+            }
 
-        // Derive hash based on token, offerer, recipient, and proxy usage.
-        return _hashBatchableItemIdentifier(
-            item.token,
-            execution.offerer,
-            item.recipient,
-            execution.useProxy
-        );
+            // Aggregate new amounts weighted by time with rounding factor
+            uint256 totalBeforeDivision = (
+                (startAmount * remaining) + (endAmount * elapsed) + roundingFactor
+            );
+
+            // Division is performed without zero check as it cannot be zero.
+            uint256 newAmount;
+            assembly {
+                newAmount := div(totalBeforeDivision, duration)
+            }
+
+            // Return the current amount (expressed as endAmount internally).
+            return newAmount;
+        }
+
+        // Return the original amount (now expressed as endAmount internally).
+        return endAmount;
+    }
+
+    /// @dev Internal pure function to return a fraction of a given value and to ensure that the resultant value does not have any fractional component.
+    /// @param numerator A value indicating the portion of the order that should be filled.
+    /// @param denominator A value indicating the total size of the order.
+    /// @param value The value for which to compute the fraction.
+    function _getFraction(
+        uint120 numerator,
+        uint120 denominator,
+        uint256 value
+    ) internal pure returns (uint256 newValue) {
+        // Return value early in cases where the fraction resolves to 1.
+        if (numerator == denominator) {
+            return value;
+        }
+
+        // Multiply the numerator by the value and ensure no overflow occurs.
+        uint256 valueTimesNumerator = value * uint256(numerator);
+
+        // Divide (Note: denominator must not be zero!) and check for remainder.
+        bool inexact;
+        assembly {
+            newValue := div(valueTimesNumerator, denominator)
+            inexact := iszero(iszero(mulmod(value, numerator, denominator)))
+        }
+
+        // Ensure that division gave a final result with no remainder.
+        if (inexact) {
+            revert InexactFraction();
+        }
     }
 
     /// @dev Internal pure function to "compress" executions, splitting them into "standard" (or unbatched) executions and "batch" executions.
@@ -512,81 +489,6 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /// @dev Internal pure function to ensure that an order index is in range and, if so, to return the parameters of the associated order.
-    /// @param orders An array of orders.
-    /// @param index The order index specified by the fulfillment component.
-    /// @return The parameters of the order at the given index.
-    function _getOrderParametersByFulfillmentIndex(
-        PartialOrder[] memory orders,
-        uint256 index
-    ) internal pure returns (OrderParameters memory) {
-        // Ensure that the order index is in range.
-        if (index >= orders.length) {
-            revert FulfilledOrderIndexOutOfRange();
-        }
-
-        // Return the parameters of the order at the given order index.
-        return orders[index].parameters;
-    }
-
-    /// @dev Internal pure function to ensure that an offer component index is in range and, if so, to zero out the offer amount and return the associated offer item.
-    /// @param orders An array of orders.
-    /// @param orderIndex The order index specified by the fulfillment component.
-    /// @param itemIndex The item index specified by the fulfillment component.
-    /// @param useOffererProxyPerOrder An array of booleans indicating whether to source approvals for the fulfilled tokens on each order from their respective proxy.
-    /// @return offerer The offerer for the given order.
-    /// @return offeredItem The offer item at the given index.
-    /// @return useProxy A boolean indicating whether to source approvals for the fulfilled tokens on the order from its respective proxy.
-    function _consumeOfferComponent(
-        PartialOrder[] memory orders,
-        uint256 orderIndex,
-        uint256 itemIndex,
-        bool[] memory useOffererProxyPerOrder
-    ) internal pure returns (address offerer, OfferedItem memory offeredItem, bool useProxy) {
-        OrderParameters memory orderParameters = _getOrderParametersByFulfillmentIndex(
-            orders,
-            orderIndex
-        );
-
-        // Ensure that the offer index is in range.
-        if (itemIndex >= orderParameters.offer.length) {
-            revert FulfilledOrderOfferIndexOutOfRange();
-        }
-
-        // Clear offer amount to indicate offer item has been consumed.
-        orders[orderIndex].parameters.offer[itemIndex].endAmount = 0;
-
-        // Return the offerer and the offer item at the given index.
-        return (orderParameters.offerer, orderParameters.offer[itemIndex], useOffererProxyPerOrder[orderIndex]);
-    }
-
-    /// @dev Internal pure function to ensure that a consideration component index is in range and, if so, to zero out the amount and return the associated consideration item.
-    /// @param orders An array of orders.
-    /// @param orderIndex The order index specified by the fulfillment component.
-    /// @param itemIndex The item index specified by the fulfillment component.
-    /// @return The consideration item at the given index.
-    function _consumeConsiderationComponent(
-        PartialOrder[] memory orders,
-        uint256 orderIndex,
-        uint256 itemIndex
-    ) internal pure returns (ReceivedItem memory) {
-        OrderParameters memory orderParameters = _getOrderParametersByFulfillmentIndex(
-            orders,
-            orderIndex
-        );
-
-        // Ensure that the consideration index is in range.
-        if (itemIndex >= orderParameters.consideration.length) {
-            revert FulfilledOrderConsiderationIndexOutOfRange();
-        }
-
-        // Clear consideration amount to indicate item has been consumed.
-        orders[orderIndex].parameters.consideration[itemIndex].endAmount = 0;
-
-        // Return the consideration item at the given index.
-        return orderParameters.consideration[itemIndex];
-    }
-
     /// @dev Internal pure function to match offer items to consideration items on a group of orders via a supplied fulfillment.
     /// Note that this function does not support partial filling of orders (though filling the remainder of a partially-filled order is supported).
     /// @param orders The orders to match.
@@ -724,33 +626,131 @@ contract ConsiderationPure is ConsiderationBase {
         return Execution(requiredConsideration, offerer, useProxy);
     }
 
-    /// @dev Internal pure function to return a fraction of a given value and to ensure that the resultant value does not have any fractional component.
-    /// @param numerator A value indicating the portion of the order that should be filled.
-    /// @param denominator A value indicating the total size of the order.
-    /// @param value The value for which to compute the fraction.
-    function _getFraction(
-        uint120 numerator,
-        uint120 denominator,
-        uint256 value
-    ) internal pure returns (uint256 newValue) {
-        // Return value early in cases where the fraction resolves to 1.
-        if (numerator == denominator) {
-            return value;
+    /// @dev Internal pure function to ensure that an order index is in range and, if so, to return the parameters of the associated order.
+    /// @param orders An array of orders.
+    /// @param index The order index specified by the fulfillment component.
+    /// @return The parameters of the order at the given index.
+    function _getOrderParametersByFulfillmentIndex(
+        PartialOrder[] memory orders,
+        uint256 index
+    ) internal pure returns (OrderParameters memory) {
+        // Ensure that the order index is in range.
+        if (index >= orders.length) {
+            revert FulfilledOrderIndexOutOfRange();
         }
 
-        // Multiply the numerator by the value and ensure no overflow occurs.
-        uint256 valueTimesNumerator = value * uint256(numerator);
+        // Return the parameters of the order at the given order index.
+        return orders[index].parameters;
+    }
 
-        // Divide (Note: denominator must not be zero!) and check for remainder.
-        bool inexact;
-        assembly {
-            newValue := div(valueTimesNumerator, denominator)
-            inexact := iszero(iszero(mulmod(value, numerator, denominator)))
+    /// @dev Internal pure function to ensure that an offer component index is in range and, if so, to zero out the offer amount and return the associated offer item.
+    /// @param orders An array of orders.
+    /// @param orderIndex The order index specified by the fulfillment component.
+    /// @param itemIndex The item index specified by the fulfillment component.
+    /// @param useOffererProxyPerOrder An array of booleans indicating whether to source approvals for the fulfilled tokens on each order from their respective proxy.
+    /// @return offerer The offerer for the given order.
+    /// @return offeredItem The offer item at the given index.
+    /// @return useProxy A boolean indicating whether to source approvals for the fulfilled tokens on the order from its respective proxy.
+    function _consumeOfferComponent(
+        PartialOrder[] memory orders,
+        uint256 orderIndex,
+        uint256 itemIndex,
+        bool[] memory useOffererProxyPerOrder
+    ) internal pure returns (address offerer, OfferedItem memory offeredItem, bool useProxy) {
+        OrderParameters memory orderParameters = _getOrderParametersByFulfillmentIndex(
+            orders,
+            orderIndex
+        );
+
+        // Ensure that the offer index is in range.
+        if (itemIndex >= orderParameters.offer.length) {
+            revert FulfilledOrderOfferIndexOutOfRange();
         }
 
-        // Ensure that division gave a final result with no remainder.
-        if (inexact) {
-            revert InexactFraction();
+        // Clear offer amount to indicate offer item has been consumed.
+        orders[orderIndex].parameters.offer[itemIndex].endAmount = 0;
+
+        // Return the offerer and the offer item at the given index.
+        return (orderParameters.offerer, orderParameters.offer[itemIndex], useOffererProxyPerOrder[orderIndex]);
+    }
+
+    /// @dev Internal pure function to ensure that a consideration component index is in range and, if so, to zero out the amount and return the associated consideration item.
+    /// @param orders An array of orders.
+    /// @param orderIndex The order index specified by the fulfillment component.
+    /// @param itemIndex The item index specified by the fulfillment component.
+    /// @return The consideration item at the given index.
+    function _consumeConsiderationComponent(
+        PartialOrder[] memory orders,
+        uint256 orderIndex,
+        uint256 itemIndex
+    ) internal pure returns (ReceivedItem memory) {
+        OrderParameters memory orderParameters = _getOrderParametersByFulfillmentIndex(
+            orders,
+            orderIndex
+        );
+
+        // Ensure that the consideration index is in range.
+        if (itemIndex >= orderParameters.consideration.length) {
+            revert FulfilledOrderConsiderationIndexOutOfRange();
+        }
+
+        // Clear consideration amount to indicate item has been consumed.
+        orders[orderIndex].parameters.consideration[itemIndex].endAmount = 0;
+
+        // Return the consideration item at the given index.
+        return orderParameters.consideration[itemIndex];
+    }
+
+
+    /// @dev Internal pure function to hash key parameters of a given execution from an array of execution elements by index.
+    /// @param executions An array of execution elements.
+    /// @param executions An index designating which execution element from the array to hash.
+    /// @return A hash of the key parameters of the execution.
+    function _getHashByExecutionIndex(
+        Execution[] memory executions,
+        uint256 executionIndex
+    ) internal pure returns (bytes32) {
+        // Retrieve ERC1155 execution element.
+        Execution memory execution = executions[executionIndex];
+
+        // Retrieve the item of the execution element.
+        ReceivedItem memory item = execution.item;
+
+        // Derive hash based on token, offerer, recipient, and proxy usage.
+        return _hashBatchableItemIdentifier(
+            item.token,
+            execution.offerer,
+            item.recipient,
+            execution.useProxy
+        );
+    }
+
+    /// @dev Internal pure function to derive a hash for comparing transfers to see if they can be batched. Only applies to ERC1155 tokens.
+    /// @param token The token to transfer.
+    /// @param from The originator of the transfer.
+    /// @param to The recipient of the transfer.
+    /// @param useProxy A boolean indicating whether to utilize a proxy for the transfer.
+    /// @return The hash.
+    function _hashBatchableItemIdentifier(
+        address token,
+        address from,
+        address to,
+        bool useProxy
+    ) internal pure returns (bytes32) {
+        // Note: this could use a variant of efficientHash as it's < 64 bytes.
+        return keccak256(abi.encode(token, from, to, useProxy));
+    }
+
+    /// @dev Internal pure function to ensure that an order has not been cancelled.
+    /// @param orderStatus The status of the order.
+    /// @param orderHash The hash of the order.
+    function _assertOrderNotCancelled(
+        OrderStatus memory orderStatus,
+        bytes32 orderHash
+    ) internal pure {
+        // Ensure that the order has not been cancelled.
+        if (orderStatus.isCancelled) {
+            revert OrderIsCancelled(orderHash);
         }
     }
 

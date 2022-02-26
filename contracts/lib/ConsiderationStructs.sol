@@ -5,7 +5,7 @@ import {
     OrderType,
     ItemType,
     Side
-} from "./Enums.sol";
+} from "./ConsiderationEnums.sol";
 
 /*
  * @dev An order contains nine components: an offerer, a zone (or account that

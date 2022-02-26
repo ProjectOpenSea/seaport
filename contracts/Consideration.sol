@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 
 import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol";
 
-import { ItemType } from "./lib/Enums.sol";
+import { ItemType } from "./lib/ConsiderationEnums.sol";
 
 import {
     BasicOrderParameters,
@@ -18,7 +18,7 @@ import {
     OrderStatus,
     CriteriaResolver,
     BatchExecution
-} from "./lib/Structs.sol";
+} from "./lib/ConsiderationStructs.sol";
 
 import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
 
@@ -664,12 +664,28 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
     /// @dev Retrieve the status of a given order by hash, including whether the order has been cancelled or validated and the fraction of the order that has been filled.
     /// @param orderHash The order hash in question.
-    /// @return The status of the order.
+    /// @return isValidated A boolean indicating whether the order in question has been validated (i.e. approved prior to fulfillment or partially filled).
+    /// @return isCancelled A boolean indicating whether the order in question has been cancelled.
+    /// @return totalFilled The total portion of the order that has been filled, i.e. the "numerator".
+    /// @return totalSize The total size of the order that is either filled or unfilled, i.e. the "denominator".
     function getOrderStatus(
         bytes32 orderHash
-    ) external view override returns (OrderStatus memory) {
-        // Return the order status.
-        return _orderStatus[orderHash];
+    ) external view override returns (
+        bool isValidated,
+        bool isCancelled,
+        uint256 totalFilled,
+        uint256 totalSize
+    ) {
+        // Retrieve the order status using the order hash.
+        OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+        // Return the fields on the order status.
+        return (
+            orderStatus.isValidated,
+            orderStatus.isCancelled,
+            orderStatus.numerator,
+            orderStatus.denominator
+        );
     }
 
     /// @dev Retrieve the current nonce for a given combination of offerer and zone.

@@ -11,7 +11,7 @@ import {
     PartialOrder,
     OrderStatus,
     CriteriaResolver
-} from "../lib/Structs.sol";
+} from "../lib/ConsiderationStructs.sol";
 
 /// @title ConsiderationInterface contains all external function interfaces for Consideration.
 /// @author 0age
@@ -112,7 +112,12 @@ interface ConsiderationInterface {
 
     function getOrderStatus(
         bytes32 orderHash
-    ) external view returns (OrderStatus memory);
+    ) external view returns (
+        bool isValidated,
+        bool isCancelled,
+        uint256 totalFilled,
+        uint256 totalSize
+    );
 
     function getNonce(
         address offerer,

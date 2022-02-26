@@ -5,7 +5,7 @@ import { ProxyRegistryInterface } from "../interfaces/AbridgedProxyInterfaces.so
 
 import { ConsiderationEventsAndErrors } from "../interfaces/ConsiderationEventsAndErrors.sol";
 
-import { OrderStatus } from "./Structs.sol";
+import { OrderStatus } from "./ConsiderationStructs.sol";
 
 /// @title ConsiderationBase contains all storage, constants, and constructor logic.
 /// @author 0age

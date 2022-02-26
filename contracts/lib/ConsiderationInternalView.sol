@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 
 import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 
-import { OrderType } from "./Enums.sol";
+import { OrderType } from "./ConsiderationEnums.sol";
 
 import {
     OfferedItem,
@@ -12,7 +12,7 @@ import {
     Order,
     PartialOrder,
     OrderStatus
-} from "./Structs.sol";
+} from "./ConsiderationStructs.sol";
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
 
@@ -161,50 +161,6 @@ contract ConsiderationInternalView is ConsiderationPure {
         return orderStatus;
     }
 
-    /// @dev Internal view function to derive the current amount of a given item based on the current price, the starting price, and the ending price. If the start and end prices differ, the current price will be extrapolated on a linear basis.
-    /// @param order The original order.
-    /// @return adjustedOrder An adjusted order with the current price set.
-    function _adjustOrderPrice(
-        PartialOrder memory order
-    ) internal view returns (PartialOrder memory adjustedOrder) {
-        // Skip checks: for loops indexed at zero and durations are validated.
-        unchecked {
-            // Derive total order duration and total time elapsed and remaining.
-            uint256 duration = order.parameters.endTime - order.parameters.startTime;
-            uint256 elapsed = block.timestamp - order.parameters.startTime;
-            uint256 remaining = duration - elapsed;
-
-            // Iterate over each offer on the order.
-            for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
-                // Adjust offer amounts based on current time (round down).
-                order.parameters.offer[i].endAmount = _locateCurrentAmount(
-                    order.parameters.offer[i].startAmount,
-                    order.parameters.offer[i].endAmount,
-                    elapsed,
-                    remaining,
-                    duration,
-                    false // round down
-                );
-            }
-
-            // Iterate over each consideration on the order.
-            for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
-                // Adjust consideration aniybts based on current time (round up).
-                order.parameters.consideration[i].endAmount = _locateCurrentAmount(
-                    order.parameters.consideration[i].startAmount,
-                    order.parameters.consideration[i].endAmount,
-                    elapsed,
-                    remaining,
-                    duration,
-                    true // round up
-                );
-            }
-
-            // Return the modified order.
-            return order;
-        }
-    }
-
     /// @dev Internal view function to verify the signature of an order. An ERC-1271 fallback will be attempted should the recovered signature not match the supplied offerer.
     /// Note that only 32-byte or 33-byte ECDSA signatures are supported.
     /// @param offerer The offerer for the order.
@@ -320,43 +276,6 @@ contract ConsiderationInternalView is ConsiderationPure {
         return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _deriveDomainSeparator();
     }
 
-    /// @dev Internal view function to derive the EIP-712 hash for an offererd item.
-    /// @param offeredItem The offered item to hash.
-    /// @return The hash.
-    function _hashOfferedItem(
-        OfferedItem memory offeredItem
-    ) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _OFFERED_ITEM_TYPEHASH,
-                offeredItem.itemType,
-                offeredItem.token,
-                offeredItem.identifierOrCriteria,
-                offeredItem.startAmount,
-                offeredItem.endAmount
-            )
-        );
-    }
-
-    /// @dev Internal view function to derive the EIP-712 hash for a received item.
-    /// @param receivedItem The received item to hash.
-    /// @return The hash.
-    function _hashReceivedItem(
-        ReceivedItem memory receivedItem
-    ) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _RECEIVED_ITEM_TYPEHASH,
-                receivedItem.itemType,
-                receivedItem.token,
-                receivedItem.identifierOrCriteria,
-                receivedItem.startAmount,
-                receivedItem.endAmount,
-                receivedItem.recipient
-            )
-        );
-    }
-
     /// @dev Internal view function to derive the order hash for a given order.
     /// @param orderParameters The parameters of the order to hash.
     /// @param nonce The nonce of the order to hash.
@@ -418,6 +337,43 @@ contract ConsiderationInternalView is ConsiderationPure {
         );
     }
 
+    /// @dev Internal view function to derive the EIP-712 hash for an offererd item.
+    /// @param offeredItem The offered item to hash.
+    /// @return The hash.
+    function _hashOfferedItem(
+        OfferedItem memory offeredItem
+    ) internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _OFFERED_ITEM_TYPEHASH,
+                offeredItem.itemType,
+                offeredItem.token,
+                offeredItem.identifierOrCriteria,
+                offeredItem.startAmount,
+                offeredItem.endAmount
+            )
+        );
+    }
+
+    /// @dev Internal view function to derive the EIP-712 hash for a received item.
+    /// @param receivedItem The received item to hash.
+    /// @return The hash.
+    function _hashReceivedItem(
+        ReceivedItem memory receivedItem
+    ) internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _RECEIVED_ITEM_TYPEHASH,
+                receivedItem.itemType,
+                receivedItem.token,
+                receivedItem.identifierOrCriteria,
+                receivedItem.startAmount,
+                receivedItem.endAmount,
+                receivedItem.recipient
+            )
+        );
+    }
+
     /// @dev Internal view function to determine if a proxy should be utilized for a given order and to ensure that the submitter is allowed by the order type.
     /// @param orderType The type of the order.
     /// @param offerer The offerer in question.
@@ -444,4 +400,47 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
+    /// @dev Internal view function to derive the current amount of a given item based on the current price, the starting price, and the ending price. If the start and end prices differ, the current price will be extrapolated on a linear basis.
+    /// @param order The original order.
+    /// @return adjustedOrder An adjusted order with the current price set.
+    function _adjustOrderPrice(
+        PartialOrder memory order
+    ) internal view returns (PartialOrder memory adjustedOrder) {
+        // Skip checks: for loops indexed at zero and durations are validated.
+        unchecked {
+            // Derive total order duration and total time elapsed and remaining.
+            uint256 duration = order.parameters.endTime - order.parameters.startTime;
+            uint256 elapsed = block.timestamp - order.parameters.startTime;
+            uint256 remaining = duration - elapsed;
+
+            // Iterate over each offer on the order.
+            for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
+                // Adjust offer amounts based on current time (round down).
+                order.parameters.offer[i].endAmount = _locateCurrentAmount(
+                    order.parameters.offer[i].startAmount,
+                    order.parameters.offer[i].endAmount,
+                    elapsed,
+                    remaining,
+                    duration,
+                    false // round down
+                );
+            }
+
+            // Iterate over each consideration on the order.
+            for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
+                // Adjust consideration aniybts based on current time (round up).
+                order.parameters.consideration[i].endAmount = _locateCurrentAmount(
+                    order.parameters.consideration[i].startAmount,
+                    order.parameters.consideration[i].endAmount,
+                    elapsed,
+                    remaining,
+                    duration,
+                    true // round up
+                );
+            }
+
+            // Return the modified order.
+            return order;
+        }
+    }
 }
