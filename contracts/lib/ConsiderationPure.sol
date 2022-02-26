@@ -139,6 +139,7 @@ contract ConsiderationPure is ConsiderationBase {
                 // Read component index from memory and place it on the stack.
                 uint256 componentIndex = criteriaResolver.index;
 
+                // Declare values for item's type and criteria. 
                 ItemType itemType;
                 uint256 identifierOrCriteria;
 
