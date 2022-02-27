@@ -28,8 +28,8 @@ import { ConsiderationBase } from "./ConsiderationBase.sol";
  * @author 0age
  * @notice ConsiderationPure contains all pure functions. */
 contract ConsiderationPure is ConsiderationBase {
-    /* @notice Derive and set hashes, reference chainId, and associated domain
-     *         separator during deployment.
+    /* @dev Derive and set hashes, reference chainId, and associated domain
+     *      separator during deployment.
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to

@@ -43,8 +43,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Cancel offerer's orders with given zone (offerer => zone => nonce).
     mapping (address => mapping (address => uint256)) internal _nonces;
 
-    /* @notice Derive and set hashes, reference chainId, and associated domain
-     *         separator during deployment.
+    /* @dev Derive and set hashes, reference chainId, and associated domain
+     *      separator during deployment.
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to

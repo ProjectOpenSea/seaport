@@ -13,7 +13,7 @@ import {
     CriteriaResolver
 } from "../lib/ConsiderationStructs.sol";
 
-/* @title Consideration
+/* @title ConsiderationInterface
  * @author 0age
  * @custom:version 1
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.

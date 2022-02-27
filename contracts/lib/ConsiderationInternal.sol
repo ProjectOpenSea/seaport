@@ -36,8 +36,8 @@ import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
  * @author 0age
  * @notice ConsiderationInternal contains all internal functions. */
 contract ConsiderationInternal is ConsiderationInternalView {
-    /* @notice Derive and set hashes, reference chainId, and associated domain
-     *         separator during deployment.
+    /* @dev Derive and set hashes, reference chainId, and associated domain
+     *      separator during deployment.
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to

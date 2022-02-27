@@ -20,8 +20,8 @@ import { ConsiderationPure } from "./ConsiderationPure.sol";
  * @author 0age
  * @notice ConsiderationInternal contains all internal view functions. */
 contract ConsiderationInternalView is ConsiderationPure {
-    /* @notice Derive and set hashes, reference chainId, and associated domain
-     *         separator during deployment.
+    /* @dev Derive and set hashes, reference chainId, and associated domain
+     *      separator during deployment.
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
@@ -316,7 +316,7 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             // Ensure result was extracted and matches EIP-1271 magic value.
             if (result != EIP1271Interface.isValidSignature.selector) {
-                revert BadSignature();
+                revert InvalidSigner();
             }
         }
     }
