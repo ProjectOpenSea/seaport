@@ -10,7 +10,7 @@ import {
     ReceivedItem,
     OrderParameters,
     Order,
-    PartialOrder,
+    AdvancedOrder,
     OrderStatus
 } from "./ConsiderationStructs.sol";
 
@@ -404,8 +404,8 @@ contract ConsiderationInternalView is ConsiderationPure {
     /// @param order The original order.
     /// @return adjustedOrder An adjusted order with the current price set.
     function _adjustOrderPrice(
-        PartialOrder memory order
-    ) internal view returns (PartialOrder memory adjustedOrder) {
+        AdvancedOrder memory order
+    ) internal view returns (AdvancedOrder memory adjustedOrder) {
         // Skip checks: for loops indexed at zero and durations are validated.
         unchecked {
             // Derive total order duration and total time elapsed and remaining.

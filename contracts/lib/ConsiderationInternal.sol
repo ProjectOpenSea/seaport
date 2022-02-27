@@ -23,7 +23,7 @@ import {
     Fulfillment,
     Execution,
     Order,
-    PartialOrder,
+    AdvancedOrder,
     OrderStatus,
     CriteriaResolver,
     Batch,
@@ -167,14 +167,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
     /// @dev Internal function to validate an order, determine what portion to fill, and update its status.
     /// The desired fill amount is supplied as a fraction, and the actual amount to fill is returned as a similar fraction.
-    /// @param partialOrder The order to fulfill as well as the fraction to fill.
+    /// @param advancedOrder The order to fulfill as well as the fraction to fill.
     /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
     /// @return orderHash The order hash.
     /// @return newNumerator A value indicating the portion of the order that will be filled.
     /// @return newDenominator A value indicating the total size of the order.
     /// @return useOffererProxy A boolean indicating whether to utilize the offerer's proxy.
     function _validateOrderAndUpdateStatus(
-        PartialOrder memory partialOrder
+        AdvancedOrder memory advancedOrder
     ) internal returns (
         bytes32 orderHash,
         uint120 newNumerator,
@@ -183,13 +183,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
     ) {
         // Ensure current timestamp falls between order start time and end time.
         _assertValidTime(
-            partialOrder.parameters.startTime,
-            partialOrder.parameters.endTime
+            advancedOrder.parameters.startTime,
+            advancedOrder.parameters.endTime
         );
 
         // Read numerator and denominator from memory and place on the stack.
-        uint120 numerator = partialOrder.numerator;
-        uint120 denominator = partialOrder.denominator;
+        uint120 numerator = advancedOrder.numerator;
+        uint120 denominator = advancedOrder.denominator;
 
         // Ensure that the supplied numerator and denominator are valid.
         if (numerator > denominator || numerator == 0 || denominator == 0) {
@@ -199,19 +199,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // If attempting partial fill (n < d) check order type & ensure support.
         if (
             numerator < denominator &&
-            uint256(partialOrder.parameters.orderType) % 2 == 0
+            uint256(advancedOrder.parameters.orderType) % 2 == 0
         ) {
             revert PartialFillsNotEnabledForOrder();
         }
 
         // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _getNoncedOrderHash(partialOrder.parameters);
+        orderHash = _getNoncedOrderHash(advancedOrder.parameters);
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
         useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
-            partialOrder.parameters.orderType,
-            partialOrder.parameters.offerer,
-            partialOrder.parameters.zone
+            advancedOrder.parameters.orderType,
+            advancedOrder.parameters.offerer,
+            advancedOrder.parameters.zone
         );
 
         // If the offerer's proxy is being utilized, adjust the order type down.
@@ -219,8 +219,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Skip underflow check: orderType >= 4 when useOffererProxy = true.
             unchecked {
                 // Adjust the order type.
-                partialOrder.parameters.orderType = OrderType(
-                    uint8(partialOrder.parameters.orderType) - 4
+                advancedOrder.parameters.orderType = OrderType(
+                    uint8(advancedOrder.parameters.orderType) - 4
                 );
             }
         }
@@ -228,8 +228,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Retrieve the order status and verify it.
         OrderStatus memory orderStatus = _getOrderStatusAndVerify(
             orderHash,
-            partialOrder.parameters.offerer,
-            partialOrder.signature,
+            advancedOrder.parameters.offerer,
+            advancedOrder.signature,
             false // allow partially used orders
         );
 
@@ -280,14 +280,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
     }
 
     /// @dev Internal function to validate an order and update its status, adjust prices based on current time, apply criteria resolvers, determine what portion to fill, and transfer relevant tokens.
-    /// @param partialOrder The order to fulfill as well as the fraction to fill.
+    /// @param advancedOrder The order to fulfill as well as the fraction to fill.
     /// Note that all offer and consideration components must divide with no remainder in order for the partial fill to be valid.
     /// @param criteriaResolvers An array where each element contains a reference to a specific offer or consideration, a token identifier, and a proof that the supplied token identifier is contained in the order's merkle root.
     /// Note that a criteria of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
     /// @param useFulfillerProxy A flag indicating whether to source approvals for the fulfilled tokens from their respective proxy.
     /// @return A boolean indicating whether the order was successfully fulfilled.
     function _fulfillOrder(
-        PartialOrder memory partialOrder,
+        AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) internal returns (bool) {
@@ -300,13 +300,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
             uint120 fillNumerator,
             uint120 fillDenominator,
             bool useOffererProxy
-        ) = _validateOrderAndUpdateStatus(partialOrder);
+        ) = _validateOrderAndUpdateStatus(advancedOrder);
 
         // Apply criteria resolvers (requires array of orders to be supplied).
-        PartialOrder[] memory orders = new PartialOrder[](1);
-        orders[0] = partialOrder;
+        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
+        orders[0] = advancedOrder;
         _applyCriteriaResolvers(orders, criteriaResolvers);
-        PartialOrder memory order = orders[0];
+        AdvancedOrder memory order = orders[0];
 
         // Adjust prices based on time, start amount, and end amount.
         _adjustOrderPrice(order);
@@ -403,7 +403,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /// @param orders The orders to validate and reduce by previously filled amounts.
     /// @return A list of boolean indicating whether to utilize a proxy for each order.
     function _validateOrdersAndApplyPartials(
-        PartialOrder[] memory orders
+        AdvancedOrder[] memory orders
     ) internal returns (bool[] memory) {
         // Declare memory region to determine proxy utilization per order.
         bool[] memory useOffererProxyPerOrder = new bool[](orders.length);
@@ -413,7 +413,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Iterate over each order.
             for (uint256 i = 0; i < orders.length; ++i) {
                 // Retrieve the current order.
-                PartialOrder memory order = orders[i];
+                AdvancedOrder memory order = orders[i];
 
                 // Validate it, update status, and determine fraction to fill.
                 (
@@ -463,7 +463,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     }
 
     /// @dev Internal function to match an arbitrary number of partial orders, each with an arbitrary number of items for offer and consideration, supplying criteria resolvers containing specific token identifiers and associated proofs as well as fulfillments allocating offer components to consideration components.
-    /// @param partialOrders The partial orders to match.
+    /// @param advancedOrders The partial orders to match.
     /// Note that both the offerer and fulfiller on each partial order must first approve this contract (or their proxy if indicated by the order) to transfer any relevant tokens on their behalf and each consideration recipient must implement `onERC1155Received` in order to receive ERC1155 tokens.
     /// @param criteriaResolvers An array where each element contains a reference to a specific order as well as that order's offer or consideration, a token identifier, and a proof that the supplied token identifier is contained in the order's merkle root.
     /// Note that a root of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
@@ -471,8 +471,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /// Note that each consideration component must be fully met in order for the match operation to be valid.
     /// @return standardExecutions An array of elements indicating the sequence of non-batch transfers performed as part of matching the given orders.
     /// @return batchExecutions An array of elements indicating the sequence of batch transfers performed as part of matching the given orders.
-    function _matchPartialOrders(
-        PartialOrder[] memory partialOrders,
+    function _matchOrders(
+        AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) internal returns (
@@ -480,13 +480,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         BatchExecution[] memory batchExecutions
     ) {
         // Adjust orders by filled amount and determine if they utilize proxies.
-        bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(partialOrders);
+        bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(advancedOrders);
 
         // Apply criteria resolvers to each order as applicable.
-        _applyCriteriaResolvers(partialOrders, criteriaResolvers);
+        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
         // Fulfill the orders using the supplied fulfillments.
-        return _fulfillOrders(partialOrders, fulfillments, useProxyPerOrder);
+        return _fulfillOrders(advancedOrders, fulfillments, useProxyPerOrder);
     }
 
     /// @dev Internal function to fulfill an arbitrary number of orders after validating, adjusting, and applying criteria resolvers.
@@ -498,7 +498,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /// @return An array of elements indicating the sequence of non-batch transfers performed as part of matching the given orders.
     /// @return An array of elements indicating the sequence of batch transfers performed as part of matching the given orders.
     function _fulfillOrders(
-        PartialOrder[] memory orders,
+        AdvancedOrder[] memory orders,
         Fulfillment[] memory fulfillments,
         bool[] memory useOffererProxyPerOrder
     ) internal returns (Execution[] memory, BatchExecution[] memory) {

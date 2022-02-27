@@ -8,7 +8,7 @@ import {
     Execution,
     BatchExecution,
     Order,
-    PartialOrder,
+    AdvancedOrder,
     OrderStatus,
     CriteriaResolver
 } from "../lib/ConsiderationStructs.sol";
@@ -58,34 +58,22 @@ interface ConsiderationInterface {
         bool useFulfillerProxy
     ) external payable returns (bool);
 
-    function fulfillOrderWithCriteria(
-        Order memory order,
-        CriteriaResolver[] memory criteriaResolvers,
-        bool useFulfillerProxy
-    ) external payable returns (bool);
-
-    function fulfillPartialOrder(
-        PartialOrder memory partialOrder,
-        bool useFulfillerProxy
-    ) external payable returns (bool);
-
-    function fulfillPartialOrderWithCriteria(
-        PartialOrder memory partialOrder,
+    function fulfillAdvancedOrder(
+        AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) external payable returns (bool);
 
     function matchOrders(
         Order[] memory orders,
-        CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable returns (
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     );
 
-    function matchPartialOrders(
-        PartialOrder[] memory orders,
+    function matchAdvancedOrders(
+        AdvancedOrder[] memory orders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable returns (

@@ -15,7 +15,7 @@ import {
     FulfillmentComponent,
     Execution,
     Order,
-    PartialOrder,
+    AdvancedOrder,
     OrderStatus,
     CriteriaResolver,
     Batch,
@@ -40,7 +40,7 @@ contract ConsiderationPure is ConsiderationBase {
     /// @param criteriaResolvers An array where each element contains a reference to a specific order as well as that order's offer or consideration, a token identifier, and a proof that the supplied token identifier is contained in the order's merkle root.
     /// Note that a root of zero indicates that any (transferrable) token identifier is valid and that no proof needs to be supplied.
     function _applyCriteriaResolvers(
-        PartialOrder[] memory orders,
+        AdvancedOrder[] memory orders,
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure {
         // Skip overflow checks as all for loops are indexed starting at zero.
@@ -135,7 +135,7 @@ contract ConsiderationPure is ConsiderationBase {
             // Iterate over each order.
             for (uint256 i = 0; i < orders.length; ++i) {
                 // Retrieve the order.
-                PartialOrder memory order = orders[i];
+                AdvancedOrder memory order = orders[i];
 
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
@@ -498,7 +498,7 @@ contract ConsiderationPure is ConsiderationBase {
     /// @return execution A transfer to performed as part of the supplied fulfillment.
     /// Note that this execution object can be compressed further by aggregating batch transfers.
     function _applyFulfillment(
-        PartialOrder[] memory orders,
+        AdvancedOrder[] memory orders,
         Fulfillment memory fulfillment,
         bool[] memory useOffererProxyPerOrder
     ) internal pure returns (
@@ -513,7 +513,11 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Consume offerer & offered item at offer component's first item index.
-        (address offerer, OfferedItem memory offeredItem, bool useProxy) = _consumeOfferComponent(
+        (
+            address offerer,
+            OfferedItem memory offeredItem,
+            bool useProxy
+        ) = _consumeOfferComponent(
             orders,
             fulfillment.offerComponents[0].orderIndex,
             fulfillment.offerComponents[0].itemIndex,
@@ -544,7 +548,7 @@ contract ConsiderationPure is ConsiderationBase {
             // Consume offerer & offered item at offer component's item index.
             (
                 address subsequentOfferer,
-                OfferedItem memory additionalOfferedItem,
+                OfferedItem memory nextOfferedItem,
                 bool subsequentUseProxy
             ) = _consumeOfferComponent(
                 orders,
@@ -556,16 +560,16 @@ contract ConsiderationPure is ConsiderationBase {
             // Ensure all relevant parameters are consistent with initial offer.
             if (
                 offerer != subsequentOfferer ||
-                offeredItem.itemType != additionalOfferedItem.itemType ||
-                offeredItem.token != additionalOfferedItem.token ||
-                offeredItem.identifierOrCriteria != additionalOfferedItem.identifierOrCriteria ||
+                offeredItem.itemType != nextOfferedItem.itemType ||
+                offeredItem.token != nextOfferedItem.token ||
+                offeredItem.identifierOrCriteria != nextOfferedItem.identifierOrCriteria ||
                 useProxy != subsequentUseProxy
             ) {
                 revert MismatchedFulfillmentOfferComponents();
             }
 
             // Increase the total offer amount by the current amount.
-            offeredItem.endAmount += additionalOfferedItem.endAmount;
+            offeredItem.endAmount += nextOfferedItem.endAmount;
 
             // Skip overflow check as for loop is indexed starting at one.
             unchecked {
@@ -579,7 +583,7 @@ contract ConsiderationPure is ConsiderationBase {
             FulfillmentComponent memory considerationComponent = fulfillment.considerationComponents[i];
 
             // Consume consideration designated by the component's item index.
-            ReceivedItem memory additionalRequiredConsideration = _consumeConsiderationComponent(
+            ReceivedItem memory nextRequiredConsideration = _consumeConsiderationComponent(
                 orders,
                 considerationComponent.orderIndex,
                 considerationComponent.itemIndex
@@ -587,16 +591,16 @@ contract ConsiderationPure is ConsiderationBase {
 
             // Ensure key parameters are consistent with initial consideration.
             if (
-                requiredConsideration.recipient != additionalRequiredConsideration.recipient ||
-                requiredConsideration.itemType != additionalRequiredConsideration.itemType ||
-                requiredConsideration.token != additionalRequiredConsideration.token ||
-                requiredConsideration.identifierOrCriteria != additionalRequiredConsideration.identifierOrCriteria
+                requiredConsideration.recipient != nextRequiredConsideration.recipient ||
+                requiredConsideration.itemType != nextRequiredConsideration.itemType ||
+                requiredConsideration.token != nextRequiredConsideration.token ||
+                requiredConsideration.identifierOrCriteria != nextRequiredConsideration.identifierOrCriteria
             ) {
                 revert MismatchedFulfillmentConsiderationComponents();
             }
 
             // Increase the total consideration amount by the current amount.
-            requiredConsideration.endAmount += additionalRequiredConsideration.endAmount;
+            requiredConsideration.endAmount += nextRequiredConsideration.endAmount;
 
             // Skip overflow check as for loop is indexed starting at one.
             unchecked {
@@ -631,7 +635,7 @@ contract ConsiderationPure is ConsiderationBase {
     /// @param index The order index specified by the fulfillment component.
     /// @return The parameters of the order at the given index.
     function _getOrderParametersByFulfillmentIndex(
-        PartialOrder[] memory orders,
+        AdvancedOrder[] memory orders,
         uint256 index
     ) internal pure returns (OrderParameters memory) {
         // Ensure that the order index is in range.
@@ -652,7 +656,7 @@ contract ConsiderationPure is ConsiderationBase {
     /// @return offeredItem The offer item at the given index.
     /// @return useProxy A boolean indicating whether to source approvals for the fulfilled tokens on the order from its respective proxy.
     function _consumeOfferComponent(
-        PartialOrder[] memory orders,
+        AdvancedOrder[] memory orders,
         uint256 orderIndex,
         uint256 itemIndex,
         bool[] memory useOffererProxyPerOrder
@@ -671,7 +675,11 @@ contract ConsiderationPure is ConsiderationBase {
         orders[orderIndex].parameters.offer[itemIndex].endAmount = 0;
 
         // Return the offerer and the offer item at the given index.
-        return (orderParameters.offerer, orderParameters.offer[itemIndex], useOffererProxyPerOrder[orderIndex]);
+        return (
+            orderParameters.offerer,
+            orderParameters.offer[itemIndex],
+            useOffererProxyPerOrder[orderIndex]
+        );
     }
 
     /// @dev Internal pure function to ensure that a consideration component index is in range and, if so, to zero out the amount and return the associated consideration item.
@@ -680,7 +688,7 @@ contract ConsiderationPure is ConsiderationBase {
     /// @param itemIndex The item index specified by the fulfillment component.
     /// @return The consideration item at the given index.
     function _consumeConsiderationComponent(
-        PartialOrder[] memory orders,
+        AdvancedOrder[] memory orders,
         uint256 orderIndex,
         uint256 itemIndex
     ) internal pure returns (ReceivedItem memory) {
@@ -754,14 +762,14 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /// @dev Internal pure function to convert an array of orders to an array of partial orders with numerator and denominator of 1.
+    /// @dev Internal pure function to convert an array of orders to an array of advanced orders with numerator and denominator of 1.
     /// @param orders The orders to convert.
     /// @return The new array of partial orders.
-    function _convertOrdersToPartial(
+    function _convertOrdersToAdvanced(
         Order[] memory orders
-    ) internal pure returns (PartialOrder[] memory) {
+    ) internal pure returns (AdvancedOrder[] memory) {
         // Allocate new empty array for each partial order in memory.
-        PartialOrder[] memory partialOrders = new PartialOrder[](orders.length);
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](orders.length);
 
         // Skip overflow check as the index for the loop starts at zero.
         unchecked {
@@ -771,7 +779,7 @@ contract ConsiderationPure is ConsiderationBase {
                 Order memory order = orders[i];
 
                 // Convert to partial order (1/1 or full fill) and update array.
-                partialOrders[i] = PartialOrder(
+                advancedOrders[i] = AdvancedOrder(
                     order.parameters,
                     1,
                     1,
@@ -781,7 +789,7 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Return the array of partial orders.
-        return partialOrders;
+        return advancedOrders;
     }
 
     /// @dev Internal pure function to ensure that a given element is contained in a merkle root via a supplied proof.

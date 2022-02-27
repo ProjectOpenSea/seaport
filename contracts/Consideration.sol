@@ -14,7 +14,7 @@ import {
     Fulfillment,
     Execution,
     Order,
-    PartialOrder,
+    AdvancedOrder,
     OrderStatus,
     CriteriaResolver,
     BatchExecution
@@ -470,7 +470,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
         return _fulfillOrder(
-            PartialOrder(
+            AdvancedOrder(
                 order.parameters,
                 1,
                 1,
@@ -481,87 +481,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         );
     }
 
-    /* @notice Fulfill an order with an arbitrary number of items for offer and
-     *         consideration alongside criteria resolvers containing specific
-     *         token identifiers and associated proofs. Note that this function
-     *         does not support partial filling of orders (though filling the
-     *         remainder of a partially-filled order is supported).
-     *
-     * @param order             The order to fulfill. Note that both the offerer
-     *                          and the fulfiller must first approve this
-     *                          contract (or their proxy if indicated by the
-     *                          order) to transfer any relevant tokens on their
-     *                          behalf and that contracts must implement
-     *                          `onERC1155Received` in order to receive ERC1155
-     *                          tokens as consideration.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the merkle root held
-     *                          by the item in question's criteria element. Note
-     *                          that an empty criteria indicates that any
-     *                          (transferrable) token identifier on the token in
-     *                          question is valid and that no associated proof
-     *                          needs to be supplied.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
-     *
-     * @return A boolean indicating whether the order has been fulfilled. */
-    function fulfillOrderWithCriteria(
-        Order memory order,
-        CriteriaResolver[] memory criteriaResolvers,
-        bool useFulfillerProxy
-    ) external payable override returns (bool) {
-        // Validate and fulfill the order.
-        return _fulfillOrder(
-            PartialOrder(
-                order.parameters,
-                1,
-                1,
-                order.signature
-            ),
-            criteriaResolvers, // supply criteria resolvers
-            useFulfillerProxy
-        );
-    }
-
-    /* @notice Partially fill some fraction of an order with an arbitrary number
-     *         of items for offer and consideration. Note that this function
-     *         does not support criteria-based orders.
-     *
-     * @param partialOrder      The order to fulfill along with the fraction of
-     *                          the order to attempt to fill. Note that both the
-     *                          offerer and the fulfiller must first approve
-     *                          this contract (or their proxy if indicated by
-     *                          the order) to transfer any relevant tokens on
-     *                          their behalf and that contracts must implement
-     *                          `onERC1155Received` in order to receive ERC1155
-     *                          tokens as consideration. Also note that all
-     *                          offer and consideration components must have no
-     *                          remainder after multiplication with the supplied
-     *                          fraction in order for the partial fill to be
-     *                          considered valid.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
-     *
-     * @return A boolean indicating whether the order has been fulfilled. */
-    function fulfillPartialOrder(
-        PartialOrder memory partialOrder,
-        bool useFulfillerProxy
-    ) external payable override returns (bool) {
-        // Validate and fulfill the order.
-        return _fulfillOrder(
-            partialOrder,
-            new CriteriaResolver[](0),  // no criteria resolvers
-            useFulfillerProxy
-        );
-    }
-
-    /* @notice Partially fill some fraction of an order with an arbitrary number
-     *         of items for offer and consideration alongside criteria resolvers
+    /* @notice Fill an order, fully or partially, with an arbitrary number of
+     *         items for offer and consideration alongside criteria resolvers
      *         containing specific token identifiers and associated proofs.
      *
-     * @param partialOrder      The order to fulfill along with the fraction of
+     * @param advancedOrder     The order to fulfill along with the fraction of
      *                          the order to attempt to fill. Note that both the
      *                          offerer and the fulfiller must first approve
      *                          this contract (or their proxy if indicated by
@@ -586,26 +510,25 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          for fulfilled tokens from an associated proxy.
      *
      * @return A boolean indicating whether the order has been fulfilled. */
-    function fulfillPartialOrderWithCriteria(
-        PartialOrder memory partialOrder,
+    function fulfillAdvancedOrder(
+        AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
         return _fulfillOrder(
-            partialOrder,
+            advancedOrder,
             criteriaResolvers,
             useFulfillerProxy
         );
     }
 
     /* @notice Match an arbitrary number of orders, each with an arbitrary
-     *         number of items for offer and consideration, supplying criteria
-     *         resolvers containing specific token identifiers and associated
-     *         proofs as well as fulfillments allocating offer components to
-     *         consideration components. Note that this function does not
-     *         support partial filling of orders (though filling the remainder
-     *         of a partially-filled order is supported).
+     *         number of items for offer and consideration along with as set of
+     *         fulfillments allocating offer components to consideration
+     *         components. Note that this function does not support
+     *         criteria-based or partial filling of orders (though filling the
+     *         remainder of a partially-filled order is supported).
      *
      * @param orders            The orders to match. Note that both the offerer
      *                          and fulfiller on each order must first approve
@@ -614,14 +537,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          their behalf and each consideration recipient
      *                          must implement `onERC1155Received` in order to
      *                          receive ERC1155 tokens.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific order as well as that order's
-     *                          offer or consideration, a token identifier, and
-     *                          a proof that the supplied token identifier is
-     *                          contained in the order's merkle root. Note that
-     *                          an empty root indicates that any (transferrable)
-     *                          token identifier is valid and that no associated
-     *                          proof needs to be supplied.
      * @param fulfillments      An array of elements allocating offer components
      *                          to consideration components. Note that each
      *                          consideration component must be fully met in
@@ -635,37 +550,36 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                            matching the given orders. */
     function matchOrders(
         Order[] memory orders,
-        CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
-    ) external payable override returns (
+    ) external payable returns (
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
         // Validate and fulfill the orders.
-        return _matchPartialOrders(
-            _convertOrdersToPartial(orders),
-            criteriaResolvers,
+        return _matchOrders(
+            _convertOrdersToAdvanced(orders),
+            new CriteriaResolver[](0),  // no criteria resolvers
             fulfillments
         );
     }
 
-    /* @notice Match an arbitrary number of partial orders, each with an
+    /* @notice Match an arbitrary number of full or partial orders, each with an
      *         arbitrary number of items for offer and consideration, supplying
      *         criteria resolvers containing specific token identifiers and
      *         associated proofs as well as fulfillments allocating offer
      *         components to consideration components.
      *
-     * @param partialOrders     The partial orders to match. Note that both the offerer
-     *                          and fulfiller on each order must first approve
-     *                          this contract (or their proxy if indicated by
-     *                          the order) to transfer any relevant tokens on
-     *                          their behalf and each consideration recipient
-     *                          must implement `onERC1155Received` in order to
-     *                          receive ERC1155 tokens. Also note that the offer
-     *                          and consideration components for each order must
-     *                          have no remainder after multiplication of the
-     *                          respective amount with the supplied fraction in
-     *                          order for the group of partial fills to be
+     * @param advancedOrders    The advanced orders to match. Note that both the
+     *                          offerer and fulfiller on each order must first
+     *                          approve this contract (or their proxy if
+     *                          indicated by the order) to transfer any relevant
+     *                          tokens on their behalf and each consideration
+     *                          recipient must implement `onERC1155Received` in
+     *                          order toreceive ERC1155 tokens. Also note that
+     *                          the offer and consideration components for each
+     *                          order must have no remainder after multiplying
+     *                          the respective amount with the supplied fraction
+     *                          in order for the group of partial fills to be
      *                          considered valid.
      * @param criteriaResolvers An array where each element contains a reference
      *                          to a specific order as well as that order's
@@ -686,8 +600,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return batchExecutions    An array of elements indicating the sequence
      *                            of batch transfers performed as part of
      *                            matching the given orders. */
-    function matchPartialOrders(
-        PartialOrder[] memory partialOrders,
+    function matchAdvancedOrders(
+        AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
     ) external payable override returns (
@@ -695,8 +609,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         BatchExecution[] memory batchExecutions
     ) {
         // Validate and fulfill the orders.
-        return _matchPartialOrders(
-            partialOrders,
+        return _matchOrders(
+            advancedOrders,
             criteriaResolvers,
             fulfillments
         );

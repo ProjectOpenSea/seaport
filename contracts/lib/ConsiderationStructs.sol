@@ -94,10 +94,10 @@ struct Order {
     bytes signature;
 }
 
-/* @dev Partial orders include a numerator (i.e. the fraction to attempt to fill)
+/* @dev Advanced orders include a numerator (i.e. a fraction to attempt to fill)
  * and a denominator (the total size of the order) in additon to the signature
  * and other order parameters. */
-struct PartialOrder {
+struct AdvancedOrder {
     OrderParameters parameters;
     uint120 numerator;
     uint120 denominator;
