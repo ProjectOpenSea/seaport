@@ -16,18 +16,25 @@ import {
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
 
-/// @title ConsiderationInternalView contains all internal view functions for Consideration.
-/// @author 0age
+/* @title ConsiderationInternalView
+ * @author 0age
+ * @notice ConsiderationInternal contains all internal view functions. */
 contract ConsiderationInternalView is ConsiderationPure {
-    /// @dev Derive and set hashes, reference chainId, and associated domain separator during deployment.
-    /// @param legacyProxyRegistry A proxy registry that stores per-user proxies that may optionally be used to transfer tokens.
-    /// @param requiredProxyImplementation The implementation that this contract will require be set on each per-user proxy.
+    /* @notice Derive and set hashes, reference chainId, and associated domain
+     *         separator during deployment.
+     *
+     * @param legacyProxyRegistry         A proxy registry that stores per-user
+     *                                    proxies that may optionally be used to
+     *                                    transfer approved tokens.
+     * @param requiredProxyImplementation The implementation that must be set on
+     *                                    each proxy in order to utilize it. */
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
     ) ConsiderationPure(legacyProxyRegistry, requiredProxyImplementation) {}
 
-    /// @dev Internal view function to ensure that the sentinel value for the reentrancy guard is not currently set.
+    /* @dev Internal view function to ensure that the sentinel value for the
+            reentrancy guard is not currently set. */
     function _assertNonReentrant() internal view {
         // Ensure that the reentrancy guard is not currently set.
         if (_reentrancyGuard == _ENTERED) {
@@ -35,9 +42,11 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
-    /// @dev Internal view function to ensure that the current time falls within an order's valid timespan.
-    /// @param startTime The time at which the order becomes active.
-    /// @param endTime The time at which the order becomes inactive.
+    /* @dev Internal view function to ensure that the current time falls within
+     *      an order's valid timespan.
+     *
+     * @param startTime The time at which the order becomes active.
+     * @param endTime   The time at which the order becomes inactive. */
     function _assertValidTime(
         uint256 startTime,
         uint256 endTime
@@ -48,16 +57,22 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
-    /// @dev Internal view function to validate whether a token transfer was successful based on the returned status and data.
-    /// Note that malicious or non-compliant tokens (like fee-on-transfer tokens) may still return improper data — consider checking token balances before and after for more comprehensive transfer validation.
-    /// Also note that this function must be called after the account in question has been called and before any other contracts have been called.
-    /// @param ok The status of the call to transfer.
-    /// Note that contract size must be checked on status of true and no returned data to rule out undeployed contracts.
-    /// @param token The token to transfer.
-    /// @param from The originator of the transfer.
-    /// @param to The recipient of the transfer.
-    /// @param tokenId The tokenId to transfer (if applicable).
-    /// @param amount The amount to transfer (if applicable).
+    /* @dev Internal view function to validate whether a token transfer was
+     *      successful based on the returned status and data. Note that
+     *      malicious or non-compliant tokens (like fee-on-transfer tokens) may
+     *      still return improper data — consider checking token balances before
+     *      and after for more comprehensive transfer validation. Also note that
+     *      this function must be called after the account in question has been
+     *      called and before any other contracts have been called.
+     *
+     * @param ok      The status of the call to transfer. Note that contract
+     *                size must be checked on status of true and no returned
+     *                data to rule out undeployed contracts.
+     * @param token   The token to transfer.
+     * @param from    The originator of the transfer.
+     * @param to      The recipient of the transfer.
+     * @param tokenId The tokenId to transfer (if applicable).
+     * @param amount  The amount to transfer (if applicable). */
     function _assertValidTokenTransfer(
         bool ok,
         address token,
@@ -78,12 +93,21 @@ contract ConsiderationInternalView is ConsiderationPure {
             if (returnDataSize != 0) {
                 // load it into memory and revert, bubbling up revert reason.
                 assembly {
-                    returndatacopy(0, 0, returndatasize()) // Copy returndata to scratch space
-                    revert(0, returndatasize()) // Revert, returning memory region
+                    // Copy returndata to memory, overwriting existing memory.
+                    returndatacopy(0, 0, returndatasize())
+
+                    // Revert, specifying memory region with copied returndata.
+                    revert(0, returndatasize())
                 }
             } else {
                 // Otherwise, revert with a generic error.
-                revert TokenTransferGenericFailure(token, from, to, tokenId, amount);
+                revert TokenTransferGenericFailure(
+                    token,
+                    from,
+                    to,
+                    tokenId,
+                    amount
+                );
             }
         }
 
@@ -91,9 +115,12 @@ contract ConsiderationInternalView is ConsiderationPure {
         _assertContractIsDeployed(token);
     }
 
-    /// @dev Internal view function to item that a contract is deployed to a given account.
-    /// Note that this function must be called after the account in question has been called and before any other contracts have been called.
-    /// @param account The account to check.
+    /* @dev Internal view function to item that a contract is deployed to a
+     *      given account. Note that this function must be called after the
+     *      account in question has been called and before any other contracts
+     *      have been called.
+     *
+     * @param account The account to check. */
     function _assertContractIsDeployed(address account) internal view {
         // Find out whether data was returned by inspecting returndata buffer.
         uint256 returnDataSize;
@@ -116,11 +143,14 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
-    /// @dev Internal view function to retrieve the order status and verify it.
-    /// @param orderHash The order hash.
-    /// @param offerer The offerer for the order.
-    /// @param signature A signature from the offerer indicating that the order has been approved.
-    /// @param onlyAllowUnused A boolean flag indicating whether partial fills are supported by the calling function.
+    /* @dev Internal view function to retrieve the order status and verify it.
+     *
+     * @param orderHash       The order hash.
+     * @param offerer         The offerer for the order.
+     * @param signature       A signature from the offerer indicating that the
+     *                        order has been approved.
+     * @param onlyAllowUnused A boolean flag indicating whether partial fills
+     *                        are supported by the calling function. */
     function _getOrderStatusAndVerify(
         bytes32 orderHash,
         address offerer,
@@ -161,11 +191,15 @@ contract ConsiderationInternalView is ConsiderationPure {
         return orderStatus;
     }
 
-    /// @dev Internal view function to verify the signature of an order. An ERC-1271 fallback will be attempted should the recovered signature not match the supplied offerer.
-    /// Note that only 32-byte or 33-byte ECDSA signatures are supported.
-    /// @param offerer The offerer for the order.
-    /// @param orderHash The order hash.
-    /// @param signature A signature from the offerer indicating that the order has been approved.
+    /* @dev Internal view function to verify the signature of an order. An
+     *      ERC-1271 fallback will be attempted should the recovered signature
+     *      not match the supplied offerer. Note that only 32-byte or 33-byte
+     *      ECDSA signatures are supported.
+     *
+     * @param offerer   The offerer for the order.
+     * @param orderHash The order hash.
+     * @param signature A signature from the offerer indicating that the order
+     *                  has been approved. */
     function _verifySignature(
         address offerer,
         bytes32 orderHash,
@@ -245,8 +279,11 @@ contract ConsiderationInternalView is ConsiderationPure {
                 if (returnDataSize != 0) {
                     // then bubble up the revert reason.
                     assembly {
-                        returndatacopy(0, 0, returndatasize()) // Copy returndata to memory.
-                        revert(0, returndatasize()) // Revert, supplying returndata.
+                        // Copy returndata to memory, overwriting existing.
+                        returndatacopy(0, 0, returndatasize())
+
+                        // Revert & specify memory region w/ copied returndata.
+                        revert(0, returndatasize())
                     }
                 } else {
                     // Otherwise, revert with a generic error message.
@@ -254,13 +291,16 @@ contract ConsiderationInternalView is ConsiderationPure {
                 }
             }
 
-            // Extract result directly from returndata buffer in case of memory overflow.
+            // Extract result from returndata buffer in case of memory overflow.
             bytes4 result;
             assembly {
-                // Only put result on the stack if return data is exactly 32 bytes.
-                if eq(returndatasize(), 0x20) { // If returndata == 32 (one word)...
-                    returndatacopy(0, 0, 0x20)  // copy return data to memory in scratch space
-                    result := mload(0)          // load return data from memory to the stack
+                // Only put result on stack if return data is exactly 32 bytes.
+                if eq(returndatasize(), 0x20) {
+                    // Copy directly from return data into scratch space.
+                    returndatacopy(0, 0, 0x20)
+
+                    // Take value from scratch space and place it on the stack.
+                    result := mload(0)
                 }
             }
 
@@ -271,15 +311,20 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
-    /// @dev Internal view function to get the EIP-712 domain separator. If the chainId matches the chainId set on deployment, the cached domain separator will be returned; otherwise, it will be derived from scratch.
+    /* @dev Internal view function to get the EIP-712 domain separator. If the
+     *      chainId matches the chainId set on deployment, the cached domain
+     *      separator will be returned; otherwise, it will be derived from
+     *      scratch. */
     function _domainSeparator() internal view returns (bytes32) {
         return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _deriveDomainSeparator();
     }
 
-    /// @dev Internal view function to derive the order hash for a given order.
-    /// @param orderParameters The parameters of the order to hash.
-    /// @param nonce The nonce of the order to hash.
-    /// @return The hash.
+    /* @dev Internal view function to derive the order hash for a given order.
+     *
+     * @param orderParameters The parameters of the order to hash.
+     * @param nonce           The nonce of the order to hash.
+     *
+     * @return The hash. */
     function _getOrderHash(
         OrderParameters memory orderParameters,
         uint256 nonce
@@ -324,9 +369,12 @@ contract ConsiderationInternalView is ConsiderationPure {
         );
     }
 
-    /// @dev Internal view function to retrieve the current nonce for a given order's offerer and zone and use that to derive the order hash.
-    /// @param orderParameters The parameters of the order to hash.
-    /// @return The hash.
+    /* @dev Internal view function to retrieve the current nonce for a given
+     *      order's offerer and zone and use that to derive the order hash.
+     *
+     * @param orderParameters The parameters of the order to hash.
+     *
+     * @return The hash. */
     function _getNoncedOrderHash(
         OrderParameters memory orderParameters
     ) internal view returns (bytes32) {
@@ -337,9 +385,12 @@ contract ConsiderationInternalView is ConsiderationPure {
         );
     }
 
-    /// @dev Internal view function to derive the EIP-712 hash for an offererd item.
-    /// @param offeredItem The offered item to hash.
-    /// @return The hash.
+    /* @dev Internal view function to derive the EIP-712 hash for an offererd
+     *      item.
+     *
+     * @param offeredItem The offered item to hash.
+     *
+     * @return The hash. */
     function _hashOfferedItem(
         OfferedItem memory offeredItem
     ) internal view returns (bytes32) {
@@ -355,9 +406,12 @@ contract ConsiderationInternalView is ConsiderationPure {
         );
     }
 
-    /// @dev Internal view function to derive the EIP-712 hash for a received item.
-    /// @param receivedItem The received item to hash.
-    /// @return The hash.
+    /* @dev Internal view function to derive the EIP-712 hash for a received
+     *      item (i.e. a consideration item).
+     *
+     * @param receivedItem The received item to hash.
+     *
+     * @return The hash. */
     function _hashReceivedItem(
         ReceivedItem memory receivedItem
     ) internal view returns (bytes32) {
@@ -374,11 +428,16 @@ contract ConsiderationInternalView is ConsiderationPure {
         );
     }
 
-    /// @dev Internal view function to determine if a proxy should be utilized for a given order and to ensure that the submitter is allowed by the order type.
-    /// @param orderType The type of the order.
-    /// @param offerer The offerer in question.
-    /// @param zone The zone in question.
-    /// @return useOffererProxy A boolean indicating whether a proxy should be utilized for the order.
+    /* @dev Internal view function to determine if a proxy should be utilized
+     *      for a given order and to ensure that the submitter is allowed by the
+     *      order type.
+     *
+     * @param orderType        The type of the order.
+     * @param offerer          The offerer in question.
+     * @param zone             The zone in question.
+     *
+     * @return useOffererProxy A boolean indicating whether a proxy should be
+     *                         utilized for the order. */
     function _determineProxyUtilizationAndEnsureValidSubmitter(
         OrderType orderType,
         address offerer,
@@ -400,16 +459,23 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
-    /// @dev Internal view function to derive the current amount of a given item based on the current price, the starting price, and the ending price. If the start and end prices differ, the current price will be extrapolated on a linear basis.
-    /// @param order The original order.
-    /// @return adjustedOrder An adjusted order with the current price set.
+    /* @dev Internal view function to derive the current amount of a given item
+     *      based on the current price, the starting price, and the ending
+     *      price. If the start and end prices differ, the current price will be
+     *      extrapolated on a linear basis.
+     *
+     * @param order The original order.
+     *
+     * @return adjustedOrder An adjusted order with the current price set. */
     function _adjustOrderPrice(
         AdvancedOrder memory order
     ) internal view returns (AdvancedOrder memory adjustedOrder) {
         // Skip checks: for loops indexed at zero and durations are validated.
         unchecked {
             // Derive total order duration and total time elapsed and remaining.
-            uint256 duration = order.parameters.endTime - order.parameters.startTime;
+            uint256 duration = (
+                order.parameters.endTime - order.parameters.startTime
+            );
             uint256 elapsed = block.timestamp - order.parameters.startTime;
             uint256 remaining = duration - elapsed;
 
