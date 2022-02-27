@@ -240,10 +240,20 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             // Read each parameter directly from the signature's memory region.
             assembly {
-                r := mload(add(signature, 0x20)) // Put first word on stack at r
-                vs := mload(add(signature, 0x40)) // Put next word on stack at vs
-                s := and(vs, 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff) // Extract canonical s
-                v := add(shr(255, vs), 27) // Extract yParity from highest bit of vs and add 27 to get v
+                // Put the first word from the signature onto the stack as r.
+                r := mload(add(signature, 0x20))
+
+                // Put the second word from the signature onto the stack as vs.
+                vs := mload(add(signature, 0x40))
+
+                // Extract canonical s from vs (all but the highest bit).
+                s := and(
+                    vs,
+                    0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                )
+
+                // Extract yParity from highest bit of vs and add 27 to get v.
+                v := add(shr(255, vs), 27)
             }
         } else {
             // Disallow signatures that are not 64 or 65 bytes long.
@@ -316,7 +326,9 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      separator will be returned; otherwise, it will be derived from
      *      scratch. */
     function _domainSeparator() internal view returns (bytes32) {
-        return block.chainid == _CHAIN_ID ? _DOMAIN_SEPARATOR : _deriveDomainSeparator();
+        return block.chainid == _CHAIN_ID
+            ? _DOMAIN_SEPARATOR
+            : _deriveDomainSeparator();
     }
 
     /* @dev Internal view function to derive the order hash for a given order.
@@ -335,7 +347,9 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         // Designate new memory regions for offer and consideration item hashes.
         bytes32[] memory offerHashes = new bytes32[](offerLength);
-        bytes32[] memory considerationHashes = new bytes32[](considerationLength);
+        bytes32[] memory considerationHashes = new bytes32[](
+            considerationLength
+        );
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
@@ -348,7 +362,9 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < considerationLength; ++i) {
                 // Hash the consideration and place the result into memory.
-                considerationHashes[i] = _hashReceivedItem(orderParameters.consideration[i]);
+                considerationHashes[i] = _hashReceivedItem(
+                    orderParameters.consideration[i]
+                );
             }
         }
 
@@ -494,14 +510,16 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
-                // Adjust consideration aniybts based on current time (round up).
-                order.parameters.consideration[i].endAmount = _locateCurrentAmount(
-                    order.parameters.consideration[i].startAmount,
-                    order.parameters.consideration[i].endAmount,
-                    elapsed,
-                    remaining,
-                    duration,
-                    true // round up
+                // Adjust consideration amount based on current time (round up).
+                order.parameters.consideration[i].endAmount = (
+                    _locateCurrentAmount(
+                        order.parameters.consideration[i].startAmount,
+                        order.parameters.consideration[i].endAmount,
+                        elapsed,
+                        remaining,
+                        duration,
+                        true // round up
+                    )
                 );
             }
 
