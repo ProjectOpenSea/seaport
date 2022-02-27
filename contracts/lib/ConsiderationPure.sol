@@ -24,12 +24,18 @@ import {
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
 
-/// @title ConsiderationPure contains all pure functions for Consideration.
-/// @author 0age
+/* @title ConsiderationPure
+ * @author 0age
+ * @notice ConsiderationPure contains all pure functions. */
 contract ConsiderationPure is ConsiderationBase {
-    /// @dev Derive and set hashes, reference chainId, and associated domain separator during deployment.
-    /// @param legacyProxyRegistry A proxy registry that stores per-user proxies that may optionally be used to transfer tokens.
-    /// @param requiredProxyImplementation The implementation that this contract will require be set on each per-user proxy.
+    /* @notice Derive and set hashes, reference chainId, and associated domain
+     *         separator during deployment.
+     *
+     * @param legacyProxyRegistry         A proxy registry that stores per-user
+     *                                    proxies that may optionally be used to
+     *                                    transfer approved tokens.
+     * @param requiredProxyImplementation The implementation that must be set on
+     *                                    each proxy in order to utilize it. */
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
