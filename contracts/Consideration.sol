@@ -754,6 +754,30 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         return newNonce;
     }
 
+    /* @notice Retrieve the order hash for a given order.
+     *
+     * @param order The components of the order.
+     *
+     * @return The order hash. */
+    function getOrderHash(
+        OrderComponents memory order
+    ) external view override returns (bytes32) {
+        // Derive order hash by supplying order parameters along with the nonce.
+        return _getOrderHash(
+            OrderParameters(
+                order.offerer,
+                order.zone,
+                order.orderType,
+                order.startTime,
+                order.endTime,
+                order.salt,
+                order.offer,
+                order.consideration
+            ),
+            order.nonce
+        );
+    }
+
     /* @notice Retrieve the status of a given order by hash, including whether
      *         the order has been cancelled or validated and the fraction of the
      *         order that has been filled.
@@ -803,39 +827,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         return _nonces[offerer][zone];
     }
 
-    /* @notice Retrieve the domain separator, used for signing and verifying
-     * signed orders via EIP-712.
-     *
-     * @return The domain separator. */
-    function DOMAIN_SEPARATOR() external view override returns (bytes32) {
-        // Get domain separator, either precomputed or derived based on chainId.
-        return _domainSeparator();
-    }
-
-    /* @notice Retrieve the order hash for a given order.
-     *
-     * @param order The components of the order.
-     *
-     * @return The order hash. */
-    function getOrderHash(
-        OrderComponents memory order
-    ) external view override returns (bytes32) {
-        // Derive order hash by supplying order parameters along with the nonce.
-        return _getOrderHash(
-            OrderParameters(
-                order.offerer,
-                order.zone,
-                order.orderType,
-                order.startTime,
-                order.endTime,
-                order.salt,
-                order.offer,
-                order.consideration
-            ),
-            order.nonce
-        );
-    }
-
     /* @notice Retrieve the name of this contract.
      *
      * @return The name of this contract. */
@@ -850,5 +841,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function version() external pure override returns (string memory) {
         // Return the version.
         return _VERSION;
+    }
+
+    /* @notice Retrieve the domain separator, used for signing and verifying
+     * signed orders via EIP-712.
+     *
+     * @return The domain separator. */
+    function DOMAIN_SEPARATOR() external view override returns (bytes32) {
+        // Get domain separator, either precomputed or derived based on chainId.
+        return _domainSeparator();
     }
 }
