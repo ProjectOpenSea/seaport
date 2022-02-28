@@ -703,7 +703,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 );
 
                 // Ensure that the order has not been cancelled.
-                _assertOrderNotCancelled(orderStatus, orderHash);
+                _assertOrderNotCancelled(orderStatus.isCancelled, orderHash);
 
                 // Update order status to mark the order as valid.
                 _orderStatus[orderHash].isValidated = true;

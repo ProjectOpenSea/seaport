@@ -19,6 +19,8 @@ import {
     BasicOrderParameters,
     OfferedItem,
     ReceivedItem,
+    ConsumedItem,
+    FulfilledItem,
     OrderParameters,
     Fulfillment,
     Execution,
@@ -211,19 +213,23 @@ contract ConsiderationInternal is ConsiderationInternalView {
         AdvancedOrder memory advancedOrder
     ) internal returns (
         bytes32 orderHash,
-        uint120 newNumerator,
-        uint120 newDenominator,
+        uint256 newNumerator,
+        uint256 newDenominator,
         bool useOffererProxy
     ) {
+        // Retrieve the parameters for the order.
+        OrderParameters memory orderParameters = advancedOrder.parameters;
+
+
         // Ensure current timestamp falls between order start time and end time.
         _assertValidTime(
-            advancedOrder.parameters.startTime,
-            advancedOrder.parameters.endTime
+            orderParameters.startTime,
+            orderParameters.endTime
         );
 
         // Read numerator and denominator from memory and place on the stack.
-        uint120 numerator = advancedOrder.numerator;
-        uint120 denominator = advancedOrder.denominator;
+        uint256 numerator = uint256(advancedOrder.numerator);
+        uint256 denominator = uint256(advancedOrder.denominator);
 
         // Ensure that the supplied numerator and denominator are valid.
         if (numerator > denominator || numerator == 0 || denominator == 0) {
@@ -233,19 +239,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // If attempting partial fill (n < d) check order type & ensure support.
         if (
             numerator < denominator &&
-            uint256(advancedOrder.parameters.orderType) % 2 == 0
+            uint256(orderParameters.orderType) % 2 == 0
         ) {
             revert PartialFillsNotEnabledForOrder();
         }
 
         // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _getNoncedOrderHash(advancedOrder.parameters);
+        orderHash = _getNoncedOrderHash(orderParameters);
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
         useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
-            advancedOrder.parameters.orderType,
-            advancedOrder.parameters.offerer,
-            advancedOrder.parameters.zone
+            orderParameters.orderType,
+            orderParameters.offerer,
+            orderParameters.zone
         );
 
         // If the offerer's proxy is being utilized, adjust the order type down.
@@ -253,8 +259,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Skip underflow check: orderType >= 4 when useOffererProxy = true.
             unchecked {
                 // Adjust the order type.
-                advancedOrder.parameters.orderType = OrderType(
-                    uint8(advancedOrder.parameters.orderType) - 4
+                orderParameters.orderType = OrderType(
+                    uint8(orderParameters.orderType) - 4
                 );
             }
         }
@@ -262,7 +268,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Retrieve the order status and verify it.
         OrderStatus memory orderStatus = _getOrderStatusAndVerify(
             orderHash,
-            advancedOrder.parameters.offerer,
+            orderParameters.offerer,
             advancedOrder.signature,
             false // allow partially used orders
         );
@@ -277,7 +283,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             } // Otherwise, if supplied denominator differs from current one...
             else if (orderStatus.denominator != denominator) {
                 // scale current numerator by the supplied denominator, then...
-                orderStatus.numerator *= denominator;
+                orderStatus.numerator *= uint120(denominator);
 
                 // the supplied numerator & denominator by current denominator.
                 numerator *= orderStatus.denominator;
@@ -298,17 +304,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Update order status and fill amount, packing struct values.
                 _orderStatus[orderHash].isValidated = true;
                 _orderStatus[orderHash].isCancelled = false;
-                _orderStatus[orderHash].numerator = (
+                _orderStatus[orderHash].numerator = uint120(
                     orderStatus.numerator + numerator
                 );
-                _orderStatus[orderHash].denominator = denominator;
+                _orderStatus[orderHash].denominator = uint120(denominator);
             }
         } else {
             // Update order status and fill amount, packing struct values.
             _orderStatus[orderHash].isValidated = true;
             _orderStatus[orderHash].isCancelled = false;
-            _orderStatus[orderHash].numerator = numerator;
-            _orderStatus[orderHash].denominator = denominator;
+            _orderStatus[orderHash].numerator = uint120(numerator);
+            _orderStatus[orderHash].denominator = uint120(denominator);
         }
 
         // Return order hash, new numerator and denominator, and proxy boolean.
@@ -345,32 +351,35 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Validate order, update status, and determine fraction to fill.
         (
             bytes32 orderHash,
-            uint120 fillNumerator,
-            uint120 fillDenominator,
+            uint256 fillNumerator,
+            uint256 fillDenominator,
             bool useOffererProxy
         ) = _validateOrderAndUpdateStatus(advancedOrder);
+
+        // Adjust prices based on time, start amount, and end amount.
+        _adjustOrderPrice(advancedOrder);
 
         // Apply criteria resolvers (requires array of orders to be supplied).
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = advancedOrder;
         _applyCriteriaResolvers(orders, criteriaResolvers);
-        AdvancedOrder memory order = orders[0];
 
-        // Adjust prices based on time, start amount, and end amount.
-        _adjustOrderPrice(order);
+        // Retrieve the offer components for the order.
+        OfferedItem[] memory offer = orders[0].parameters.offer;
 
-        OrderParameters memory orderParameters = order.parameters;
+        // Retrieve the consideration components for the order.
+        ReceivedItem[] memory consideration = orders[0].parameters.consideration;
 
         // Move the offerer from memory to the stack.
-        address offerer = orderParameters.offerer;
+        address offerer = advancedOrder.parameters.offerer;
 
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
         // Iterate over each consideration on the order.
-        for (uint256 i = 0; i < orderParameters.consideration.length;) {
+        for (uint256 i = 0; i < consideration.length;) {
             // Retrieve the consideration item.
-            ReceivedItem memory receivedItem = orderParameters.consideration[i];
+            ReceivedItem memory receivedItem = consideration[i];
 
             // Apply order fill fraction to each received item amount.
             receivedItem.endAmount = _getFraction(
@@ -391,7 +400,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 useFulfillerProxy
             );
 
-            orderParameters.consideration[i].endAmount = receivedItem.endAmount;
+            consideration[i].endAmount = receivedItem.endAmount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -400,20 +409,20 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Iterate over each offer on the order.
-        for (uint256 i = 0; i < orderParameters.offer.length;) {
+        for (uint256 i = 0; i < offer.length;) {
             // Retrieve the offer item.
-            OfferedItem memory offer = orderParameters.offer[i];
+            OfferedItem memory offeredItem = offer[i];
 
             // Apply order fill fraction and set the caller as the receiver.
             ReceivedItem memory item = ReceivedItem(
-                offer.itemType,
-                offer.token,
-                offer.identifierOrCriteria,
+                offeredItem.itemType,
+                offeredItem.token,
+                offeredItem.identifierOrCriteria,
                 0,
                 _getFraction(
                     fillNumerator,
                     fillDenominator,
-                    offer.endAmount
+                    offeredItem.endAmount
                 ),
                 payable(msg.sender)
             );
@@ -430,7 +439,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 useOffererProxy
             );
 
-            orderParameters.offer[i].endAmount = item.endAmount;
+            offer[i].endAmount = item.endAmount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -447,10 +456,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _emitOrderFulfilledEvent(
             orderHash,
             offerer,
-            orderParameters.zone,
+            advancedOrder.parameters.zone,
             msg.sender,
-            orderParameters.offer,
-            orderParameters.consideration
+            offer,
+            consideration
         );
 
         // Clear the reentrancy guard.
@@ -496,8 +505,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Validate it, update status, and determine fraction to fill.
                 (
                     bytes32 orderHash,
-                    uint120 numerator,
-                    uint120 denominator,
+                    uint256 numerator,
+                    uint256 denominator,
                     bool useOffererProxy
                 ) = _validateOrderAndUpdateStatus(order);
 
@@ -507,28 +516,33 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Mark whether order should utilize offerer's proxy.
                 ordersUseProxy[i] = useOffererProxy;
 
-                OrderParameters memory orderParameters = order.parameters;
+                // Retrieve offer items and consideration items on the order.
+                OfferedItem[] memory offer = order.parameters.offer;
+                ReceivedItem[] memory consideration = (
+                    order.parameters.consideration
+                );
 
                 // Iterate over each offered item on the order.
-                for (uint256 j = 0; j < orderParameters.offer.length; ++j) {
+                for (uint256 j = 0; j < offer.length; ++j) {
                     // Apply order fill fraction to each offer amount.
                     orders[i].parameters.offer[j].endAmount = _getFraction(
                         numerator,
                         denominator,
-                        orderParameters.offer[j].endAmount
+                        offer[j].endAmount
                     );
                 }
 
                 // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < orderParameters.consideration.length; ++j) {
+                for (uint256 j = 0; j < consideration.length; ++j) {
                     // Apply order fill fraction to each consideration amount.
                     orders[i].parameters.consideration[j].endAmount = _getFraction(
                         numerator,
                         denominator,
-                        orderParameters.consideration[j].endAmount
+                        consideration[j].endAmount
                     );
                 }
 
+                // Track the order hash in question.
                 orderHashes[i] = orderHash;
             }
         }
@@ -638,9 +652,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         unchecked {
             // Iterate over each fulfillment.
             for (uint256 i = 0; i < fulfillments.length; ++i) {
+                Fulfillment memory fulfillment = fulfillments[i];
                 executions[i] = _applyFulfillment(
                     orders,
-                    fulfillments[i],
+                    fulfillment.offerComponents,
+                    fulfillment.considerationComponents,
                     ordersUseProxy
                 );
             }
@@ -774,12 +790,18 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param amount The amount to transfer. */
     function _transferEth(address payable to, uint256 amount) internal {
         // Attempt to transfer the ether to the recipient.
-        (bool ok, bytes memory data) = to.call{value: amount}("");
+        (bool ok,) = to.call{value: amount}("");
 
         // If the call fails...
         if (!ok) {
-            // and there's data returned...
-            if (data.length != 0) {
+            // then find out whether data was returned.
+            uint256 returnDataSize;
+            assembly {
+                returnDataSize := returndatasize()
+            }
+
+            // If data was returned...
+            if (returnDataSize != 0) {
                 // then bubble up the revert reason.
                 assembly {
                     // Copy returndata to memory, overwriting existing memory.
@@ -1074,11 +1096,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param proxyOwner The original owner of the proxy in question. Note that
      *                   this owner may have been modified since the proxy was
      *                   originally deployed.
-     * @param callData   The calldata to supply when calling the proxy. */
+     * @param callData   The calldata to supply when calling the proxy.
+     *
+     * @return ok The status of the call to the proxy.
+     * @return    An unused variable.*/
     function _callProxy(
         address proxyOwner,
         bytes memory callData
-    ) internal returns (bool ok, bytes memory data) {
+    ) internal returns (bool ok, bytes memory) {
         // Retrieve the user proxy from the registry.
         address proxy = _LEGACY_PROXY_REGISTRY.proxies(proxyOwner);
 
@@ -1092,7 +1117,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // perform the call to the proxy.
-        (ok, data) = proxy.call(callData);
+        (ok,) = proxy.call(callData);
     }
 
     /* @dev Internal function to transfer Ether to a given recipient.
@@ -1213,14 +1238,40 @@ contract ConsiderationInternal is ConsiderationInternalView {
         OfferedItem[] memory offer,
         ReceivedItem[] memory consideration
     ) internal {
+        ConsumedItem[] memory consumedItems = new ConsumedItem[](offer.length);
+        FulfilledItem[] memory fulfilledItems = new FulfilledItem[](consideration.length);
+
+        unchecked {
+            for (uint256 i = 0; i < offer.length; ++i) {
+                OfferedItem memory offeredItem = offer[i];
+                consumedItems[i] = ConsumedItem(
+                    offeredItem.itemType,
+                    offeredItem.token,
+                    offeredItem.identifierOrCriteria,
+                    offeredItem.endAmount
+                );
+            }
+
+            for (uint256 i = 0; i < consideration.length; ++i) {
+                ReceivedItem memory receivedItem = consideration[i];
+                fulfilledItems[i] = FulfilledItem(
+                    receivedItem.itemType,
+                    receivedItem.token,
+                    receivedItem.identifierOrCriteria,
+                    receivedItem.endAmount,
+                    receivedItem.recipient
+                );
+            }
+        }
+
         // Emit an event signifying that the order has been fulfilled.
         emit OrderFulfilled(
             orderHash,
             offerer,
             zone,
             fulfiller,
-            offer,
-            consideration
+            consumedItems,
+            fulfilledItems
         );
     }
 }

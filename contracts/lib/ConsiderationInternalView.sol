@@ -163,7 +163,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 denominator = uint256(orderStatus.denominator);
 
         // Ensure that the order has not been cancelled.
-        _assertOrderNotCancelled(orderStatus, orderHash);
+        _assertOrderNotCancelled(orderStatus.isCancelled, orderHash);
 
         // The order must be either entirely unused, or...
         if (
@@ -213,9 +213,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
 
         // Derive EIP-712 digest using the domain separator and the order hash.
-        bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", _domainSeparator(), orderHash)
-        );
+        bytes32 digest = _hashDigest(_domainSeparator(), orderHash);
 
         // Declare r, s, and v signature parameters.
         bytes32 r;
@@ -488,21 +486,31 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _adjustOrderPrice(
         AdvancedOrder memory order
     ) internal view returns (AdvancedOrder memory adjustedOrder) {
+        // Retrieve the order parameters for the order.
+        OrderParameters memory orderParameters = order.parameters;
+
+        // Place the start time for the order on the stack.
+        uint256 startTime = orderParameters.startTime;
+
+        // Retrieve the offer items for the order.
+        OfferedItem[] memory offer = orderParameters.offer;
+
+        // Retrieve the consideration items for the order.
+        ReceivedItem[] memory consideration = orderParameters.consideration;
+
         // Skip checks: for loops indexed at zero and durations are validated.
         unchecked {
             // Derive total order duration and total time elapsed and remaining.
-            uint256 duration = (
-                order.parameters.endTime - order.parameters.startTime
-            );
-            uint256 elapsed = block.timestamp - order.parameters.startTime;
+            uint256 duration = orderParameters.endTime - startTime;
+            uint256 elapsed = block.timestamp - startTime;
             uint256 remaining = duration - elapsed;
 
             // Iterate over each offer on the order.
-            for (uint256 i = 0; i < order.parameters.offer.length; ++i) {
+            for (uint256 i = 0; i < offer.length; ++i) {
                 // Adjust offer amounts based on current time (round down).
                 order.parameters.offer[i].endAmount = _locateCurrentAmount(
-                    order.parameters.offer[i].startAmount,
-                    order.parameters.offer[i].endAmount,
+                    offer[i].startAmount,
+                    offer[i].endAmount,
                     elapsed,
                     remaining,
                     duration,
@@ -511,12 +519,12 @@ contract ConsiderationInternalView is ConsiderationPure {
             }
 
             // Iterate over each consideration on the order.
-            for (uint256 i = 0; i < order.parameters.consideration.length; ++i) {
+            for (uint256 i = 0; i < consideration.length; ++i) {
                 // Adjust consideration amount based on current time (round up).
                 order.parameters.consideration[i].endAmount = (
                     _locateCurrentAmount(
-                        order.parameters.consideration[i].startAmount,
-                        order.parameters.consideration[i].endAmount,
+                        consideration[i].startAmount,
+                        consideration[i].endAmount,
                         elapsed,
                         remaining,
                         duration,

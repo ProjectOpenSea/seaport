@@ -2,8 +2,8 @@
 pragma solidity 0.8.12;
 
 import {
-    OfferedItem,
-    ReceivedItem
+    ConsumedItem,
+    FulfilledItem
 } from "../lib/ConsiderationStructs.sol";
 
 /* @title ConsiderationEventsAndErrors
@@ -28,8 +28,8 @@ interface ConsiderationEventsAndErrors {
         address indexed offerer,
         address indexed zone,
         address fulfiller,
-        OfferedItem[] offer,
-        ReceivedItem[] consideration
+        ConsumedItem[] offer,
+        FulfilledItem[] consideration
     );
 
     /* @dev Emit an event whenever an order is successfully cancelled.

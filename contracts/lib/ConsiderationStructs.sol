@@ -50,6 +50,25 @@ struct ReceivedItem {
     address payable recipient;
 }
 
+/* @dev A consumed item has four components: an item type (ETH, ERC20, ERC721,
+ * and ERC1155), a token address, a tokenId, and an amount. */
+struct ConsumedItem {
+    ItemType itemType;
+    address token;
+    uint256 identifier;
+    uint256 amount;
+}
+
+/* @dev A fulfilled item has the same four components as an offered item and an
+ * additional fifth component designating the required recipient of the item. */
+struct FulfilledItem {
+    ItemType itemType;
+    address token;
+    uint256 identifier;
+    uint256 amount;
+    address payable recipient;
+}
+
 /* @dev For basic orders involving ETH / ERC20 <=> ERC721 / ERC1155 matching, a
  * group of six functions may be called that only requires a subset of the usual
  * order arguments. */
