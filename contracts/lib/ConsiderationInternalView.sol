@@ -83,32 +83,17 @@ contract ConsiderationInternalView is ConsiderationPure {
     ) internal view {
         // If the call failed...
         if (!ok) {
-            // find out whether data was returned.
-            uint256 returnDataSize;
-            assembly {
-                returnDataSize := returndatasize()
-            }
+            // Revert and pass reason along if one was returned from the token.
+            _revertWithReasonIfOneIsReturned();
 
-            // If data was returned...
-            if (returnDataSize != 0) {
-                // load it into memory and revert, bubbling up revert reason.
-                assembly {
-                    // Copy returndata to memory, overwriting existing memory.
-                    returndatacopy(0, 0, returndatasize())
-
-                    // Revert, specifying memory region with copied returndata.
-                    revert(0, returndatasize())
-                }
-            } else {
-                // Otherwise, revert with a generic error.
-                revert TokenTransferGenericFailure(
-                    token,
-                    from,
-                    to,
-                    tokenId,
-                    amount
-                );
-            }
+            // Otherwise, revert with a generic error.
+            revert TokenTransferGenericFailure(
+                token,
+                from,
+                to,
+                tokenId,
+                amount
+            );
         }
 
         // Ensure that the token contract has code.
@@ -279,26 +264,12 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             // If the call fails...
             if (!ok) {
-                // Find out whether data was returned.
-                uint256 returnDataSize;
-                assembly {
-                    returnDataSize := returndatasize()
-                }
+                // Revert and pass reason along if one was returned.
+                _revertWithReasonIfOneIsReturned();
 
-                // if data was returned...
-                if (returnDataSize != 0) {
-                    // then bubble up the revert reason.
-                    assembly {
-                        // Copy returndata to memory, overwriting existing.
-                        returndatacopy(0, 0, returndatasize())
+                // Otherwise, revert with a generic error message.
+                revert BadContractSignature();
 
-                        // Revert & specify memory region w/ copied returndata.
-                        revert(0, returndatasize())
-                    }
-                } else {
-                    // Otherwise, revert with a generic error message.
-                    revert BadContractSignature();
-                }
             }
 
             // Extract result from returndata buffer in case of memory overflow.
@@ -535,6 +506,27 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             // Return the modified order.
             return order;
+        }
+    }
+
+    /* @dev Revert and pass along the revert reason if data was returned by the
+     *      last call. */
+    function _revertWithReasonIfOneIsReturned() internal view {
+        // Find out whether data was returned by inspecting returndata buffer.
+        uint256 returnDataSize;
+        assembly {
+            returnDataSize := returndatasize()
+        }
+
+        // If no data was returned...
+        if (returnDataSize == 0) {
+            assembly {
+                // Copy returndata to memory, overwriting existing memory.
+                returndatacopy(0, 0, returndatasize())
+
+                // Revert, specifying memory region with copied returndata.
+                revert(0, returndatasize())
+            }
         }
     }
 }
