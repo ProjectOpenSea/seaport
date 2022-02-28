@@ -623,6 +623,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
+        address offerer;
+        address zone;
+
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             // Iterate over each order.
@@ -630,19 +633,19 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 // Retrieve the order.
                 OrderComponents memory order = orders[i];
 
+                offerer = order.offerer;
+                zone = order.zone;
+
                 // Ensure caller is either offerer or zone of the order.
-                if (
-                    msg.sender != order.offerer &&
-                    msg.sender != order.zone
-                ) {
+                if (msg.sender != offerer && msg.sender != zone) {
                     revert InvalidCanceller();
                 }
 
                 // Derive order hash using the order parameters and the nonce.
                 bytes32 orderHash = _getOrderHash(
                     OrderParameters(
-                        order.offerer,
-                        order.zone,
+                        offerer,
+                        zone,
                         order.orderType,
                         order.startTime,
                         order.endTime,
@@ -658,11 +661,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 _orderStatus[orderHash].isCancelled = true;
 
                 // Emit an event signifying that the order has been cancelled.
-                emit OrderCancelled(
-                    orderHash,
-                    order.offerer,
-                    order.zone
-                );
+                emit OrderCancelled(orderHash, offerer, zone);
             }
         }
 
@@ -691,13 +690,16 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 // Retrieve the order.
                 Order memory order = orders[i];
 
+                // Retrieve the order parameters.
+                OrderParameters memory orderParameters = order.parameters;
+
                 // Get current nonce and use it w/ params to derive order hash.
-                bytes32 orderHash = _getNoncedOrderHash(order.parameters);
+                bytes32 orderHash = _getNoncedOrderHash(orderParameters);
 
                 // Retrieve the order status and verify it.
                 OrderStatus memory orderStatus = _getOrderStatusAndVerify(
                     orderHash,
-                    order.parameters.offerer,
+                    orderParameters.offerer,
                     order.signature,
                     false // Note: partially used orders will fail next check.
                 );
@@ -711,8 +713,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 // Emit an event signifying order was successfully validated.
                 emit OrderValidated(
                     orderHash,
-                    order.parameters.offerer,
-                    order.parameters.zone
+                    orderParameters.offerer,
+                    orderParameters.zone
                 );
             }
         }
