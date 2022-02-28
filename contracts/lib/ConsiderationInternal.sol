@@ -66,7 +66,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         BasicOrderParameters memory parameters,
         OfferedItem memory offeredItem,
         ReceivedItem memory receivedItem
-    ) internal returns (bytes32 orderHash, bool useOffererProxy) {
+    ) internal returns (bool useOffererProxy) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
@@ -116,7 +116,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _getNoncedOrderHash(
+        bytes32 orderHash = _getNoncedOrderHash(
             OrderParameters(
                 offerer,
                 zone,
@@ -152,8 +152,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // Return order hash and a bool for whether to utilize offerer's proxy.
-        return (orderHash, useOffererProxy);
+        // Emit an event signifying that the order has been fulfilled.
+        _emitOrderFulfilledEvent(
+            orderHash,
+            offerer,
+            zone,
+            offer,
+            consideration
+        );
+
+        // Return a boolean indicating whether to utilize offerer's proxy.
+        return useOffererProxy;
     }
 
     /* @dev Internal function to verify and update the status of a basic order.
@@ -349,35 +358,39 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Adjust prices based on time, start amount, and end amount.
         _adjustOrderPrice(order);
 
+        OrderParameters memory orderParameters = order.parameters;
+
         // Move the offerer from memory to the stack.
-        address offerer = order.parameters.offerer;
+        address offerer = orderParameters.offerer;
 
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
         // Iterate over each consideration on the order.
-        for (uint256 i = 0; i < order.parameters.consideration.length;) {
+        for (uint256 i = 0; i < orderParameters.consideration.length;) {
             // Retrieve the consideration item.
-            ReceivedItem memory consideration = order.parameters.consideration[i];
+            ReceivedItem memory receivedItem = orderParameters.consideration[i];
 
-            // Apply order fill fraction to each consideration amount.
-            consideration.endAmount = _getFraction(
+            // Apply order fill fraction to each received item amount.
+            receivedItem.endAmount = _getFraction(
                 fillNumerator,
                 fillDenominator,
-                consideration.endAmount
+                receivedItem.endAmount
             );
 
             // If consideration expects ETH, reduce ether value available.
-            if (consideration.itemType == ItemType.ETH) {
-                etherRemaining -= consideration.endAmount;
+            if (receivedItem.itemType == ItemType.ETH) {
+                etherRemaining -= receivedItem.endAmount;
             }
 
             // Transfer the item from the caller to the consideration recipient.
             _transfer(
-                consideration,
+                receivedItem,
                 msg.sender,
                 useFulfillerProxy
             );
+
+            orderParameters.consideration[i].endAmount = receivedItem.endAmount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -386,9 +399,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Iterate over each offer on the order.
-        for (uint256 i = 0; i < order.parameters.offer.length;) {
+        for (uint256 i = 0; i < orderParameters.offer.length;) {
             // Retrieve the offer item.
-            OfferedItem memory offer = order.parameters.offer[i];
+            OfferedItem memory offer = orderParameters.offer[i];
 
             // Apply order fill fraction and set the caller as the receiver.
             ReceivedItem memory item = ReceivedItem(
@@ -416,6 +429,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 useOffererProxy
             );
 
+            orderParameters.offer[i].endAmount = item.endAmount;
+
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
                  ++i;
@@ -427,12 +442,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
             _transferEth(payable(msg.sender), etherRemaining);
         }
 
-        // Emit an OrderFulfilled event and clear reentrancy guard.
-        _emitOrderFulfilledEventAndClearReentrancyGuard(
+        // Emit an event signifying that the order has been fulfilled.
+        _emitOrderFulfilledEvent(
             orderHash,
             offerer,
-            order.parameters.zone
+            orderParameters.zone,
+            orderParameters.offer,
+            orderParameters.consideration
         );
+
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
 
         return true;
     }
@@ -440,21 +460,34 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /* @dev Internal function to validate a group of orders, update their
      *      statuses, and reduce amounts by their previously filled fractions.
      *
-     * @param orders The orders to validate and reduce by their previously
-     *               filled amounts.
+     * @param orders            The orders to validate and reduce by their
+     *                          previously filled amounts.
+     * @param criteriaResolvers An array where each element contains a reference
+     *                          to a specific order as well as that order's
+     *                          offer or consideration, a token identifier, and
+     *                          a proof that the supplied token identifier is
+     *                          contained in the order's merkle root. Note that
+     *                          a root of zero indicates that any transferrable
+     *                          token identifier is valid and that no proof
+     *                          needs to be supplied.
      *
      * @return A array of booleans indicating whether to utilize a proxy for
      *         each order. */
     function _validateOrdersAndApplyPartials(
-        AdvancedOrder[] memory orders
+        AdvancedOrder[] memory orders,
+        CriteriaResolver[] memory criteriaResolvers
     ) internal returns (bool[] memory) {
+        uint256 ordersLength = orders.length;
+
         // Declare memory region to determine proxy utilization per order.
-        bool[] memory ordersUseProxy = new bool[](orders.length);
+        bool[] memory ordersUseProxy = new bool[](ordersLength);
+
+        bytes32[] memory orderHashes = new bytes32[](ordersLength);
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each order.
-            for (uint256 i = 0; i < orders.length; ++i) {
+            for (uint256 i = 0; i < ordersLength; ++i) {
                 // Retrieve the current order.
                 AdvancedOrder memory order = orders[i];
 
@@ -472,31 +505,45 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Mark whether order should utilize offerer's proxy.
                 ordersUseProxy[i] = useOffererProxy;
 
+                OrderParameters memory orderParameters = order.parameters;
+
                 // Iterate over each offered item on the order.
-                for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
+                for (uint256 j = 0; j < orderParameters.offer.length; ++j) {
                     // Apply order fill fraction to each offer amount.
                     orders[i].parameters.offer[j].endAmount = _getFraction(
                         numerator,
                         denominator,
-                        orders[i].parameters.offer[j].endAmount
+                        orderParameters.offer[j].endAmount
                     );
                 }
 
                 // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
+                for (uint256 j = 0; j < orderParameters.consideration.length; ++j) {
                     // Apply order fill fraction to each consideration amount.
                     orders[i].parameters.consideration[j].endAmount = _getFraction(
                         numerator,
                         denominator,
-                        orders[i].parameters.consideration[j].endAmount
+                        orderParameters.consideration[j].endAmount
                     );
                 }
 
-                // Emit an event signifying that the order will be fulfilled.
-                emit OrderFulfilled(
-                    orderHash,
-                    orders[i].parameters.offerer,
-                    orders[i].parameters.zone
+                orderHashes[i] = orderHash;
+            }
+        }
+
+        // Apply criteria resolvers to each order as applicable.
+        _applyCriteriaResolvers(orders, criteriaResolvers);
+
+        // Emit an event for each order signifying that it has been fulfilled.
+        unchecked {
+            for (uint256 i = 0; i < ordersLength; ++i) {
+                OrderParameters memory order = orders[i].parameters;
+                _emitOrderFulfilledEvent(
+                    orderHashes[i],
+                    order.offerer,
+                    order.zone,
+                    order.offer,
+                    order.consideration
                 );
             }
         }
@@ -547,11 +594,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
     ) {
         // Adjust orders by filled amount and determine if they utilize proxies.
         bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(
-            advancedOrders
+            advancedOrders,
+            criteriaResolvers
         );
-
-        // Apply criteria resolvers to each order as applicable.
-        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
         // Fulfill the orders using the supplied fulfillments.
         return _fulfillOrders(advancedOrders, fulfillments, useProxyPerOrder);
@@ -630,15 +675,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
         for (uint256 i = 0; i < standardExecutions.length;) {
             // Retrieve the execution.
             Execution memory execution = standardExecutions[i];
+            ReceivedItem memory item = execution.item;
 
             // If execution transfers ETH, reduce ether value available.
-            if (execution.item.itemType == ItemType.ETH) {
-                etherRemaining -= execution.item.endAmount;
+            if (item.itemType == ItemType.ETH) {
+                etherRemaining -= item.endAmount;
             }
 
             // Transfer the item specified by the execution.
             _transfer(
-                execution.item,
+                item,
                 execution.offerer,
                 execution.useProxy
             );
@@ -1046,14 +1092,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         (ok, data) = proxy.call(callData);
     }
 
-    /* @dev Internal function to transfer Ether to a given recipient and to emit
-     *      an OrderMatched event.
+    /* @dev Internal function to transfer Ether to a given recipient.
      *
-     * @param orderHash  The order hash.
      * @param amount     The amount of Ether to transfer.
      * @param parameters The parameters of the order. */
     function _transferETHAndFinalize(
-        bytes32 orderHash,
         uint256 amount,
         BasicOrderParameters memory parameters
     ) internal {
@@ -1094,27 +1137,20 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // Emit an OrderFulfilled event and clear reentrancy guard.
-        _emitOrderFulfilledEventAndClearReentrancyGuard(
-            orderHash,
-            parameters.offerer,
-            parameters.zone
-        );
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
     }
 
-    /* @dev Internal function to transfer ERC20 tokens to a given recipient and
-     *      to emit an OrderMatched event.
+    /* @dev Internal function to transfer ERC20 tokens to a given recipient.
      *
      * @param from       The originator of the ERC20 token transfer.
      * @param to         The recipient of the ERC20 token transfer.
-     * @param orderHash  The order hash.
      * @param erc20Token The ERC20 token to transfer.
      * @param amount     The amount of ERC20 tokens to transfer.
      * @param parameters The parameters of the order. */
     function _transferERC20AndFinalize(
         address from,
         address to,
-        bytes32 orderHash,
         address erc20Token,
         uint256 amount,
         BasicOrderParameters memory parameters
@@ -1151,12 +1187,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             proxyOwner
         );
 
-        // Emit an OrderFulfilled event and clear reentrancy guard.
-        _emitOrderFulfilledEventAndClearReentrancyGuard(
-            orderHash,
-            from,
-            parameters.zone
-        );
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
     }
 
     /* @dev Internal function to ensure that the sentinel value for the
@@ -1170,21 +1202,20 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _ENTERED;
     }
 
-    /* @dev Internal function to emit an OrderFulfilled event and to clear the
-     *      reentrancy guard.
-     *
-     * @param orderHash The order hash.
-     * @param offerer   The offerer for the order.
-     * @param zone      The zone for the order. */
-    function _emitOrderFulfilledEventAndClearReentrancyGuard(
+    function _emitOrderFulfilledEvent(
         bytes32 orderHash,
         address offerer,
-        address zone
+        address zone,
+        OfferedItem[] memory offer,
+        ReceivedItem[] memory consideration
     ) internal {
         // Emit an event signifying that the order has been fulfilled.
-        emit OrderFulfilled(orderHash, offerer, zone);
-
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
+        emit OrderFulfilled(
+            orderHash,
+            offerer,
+            zone,
+            offer,
+            consideration
+        );
     }
 }

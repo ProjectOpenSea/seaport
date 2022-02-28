@@ -65,7 +65,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         address payable offerer = parameters.offerer;
 
         // Derive and validate order using parameters and update order status.
-        (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
+        bool useOffererProxy = _prepareBasicFulfillment(
             parameters,
             OfferedItem(
                 ItemType.ERC721,
@@ -95,7 +95,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Transfer ETH to recipients, returning excess to caller, and wrap up.
         _transferETHAndFinalize(
-            orderHash,
             etherAmount,
             parameters
         );
@@ -130,7 +129,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         address payable offerer = parameters.offerer;
 
         // Derive and validate order using parameters and update order status.
-        (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
+        bool useOffererProxy = _prepareBasicFulfillment(
             parameters,
             OfferedItem(
                 ItemType.ERC1155,
@@ -161,7 +160,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Transfer ETH to recipients, returning excess to caller, and wrap up.
         _transferETHAndFinalize(
-            orderHash,
             etherAmount,
             parameters
         );
@@ -193,7 +191,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         BasicOrderParameters memory parameters
     ) external override returns (bool) {
         // Derive and validate order using parameters and update order status.
-        (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
+        bool useOffererProxy = _prepareBasicFulfillment(
             parameters,
             OfferedItem(
                 ItemType.ERC721,
@@ -225,7 +223,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _transferERC20AndFinalize(
             msg.sender,
             parameters.offerer,
-            orderHash,
             erc20Token,
             erc20Amount,
             parameters
@@ -264,7 +261,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         BasicOrderParameters memory parameters
     ) external override returns (bool) {
         // Derive and validate order using parameters and update order status.
-        (bytes32 orderHash, bool useOffererProxy) = _prepareBasicFulfillment(
+        bool useOffererProxy = _prepareBasicFulfillment(
             parameters,
             OfferedItem(
                 ItemType.ERC1155,
@@ -297,7 +294,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _transferERC20AndFinalize(
             msg.sender,
             parameters.offerer,
-            orderHash,
             erc20Token,
             erc20Amount,
             parameters
@@ -333,7 +329,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         address payable offerer = parameters.offerer;
 
         // Derive and validate order using parameters and update order status.
-        (bytes32 orderHash,) = _prepareBasicFulfillment(
+        _prepareBasicFulfillment(
             parameters,
             OfferedItem(
                 ItemType.ERC20,
@@ -365,7 +361,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _transferERC20AndFinalize(
             offerer,
             msg.sender,
-            orderHash,
             erc20Token,
             erc20Amount,
             parameters
@@ -406,7 +401,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         address payable offerer = parameters.offerer;
 
         // Derive and validate order using parameters and update order status.
-        (bytes32 orderHash,) = _prepareBasicFulfillment(
+        _prepareBasicFulfillment(
             parameters,
             OfferedItem(
                 ItemType.ERC20,
@@ -439,7 +434,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _transferERC20AndFinalize(
             offerer,
             msg.sender,
-            orderHash,
             erc20Token,
             erc20Amount,
             parameters

@@ -1,19 +1,31 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
+import {
+    OfferedItem,
+    ReceivedItem
+} from "../lib/ConsiderationStructs.sol";
+
 /* @title ConsiderationEventsAndErrors
  * @author 0age
  * @notice ConsiderationEventsAndErrors contains all events and errors. */
 interface ConsiderationEventsAndErrors {
-    /* @dev Emit an event whenever an order is successfully fulfilled.
+    /* @dev Emit an event whenever an order is successfully fulfilled. NOTE:
+     *      each offered item currently returns a startAmount and an end amount,
+     *      whereas ideally it would just return a single "amount".
      *
-     * @param orderHash The hash of the fulfilled order.
-     * @param offerer   The offerer of the fulfilled order.
-     * @param zone      The zone of the fulfilled order. */
+     * @param orderHash     The hash of the fulfilled order.
+     * @param offerer       The offerer of the fulfilled order.
+     * @param zone          The zone of the fulfilled order.
+     * @param offer         The offered items consumed as part of the order.
+     * @param consideration The consideration items fulfilled as part of the
+     *                      order along with the recipients of each item. */
     event OrderFulfilled(
         bytes32 orderHash,
         address indexed offerer,
-        address indexed zone
+        address indexed zone,
+        OfferedItem[] offer,
+        ReceivedItem[] consideration
     );
 
     /* @dev Emit an event whenever an order is successfully cancelled.
