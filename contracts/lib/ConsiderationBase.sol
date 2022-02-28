@@ -17,6 +17,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     string internal constant _VERSION = "1";
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
+    address internal constant _ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // Precompute hashes, original chainId, and domain separator on deployment.
     bytes32 internal immutable _NAME_HASH;

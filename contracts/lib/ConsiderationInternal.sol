@@ -744,6 +744,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 revert EtherTransferGenericFailure(to, amount);
             }
         }
+
+        // Emit an ItemTransferred event.
+        _emitItemTransferred(
+            _ETH,
+            msg.sender,
+            to,
+            uint256(0),
+            amount
+        );
     }
 
     /* @dev Internal function to transfer ERC20 tokens from a given originator
@@ -824,6 +833,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 amount
             );
         }
+
+        // Emit an ItemTransferred event.
+        _emitItemTransferred(
+            token,
+            from,
+            to,
+            0,
+            amount
+        );
     }
 
     /* @dev Internal function to transfer a single ERC721 token from a given
@@ -874,6 +892,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
             ok,
+            token,
+            from,
+            to,
+            identifier,
+            1
+        );
+
+        // Emit an ItemTransferred event.
+        _emitItemTransferred(
             token,
             from,
             to,
@@ -933,6 +960,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
             ok,
+            token,
+            from,
+            to,
+            identifier,
+            amount
+        );
+
+        // Emit an ItemTransferred event.
+        _emitItemTransferred(
             token,
             from,
             to,
@@ -1018,6 +1054,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Ensure that a contract is deployed to the token address.
         _assertContractIsDeployed(token);
+
+        // Skip overflow check as for loop index starts at zero.
+        unchecked {
+            // Iterate over each tokenId in the batch.
+            for (uint256 i = 0; i < tokenIds.length; ++i) {
+                // Emit an ItemTransferred event.
+                _emitItemTransferred(
+                    token,
+                    from,
+                    to,
+                    tokenIds[i],
+                    amounts[i]
+                );
+            }
+        }
     }
 
     /* @dev Internal function to trigger a call to a proxy contract.
@@ -1044,6 +1095,31 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // perform the call to the proxy.
         (ok, data) = proxy.call(callData);
+    }
+
+    /* @dev Internal function to emit an event whenever ETH or an ERC20, ERC721,
+     *      or ERC1155 token is transferred.
+     *
+     * @param token      The token for which the transfer was performed.
+     * @param from       The source of the transfer.
+     * @param to         The recipient of the transfer.
+     * @param identifier The identifier for the transfer.
+     * @param amount     The amount for the transfer. */
+    function _emitItemTransferred(
+        address token,
+        address from,
+        address to,
+        uint256 identifier,
+        uint256 amount
+    ) internal {
+        // Emit an ItemTransferred event.
+        emit ItemTransferred(
+            token,
+            from,
+            to,
+            identifier,
+            amount
+        );
     }
 
     /* @dev Internal function to transfer Ether to a given recipient and to emit

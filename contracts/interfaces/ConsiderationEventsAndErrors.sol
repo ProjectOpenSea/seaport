@@ -16,6 +16,22 @@ interface ConsiderationEventsAndErrors {
         address indexed zone
     );
 
+    /* @dev Emit an event whenever ETH or an ERC20, ERC721, or ERC1155 token is
+     *      transferred.
+     *
+     * @param token      The token for which the transfer was performed.
+     * @param from       The source of the transfer.
+     * @param to         The recipient of the transfer.
+     * @param identifier The identifier for the transfer.
+     * @param amount     The amount for the transfer. */
+    event ItemTransferred(
+        address indexed token,
+        address from,
+        address to,
+        uint256 identifier,
+        uint256 amount
+    );
+
     /* @dev Emit an event whenever an order is successfully cancelled.
      *
      * @param orderHash The hash of the cancelled order.
