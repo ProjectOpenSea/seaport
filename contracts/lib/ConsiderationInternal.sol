@@ -157,6 +157,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderHash,
             offerer,
             zone,
+            msg.sender,
             offer,
             consideration
         );
@@ -447,6 +448,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderHash,
             offerer,
             orderParameters.zone,
+            msg.sender,
             orderParameters.offer,
             orderParameters.consideration
         );
@@ -542,6 +544,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     orderHashes[i],
                     order.offerer,
                     order.zone,
+                    address(0),
                     order.offer,
                     order.consideration
                 );
@@ -1206,6 +1209,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         bytes32 orderHash,
         address offerer,
         address zone,
+        address fulfiller,
         OfferedItem[] memory offer,
         ReceivedItem[] memory consideration
     ) internal {
@@ -1214,6 +1218,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderHash,
             offerer,
             zone,
+            fulfiller,
             offer,
             consideration
         );

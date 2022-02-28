@@ -159,20 +159,22 @@ contract ConsiderationInternalView is ConsiderationPure {
     ) internal view returns (OrderStatus memory) {
         // Retrieve the order status for the given order hash.
         OrderStatus memory orderStatus = _orderStatus[orderHash];
+        uint256 numerator = uint256(orderStatus.numerator);
+        uint256 denominator = uint256(orderStatus.denominator);
 
         // Ensure that the order has not been cancelled.
         _assertOrderNotCancelled(orderStatus, orderHash);
 
         // The order must be either entirely unused, or...
         if (
-            orderStatus.numerator != 0 &&
+            numerator != 0 &&
             (   // partially unused and able to support partial fills.
                 onlyAllowUnused ||
-                orderStatus.numerator >= orderStatus.denominator
+                numerator >= denominator
             )
         ) {
             // A partially filled order indicates no support for partial fills.
-            if (orderStatus.numerator < orderStatus.denominator) {
+            if (numerator < denominator) {
                 revert OrderNotUnused(orderHash);
             }
 
