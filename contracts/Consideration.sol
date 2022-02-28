@@ -683,6 +683,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
+        // Declare variables outside of the loop.
+        bytes32 orderHash;
+        address offerer;
+
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             // Iterate over each order.
@@ -693,13 +697,16 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 // Retrieve the order parameters.
                 OrderParameters memory orderParameters = order.parameters;
 
+                // Move offerer from memory to the stack.
+                offerer = orderParameters.offerer;
+
                 // Get current nonce and use it w/ params to derive order hash.
-                bytes32 orderHash = _getNoncedOrderHash(orderParameters);
+                orderHash = _getNoncedOrderHash(orderParameters);
 
                 // Retrieve the order status and verify it.
                 OrderStatus memory orderStatus = _getOrderStatusAndVerify(
                     orderHash,
-                    orderParameters.offerer,
+                    offerer,
                     order.signature,
                     false // Note: partially used orders will fail next check.
                 );
@@ -713,7 +720,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 // Emit an event signifying order was successfully validated.
                 emit OrderValidated(
                     orderHash,
-                    orderParameters.offerer,
+                    offerer,
                     orderParameters.zone
                 );
             }
@@ -823,21 +830,21 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         return _nonces[offerer][zone];
     }
 
-    /* @notice Retrieve the name of this contract.
-     *
-     * @return The name of this contract. */
-    function name() external pure override returns (string memory) {
-        // Return the name of the contract.
-        return _NAME;
-    }
+    // /* @notice Retrieve the name of this contract.
+    //  *
+    //  * @return The name of this contract. */
+    // function name() external pure override returns (string memory) {
+    //     // Return the name of the contract.
+    //     return _NAME;
+    // }
 
-    /* @notice Retrieve the version of this contract.
-     *
-     * @return The version of this contract. */
-    function version() external pure override returns (string memory) {
-        // Return the version.
-        return _VERSION;
-    }
+    // /* @notice Retrieve the version of this contract.
+    //  *
+    //  * @return The version of this contract. */
+    // function version() external pure override returns (string memory) {
+    //     // Return the version.
+    //     return _VERSION;
+    // }
 
     /* @notice Retrieve the domain separator, used for signing and verifying
      * signed orders via EIP-712.

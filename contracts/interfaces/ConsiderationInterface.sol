@@ -390,15 +390,15 @@ interface ConsiderationInterface {
         address zone
     ) external view returns (uint256);
 
-    /* @notice Retrieve the name of this contract.
-     *
-     * @return The name of this contract. */
-    function name() external view returns (string memory);
+    // /* @notice Retrieve the name of this contract.
+    //  *
+    //  * @return The name of this contract. */
+    // function name() external view returns (string memory);
 
-    /* @notice Retrieve the version of this contract.
-     *
-     * @return The version of this contract. */
-    function version() external view returns (string memory);
+    // /* @notice Retrieve the version of this contract.
+    //  *
+    //  * @return The version of this contract. */
+    // function version() external view returns (string memory);
 
     /* @notice Retrieve the domain separator, used for signing and verifying
      * signed orders via EIP-712.

@@ -508,25 +508,4 @@ contract ConsiderationInternalView is ConsiderationPure {
             return order;
         }
     }
-
-    /* @dev Revert and pass along the revert reason if data was returned by the
-     *      last call. */
-    function _revertWithReasonIfOneIsReturned() internal view {
-        // Find out whether data was returned by inspecting returndata buffer.
-        uint256 returnDataSize;
-        assembly {
-            returnDataSize := returndatasize()
-        }
-
-        // If no data was returned...
-        if (returnDataSize == 0) {
-            assembly {
-                // Copy returndata to memory, overwriting existing memory.
-                returndatacopy(0, 0, returndatasize())
-
-                // Revert, specifying memory region with copied returndata.
-                revert(0, returndatasize())
-            }
-        }
-    }
 }

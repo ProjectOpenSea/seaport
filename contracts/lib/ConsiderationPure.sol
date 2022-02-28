@@ -1044,6 +1044,27 @@ contract ConsiderationPure is ConsiderationBase {
         return advancedOrders;
     }
 
+    /* @dev Internal pure function to revert and pass along the revert reason if
+     *      data was returned by the last call. */
+    function _revertWithReasonIfOneIsReturned() internal pure {
+        // Find out whether data was returned by inspecting returndata buffer.
+        uint256 returnDataSize;
+        assembly {
+            returnDataSize := returndatasize()
+        }
+
+        // If no data was returned...
+        if (returnDataSize == 0) {
+            assembly {
+                // Copy returndata to memory, overwriting existing memory.
+                returndatacopy(0, 0, returndatasize())
+
+                // Revert, specifying memory region with copied returndata.
+                revert(0, returndatasize())
+            }
+        }
+    }
+
     /* @dev Internal pure function to ensure that a given element is contained
      *      in a merkle root via a supplied proof.
      *
