@@ -794,26 +794,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // If the call fails...
         if (!ok) {
-            // then find out whether data was returned.
-            uint256 returnDataSize;
-            assembly {
-                returnDataSize := returndatasize()
-            }
+            // Revert and pass the revert reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
 
-            // If data was returned...
-            if (returnDataSize != 0) {
-                // then bubble up the revert reason.
-                assembly {
-                    // Copy returndata to memory, overwriting existing memory.
-                    returndatacopy(0, 0, returndatasize())
-
-                    // Revert, specifying memory region with copied returndata.
-                    revert(0, returndatasize())
-                }
-            } else {
-                // Otherwise, revert with a generic error message.
-                revert EtherTransferGenericFailure(to, amount);
-            }
+            // Otherwise, revert with a generic error message.
+            revert EtherTransferGenericFailure(to, amount);
         }
     }
 
@@ -1059,32 +1044,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // If the call fails...
         if (!ok) {
-            // find out whether data was returned.
-            uint256 returnDataSize;
-            assembly {
-                returnDataSize := returndatasize()
-            }
+            // Revert and pass the revert reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
 
-            // If there's data returned...
-            if (returnDataSize != 0) {
-                // then bubble up the revert reason.
-                assembly {
-                    // Copy returndata to memory, overwriting existing memory.
-                    returndatacopy(0, 0, returndatasize())
-
-                    // Revert, specifying memory region with copied returndata.
-                    revert(0, returndatasize())
-                }
-            } else {
-                // Otherwise, revert with a generic 1155 batch transfer error.
-                revert ERC1155BatchTransferGenericFailure(
-                    token,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts
-                );
-            }
+            // Otherwise, revert with a generic 1155 batch transfer error.
+            revert ERC1155BatchTransferGenericFailure(
+                token,
+                from,
+                to,
+                tokenIds,
+                amounts
+            );
         }
 
         // Ensure that a contract is deployed to the token address.

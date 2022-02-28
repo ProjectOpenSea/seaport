@@ -9,10 +9,11 @@ import {
 
 /* @dev An order contains nine components: an offerer, a zone (or account that
  * can cancel the order or restrict who can fulfill the order depending on the
- * type), the order type (specifing partial fill support, restricted fulfillers,
- * and the offerer's proxy usage preference), the start and end time, a salt,
- * a nonce, and an arbitrary number of offer items that can be spent along with
- * consideration items that must be received by their respective recipient. */
+ * type), the order type (specifying partial fill support, restricted fulfiller
+ * requirement, and the offerer's proxy usage preference), the start and end
+ * time, a salt, a nonce, and an arbitrary number of offer items that can be
+ * spent along with consideration items that must be received by their
+ * respective recipient. */
 struct OrderComponents {
     address offerer;
     address zone;
