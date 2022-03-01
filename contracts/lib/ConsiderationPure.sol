@@ -1092,7 +1092,7 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // If no data was returned...
-        if (returnDataSize == 0) {
+        if (returnDataSize != 0) {
             assembly {
                 // Copy returndata to memory, overwriting existing memory.
                 returndatacopy(0, 0, returndatasize())
