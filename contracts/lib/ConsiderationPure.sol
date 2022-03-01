@@ -24,24 +24,29 @@ import {
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
 
-/* @title ConsiderationPure
+/**
+ * @title ConsiderationPure
  * @author 0age
- * @notice ConsiderationPure contains all pure functions. */
+ * @notice ConsiderationPure contains all pure functions.
+ */
 contract ConsiderationPure is ConsiderationBase {
-    /* @dev Derive and set hashes, reference chainId, and associated domain
+    /**
+     * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
      *                                    transfer approved tokens.
      * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it. */
+     *                                    each proxy in order to utilize it.
+     */
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
     ) ConsiderationBase(legacyProxyRegistry, requiredProxyImplementation) {}
 
-    /* @dev Internal pure function to apply criteria resolvers containing
+    /**
+     * @dev Internal pure function to apply criteria resolvers containing
      *      specific token identifiers and associated proofs to order items.
      *
      * @param orders            The orders to apply criteria resolvers to.
@@ -52,7 +57,8 @@ contract ConsiderationPure is ConsiderationBase {
      *                          contained in the order's merkle root. Note that
      *                          a root of zero indicates that any transferrable
      *                          token identifier is valid and that no proof
-     *                          needs to be supplied. */
+     *                          needs to be supplied.
+     */
     function _applyCriteriaResolvers(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory criteriaResolvers
@@ -202,7 +208,8 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to derive the current amount of a given item
+    /**
+     * @dev Internal pure function to derive the current amount of a given item
      *      based on the current price, the starting price, and the ending
      *      price. If the start and end prices differ, the current price will be
      *      extrapolated on a linear basis.
@@ -215,7 +222,8 @@ contract ConsiderationPure is ConsiderationBase {
      * @param roundUp     A boolean indicating whether the resultant amount
      *                    should be rounded up or down.
      *
-     * @return The current amount. */
+     * @return The current amount.
+     */
     function _locateCurrentAmount(
         uint256 startAmount,
         uint256 endAmount,
@@ -256,7 +264,8 @@ contract ConsiderationPure is ConsiderationBase {
         return endAmount;
     }
 
-    /* @dev Internal pure function to return a fraction of a given value and to
+    /**
+     * @dev Internal pure function to return a fraction of a given value and to
      *      ensure the resultant value does not have any fractional component.
      *
      * @param numerator   A value indicating the portion of the order that
@@ -264,10 +273,11 @@ contract ConsiderationPure is ConsiderationBase {
      * @param denominator A value indicating the total size of the order.
      * @param value       The value for which to compute the fraction.
      *
-     * @return newValue The value after applying the fraction. */
+     * @return newValue The value after applying the fraction.
+     */
     function _getFraction(
-        uint120 numerator,
-        uint120 denominator,
+        uint256 numerator,
+        uint256 denominator,
         uint256 value
     ) internal pure returns (uint256 newValue) {
         // Return value early in cases where the fraction resolves to 1.
@@ -276,7 +286,7 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Multiply the numerator by the value and ensure no overflow occurs.
-        uint256 valueTimesNumerator = value * uint256(numerator);
+        uint256 valueTimesNumerator = value * numerator;
 
         // Divide (Note: denominator must not be zero!) and check for remainder.
         bool inexact;
@@ -291,7 +301,8 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to "compress" executions, splitting them into
+    /**
+     * @dev Internal pure function to "compress" executions, splitting them into
      *      "standard" (or unbatched) executions and "batch" executions. Note
      *      that there may be additional compression that could be performed,
      *      such as allowing contrarian orders to cancel one another.
@@ -301,7 +312,8 @@ contract ConsiderationPure is ConsiderationBase {
      * @return standardExecutions An array of executions that were not able to
      *                            be compressed.
      * @return batchExecutions    An array of executions (all ERC1155 transfers)
-     *                            that have been compressed into batches. */
+     *                            that have been compressed into batches.
+     */
     function _compressExecutions(
         Execution[] memory executions
     ) internal pure returns (
@@ -470,7 +482,8 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to complete the process of "compressing"
+    /**
+     * @dev Internal pure function to complete the process of "compressing"
      *      executions and return both unbatched and batched execution arrays.
      *
      * @param executions             An array of uncompressed executions.
@@ -484,7 +497,8 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return An array of executions that could not be compressed.
      * @return An array of executions (all ERC1155 transfers) that have been
-     *         compressed into batches. */
+     *         compressed into batches.
+     */
     function _splitExecution(
         Execution[] memory executions,
         Batch[] memory batches,
@@ -521,17 +535,17 @@ contract ConsiderationPure is ConsiderationBase {
                 // Check if execution is standard (0) or part of a batch (1+).
                 uint256 batchExecutionPointer = batchExecutionPointers[i];
 
+                // Retrieve the execution element.
+                Execution memory execution = executions[i];
+
                 // If the execution is a standard execution...
                 if (batchExecutionPointer == 0) {
                     // Copy it to next standard index, then increment the index.
                     standardExecutions[nextStandardExecutionIndex++] = (
-                        executions[i]
+                        execution
                     );
                 // Otherwise, it is a batch execution.
                 } else {
-                    // Retrieve the execution element.
-                    Execution memory execution = executions[i];
-
                     // Derive batch execution index by decrementing the pointer.
                     uint256 batchExecutionIndex = batchExecutionPointer - 1;
 
@@ -558,7 +572,7 @@ contract ConsiderationPure is ConsiderationBase {
                         batchElementIndices[batchExecutionIndex]++
                     );
 
-                    // Update current element's batch with tokenId and amount.
+                    // Update current element's batch with respective tokenId.
                     batchExecutions[
                         batchExecutionIndex
                     ].tokenIds[
@@ -566,6 +580,8 @@ contract ConsiderationPure is ConsiderationBase {
                     ] = (
                         execution.item.identifierOrCriteria
                     );
+
+                    // Update current element's batch with respective amount.
                     batchExecutions[
                         batchExecutionIndex
                     ].amounts[
@@ -581,32 +597,38 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to match offer items to consideration items
+    /**
+     * @dev Internal pure function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
      *
      * @param orders                  The orders to match.
-     * @param fulfillment             An element allocating offer components to
-     *                                consideration components. Note that each
-     *                                consideration amount must be zero in order
-     *                                for the match operation to be valid.
+     * @param offerComponents         An array designating offer components to
+     *                                match to consideration components.
+     * @param offerComponents         An array allocating consideration
+     *                                components to match to offer components.
+     *                                Note that each consideration amount must
+     *                                be zero in order for the match operation
+     *                                to be valid.
      * @param useOffererProxyPerOrder An array of booleans indicating whether to
      *                                source approvals for the fulfilled tokens
      *                                on each order from their respective proxy.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      *                   Note that this execution object could potentially be
-     *                   compressed further by aggregating batch transfers. */
+     *                   compressed further by aggregating batch transfers.
+     */
     function _applyFulfillment(
         AdvancedOrder[] memory orders,
-        Fulfillment memory fulfillment,
+        FulfillmentComponent[] memory offerComponents,
+        FulfillmentComponent[] memory considerationComponents,
         bool[] memory useOffererProxyPerOrder
     ) internal pure returns (
         Execution memory execution
     ) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
-            fulfillment.offerComponents.length == 0 ||
-            fulfillment.considerationComponents.length == 0
+            offerComponents.length == 0 ||
+            considerationComponents.length == 0
         ) {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
@@ -618,8 +640,8 @@ contract ConsiderationPure is ConsiderationBase {
             bool useProxy
         ) = _consumeOfferComponent(
             orders,
-            fulfillment.offerComponents[0].orderIndex,
-            fulfillment.offerComponents[0].itemIndex,
+            offerComponents[0].orderIndex,
+            offerComponents[0].itemIndex,
             useOffererProxyPerOrder
         );
 
@@ -627,8 +649,8 @@ contract ConsiderationPure is ConsiderationBase {
         ReceivedItem memory requiredConsideration = (
             _consumeConsiderationComponent(
                 orders,
-                fulfillment.considerationComponents[0].orderIndex,
-                fulfillment.considerationComponents[0].itemIndex
+                considerationComponents[0].orderIndex,
+                considerationComponents[0].itemIndex
             )
         );
 
@@ -644,10 +666,10 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Iterate over each offer component on the fulfillment.
-        for (uint256 i = 1; i < fulfillment.offerComponents.length;) {
+        for (uint256 i = 1; i < offerComponents.length;) {
             // Retrieve the offer component from the fulfillment.
             FulfillmentComponent memory offerComponent = (
-                fulfillment.offerComponents[i]
+                offerComponents[i]
             );
 
             // Consume offerer & offered item at offer component's item index.
@@ -685,10 +707,10 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Iterate over each consideration component on the fulfillment.
-        for (uint256 i = 1; i < fulfillment.considerationComponents.length;) {
+        for (uint256 i = 1; i < considerationComponents.length;) {
             // Retrieve the consideration component from the fulfillment.
             FulfillmentComponent memory considerationComponent = (
-                fulfillment.considerationComponents[i]
+                considerationComponents[i]
             );
 
             // Consume consideration designated by the component's item index.
@@ -733,15 +755,14 @@ contract ConsiderationPure is ConsiderationBase {
         if (requiredConsideration.endAmount > offeredItem.endAmount) {
             // Retrieve the first consideration component from the fulfillment.
             FulfillmentComponent memory targetComponent = (
-                fulfillment.considerationComponents[0]
+                considerationComponents[0]
             );
 
             // Add excess consideration amount to the original orders array.
-            orders[
-                targetComponent.orderIndex
-            ].parameters.consideration[
-                targetComponent.itemIndex
-            ].endAmount = (
+            _setConsiderationAmount(
+                orders,
+                targetComponent.orderIndex,
+                targetComponent.itemIndex,
                 requiredConsideration.endAmount - offeredItem.endAmount
             );
 
@@ -750,15 +771,14 @@ contract ConsiderationPure is ConsiderationBase {
         } else {
             // Retrieve the first offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = (
-                fulfillment.offerComponents[0]
+                offerComponents[0]
             );
 
             // Add excess offer amount to the original orders array.
-            orders[
-                targetComponent.orderIndex
-            ].parameters.offer[
-                targetComponent.itemIndex
-            ].endAmount = (
+            _setOfferAmount(
+                orders,
+                targetComponent.orderIndex,
+                targetComponent.itemIndex,
                 offeredItem.endAmount - requiredConsideration.endAmount
             );
         }
@@ -767,13 +787,15 @@ contract ConsiderationPure is ConsiderationBase {
         return Execution(requiredConsideration, offerer, useProxy);
     }
 
-    /* @dev Internal pure function to ensure that an order index is in range
+    /**
+     * @dev Internal pure function to ensure that an order index is in range
      *      and, if so, to return the parameters of the associated order.
      *
      * @param orders An array of orders.
      * @param index  The order index specified by the fulfillment component.
      *
-     * @return The parameters of the order at the given index. */
+     * @return The parameters of the order at the given index.
+     */
     function _getOrderParametersByFulfillmentIndex(
         AdvancedOrder[] memory orders,
         uint256 index
@@ -787,7 +809,8 @@ contract ConsiderationPure is ConsiderationBase {
         return orders[index].parameters;
     }
 
-    /* @dev Internal pure function to ensure that an offer component index is in
+    /**
+     * @dev Internal pure function to ensure that an offer component index is in
      *      range and, if so, to zero out the offer amount and return the
      *      associated offer item.
      *
@@ -803,7 +826,8 @@ contract ConsiderationPure is ConsiderationBase {
      * @return offerer     The offerer for the given order.
      * @return offeredItem The offer item at the given index.
      * @return useProxy    A boolean indicating whether to source approvals for
-     *                     fulfilled tokens from the order's respective proxy. */
+     *                     fulfilled tokens from the order's respective proxy.
+     */
     function _consumeOfferComponent(
         AdvancedOrder[] memory orders,
         uint256 orderIndex,
@@ -814,6 +838,7 @@ contract ConsiderationPure is ConsiderationBase {
         OfferedItem memory offeredItem,
         bool useProxy
     ) {
+        // Retrieve the order parameters using the supplied order index.
         OrderParameters memory orderParameters = (
             _getOrderParametersByFulfillmentIndex(orders, orderIndex)
         );
@@ -824,7 +849,7 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Clear offer amount to indicate offer item has been consumed.
-        orders[orderIndex].parameters.offer[itemIndex].endAmount = 0;
+        _setOfferAmount(orders, orderIndex, itemIndex, 0);
 
         // Return the offerer and the offer item at the given index.
         return (
@@ -834,7 +859,8 @@ contract ConsiderationPure is ConsiderationBase {
         );
     }
 
-    /* @dev Internal pure function to ensure that a consideration component
+    /**
+     * @dev Internal pure function to ensure that a consideration component
      *      index is in range and, if so, to zero out the amount and return the
      *      associated consideration item.
      *
@@ -842,12 +868,14 @@ contract ConsiderationPure is ConsiderationBase {
      * @param orderIndex The order index specified by the fulfillment component.
      * @param itemIndex  The item index specified by the fulfillment component.
      *
-     * @return The consideration item at the given index. */
+     * @return The consideration item at the given index.
+     */
     function _consumeConsiderationComponent(
         AdvancedOrder[] memory orders,
         uint256 orderIndex,
         uint256 itemIndex
     ) internal pure returns (ReceivedItem memory) {
+        // Retrieve the order parameters using the supplied order index.
         OrderParameters memory orderParameters = (
             _getOrderParametersByFulfillmentIndex(orders, orderIndex)
         );
@@ -858,21 +886,61 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Clear consideration amount to indicate item has been consumed.
-        orders[orderIndex].parameters.consideration[itemIndex].endAmount = 0;
+        _setConsiderationAmount(orders, orderIndex, itemIndex, 0);
 
         // Return the consideration item at the given index.
         return orderParameters.consideration[itemIndex];
     }
 
+    /**
+     * @dev Internal pure function to update the offer amount for an order.
+     *
+     * @param orders      An array of orders.
+     * @param orderIndex  The order index specified by fulfillment component.
+     * @param itemIndex   The offer item index specified by the fulfillment
+     *                    component.
+     * @param amount      The new offer item amount.
+     */
+    function _setOfferAmount(
+        AdvancedOrder[] memory orders,
+        uint256 orderIndex,
+        uint256 itemIndex,
+        uint256 amount
+    ) internal pure {
+        orders[orderIndex].parameters.offer[itemIndex].endAmount = amount;
+    }
 
-    /* @dev Internal pure function to hash key parameters of a given execution
+    /**
+     * @dev Internal pure function to update the consideration amount for an
+     *      order.
+     *
+     * @param orders      An array of orders.
+     * @param orderIndex  The order index specified by fulfillment component.
+     * @param itemIndex   The consideration item index specified by the
+     *                    fulfillment component.
+     * @param amount      The new consideration item amount.
+     */
+    function _setConsiderationAmount(
+        AdvancedOrder[] memory orders,
+        uint256 orderIndex,
+        uint256 itemIndex,
+        uint256 amount
+    ) internal pure {
+        orders[orderIndex].parameters.consideration[itemIndex].endAmount = (
+            amount
+        );
+    }
+
+    /**
+     * @dev Internal pure function to hash key parameters of a given execution
      *      from an array of execution elements by index.
      *
      * @param executions     An array of execution elements.
      * @param executionIndex An index designating which execution element from
      *                       the array to hash.
      *
-     * @return A hash of the key parameters of the execution. */
+     * @return A hash of the key parameters of the execution.
+     */
     function _getHashByExecutionIndex(
         Execution[] memory executions,
         uint256 executionIndex
@@ -892,7 +960,8 @@ contract ConsiderationPure is ConsiderationBase {
         );
     }
 
-    /* @dev Internal pure function to derive a hash for comparing transfers to
+    /**
+     * @dev Internal pure function to derive a hash for comparing transfers to
      *      see if they can be batched. Only applies to ERC1155 tokens.
      *
      * @param token    The token to transfer.
@@ -901,37 +970,87 @@ contract ConsiderationPure is ConsiderationBase {
      * @param useProxy A boolean indicating whether to utilize a proxy when
      *                 performing the transfer.
      *
-     * @return The hash. */
+     * @return value The hash.
+     */
     function _hashBatchableItemIdentifier(
         address token,
         address from,
         address to,
         bool useProxy
-    ) internal pure returns (bytes32) {
-        // Note: this could use a variant of efficientHash as it's < 64 bytes.
-        return keccak256(abi.encode(token, from, to, useProxy));
+    ) internal pure returns (bytes32 value) {
+        // Leverage scratch space to perform an efficient hash.
+        assembly {
+            mstore(0x20, useProxy) // Place proxy bool at end of scratch space.
+            mstore(0x1c, to) // Place to address just before bool.
+            mstore(0x08, from) // Place from address just before to.
+
+            // Place combined token + start of from at start of scratch space.
+            mstore(0x00, or(shl(0x60, token), shr(0x40, from)))
+
+            value := keccak256(0x00, 0x40) // Hash scratch space region.
+        }
     }
 
-    /* @dev Internal pure function to ensure an order has not been cancelled.
+    /**
+     * @dev Internal pure function to efficiently derive an digest to sign for
+     *      an order in accordance with EIP-712.
      *
-     * @param orderStatus The status of the order.
-     * @param orderHash   The hash of the order. */
+     * @param domainSeparator The domain separator.
+     * @param orderHash       The order hash.
+     *
+     * @return value The hash.
+     */
+    function _hashDigest(
+        bytes32 domainSeparator,
+        bytes32 orderHash
+    ) internal pure returns (bytes32 value) {
+        // Leverage scratch space to perform an efficient hash.
+        assembly {
+            // Place the EIP-712 prefix at the start of scratch space.
+            mstore(
+                0x00,
+                0x1901000000000000000000000000000000000000000000000000000000000000
+            )
+
+            // Place the domain separator in the next region of scratch space.
+            mstore(0x02, domainSeparator)
+
+            // Place the order hash in scratch space, spilling into the first
+            // two bytes of the free memory pointer — this should never be set
+            // as memory cannot be expanded to that size, and will be zeroed out
+            // after the hash is performed.
+            mstore(0x22, orderHash)
+
+            value := keccak256(0x00, 0x42) // Hash the relevant region.
+
+            mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
+        }
+    }
+
+    /**
+     * @dev Internal pure function to ensure an order has not been cancelled.
+     *
+     * @param isCancelled The cancelled status of the order.
+     * @param orderHash   The hash of the order.
+     */
     function _assertOrderNotCancelled(
-        OrderStatus memory orderStatus,
+        bool isCancelled,
         bytes32 orderHash
     ) internal pure {
         // Ensure that the order has not been cancelled.
-        if (orderStatus.isCancelled) {
+        if (isCancelled) {
             revert OrderIsCancelled(orderHash);
         }
     }
 
-    /* @dev Internal pure function to convert an array of orders to an array of
+    /**
+     * @dev Internal pure function to convert an array of orders to an array of
      *      advanced orders with numerator and denominator of 1.
      *
      * @param orders The orders to convert.
      *
-     * @return The new array of partial orders. */
+     * @return The new array of partial orders.
+     */
     function _convertOrdersToAdvanced(
         Order[] memory orders
     ) internal pure returns (AdvancedOrder[] memory) {
@@ -957,16 +1076,41 @@ contract ConsiderationPure is ConsiderationBase {
             }
         }
 
-        // Return the array of partial orders.
+        // Return the array of advanced orders.
         return advancedOrders;
     }
 
-    /* @dev Internal pure function to ensure that a given element is contained
+    /**
+     * @dev Internal pure function to revert and pass along the revert reason if
+     *      data was returned by the last call.
+     */
+    function _revertWithReasonIfOneIsReturned() internal pure {
+        // Find out whether data was returned by inspecting returndata buffer.
+        uint256 returnDataSize;
+        assembly {
+            returnDataSize := returndatasize()
+        }
+
+        // If no data was returned...
+        if (returnDataSize == 0) {
+            assembly {
+                // Copy returndata to memory, overwriting existing memory.
+                returndatacopy(0, 0, returndatasize())
+
+                // Revert, specifying memory region with copied returndata.
+                revert(0, returndatasize())
+            }
+        }
+    }
+
+    /**
+     * @dev Internal pure function to ensure that a given element is contained
      *      in a merkle root via a supplied proof.
      *
      * @param leaf  The element for which to prove inclusion.
      * @param root  The merkle root that inclusion will be proved against.
-     * @param proof The merkle proof. */
+     * @param proof The merkle proof.
+     */
     function _verifyProof(
         uint256 leaf,
         uint256 root,
@@ -998,12 +1142,14 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to efficiently hash two bytes32 values.
+    /**
+     * @dev Internal pure function to efficiently hash two bytes32 values.
      *
      * @param a The first component of the hash.
      * @param b The second component of the hash.
      *
-     * @return value The hash. */
+     * @return value The hash.
+     */
     function _efficientHash(
         bytes32 a,
         bytes32 b

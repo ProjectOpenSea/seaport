@@ -217,7 +217,7 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           await whileImpersonating(buyer.address, provider, async () => {
             await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value: order.parameters.consideration[0].endAmount}))
               .to.emit(marketplaceContract, "OrderFulfilled")
-              .withArgs(orderHash, seller.address, constants.AddressZero);
+              .withArgs(orderHash, seller.address, constants.AddressZero, buyer.address, [], []);
           });
         });
         it.only("ERC721 <=> ETH (basic)", async () => {
@@ -296,9 +296,12 @@ sigFromEip712Lib: 0x44f6c0e7d88f980f29da33b3e3ecbef759fbbe80e6b9e94f5b91af589696
           };
 
           await whileImpersonating(buyer.address, provider, async () => {
+            // const tx = await marketplaceContract.connect(buyer).fulfillBasicEthForERC721Order(order.parameters.consideration[0].endAmount, basicOrderParameters, {value: order.parameters.consideration[0].endAmount});
+            // const receipt = await tx.wait();
+            // console.log(receipt.events![0].args);
             await expect(marketplaceContract.connect(buyer).fulfillBasicEthForERC721Order(order.parameters.consideration[0].endAmount, basicOrderParameters, {value: order.parameters.consideration[0].endAmount}))
               .to.emit(marketplaceContract, "OrderFulfilled")
-              .withArgs(orderHash, seller.address, constants.AddressZero);
+              .withArgs(orderHash, seller.address, constants.AddressZero, buyer.address, [], []);
           });
         });
         it("ERC721 <=> WETH", async () => {});

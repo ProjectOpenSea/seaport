@@ -7,10 +7,12 @@ import { ConsiderationEventsAndErrors } from "../interfaces/ConsiderationEventsA
 
 import { OrderStatus } from "./ConsiderationStructs.sol";
 
-/* @title ConsiderationBase
+/**
+ * @title ConsiderationBase
  * @author 0age
  * @notice ConsiderationBase contains all all storage, constants, and
- *         constructor logic. */
+ *         constructor logic.
+ */
 contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
@@ -43,14 +45,16 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Cancel offerer's orders with given zone (offerer => zone => nonce).
     mapping (address => mapping (address => uint256)) internal _nonces;
 
-    /* @dev Derive and set hashes, reference chainId, and associated domain
+    /**
+     * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
      *                                    transfer approved tokens.
      * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it. */
+     *                                    each proxy in order to utilize it.
+     */
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
@@ -73,9 +77,11 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    /* @dev Internal view function to derive the EIP-712 domain separator.
+    /**
+     * @dev Internal view function to derive the EIP-712 domain separator.
      *
-     * @return The derived domain separator. */
+     * @return The derived domain separator.
+     */
     function _deriveDomainSeparator() internal view returns (bytes32) {
         return keccak256(
             abi.encode(
