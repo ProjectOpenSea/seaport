@@ -1,6 +1,6 @@
 ## About
 
-todo
+This commit marks the start of the initial OpenZeppelin security review.
 
 ## Local Development
 
