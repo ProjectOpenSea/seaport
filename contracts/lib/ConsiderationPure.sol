@@ -24,24 +24,29 @@ import {
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
 
-/* @title ConsiderationPure
+/**
+ * @title ConsiderationPure
  * @author 0age
- * @notice ConsiderationPure contains all pure functions. */
+ * @notice ConsiderationPure contains all pure functions.
+ */
 contract ConsiderationPure is ConsiderationBase {
-    /* @dev Derive and set hashes, reference chainId, and associated domain
+    /**
+     * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
      *                                    transfer approved tokens.
      * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it. */
+     *                                    each proxy in order to utilize it.
+     */
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
     ) ConsiderationBase(legacyProxyRegistry, requiredProxyImplementation) {}
 
-    /* @dev Internal pure function to apply criteria resolvers containing
+    /**
+     * @dev Internal pure function to apply criteria resolvers containing
      *      specific token identifiers and associated proofs to order items.
      *
      * @param orders            The orders to apply criteria resolvers to.
@@ -52,7 +57,8 @@ contract ConsiderationPure is ConsiderationBase {
      *                          contained in the order's merkle root. Note that
      *                          a root of zero indicates that any transferrable
      *                          token identifier is valid and that no proof
-     *                          needs to be supplied. */
+     *                          needs to be supplied.
+     */
     function _applyCriteriaResolvers(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory criteriaResolvers
@@ -202,7 +208,8 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to derive the current amount of a given item
+    /**
+     * @dev Internal pure function to derive the current amount of a given item
      *      based on the current price, the starting price, and the ending
      *      price. If the start and end prices differ, the current price will be
      *      extrapolated on a linear basis.
@@ -215,7 +222,8 @@ contract ConsiderationPure is ConsiderationBase {
      * @param roundUp     A boolean indicating whether the resultant amount
      *                    should be rounded up or down.
      *
-     * @return The current amount. */
+     * @return The current amount.
+     */
     function _locateCurrentAmount(
         uint256 startAmount,
         uint256 endAmount,
@@ -256,7 +264,8 @@ contract ConsiderationPure is ConsiderationBase {
         return endAmount;
     }
 
-    /* @dev Internal pure function to return a fraction of a given value and to
+    /**
+     * @dev Internal pure function to return a fraction of a given value and to
      *      ensure the resultant value does not have any fractional component.
      *
      * @param numerator   A value indicating the portion of the order that
@@ -264,7 +273,8 @@ contract ConsiderationPure is ConsiderationBase {
      * @param denominator A value indicating the total size of the order.
      * @param value       The value for which to compute the fraction.
      *
-     * @return newValue The value after applying the fraction. */
+     * @return newValue The value after applying the fraction.
+     */
     function _getFraction(
         uint256 numerator,
         uint256 denominator,
@@ -291,7 +301,8 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to "compress" executions, splitting them into
+    /**
+     * @dev Internal pure function to "compress" executions, splitting them into
      *      "standard" (or unbatched) executions and "batch" executions. Note
      *      that there may be additional compression that could be performed,
      *      such as allowing contrarian orders to cancel one another.
@@ -301,7 +312,8 @@ contract ConsiderationPure is ConsiderationBase {
      * @return standardExecutions An array of executions that were not able to
      *                            be compressed.
      * @return batchExecutions    An array of executions (all ERC1155 transfers)
-     *                            that have been compressed into batches. */
+     *                            that have been compressed into batches.
+     */
     function _compressExecutions(
         Execution[] memory executions
     ) internal pure returns (
@@ -470,7 +482,8 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to complete the process of "compressing"
+    /**
+     * @dev Internal pure function to complete the process of "compressing"
      *      executions and return both unbatched and batched execution arrays.
      *
      * @param executions             An array of uncompressed executions.
@@ -484,7 +497,8 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return An array of executions that could not be compressed.
      * @return An array of executions (all ERC1155 transfers) that have been
-     *         compressed into batches. */
+     *         compressed into batches.
+     */
     function _splitExecution(
         Execution[] memory executions,
         Batch[] memory batches,
@@ -583,7 +597,8 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to match offer items to consideration items
+    /**
+     * @dev Internal pure function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
      *
      * @param orders                  The orders to match.
@@ -600,7 +615,8 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return execution The transfer performed as a result of the fulfillment.
      *                   Note that this execution object could potentially be
-     *                   compressed further by aggregating batch transfers. */
+     *                   compressed further by aggregating batch transfers.
+     */
     function _applyFulfillment(
         AdvancedOrder[] memory orders,
         FulfillmentComponent[] memory offerComponents,
@@ -771,13 +787,15 @@ contract ConsiderationPure is ConsiderationBase {
         return Execution(requiredConsideration, offerer, useProxy);
     }
 
-    /* @dev Internal pure function to ensure that an order index is in range
+    /**
+     * @dev Internal pure function to ensure that an order index is in range
      *      and, if so, to return the parameters of the associated order.
      *
      * @param orders An array of orders.
      * @param index  The order index specified by the fulfillment component.
      *
-     * @return The parameters of the order at the given index. */
+     * @return The parameters of the order at the given index.
+     */
     function _getOrderParametersByFulfillmentIndex(
         AdvancedOrder[] memory orders,
         uint256 index
@@ -791,7 +809,8 @@ contract ConsiderationPure is ConsiderationBase {
         return orders[index].parameters;
     }
 
-    /* @dev Internal pure function to ensure that an offer component index is in
+    /**
+     * @dev Internal pure function to ensure that an offer component index is in
      *      range and, if so, to zero out the offer amount and return the
      *      associated offer item.
      *
@@ -807,7 +826,8 @@ contract ConsiderationPure is ConsiderationBase {
      * @return offerer     The offerer for the given order.
      * @return offeredItem The offer item at the given index.
      * @return useProxy    A boolean indicating whether to source approvals for
-     *                     fulfilled tokens from the order's respective proxy. */
+     *                     fulfilled tokens from the order's respective proxy.
+     */
     function _consumeOfferComponent(
         AdvancedOrder[] memory orders,
         uint256 orderIndex,
@@ -839,7 +859,8 @@ contract ConsiderationPure is ConsiderationBase {
         );
     }
 
-    /* @dev Internal pure function to ensure that a consideration component
+    /**
+     * @dev Internal pure function to ensure that a consideration component
      *      index is in range and, if so, to zero out the amount and return the
      *      associated consideration item.
      *
@@ -847,7 +868,8 @@ contract ConsiderationPure is ConsiderationBase {
      * @param orderIndex The order index specified by the fulfillment component.
      * @param itemIndex  The item index specified by the fulfillment component.
      *
-     * @return The consideration item at the given index. */
+     * @return The consideration item at the given index.
+     */
     function _consumeConsiderationComponent(
         AdvancedOrder[] memory orders,
         uint256 orderIndex,
@@ -870,13 +892,15 @@ contract ConsiderationPure is ConsiderationBase {
         return orderParameters.consideration[itemIndex];
     }
 
-    /* @dev Internal pure function to update the offer amount for an order.
+    /**
+     * @dev Internal pure function to update the offer amount for an order.
      *
      * @param orders      An array of orders.
      * @param orderIndex  The order index specified by fulfillment component.
      * @param itemIndex   The offer item index specified by the fulfillment
      *                    component.
-     * @param amount      The new offer item amount. */
+     * @param amount      The new offer item amount.
+     */
     function _setOfferAmount(
         AdvancedOrder[] memory orders,
         uint256 orderIndex,
@@ -886,14 +910,16 @@ contract ConsiderationPure is ConsiderationBase {
         orders[orderIndex].parameters.offer[itemIndex].endAmount = amount;
     }
 
-    /* @dev Internal pure function to update the consideration amount for an
+    /**
+     * @dev Internal pure function to update the consideration amount for an
      *      order.
      *
      * @param orders      An array of orders.
      * @param orderIndex  The order index specified by fulfillment component.
      * @param itemIndex   The consideration item index specified by the
      *                    fulfillment component.
-     * @param amount      The new consideration item amount. */
+     * @param amount      The new consideration item amount.
+     */
     function _setConsiderationAmount(
         AdvancedOrder[] memory orders,
         uint256 orderIndex,
@@ -905,14 +931,16 @@ contract ConsiderationPure is ConsiderationBase {
         );
     }
 
-    /* @dev Internal pure function to hash key parameters of a given execution
+    /**
+     * @dev Internal pure function to hash key parameters of a given execution
      *      from an array of execution elements by index.
      *
      * @param executions     An array of execution elements.
      * @param executionIndex An index designating which execution element from
      *                       the array to hash.
      *
-     * @return A hash of the key parameters of the execution. */
+     * @return A hash of the key parameters of the execution.
+     */
     function _getHashByExecutionIndex(
         Execution[] memory executions,
         uint256 executionIndex
@@ -932,7 +960,8 @@ contract ConsiderationPure is ConsiderationBase {
         );
     }
 
-    /* @dev Internal pure function to derive a hash for comparing transfers to
+    /**
+     * @dev Internal pure function to derive a hash for comparing transfers to
      *      see if they can be batched. Only applies to ERC1155 tokens.
      *
      * @param token    The token to transfer.
@@ -941,7 +970,8 @@ contract ConsiderationPure is ConsiderationBase {
      * @param useProxy A boolean indicating whether to utilize a proxy when
      *                 performing the transfer.
      *
-     * @return value The hash. */
+     * @return value The hash.
+     */
     function _hashBatchableItemIdentifier(
         address token,
         address from,
@@ -961,13 +991,15 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to efficiently derive an digest to sign for
+    /**
+     * @dev Internal pure function to efficiently derive an digest to sign for
      *      an order in accordance with EIP-712.
      *
      * @param domainSeparator The domain separator.
      * @param orderHash       The order hash.
      *
-     * @return value The hash. */
+     * @return value The hash.
+     */
     function _hashDigest(
         bytes32 domainSeparator,
         bytes32 orderHash
@@ -995,10 +1027,12 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to ensure an order has not been cancelled.
+    /**
+     * @dev Internal pure function to ensure an order has not been cancelled.
      *
      * @param isCancelled The cancelled status of the order.
-     * @param orderHash   The hash of the order. */
+     * @param orderHash   The hash of the order.
+     */
     function _assertOrderNotCancelled(
         bool isCancelled,
         bytes32 orderHash
@@ -1009,12 +1043,14 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to convert an array of orders to an array of
+    /**
+     * @dev Internal pure function to convert an array of orders to an array of
      *      advanced orders with numerator and denominator of 1.
      *
      * @param orders The orders to convert.
      *
-     * @return The new array of partial orders. */
+     * @return The new array of partial orders.
+     */
     function _convertOrdersToAdvanced(
         Order[] memory orders
     ) internal pure returns (AdvancedOrder[] memory) {
@@ -1044,8 +1080,10 @@ contract ConsiderationPure is ConsiderationBase {
         return advancedOrders;
     }
 
-    /* @dev Internal pure function to revert and pass along the revert reason if
-     *      data was returned by the last call. */
+    /**
+     * @dev Internal pure function to revert and pass along the revert reason if
+     *      data was returned by the last call.
+     */
     function _revertWithReasonIfOneIsReturned() internal pure {
         // Find out whether data was returned by inspecting returndata buffer.
         uint256 returnDataSize;
@@ -1065,12 +1103,14 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to ensure that a given element is contained
+    /**
+     * @dev Internal pure function to ensure that a given element is contained
      *      in a merkle root via a supplied proof.
      *
      * @param leaf  The element for which to prove inclusion.
      * @param root  The merkle root that inclusion will be proved against.
-     * @param proof The merkle proof. */
+     * @param proof The merkle proof.
+     */
     function _verifyProof(
         uint256 leaf,
         uint256 root,
@@ -1102,12 +1142,14 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /* @dev Internal pure function to efficiently hash two bytes32 values.
+    /**
+     * @dev Internal pure function to efficiently hash two bytes32 values.
      *
      * @param a The first component of the hash.
      * @param b The second component of the hash.
      *
-     * @return value The hash. */
+     * @return value The hash.
+     */
     function _efficientHash(
         bytes32 a,
         bytes32 b

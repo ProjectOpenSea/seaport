@@ -34,18 +34,22 @@ import {
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
 
-/* @title ConsiderationInternal
+/**
+ * @title ConsiderationInternal
  * @author 0age
- * @notice ConsiderationInternal contains all internal functions. */
+ * @notice ConsiderationInternal contains all internal functions.
+ */
 contract ConsiderationInternal is ConsiderationInternalView {
-    /* @dev Derive and set hashes, reference chainId, and associated domain
+    /**
+     * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
      *                                    transfer approved tokens.
      * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it. */
+     *                                    each proxy in order to utilize it.
+     */
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
@@ -54,16 +58,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
         requiredProxyImplementation
     ) {}
 
-    /* @dev Internal function to derive and validate an order based on a set of
+    /**
+     * @dev Internal function to derive and validate an order based on a set of
      *      parameters and a primary item for offer and consideration.
      *
      * @param  parameters      The parameters of the basic order.
      * @param  offeredItem     The primary item being offered.
      * @param  receivedItem    The primary item being received as consideration.
-     * @return orderHash       The order hash.
      *
      * @return useOffererProxy A boolean indicating whether to utilize the
-     *                         offerer's proxy. */
+     *                         offerer's proxy.
+     */
     function _prepareBasicFulfillment(
         BasicOrderParameters memory parameters,
         OfferedItem memory offeredItem,
@@ -168,12 +173,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
         return useOffererProxy;
     }
 
-    /* @dev Internal function to verify and update the status of a basic order.
+    /**
+     * @dev Internal function to verify and update the status of a basic order.
      *
      * @param orderHash The hash of the order.
      * @param offerer   The offerer of the order.
      * @param signature A signature from the offerer indicating that the order
-     *                  has been approved. */
+     *                  has been approved.
+     */
     function _validateBasicOrderAndUpdateStatus(
         bytes32 orderHash,
         address offerer,
@@ -194,7 +201,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _orderStatus[orderHash].denominator = 1;
     }
 
-    /* @dev Internal function to validate an order, determine what portion to
+    /**
+     * @dev Internal function to validate an order, determine what portion to
      *      fill, and update its status. The desired fill amount is supplied as
      *      a fraction, as is the returned amount to fill.
      *
@@ -208,7 +216,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                         will be filled.
      * @return newDenominator  A value indicating the total size of the order.
      * @return useOffererProxy A boolean indicating whether to utilize the
-     *                         offerer's proxy. */
+     *                         offerer's proxy.
+     */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder
     ) internal returns (
@@ -321,7 +330,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         return (orderHash, numerator, denominator, useOffererProxy);
     }
 
-    /* @dev Internal function to validate an order and update its status, adjust
+    /**
+     * @dev Internal function to validate an order and update its status, adjust
      *      prices based on current time, apply criteria resolvers, determine
      *      what portion to fill, and transfer relevant tokens.
      *
@@ -339,7 +349,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param useFulfillerProxy A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      *
-     * @return A boolean indicating whether the order has been fulfilled. */
+     * @return A boolean indicating whether the order has been fulfilled.
+     */
     function _fulfillOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
@@ -468,7 +479,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         return true;
     }
 
-    /* @dev Internal function to validate a group of orders, update their
+    /**
+     * @dev Internal function to validate a group of orders, update their
      *      statuses, and reduce amounts by their previously filled fractions.
      *
      * @param orders            The orders to validate and reduce by their
@@ -483,7 +495,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          needs to be supplied.
      *
      * @return A array of booleans indicating whether to utilize a proxy for
-     *         each order. */
+     *         each order.
+     */
     function _validateOrdersAndApplyPartials(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory criteriaResolvers
@@ -569,7 +582,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         return ordersUseProxy;
     }
 
-    /* @dev Internal function to match an arbitrary number of advanced orders,
+    /**
+     * @dev Internal function to match an arbitrary number of advanced orders,
      *      fully or partially, and each with an arbitrary number of items for
      *      offer and consideration, supplying criteria resolvers containing
      *      specific token identifiers and associated proofs and fulfillments
@@ -600,7 +614,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                            matching the given orders.
      * @return batchExecutions    An array of elements indicating the sequence
      *                            of batch transfers performed as part of
-     *                            matching the given orders. */
+     *                            matching the given orders.
+     */
     function _matchOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
@@ -619,7 +634,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         return _fulfillOrders(advancedOrders, fulfillments, useProxyPerOrder);
     }
 
-    /* @dev Internal function to fulfill an arbitrary number of orders, either
+    /**
+     * @dev Internal function to fulfill an arbitrary number of orders, either
      *      full or partial, after validating, adjusting amounts, and applying
      *      criteria resolvers.
      *
@@ -636,7 +652,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @return An array of elements indicating the sequence of non-batch
      *         transfers performed as part of matching the given orders.
      * @return An array of elements indicating the sequence of batch transfers
-     *         performed as part of matching the given orders. */
+     *         performed as part of matching the given orders.
+     */
     function _fulfillOrders(
         AdvancedOrder[] memory orders,
         Fulfillment[] memory fulfillments,
@@ -734,12 +751,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
         return (executions, batchExecutions);
     }
 
-    /* @dev Internal function to transfer a given item.
+    /**
+     * @dev Internal function to transfer a given item.
      *
      * @param item     The item to transfer, including an amount and recipient.
      * @param offerer  The account offering the item, i.e. the from address.
      * @param useProxy A boolean indicating whether to source approvals for the
-     *                 fulfilled token from the offer's proxy. */
+     *                 fulfilled token from the offer's proxy.
+     */
     function _transfer(
         ReceivedItem memory item,
         address offerer,
@@ -784,10 +803,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
     }
 
-    /* @dev Internal function to transfer ether to a given recipient.
+    /**
+     * @dev Internal function to transfer ether to a given recipient.
      *
      * @param to     The recipient of the transfer.
-     * @param amount The amount to transfer. */
+     * @param amount The amount to transfer.
+     */
     function _transferEth(address payable to, uint256 amount) internal {
         // Attempt to transfer the ether to the recipient.
         (bool ok,) = to.call{value: amount}("");
@@ -802,7 +823,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
     }
 
-    /* @dev Internal function to transfer ERC20 tokens from a given originator
+    /**
+     * @dev Internal function to transfer ERC20 tokens from a given originator
      *      to a given recipient. Sufficient approvals must be set, either on
      *      the respective proxy or on this contract itself.
      *
@@ -812,7 +834,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param amount     The amount to transfer.
      * @param proxyOwner An address indicating the owner of the proxy to utilize
      *                   when performing the transfer, or the null address if no
-     *                   proxy should be utilized. */
+     *                   proxy should be utilized.
+     */
     function _transferERC20(
         address token,
         address from,
@@ -882,7 +905,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
     }
 
-    /* @dev Internal function to transfer a single ERC721 token from a given
+    /**
+     * @dev Internal function to transfer a single ERC721 token from a given
      *      originator to a given recipient. Sufficient approvals must be set,
      *      either on the respective proxy or on this contract itself.
      *
@@ -892,7 +916,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param identifier The tokenId to transfer.
      * @param proxyOwner An address indicating the owner of the proxy to utilize
      *                   when performing the transfer, or the null address if no
-     *                   proxy should be utilized. */
+     *                   proxy should be utilized.
+     */
     function _transferERC721(
         address token,
         address from,
@@ -938,7 +963,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
     }
 
-    /* @dev Internal function to transfer ERC1155 tokens from a given originator
+    /**
+     * @dev Internal function to transfer ERC1155 tokens from a given originator
      *      to a given recipient. Sufficient approvals must be set, either on
      *      the respective proxy or on this contract itself.
      *
@@ -949,7 +975,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param amount     The amount to transfer.
      * @param proxyOwner An address indicating the owner of the proxy to utilize
      *                   when performing the transfer, or the null address if no
-     *                   proxy should be utilized. */
+     *                   proxy should be utilized.
+     */
     function _transferERC1155(
         address token,
         address from,
@@ -997,11 +1024,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
     }
 
-    /* @dev Internal function to transfer a batch of ERC1155 tokens from a given
+    /**
+     * @dev Internal function to transfer a batch of ERC1155 tokens from a given
      *      originator to a given recipient. Sufficient approvals must be set,
      *      either on the respective proxy or on this contract itself.
      *
-     * @param batchExecution The batch of 1155 tokens to be transferred. */
+     * @param batchExecution The batch of 1155 tokens to be transferred.
+     */
     function _batchTransferERC1155(
         BatchExecution memory batchExecution
     ) internal {
@@ -1061,7 +1090,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _assertContractIsDeployed(token);
     }
 
-    /* @dev Internal function to trigger a call to a proxy contract.
+    /**
+     * @dev Internal function to trigger a call to a proxy contract.
      *
      * @param proxyOwner The original owner of the proxy in question. Note that
      *                   this owner may have been modified since the proxy was
@@ -1090,10 +1120,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         (ok,) = proxy.call(callData);
     }
 
-    /* @dev Internal function to transfer Ether to a given recipient.
+    /**
+     * @dev Internal function to transfer Ether to a given recipient.
      *
      * @param amount     The amount of Ether to transfer.
-     * @param parameters The parameters of the order. */
+     * @param parameters The parameters of the order.
+     */
     function _transferETHAndFinalize(
         uint256 amount,
         BasicOrderParameters memory parameters
@@ -1139,13 +1171,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    /* @dev Internal function to transfer ERC20 tokens to a given recipient.
+    /**
+     * @dev Internal function to transfer ERC20 tokens to a given recipient.
      *
      * @param from       The originator of the ERC20 token transfer.
      * @param to         The recipient of the ERC20 token transfer.
      * @param erc20Token The ERC20 token to transfer.
      * @param amount     The amount of ERC20 tokens to transfer.
-     * @param parameters The parameters of the order. */
+     * @param parameters The parameters of the order.
+     */
     function _transferERC20AndFinalize(
         address from,
         address to,
@@ -1189,9 +1223,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    /* @dev Internal function to ensure that the sentinel value for the
+    /**
+     * @dev Internal function to ensure that the sentinel value for the
      *      reentrancy guard is not currently set and, if not, to set the
-     *      sentinel value for the reentrancy guard. */
+     *      sentinel value for the reentrancy guard.
+     */
     function _setReentrancyGuard() internal {
         // Ensure that the reentrancy guard is not already set.
         _assertNonReentrant();

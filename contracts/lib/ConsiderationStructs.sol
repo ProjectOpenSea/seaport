@@ -7,13 +7,15 @@ import {
     Side
 } from "./ConsiderationEnums.sol";
 
-/* @dev An order contains nine components: an offerer, a zone (or account that
+/**
+ * @dev An order contains nine components: an offerer, a zone (or account that
  * can cancel the order or restrict who can fulfill the order depending on the
  * type), the order type (specifying partial fill support, restricted fulfiller
  * requirement, and the offerer's proxy usage preference), the start and end
  * time, a salt, a nonce, and an arbitrary number of offer items that can be
  * spent along with consideration items that must be received by their
- * respective recipient. */
+ * respective recipient.
+ */
 struct OrderComponents {
     address offerer;
     address zone;
@@ -26,12 +28,14 @@ struct OrderComponents {
     uint256 nonce;
 }
 
-/* @dev An offered item has five components: an item type (ETH, ERC20, ERC721,
+/**
+ * @dev An offered item has five components: an item type (ETH, ERC20, ERC721,
  * and ERC1155, as well as criteria-based ERC721 and ERC1155), a token address,
  * a dual-purpose "identifierOrCriteria" component that will either represent a
  * tokenId or a merkle root depending on the item type, and a start and end
  * amount that support increasing or decreasing amounts over the duration of the
- * respective order. */
+ * respective order.
+ */
 struct OfferedItem {
     ItemType itemType;
     address token;
@@ -40,8 +44,10 @@ struct OfferedItem {
     uint256 endAmount;
 }
 
-/* @dev A received item has the same five components as an offered item and an
- * additional sixth component designating the required recipient of the item. */
+/**
+ * @dev A received item has the same five components as an offered item and an
+ * additional sixth component designating the required recipient of the item.
+ */
 struct ReceivedItem {
     ItemType itemType;
     address token;
@@ -51,8 +57,10 @@ struct ReceivedItem {
     address payable recipient;
 }
 
-/* @dev A consumed item has four components: an item type (ETH, ERC20, ERC721,
- * and ERC1155), a token address, a tokenId, and an amount. */
+/**
+ * @dev A consumed item has four components: an item type (ETH, ERC20, ERC721,
+ * and ERC1155), a token address, a tokenId, and an amount.
+ */
 struct ConsumedItem {
     ItemType itemType;
     address token;
@@ -60,8 +68,10 @@ struct ConsumedItem {
     uint256 amount;
 }
 
-/* @dev A fulfilled item has the same four components as an offered item and an
- * additional fifth component designating the required recipient of the item. */
+/**
+ * @dev A fulfilled item has the same four components as an offered item and an
+ * additional fifth component designating the required recipient of the item.
+ */
 struct FulfilledItem {
     ItemType itemType;
     address token;
@@ -70,9 +80,11 @@ struct FulfilledItem {
     address payable recipient;
 }
 
-/* @dev For basic orders involving ETH / ERC20 <=> ERC721 / ERC1155 matching, a
+/**
+ * @dev For basic orders involving ETH / ERC20 <=> ERC721 / ERC1155 matching, a
  * group of six functions may be called that only requires a subset of the usual
- * order arguments. */
+ * order arguments.
+ */
 struct BasicOrderParameters {
     address payable offerer;
     address zone;
@@ -87,16 +99,20 @@ struct BasicOrderParameters {
     AdditionalRecipient[] additionalRecipients;
 }
 
-/* @dev Basic orders can supply any number of additional recipients, with the
+/**
+ * @dev Basic orders can supply any number of additional recipients, with the
  * implied assumption that they are supplied from the offered ETH or ERC20
- * token for the order. */
+ * token for the order.
+ */
 struct AdditionalRecipient {
     address payable recipient;
     uint256 amount;
 }
 
-/* @dev The full set of order components, with the exception of the nonce, must
- * be supplied when fulfilling more sophisticated orders or groups of orders. */
+/**
+ * @dev The full set of order components, with the exception of the nonce, must
+ * be supplied when fulfilling more sophisticated orders or groups of orders.
+ */
 struct OrderParameters {
     address offerer;
     address zone;
@@ -108,15 +124,19 @@ struct OrderParameters {
     ReceivedItem[] consideration;
 }
 
-/* @dev Orders require a signature in addition to the other order parameters. */
+/**
+ * @dev Orders require a signature in addition to the other order parameters.
+ */
 struct Order {
     OrderParameters parameters;
     bytes signature;
 }
 
-/* @dev Advanced orders include a numerator (i.e. a fraction to attempt to fill)
+/**
+ * @dev Advanced orders include a numerator (i.e. a fraction to attempt to fill)
  * and a denominator (the total size of the order) in additon to the signature
- * and other order parameters. */
+ * and other order parameters.
+ */
 struct AdvancedOrder {
     OrderParameters parameters;
     uint120 numerator;
@@ -124,11 +144,13 @@ struct AdvancedOrder {
     bytes signature;
 }
 
-/* @dev Orders can be validated (either explicitly via `validate`, or as a
+/**
+ * @dev Orders can be validated (either explicitly via `validate`, or as a
  * consequence of a full or partial fill), specifically cancelled (they can also
  * be cancelled in bulk via incrementing a per-zone nonce), and partially or
  * fully filled (with the fraction filled represented by a numerator and
- * denominator). */
+ * denominator).
+ */
 struct OrderStatus {
     bool isValidated;
     bool isCancelled;
@@ -136,9 +158,11 @@ struct OrderStatus {
     uint120 denominator;
 }
 
-/* @dev A criteria resolver specifies an order, side (offer vs. consideration),
+/**
+ * @dev A criteria resolver specifies an order, side (offer vs. consideration),
  * and item index. It then provides a chosen identifier (i.e. tokenId) alongside
- * a merkle proof demonstrating the identifier meets the required criteria. */
+ * a merkle proof demonstrating the identifier meets the required criteria.
+ */
 struct CriteriaResolver {
     uint256 orderIndex;
     Side side;
@@ -147,41 +171,49 @@ struct CriteriaResolver {
     bytes32[] criteriaProof;
 }
 
-/* @dev A fulfillment is applied to a group of orders. It decrements a series of
+/**
+ * @dev A fulfillment is applied to a group of orders. It decrements a series of
  * offer and consideration items, then generates a single execution element. A
  * given fulfillment can be applied to as many offer and consideration items as
  * desired, but must contain at least one offer and at least one consideration
  * that match. The fulfillment must also remain consistent on all key parameters
  * across all offer items (same offerer, token, type, tokenId, and proxy
  * preference) as well as across all consideration items (token, type, tokenId,
- * and recipient). */
+ * and recipient).
+ */
 struct Fulfillment {
     FulfillmentComponent[] offerComponents;
     FulfillmentComponent[] considerationComponents;
 }
 
-/* @dev Each fulfullment component contains one index referencing a specific
- * order and another referencing a specific offer or consideration item. */
+/**
+ * @dev Each fulfullment component contains one index referencing a specific
+ * order and another referencing a specific offer or consideration item.
+ */
 struct FulfillmentComponent {
     uint256 orderIndex;
     uint256 itemIndex;
 }
 
-/* @dev An execution is triggered once all consideration items have been zeroed
+/**
+ * @dev An execution is triggered once all consideration items have been zeroed
  * out. It sends the item in question from the offerer to the item's recipient,
  * optionally sourcing approvals from either this contract directly or from the
  * offerer's proxy contract if one is available. An execution is not provided as
  * an argument, but rather is derived via orders, criteria resolvers, and
- * fulfillments and returned as part of `matchOrders`. */
+ * fulfillments and returned as part of `matchOrders`.
+ */
 struct Execution {
     ReceivedItem item;
     address offerer;
     bool useProxy;
 }
 
-/* @dev A batch execution operates in a similar fashion to a standard execution,
+/**
+ * @dev A batch execution operates in a similar fashion to a standard execution,
  * but instead will transfer a number of ERC1155 tokenIds on the same token
- * contract in a single batch transaction. */
+ * contract in a single batch transaction.
+ */
 struct BatchExecution {
     address token;
     address from;
@@ -191,7 +223,9 @@ struct BatchExecution {
     bool useProxy;
 }
 
-/* @dev An internal struct for facilitating batch execution construction. */
+/**
+ * @dev An internal struct for facilitating batch execution construction.
+ */
 struct Batch {
     bytes32 hash;
     uint256[] executionIndices;
