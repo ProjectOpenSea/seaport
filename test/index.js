@@ -25,6 +25,64 @@ describe("Consideration functional tests", function () {
   const randomHex = () => (
     `0x${[...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`
   );
+  const defaultMirrorFulfillment = [
+    {
+      offerComponents: [
+        {
+          orderIndex: 0,
+          itemIndex: 0,
+        },
+      ],
+      considerationComponents: [
+        {
+          orderIndex: 1,
+          itemIndex: 0,
+        },
+      ],
+    },
+    {
+      offerComponents: [
+        {
+          orderIndex: 1,
+          itemIndex: 0,
+        },
+      ],
+      considerationComponents: [
+        {
+          orderIndex: 0,
+          itemIndex: 0,
+        },
+      ],
+    },
+    {
+      offerComponents: [
+        {
+          orderIndex: 1,
+          itemIndex: 1,
+        },
+      ],
+      considerationComponents: [
+        {
+          orderIndex: 0,
+          itemIndex: 1,
+        },
+      ],
+    },
+    {
+      offerComponents: [
+        {
+          orderIndex: 1,
+          itemIndex: 2,
+        },
+      ],
+      considerationComponents: [
+        {
+          orderIndex: 0,
+          itemIndex: 2,
+        },
+      ],
+    },
+  ];
 
   before(async () => {
     const network = await provider.getNetwork();
@@ -65,7 +123,6 @@ describe("Consideration functional tests", function () {
       testERC721.address,
       testERC1155.address,
     ];
-
 
     // Required for EIP712 signing
     domainData = {
@@ -227,9 +284,6 @@ describe("Consideration functional tests", function () {
 
         const event = marketplaceContractEvents[0];
 
-        // console.log(order.parameters);
-        //console.log(event);
-
         expect(event.eventName).to.equal("OrderFulfilled");
         expect(event.eventSignature).to.equal(
           "OrderFulfilled(" +
@@ -307,16 +361,16 @@ describe("Consideration functional tests", function () {
             const transferLogs = tokenEvents
               .map(x => testERC1155.interface.parseLog(x))
               .filter(x => (
-                x.signature === 'Transfer(address,address,uint256)' &&
+                x.signature === 'TransferSingle(address,address,address,uint256,uint256)' &&
+                x.args.operator === marketplaceContract.address &&
                 x.args.from === event.offerer &&
                 (fulfiller !== constants.AddressZero ? x.args.to === fulfiller : true)
               ));
 
             expect(transferLogs.length).to.equal(1);
             const transferLog = transferLogs[0];
-            expect(transferLog.args.tokenId.toString()).to.equal(offer.identifier.toString());
-            // TODO: check amount against offer.amount
-
+            expect(transferLog.args.id.toString()).to.equal(offer.identifier.toString());
+            expect(transferLog.args.value.toString()).to.equal(offer.amount.toString());
           }
         }
 
@@ -363,16 +417,16 @@ describe("Consideration functional tests", function () {
             const transferLogs = tokenEvents
               .map(x => testERC1155.interface.parseLog(x))
               .filter(x => (
-                x.signature === 'Transfer(address,address,uint256)' &&
+                x.signature === 'TransferSingle(address,address,address,uint256,uint256)' &&
+                x.args.operator === marketplaceContract.address &&
                 (fulfiller !== constants.AddressZero ? x.args.from === fulfiller : true) &&
                 x.args.to === event.offerer
               ));
 
             expect(transferLogs.length).to.equal(1);
             const transferLog = transferLogs[0];
-            expect(transferLog.args.tokenId.toString()).to.equal(consideration.identifier.toString());
-            // TODO: check amount against offer.amount
-
+            expect(transferLog.args.id.toString()).to.equal(consideration.identifier.toString());
+            expect(transferLog.args.value.toString()).to.equal(offer.amount.toString());
           }
         }
       }
@@ -596,64 +650,7 @@ describe("Consideration functional tests", function () {
             order
           );
 
-          const fulfillments = [
-            {
-              offerComponents: [
-                {
-                  orderIndex: 0,
-                  itemIndex: 0,
-                },
-              ],
-              considerationComponents: [
-                {
-                  orderIndex: 1,
-                  itemIndex: 0,
-                },
-              ],
-            },
-            {
-              offerComponents: [
-                {
-                  orderIndex: 1,
-                  itemIndex: 0,
-                },
-              ],
-              considerationComponents: [
-                {
-                  orderIndex: 0,
-                  itemIndex: 0,
-                },
-              ],
-            },
-            {
-              offerComponents: [
-                {
-                  orderIndex: 1,
-                  itemIndex: 1,
-                },
-              ],
-              considerationComponents: [
-                {
-                  orderIndex: 0,
-                  itemIndex: 1,
-                },
-              ],
-            },
-            {
-              offerComponents: [
-                {
-                  orderIndex: 1,
-                  itemIndex: 2,
-                },
-              ],
-              considerationComponents: [
-                {
-                  orderIndex: 0,
-                  itemIndex: 2,
-                },
-              ],
-            },
-          ];
+          const fulfillments = defaultMirrorFulfillment;
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments, {value});
@@ -674,14 +671,100 @@ describe("Consideration functional tests", function () {
 
     describe("A single ERC1155 is to be transferred", async () => {
       describe("[Buy now] User fullfills a sell order for a single ERC1155", async () => {
-        describe("ERC1155 <=> ETH", async () => {});
-        describe("ERC1155 <=> WETH", async () => {});
-        describe("ERC1155 <=> ERC20", async () => {});
+        it("ERC1155 <=> ETH (basic)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          const offer = [
+            {
+              itemType: 3, // ERC1155
+              token: testERC1155.address,
+              identifierOrCriteria: nftId,
+              startAmount: amount,
+              endAmount: amount,
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+          );
+
+          const basicOrderParameters = {
+            offerer: order.parameters.offerer,
+            zone: order.parameters.zone,
+            orderType: order.parameters.orderType,
+            token: order.parameters.offer[0].token,
+            identifier: order.parameters.offer[0].identifierOrCriteria,
+            startTime: order.parameters.startTime,
+            endTime: order.parameters.endTime,
+            salt: order.parameters.salt,
+            useFulfillerProxy: false,
+            signature: order.signature,
+            additionalRecipients: [
+              {
+                amount: ethers.utils.parseEther("1"),
+                recipient: zone.address,
+              },
+              {
+                amount: ethers.utils.parseEther("1"),
+                recipient: owner.address,
+              }
+            ],
+          };
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillBasicEthForERC1155Order(order.parameters.consideration[0].endAmount, order.parameters.offer[0].endAmount, basicOrderParameters, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+          });
+        });
+        it("ERC1155 <=> WETH", async () => {});
+        it("ERC1155 <=> ERC20", async () => {});
       });
       describe("[Accept offer] User accepts a buy offer on a single ERC1155", async () => {
         // Note: ETH is not a possible case
-        describe("ERC1155 <=> WETH", async () => {});
-        describe("ERC1155 <=> ERC20", async () => {});
+        it("ERC1155 <=> WETH", async () => {});
+        it("ERC1155 <=> ERC20", async () => {});
       });
     });
   });
