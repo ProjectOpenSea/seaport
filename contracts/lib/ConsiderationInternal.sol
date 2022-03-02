@@ -544,7 +544,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 ) = _validateOrderAndUpdateStatus(order);
 
                 // Adjust prices based on time, start amount, and end amount.
-                orders[i] = _adjustOrderPrice(order);
+                _adjustOrderPrice(order);
 
                 // Mark whether order should utilize offerer's proxy.
                 ordersUseProxy[i] = useOffererProxy;
@@ -557,21 +557,27 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                 // Iterate over each offered item on the order.
                 for (uint256 j = 0; j < offer.length; ++j) {
+                    // Retrieve the offered item.
+                    OfferedItem memory offeredItem = offer[j];
+
                     // Apply order fill fraction to each offer amount.
-                    orders[i].parameters.offer[j].endAmount = _getFraction(
+                    offeredItem.endAmount = _getFraction(
                         numerator,
                         denominator,
-                        offer[j].endAmount
+                        offeredItem.endAmount
                     );
                 }
 
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < consideration.length; ++j) {
+                    // Retrieve the consideration item.
+                    ReceivedItem memory receivedItem = consideration[j];
+
                     // Apply order fill fraction to each consideration amount.
-                    orders[i].parameters.consideration[j].endAmount = _getFraction(
+                    receivedItem.endAmount = _getFraction(
                         numerator,
                         denominator,
-                        consideration[j].endAmount
+                        receivedItem.endAmount
                     );
                 }
 
