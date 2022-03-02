@@ -21,6 +21,7 @@ describe("Consideration functional tests", function () {
   let tokenByType;
   let owner;
   let domainData;
+  let withBalanceChecks;
 
   const randomHex = () => (
     `0x${[...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`
@@ -58,7 +59,7 @@ describe("Consideration functional tests", function () {
       offerComponents: [
         {
           orderIndex: 1,
-          itemIndex: 1,
+          itemIndex: 0,
         },
       ],
       considerationComponents: [
@@ -72,7 +73,7 @@ describe("Consideration functional tests", function () {
       offerComponents: [
         {
           orderIndex: 1,
-          itemIndex: 2,
+          itemIndex: 0,
         },
       ],
       considerationComponents: [
@@ -118,10 +119,10 @@ describe("Consideration functional tests", function () {
     testERC1155 = await TestERC1155Factory.deploy();
 
     tokenByType = [
-      constants.AddressZero, // ETH
-      testERC20.address,
-      testERC721.address,
-      testERC1155.address,
+      {address: constants.AddressZero}, // ETH
+      testERC20,
+      testERC721,
+      testERC1155,
     ];
 
     // Required for EIP712 signing
@@ -130,6 +131,148 @@ describe("Consideration functional tests", function () {
       version: "1",
       chainId: chainId,
       verifyingContract: marketplaceContract.address,
+    };
+
+    withBalanceChecks = async (
+      orders, // TODO: include order statuses to account for partial fills
+      fn
+    ) => {
+      const allOfferedItems = orders.map(order => order.parameters.offer.map(offerItem => ({
+        ...offerItem,
+        account: order.parameters.offerer,
+      }))).flat();
+
+      const allReceivedItems = orders.map(order => order.parameters.consideration).flat();
+
+      for (offeredItem of allOfferedItems) {
+        if (offeredItem.itemType > 3) {
+          console.error("CRITERIA-BASED BALANCE OFFERED CHECKS NOT IMPLEMENTED YET");
+          process.exit(0);
+        }
+
+        if (offeredItem.itemType === 0) { // ETH
+          offeredItem.initialBalance = await provider.getBalance(offeredItem.account);
+        } else if (offeredItem.itemType === 3) { // ERC1155
+          offeredItem.initialBalance = await tokenByType[offeredItem.itemType].balanceOf(offeredItem.account, offeredItem.identifierOrCriteria);
+        } else {
+          offeredItem.initialBalance = await tokenByType[offeredItem.itemType].balanceOf(offeredItem.account);
+        }
+
+        if (offeredItem.itemType === 2) { // ERC721
+          offeredItem.ownsItemBefore = (
+            await tokenByType[offeredItem.itemType].ownerOf(offeredItem.identifierOrCriteria)
+          ) === offeredItem.account;
+        }
+      }
+
+      for (receivedItem of allReceivedItems) {
+        if (receivedItem.itemType > 3) {
+          console.error("CRITERIA-BASED BALANCE RECEIVED CHECKS NOT IMPLEMENTED YET");
+          process.exit(0);
+        }
+
+        if (receivedItem.itemType === 0) { // ETH
+          receivedItem.initialBalance = await provider.getBalance(receivedItem.recipient);
+        } else if (receivedItem.itemType === 3) { // ERC1155
+          receivedItem.initialBalance = await tokenByType[receivedItem.itemType].balanceOf(receivedItem.recipient, receivedItem.identifierOrCriteria);
+        } else {
+          receivedItem.initialBalance = await tokenByType[receivedItem.itemType].balanceOf(receivedItem.recipient);
+        }
+
+        if (receivedItem.itemType === 2) { // ERC721
+          receivedItem.ownsItemBefore = (
+            await tokenByType[receivedItem.itemType].ownerOf(receivedItem.identifierOrCriteria)
+          ) === receivedItem.recipient;
+        }
+      }
+
+      const receipt = await fn();
+
+      const from = receipt.from;
+      const gasUsed = receipt.gasUsed;
+
+      for (offeredItem of allOfferedItems) {
+        if (offeredItem.account === from && offeredItem.itemType === 0) {
+          offerredItem.initialBalance = offeredItem.initialBalance.sub(gasUsed);
+        }
+      }
+
+      for (receivedItem of allReceivedItems) {
+        if (receivedItem.recipient === from && receivedItem.itemType === 0) {
+          receivedItem.initialBalance = receivedItem.initialBalance.sub(gasUsed);
+        }
+      }
+
+      for (offeredItem of allOfferedItems) {
+        if (offeredItem.itemType > 3) {
+          console.error("CRITERIA-BASED BALANCE OFFERED CHECKS NOT IMPLEMENTED YET");
+          process.exit(0);
+        }
+
+        if (offeredItem.itemType === 0) { // ETH
+          offeredItem.finalBalance = await provider.getBalance(offeredItem.account);
+        } else if (offeredItem.itemType === 3) { // ERC1155
+          offeredItem.finalBalance = await tokenByType[offeredItem.itemType].balanceOf(offeredItem.account, offeredItem.identifierOrCriteria);
+        } else {
+          offeredItem.finalBalance = await tokenByType[offeredItem.itemType].balanceOf(offeredItem.account);
+        }
+
+        if (offeredItem.itemType === 2) { // ERC721
+          offeredItem.ownsItemAfter = (
+            await tokenByType[offeredItem.itemType].ownerOf(offeredItem.identifierOrCriteria)
+          ) === offeredItem.account;
+        }
+      }
+
+      for (receivedItem of allReceivedItems) {
+        if (receivedItem.itemType > 3) {
+          console.error("CRITERIA-BASED BALANCE RECEIVED CHECKS NOT IMPLEMENTED YET");
+          process.exit(0);
+        }
+
+        if (receivedItem.itemType === 0) { // ETH
+          receivedItem.finalBalance = await provider.getBalance(receivedItem.recipient);
+        } else if (receivedItem.itemType === 3) { // ERC1155
+          receivedItem.finalBalance = await tokenByType[receivedItem.itemType].balanceOf(receivedItem.recipient, receivedItem.identifierOrCriteria);
+        } else {
+          receivedItem.finalBalance = await tokenByType[receivedItem.itemType].balanceOf(receivedItem.recipient);
+        }
+
+        if (receivedItem.itemType === 2) { // ERC721
+          receivedItem.ownsItemAfter = (
+            await tokenByType[receivedItem.itemType].ownerOf(receivedItem.identifierOrCriteria)
+          ) === receivedItem.recipient;
+        }
+      }
+
+      for (offerredItem of allOfferedItems) {
+        if (offerredItem.startAmount.toString() !== offerredItem.endAmount.toString()) {
+          console.error("SLIDING AMOUNT BALANCE OFFERED CHECKS NOT IMPLEMENTED YET");
+          process.exit(0);
+        }
+        console.log(offeredItem);
+        expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(offerredItem.endAmount.toString());
+
+        if (offeredItem.itemType === 2) { // ERC721
+          expect(offeredItem.ownsItemBefore).to.equal(true);
+          expect(offeredItem.ownsItemAfter).to.equal(false);
+        }
+      }
+
+      for (receivedItem of allReceivedItems) {
+        if (receivedItem.startAmount.toString() !== receivedItem.endAmount.toString()) {
+          console.error("SLIDING AMOUNT BALANCE RECEIVED CHECKS NOT IMPLEMENTED YET");
+          process.exit(0);
+        }
+        expect(receivedItem.finalBalance.sub(receivedItem.initialBalance).toString()).to.equal(receivedItem.endAmount.toString());
+
+        if (receivedItem.itemType === 2) { // ERC721
+          expect(receivedItem.ownsItemBefore).to.equal(false);
+          expect(receivedItem.ownsItemAfter).to.equal(true);
+        }
+      }
+
+      return receipt;
     };
   });
 
@@ -209,17 +352,101 @@ describe("Consideration functional tests", function () {
       const startTime = Math.floor(new Date().getTime() / 1000) - 30;
       const endTime = startTime + 60;
 
+      const compressedOfferItems = [];
+      for (
+        const {
+          itemType,
+          token,
+          identifierOrCriteria,
+          startAmount,
+          endAmount,
+        } of order.parameters.offer
+      ) {
+        if (
+          !compressedOfferItems.map(
+            x => `${x.itemType}+${x.token}+${x.identifierOrCriteria}`
+          ).includes(
+            `${itemType}+${token}+${identifierOrCriteria}`
+          )
+        ) {
+          compressedOfferItems.push({
+            itemType,
+            token,
+            identifierOrCriteria,
+            startAmount,
+            endAmount,
+          });
+        } else {
+          const index = compressedOfferItems.map(
+            x => `${x.itemType}+${x.token}+${x.identifierOrCriteria}`
+          ).indexOf(
+            `${itemType}+${token}+${identifierOrCriteria}`
+          );
+
+          compressedOfferItems[index].startAmount = (
+            compressedOfferItems[index].startAmount.add(startAmount)
+          );
+          compressedOfferItems[index].endAmount = (
+            compressedOfferItems[index].endAmount.add(endAmount)
+          );
+        }
+      }
+
+      const compressedConsiderationItems = [];
+      for (
+        const {
+          itemType,
+          token,
+          identifierOrCriteria,
+          startAmount,
+          endAmount,
+          recipient,
+        } of order.parameters.consideration
+      ) {
+        if (
+          !compressedConsiderationItems.map(
+            x => `${x.itemType}+${x.token}+${x.identifierOrCriteria}`
+          ).includes(
+            `${itemType}+${token}+${identifierOrCriteria}`
+          )
+        ) {
+          compressedConsiderationItems.push({
+            itemType,
+            token,
+            identifierOrCriteria,
+            startAmount,
+            endAmount,
+            recipient,
+          });
+        } else {
+          const index = compressedConsiderationItems.map(
+            x => `${x.itemType}+${x.token}+${x.identifierOrCriteria}`
+          ).indexOf(
+            `${itemType}+${token}+${identifierOrCriteria}`
+          );
+
+          compressedConsiderationItems[index].startAmount = (
+            compressedConsiderationItems[index].startAmount.add(startAmount)
+          );
+          compressedConsiderationItems[index].endAmount = (
+            compressedConsiderationItems[index].endAmount.add(endAmount)
+          );
+        }
+      }
+
+      console.log(compressedOfferItems, compressedConsiderationItems);
+
       const orderParameters = {
           offerer: offerer.address,
           zone: zone.address,
-          offer: order.parameters.consideration.map(x => ({ // TODO: aggregate like-kind items
+          offer: compressedConsiderationItems.map(x => ({ // TODO: aggregate like-kind items
             itemType: x.itemType,
             token: x.token,
             identifierOrCriteria: x.identifierOrCriteria,
             startAmount: x.startAmount,
             endAmount: x.endAmount,
           })),
-          consideration: order.parameters.offer.map(x => ({ // TODO: aggregate like-kind items
+          consideration: compressedOfferItems.map(x => ({ // TODO: aggregate like-kind items
             ...x,
             recipient: offerer.address,
           })),
@@ -299,7 +526,7 @@ describe("Consideration functional tests", function () {
         const compareEventItems = (item, orderItem) => {
           expect(item.itemType).to.equal(orderItem.itemType);
           expect(item.token).to.equal(orderItem.token);
-          expect(item.token).to.equal(tokenByType[item.itemType]);
+          expect(item.token).to.equal(tokenByType[item.itemType].address);
           if (orderItem.itemType < 4) { // no criteria-based
             expect(item.identifier).to.equal(orderItem.identifierOrCriteria);
           } else {
@@ -492,9 +719,12 @@ describe("Consideration functional tests", function () {
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
-            const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
-            const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            await withBalanceChecks([order], async () => {
+              const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
+              const receipt = await tx.wait();
+              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              return receipt;
+            });
           });
         });
         it("ERC721 <=> ETH (basic)", async () => {
@@ -578,9 +808,12 @@ describe("Consideration functional tests", function () {
           };
 
           await whileImpersonating(buyer.address, provider, async () => {
-            const tx = await marketplaceContract.connect(buyer).fulfillBasicEthForERC721Order(order.parameters.consideration[0].endAmount, basicOrderParameters, {value});
-            const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            await withBalanceChecks([order], async () => {
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicEthForERC721Order(order.parameters.consideration[0].endAmount, basicOrderParameters, {value});
+              const receipt = await tx.wait();
+              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              return receipt;
+            });
           });
         });
         it("ERC721 <=> ETH (match)", async () => {
@@ -652,12 +885,17 @@ describe("Consideration functional tests", function () {
 
           const fulfillments = defaultMirrorFulfillment;
 
+          console.log(order);
+          console.log(mirrorOrder);
+
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments, {value});
             const receipt = await tx.wait();
             checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}]);
             checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}]);
+            return receipt;
           });
+
         });
         it("ERC721 <=> WETH", async () => {});
         it("ERC721 <=> ERC20", async () => {});
@@ -753,9 +991,12 @@ describe("Consideration functional tests", function () {
           };
 
           await whileImpersonating(buyer.address, provider, async () => {
-            const tx = await marketplaceContract.connect(buyer).fulfillBasicEthForERC1155Order(order.parameters.consideration[0].endAmount, order.parameters.offer[0].endAmount, basicOrderParameters, {value});
-            const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            await withBalanceChecks([order], async () => {
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicEthForERC1155Order(order.parameters.consideration[0].endAmount, order.parameters.offer[0].endAmount, basicOrderParameters, {value});
+              const receipt = await tx.wait();
+              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              return receipt;
+            })
           });
         });
         it("ERC1155 <=> WETH", async () => {});
