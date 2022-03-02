@@ -22,6 +22,7 @@ describe("Consideration functional tests", function () {
   let owner;
   let domainData;
   let withBalanceChecks;
+  let simulateMatchOrders;
 
   const randomHex = () => (
     `0x${[...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`
@@ -135,7 +136,7 @@ describe("Consideration functional tests", function () {
 
     withBalanceChecks = async (
       orders, // TODO: include order statuses to account for partial fills
-      fn
+      fn,
     ) => {
       const allOfferedItems = orders.map(order => order.parameters.offer.map(offerItem => ({
         ...offerItem,
@@ -250,7 +251,7 @@ describe("Consideration functional tests", function () {
           console.error("SLIDING AMOUNT BALANCE OFFERED CHECKS NOT IMPLEMENTED YET");
           process.exit(0);
         }
-        console.log(offeredItem);
+
         expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(offerredItem.endAmount.toString());
 
         if (offeredItem.itemType === 2) { // ERC721
@@ -274,6 +275,15 @@ describe("Consideration functional tests", function () {
 
       return receipt;
     };
+
+    simulateMatchOrders = async (
+      orders,
+      fulfillments,
+      caller,
+      value,
+    ) => {
+      return marketplaceContract.connect(caller).callStatic.matchOrders(orders, fulfillments, {value});
+    }
   });
 
   // Buy now or accept offer for a single ERC721 or ERC1155 in exchange for
@@ -434,8 +444,6 @@ describe("Consideration functional tests", function () {
         }
       }
 
-      console.log(compressedOfferItems, compressedConsiderationItems);
-
       const orderParameters = {
           offerer: offerer.address,
           zone: zone.address,
@@ -481,7 +489,84 @@ describe("Consideration functional tests", function () {
       return {mirrorOrder, mirrorOrderHash, mirrorValue};
     }
 
-    const checkExpectedEvents = (receipt, orderGroups) => {
+    const checkExpectedEvents = (receipt, orderGroups, standardExecutions, batchExecutions) => {
+      if (standardExecutions && standardExecutions.length > 0) {
+        for (standardExecution of standardExecutions) {
+          const {
+            item,
+            offerer,
+            useProxy,
+          } = standardExecution;
+
+          const {
+            itemType,
+            token,
+            identifier,
+            amount,
+            recipient,
+          } = item;
+
+          if (itemType !== 0) {
+            const tokenEvents = receipt.events
+              .filter(x => x.address === token);
+
+            expect(tokenEvents.length).to.be.above(0);
+
+            if (itemType === 1) { // ERC20
+              // search for transfer
+              const transferLogs = tokenEvents
+                .map(x => testERC20.interface.parseLog(x))
+                .filter(x => (
+                  x.signature === 'Transfer(address,address,uint256)' &&
+                  x.args.to === recipient
+                ));
+
+              expect(transferLogs.length).to.equal(1);
+              const transferLog = transferLogs[0];
+              expect(transferLog.args.value.toString()).to.equal(amount.toString());
+
+            } else if (itemType === 2) { // ERC721
+              // search for transfer
+              const transferLogs = tokenEvents
+                .map(x => testERC721.interface.parseLog(x))
+                .filter(x => (
+                  x.signature === 'Transfer(address,address,uint256)' &&
+                  x.args.to === recipient
+                ));
+
+              expect(transferLogs.length).to.equal(1);
+              const transferLog = transferLogs[0];
+              expect(transferLog.args.tokenId.toString()).to.equal(identifier.toString());
+
+            } else if (itemType === 3) {
+              // search for transfer
+              const transferLogs = tokenEvents
+                .map(x => testERC1155.interface.parseLog(x))
+                .filter(x => (
+                  x.signature === 'TransferSingle(address,address,address,uint256,uint256)' &&
+                  x.args.operator === marketplaceContract.address &&
+                  x.args.to === recipient
+                ));
+
+              expect(transferLogs.length).to.equal(1);
+              const transferLog = transferLogs[0];
+              expect(transferLog.args.id.toString()).to.equal(identifier.toString());
+              expect(transferLog.args.value.toString()).to.equal(amount.toString());
+            } else {
+              expect(false).to.be.true; // bad item type
+            }
+          }
+        }
+
+        // TODO: sum up executions and compare to orders to ensure that all the
+        // items (or partially-filled items) are accounted for
+      }
+
+      if (batchExecutions && batchExecutions.length > 0) {
+        console.error("BATCH EXECUTION VALIDATION NOT IMPLEMENTED YET");
+        process.exit(1);
+      }
+
       for (const {order, orderHash, fulfiller, orderStatus} of orderGroups) {
         const marketplaceContractEvents = receipt.events
           .filter(x => x.address === marketplaceContract.address)
@@ -885,14 +970,27 @@ describe("Consideration functional tests", function () {
 
           const fulfillments = defaultMirrorFulfillment;
 
-          console.log(order);
-          console.log(mirrorOrder);
+          // console.log(order);
+          // console.log(mirrorOrder);
+
+          const {
+            standardExecutions,
+            batchExecutions
+          } = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
+
+          expect(batchExecutions.length).to.equal(0);
+          expect(standardExecutions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}]);
-            checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}]);
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
             return receipt;
           });
 

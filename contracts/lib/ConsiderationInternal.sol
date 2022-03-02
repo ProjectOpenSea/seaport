@@ -384,9 +384,57 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Retrieve the consideration components for the order.
         ReceivedItem[] memory consideration = orders[0].parameters.consideration;
 
-        // Move the offerer from memory to the stack.
-        address offerer = advancedOrder.parameters.offerer;
+        // Perform each item transfer with the appropriate fractional amount.
+        _performTransfers(
+            offer,
+            consideration,
+            advancedOrder.parameters.offerer,
+            fillNumerator,
+            fillDenominator,
+            useOffererProxy,
+            useFulfillerProxy
+        );
 
+        // Emit an event signifying that the order has been fulfilled.
+        _emitOrderFulfilledEvent(
+            orderHash,
+            advancedOrder.parameters.offerer,
+            advancedOrder.parameters.zone,
+            msg.sender,
+            offer,
+            consideration
+        );
+
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
+
+        return true;
+    }
+
+    /**
+     * @dev Internal function to transfer each item contained in a given single
+     *      order fulfillment.
+     *
+     * @param offer             The offer items for the fulfilled order.
+     * @param consideration     The consideration items for the fulfilled order.
+     * @param offerer           The offerer of the fulfilled order.
+     * @param numerator         A value indicating the portion of the order that
+     *                          should be filled.
+     * @param denominator       A value indicating the total size of the order.
+     * @param useOffererProxy   A flag indicating whether to source approvals
+     *                          for consumed tokens from an associated proxy.
+     * @param useFulfillerProxy A flag indicating whether to source approvals
+     *                          for fulfilled tokens from an associated proxy.
+     */
+    function _performTransfers(
+        OfferedItem[] memory offer,
+        ReceivedItem[] memory consideration,
+        address offerer,
+        uint256 numerator,
+        uint256 denominator,
+        bool useOffererProxy,
+        bool useFulfillerProxy
+    ) internal {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
@@ -395,26 +443,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Retrieve the consideration item.
             ReceivedItem memory receivedItem = consideration[i];
 
-            // Apply order fill fraction to each received item amount.
-            receivedItem.endAmount = _getFraction(
-                fillNumerator,
-                fillDenominator,
-                receivedItem.endAmount
+            // Derive the amount to transfer and transfer the received item.
+            uint256 amount = _applyReceivedFractionAndTransfer(
+                receivedItem,
+                numerator,
+                denominator,
+                useFulfillerProxy
             );
 
             // If consideration expects ETH, reduce ether value available.
             if (receivedItem.itemType == ItemType.ETH) {
-                etherRemaining -= receivedItem.endAmount;
+                etherRemaining -= amount;
             }
 
-            // Transfer the item from the caller to the consideration recipient.
-            _transfer(
-                receivedItem,
-                msg.sender,
-                useFulfillerProxy
-            );
-
-            consideration[i].endAmount = receivedItem.endAmount;
+            // Update offered amount so that an accurate event can be emitted.
+            receivedItem.endAmount = amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -427,33 +470,22 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Retrieve the offer item.
             OfferedItem memory offeredItem = offer[i];
 
-            // Apply order fill fraction and set the caller as the receiver.
-            ReceivedItem memory item = ReceivedItem(
-                offeredItem.itemType,
-                offeredItem.token,
-                offeredItem.identifierOrCriteria,
-                0,
-                _getFraction(
-                    fillNumerator,
-                    fillDenominator,
-                    offeredItem.endAmount
-                ),
-                payable(msg.sender)
-            );
-
-            // If offer expects ETH, reduce ether value available.
-            if (item.itemType == ItemType.ETH) {
-                etherRemaining -= item.endAmount;
-            }
-
-            // Transfer the item from the offerer to the caller.
-            _transfer(
-                item,
+            // Derive the amount to transfer and transfer the offered item.
+            uint256 amount = _applyOfferedFractionAndTransfer(
+                offeredItem,
+                numerator,
+                denominator,
                 offerer,
                 useOffererProxy
             );
 
-            offer[i].endAmount = item.endAmount;
+            // If offer expects ETH, reduce ether value available.
+            if (offeredItem.itemType == ItemType.ETH) {
+                etherRemaining -= amount;
+            }
+
+            // Update offered amount so that an accurate event can be emitted.
+            offeredItem.endAmount = amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -465,21 +497,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         if (etherRemaining != 0) {
             _transferEth(payable(msg.sender), etherRemaining);
         }
-
-        // Emit an event signifying that the order has been fulfilled.
-        _emitOrderFulfilledEvent(
-            orderHash,
-            offerer,
-            advancedOrder.parameters.zone,
-            msg.sender,
-            offer,
-            consideration
-        );
-
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
-
-        return true;
     }
 
     /**
@@ -583,6 +600,90 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Return memory region designating proxy utilization per order.
         return ordersUseProxy;
+    }
+
+    /**
+     * @dev Internal function to apply a fraction to an offered item and
+     *      transfer that amount.
+     *
+     * @param offeredItem       The offer item.
+     * @param numerator         A value indicating the portion of the order that
+     *                          should be filled.
+     * @param denominator       A value indicating the total size of the order.
+     * @param offerer           The offerer for the order.
+     * @param useOffererProxy   A flag indicating whether to source approvals
+     *                          for consumed tokens from an associated proxy.
+     */
+    function _applyOfferedFractionAndTransfer(
+        OfferedItem memory offeredItem,
+        uint256 numerator,
+        uint256 denominator,
+        address offerer,
+        bool useOffererProxy
+    ) internal returns (uint256 amount) {
+        // Apply order fill fraction and set the caller as the receiver.
+        FulfilledItem memory item = FulfilledItem(
+            offeredItem.itemType,
+            offeredItem.token,
+            offeredItem.identifierOrCriteria,
+            _getFraction(
+                numerator,
+                denominator,
+                offeredItem.endAmount
+            ),
+            payable(msg.sender)
+        );
+
+        // Transfer the item from the offerer to the caller.
+        _transfer(
+            item,
+            offerer,
+            useOffererProxy
+        );
+
+        // Return the amount with the fractional component applied.
+        return item.amount;
+    }
+
+    /**
+     * @dev Internal function to apply a fraction to a received item and
+     *      transfer that amount.
+     *
+     * @param receivedItem      The received item.
+     * @param numerator         A value indicating the portion of the order that
+     *                          should be filled.
+     * @param denominator       A value indicating the total size of the order.
+     * @param useFulfillerProxy A flag indicating whether to source approvals
+     *                          for fulfilled tokens from an associated proxy.
+     */
+    function _applyReceivedFractionAndTransfer(
+        ReceivedItem memory receivedItem,
+        uint256 numerator,
+        uint256 denominator,
+        bool useFulfillerProxy
+    ) internal returns (uint256 amount) {
+        // Apply order fill fraction and set recipient as the receiver.
+        FulfilledItem memory item = FulfilledItem(
+            receivedItem.itemType,
+            receivedItem.token,
+            receivedItem.identifierOrCriteria,
+            _getFraction(
+                numerator,
+                denominator,
+                receivedItem.endAmount
+            ),
+            receivedItem.recipient
+        );
+
+        // Transfer the item from the caller to the consideration recipient.
+        _transfer(
+            item,
+            msg.sender,
+            useFulfillerProxy
+        );
+
+        // Return the amount with the fractional component applied.
+        return item.amount;
     }
 
     /**
@@ -714,11 +815,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         for (uint256 i = 0; i < standardExecutions.length;) {
             // Retrieve the execution.
             Execution memory execution = standardExecutions[i];
-            ReceivedItem memory item = execution.item;
+            FulfilledItem memory item = execution.item;
 
             // If execution transfers ETH, reduce ether value available.
             if (item.itemType == ItemType.ETH) {
-                etherRemaining -= item.endAmount;
+                etherRemaining -= item.amount;
             }
 
             // Transfer the item specified by the execution.
@@ -763,13 +864,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                 fulfilled token from the offer's proxy.
      */
     function _transfer(
-        ReceivedItem memory item,
+        FulfilledItem memory item,
         address offerer,
         bool useProxy
     ) internal {
         if (item.itemType == ItemType.ETH) {
             // Transfer Ether to the recipient.
-            _transferEth(item.recipient, item.endAmount);
+            _transferEth(item.recipient, item.amount);
         } else {
             // Place proxy owner on stack (or null address if not using proxy).
             address proxyOwner = useProxy ? offerer : address(0);
@@ -780,7 +881,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     item.token,
                     offerer,
                     item.recipient,
-                    item.endAmount,
+                    item.amount,
                     proxyOwner
                 );
             } else if (item.itemType == ItemType.ERC721) {
@@ -789,7 +890,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     item.token,
                     offerer,
                     item.recipient,
-                    item.identifierOrCriteria,
+                    item.identifier,
                     proxyOwner
                 );
             } else {
@@ -798,8 +899,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     item.token,
                     offerer,
                     item.recipient,
-                    item.identifierOrCriteria,
-                    item.endAmount,
+                    item.identifier,
+                    item.amount,
                     proxyOwner
                 );
             }
