@@ -866,26 +866,23 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         return _nonces[offerer][zone];
     }
 
-    // TODO: these two functions put the contract over the size limit — revisit
-    // once some additional optimizations have been applied!
-    //
-    // /* @notice Retrieve the name of this contract.
-    //  *
-    //  * @return The name of this contract.
-    //  */
-    // function name() external pure override returns (string memory) {
-    //     // Return the name of the contract.
-    //     return _NAME;
-    // }
-    //
-    // /* @notice Retrieve the version of this contract.
-    //  *
-    //  * @return The version of this contract.
-    //  */
-    // function version() external pure override returns (string memory) {
-    //     // Return the version.
-    //     return _VERSION;
-    // }
+    /* @notice Retrieve the name of this contract.
+     *
+     * @return The name of this contract.
+     */
+    function name() external pure override returns (string memory) {
+        // Return the name of the contract.
+        return _NAME;
+    }
+
+    /* @notice Retrieve the version of this contract.
+     *
+     * @return The version of this contract.
+     */
+    function version() external pure override returns (string memory) {
+        // Return the version.
+        return _VERSION;
+    }
 
     /**
      * @notice Retrieve the domain separator, used for signing and verifying

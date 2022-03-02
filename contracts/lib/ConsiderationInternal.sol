@@ -96,9 +96,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         offer[0] = offeredItem;
         consideration[0] = receivedItem;
 
-        // Use offered item's info for additional recipients if it is an ERC20.
-        if (offeredItem.itemType == ItemType.ERC20) {
-            receivedItem.itemType = ItemType.ERC20;
+        // Use offered item's info for additional recipients for ETH or ERC20.
+        ItemType itemType = offeredItem.itemType;
+        if (uint256(itemType) < 2) {
+            receivedItem.itemType = itemType;
             receivedItem.token = offeredItem.token;
             receivedItem.identifierOrCriteria = 0;
         }
@@ -112,13 +113,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     parameters.additionalRecipients[i - 1]
                 );
 
-                // Update consideration item w/ info from additional recipient.
-                receivedItem.recipient = additionalRecipient.recipient;
-                receivedItem.startAmount = additionalRecipient.amount;
-                receivedItem.endAmount = additionalRecipient.amount;
-
                 // Set new received item as an additional consideration item.
-                consideration[i] = receivedItem;
+                consideration[i] = ReceivedItem(
+                    receivedItem.itemType,
+                    receivedItem.token,
+                    receivedItem.identifierOrCriteria,
+                    additionalRecipient.amount,
+                    additionalRecipient.amount,
+                    additionalRecipient.recipient
+                );
             }
         }
 
@@ -844,7 +847,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address proxyOwner
     ) internal {
         // Attempt to transfer the ERC20 token via...
-        (bool ok,) = (
+        bool ok = (
             // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
@@ -858,7 +861,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                 )
                 // otherwise, via the token contract directly.
-                : token.call(
+                : _call(
+                    token,
                     abi.encodeCall(
                         ERC20Interface.transferFrom,
                         (
@@ -926,7 +930,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address proxyOwner
     ) internal {
         // Attempt to transfer the ERC721 token via...
-        (bool ok,) = (
+        bool ok = (
             // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
@@ -940,7 +944,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                 )
                 // otherwise, via the token contract directly.
-                : token.call(
+                : _call(
+                    token,
                     abi.encodeCall(
                         ERC721Interface.transferFrom,
                         (
@@ -986,7 +991,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address proxyOwner
     ) internal {
         // Attempt to transfer the ERC1155 token via...
-        (bool ok, ) = (
+        bool ok = (
             // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
@@ -1001,7 +1006,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                 )
                 // otherwise, via the token contract directly.
-                : token.call(
+                : _call(
+                    token,
                     abi.encodeWithSelector(
                         ERC1155Interface.safeTransferFrom.selector,
                         from,
@@ -1044,7 +1050,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory amounts = batchExecution.amounts;
 
         // Attempt to transfer the ERC1155 token via...
-        (bool ok,) = (
+        bool ok = (
             // The proxy if it is specified by the batch execution...
             batchExecution.useProxy
                 ? _callProxy(
@@ -1059,7 +1065,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                 )
                 // otherwise, via the token contract directly.
-                : token.call(
+                : _call(
+                    token,
                     abi.encodeWithSelector(
                         ERC1155Interface.safeBatchTransferFrom.selector,
                         from,
@@ -1099,11 +1106,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param callData   The calldata to supply when calling the proxy.
      *
      * @return ok The status of the call to the proxy.
-     * @return    An unused variable.*/
+     */
     function _callProxy(
         address proxyOwner,
         bytes memory callData
-    ) internal returns (bool ok, bytes memory) {
+    ) internal returns (bool ok) {
         // Retrieve the user proxy from the registry.
         address proxy = _LEGACY_PROXY_REGISTRY.proxies(proxyOwner);
 
@@ -1118,6 +1125,23 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // perform the call to the proxy.
         (ok,) = proxy.call(callData);
+    }
+
+    /**
+     * @dev Internal function to call an arbitrary target with given calldata.
+     *      Note that no data is written to memory and no contract size check is
+     *      performed.
+     *
+     * @param target   The account to call.
+     * @param callData The calldata to supply when calling the target.
+     *
+     * @return ok The status of the call to the target.
+     */
+    function _call(
+        address target,
+        bytes memory callData
+    ) internal returns (bool ok) {
+        (ok, ) = target.call(callData);
     }
 
     /**
