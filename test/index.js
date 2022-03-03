@@ -2812,7 +2812,7 @@ describe("Consideration functional tests", function () {
         expect(finalStatus.totalFilled.toString()).to.equal("1");
         expect(finalStatus.totalSize.toString()).to.equal("1");
       });
-      it("Cannot validate cancelled order", async () => {
+      it("Cannot validate a cancelled order", async () => {
         // Seller mints an nft
         const nftId = ethers.BigNumber.from(randomHex());
 
@@ -2905,6 +2905,387 @@ describe("Consideration functional tests", function () {
         expect(newStatus.isCancelled).to.be.true;
         expect(newStatus.totalFilled.toString()).to.equal("0");
         expect(newStatus.totalSize.toString()).to.equal("0");
+      });
+    });
+
+    describe("Cancel", async () => {
+      it("Can cancel an order", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value, orderComponents } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        // cannot cancel it from a random account
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).cancel([orderComponents]))
+            .to.be.reverted;
+        }); 
+
+        const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(initialStatus.isValidated).to.be.false;
+        expect(initialStatus.isCancelled).to.be.false;
+        expect(initialStatus.totalFilled.toString()).to.equal("0");
+        expect(initialStatus.totalSize.toString()).to.equal("0");
+
+        // can cancel it
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(marketplaceContract.connect(seller).cancel([orderComponents]))
+            .to.emit(marketplaceContract, "OrderCancelled")
+            .withArgs(orderHash, seller.address, zone.address);
+        }); 
+
+        // cannot fill the order anymore
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value}))
+            .to.be.reverted;
+        });
+
+        const newStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(newStatus.isValidated).to.be.false;
+        expect(newStatus.isCancelled).to.be.true;
+        expect(newStatus.totalFilled.toString()).to.equal("0");
+        expect(newStatus.totalSize.toString()).to.equal("0");
+      });
+      it("Can cancel a validated order", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value, orderComponents } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        // cannot cancel it from a random account
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).cancel([orderComponents]))
+            .to.be.reverted;
+        }); 
+
+        const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(initialStatus.isValidated).to.be.false;
+        expect(initialStatus.isCancelled).to.be.false;
+        expect(initialStatus.totalFilled.toString()).to.equal("0");
+        expect(initialStatus.totalSize.toString()).to.equal("0");
+
+        // Can validate it
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).validate([order]))
+            .to.emit(marketplaceContract, "OrderValidated")
+            .withArgs(orderHash, seller.address, zone.address);
+        });
+
+        const newStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(newStatus.isValidated).to.be.true;
+        expect(newStatus.isCancelled).to.be.false;
+        expect(newStatus.totalFilled.toString()).to.equal("0");
+        expect(newStatus.totalSize.toString()).to.equal("0");
+
+        // can cancel it
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(marketplaceContract.connect(seller).cancel([orderComponents]))
+            .to.emit(marketplaceContract, "OrderCancelled")
+            .withArgs(orderHash, seller.address, zone.address);
+        }); 
+
+        // cannot fill the order anymore
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value}))
+            .to.be.reverted;
+        });
+
+        const finalStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(finalStatus.isValidated).to.be.false;
+        expect(finalStatus.isCancelled).to.be.true;
+        expect(finalStatus.totalFilled.toString()).to.equal("0");
+        expect(finalStatus.totalSize.toString()).to.equal("0");
+      });
+      it("Can cancel an order from the zone", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value, orderComponents } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        // cannot cancel it from a random account
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).cancel([orderComponents]))
+            .to.be.reverted;
+        }); 
+
+        const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(initialStatus.isValidated).to.be.false;
+        expect(initialStatus.isCancelled).to.be.false;
+        expect(initialStatus.totalFilled.toString()).to.equal("0");
+        expect(initialStatus.totalSize.toString()).to.equal("0");
+
+        // can cancel it from the zone
+        await whileImpersonating(zone.address, provider, async () => {
+          await expect(marketplaceContract.connect(zone).cancel([orderComponents]))
+            .to.emit(marketplaceContract, "OrderCancelled")
+            .withArgs(orderHash, seller.address, zone.address);
+        }); 
+
+        // cannot fill the order anymore
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value}))
+            .to.be.reverted;
+        });
+
+        const newStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(newStatus.isValidated).to.be.false;
+        expect(newStatus.isCancelled).to.be.true;
+        expect(newStatus.totalFilled.toString()).to.equal("0");
+        expect(newStatus.totalSize.toString()).to.equal("0");
+      });
+      it("Can cancel a validated order from a zone", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value, orderComponents } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(initialStatus.isValidated).to.be.false;
+        expect(initialStatus.isCancelled).to.be.false;
+        expect(initialStatus.totalFilled.toString()).to.equal("0");
+        expect(initialStatus.totalSize.toString()).to.equal("0");
+
+        // Can validate it
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).validate([order]))
+            .to.emit(marketplaceContract, "OrderValidated")
+            .withArgs(orderHash, seller.address, zone.address);
+        });
+
+        // cannot cancel it from a random account
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).cancel([orderComponents]))
+            .to.be.reverted;
+        }); 
+
+        const newStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(newStatus.isValidated).to.be.true;
+        expect(newStatus.isCancelled).to.be.false;
+        expect(newStatus.totalFilled.toString()).to.equal("0");
+        expect(newStatus.totalSize.toString()).to.equal("0");
+
+        // can cancel it from the zone
+        await whileImpersonating(zone.address, provider, async () => {
+          await expect(marketplaceContract.connect(zone).cancel([orderComponents]))
+            .to.emit(marketplaceContract, "OrderCancelled")
+            .withArgs(orderHash, seller.address, zone.address);
+        }); 
+
+        // cannot fill the order anymore
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value}))
+            .to.be.reverted;
+        });
+
+        const finalStatus = await marketplaceContract.getOrderStatus(orderHash);
+        expect(finalStatus.isValidated).to.be.false;
+        expect(finalStatus.isCancelled).to.be.true;
+        expect(finalStatus.totalFilled.toString()).to.equal("0");
+        expect(finalStatus.totalSize.toString()).to.equal("0");
       });
     });
   });
