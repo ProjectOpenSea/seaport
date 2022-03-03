@@ -481,12 +481,10 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      extrapolated on a linear basis.
      *
      * @param order The original order.
-     *
-     * @return adjustedOrder An adjusted order with the current price set.
      */
     function _adjustOrderPrice(
         AdvancedOrder memory order
-    ) internal view returns (AdvancedOrder memory adjustedOrder) {
+    ) internal view {
         // Retrieve the order parameters for the order.
         OrderParameters memory orderParameters = order.parameters;
 
@@ -508,10 +506,13 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             // Iterate over each offer on the order.
             for (uint256 i = 0; i < offer.length; ++i) {
+                // Retrieve the offer item.
+                OfferedItem memory offeredItem = offer[i];
+
                 // Adjust offer amounts based on current time (round down).
-                order.parameters.offer[i].endAmount = _locateCurrentAmount(
-                    offer[i].startAmount,
-                    offer[i].endAmount,
+                offeredItem.endAmount = _locateCurrentAmount(
+                    offeredItem.startAmount,
+                    offeredItem.endAmount,
                     elapsed,
                     remaining,
                     duration,
@@ -521,11 +522,14 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < consideration.length; ++i) {
+                // Retrieve the received consideration item.
+                ReceivedItem memory receivedItem = consideration[i];
+
                 // Adjust consideration amount based on current time (round up).
-                order.parameters.consideration[i].endAmount = (
+                receivedItem.endAmount = (
                     _locateCurrentAmount(
-                        consideration[i].startAmount,
-                        consideration[i].endAmount,
+                        receivedItem.startAmount,
+                        receivedItem.endAmount,
                         elapsed,
                         remaining,
                         duration,
@@ -533,9 +537,6 @@ contract ConsiderationInternalView is ConsiderationPure {
                     )
                 );
             }
-
-            // Return the modified order.
-            return order;
         }
     }
 }

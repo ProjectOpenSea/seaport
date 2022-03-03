@@ -204,7 +204,7 @@ struct FulfillmentComponent {
  * fulfillments and returned as part of `matchOrders`.
  */
 struct Execution {
-    ReceivedItem item;
+    FulfilledItem item;
     address offerer;
     bool useProxy;
 }
