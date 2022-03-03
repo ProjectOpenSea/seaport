@@ -438,33 +438,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
-        // Iterate over each consideration on the order.
-        for (uint256 i = 0; i < consideration.length;) {
-            // Retrieve the consideration item.
-            ReceivedItem memory receivedItem = consideration[i];
-
-            // Derive the amount to transfer and transfer the received item.
-            uint256 amount = _applyReceivedFractionAndTransfer(
-                receivedItem,
-                numerator,
-                denominator,
-                useFulfillerProxy
-            );
-
-            // If consideration expects ETH, reduce ether value available.
-            if (receivedItem.itemType == ItemType.ETH) {
-                etherRemaining -= amount;
-            }
-
-            // Update offered amount so that an accurate event can be emitted.
-            receivedItem.endAmount = amount;
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                 ++i;
-            }
-        }
-
         // Iterate over each offer on the order.
         for (uint256 i = 0; i < offer.length;) {
             // Retrieve the offer item.
@@ -486,6 +459,33 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
             // Update offered amount so that an accurate event can be emitted.
             offeredItem.endAmount = amount;
+
+            // Skip overflow check as for loop is indexed starting at zero.
+            unchecked {
+                 ++i;
+            }
+        }
+
+        // Iterate over each consideration on the order.
+        for (uint256 i = 0; i < consideration.length;) {
+            // Retrieve the consideration item.
+            ReceivedItem memory receivedItem = consideration[i];
+
+            // Derive the amount to transfer and transfer the received item.
+            uint256 amount = _applyReceivedFractionAndTransfer(
+                receivedItem,
+                numerator,
+                denominator,
+                useFulfillerProxy
+            );
+
+            // If consideration expects ETH, reduce ether value available.
+            if (receivedItem.itemType == ItemType.ETH) {
+                etherRemaining -= amount;
+            }
+
+            // Update offered amount so that an accurate event can be emitted.
+            receivedItem.endAmount = amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
