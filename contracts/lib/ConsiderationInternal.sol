@@ -789,20 +789,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 );
             }
 
-            // Iterate over each order to ensure all considerations are met.
+            // Iterate over orders to ensure all considerations are met.
             for (uint256 i = 0; i < orders.length; ++i) {
-                ReceivedItem[] memory considerations = (
+                // Retrieve consideration items to ensure they are fulfilled.
+                ReceivedItem[] memory receivedItems = (
                     orders[i].parameters.consideration
                 );
 
-                // Iterate over each consideration on order to ensure it is met.
-                for (uint256 j = 0; j < considerations.length; ++j) {
+                // Iterate over each consideration item to ensure it is met.
+                for (uint256 j = 0; j < receivedItems.length; ++j) {
                     // Retrieve the remaining amount on the consideration.
-                    uint256 remainingAmount = considerations[j].endAmount;
+                    uint256 unmetAmount = receivedItems[j].endAmount;
 
                     // Revert if the remaining amount is not zero.
-                    if (remainingAmount != 0) {
-                        revert ConsiderationNotMet(i, j, remainingAmount);
+                    if (unmetAmount != 0) {
+                        revert ConsiderationNotMet(i, j, unmetAmount);
                     }
                 }
             }
