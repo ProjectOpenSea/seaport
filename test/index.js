@@ -1150,9 +1150,6 @@ describe("Consideration functional tests", function () {
             return receipt;
           });
         });
-        it.skip("ERC721 <=> WETH", async () => {
-
-        });
         it("ERC721 <=> ERC20 (standard)", async () => {
           // Seller mints nft
           const nftId = ethers.BigNumber.from(randomHex());
@@ -1455,7 +1452,6 @@ describe("Consideration functional tests", function () {
       });
       describe("[Accept offer] User accepts a buy offer on a single ERC721", async () => {
         // Note: ETH is not a possible case
-        it.skip("ERC721 <=> WETH", async () => {});
         it("ERC721 <=> ERC20 (standard)", async () => {
           // Buyer mints nft
           const nftId = ethers.BigNumber.from(randomHex());
@@ -1998,7 +1994,6 @@ describe("Consideration functional tests", function () {
             return receipt;
           });
         });
-        it.skip("ERC1155 <=> WETH", async () => {});
         it("ERC1155 <=> ERC20 (standard)", async () => {
           // Seller mints nft
           const nftId = ethers.BigNumber.from(randomHex());
@@ -2283,7 +2278,6 @@ describe("Consideration functional tests", function () {
       });
       describe("[Accept offer] User accepts a buy offer on a single ERC1155", async () => {
         // Note: ETH is not a possible case
-        it.skip("ERC1155 <=> WETH", async () => {});
         it("ERC1155 <=> ERC20 (standard)", async () => {
           // Buyer mints nft
           const nftId = ethers.BigNumber.from(randomHex());
