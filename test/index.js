@@ -291,6 +291,16 @@ describe("Consideration functional tests", function () {
     }
   });
 
+  describe("Getter tests", async () => {
+    it("gets name and version", async () => {
+      const name = await marketplaceContract.name();
+      expect(name).to.equal("Consideration");
+
+      const version = await marketplaceContract.version();
+      expect(version).to.equal("1");
+    });
+  });
+
   // Buy now or accept offer for a single ERC721 or ERC1155 in exchange for
   // ETH, WETH or ERC20
   describe("Basic buy now or accept offer flows", async () => {
@@ -322,8 +332,8 @@ describe("Consideration functional tests", function () {
     const createOrder = async (offerer, zone, offer, consideration, orderType) => {
       const nonce = await marketplaceContract.getNonce(offerer.address, zone.address);
       const salt = randomHex();
-      const startTime = Math.floor(new Date().getTime() / 1000) - 30;
-      const endTime = startTime + 60;
+      const startTime = Math.floor(new Date().getTime() / 1000) - 600;
+      const endTime = startTime + 1200;
 
       const orderParameters = {
           offerer: offerer.address,
@@ -1567,7 +1577,185 @@ describe("Consideration functional tests", function () {
           });
         });
         it.skip("ERC1155 <=> WETH", async () => {});
-        it.skip("ERC1155 <=> ERC20", async () => {});
+        it("ERC1155 <=> ERC20 (standard)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          // Buyer mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(buyer.address, tokenAmount);
+
+          // Buyer approves marketplace contract to transfer tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(testERC20.connect(buyer).approve(marketplaceContract.address, tokenAmount))
+              .to.emit(testERC20, "Approval")
+              .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+          });
+
+          const offer = [
+            {
+              itemType: 3, // ERC1155
+              token: testERC1155.address,
+              identifierOrCriteria: nftId,
+              startAmount: amount,
+              endAmount: amount,
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount.sub(100),
+              endAmount: tokenAmount.sub(100),
+              recipient: seller.address,
+            },
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: ethers.BigNumber.from(50),
+              endAmount: ethers.BigNumber.from(50),
+              recipient: zone.address,
+            },
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: ethers.BigNumber.from(50),
+              endAmount: ethers.BigNumber.from(50),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], async () => {
+              const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false);
+              const receipt = await tx.wait();
+              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC1155 <=> ERC20 (basic)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          // Buyer mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(buyer.address, tokenAmount);
+
+          // Buyer approves marketplace contract to transfer tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(testERC20.connect(buyer).approve(marketplaceContract.address, tokenAmount))
+              .to.emit(testERC20, "Approval")
+              .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+          });
+
+          const offer = [
+            {
+              itemType: 3, // ERC1155
+              token: testERC1155.address,
+              identifierOrCriteria: nftId,
+              startAmount: amount,
+              endAmount: amount,
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount.sub(100),
+              endAmount: tokenAmount.sub(100),
+              recipient: seller.address,
+            },
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: ethers.BigNumber.from(50),
+              endAmount: ethers.BigNumber.from(50),
+              recipient: zone.address,
+            },
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: ethers.BigNumber.from(50),
+              endAmount: ethers.BigNumber.from(50),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+          );
+
+          const basicOrderParameters = {
+            offerer: order.parameters.offerer,
+            zone: order.parameters.zone,
+            orderType: order.parameters.orderType,
+            token: order.parameters.offer[0].token,
+            identifier: order.parameters.offer[0].identifierOrCriteria,
+            startTime: order.parameters.startTime,
+            endTime: order.parameters.endTime,
+            salt: order.parameters.salt,
+            useFulfillerProxy: false,
+            signature: order.signature,
+            additionalRecipients: [
+              {
+                amount: ethers.BigNumber.from(50),
+                recipient: zone.address,
+              },
+              {
+                amount: ethers.BigNumber.from(50),
+                recipient: owner.address,
+              }
+            ],
+          };
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], async () => {
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC1155Order(testERC20.address, tokenAmount.sub(100), amount, basicOrderParameters);
+              const receipt = await tx.wait();
+              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              return receipt;
+            });
+          });
+        });
       });
       describe("[Accept offer] User accepts a buy offer on a single ERC1155", async () => {
         // Note: ETH is not a possible case
