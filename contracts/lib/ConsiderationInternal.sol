@@ -98,10 +98,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Use offered item's info for additional recipients for ETH or ERC20.
         ItemType itemType = offeredItem.itemType;
+        address token = receivedItem.token;
         if (uint256(itemType) < 2) {
-            receivedItem.itemType = itemType;
-            receivedItem.token = offeredItem.token;
-            receivedItem.identifierOrCriteria = 0;
+            token = offeredItem.token;
+        } else {
+            itemType = receivedItem.itemType;
         }
 
         // Skip overflow checks as for loop is indexed starting at one.
@@ -115,9 +116,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                 // Set new received item as an additional consideration item.
                 consideration[i] = ReceivedItem(
-                    receivedItem.itemType,
-                    receivedItem.token,
-                    receivedItem.identifierOrCriteria,
+                    itemType,
+                    token,
+                    0, // No identifier for ETH or ERC20
                     additionalRecipient.amount,
                     additionalRecipient.amount,
                     additionalRecipient.recipient

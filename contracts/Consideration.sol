@@ -384,7 +384,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
-     * @notice Fulfill an order offering ERC20 tokens by supplying a ERC1155
+     * @notice Fulfill an order offering ERC20 tokens by supplying ERC1155
      *         tokens as consideration. An arbitrary number of "additional
      *         recipients" may also be supplied which will each receive ERC20
      *         tokens from the offerer as consideration.
