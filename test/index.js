@@ -351,9 +351,25 @@ describe("Consideration functional tests", function () {
         nonce,
       };
 
-      const flatSig = await signOrder(orderComponents, offerer);
-
       const orderHash = await marketplaceContract.getOrderHash(orderComponents);
+
+      const {
+        isValidated,
+        isCancelled,
+        totalFilled,
+        totalSize,
+      } = await marketplaceContract.getOrderStatus(orderHash);
+
+      expect(isCancelled).to.equal(false);
+
+      const orderStatus = {
+        isValidated,
+        isCancelled,
+        totalFilled,
+        totalSize,
+      };
+
+      const flatSig = await signOrder(orderComponents, offerer);
 
       const order = {
         parameters: orderParameters,
@@ -368,7 +384,7 @@ describe("Consideration functional tests", function () {
             : ethers.BigNumber.from(0)
         )).reduce((a, b) => a.add(b), ethers.BigNumber.from(0));
 
-      return {order, orderHash, value};
+      return {order, orderHash, value, orderStatus};
     }
 
     const createMirrorOrder = async (offerer, zone, order) => {
