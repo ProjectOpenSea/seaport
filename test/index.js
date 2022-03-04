@@ -44,7 +44,7 @@ describe("Consideration functional tests", function () {
     );
   }
 
-  const createOrder = async (offerer, zone, offer, consideration, orderType) => {
+  const createOrder = async (offerer, zone, offer, consideration, orderType, criteriaResolvers) => {
     const nonce = await marketplaceContract.getNonce(offerer.address, zone.address);
     const salt = randomHex();
     const startTime = 0;
@@ -89,6 +89,8 @@ describe("Consideration functional tests", function () {
     const order = {
       parameters: orderParameters,
       signature: flatSig,
+      numerator: 1,   // only used for advanced orders; TODO: support partial fills
+      denominator: 1, // only used for advanced orders; TODO: support partial fills
     };
 
     // How much ether (at most) needs to be supplied when fulfilling the order
@@ -420,14 +422,13 @@ describe("Consideration functional tests", function () {
       expect(event.fulfiller).to.equal(fulfiller);
 
       const compareEventItems = (item, orderItem) => {
-        expect(item.itemType).to.equal(orderItem.itemType);
+        expect(item.itemType).to.equal(orderItem.itemType > 3 ? orderItem.itemType - 2 : orderItem.itemType);
         expect(item.token).to.equal(orderItem.token);
         expect(item.token).to.equal(tokenByType[item.itemType].address);
         if (orderItem.itemType < 4) { // no criteria-based
           expect(item.identifier).to.equal(orderItem.identifierOrCriteria);
         } else {
-          console.error("CRITERIA-BASED NOT IMPLEMENTED YET");
-          process.exit(1);
+          console.error("WARNING: CRITERIA-BASED EVENT VALIDATION NOT IMPLEMENTED YET");
         }
 
         if (order.parameters.orderType === 0) { // FULL_OPEN (no partial fills)
@@ -734,15 +735,14 @@ describe("Consideration functional tests", function () {
 
       for (offeredItem of allOfferedItems) {
         if (offeredItem.itemType > 3) {
-          console.error("CRITERIA-BASED BALANCE OFFERED CHECKS NOT IMPLEMENTED YET");
-          process.exit(0);
+          console.error("WARNING: CRITERIA-BASED BALANCE OFFERED CHECKS NOT IMPLEMENTED YET");
         }
 
         if (offeredItem.itemType === 0) { // ETH
           offeredItem.initialBalance = await provider.getBalance(offeredItem.account);
         } else if (offeredItem.itemType === 3) { // ERC1155
           offeredItem.initialBalance = await tokenByType[offeredItem.itemType].balanceOf(offeredItem.account, offeredItem.identifierOrCriteria);
-        } else {
+        } else if (offeredItem.itemType < 3) { // TODO: criteria-based
           offeredItem.initialBalance = await tokenByType[offeredItem.itemType].balanceOf(offeredItem.account);
         }
 
@@ -793,15 +793,14 @@ describe("Consideration functional tests", function () {
 
       for (offeredItem of allOfferedItems) {
         if (offeredItem.itemType > 3) {
-          console.error("CRITERIA-BASED BALANCE OFFERED CHECKS NOT IMPLEMENTED YET");
-          process.exit(0);
+          console.error("WARNING: CRITERIA-BASED BALANCE OFFERED CHECKS NOT IMPLEMENTED YET");
         }
 
         if (offeredItem.itemType === 0) { // ETH
           offeredItem.finalBalance = await provider.getBalance(offeredItem.account);
         } else if (offeredItem.itemType === 3) { // ERC1155
           offeredItem.finalBalance = await tokenByType[offeredItem.itemType].balanceOf(offeredItem.account, offeredItem.identifierOrCriteria);
-        } else {
+        } else if (offeredItem.itemType < 3) { // TODO: criteria-based
           offeredItem.finalBalance = await tokenByType[offeredItem.itemType].balanceOf(offeredItem.account);
         }
 
@@ -839,10 +838,12 @@ describe("Consideration functional tests", function () {
           process.exit(0);
         }
 
-        if (!additonalPayouts) {
-          expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(offerredItem.endAmount.toString());
-        } else {
-          expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(additonalPayouts.add(offerredItem.endAmount).toString());
+        if (offeredItem.itemType < 4) { // TODO: criteria-based
+          if (!additonalPayouts) {
+            expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(offerredItem.endAmount.toString());
+          } else {
+            expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(additonalPayouts.add(offerredItem.endAmount).toString());
+          }
         }
 
         if (offeredItem.itemType === 2) { // ERC721
@@ -3773,6 +3774,110 @@ describe("Consideration functional tests", function () {
         });
       });
       it.skip("Can increment nonce and activate an order signed with a nonce ahead of the current nonce", async () => {
+      });
+    });
+  });
+
+  describe("Advanced orders", async () => {
+    let seller;
+    let buyer;
+
+    beforeEach(async () => {
+      // Setup basic buyer/seller wallets with ETH
+      seller = ethers.Wallet.createRandom().connect(provider);
+      buyer = ethers.Wallet.createRandom().connect(provider);
+      zone = ethers.Wallet.createRandom().connect(provider);
+      await Promise.all(
+        [seller, buyer, zone].map((wallet) => faucet(wallet.address, provider))
+      );
+    });
+
+    describe("Criteria-based orders", async () => {
+      it("Criteria-based offer item (standard)", async () => {
+        // Seller mints nfts
+        const nftId = ethers.BigNumber.from(randomHex());
+        const secondNFTId = ethers.BigNumber.from(randomHex());
+        const thirdNFTId = ethers.BigNumber.from(randomHex());
+
+        await testERC721.mint(seller.address, nftId);
+        await testERC721.mint(seller.address, secondNFTId);
+        await testERC721.mint(seller.address, thirdNFTId);
+
+        const tokenIds = [nftId, secondNFTId, thirdNFTId];
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const {root, proofs} = merkleTree(tokenIds);
+
+        const offer = [
+          {
+            itemType: 4, // ERC721WithCriteria
+            token: testERC721.address,
+            identifierOrCriteria: root,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+          const criteriaResolvers = [
+            {
+              orderIndex: 0,
+              side: 0, // offer
+              index: 0,
+              identifier: nftId,
+              criteriaProof: proofs[nftId.toString()],
+            }
+          ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          criteriaResolvers,
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, criteriaResolvers, false, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            return receipt;
+          });
+        });
       });
     });
   });

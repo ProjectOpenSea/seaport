@@ -1,6 +1,9 @@
+const { ethers } = require('ethers');
+const { bufferToHex, keccak256 } = require('ethereumjs-util');
+
 const merkleTree = (tokenIds) => {
   let elements = tokenIds.map(
-    tokenId => Buffer.from(tokenId.toString(16).padStart(64, '0'), 'hex')
+    tokenId => Buffer.from(tokenId.toHexString().slice(2).padStart(64, '0'), 'hex')
   ).sort(Buffer.compare).filter((el, idx, arr) => {
     return idx === 0 || !arr[idx - 1].equals(el);
   });
@@ -15,9 +18,9 @@ const merkleTree = (tokenIds) => {
 
   const root = bufferToHex(layers[layers.length - 1][0]);
 
-  const proofs = elements.map(el => getHexProof(el, bufferElementPositionIndex, layers));
+  const proofs = Object.fromEntries(elements.map(el => [ethers.BigNumber.from('0x' + el.toString('hex')).toString(), getHexProof(el, bufferElementPositionIndex, layers)]));
 
-  const maxProofLength = Math.max(...proofs.map(i => i.length));
+  const maxProofLength = Math.max(...Object.values(proofs).map(i => i.length));
 
   return {
     root,
