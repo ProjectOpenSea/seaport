@@ -3287,6 +3287,493 @@ describe("Consideration functional tests", function () {
         expect(finalStatus.totalFilled.toString()).to.equal("0");
         expect(finalStatus.totalSize.toString()).to.equal("0");
       });
+      it.skip("Can cancel an order signed with a nonce ahead of the current nonce", async () => {
+      });
+    });
+
+    describe("Increment Nonce", async () => {
+      it("Can increment the nonce", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        let { order, orderHash, value, orderComponents } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        const nonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(nonce).to.equal(0);
+        expect(orderComponents.nonce).to.equal(nonce);
+
+        // cannot increment the nonce from a random account
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).incrementNonce(seller.address, zone.address))
+            .to.be.reverted;
+        });
+
+        const sameNonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(sameNonce).to.equal(0);
+
+        // can increment the nonce
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(marketplaceContract.connect(seller).incrementNonce(seller.address, zone.address))
+            .to.emit(marketplaceContract, "NonceIncremented")
+            .withArgs(1, seller.address, zone.address);
+        });
+
+        const newNonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(newNonce).to.equal(1);
+
+        // Cannot fill order anymore
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value}))
+            .to.be.reverted;
+        });
+
+        const newOrderDetails = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        order = newOrderDetails.order;
+        orderHash = newOrderDetails.orderHash;
+        value = newOrderDetails.value;
+        orderComponents = newOrderDetails.orderComponents;
+
+        expect(orderComponents.nonce).to.equal(newNonce);
+
+        // Can fill order with new nonce
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            return receipt;
+          });
+        });
+      });
+      it("Can increment the nonce as the zone", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        let { order, orderHash, value, orderComponents } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        const nonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(nonce).to.equal(0);
+        expect(orderComponents.nonce).to.equal(nonce);
+
+        // cannot increment the nonce from a random account
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).incrementNonce(seller.address, zone.address))
+            .to.be.reverted;
+        });
+
+        const sameNonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(sameNonce).to.equal(0);
+
+        // can increment the nonce as the zone
+        await whileImpersonating(zone.address, provider, async () => {
+          await expect(marketplaceContract.connect(zone).incrementNonce(seller.address, zone.address))
+            .to.emit(marketplaceContract, "NonceIncremented")
+            .withArgs(1, seller.address, zone.address);
+        });
+
+        const newNonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(newNonce).to.equal(1);
+
+        // Cannot fill order anymore
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value}))
+            .to.be.reverted;
+        });
+
+        const newOrderDetails = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        order = newOrderDetails.order;
+        orderHash = newOrderDetails.orderHash;
+        value = newOrderDetails.value;
+        orderComponents = newOrderDetails.orderComponents;
+
+        expect(orderComponents.nonce).to.equal(newNonce);
+
+        // Can fill order with new nonce
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            return receipt;
+          });
+        });
+      });
+      it("Can increment the nonce and implicitly cancel a validated order", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        let { order, orderHash, value, orderComponents } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        const nonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(nonce).to.equal(0);
+        expect(orderComponents.nonce).to.equal(nonce);
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).validate([order]))
+            .to.emit(marketplaceContract, "OrderValidated")
+            .withArgs(orderHash, seller.address, zone.address);
+        });
+
+        // cannot increment the nonce from a random account
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).incrementNonce(seller.address, zone.address))
+            .to.be.reverted;
+        });
+
+        const sameNonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(sameNonce).to.equal(0);
+
+        // can increment the nonce
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(marketplaceContract.connect(seller).incrementNonce(seller.address, zone.address))
+            .to.emit(marketplaceContract, "NonceIncremented")
+            .withArgs(1, seller.address, zone.address);
+        });
+
+        const newNonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(newNonce).to.equal(1);
+
+        // Cannot fill order anymore
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value}))
+            .to.be.reverted;
+        });
+
+        const newOrderDetails = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        order = newOrderDetails.order;
+        orderHash = newOrderDetails.orderHash;
+        value = newOrderDetails.value;
+        orderComponents = newOrderDetails.orderComponents;
+
+        expect(orderComponents.nonce).to.equal(newNonce);
+
+        // Can fill order with new nonce
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            return receipt;
+          });
+        });
+      });
+      it("Can increment the nonce as the zone and implicitly cancel a validated order", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        let { order, orderHash, value, orderComponents } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        const nonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(nonce).to.equal(0);
+        expect(orderComponents.nonce).to.equal(nonce);
+
+        // cannot increment the nonce from a random account
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).incrementNonce(seller.address, zone.address))
+            .to.be.reverted;
+        });
+
+        const sameNonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(sameNonce).to.equal(0);
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(marketplaceContract.connect(owner).validate([order]))
+            .to.emit(marketplaceContract, "OrderValidated")
+            .withArgs(orderHash, seller.address, zone.address);
+        });
+
+        // can increment the nonce as the zone
+        await whileImpersonating(zone.address, provider, async () => {
+          await expect(marketplaceContract.connect(zone).incrementNonce(seller.address, zone.address))
+            .to.emit(marketplaceContract, "NonceIncremented")
+            .withArgs(1, seller.address, zone.address);
+        });
+
+        const newNonce = await marketplaceContract.getNonce(
+          seller.address, zone.address
+        );
+        expect(newNonce).to.equal(1);
+
+        // Cannot fill order anymore
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value}))
+            .to.be.reverted;
+        });
+
+        const newOrderDetails = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        order = newOrderDetails.order;
+        orderHash = newOrderDetails.orderHash;
+        value = newOrderDetails.value;
+        orderComponents = newOrderDetails.orderComponents;
+
+        expect(orderComponents.nonce).to.equal(newNonce);
+
+        // Can fill order with new nonce
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            return receipt;
+          });
+        });
+      });
+      it.skip("Can increment nonce and activate an order signed with a nonce ahead of the current nonce", async () => {
+      });
     });
   });
 
