@@ -95,12 +95,17 @@ describe("Consideration functional tests", function () {
     };
 
     // How much ether (at most) needs to be supplied when fulfilling the order
-    const value = consideration
+    const value = offer
       .map(x => (
         x.itemType === 0
           ? (x.endAmount.gt(x.startAmount) ? x.endAmount : x.startAmount)
           : ethers.BigNumber.from(0)
-      )).reduce((a, b) => a.add(b), ethers.BigNumber.from(0));
+      )).reduce((a, b) => a.add(b), ethers.BigNumber.from(0)).add(consideration
+      .map(x => (
+        x.itemType === 0
+          ? (x.endAmount.gt(x.startAmount) ? x.endAmount : x.startAmount)
+          : ethers.BigNumber.from(0)
+      )).reduce((a, b) => a.add(b), ethers.BigNumber.from(0)));
 
     return {order, orderHash, value, orderStatus, orderComponents};
   }
@@ -3865,7 +3870,7 @@ describe("Consideration functional tests", function () {
     });
 
     describe("Criteria-based orders", async () => {
-      it.only("Criteria-based offer item (standard)", async () => {
+      it("Criteria-based offer item (standard)", async () => {
         // Seller mints nfts
         const nftId = ethers.BigNumber.from(randomHex());
         const secondNFTId = ethers.BigNumber.from(randomHex());
@@ -3951,7 +3956,7 @@ describe("Consideration functional tests", function () {
           });
         });
       });
-      it.only("Criteria-based offer item (match)", async () => {
+      it("Criteria-based offer item (match)", async () => {
         // Seller mints nfts
         const nftId = ethers.BigNumber.from(randomHex());
         const secondNFTId = ethers.BigNumber.from(randomHex());
@@ -4120,6 +4125,77 @@ describe("Consideration functional tests", function () {
           return receipt;
         });
       });
+      it("Criteria-based consideration item (standard)", async () => {
+        // buyer mints nfts
+        const nftId = ethers.BigNumber.from(randomHex());
+        const secondNFTId = ethers.BigNumber.from(randomHex());
+        const thirdNFTId = ethers.BigNumber.from(randomHex());
+
+        await testERC721.mint(buyer.address, nftId);
+        await testERC721.mint(buyer.address, secondNFTId);
+        await testERC721.mint(buyer.address, thirdNFTId);
+
+        const tokenIds = [nftId, secondNFTId, thirdNFTId];
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(testERC721.connect(buyer).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(buyer.address, marketplaceContract.address, true);
+        });
+
+        const {root, proofs} = merkleTree(tokenIds);
+
+        const offer = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 4, // ERC721WithCriteria
+            token: testERC721.address,
+            identifierOrCriteria: root,
+            startAmount: 1,
+            endAmount: 1,
+            recipient: seller.address,
+          },
+        ];
+
+        const criteriaResolvers = [
+          {
+            orderIndex: 0,
+            side: 1, // consideration
+            index: 0,
+            identifier: nftId,
+            criteriaProof: proofs[nftId.toString()],
+          }
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          criteriaResolvers,
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], value.mul(-1), criteriaResolvers, async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, criteriaResolvers, false, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, criteriaResolvers);
+            return receipt;
+          });
+        });
+      });
+      it.skip("Criteria-based consideration item (match)", async () => {});
     });
   });
 
