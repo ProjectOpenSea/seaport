@@ -6,6 +6,9 @@
   "author": "0age",
   "license": "MIT",
   "private": true,
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "dependencies": {
     "@openzeppelin/contracts": "^4.4.2",
     "eip-712": "^0.4.3",
