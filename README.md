@@ -46,32 +46,32 @@ While the standard method can technically be used for fulfilling any order, it s
 ### Fulfill Order
 When fulfilling an order via `fulfillOrder` or `fulfillAdvancedOrder`:
   1. Perform initial validation
-    - Ensure current time is inside order range
+     - Ensure current time is inside order range
   2. Hash order
-    - Derive hashes for offer items and consideration items
-    - Retrieve current nonce for offerer and zone
-    - Derive hash for order
+     - Derive hashes for offer items and consideration items
+     - Retrieve current nonce for offerer and zone
+     - Derive hash for order
   3. Perform context-dependent validation
-     - Ensure valid caller for the order type
+      - Ensure valid caller for the order type
   4. Retrieve and update order status
-    - Ensure order is not cancelled
-    - Ensure order is not fully filled
-    - Perform additional validation if not performed previously
-      - verify signature
-      - other general order validation?
+     - Ensure order is not cancelled
+     - Ensure order is not fully filled
+     - Perform additional validation if not performed previously
+       - verify signature
+       - other general order validation?
      - Determine fraction to fill based on preference + available amount
-    - Update order status (validated + fill fraction)
+     - Update order status (validated + fill fraction)
   5. Determine amount for each item
      - Compare start amount and end amount
-      - if they are equal: apply fill fraction to either one, ensure it divides cleanly, and use that amount
-      - if not: apply fill fraction to both, ensuring they both divide cleanly, then find linear fit based on current time *(NOTE: the current implementation performs this step backwards, i.e. finds the linear fit prior to the fill fraction)*
+       - if they are equal: apply fill fraction to either one, ensure it divides cleanly, and use that amount
+       - if not: apply fill fraction to both, ensuring they both divide cleanly, then find linear fit based on current time *(NOTE: the current implementation performs this step backwards, i.e. finds the linear fit prior to the fill fraction)*
   6. Apply criteria resolvers
-    - Ensure each criteria resolver refers to a criteria-based order item
-    - Ensure the supplied identifier for each item is valid via inclusion proof if the item has a non-zero criteria root
-    - Update each item type and identifier
-    - Ensure all remaining items are non-criteria-based
+     - Ensure each criteria resolver refers to a criteria-based order item
+     - Ensure the supplied identifier for each item is valid via inclusion proof if the item has a non-zero criteria root
+     - Update each item type and identifier
+     - Ensure all remaining items are non-criteria-based
   7. Emit OrderFulfilled event
-    - Include updated items (i.e. after amount adjustment and criteria resolution)
+     - Include updated items (i.e. after amount adjustment and criteria resolution)
   8. Transfer offer items from offerer to caller
      - Use either proxy or Consideration directly to source approvals, depending on order type
   9. Transfer consideration items from caller to respective recipients
@@ -90,12 +90,12 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
      - Return a single execution for each fulfillment
   9. Scan each consideration item and ensure that none still have a nonzero amount remaining
   10. "Compress" executions into normal executions and "Batch" ERC1155 executions
-     - Return early if there are < 2 items or < 2 ERC1155 items
-     - Compare ERC1155 items to determine if they can be batched
-     - Condense any matching ERC1155 items into batch executions
+      - Return early if there are < 2 items or < 2 ERC1155 items
+      - Compare ERC1155 items to determine if they can be batched
+      - Condense any matching ERC1155 items into batch executions
   11. Perform transfers as part of each execution
-     - Use either proxy or Consideration directly to source approvals, depending on the original order type
-     -  Ignore each execution where `to == from` or `amount == 0` *(NOTE: the current implementation does not perform this last optimization)*
+      - Use either proxy or Consideration directly to source approvals, depending on the original order type
+      - Ignore each execution where `to == from` or `amount == 0` *(NOTE: the current implementation does not perform this last optimization)*
 
 ## Local Development
 
