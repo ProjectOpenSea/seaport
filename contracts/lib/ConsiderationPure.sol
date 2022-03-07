@@ -80,6 +80,11 @@ contract ConsiderationPure is ConsiderationBase {
                     revert OrderCriteriaResolverOutOfRange();
                 }
 
+                // Retrieve the parameters for the order.
+                OrderParameters memory orderParameters = (
+                    orders[orderIndex].parameters
+                );
+
                 // Read component index from memory and place it on the stack.
                 uint256 componentIndex = criteriaResolver.index;
 
@@ -90,15 +95,13 @@ contract ConsiderationPure is ConsiderationBase {
                 // If the criteria resolver refers to an offer item...
                 if (criteriaResolver.side == Side.OFFER) {
                     // Ensure that the component index is in range.
-                    if (componentIndex >= (
-                        orders[orderIndex].parameters.offer.length
-                    )) {
+                    if (componentIndex >= orderParameters.offer.length) {
                         revert OfferCriteriaResolverOutOfRange();
                     }
 
                     // Retrieve relevant item using order and component index.
                     OfferedItem memory offer = (
-                        orders[orderIndex].parameters.offer[componentIndex]
+                        orderParameters.offer[componentIndex]
                     );
 
                     // Read item type and criteria from memory & place on stack.
@@ -113,25 +116,19 @@ contract ConsiderationPure is ConsiderationBase {
                     );
 
                     // Optimistically update identifier w/ supplied identifier.
-                    offer.identifierOrCriteria = (
-                        criteriaResolver.identifier
-                    );
+                    offer.identifierOrCriteria = criteriaResolver.identifier;
                 // Otherwise, criteria resolver refers to a consideration item.
                 } else {
                     // Ensure that the component index is in range.
-                    if (componentIndex >= (
-                        orders[orderIndex].parameters.consideration.length
-                    )) {
+                    if (
+                        componentIndex >= orderParameters.consideration.length
+                    ) {
                         revert ConsiderationCriteriaResolverOutOfRange();
                     }
 
                     // Retrieve relevant item using order and component index.
                     ReceivedItem memory consideration = (
-                        orders[
-                            orderIndex
-                        ].parameters.consideration[
-                            componentIndex
-                        ]
+                        orderParameters.consideration[componentIndex]
                     );
 
                     // Read item type and criteria from memory & place on stack.
