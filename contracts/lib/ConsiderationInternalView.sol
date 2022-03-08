@@ -149,20 +149,27 @@ contract ConsiderationInternalView is ConsiderationPure {
      *                        order has been approved.
      * @param onlyAllowUnused A boolean flag indicating whether partial fills
      *                        are supported by the calling function.
+     *
+     * @return numerator   The amount filled on the order.
+     * @return denominator The total fill size of the order.
      */
     function _getOrderStatusAndVerify(
         bytes32 orderHash,
         address offerer,
         bytes memory signature,
         bool onlyAllowUnused
-    ) internal view returns (OrderStatus memory) {
+    ) internal view returns (uint256 numerator, uint256 denominator) {
         // Retrieve the order status for the given order hash.
         OrderStatus memory orderStatus = _orderStatus[orderHash];
-        uint256 numerator = uint256(orderStatus.numerator);
-        uint256 denominator = uint256(orderStatus.denominator);
 
         // Ensure that the order has not been cancelled.
-        _assertOrderNotCancelled(orderStatus.isCancelled, orderHash);
+        if (orderStatus.isCancelled) {
+            revert OrderIsCancelled(orderHash);
+        }
+
+        // Read numerator and denominator from order status and place on stack.
+        numerator = uint256(orderStatus.numerator);
+        denominator = uint256(orderStatus.denominator);
 
         // The order must be either entirely unused, or...
         if (
@@ -187,9 +194,6 @@ contract ConsiderationInternalView is ConsiderationPure {
                 offerer, orderHash, signature
             );
         }
-
-        // Return the order status.
-        return orderStatus;
     }
 
     /**

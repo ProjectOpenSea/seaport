@@ -732,15 +732,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 orderHash = _getNoncedOrderHash(orderParameters);
 
                 // Retrieve the order status and verify it.
-                OrderStatus memory orderStatus = _getOrderStatusAndVerify(
+                _getOrderStatusAndVerify(
                     orderHash,
                     offerer,
                     order.signature,
                     false // Note: partially used orders will fail next check.
                 );
-
-                // Ensure that the order has not been cancelled.
-                _assertOrderNotCancelled(orderStatus.isCancelled, orderHash);
 
                 // Update order status to mark the order as valid.
                 _orderStatus[orderHash].isValidated = true;

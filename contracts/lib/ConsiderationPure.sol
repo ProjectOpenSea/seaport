@@ -1033,22 +1033,6 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to ensure an order has not been cancelled.
-     *
-     * @param isCancelled The cancelled status of the order.
-     * @param orderHash   The hash of the order.
-     */
-    function _assertOrderNotCancelled(
-        bool isCancelled,
-        bytes32 orderHash
-    ) internal pure {
-        // Ensure that the order has not been cancelled.
-        if (isCancelled) {
-            revert OrderIsCancelled(orderHash);
-        }
-    }
-
-    /**
      * @dev Internal pure function to convert an array of orders to an array of
      *      advanced orders with numerator and denominator of 1.
      *

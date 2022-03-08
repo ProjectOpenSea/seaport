@@ -278,8 +278,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // Retrieve the order status and verify it.
-        OrderStatus memory orderStatus = _getOrderStatusAndVerify(
+        // Verify the order status and retrieve the filled amount.
+        (
+            uint256 filledNumerator,
+            uint256 filledDenominator
+        ) = _getOrderStatusAndVerify(
             orderHash,
             orderParameters.offerer,
             advancedOrder.signature,
@@ -287,28 +290,28 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
 
         // If order currently has a non-zero denominator it is partially filled.
-        if (orderStatus.denominator != 0) {
+        if (filledDenominator != 0) {
             // If denominator of 1 supplied, fill all remaining amount on order.
             if (denominator == 1) {
                 // Scale numerator & denominator to match current denominator.
-                numerator = orderStatus.denominator;
-                denominator = orderStatus.denominator;
+                numerator = filledDenominator;
+                denominator = filledDenominator;
             } // Otherwise, if supplied denominator differs from current one...
-            else if (orderStatus.denominator != denominator) {
+            else if (filledDenominator != denominator) {
                 // scale current numerator by the supplied denominator, then...
-                orderStatus.numerator *= uint120(denominator);
+                filledNumerator *= denominator;
 
                 // the supplied numerator & denominator by current denominator.
-                numerator *= orderStatus.denominator;
-                denominator *= orderStatus.denominator;
+                numerator *= filledDenominator;
+                denominator *= filledDenominator;
             }
 
             // Once adjusted, if current+supplied numerator exceeds denominator:
-            if (orderStatus.numerator + numerator > denominator) {
+            if (filledNumerator + numerator > denominator) {
                 // Skip underflow check: denominator >= orderStatus.numerator
                 unchecked {
                     // Reduce current numerator so it + supplied = denominator.
-                    numerator = denominator - orderStatus.numerator;
+                    numerator = denominator - filledNumerator;
                 }
             }
 
@@ -318,7 +321,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _orderStatus[orderHash].isValidated = true;
                 _orderStatus[orderHash].isCancelled = false;
                 _orderStatus[orderHash].numerator = uint120(
-                    orderStatus.numerator + numerator
+                    filledNumerator + numerator
                 );
                 _orderStatus[orderHash].denominator = uint120(denominator);
             }
