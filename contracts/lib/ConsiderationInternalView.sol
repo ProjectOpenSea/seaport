@@ -153,7 +153,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @return numerator   The amount filled on the order.
      * @return denominator The total fill size of the order.
      */
-    function _getOrderStatusAndVerify(
+    function _verifyOrder(
         bytes32 orderHash,
         address offerer,
         bytes memory signature,
@@ -162,31 +162,12 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Retrieve the order status for the given order hash.
         OrderStatus memory orderStatus = _orderStatus[orderHash];
 
-        // Ensure that the order has not been cancelled.
-        if (orderStatus.isCancelled) {
-            revert OrderIsCancelled(orderHash);
-        }
-
-        // Read numerator and denominator from order status and place on stack.
-        numerator = uint256(orderStatus.numerator);
-        denominator = uint256(orderStatus.denominator);
-
-        // The order must be either entirely unused, or...
-        if (
-            numerator != 0 &&
-            (   // partially unused and able to support partial fills.
-                onlyAllowUnused ||
-                numerator >= denominator
-            )
-        ) {
-            // A partially filled order indicates no support for partial fills.
-            if (numerator < denominator) {
-                revert OrderNotUnused(orderHash);
-            }
-
-            // Otherwise, the order is fully filled.
-            revert OrderUsed(orderHash);
-        }
+        // Ensure order is fillable and retrieve the filled amount.
+        (numerator, denominator) = _validateOrderStatus(
+            orderHash,
+            orderStatus,
+            onlyAllowUnused
+        );
 
         // If the order is not already validated, verify the supplied signature.
         if (!orderStatus.isValidated) {
@@ -194,6 +175,9 @@ contract ConsiderationInternalView is ConsiderationPure {
                 offerer, orderHash, signature
             );
         }
+
+        // Return the filled amount for the order in question.
+        return (numerator, denominator);
     }
 
     /**

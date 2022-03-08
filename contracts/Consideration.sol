@@ -731,12 +731,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 // Get current nonce and use it w/ params to derive order hash.
                 orderHash = _getNoncedOrderHash(orderParameters);
 
-                // Retrieve the order status and verify it.
-                _getOrderStatusAndVerify(
+                // Verify the order (note: returned filled amount is not used).
+                _verifyOrder(
                     orderHash,
                     offerer,
                     order.signature,
-                    false // Note: partially used orders will fail next check.
+                    false
                 );
 
                 // Update order status to mark the order as valid.

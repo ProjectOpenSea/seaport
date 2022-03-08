@@ -190,8 +190,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address offerer,
         bytes memory signature
     ) internal {
-        // Verify the basic order in question.
-        _getOrderStatusAndVerify(
+        // Verify the order (note: returned filled amount is not used).
+        _verifyOrder(
             orderHash,
             offerer,
             signature,
@@ -232,7 +232,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
     ) {
         // Retrieve the parameters for the order.
         OrderParameters memory orderParameters = advancedOrder.parameters;
-
 
         // Ensure current timestamp falls between order start time and end time.
         _assertValidTime(
@@ -278,11 +277,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // Verify the order status and retrieve the filled amount.
+        // Verify the order and retrieve the filled amount.
         (
             uint256 filledNumerator,
             uint256 filledDenominator
-        ) = _getOrderStatusAndVerify(
+        ) = _verifyOrder(
             orderHash,
             orderParameters.offerer,
             advancedOrder.signature,
