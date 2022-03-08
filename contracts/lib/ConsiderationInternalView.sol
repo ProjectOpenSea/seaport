@@ -164,21 +164,15 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Ensure that the order has not been cancelled.
         _assertOrderNotCancelled(orderStatus.isCancelled, orderHash);
 
-        // The order must be either entirely unused, or...
-        if (
-            numerator != 0 &&
-            (   // partially unused and able to support partial fills.
-                onlyAllowUnused ||
-                numerator >= denominator
-            )
-        ) {
-            // A partially filled order indicates no support for partial fills.
-            if (numerator < denominator) {
+        // If the order is not entirely unused...
+        if (numerator != 0) {
+            // ensure the order has not been partially filled when not allowed.
+            if (onlyAllowUnused) {
                 revert OrderNotUnused(orderHash);
+            // Otherwise, ensure that order has not been entirely filled.
+            } else if (numerator >= denominator) {
+                revert OrderUsed(orderHash);
             }
-
-            // Otherwise, the order is fully filled.
-            revert OrderUsed(orderHash);
         }
 
         // If the order is not already validated, verify the supplied signature.
