@@ -141,46 +141,6 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to retrieve the order status and verify it.
-     *
-     * @param orderHash       The order hash.
-     * @param offerer         The offerer for the order.
-     * @param signature       A signature from the offerer indicating that the
-     *                        order has been approved.
-     * @param onlyAllowUnused A boolean flag indicating whether partial fills
-     *                        are supported by the calling function.
-     *
-     * @return numerator   The amount filled on the order.
-     * @return denominator The total fill size of the order.
-     */
-    function _verifyOrder(
-        bytes32 orderHash,
-        address offerer,
-        bytes memory signature,
-        bool onlyAllowUnused
-    ) internal view returns (uint256 numerator, uint256 denominator) {
-        // Retrieve the order status for the given order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-        // Ensure order is fillable and retrieve the filled amount.
-        (numerator, denominator) = _validateOrderStatus(
-            orderHash,
-            orderStatus,
-            onlyAllowUnused
-        );
-
-        // If the order is not already validated, verify the supplied signature.
-        if (!orderStatus.isValidated) {
-            _verifySignature(
-                offerer, orderHash, signature
-            );
-        }
-
-        // Return the filled amount for the order in question.
-        return (numerator, denominator);
-    }
-
-    /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted should the recovered signature
      *      not match the supplied offerer. Note that only 32-byte or 33-byte

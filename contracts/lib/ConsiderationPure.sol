@@ -938,49 +938,34 @@ contract ConsiderationPure is ConsiderationBase {
 
     /**
      * @dev Internal pure function to validate that a given order is fillable
-     *      based on the order status.
+     *      and not cancelled based on the order status.
      *
      * @param orderHash       The order hash.
      * @param orderStatus     The status of the order, including whether it has
      *                        been cancelled and the fraction filled.
      * @param onlyAllowUnused A boolean flag indicating whether partial fills
      *                        are supported by the calling function.
-     *
-     * @return numerator   The amount filled on the order.
-     * @return denominator The total fill size of the order.
      */
-    function _validateOrderStatus(
+    function _verifyOrderStatus(
         bytes32 orderHash,
         OrderStatus memory orderStatus,
         bool onlyAllowUnused
-    ) internal pure returns (uint256 numerator, uint256 denominator) {
+    ) internal pure {
         // Ensure that the order has not been cancelled.
         if (orderStatus.isCancelled) {
             revert OrderIsCancelled(orderHash);
         }
 
-        // Read numerator and denominator from order status and place on stack.
-        numerator = uint256(orderStatus.numerator);
-        denominator = uint256(orderStatus.denominator);
-
-        // The order must be either entirely unused, or...
-        if (
-            numerator != 0 &&
-            (   // partially unused and able to support partial fills.
-                onlyAllowUnused ||
-                numerator >= denominator
-            )
-        ) {
-            // A partially filled order indicates no support for partial fills.
-            if (numerator < denominator) {
+        // If the order is not entirely unused...
+        if (orderStatus.numerator != 0) {
+            // ensure the order has not been partially filled when not allowed.
+            if (onlyAllowUnused) {
                 revert OrderNotUnused(orderHash);
+            // Otherwise, ensure that order has not been entirely filled.
+            } else if (orderStatus.numerator >= orderStatus.denominator) {
+                revert OrderUsed(orderHash);
             }
-
-            // Otherwise, the order is fully filled.
-            revert OrderUsed(orderHash);
         }
-
-        return (numerator, denominator);
     }
 
     /**

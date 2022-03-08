@@ -731,23 +731,33 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 // Get current nonce and use it w/ params to derive order hash.
                 orderHash = _getNoncedOrderHash(orderParameters);
 
-                // Verify the order (note: returned filled amount is not used).
-                _verifyOrder(
+                // Retrieve the order status using the derived order hash.
+                OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+                // Ensure order is fillable and retrieve the filled amount.
+                _verifyOrderStatus(
                     orderHash,
-                    offerer,
-                    order.signature,
-                    false
+                    orderStatus,
+                    false // Signifies that partially filled orders are valid.
                 );
 
-                // Update order status to mark the order as valid.
-                _orderStatus[orderHash].isValidated = true;
+                // If the order has not already been validated...
+                if (!orderStatus.isValidated) {
+                    // Verify the supplied signature.
+                    _verifySignature(
+                        offerer, orderHash, order.signature
+                    );
 
-                // Emit an event signifying order was successfully validated.
-                emit OrderValidated(
-                    orderHash,
-                    offerer,
-                    orderParameters.zone
-                );
+                    // Update order status to mark the order as valid.
+                    _orderStatus[orderHash].isValidated = true;
+
+                    // Emit an event signifying the order has been validated.
+                    emit OrderValidated(
+                        orderHash,
+                        offerer,
+                        orderParameters.zone
+                    );
+                }
             }
         }
 

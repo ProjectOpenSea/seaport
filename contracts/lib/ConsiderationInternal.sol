@@ -190,13 +190,22 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address offerer,
         bytes memory signature
     ) internal {
-        // Verify the order (note: returned filled amount is not used).
-        _verifyOrder(
+        // Retrieve the order status for the given order hash.
+        OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+        // Ensure order is fillable and is not cancelled.
+        _verifyOrderStatus(
             orderHash,
-            offerer,
-            signature,
-            true // Only allow unused orders.
+            orderStatus,
+            true // Only allow unused orders as part of fulfilling basic orders.
         );
+
+        // If the order is not already validated, verify the supplied signature.
+        if (!orderStatus.isValidated) {
+            _verifySignature(
+                offerer, orderHash, signature
+            );
+        }
 
         // Update order status as fully filled, packing struct values.
         _orderStatus[orderHash].isValidated = true;
@@ -277,16 +286,26 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // Verify the order and retrieve the filled amount.
-        (
-            uint256 filledNumerator,
-            uint256 filledDenominator
-        ) = _verifyOrder(
+        // Retrieve the order status using the derived order hash.
+        OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+        // Ensure order is fillable and is not cancelled.
+        _verifyOrderStatus(
             orderHash,
-            orderParameters.offerer,
-            advancedOrder.signature,
-            false // allow partially used orders
+            orderStatus,
+            false // Allow partially used orders to be filled.
         );
+
+        // If the order is not already validated, verify the supplied signature.
+        if (!orderStatus.isValidated) {
+            _verifySignature(
+                orderParameters.offerer, orderHash, advancedOrder.signature
+            );
+        }
+
+        // Read filled amount as numerator and denominator and put on the stack.
+        uint256 filledNumerator = orderStatus.numerator;
+        uint256 filledDenominator = orderStatus.denominator;
 
         // If order currently has a non-zero denominator it is partially filled.
         if (filledDenominator != 0) {
