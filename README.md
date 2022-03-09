@@ -65,7 +65,7 @@ When fulfilling an order via `fulfillOrder` or `fulfillAdvancedOrder`:
   5. Determine amount for each item
      - Compare start amount and end amount
        - if they are equal: apply fill fraction to either one, ensure it divides cleanly, and use that amount
-       - if not: apply fill fraction to both, ensuring they both divide cleanly, then find linear fit based on current time *(NOTE: the current implementation performs this step backwards, i.e. finds the linear fit prior to the fill fraction)*
+       - if not: apply fill fraction to both, ensuring they both divide cleanly, then find linear fit based on current time
   6. Apply criteria resolvers
      - Ensure each criteria resolver refers to a criteria-based order item
      - Ensure the supplied identifier for each item is valid via inclusion proof if the item has a non-zero criteria root
