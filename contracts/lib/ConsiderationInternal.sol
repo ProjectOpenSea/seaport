@@ -407,7 +407,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         ReceivedItem[] memory consideration = orders[0].parameters.consideration;
 
         // Perform each item transfer with the appropriate fractional amount.
-        _performTransfers(
+        _applyFractionsAndTransferEach(
             offer,
             consideration,
             advancedOrder.parameters.offerer,
@@ -435,7 +435,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
     /**
      * @dev Internal function to transfer each item contained in a given single
-     *      order fulfillment.
+     *      order fulfillment after applying a respective fraction to the amount
+     *      being transferred.
      *
      * @param offer             The offer items for the fulfilled order.
      * @param consideration     The consideration items for the fulfilled order.
@@ -448,7 +449,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param useFulfillerProxy A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      */
-    function _performTransfers(
+    function _applyFractionsAndTransferEach(
         OfferedItem[] memory offer,
         ReceivedItem[] memory consideration,
         address offerer,
@@ -523,7 +524,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
     /**
      * @dev Internal function to validate a group of orders, update their
-     *      statuses, and reduce amounts by their previously filled fractions.
+     *      statuses, reduce amounts by their previously filled fractions, apply
+     *      criteria resolvers, and emit OrderFulfilled events.
      *
      * @param orders            The orders to validate and reduce by their
      *                          previously filled amounts.
@@ -539,7 +541,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @return A array of booleans indicating whether to utilize a proxy for
      *         each order.
      */
-    function _validateOrdersAndApplyPartials(
+    function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory orders,
         CriteriaResolver[] memory criteriaResolvers
     ) internal returns (bool[] memory) {
@@ -757,7 +759,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         BatchExecution[] memory batchExecutions
     ) {
         // Adjust orders by filled amount and determine if they utilize proxies.
-        bool[] memory useProxyPerOrder = _validateOrdersAndApplyPartials(
+        bool[] memory useProxyPerOrder = _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             criteriaResolvers
         );
