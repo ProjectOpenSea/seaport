@@ -154,15 +154,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
             zone
         );
 
-        // If the offerer's proxy is being utilized, adjust the order type down.
-        if (useOffererProxy) {
-            // Skip underflow check: orderType >= 4 when useOffererProxy = true.
-            unchecked {
-                // Adjust the order type.
-                parameters.orderType = OrderType(uint8(parameters.orderType) - 4);
-            }
-        }
-
         // Emit an event signifying that the order has been fulfilled.
         _emitOrderFulfilledEvent(
             orderHash,
@@ -274,17 +265,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderParameters.offerer,
             orderParameters.zone
         );
-
-        // If the offerer's proxy is being utilized, adjust the order type down.
-        if (useOffererProxy) {
-            // Skip underflow check: orderType >= 4 when useOffererProxy = true.
-            unchecked {
-                // Adjust the order type.
-                orderParameters.orderType = OrderType(
-                    uint8(orderParameters.orderType) - 4
-                );
-            }
-        }
 
         // Retrieve the order status using the derived order hash.
         OrderStatus memory orderStatus = _orderStatus[orderHash];
