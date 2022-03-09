@@ -190,13 +190,22 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address offerer,
         bytes memory signature
     ) internal {
-        // Verify the basic order in question.
-        _getOrderStatusAndVerify(
+        // Retrieve the order status for the given order hash.
+        OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+        // Ensure order is fillable and is not cancelled.
+        _verifyOrderStatus(
             orderHash,
-            offerer,
-            signature,
-            true // Only allow unused orders.
+            orderStatus,
+            true // Only allow unused orders as part of fulfilling basic orders.
         );
+
+        // If the order is not already validated, verify the supplied signature.
+        if (!orderStatus.isValidated) {
+            _verifySignature(
+                offerer, orderHash, signature
+            );
+        }
 
         // Update order status as fully filled, packing struct values.
         _orderStatus[orderHash].isValidated = true;
@@ -232,7 +241,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
     ) {
         // Retrieve the parameters for the order.
         OrderParameters memory orderParameters = advancedOrder.parameters;
-
 
         // Ensure current timestamp falls between order start time and end time.
         _assertValidTime(
@@ -278,37 +286,50 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // Retrieve the order status and verify it.
-        OrderStatus memory orderStatus = _getOrderStatusAndVerify(
+        // Retrieve the order status using the derived order hash.
+        OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+        // Ensure order is fillable and is not cancelled.
+        _verifyOrderStatus(
             orderHash,
-            orderParameters.offerer,
-            advancedOrder.signature,
-            false // allow partially used orders
+            orderStatus,
+            false // Allow partially used orders to be filled.
         );
 
+        // If the order is not already validated, verify the supplied signature.
+        if (!orderStatus.isValidated) {
+            _verifySignature(
+                orderParameters.offerer, orderHash, advancedOrder.signature
+            );
+        }
+
+        // Read filled amount as numerator and denominator and put on the stack.
+        uint256 filledNumerator = orderStatus.numerator;
+        uint256 filledDenominator = orderStatus.denominator;
+
         // If order currently has a non-zero denominator it is partially filled.
-        if (orderStatus.denominator != 0) {
+        if (filledDenominator != 0) {
             // If denominator of 1 supplied, fill all remaining amount on order.
             if (denominator == 1) {
                 // Scale numerator & denominator to match current denominator.
-                numerator = orderStatus.denominator;
-                denominator = orderStatus.denominator;
+                numerator = filledDenominator;
+                denominator = filledDenominator;
             } // Otherwise, if supplied denominator differs from current one...
-            else if (orderStatus.denominator != denominator) {
+            else if (filledDenominator != denominator) {
                 // scale current numerator by the supplied denominator, then...
-                orderStatus.numerator *= uint120(denominator);
+                filledNumerator *= denominator;
 
                 // the supplied numerator & denominator by current denominator.
-                numerator *= orderStatus.denominator;
-                denominator *= orderStatus.denominator;
+                numerator *= filledDenominator;
+                denominator *= filledDenominator;
             }
 
             // Once adjusted, if current+supplied numerator exceeds denominator:
-            if (orderStatus.numerator + numerator > denominator) {
+            if (filledNumerator + numerator > denominator) {
                 // Skip underflow check: denominator >= orderStatus.numerator
                 unchecked {
                     // Reduce current numerator so it + supplied = denominator.
-                    numerator = denominator - orderStatus.numerator;
+                    numerator = denominator - filledNumerator;
                 }
             }
 
@@ -318,7 +339,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _orderStatus[orderHash].isValidated = true;
                 _orderStatus[orderHash].isCancelled = false;
                 _orderStatus[orderHash].numerator = uint120(
-                    orderStatus.numerator + numerator
+                    filledNumerator + numerator
                 );
                 _orderStatus[orderHash].denominator = uint120(denominator);
             }

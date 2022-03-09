@@ -731,26 +731,33 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 // Get current nonce and use it w/ params to derive order hash.
                 orderHash = _getNoncedOrderHash(orderParameters);
 
-                // Retrieve the order status and verify it.
-                OrderStatus memory orderStatus = _getOrderStatusAndVerify(
+                // Retrieve the order status using the derived order hash.
+                OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+                // Ensure order is fillable and retrieve the filled amount.
+                _verifyOrderStatus(
                     orderHash,
-                    offerer,
-                    order.signature,
-                    false // Note: partially used orders will fail next check.
+                    orderStatus,
+                    false // Signifies that partially filled orders are valid.
                 );
 
-                // Ensure that the order has not been cancelled.
-                _assertOrderNotCancelled(orderStatus.isCancelled, orderHash);
+                // If the order has not already been validated...
+                if (!orderStatus.isValidated) {
+                    // Verify the supplied signature.
+                    _verifySignature(
+                        offerer, orderHash, order.signature
+                    );
 
-                // Update order status to mark the order as valid.
-                _orderStatus[orderHash].isValidated = true;
+                    // Update order status to mark the order as valid.
+                    _orderStatus[orderHash].isValidated = true;
 
-                // Emit an event signifying order was successfully validated.
-                emit OrderValidated(
-                    orderHash,
-                    offerer,
-                    orderParameters.zone
-                );
+                    // Emit an event signifying the order has been validated.
+                    emit OrderValidated(
+                        orderHash,
+                        offerer,
+                        orderParameters.zone
+                    );
+                }
             }
         }
 

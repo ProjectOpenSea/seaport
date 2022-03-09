@@ -141,52 +141,6 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to retrieve the order status and verify it.
-     *
-     * @param orderHash       The order hash.
-     * @param offerer         The offerer for the order.
-     * @param signature       A signature from the offerer indicating that the
-     *                        order has been approved.
-     * @param onlyAllowUnused A boolean flag indicating whether partial fills
-     *                        are supported by the calling function.
-     */
-    function _getOrderStatusAndVerify(
-        bytes32 orderHash,
-        address offerer,
-        bytes memory signature,
-        bool onlyAllowUnused
-    ) internal view returns (OrderStatus memory) {
-        // Retrieve the order status for the given order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-        uint256 numerator = uint256(orderStatus.numerator);
-        uint256 denominator = uint256(orderStatus.denominator);
-
-        // Ensure that the order has not been cancelled.
-        _assertOrderNotCancelled(orderStatus.isCancelled, orderHash);
-
-        // If the order is not entirely unused...
-        if (numerator != 0) {
-            // ensure the order has not been partially filled when not allowed.
-            if (onlyAllowUnused) {
-                revert OrderNotUnused(orderHash);
-            // Otherwise, ensure that order has not been entirely filled.
-            } else if (numerator >= denominator) {
-                revert OrderUsed(orderHash);
-            }
-        }
-
-        // If the order is not already validated, verify the supplied signature.
-        if (!orderStatus.isValidated) {
-            _verifySignature(
-                offerer, orderHash, signature
-            );
-        }
-
-        // Return the order status.
-        return orderStatus;
-    }
-
-    /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted should the recovered signature
      *      not match the supplied offerer. Note that only 32-byte or 33-byte

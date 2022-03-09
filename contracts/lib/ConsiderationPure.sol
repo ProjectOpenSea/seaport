@@ -937,6 +937,38 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
+     * @dev Internal pure function to validate that a given order is fillable
+     *      and not cancelled based on the order status.
+     *
+     * @param orderHash       The order hash.
+     * @param orderStatus     The status of the order, including whether it has
+     *                        been cancelled and the fraction filled.
+     * @param onlyAllowUnused A boolean flag indicating whether partial fills
+     *                        are supported by the calling function.
+     */
+    function _verifyOrderStatus(
+        bytes32 orderHash,
+        OrderStatus memory orderStatus,
+        bool onlyAllowUnused
+    ) internal pure {
+        // Ensure that the order has not been cancelled.
+        if (orderStatus.isCancelled) {
+            revert OrderIsCancelled(orderHash);
+        }
+
+        // If the order is not entirely unused...
+        if (orderStatus.numerator != 0) {
+            // ensure the order has not been partially filled when not allowed.
+            if (onlyAllowUnused) {
+                revert OrderNotUnused(orderHash);
+            // Otherwise, ensure that order has not been entirely filled.
+            } else if (orderStatus.numerator >= orderStatus.denominator) {
+                revert OrderUsed(orderHash);
+            }
+        }
+    }
+
+    /**
      * @dev Internal pure function to hash key parameters of a given execution
      *      from an array of execution elements by index.
      *
@@ -1029,22 +1061,6 @@ contract ConsiderationPure is ConsiderationBase {
             value := keccak256(0x00, 0x42) // Hash the relevant region.
 
             mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
-        }
-    }
-
-    /**
-     * @dev Internal pure function to ensure an order has not been cancelled.
-     *
-     * @param isCancelled The cancelled status of the order.
-     * @param orderHash   The hash of the order.
-     */
-    function _assertOrderNotCancelled(
-        bool isCancelled,
-        bytes32 orderHash
-    ) internal pure {
-        // Ensure that the order has not been cancelled.
-        if (isCancelled) {
-            revert OrderIsCancelled(orderHash);
         }
     }
 
