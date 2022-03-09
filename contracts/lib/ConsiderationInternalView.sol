@@ -423,18 +423,18 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to derive the current amount of a given item
-     *      based on the current price, the starting price, and the ending
-     *      price. If the start and end prices differ, the current price will be
-     *      extrapolated on a linear basis.
+     * @dev Internal view function to derive the current amount of each item for
+     *      an advanced order based on the current price, the starting price,
+     *      and the ending price. If the start and end prices differ, the
+     *      current price will be extrapolated on a linear basis.
      *
-     * @param order The original order.
+     * @param advancedOrder The advanced order order.
      */
-    function _adjustOrderPrice(
-        AdvancedOrder memory order
+    function _adjustAdvancedOrderPrice(
+        AdvancedOrder memory advancedOrder
     ) internal view {
         // Retrieve the order parameters for the order.
-        OrderParameters memory orderParameters = order.parameters;
+        OrderParameters memory orderParameters = advancedOrder.parameters;
 
         // Place the start time for the order on the stack.
         uint256 startTime = orderParameters.startTime;

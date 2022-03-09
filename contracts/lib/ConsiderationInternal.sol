@@ -372,25 +372,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
             bool useOffererProxy
         ) = _validateOrderAndUpdateStatus(advancedOrder);
 
-        // Adjust prices based on time, start amount, and end amount.
-        _adjustOrderPrice(advancedOrder);
-
         // Apply criteria resolvers (requires array of orders to be supplied).
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
         orders[0] = advancedOrder;
         _applyCriteriaResolvers(orders, criteriaResolvers);
 
-        // Retrieve the offer components for the order.
-        OfferedItem[] memory offer = orders[0].parameters.offer;
-
-        // Retrieve the consideration components for the order.
-        ReceivedItem[] memory consideration = orders[0].parameters.consideration;
+        // Retrieve the parameters of the order.
+        OrderParameters memory orderParameters = orders[0].parameters;
 
         // Perform each item transfer with the appropriate fractional amount.
         _applyFractionsAndTransferEach(
-            offer,
-            consideration,
-            advancedOrder.parameters.offerer,
+            orderParameters,
             fillNumerator,
             fillDenominator,
             useOffererProxy,
@@ -400,11 +392,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Emit an event signifying that the order has been fulfilled.
         _emitOrderFulfilledEvent(
             orderHash,
-            advancedOrder.parameters.offerer,
-            advancedOrder.parameters.zone,
+            orderParameters.offerer,
+            orderParameters.zone,
             msg.sender,
-            offer,
-            consideration
+            orderParameters.offer,
+            orderParameters.consideration
         );
 
         // Clear the reentrancy guard.
@@ -418,9 +410,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      order fulfillment after applying a respective fraction to the amount
      *      being transferred.
      *
-     * @param offer             The offer items for the fulfilled order.
-     * @param consideration     The consideration items for the fulfilled order.
-     * @param offerer           The offerer of the fulfilled order.
+     * @param orderParameters   The parameters for the fulfilled order.
      * @param numerator         A value indicating the portion of the order that
      *                          should be filled.
      * @param denominator       A value indicating the total size of the order.
@@ -430,29 +420,35 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          for fulfilled tokens from an associated proxy.
      */
     function _applyFractionsAndTransferEach(
-        OfferedItem[] memory offer,
-        ReceivedItem[] memory consideration,
-        address offerer,
+        OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
         bool useOffererProxy,
         bool useFulfillerProxy
     ) internal {
+        // Derive order duration, time elapsed, and time remaining.
+        uint256 duration = orderParameters.endTime - orderParameters.startTime;
+        uint256 elapsed = block.timestamp - orderParameters.startTime;
+        uint256 remaining = duration - elapsed;
+
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
         // Iterate over each offer on the order.
-        for (uint256 i = 0; i < offer.length;) {
+        for (uint256 i = 0; i < orderParameters.offer.length;) {
             // Retrieve the offer item.
-            OfferedItem memory offeredItem = offer[i];
+            OfferedItem memory offeredItem = orderParameters.offer[i];
 
             // Derive the amount to transfer and transfer the offered item.
             uint256 amount = _applyOfferedFractionAndTransfer(
                 offeredItem,
                 numerator,
                 denominator,
-                offerer,
-                useOffererProxy
+                orderParameters.offerer,
+                useOffererProxy,
+                elapsed,
+                remaining,
+                duration
             );
 
             // If offer expects ETH, reduce ether value available.
@@ -470,16 +466,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Iterate over each consideration on the order.
-        for (uint256 i = 0; i < consideration.length;) {
+        for (uint256 i = 0; i < orderParameters.consideration.length;) {
             // Retrieve the consideration item.
-            ReceivedItem memory receivedItem = consideration[i];
+            ReceivedItem memory receivedItem = orderParameters.consideration[i];
 
             // Derive the amount to transfer and transfer the received item.
             uint256 amount = _applyReceivedFractionAndTransfer(
                 receivedItem,
                 numerator,
                 denominator,
-                useFulfillerProxy
+                useFulfillerProxy,
+                elapsed,
+                remaining,
+                duration
             );
 
             // If consideration expects ETH, reduce ether value available.
@@ -547,9 +546,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     bool useOffererProxy
                 ) = _validateOrderAndUpdateStatus(order);
 
-                // Adjust prices based on time, start amount, and end amount.
-                _adjustOrderPrice(order);
-
                 // Mark whether order should utilize offerer's proxy.
                 ordersUseProxy[i] = useOffererProxy;
 
@@ -564,12 +560,32 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     // Retrieve the offered item.
                     OfferedItem memory offeredItem = offer[j];
 
-                    // Apply order fill fraction to each offer amount.
-                    offeredItem.endAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        offeredItem.endAmount
-                    );
+                    // Reuse same fraction if start and end amounts are equal.
+                    if (offeredItem.startAmount == offeredItem.endAmount) {
+                        // Derive the fractional amount based on the end amount.
+                        uint256 amount = _getFraction(
+                            numerator,
+                            denominator,
+                            offeredItem.endAmount
+                        );
+
+                        // Apply derived amount to both start and end amount.
+                        offeredItem.startAmount = amount;
+                        offeredItem.endAmount = amount;
+                    } else {
+                        // Apply order fill fraction to each offer amount.
+                        offeredItem.startAmount = _getFraction(
+                            numerator,
+                            denominator,
+                            offeredItem.startAmount
+                        );
+
+                        offeredItem.endAmount = _getFraction(
+                            numerator,
+                            denominator,
+                            offeredItem.endAmount
+                        );
+                    }
                 }
 
                 // Iterate over each consideration item on the order.
@@ -577,13 +593,36 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     // Retrieve the consideration item.
                     ReceivedItem memory receivedItem = consideration[j];
 
-                    // Apply order fill fraction to each consideration amount.
-                    receivedItem.endAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        receivedItem.endAmount
-                    );
+                    // Reuse same fraction if start and end amounts are equal.
+                    if (receivedItem.startAmount == receivedItem.endAmount) {
+                        // Derive the fractional amount based on the end amount.
+                        uint256 amount = _getFraction(
+                            numerator,
+                            denominator,
+                            receivedItem.endAmount
+                        );
+
+                        // Apply derived amount to both start and end amount.
+                        receivedItem.startAmount = amount;
+                        receivedItem.endAmount = amount;
+                    } else {
+                        // Apply order fill fraction to each received amount.
+                        receivedItem.startAmount = _getFraction(
+                            numerator,
+                            denominator,
+                            receivedItem.startAmount
+                        );
+
+                        receivedItem.endAmount = _getFraction(
+                            numerator,
+                            denominator,
+                            receivedItem.endAmount
+                        );
+                    }
                 }
+
+                // Adjust prices based on time, start amount, and end amount.
+                _adjustAdvancedOrderPrice(order);
 
                 // Track the order hash in question.
                 orderHashes[i] = orderHash;
@@ -623,24 +662,55 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param offerer           The offerer for the order.
      * @param useOffererProxy   A flag indicating whether to source approvals
      *                          for consumed tokens from an associated proxy.
+     * @param elapsed           The time elapsed since the order's start time.
+     * @param remaining         The time left until the order's end time.
+     * @param duration          The total duration of the order.
+     *
+     * @return amount The final amount to transfer.
      */
     function _applyOfferedFractionAndTransfer(
         OfferedItem memory offeredItem,
         uint256 numerator,
         uint256 denominator,
         address offerer,
-        bool useOffererProxy
+        bool useOffererProxy,
+        uint256 elapsed,
+        uint256 remaining,
+        uint256 duration
     ) internal returns (uint256 amount) {
+        // If start amount equals end amount, apply fraction to end amount.
+        if (offeredItem.startAmount == offeredItem.endAmount) {
+            amount = _getFraction(
+                numerator,
+                denominator,
+                offeredItem.endAmount
+            );
+        } else {
+            // Otherwise, apply fraction to both to extrapolate final amount.
+            amount = _locateCurrentAmount(
+                _getFraction(
+                    numerator,
+                    denominator,
+                    offeredItem.startAmount
+                ),
+                _getFraction(
+                    numerator,
+                    denominator,
+                    offeredItem.endAmount
+                ),
+                elapsed,
+                remaining,
+                duration,
+                false // round down
+            );
+        }
+
         // Apply order fill fraction and set the caller as the receiver.
         FulfilledItem memory item = FulfilledItem(
             offeredItem.itemType,
             offeredItem.token,
             offeredItem.identifierOrCriteria,
-            _getFraction(
-                numerator,
-                denominator,
-                offeredItem.endAmount
-            ),
+            amount,
             payable(msg.sender)
         );
 
@@ -650,9 +720,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
             offerer,
             useOffererProxy
         );
-
-        // Return the amount with the fractional component applied.
-        return item.amount;
     }
 
     /**
@@ -665,23 +732,54 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param denominator       A value indicating the total size of the order.
      * @param useFulfillerProxy A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
+     * @param elapsed           The time elapsed since the order's start time.
+     * @param remaining         The time left until the order's end time.
+     * @param duration          The total duration of the order.
+     *
+     * @return amount The final amount to transfer.
      */
     function _applyReceivedFractionAndTransfer(
         ReceivedItem memory receivedItem,
         uint256 numerator,
         uint256 denominator,
-        bool useFulfillerProxy
+        bool useFulfillerProxy,
+        uint256 elapsed,
+        uint256 remaining,
+        uint256 duration
     ) internal returns (uint256 amount) {
+        // If start amount equals end amount, apply fraction to end amount.
+        if (receivedItem.startAmount == receivedItem.endAmount) {
+            amount = _getFraction(
+                numerator,
+                denominator,
+                receivedItem.endAmount
+            );
+        } else {
+            // Otherwise, apply fraction to both to extrapolate final amount.
+            amount = _locateCurrentAmount(
+                _getFraction(
+                    numerator,
+                    denominator,
+                    receivedItem.startAmount
+                ),
+                _getFraction(
+                    numerator,
+                    denominator,
+                    receivedItem.endAmount
+                ),
+                elapsed,
+                remaining,
+                duration,
+                true // round up
+            );
+        }
+
         // Apply order fill fraction and set recipient as the receiver.
         FulfilledItem memory item = FulfilledItem(
             receivedItem.itemType,
             receivedItem.token,
             receivedItem.identifierOrCriteria,
-            _getFraction(
-                numerator,
-                denominator,
-                receivedItem.endAmount
-            ),
+            amount,
             receivedItem.recipient
         );
 
@@ -691,9 +789,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
             msg.sender,
             useFulfillerProxy
         );
-
-        // Return the amount with the fractional component applied.
-        return item.amount;
     }
 
     /**
