@@ -41,6 +41,13 @@ While the standard method can technically be used for fulfilling any order, it s
 - It requires the fulfiller to approve each consideration item, even if the consideration item can be fulfilled using an offer item (as is commonly the case when fulfilling an order that offers ERC20 tokens for an ERC721 or ERC1155 token and also includes consideration items in the same ERC20 tokens for paying fees).
 - It can result in unnecessary transfers, whereas in the "match" case those transfers can be reduced to a more minimal set.
 
+### Partial Fills
+When constructing an order, the offerer may elect to enable partial fills by setting an appropriate order type. Then, orders that support partial fills can be fulfilled for some _fraction_ of the respective order, allowing subsequent fills to bypass signature verification. To summarize a few key points on partial fills:
+- When creating orders that support partial fills or determining a fraction to fill on those orders, all items (both offer and consideration) on the order must be cleanly divisible by the supplied fraction (i.e. no remainder after division).
+- If the desired fraction to fill would result in more than the full order amount being filled, that fraction will be reduced to the amount remaining to fill. This applies to both partial fill attempts as well as full fill attempts. If this behavior is not desired (i.e. the fill should be "all or none"), the fulfiller can either use a "basic" order method if available (which requires that the full order amount be filled), or use the "match" order method and explicitly provide an order that requires the full desired amount be received back.
+   - By way of example: if one fulfiller tries to fill 1/2 of an order but another fulfiller first fills 3/4 of the order, the original fulfiller will end up filling 1/4 of the order.
+- If any of the items on a partially fillable order specify a different "startAmount" and "endAmount (e.g. they are ascending-amount or descending-amount items), the fraction will be applied to _both_ amounts prior to determining the current price. This ensures that cleanly divisible amounts can be chosen when constructing the order without a dependency on the time that the order is ultimately fulfilled.
+
 ## Sequence of Events
 
 ### Fulfill Order
