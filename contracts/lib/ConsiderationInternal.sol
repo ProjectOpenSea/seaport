@@ -376,7 +376,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function _fulfillOrder(
+    function _validateAndFulfillAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
@@ -748,7 +748,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                            of batch transfers performed as part of
      *                            matching the given orders.
      */
-    function _matchOrders(
+    function _matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] memory fulfillments
@@ -763,7 +763,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
 
         // Fulfill the orders using the supplied fulfillments.
-        return _fulfillOrders(advancedOrders, fulfillments, useProxyPerOrder);
+        return _fulfillAdvancedOrders(
+            advancedOrders,
+            fulfillments,
+            useProxyPerOrder
+        );
     }
 
     /**
@@ -786,7 +790,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @return An array of elements indicating the sequence of batch transfers
      *         performed as part of matching the given orders.
      */
-    function _fulfillOrders(
+    function _fulfillAdvancedOrders(
         AdvancedOrder[] memory orders,
         Fulfillment[] memory fulfillments,
         bool[] memory ordersUseProxy
