@@ -79,11 +79,11 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to fill an order that has
-     *      already been filled.
+     *      already been fully filled.
      *
      * @param orderHash The order hash on which a fill was attempted.
      */
-    error OrderUsed(bytes32 orderHash);
+    error OrderAlreadyFilled(bytes32 orderHash);
 
     /**
      * @dev Revert with an error when attempting to fill an order outside the
@@ -277,7 +277,7 @@ interface ConsiderationEventsAndErrors {
      *
      * @param orderHash The hash of the partially used order.
      */
-    error OrderNotUnused(bytes32 orderHash);
+    error OrderPartiallyFilled(bytes32 orderHash);
 
     /**
      * @dev Revert with an error when providing a criteria resolver that refers

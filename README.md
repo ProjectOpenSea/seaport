@@ -56,6 +56,7 @@ When fulfilling an order via `fulfillOrder` or `fulfillAdvancedOrder`:
   4. Retrieve and update order status
      - Ensure order is not cancelled
      - Ensure order is not fully filled
+       - If the order is _partially_ filled, reduce the supplied fill amount if necessary so that the order is not overfilled
      - Perform additional validation if not performed previously
        - verify signature
        - other general order validation?
@@ -77,7 +78,7 @@ When fulfilling an order via `fulfillOrder` or `fulfillAdvancedOrder`:
   9. Transfer consideration items from caller to respective recipients
      - Use either proxy or Consideration directly to source approvals, depending on the fulfiller's stated preference
 
-> Note: the six "basic" fulfillment methods work in a similar fashion, with a few exceptions: they reconstruct the order from a subset of order elements, they skip linear fit amount adjustment and criteria resolution, and they perform a more minimal set of transfers by default when the offer item shares the same type and token as additional consideration items.
+> Note: the six "basic" fulfillment methods work in a similar fashion, with a few exceptions: they reconstruct the order from a subset of order elements, they skip linear fit amount adjustment and criteria resolution, they require that the full order amount be fillable, and they perform a more minimal set of transfers by default when the offer item shares the same type and token as additional consideration items.
 
 ### Match Orders
 

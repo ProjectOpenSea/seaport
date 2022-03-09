@@ -480,15 +480,15 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         Order memory order,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
-        // Validate and fulfill the order.
-        return _fulfillOrder(
+        // Convert order to "advanced" order, then validate and fulfill it.
+        return _validateAndFulfillAdvancedOrder(
             AdvancedOrder(
                 order.parameters,
                 1,
                 1,
                 order.signature
             ),
-            new CriteriaResolver[](0),  // no criteria resolvers
+            new CriteriaResolver[](0), // No criteria resolvers are supplied.
             useFulfillerProxy
         );
     }
@@ -530,7 +530,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         bool useFulfillerProxy
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
-        return _fulfillOrder(
+        return _validateAndFulfillAdvancedOrder(
             advancedOrder,
             criteriaResolvers,
             useFulfillerProxy
@@ -571,10 +571,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
-        // Validate and fulfill the orders.
-        return _matchOrders(
+        // Convert orders to "advanced" orders, then validate and fulfill them.
+        return _matchAdvancedOrders(
             _convertOrdersToAdvanced(orders),
-            new CriteriaResolver[](0),  // no criteria resolvers
+            new CriteriaResolver[](0), // No criteria resolvers are supplied.
             fulfillments
         );
     }
@@ -626,8 +626,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
-        // Validate and fulfill the orders.
-        return _matchOrders(
+        // Validate and fulfill the advanced orders.
+        return _matchAdvancedOrders(
             advancedOrders,
             criteriaResolvers,
             fulfillments
