@@ -960,10 +960,10 @@ contract ConsiderationPure is ConsiderationBase {
         if (orderStatus.numerator != 0) {
             // ensure the order has not been partially filled when not allowed.
             if (onlyAllowUnused) {
-                revert OrderNotUnused(orderHash);
+                revert OrderPartiallyFilled(orderHash);
             // Otherwise, ensure that order has not been entirely filled.
             } else if (orderStatus.numerator >= orderStatus.denominator) {
-                revert OrderUsed(orderHash);
+                revert OrderAlreadyFilled(orderHash);
             }
         }
     }
