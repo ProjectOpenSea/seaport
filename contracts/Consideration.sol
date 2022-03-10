@@ -567,7 +567,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function matchOrders(
         Order[] memory orders,
         Fulfillment[] memory fulfillments
-    ) external payable returns (
+    ) external payable override returns (
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
