@@ -88,15 +88,15 @@ struct FulfilledItem {
 struct BasicOrderParameters {
     address payable offerer;
     address zone;
-    OrderType orderType;
     address token;
     uint256 identifier;
+    OrderType orderType;
     uint256 startTime;
     uint256 endTime;
     uint256 salt;
     bool useFulfillerProxy;
-    bytes signature;
     AdditionalRecipient[] additionalRecipients;
+    bytes signature;
 }
 
 /**
