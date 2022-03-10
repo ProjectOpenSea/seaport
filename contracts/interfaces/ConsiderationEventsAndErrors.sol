@@ -199,6 +199,12 @@ interface ConsiderationEventsAndErrors {
     error EtherTransferGenericFailure(address account, uint256 amount);
 
     /**
+     * @dev Revert with an error when an ERC721 transfer with amount other than
+     *      one is attempted.
+     */
+    error InvalidERC721TransferAmount();
+
+    /**
      * @dev Revert with an error when an ERC20, ERC721, or ERC1155 token
      *      transfer reverts.
      *

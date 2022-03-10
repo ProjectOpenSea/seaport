@@ -995,6 +995,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     proxyOwner
                 );
             } else if (item.itemType == ItemType.ERC721) {
+                // Ensure that exactly one 721 item is being transferred.
+                if (item.amount != 1) {
+                    revert InvalidERC721TransferAmount();
+                }
+
                 // Transfer ERC721 token from the offerer to the recipient.
                 _transferERC721(
                     item.token,
