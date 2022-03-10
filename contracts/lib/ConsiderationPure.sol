@@ -279,7 +279,7 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Ensure that division gave a final result with no remainder.
-        if (inexact) {
+        if (inexact || newValue == 0) {
             revert InexactFraction();
         }
     }
