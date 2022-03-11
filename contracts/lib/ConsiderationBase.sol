@@ -10,8 +10,8 @@ import { OrderStatus } from "./ConsiderationStructs.sol";
 /**
  * @title ConsiderationBase
  * @author 0age
- * @notice ConsiderationBase contains all all storage, constants, and
- *         constructor logic.
+ * @notice ConsiderationBase contains all storage, constants, and constructor
+ *         logic.
  */
 contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Declare constants for name, version, and reentrancy sentinel values.

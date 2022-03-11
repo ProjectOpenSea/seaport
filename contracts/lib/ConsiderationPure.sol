@@ -158,7 +158,7 @@ contract ConsiderationPure is ConsiderationBase {
 
                 // If criteria is not 0 (i.e. a collection-wide offer)...
                 if (identifierOrCriteria != uint256(0)) {
-                    // Verifiy identifier inclusion in criteria using proof.
+                    // Verify identifier inclusion in criteria root using proof.
                     _verifyProof(
                         criteriaResolver.identifier,
                         identifierOrCriteria,
@@ -587,7 +587,7 @@ contract ConsiderationPure is ConsiderationBase {
      * @param orders                  The orders to match.
      * @param offerComponents         An array designating offer components to
      *                                match to consideration components.
-     * @param offerComponents         An array allocating consideration
+     * @param considerationComponents An array designating consideration
      *                                components to match to offer components.
      *                                Note that each consideration amount must
      *                                be zero in order for the match operation

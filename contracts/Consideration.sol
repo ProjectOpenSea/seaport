@@ -539,7 +539,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
     /**
      * @notice Match an arbitrary number of orders, each with an arbitrary
-     *         number of items for offer and consideration along with as set of
+     *         number of items for offer and consideration along with a set of
      *         fulfillments allocating offer components to consideration
      *         components. Note that this function does not support
      *         criteria-based or partial filling of orders (though filling the
