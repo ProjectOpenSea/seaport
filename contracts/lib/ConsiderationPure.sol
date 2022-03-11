@@ -1083,7 +1083,7 @@ contract ConsiderationPure is ConsiderationBase {
         // Skip overflow check as the index for the loop starts at zero.
         unchecked {
             // Iterate over the given orders.
-            for (uint256 i = 0; i < orders.length; i++) {
+            for (uint256 i = 0; i < orders.length; ++i) {
                 // Retrive the order.
                 Order memory order = orders[i];
 
