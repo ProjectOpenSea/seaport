@@ -784,8 +784,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             revert InvalidNonceIncrementor();
         }
 
-        // Increment current nonce for the supplied offerer + zone pair.
-        newNonce = ++_nonces[offerer][zone];
+        // No need to check for overflow; nonce cannot be incremented that far.
+        unchecked {
+            // Increment current nonce for the supplied offerer + zone pair.
+            newNonce = ++_nonces[offerer][zone];
+        }
 
         // Emit an event containing the new nonce.
         emit NonceIncremented(newNonce, offerer, zone);
