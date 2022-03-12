@@ -718,7 +718,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             // Iterate over each order.
-            for (uint256 i = 0; i < orders.length; ++i) {
+            
+            uint256 length = orders.length
+            for (uint256 i = 0; i < length) {
                 // Retrieve the order.
                 Order memory order = orders[i];
 
@@ -758,6 +760,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                         orderParameters.zone
                     );
                 }
+                ++i;
             }
         }
 
