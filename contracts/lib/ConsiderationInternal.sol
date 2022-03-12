@@ -1054,10 +1054,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
      */
     function _transferEth(address payable to, uint256 amount) internal {
         // Attempt to transfer the ether to the recipient.
-        (bool ok,) = to.call{value: amount}("");
+        (bool success,) = to.call{value: amount}("");
 
         // If the call fails...
-        if (!ok) {
+        if (!success) {
             // Revert and pass the revert reason along if one was returned.
             _revertWithReasonIfOneIsReturned();
 
@@ -1087,7 +1087,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address proxyOwner
     ) internal {
         // Attempt to transfer the ERC20 token via...
-        bool ok = (
+        bool success = (
             // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
@@ -1116,7 +1116,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
-            ok,
+            success,
             token,
             from,
             to,
@@ -1170,7 +1170,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address proxyOwner
     ) internal {
         // Attempt to transfer the ERC721 token via...
-        bool ok = (
+        bool success = (
             // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
@@ -1199,7 +1199,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
-            ok,
+            success,
             token,
             from,
             to,
@@ -1231,7 +1231,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address proxyOwner
     ) internal {
         // Attempt to transfer the ERC1155 token via...
-        bool ok = (
+        bool success = (
             // The proxy if a proxy owner is specified...
             proxyOwner != address(0)
                 ? _callProxy(
@@ -1261,7 +1261,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
-            ok,
+            success,
             token,
             from,
             to,
@@ -1290,7 +1290,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory amounts = batchExecution.amounts;
 
         // Attempt to transfer the ERC1155 token via...
-        bool ok = (
+        bool success = (
             // The proxy if it is specified by the batch execution...
             batchExecution.useProxy
                 ? _callProxy(
@@ -1319,7 +1319,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
 
         // If the call fails...
-        if (!ok) {
+        if (!success) {
             // Revert and pass the revert reason along if one was returned.
             _revertWithReasonIfOneIsReturned();
 
@@ -1345,12 +1345,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                   originally deployed.
      * @param callData   The calldata to supply when calling the proxy.
      *
-     * @return ok The status of the call to the proxy.
+     * @return success The status of the call to the proxy.
      */
     function _callProxy(
         address proxyOwner,
         bytes memory callData
-    ) internal returns (bool ok) {
+    ) internal returns (bool success) {
         // Retrieve the user proxy from the registry.
         address proxy = _LEGACY_PROXY_REGISTRY.proxies(proxyOwner);
 
@@ -1364,7 +1364,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // perform the call to the proxy.
-        (ok,) = proxy.call(callData);
+        (success,) = proxy.call(callData);
     }
 
     /**
@@ -1375,13 +1375,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param target   The account to call.
      * @param callData The calldata to supply when calling the target.
      *
-     * @return ok The status of the call to the target.
+     * @return success The status of the call to the target.
      */
     function _call(
         address target,
         bytes memory callData
-    ) internal returns (bool ok) {
-        (ok, ) = target.call(callData);
+    ) internal returns (bool success) {
+        (success, ) = target.call(callData);
     }
 
     /**

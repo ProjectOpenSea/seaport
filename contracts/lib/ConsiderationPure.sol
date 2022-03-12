@@ -776,7 +776,7 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return The parameters of the order at the given index.
      */
-    function _getOrderParametersByFulfillmentIndex(
+    function _getOrderParametersByFulfillmentIndexIfInRange(
         AdvancedOrder[] memory orders,
         uint256 index
     ) internal pure returns (OrderParameters memory) {
@@ -820,7 +820,7 @@ contract ConsiderationPure is ConsiderationBase {
     ) {
         // Retrieve the order parameters using the supplied order index.
         OrderParameters memory orderParameters = (
-            _getOrderParametersByFulfillmentIndex(orders, orderIndex)
+            _getOrderParametersByFulfillmentIndexIfInRange(orders, orderIndex)
         );
 
         // Ensure that the offer index is in range.
@@ -868,7 +868,7 @@ contract ConsiderationPure is ConsiderationBase {
     ) internal pure returns (FulfilledItem memory) {
         // Retrieve the order parameters using the supplied order index.
         OrderParameters memory orderParameters = (
-            _getOrderParametersByFulfillmentIndex(orders, orderIndex)
+            _getOrderParametersByFulfillmentIndexIfInRange(orders, orderIndex)
         );
 
         // Ensure that the consideration index is in range.

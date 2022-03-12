@@ -74,7 +74,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      this function must be called after the account in question has been
      *      called and before any other contracts have been called.
      *
-     * @param ok      The status of the call to transfer. Note that contract
+     * @param success The status of the call to transfer. Note that contract
      *                size must be checked on status of true and no returned
      *                data to rule out undeployed contracts.
      * @param token   The token to transfer.
@@ -84,7 +84,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param amount  The amount to transfer (if applicable).
      */
     function _assertValidTokenTransfer(
-        bool ok,
+        bool success,
         address token,
         address from,
         address to,
@@ -92,7 +92,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 amount
     ) internal view {
         // If the call failed...
-        if (!ok) {
+        if (!success) {
             // Revert and pass reason along if one was returned from the token.
             _revertWithReasonIfOneIsReturned();
 
@@ -218,7 +218,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Should a signer be recovered, but it doesn't match the offerer...
         } else if (signer != offerer) {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
-            (bool ok, ) = offerer.staticcall(
+            (bool success, ) = offerer.staticcall(
                 abi.encodeWithSelector(
                     EIP1271Interface.isValidSignature.selector,
                     digest,
@@ -227,7 +227,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             );
 
             // If the call fails...
-            if (!ok) {
+            if (!success) {
                 // Revert and pass reason along if one was returned.
                 _revertWithReasonIfOneIsReturned();
 
