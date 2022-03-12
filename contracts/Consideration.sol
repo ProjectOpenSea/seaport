@@ -100,7 +100,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         );
 
         // Transfer ETH to recipients, returning excess to caller, and wrap up.
-        _transferETHAndFinalize(
+        _transferEthAndFinalize(
             etherAmount,
             parameters
         );
@@ -167,7 +167,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         );
 
         // Transfer ETH to recipients, returning excess to caller, and wrap up.
-        _transferETHAndFinalize(
+        _transferEthAndFinalize(
             etherAmount,
             parameters
         );

@@ -453,7 +453,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
             // If offer expects ETH, reduce ether value available.
             if (offeredItem.itemType == ItemType.ETH) {
-                etherRemaining -= amount;
+                // Ensure that sufficient Ether is still available.
+                if (amount > etherRemaining) {
+                    revert InsufficientEtherSupplied();
+                }
+
+                // Skip underflow check as amount is less than ether remaining.
+                unchecked {
+                    etherRemaining -= amount;
+                }
             }
 
             // Update offered amount so that an accurate event can be emitted.
@@ -483,7 +491,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
             // If consideration expects ETH, reduce ether value available.
             if (receivedItem.itemType == ItemType.ETH) {
-                etherRemaining -= amount;
+                // Ensure that sufficient Ether is still available.
+                if (amount > etherRemaining) {
+                    revert InsufficientEtherSupplied();
+                }
+
+                // Skip underflow check as amount is less than ether remaining.
+                unchecked {
+                    etherRemaining -= amount;
+                }
             }
 
             // Update offered amount so that an accurate event can be emitted.
@@ -929,7 +945,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
             // If execution transfers ETH, reduce ether value available.
             if (item.itemType == ItemType.ETH) {
-                etherRemaining -= item.amount;
+                // Ensure that sufficient Ether is still available.
+                if (item.amount > etherRemaining) {
+                    revert InsufficientEtherSupplied();
+                }
+
+                // Skip underflow check as amount is less than ether remaining.
+                unchecked {
+                    etherRemaining -= item.amount;
+                }
             }
 
             // Transfer the item specified by the execution.
@@ -1366,7 +1390,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param amount     The amount of Ether to transfer.
      * @param parameters The parameters of the order.
      */
-    function _transferETHAndFinalize(
+    function _transferEthAndFinalize(
         uint256 amount,
         BasicOrderParameters memory parameters
     ) internal {
@@ -1380,19 +1404,35 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 parameters.additionalRecipients[i]
             );
 
+            // Read ether amount to transfer to recipient and place on stack.
+            uint256 additionalRecipientAmount = additionalRecipient.amount;
+
+            // Ensure that sufficient Ether is available.
+            if (additionalRecipientAmount > etherRemaining) {
+                revert InsufficientEtherSupplied();
+            }
+
             // Transfer Ether to the additional recipient.
             _transferEth(
                 additionalRecipient.recipient,
-                additionalRecipient.amount
+                additionalRecipientAmount
             );
 
-            // Reduce ether value available.
-            etherRemaining -= additionalRecipient.amount;
+            // Skip underflow check as subtracted value is less than remaining.
+            unchecked {
+                // Reduce ether value available.
+                etherRemaining -= additionalRecipientAmount;
+            }
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
                 ++i;
             }
+        }
+
+        // Ensure that sufficient Ether is still available.
+        if (amount > etherRemaining) {
+            revert InsufficientEtherSupplied();
         }
 
         // Transfer Ether to the offerer.
