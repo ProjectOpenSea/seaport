@@ -194,6 +194,12 @@ interface ConsiderationEventsAndErrors {
     );
 
     /**
+     * @dev Revert with an error when insufficient ether is supplied as part of
+     *      msg.value when fulfilling orders.
+     */
+    error InsufficientEtherSupplied();
+
+    /**
      * @dev Revert with an error when an ether transfer reverts.
      */
     error EtherTransferGenericFailure(address account, uint256 amount);
