@@ -1034,33 +1034,36 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount,
         address proxyOwner
     ) internal {
-        // Attempt to transfer the ERC20 token via...
-        bool success = (
-            // The proxy if a proxy owner is specified...
-            proxyOwner != address(0)
-                ? _callProxy(
-                    proxyOwner,
-                    abi.encodeWithSelector(
-                        ProxyInterface.transferERC20.selector,
-                        token,
+        // Declare a boolean to represent whether call completes successfully.
+        bool success;
+
+        // If a proxy owner has been specified...
+        if (proxyOwner != address(0)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(
+                proxyOwner,
+                abi.encodeWithSelector(
+                    ProxyInterface.transferERC20.selector,
+                    token,
+                    from,
+                    to,
+                    amount
+                )
+            );
+        } else {
+            // Otherwise, perform transfer via the token contract directly.
+            success = _call(
+                token,
+                abi.encodeCall(
+                    ERC20Interface.transferFrom,
+                    (
                         from,
                         to,
                         amount
                     )
                 )
-                // otherwise, via the token contract directly.
-                : _call(
-                    token,
-                    abi.encodeCall(
-                        ERC20Interface.transferFrom,
-                        (
-                            from,
-                            to,
-                            amount
-                        )
-                    )
-                )
-        );
+            );
+        }
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
@@ -1117,33 +1120,36 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 identifier,
         address proxyOwner
     ) internal {
-        // Attempt to transfer the ERC721 token via...
-        bool success = (
-            // The proxy if a proxy owner is specified...
-            proxyOwner != address(0)
-                ? _callProxy(
-                    proxyOwner,
-                    abi.encodeWithSelector(
-                        ProxyInterface.transferERC721.selector,
-                        token,
+        // Declare a boolean to represent whether call completes successfully.
+        bool success;
+
+        // If a proxy owner has been specified...
+        if (proxyOwner != address(0)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(
+                proxyOwner,
+                abi.encodeWithSelector(
+                    ProxyInterface.transferERC721.selector,
+                    token,
+                    from,
+                    to,
+                    identifier
+                )
+            );
+        } else {
+            // Otherwise, perform transfer via the token contract directly.
+            success = _call(
+                token,
+                abi.encodeCall(
+                    ERC721Interface.transferFrom,
+                    (
                         from,
                         to,
                         identifier
                     )
                 )
-                // otherwise, via the token contract directly.
-                : _call(
-                    token,
-                    abi.encodeCall(
-                        ERC721Interface.transferFrom,
-                        (
-                            from,
-                            to,
-                            identifier
-                        )
-                    )
-                )
-        );
+            );
+        }
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
@@ -1178,34 +1184,37 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount,
         address proxyOwner
     ) internal {
-        // Attempt to transfer the ERC1155 token via...
-        bool success = (
-            // The proxy if a proxy owner is specified...
-            proxyOwner != address(0)
-                ? _callProxy(
-                    proxyOwner,
-                    abi.encodeWithSelector(
-                        ProxyInterface.transferERC1155.selector,
-                        token,
-                        from,
-                        to,
-                        identifier,
-                        amount
-                    )
-                )
-                // otherwise, via the token contract directly.
-                : _call(
+        // Declare a boolean to represent whether call completes successfully.
+        bool success;
+
+        // If a proxy owner has been specified...
+        if (proxyOwner != address(0)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(
+                proxyOwner,
+                abi.encodeWithSelector(
+                    ProxyInterface.transferERC1155.selector,
                     token,
-                    abi.encodeWithSelector(
-                        ERC1155Interface.safeTransferFrom.selector,
-                        from,
-                        to,
-                        identifier,
-                        amount,
-                        ""
-                    )
+                    from,
+                    to,
+                    identifier,
+                    amount
                 )
-        );
+            );
+        } else {
+            // Otherwise, perform transfer via the token contract directly.
+            success = _call(
+                token,
+                abi.encodeWithSelector(
+                    ERC1155Interface.safeTransferFrom.selector,
+                    from,
+                    to,
+                    identifier,
+                    amount,
+                    ""
+                )
+            );
+        }
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
@@ -1237,34 +1246,37 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        // Attempt to transfer the ERC1155 token via...
-        bool success = (
-            // The proxy if it is specified by the batch execution...
-            batchExecution.useProxy
-                ? _callProxy(
-                    batchExecution.from,
-                    abi.encodeWithSelector(
-                        ProxyInterface.batchTransferERC1155.selector,
-                        token,
-                        from,
-                        to,
-                        tokenIds,
-                        amounts
-                    )
-                )
-                // otherwise, via the token contract directly.
-                : _call(
+        // Declare a boolean to represent whether call completes successfully.
+        bool success;
+
+        // If proxy usage has been specified...
+        if (batchExecution.useProxy) {
+            // Perform transfers via a call to the proxy for the supplied owner.
+            success = _callProxy(
+                batchExecution.from,
+                abi.encodeWithSelector(
+                    ProxyInterface.batchTransferERC1155.selector,
                     token,
-                    abi.encodeWithSelector(
-                        ERC1155Interface.safeBatchTransferFrom.selector,
-                        from,
-                        to,
-                        tokenIds,
-                        amounts,
-                        ""
-                    )
+                    from,
+                    to,
+                    tokenIds,
+                    amounts
                 )
-        );
+            );
+        } else {
+            // Otherwise, perform transfers via the token contract directly.
+            success = _call(
+                token,
+                abi.encodeWithSelector(
+                    ERC1155Interface.safeBatchTransferFrom.selector,
+                    from,
+                    to,
+                    tokenIds,
+                    amounts,
+                    ""
+                )
+            );
+        }
 
         // If the call fails...
         if (!success) {
