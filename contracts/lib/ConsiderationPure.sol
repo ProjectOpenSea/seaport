@@ -149,10 +149,7 @@ contract ConsiderationPure is ConsiderationBase {
                 }
 
                 // Ensure the specified item type indicates criteria usage.
-                if (
-                    itemType != ItemType.ERC721_WITH_CRITERIA &&
-                    itemType != ItemType.ERC1155_WITH_CRITERIA
-                ) {
+                if (!_isItemWithCriteria(itemType)) {
                     revert CriteriaNotEnabledForItem();
                 }
 
