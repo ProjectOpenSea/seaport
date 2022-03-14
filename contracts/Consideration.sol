@@ -571,11 +571,20 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
-        // Convert orders to "advanced" orders, then validate and fulfill them.
-        return _matchAdvancedOrders(
-            _convertOrdersToAdvanced(orders),
-            new CriteriaResolver[](0), // No criteria resolvers are supplied.
-            fulfillments
+        // Convert orders to "advanced" orders.
+        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(orders);
+
+        // Validate orders, apply amounts, & determine if they utilize proxies.
+        bool[] memory useProxyPerOrder = _validateOrdersAndPrepareToFulfill(
+            advancedOrders,
+            new CriteriaResolver[](0) // No criteria resolvers are supplied.
+        );
+
+        // Fulfill the orders using the supplied fulfillments.
+        return _fulfillAdvancedOrders(
+            advancedOrders,
+            fulfillments,
+            useProxyPerOrder
         );
     }
 
@@ -626,11 +635,17 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
-        // Validate and fulfill the advanced orders.
-        return _matchAdvancedOrders(
+        // Validate orders, apply amounts, & determine if they utilize proxies.
+        bool[] memory useProxyPerOrder = _validateOrdersAndPrepareToFulfill(
             advancedOrders,
-            criteriaResolvers,
-            fulfillments
+            criteriaResolvers
+        );
+
+        // Fulfill the orders using the supplied fulfillments.
+        return _fulfillAdvancedOrders(
+            advancedOrders,
+            fulfillments,
+            useProxyPerOrder
         );
     }
 

@@ -808,62 +808,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
     }
 
     /**
-     * @dev Internal function to match an arbitrary number of advanced orders,
-     *      fully or partially, and each with an arbitrary number of items for
-     *      offer and consideration, supplying criteria resolvers containing
-     *      specific token identifiers and associated proofs and fulfillments
-     *      allocating offer components to consideration components.
-     *
-     * @param advancedOrders    The partial orders to match. Note that both the
-     *                          offerer and fulfiller on each partial order must
-     *                          first approve this contract (or their proxy if
-     *                          indicated by the order) to transfer any relevant
-     *                          tokens on their behalf and each consideration
-     *                          recipient must implement `onERC1155Received` in
-     *                          order to receive ERC1155 tokens.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific order as well as that order's
-     *                          offer or consideration, a token identifier, and
-     *                          a proof that the supplied token identifier is
-     *                          contained in the order's merkle root. Note that
-     *                          a root of zero indicates that any transferrable
-     *                          token identifier is valid and that no proof
-     *                          needs to be supplied.
-     * @param fulfillments      An array of elements allocating offer components
-     *                          to consideration components. Note that each
-     *                          consideration component must be fully met in
-     *                          order for the match operation to be valid.
-     *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
-     */
-    function _matchAdvancedOrders(
-        AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers,
-        Fulfillment[] memory fulfillments
-    ) internal returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    ) {
-        // Adjust orders by filled amount and determine if they utilize proxies.
-        bool[] memory useProxyPerOrder = _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            criteriaResolvers
-        );
-
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(
-            advancedOrders,
-            fulfillments,
-            useProxyPerOrder
-        );
-    }
-
-    /**
      * @dev Internal function to fulfill an arbitrary number of orders, either
      *      full or partial, after validating, adjusting amounts, and applying
      *      criteria resolvers.
