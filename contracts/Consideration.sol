@@ -482,12 +482,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     ) external payable override returns (bool) {
         // Convert order to "advanced" order, then validate and fulfill it.
         return _validateAndFulfillAdvancedOrder(
-            AdvancedOrder(
-                order.parameters,
-                1,
-                1,
-                order.signature
-            ),
+            _convertOrderToAdvanced(order),
             new CriteriaResolver[](0), // No criteria resolvers are supplied.
             useFulfillerProxy
         );
