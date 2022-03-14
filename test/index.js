@@ -4197,6 +4197,372 @@ describe("Consideration functional tests", function () {
       });
       it.skip("Criteria-based consideration item (match)", async () => {});
     });
+
+    describe("Cyclical orders", async () => {
+      it("Match A => B => C => A", async () => {
+        // Everybody mints an NFT
+        const nftId = ethers.BigNumber.from(randomHex());
+        const secondNFTId = ethers.BigNumber.from(randomHex());
+        const thirdNFTId = ethers.BigNumber.from(randomHex());
+
+        await testERC721.mint(seller.address, nftId);
+        await testERC721.mint(buyer.address, secondNFTId);
+        await testERC721.mint(owner.address, thirdNFTId);
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        // Buyer approves marketplace contract to transfer NFTs
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(testERC721.connect(buyer).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(buyer.address, marketplaceContract.address, true);
+        });
+
+        // Owner approves marketplace contract to transfer NFTs
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(testERC721.connect(owner).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(owner.address, marketplaceContract.address, true);
+        });
+
+        const offerOne = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const considerationOne = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: secondNFTId,
+            startAmount: 1,
+            endAmount: 1,
+            recipient: seller.address,
+          },
+        ];
+
+        const { order: orderOne, orderHash: orderHashOne, value: valueOne, } = await createOrder(
+          seller,
+          zone,
+          offerOne,
+          considerationOne,
+          0, // FULL_OPEN
+        );
+
+        const offerTwo = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: secondNFTId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const considerationTwo = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: thirdNFTId,
+            startAmount: 1,
+            endAmount: 1,
+            recipient: buyer.address,
+          },
+        ];
+
+        const { order: orderTwo, orderHash: orderHashTwo, value: valueTwo } = await createOrder(
+          buyer,
+          zone,
+          offerTwo,
+          considerationTwo,
+          0, // FULL_OPEN
+        );
+
+        const offerThree = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: thirdNFTId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const considerationThree = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+            recipient: owner.address,
+          },
+        ];
+
+        const { order: orderThree, orderHash: orderHashThree, value: valueThree } = await createOrder(
+          owner,
+          zone,
+          offerThree,
+          considerationThree,
+          0, // FULL_OPEN
+        );
+
+        const fulfillments = [
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 1,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 0,
+                "itemIndex": 0
+              }
+            ]
+          },
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 0,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 2,
+                "itemIndex": 0
+              }
+            ]
+          },
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 2,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 1,
+                "itemIndex": 0
+              }
+            ]
+          },
+        ];
+
+        const {
+          standardExecutions,
+          batchExecutions
+        } = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0  // no value
+        );
+
+        expect(batchExecutions.length).to.equal(0);
+        expect(standardExecutions.length).to.equal(fulfillments.length);
+
+        await whileImpersonating(owner.address, provider, async () => {
+          const tx = await marketplaceContract.connect(owner).matchAdvancedOrders([orderOne, orderTwo, orderThree], [], fulfillments, {value: 0});
+          const receipt = await tx.wait();
+          checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          checkExpectedEvents(receipt, [{order: orderTwo, orderHash: orderHashTwo, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          checkExpectedEvents(receipt, [{order: orderThree, orderHash: orderHashThree, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          return receipt;
+        });
+      });
+      it("Match with fewer executions when one party has multiple orders that coincide", async () => {
+        // Seller and buyer both mint an NFT
+        const nftId = ethers.BigNumber.from(randomHex());
+        const secondNFTId = ethers.BigNumber.from(randomHex());
+
+        await testERC721.mint(seller.address, nftId);
+        await testERC721.mint(buyer.address, secondNFTId);
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        // Buyer approves marketplace contract to transfer NFTs
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(testERC721.connect(buyer).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(buyer.address, marketplaceContract.address, true);
+        });
+
+        const offerOne = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const considerationOne = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+        ];
+
+        const { order: orderOne, orderHash: orderHashOne, value: valueOne, } = await createOrder(
+          seller,
+          zone,
+          offerOne,
+          considerationOne,
+          0, // FULL_OPEN
+        );
+
+        const offerTwo = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+          },
+        ];
+
+        const considerationTwo = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: secondNFTId,
+            startAmount: 1,
+            endAmount: 1,
+            recipient: seller.address,
+          },
+        ];
+
+        const { order: orderTwo, orderHash: orderHashTwo, value: valueTwo } = await createOrder(
+          seller,
+          zone,
+          offerTwo,
+          considerationTwo,
+          0, // FULL_OPEN
+        );
+
+        const offerThree = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: secondNFTId,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const considerationThree = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: 1,
+            endAmount: 1,
+            recipient: buyer.address,
+          },
+        ];
+
+        const { order: orderThree, orderHash: orderHashThree, value: valueThree } = await createOrder(
+          buyer,
+          zone,
+          offerThree,
+          considerationThree,
+          0, // FULL_OPEN
+        );
+
+        const fulfillments = [
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 1,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 0,
+                "itemIndex": 0
+              }
+            ]
+          },
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 0,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 2,
+                "itemIndex": 0
+              }
+            ]
+          },
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 2,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 1,
+                "itemIndex": 0
+              }
+            ]
+          },
+        ];
+
+        const {
+          standardExecutions,
+          batchExecutions
+        } = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0  // no value
+        );
+
+        expect(batchExecutions.length).to.equal(0);
+        expect(standardExecutions.length).to.equal(fulfillments.length - 1);
+
+        await whileImpersonating(owner.address, provider, async () => {
+          const tx = await marketplaceContract.connect(owner).matchAdvancedOrders([orderOne, orderTwo, orderThree], [], fulfillments, {value: 0});
+          const receipt = await tx.wait();
+          checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          checkExpectedEvents(receipt, [{order: orderTwo, orderHash: orderHashTwo, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          checkExpectedEvents(receipt, [{order: orderThree, orderHash: orderHashThree, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          return receipt;
+        });
+      });
+    });
   });
 
   describe("Auctions for single nft items", async () => {

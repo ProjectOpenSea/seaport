@@ -844,15 +844,41 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // Track number of filtered executions.
+            uint256 totalFilteredExecutions = 0;
+
             // Iterate over each fulfillment.
             for (uint256 i = 0; i < fulfillments.length; ++i) {
+                /// Retrieve the fulfillment in question.
                 Fulfillment memory fulfillment = fulfillments[i];
-                executions[i] = _applyFulfillment(
+
+                // Derive the execution corresponding with the fulfillment.
+                Execution memory execution = _applyFulfillment(
                     orders,
                     fulfillment.offerComponents,
                     fulfillment.considerationComponents,
                     ordersUseProxy
                 );
+
+                // If offerer and recipient on the execution are the same...
+                if (execution.item.recipient == execution.offerer) {
+                    // increment total filtered executions.
+                    totalFilteredExecutions += 1;
+                } else {
+                    // Otherwise, assign the execution to the executions array.
+                    executions[i - totalFilteredExecutions] = execution;
+                }
+            }
+
+            // If some number of executions have been filtered...
+            if (totalFilteredExecutions != 0) {
+                // reduce the total length of the executions array.
+                assembly {
+                    mstore(
+                        executions,
+                        sub(mload(executions), totalFilteredExecutions)
+                    )
+                }
             }
 
             // Iterate over orders to ensure all considerations are met.
