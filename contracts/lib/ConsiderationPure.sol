@@ -1121,6 +1121,26 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
+     * @dev Internal pure function to convert an order to an advanced order with
+     *      numerator and denominator of 1.
+     *
+     * @param order The order to convert.
+     *
+     * @return The new advanced order.
+     */
+    function _convertOrderToAdvanced(
+        Order memory order
+    ) internal pure returns (AdvancedOrder memory) {
+        // Convert to partial order (1/1 or full fill) and return new value.
+        return AdvancedOrder(
+            order.parameters,
+            1,
+            1,
+            order.signature
+        );
+    }
+
+    /**
      * @dev Internal pure function to convert an array of orders to an array of
      *      advanced orders with numerator and denominator of 1.
      *
@@ -1140,16 +1160,8 @@ contract ConsiderationPure is ConsiderationBase {
         unchecked {
             // Iterate over the given orders.
             for (uint256 i = 0; i < orders.length; ++i) {
-                // Retrive the order.
-                Order memory order = orders[i];
-
                 // Convert to partial order (1/1 or full fill) and update array.
-                advancedOrders[i] = AdvancedOrder(
-                    order.parameters,
-                    1,
-                    1,
-                    order.signature
-                );
+                advancedOrders[i] = _convertOrderToAdvanced(orders[i]);
             }
         }
 
