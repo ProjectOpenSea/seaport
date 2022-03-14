@@ -3948,6 +3948,13 @@ describe("Consideration functional tests", function () {
           1, // PARTIAL_OPEN
         );
 
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
+
         order.numerator = 2; // fill two tenths or one fifth
         order.denominator = 10; // fill two tenths or one fifth
 
@@ -3959,6 +3966,73 @@ describe("Consideration functional tests", function () {
             return receipt;
           });
         });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(true);
+        expect(orderStatus.totalFilled).to.equal(2);
+        expect(orderStatus.totalSize).to.equal(10);
+
+        order.numerator = 1; // fill one half
+        order.denominator = 2; // fill one half
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, [], async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, []);
+            return receipt;
+          });
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(true);
+        expect(orderStatus.totalFilled).to.equal(14);
+        expect(orderStatus.totalSize).to.equal(20);
+
+        // Fill remaining; only 3/10ths will be fillable
+        order.numerator = 1; // fill one half
+        order.denominator = 2; // fill one half
+
+        const ordersClone = JSON.parse(JSON.stringify([order]));
+        for (const [i, clonedOrder] of Object.entries(ordersClone)) {
+          clonedOrder.parameters.startTime = order.parameters.startTime;
+          clonedOrder.parameters.endTime = order.parameters.endTime;
+
+          for (const [j, offerItem] of Object.entries(clonedOrder.parameters.offer)) {
+            offerItem.startAmount = order.parameters.offer[j].startAmount;
+            offerItem.endAmount = order.parameters.offer[j].endAmount;
+          }
+
+          for (const [j, considerationItem] of Object.entries(clonedOrder.parameters.consideration)) {
+            considerationItem.startAmount = order.parameters.consideration[j].startAmount;
+            considerationItem.endAmount = order.parameters.consideration[j].endAmount;
+          }
+        }
+
+        ordersClone[0].numerator = 3;
+        ordersClone[0].denominator = 10;
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks(ordersClone, 0, [], async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order: ordersClone[0], orderHash, fulfiller: buyer.address}], null, null, []);
+            return receipt;
+          });
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(true);
+        expect(orderStatus.totalFilled).to.equal(40);
+        expect(orderStatus.totalSize).to.equal(40);
+      });
+      it.skip("Partial fills (match)", async () => {
       });
     });
 
