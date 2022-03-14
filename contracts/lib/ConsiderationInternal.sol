@@ -96,12 +96,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
         offer[0] = offeredItem;
         consideration[0] = receivedItem;
 
-        // Use offered item's info for additional recipients for ETH or ERC20.
+        // Get offered item type and received item token and place on the stack.
         ItemType itemType = offeredItem.itemType;
         address token = receivedItem.token;
-        if (uint256(itemType) < 2) {
+
+        // Use offered item's info for additional recipients for ETH or ERC20.
+        if (_isEtherOrERC20Item(itemType)) {
+            // Set token for additional recipients to offered item's token.
             token = offeredItem.token;
         } else {
+            // Otherwise, set additional recipient type to received item's type.
             itemType = receivedItem.itemType;
         }
 
@@ -251,7 +255,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // If attempting partial fill (n < d) check order type & ensure support.
         if (
             numerator < denominator &&
-            uint256(orderParameters.orderType) % 2 == 0
+            _doesNotSupportPartialFills(orderParameters.orderType)
         ) {
             revert PartialFillsNotEnabledForOrder();
         }
