@@ -175,7 +175,11 @@ contract ConsiderationPure is ConsiderationBase {
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
                     // Ensure item type no longer indicates criteria usage.
-                    if (uint256(order.parameters.consideration[j].itemType) > 3) {
+                    if (
+                        _isItemWithCriteria(
+                            order.parameters.consideration[j].itemType
+                        )
+                    ) {
                         revert UnresolvedConsiderationCriteria();
                     }
                 }
@@ -183,7 +187,11 @@ contract ConsiderationPure is ConsiderationBase {
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
                     // Ensure item type no longer indicates criteria usage.
-                    if (uint256(order.parameters.offer[j].itemType) > 3) {
+                    if (
+                        _isItemWithCriteria(
+                            order.parameters.offer[j].itemType
+                        )
+                    ) {
                         revert UnresolvedOfferCriteria();
                     }
                 }
@@ -1062,6 +1070,57 @@ contract ConsiderationPure is ConsiderationBase {
 
             mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
         }
+    }
+
+    /**
+     * @dev Internal pure function to check whether a given item type represents
+     *      an Ether or ERC20 item.
+     *
+     * @param itemType The item type in question.
+     *
+     * @return A boolean indicating that the item type represents either Ether
+     *         or an ERC20 item.
+     */
+    function _isEtherOrERC20Item(
+        ItemType itemType
+    ) internal pure returns (bool) {
+        // Ether is item type 0 and ERC20 is item type 1.
+        return uint256(itemType) < 2;
+    }
+
+    /**
+     * @dev Internal pure function to check whether a given item type represents
+     *      a criteria-based ERC721 or ERC1155 item (e.g. an item that can be
+     *      resolved to one of a number of different identifiers at the time of
+     *      order fulfillment).
+     *
+     * @param itemType The item type in question.
+     *
+     * @return A boolean indicating that the item type in question represents a
+     *         criteria-based item.
+     */
+    function _isItemWithCriteria(
+        ItemType itemType
+    ) internal pure returns (bool) {
+        // ERC721WithCriteria is item type 4. ERC115WithCriteria is item type 5.
+        return uint256(itemType) > 3;
+    }
+
+    /**
+     * @dev Internal pure function to check whether a given order type indicates
+     *      that partial fills are not supported (e.g. only "full fills" are
+     *      allowed for the order in question).
+     *
+     * @param orderType The order type in question.
+     *
+     * @return A boolean indicating whether the order type only supports full
+     *         fills.
+     */
+    function _doesNotSupportPartialFills(
+        OrderType orderType
+    ) internal pure returns (bool) {
+        // The "full" order types are even, while "partial" order types are odd.
+        return uint256(orderType) % 2 == 0;
     }
 
     /**
