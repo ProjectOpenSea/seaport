@@ -474,8 +474,14 @@ describe("Consideration functional tests", function () {
             process.exit(1);
           }
         } else {
-          console.error("NON_FULL_OPEN NOT IMPLEMENTED YET");
-          process.exit(1);
+          if (orderItem.startAmount.toString() === orderItem.endAmount.toString()) {
+            expect(item.amount.toString()).to.equal(
+              orderItem.endAmount.mul(order.numerator).div(order.denominator).toString()
+            );
+          } else {
+            console.error("SLIDING AMOUNT NOT IMPLEMENTED YET");
+            process.exit(1);
+          }
         }
       }
 
@@ -794,9 +800,15 @@ describe("Consideration functional tests", function () {
       const allOfferedItems = ordersClone.map(x => x.parameters.offer.map(offerItem => ({
         ...offerItem,
         account: x.parameters.offerer,
+        numerator: x.numerator,
+        denominator: x.denominator,
       }))).flat();
 
-      const allReceivedItems = ordersClone.map(x => x.parameters.consideration).flat();
+      const allReceivedItems = ordersClone.map(x => x.parameters.consideration.map(considerationItem => ({
+        ...considerationItem,
+        numerator: x.numerator,
+        denominator: x.denominator,
+      }))).flat();
 
       for (offeredItem of allOfferedItems) {
         if (offeredItem.itemType > 3) {
@@ -907,7 +919,11 @@ describe("Consideration functional tests", function () {
 
         if (offeredItem.itemType < 4) { // TODO: criteria-based
           if (!additonalPayouts) {
-            expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(offerredItem.endAmount.toString());
+            expect(
+              offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()
+            ).to.equal(
+              ethers.BigNumber.from(offerredItem.endAmount).mul(offerredItem.numerator).div(offerredItem.denominator).toString()
+            );
           } else {
             expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(additonalPayouts.add(offerredItem.endAmount).toString());
           }
@@ -924,7 +940,11 @@ describe("Consideration functional tests", function () {
           console.error("SLIDING AMOUNT BALANCE RECEIVED CHECKS NOT IMPLEMENTED YET");
           process.exit(1);
         }
-        expect(receivedItem.finalBalance.sub(receivedItem.initialBalance).toString()).to.equal(receivedItem.endAmount.toString());
+        expect(
+          receivedItem.finalBalance.sub(receivedItem.initialBalance).toString()
+        ).to.equal(
+          ethers.BigNumber.from(receivedItem.endAmount).mul(receivedItem.numerator).div(receivedItem.denominator).toString()
+        );
 
         if (receivedItem.itemType === 2) { // ERC721
           expect(receivedItem.ownsItemBefore).to.equal(false);
@@ -3867,6 +3887,79 @@ describe("Consideration functional tests", function () {
       await Promise.all(
         [seller, buyer, zone].map((wallet) => faucet(wallet.address, provider))
       );
+    });
+
+    describe("Partial fills", async () => {
+      it("Partial fills (standard)", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount.mul(10000));
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: amount.mul(1000),
+            endAmount: amount.mul(1000),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: amount.mul(20),
+            endAmount: amount.mul(20),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          1, // PARTIAL_OPEN
+        );
+
+        order.numerator = 2; // fill two tenths or one fifth
+        order.denominator = 10; // fill two tenths or one fifth
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, [], async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value});
+            const receipt = await tx.wait();
+            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, []);
+            return receipt;
+          });
+        });
+      });
     });
 
     describe("Criteria-based orders", async () => {
