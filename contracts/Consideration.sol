@@ -49,13 +49,15 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
     /**
      * @notice Fulfill an order offering a single ERC721 token by supplying
-     *         Ether as consideration for the order. An arbitrary number of
-     *         "additional recipients" may also be supplied which will each
-     *         receive Ether from the fulfiller as consideration.
+     *         Ether (or the native token for the given chain) as consideration
+     *         for the order. An arbitrary number of "additional recipients" may
+     *         also be supplied which will each receive the native token from
+     *         the fulfiller as consideration.
      *
-     * @param etherAmount Ether that will be transferred to the offerer of the
-     *                    fulfilled order. Note that msg.value must exceed this
-     *                    amount if additonal recipients are specified.
+     * @param etherAmount Ether (or the native token for the given chain) that
+     *                    will be transferred to the offerer of the fulfilled
+     *                    order. Note that msg.value must exceed this amount if
+     *                    additonal recipients are specified.
      * @param parameters  Additional information on the fulfilled order. Note
      *                    that the offerer must first approve this contract (or
      *                    their proxy if indicated by the order) in order for
@@ -81,9 +83,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 1  // Amount of 1 for ERC721 tokens
             ),
             ReceivedItem(
-                ItemType.ETH,
-                address(0),   // No token address for ETH
-                0,            // No identifier for ETH
+                ItemType.NATIVE,
+                address(0),   // No token address for ETH or other native tokens
+                0,            // No identifier for ETH or other native tokens
                 etherAmount,
                 etherAmount,
                 offerer
@@ -99,7 +101,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             useOffererProxy ? offerer : address(0)
         );
 
-        // Transfer ETH to recipients, returning excess to caller, and wrap up.
+        // Transfer native to recipients, return excess to caller, and wrap up.
         _transferEthAndFinalize(
             etherAmount,
             parameters
@@ -109,14 +111,16 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
-     * @notice Fulfill an order offering ERC1155 tokens by supplying Ether as
-     *         consideration for the order. An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive Ether
-     *         from the fulfiller as consideration.
+     * @notice Fulfill an order offering ERC1155 tokens by supplying Ether (or
+     *         the native token for the given chain) as consideration for the
+     *         order. An arbitrary number of "additional recipients" may also be
+     *         supplied which will each receive native tokens from the fulfiller
+     *         as consideration.
      *
-     * @param etherAmount   Ether that will be transferred to the offerer of the
-     *                      fulfilled order. Note that msg.value must exceed
-     *                      this amount if additonal recipients are specified.
+     * @param etherAmount   Ether (or the native token for the given chain) that
+     *                      will be transferred to the offerer of the fulfilled
+     *                      order. Note that msg.value must exceed this amount
+     *                      if additonal recipients are specified.
      * @param erc1155Amount Total offererd ERC1155 tokens that will be
      *                      transferred to the fulfiller. Also note that calling
      *                      contracts must implement `onERC1155Received` in
@@ -147,9 +151,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 erc1155Amount
             ),
             ReceivedItem(
-                ItemType.ETH,
-                address(0),   // No token address for ETH
-                0,            // No identifier for ETH
+                ItemType.NATIVE,
+                address(0),   // No token address for ETH or other native tokens
+                0,            // No identifier for ETH or other native tokens
                 etherAmount,
                 etherAmount,
                 offerer
@@ -166,7 +170,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             useOffererProxy ? offerer : address(0)
         );
 
-        // Transfer ETH to recipients, returning excess to caller, and wrap up.
+        // Transfer native to recipients, return excess to caller, and wrap up.
         _transferEthAndFinalize(
             etherAmount,
             parameters

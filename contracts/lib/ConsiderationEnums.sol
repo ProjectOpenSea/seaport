@@ -13,7 +13,7 @@ enum OrderType {
 }
 
 enum ItemType {
-    ETH,
+    NATIVE, // ETH on mainnet, MATIC on polygon, etc.
     ERC20,
     ERC721,
     ERC1155,
