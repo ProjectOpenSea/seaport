@@ -960,7 +960,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _NOT_ENTERED;
 
         // Return the arrays of executions that were triggered.
-        return (executions, batchExecutions);
+        return (standardExecutions, batchExecutions);
     }
 
     /**
