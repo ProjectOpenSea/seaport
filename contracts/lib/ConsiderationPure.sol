@@ -383,21 +383,22 @@ contract ConsiderationPure is ConsiderationBase {
                             batches[j].executionIndices
                         );
 
+                        // Place old execution indices array length on stack.
+                        uint256 originalLength = oldExecutionIndices.length;
+
                         // Allocate execution indices array w/ an extra element.
                         uint256[] memory newExecutionIndices = (
-                            new uint256[](oldExecutionIndices.length + 1)
+                            new uint256[](originalLength + 1)
                         );
 
                         // Iterate over existing execution indices.
-                        for (uint256 k = 0; k < oldExecutionIndices.length; ++k) {
+                        for (uint256 k = 0; k < originalLength; ++k) {
                             // Add them to the new execution indices array.
                             newExecutionIndices[k] = oldExecutionIndices[k];
                         }
 
                         // Add new execution index to the end of the array.
-                        newExecutionIndices[oldExecutionIndices.length] = (
-                            indexBy1155[j]
-                        );
+                        newExecutionIndices[originalLength] = executionIndex;
 
                         // Update the batch with the extended array.
                         batches[j].executionIndices = newExecutionIndices;
@@ -534,47 +535,39 @@ contract ConsiderationPure is ConsiderationBase {
                     );
                 // Otherwise, it is a batch execution.
                 } else {
-                    // Derive batch execution index by decrementing the pointer.
-                    uint256 batchExecutionIndex = batchExecutionPointer - 1;
+                    // Decrement pointer to derive the batch execution index.
+                    uint256 batchIndex = batchExecutionPointer - 1;
 
                     // If it is the first item applied to the batch execution...
-                    if (batchExecutions[batchExecutionIndex].token == address(0)) {
-                        // Allocate an empty array for each tokenId and amount.
-                        uint256[] memory emptyElementsArray = new uint256[](
-                            batches[batchExecutionIndex].executionIndices.length
+                    if (batchExecutions[batchIndex].token == address(0)) {
+                        // Determine total elements in batch and place on stack.
+                        uint256 totalElements = (
+                            batches[batchIndex].executionIndices.length
                         );
 
                         // Populate all other fields using execution parameters.
-                        batchExecutions[batchExecutionIndex] = BatchExecution(
-                            execution.item.token,     // token
-                            execution.offerer,        // from
-                            execution.item.recipient, // to
-                            emptyElementsArray,       // tokenIds
-                            emptyElementsArray,       // amounts
-                            execution.useProxy        // useProxy
+                        batchExecutions[batchIndex] = BatchExecution(
+                            execution.item.token,         // token
+                            execution.offerer,            // from
+                            execution.item.recipient,     // to
+                            new uint256[](totalElements), // tokenIds
+                            new uint256[](totalElements), // amounts
+                            execution.useProxy            // useProxy
                         );
                     }
 
                     // Put next batch element index on stack, then increment it.
                     uint256 batchElementIndex = (
-                        batchElementIndices[batchExecutionIndex]++
+                        batchElementIndices[batchIndex]++
                     );
 
                     // Update current element's batch with respective tokenId.
-                    batchExecutions[
-                        batchExecutionIndex
-                    ].tokenIds[
-                        batchElementIndex
-                    ] = (
+                    batchExecutions[batchIndex].tokenIds[batchElementIndex] = (
                         execution.item.identifier
                     );
 
                     // Update current element's batch with respective amount.
-                    batchExecutions[
-                        batchExecutionIndex
-                    ].amounts[
-                        batchElementIndex
-                    ] = (
+                    batchExecutions[batchIndex].amounts[batchElementIndex] = (
                         execution.item.amount
                     );
                 }

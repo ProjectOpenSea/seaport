@@ -390,8 +390,35 @@ describe("Consideration functional tests", function () {
     }
 
     if (batchExecutions && batchExecutions.length > 0) {
-      console.error("BATCH EXECUTION VALIDATION NOT IMPLEMENTED YET");
-      process.exit(1);
+      for (batchExecution of batchExecutions) {
+        const {
+          token,
+          from,
+          to,
+          tokenIds,
+          amounts,
+        } = batchExecution;
+
+        const tokenEvents = receipt.events.filter(x => x.address === token);
+
+        expect(tokenEvents.length).to.be.above(0);
+
+        // search for transfer
+        const transferLogs = tokenEvents
+          .map(x => testERC1155.interface.parseLog(x))
+          .filter(x => (
+            x.signature === 'TransferBatch(address,address,address,uint256[],uint256[])' &&
+            x.args.operator === marketplaceContract.address &&
+            x.args.to === to
+          ));
+
+        expect(transferLogs.length).to.equal(1);
+        const transferLog = transferLogs[0];
+        for ([i, tokenId] of Object.entries(tokenIds)) {
+          expect(transferLog.args.ids[i].toString()).to.equal(tokenId.toString());
+          expect(transferLog.args[4][i].toString()).to.equal(amounts[i].toString());
+        }
+      }
     }
 
     if (criteriaResolvers) {
@@ -537,12 +564,33 @@ describe("Consideration functional tests", function () {
               x.args.operator === marketplaceContract.address &&
               x.args.from === event.offerer &&
               (fulfiller !== constants.AddressZero ? x.args.to === fulfiller : true)
+            ) || (
+              x.signature === 'TransferBatch(address,address,address,uint256[],uint256[])' &&
+              x.args.operator === marketplaceContract.address &&
+              x.args.from === event.offerer &&
+              (fulfiller !== constants.AddressZero ? x.args.to === fulfiller : true)
             ));
 
           expect(transferLogs.length).to.equal(1);
           const transferLog = transferLogs[0];
-          expect(transferLog.args.id.toString()).to.equal(offer.identifier.toString());
-          expect(transferLog.args.value.toString()).to.equal(offer.amount.toString());
+
+          if (transferLog.signature === 'TransferSingle(address,address,address,uint256,uint256)') {
+            expect(transferLog.args.id.toString()).to.equal(offer.identifier.toString());
+            expect(transferLog.args.value.toString()).to.equal(offer.amount.toString());
+          } else {
+            let located = false;
+            for ([i, batchTokenId] of Object.entries(transferLog.args.ids)) {
+              if (
+                batchTokenId.toString() === offer.identifier.toString() &&
+                transferLog.args[4][i].toString() === offer.amount.toString()
+              ) {
+                located = true;
+                break;
+              }
+            }
+
+            expect(located).to.be.true;
+          }
         }
       }
 
@@ -591,12 +639,34 @@ describe("Consideration functional tests", function () {
               x.signature === 'TransferSingle(address,address,address,uint256,uint256)' &&
               x.args.operator === marketplaceContract.address &&
               x.args.to === consideration.recipient
+            ) || (
+              x.signature === 'TransferBatch(address,address,address,uint256[],uint256[])' &&
+              x.args.operator === marketplaceContract.address &&
+              x.args.to === consideration.recipient
             ));
 
           expect(transferLogs.length).to.equal(1);
           const transferLog = transferLogs[0];
-          expect(transferLog.args.id.toString()).to.equal(consideration.identifier.toString());
-          expect(transferLog.args.value.toString()).to.equal(consideration.amount.toString());
+
+
+
+          if (transferLog.signature === 'TransferSingle(address,address,address,uint256,uint256)') {
+            expect(transferLog.args.id.toString()).to.equal(consideration.identifier.toString());
+            expect(transferLog.args.value.toString()).to.equal(consideration.amount.toString());
+          } else {
+            let located = false;
+            for ([i, batchTokenId] of Object.entries(transferLog.args.ids)) {
+              if (
+                batchTokenId.toString() === consideration.identifier.toString() &&
+                transferLog.args[4][i].toString() === consideration.amount.toString()
+              ) {
+                located = true;
+                break;
+              }
+            }
+
+            expect(located).to.be.true;
+          }
         }
       }
     }
@@ -4822,6 +4892,183 @@ describe("Consideration functional tests", function () {
           return receipt;
         });
       });
+    });
+
+    describe("ERC1155 batch transfers", async () => {
+        it("ERC1155 <=> ETH (match)", async () => {
+          // Seller mints first nft
+          const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+          const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller mints second nft
+          const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+          const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+          await testERC1155.mint(seller.address, secondNftId, secondAmount);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          const offer = [
+            {
+              itemType: 3, // ERC1155
+              token: testERC1155.address,
+              identifierOrCriteria: nftId,
+              startAmount: amount,
+              endAmount: amount,
+            },
+            {
+              itemType: 3, // ERC1155
+              token: testERC1155.address,
+              identifierOrCriteria: secondNftId,
+              startAmount: secondAmount,
+              endAmount: secondAmount,
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+          );
+
+          const {
+            mirrorOrder,
+            mirrorOrderHash,
+            mirrorValue,
+          } = await createMirrorBuyNowOrder(
+            buyer,
+            zone,
+            order
+          );
+
+          const fulfillments = [
+            {
+              offerComponents: [
+                {
+                  orderIndex: 0,
+                  itemIndex: 0,
+                },
+              ],
+              considerationComponents: [
+                {
+                  orderIndex: 1,
+                  itemIndex: 0,
+                },
+              ],
+            },
+            {
+              offerComponents: [
+                {
+                  orderIndex: 0,
+                  itemIndex: 1,
+                },
+              ],
+              considerationComponents: [
+                {
+                  orderIndex: 1,
+                  itemIndex: 1,
+                },
+              ],
+            },
+            {
+              offerComponents: [
+                {
+                  orderIndex: 1,
+                  itemIndex: 0,
+                },
+              ],
+              considerationComponents: [
+                {
+                  orderIndex: 0,
+                  itemIndex: 0,
+                },
+              ],
+            },
+            {
+              offerComponents: [
+                {
+                  orderIndex: 1,
+                  itemIndex: 0,
+                },
+              ],
+              considerationComponents: [
+                {
+                  orderIndex: 0,
+                  itemIndex: 1,
+                },
+              ],
+            },
+            {
+              offerComponents: [
+                {
+                  orderIndex: 1,
+                  itemIndex: 0,
+                },
+              ],
+              considerationComponents: [
+                {
+                  orderIndex: 0,
+                  itemIndex: 2,
+                },
+              ],
+            },
+          ];
+
+          const {
+            standardExecutions,
+            batchExecutions
+          } = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
+
+          expect(batchExecutions.length).to.equal(1);
+          expect(standardExecutions.length).to.equal(3);
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments, {value});
+            const receipt = await tx.wait();
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            return receipt;
+          });
+        });
     });
   });
 
