@@ -100,7 +100,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         ItemType itemType = offeredItem.itemType;
         address token = receivedItem.token;
 
-        // Use offered item's info for additional recipients for ETH or ERC20.
+        // Use offered item's info for additional recipients of native or ERC20.
         if (_isEtherOrERC20Item(itemType)) {
             // Set token for additional recipients to offered item's token.
             token = offeredItem.token;
@@ -122,7 +122,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 consideration[i] = ReceivedItem(
                     itemType,
                     token,
-                    0, // No identifier for ETH or ERC20
+                    0, // No identifier for native tokens or ERC20.
                     additionalRecipient.amount,
                     additionalRecipient.amount,
                     additionalRecipient.recipient
@@ -455,9 +455,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 duration
             );
 
-            // If offer expects ETH, reduce ether value available.
-            if (offeredItem.itemType == ItemType.ETH) {
-                // Ensure that sufficient Ether is still available.
+            // If offer expects ETH or a native token, reduce value available.
+            if (offeredItem.itemType == ItemType.NATIVE) {
+                // Ensure that sufficient native tokens are still available.
                 if (amount > etherRemaining) {
                     revert InsufficientEtherSupplied();
                 }
@@ -493,9 +493,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 duration
             );
 
-            // If consideration expects ETH, reduce ether value available.
-            if (receivedItem.itemType == ItemType.ETH) {
-                // Ensure that sufficient Ether is still available.
+            // If item expects ETH or a native token, reduce value available.
+            if (receivedItem.itemType == ItemType.NATIVE) {
+                // Ensure that sufficient native tokens are still available.
                 if (amount > etherRemaining) {
                     revert InsufficientEtherSupplied();
                 }
@@ -917,9 +917,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
             Execution memory execution = standardExecutions[i];
             FulfilledItem memory item = execution.item;
 
-            // If execution transfers ETH, reduce ether value available.
-            if (item.itemType == ItemType.ETH) {
-                // Ensure that sufficient Ether is still available.
+            // If execution transfers native tokens, reduce value available.
+            if (item.itemType == ItemType.NATIVE) {
+                // Ensure that sufficient native tokens are still available.
                 if (item.amount > etherRemaining) {
                     revert InsufficientEtherSupplied();
                 }
@@ -976,9 +976,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address offerer,
         bool useProxy
     ) internal {
-        if (item.itemType == ItemType.ETH) {
-            // Transfer Ether to the recipient.
+        // If the item type is for Ether or a native token...
+        if (item.itemType == ItemType.NATIVE) {
+            // transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
+        // Otherwise, transfer the item based on item type and proxy preference.
         } else {
             // Place proxy owner on stack (or null address if not using proxy).
             address proxyOwner = useProxy ? offerer : address(0);
@@ -1021,13 +1023,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
     }
 
     /**
-     * @dev Internal function to transfer ether to a given recipient.
+     * @dev Internal function to transfer Ether or other native tokens to a
+     *      given recipient.
      *
      * @param to     The recipient of the transfer.
      * @param amount The amount to transfer.
      */
     function _transferEth(address payable to, uint256 amount) internal {
-        // Attempt to transfer the ether to the recipient.
+        // Attempt to transfer the native tokens to the recipient.
         (bool success,) = to.call{value: amount}("");
 
         // If the call fails...
