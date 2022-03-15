@@ -49,7 +49,7 @@ describe("Consideration functional tests", function () {
     const nonce = await marketplaceContract.getNonce(offerer.address, zone.address);
     const salt = randomHex();
     const startTime = 0;
-    const endTime = ethers.BigNumber.from("0xff00000000000000000000000000000000000000000000000000000000000000");
+    const endTime = ethers.BigNumber.from("0xff00000000000000000000000000");
 
     const orderParameters = {
         offerer: offerer.address,
@@ -316,7 +316,7 @@ describe("Consideration functional tests", function () {
     return {mirrorOrder, mirrorOrderHash, mirrorValue};
   }
 
-  const checkExpectedEvents = (receipt, orderGroups, standardExecutions, batchExecutions, criteriaResolvers) => {
+  const checkExpectedEvents = async (receipt, orderGroups, standardExecutions, batchExecutions, criteriaResolvers) => {
     if (standardExecutions && standardExecutions.length > 0) {
       for (standardExecution of standardExecutions) {
         const {
@@ -455,7 +455,7 @@ describe("Consideration functional tests", function () {
       expect(event.zone).to.equal(order.parameters.zone);
       expect(event.fulfiller).to.equal(fulfiller);
 
-      const compareEventItems = (item, orderItem) => {
+      const compareEventItems = async (item, orderItem) => {
         expect(item.itemType).to.equal(orderItem.itemType > 3 ? orderItem.itemType - 2 : orderItem.itemType);
         expect(item.token).to.equal(orderItem.token);
         expect(item.token).to.equal(tokenByType[item.itemType].address);
@@ -470,8 +470,14 @@ describe("Consideration functional tests", function () {
           if (orderItem.startAmount.toString() === orderItem.endAmount.toString()) {
             expect(item.amount.toString()).to.equal(orderItem.endAmount.toString());
           } else {
-            console.error("SLIDING AMOUNT NOT IMPLEMENTED YET");
-            process.exit(1);
+            const {timestamp} = await provider.getBlock(receipt.blockHash);
+            const duration = ethers.BigNumber.from(order.parameters.endTime).sub(order.parameters.startTime);
+            const elapsed = ethers.BigNumber.from(timestamp).sub(order.parameters.startTime);
+            const remaining = duration.sub(elapsed);
+
+            expect(item.amount.toString()).to.equal(
+              (ethers.BigNumber.from(orderItem.startAmount).mul(remaining).add(ethers.BigNumber.from(orderItem.endAmount).mul(elapsed))).div(duration).toString()
+            );
           }
         } else {
           if (orderItem.startAmount.toString() === orderItem.endAmount.toString()) {
@@ -488,7 +494,7 @@ describe("Consideration functional tests", function () {
       expect(event.offer.length).to.equal(order.parameters.offer.length);
       for ([index, offer] of Object.entries(event.offer)) {
         const offerItem = order.parameters.offer[index];
-        compareEventItems(offer, offerItem);
+        await compareEventItems(offer, offerItem);
 
         const tokenEvents = receipt.events
           .filter(x => x.address === offerItem.token);
@@ -543,7 +549,7 @@ describe("Consideration functional tests", function () {
       expect(event.consideration.length).to.equal(order.parameters.consideration.length);
       for ([index, consideration] of Object.entries(event.consideration)) {
         const considerationItem = order.parameters.consideration[index];
-        compareEventItems(consideration, considerationItem);
+        await compareEventItems(consideration, considerationItem);
         expect(consideration.recipient).to.equal(considerationItem.recipient);
 
         const tokenEvents = receipt.events
@@ -802,12 +808,16 @@ describe("Consideration functional tests", function () {
         account: x.parameters.offerer,
         numerator: x.numerator,
         denominator: x.denominator,
+        startTime: x.parameters.startTime,
+        endTime: x.parameters.endTime,
       }))).flat();
 
       const allReceivedItems = ordersClone.map(x => x.parameters.consideration.map(considerationItem => ({
         ...considerationItem,
         numerator: x.numerator,
         denominator: x.denominator,
+        startTime: x.parameters.startTime,
+        endTime: x.parameters.endTime,
       }))).flat();
 
       for (offeredItem of allOfferedItems) {
@@ -912,17 +922,15 @@ describe("Consideration functional tests", function () {
       }
 
       for (offerredItem of allOfferedItems) {
-        if (offerredItem.startAmount.toString() !== offerredItem.endAmount.toString()) {
-          console.error("SLIDING AMOUNT BALANCE OFFERED CHECKS NOT IMPLEMENTED YET");
-          process.exit(1);
-        }
+        const {timestamp} = await provider.getBlock(receipt.blockHash);
+        const duration = ethers.BigNumber.from(offerredItem.endTime).sub(offerredItem.startTime);
+        const elapsed = ethers.BigNumber.from(timestamp).sub(offerredItem.startTime);
+        const remaining = duration.sub(elapsed);
 
         if (offeredItem.itemType < 4) { // TODO: criteria-based
           if (!additonalPayouts) {
-            expect(
-              offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()
-            ).to.equal(
-              ethers.BigNumber.from(offerredItem.endAmount).mul(offerredItem.numerator).div(offerredItem.denominator).toString()
+            expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(
+              (ethers.BigNumber.from(offerredItem.startAmount).mul(remaining).add(ethers.BigNumber.from(offerredItem.endAmount).mul(elapsed))).div(duration).mul(offerredItem.numerator).div(offerredItem.denominator).toString()
             );
           } else {
             expect(offerredItem.initialBalance.sub(offerredItem.finalBalance).toString()).to.equal(additonalPayouts.add(offerredItem.endAmount).toString());
@@ -1077,7 +1085,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -1166,7 +1174,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillBasicEthForERC721Order(order.parameters.consideration[0].endAmount, basicOrderParameters, {value});
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -1256,8 +1264,8 @@ describe("Consideration functional tests", function () {
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-            checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
             return receipt;
           });
         });
@@ -1340,7 +1348,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false);
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -1447,7 +1455,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC721Order(testERC20.address, tokenAmount.sub(100), basicOrderParameters);
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -1555,8 +1563,8 @@ describe("Consideration functional tests", function () {
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments);
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-            checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
             return receipt;
           });
         });
@@ -1642,7 +1650,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false);
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -1744,7 +1752,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], ethers.BigNumber.from(100), null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillBasicERC721ForERC20Order(testERC20.address, tokenAmount.sub(100), basicOrderParameters);
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -1847,8 +1855,8 @@ describe("Consideration functional tests", function () {
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments);
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-            checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
             return receipt;
           });
         });
@@ -1919,7 +1927,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -2009,7 +2017,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillBasicEthForERC1155Order(order.parameters.consideration[0].endAmount, order.parameters.offer[0].endAmount, basicOrderParameters, {value});
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             })
           });
@@ -2100,8 +2108,8 @@ describe("Consideration functional tests", function () {
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-            checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
             return receipt;
           });
         });
@@ -2178,7 +2186,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false);
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -2279,7 +2287,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC1155Order(testERC20.address, tokenAmount.sub(100), amount, basicOrderParameters);
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -2381,8 +2389,8 @@ describe("Consideration functional tests", function () {
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments);
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-            checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
             return receipt;
           });
         });
@@ -2469,7 +2477,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false);
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -2572,7 +2580,7 @@ describe("Consideration functional tests", function () {
             await withBalanceChecks([order], ethers.BigNumber.from(100), null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillBasicERC1155ForERC20Order(testERC20.address, tokenAmount.sub(100), amount, basicOrderParameters);
               const receipt = await tx.wait();
-              checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
             });
           });
@@ -2676,8 +2684,8 @@ describe("Consideration functional tests", function () {
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract.connect(owner).matchOrders([order, mirrorOrder], fulfillments);
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-            checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+            await checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
             return receipt;
           });
         });
@@ -2795,7 +2803,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
             return receipt;
           });
         });
@@ -2899,7 +2907,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
             return receipt;
           });
         });
@@ -3502,7 +3510,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
             return receipt;
           });
         });
@@ -3619,7 +3627,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
             return receipt;
           });
         });
@@ -3742,7 +3750,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
             return receipt;
           });
         });
@@ -3865,7 +3873,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
             return receipt;
           });
         });
@@ -3962,7 +3970,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, []);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, []);
             return receipt;
           });
         });
@@ -3981,7 +3989,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, []);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, []);
             return receipt;
           });
         });
@@ -4020,7 +4028,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks(ordersClone, 0, [], async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order: ordersClone[0], orderHash, fulfiller: buyer.address}], null, null, []);
+            await checkExpectedEvents(receipt, [{order: ordersClone[0], orderHash, fulfiller: buyer.address}], null, null, []);
             return receipt;
           });
         });
@@ -4118,7 +4126,7 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], 0, criteriaResolvers, async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, criteriaResolvers, false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, criteriaResolvers);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, criteriaResolvers);
             return receipt;
           });
         });
@@ -4287,8 +4295,8 @@ describe("Consideration functional tests", function () {
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract.connect(owner).matchAdvancedOrders([order, mirrorOrder], criteriaResolvers, fulfillments, {value});
           const receipt = await tx.wait();
-          checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions, criteriaResolvers);
-          checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions, criteriaResolvers);
+          await checkExpectedEvents(receipt, [{order: mirrorOrder, orderHash: mirrorOrderHash, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
           return receipt;
         });
       });
@@ -4357,12 +4365,97 @@ describe("Consideration functional tests", function () {
           await withBalanceChecks([order], value.mul(-1), criteriaResolvers, async () => {
             const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, criteriaResolvers, false, {value});
             const receipt = await tx.wait();
-            checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, criteriaResolvers);
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, criteriaResolvers);
             return receipt;
           });
         });
       });
       it.skip("Criteria-based consideration item (match)", async () => {});
+    });
+
+    describe("Ascending / Descending amounts", async () => {
+      it("Ascending offer amount (standard)", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const startAmount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        const endAmount = startAmount.mul(2);
+        await testERC1155.mint(seller.address, nftId, endAmount.mul(10));
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount,
+            endAmount,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, [], async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value});
+            const receipt = await tx.wait();
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, []);
+            return receipt;
+          });
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(true);
+        expect(orderStatus.totalFilled).to.equal(1);
+        expect(orderStatus.totalSize).to.equal(1);
+      });
     });
 
     describe("Cyclical orders", async () => {
@@ -4546,9 +4639,9 @@ describe("Consideration functional tests", function () {
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract.connect(owner).matchAdvancedOrders([orderOne, orderTwo, orderThree], [], fulfillments, {value: 0});
           const receipt = await tx.wait();
-          checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-          checkExpectedEvents(receipt, [{order: orderTwo, orderHash: orderHashTwo, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-          checkExpectedEvents(receipt, [{order: orderThree, orderHash: orderHashThree, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          await checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          await checkExpectedEvents(receipt, [{order: orderTwo, orderHash: orderHashTwo, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          await checkExpectedEvents(receipt, [{order: orderThree, orderHash: orderHashThree, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
           return receipt;
         });
       });
@@ -4723,9 +4816,9 @@ describe("Consideration functional tests", function () {
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract.connect(owner).matchAdvancedOrders([orderOne, orderTwo, orderThree], [], fulfillments, {value: 0});
           const receipt = await tx.wait();
-          checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-          checkExpectedEvents(receipt, [{order: orderTwo, orderHash: orderHashTwo, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
-          checkExpectedEvents(receipt, [{order: orderThree, orderHash: orderHashThree, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          await checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          await checkExpectedEvents(receipt, [{order: orderTwo, orderHash: orderHashTwo, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          await checkExpectedEvents(receipt, [{order: orderThree, orderHash: orderHashThree, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
           return receipt;
         });
       });
