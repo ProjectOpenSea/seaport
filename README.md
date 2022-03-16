@@ -29,17 +29,46 @@ Each order contains nine key components:
 
 Orders are fulfilled via one of three methods:
 - Calling one of two "standard" functions, `fulfillOrder` and `fulfillAdvancedOrder`, where a second implied order will be constructed with the caller as the offerer, the consideration of the fulfilled order as the offer, and the offer of the fulfilled order as the consideration (with "advanced" orders containing the fraction that should be filled alongside a set of "criteria resolvers" that designate an identifier and a corresponding inclusion proof for each criteria-based item on the fulfilled order).
-- Calling one of six "basic" functions that derive the order to fulfill from a subset of components, assuming the order in question adheres to the following:
-   - The order only contains a single offer item and contains at least one consideration item
-   - The order only contains a single ERC721 or ERC1155 item and that item is not criteria-based
-   - All other items have the same Ether (or other native token) or ERC20 item type and token
-   - All items have the same `startAmount` and `endAmount`
+- Calling one of six "basic" functions, `fulfillBasicEthForERC721Order`, `fulfillBasicEthForERC1155Order`, `fulfillBasicERC20ForERC721Order`, `fulfillBasicERC20ForERC1155Order`, `fulfillBasicERC721ForERC20Order`, and `fulfillBasicERC1155ForERC20Order`, that derive the order to fulfill from a subset of components, assuming the order in question adheres to the following:
+   - The order only contains a single offer item and contains at least one consideration item.
+   - The order contains exactly one ERC721 or ERC1155 item and that item is not criteria-based.
+   - The offerer of the order is the recipient of the first consideration item.
+   - All other items have the same Ether (or other native tokens) or ERC20 item type and token.
+   - The order does not offer an item with Ether (or other native tokens) as its item type.
+   - The `startAmount` on each item must match that item's `endAmount` (i.e. items cannot have an ascending/descending amount).
+   - All "ignored" item fields (i.e. `token` and `identifierOrCriteria` on native items and `identifierOrCriteria` on ERC20 items) are set to the null address or zero.
+   - If the order has an ERC721 item, that item has an amount of `1`.
+   - If the order has multiple consideration items and all consideration items other than the first consideration item have the same item type as the offered item, the offered item amount is not less than the sum of all consideration item amounts excluding the first consideration item amount.
 - Calling one of two "match" functions, `matchOrders` and `matchAdvancedOrders`, where a group of explicit orders are supplied alongside a group of "fulfillments" specifying which offer items to apply to which consideration items (and with the "advanced" case operating in a similar fashion to the standard method).
 
 While the standard method can technically be used for fulfilling any order, it suffers from key efficiency limitations:
 - It requires significantly more calldata than the basic method for simple "hot paths".
-- It requires the fulfiller to approve each consideration item, even if the consideration item can be fulfilled using an offer item (as is commonly the case when fulfilling an order that offers ERC20 tokens for an ERC721 or ERC1155 token and also includes consideration items in the same ERC20 tokens for paying fees).
+- It requires the fulfiller to approve each consideration item, even if the consideration item can be fulfilled using an offer item (as is commonly the case when fulfilling an order that offers ERC20 items for an ERC721 or ERC1155 item and also includes consideration items with the same ERC20 item type for paying fees).
 - It can result in unnecessary transfers, whereas in the "match" case those transfers can be reduced to a more minimal set.
+
+### Balance & Approval Requirements
+When creating an offer, the following requirements should be checked to ensure that the order will be fulfillable:
+- The offerer should have suffifient balance of all offered items.
+- If the order does not indicate proxy utilization, the offerer should have sufficient approvals set for the Consideration contract for all offered ERC20, ERC721, and ERC1155 items.
+- If the order _does_ indicate proxy utilization, the offerer should have sufficient approvals set for their respective proxy contract for all offered ERC20, ERC721, and ERC1155 items.
+
+When fulfilling a _basic_ order, the following requirements need to be checked to ensure that the order will be fulfillable:
+- The above checks need to be performed to ensure that the offerer still has sufficient balance and approvals.
+- The fulfiller should have sufficient balance of all consideration items _except for those with an item type that matches the order's offered item type_ — by way of example, if the fulfilled order offers an ERC20 item and requires an ERC721 item to the offerer and the same ERC20 item to another recipient, the fulfiller needs to own the ERC721 item but does not need to own the ERC20 item as it will be sourced from the offerer.
+- If the fulfiller does not elect to utilize a proxy, they need to have sufficient approvals set for the Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order _except for ERC20 items with an item type that matches the order's offered item type_.
+- If the fulfiller _does_ elect to utilize a proxy, they need to have sufficient approvals set for their respective proxy contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order _except for ERC20 items with an item type that matches the order's offered item type_.
+- If the fulfilled order specifies Ether (or other native tokens) as consideration items, the fulfiller must be able to supply the sum total of those items as `msg.value`.
+
+When fulfilling a _standard_ order, the following requirements need to be checked to ensure that the order will be fulfillable:
+- The above checks need to be performed to ensure that the offerer still has sufficient balance and approvals.
+- The fulfiller should have sufficient balance of all consideration items _after receiving all offered items_ — by way of example, if the fulfilled order offers an ERC20 item and requires an ERC721 item to the offerer and the same ERC20 item to another recipient with an amount less than or equal to the offered amount, the fulfiller does not need to own the ERC20 item as it will first be received from the offerer.
+- If the fulfiller does not elect to utilize a proxy, they need to have sufficient approvals set for the Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
+- If the fulfiller _does_ elect to utilize a proxy, they need to have sufficient approvals set for their respective proxy contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
+- If the fulfilled order specifies Ether (or other native tokens) as consideration items, the fulfiller must be able to supply the sum total of those items as `msg.value`.
+
+When fulfilling a set of _match_ orders, the following requirements need to be checked to ensure that the order will be fulfillable:
+- Each account that sources the ERC20, ERC721, or ERC1155 item for an execution that will be performed as part of the fulfillment must have sufficient balance and approval on the relevant operator (depending on the order's proxy utilization preference) at the time the execution is triggered. Note that prior executions may supply the necessary balance for subsequent executions.
+- The sum total of all executions involving Ether (or other native tokens) must be supplied as `msg.value`. Note that executions where the offerer and the recipient are the same account will be filtered out of the final execution set.
 
 ### Partial Fills
 When constructing an order, the offerer may elect to enable partial fills by setting an appropriate order type. Then, orders that support partial fills can be fulfilled for some _fraction_ of the respective order, allowing subsequent fills to bypass signature verification. To summarize a few key points on partial fills:
@@ -113,7 +142,7 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
 - As all criteria-based items are tied to a particular token, there is no native way to construct orders where items specify cross-token criteria. Additionally, each potential identifier for a particular criteria-based item must have the same amount as any other identifier.
 - As orders with ascending and descending amounts may not be filled as quickly as a fulfiller would like (e.g. transactions taking longer than expected to be included), there is a risk that fulfillment on those orders will supply a larger item amount, or receive back a smaller item amount, than they intended or expected. One way to prevent these outcomes is to utilize matchOrders, supplying a contrasting order for the fulfiller that explicitly specifies the maximum allowable offer items to be spent and consideration items to be received back.
 - As all items on orders supporting partial fills must be "cleanly divisible" when performing a partial fill, orders with multiple items should to be constructed with care. A straightforward heuristic is to start with a "unit" bundle (e.g. 1 NFT item A, 3 NFT item B, and 5 NFT item C for 2 ETH) then applying a multiple to that unit bundle (e.g. 7 of those units results in a partial order for 7 NFT item A, 21 NFT item B, and 35 NFT item C for 14 ETH).
-- As Ether cannot be "taken" from an account, any order that contains Ether or other native tokens as an offer item (including "implied" mirror orders) must be supplied by the caller executing the order(s) as msg.value. This also explains why there are no `fulfillBasicERC721ForEthOrder` and `fulfillBasicERC1155ForEthOrder` functions, as Ether cannot be taken from the offerer in these cases. One important takeaway from this mechanic is that, technically, anyone can supply Ether on behalf of a given offerer (whereas the offerer themselves must supply token items).
+- As Ether cannot be "taken" from an account, any order that contains Ether or other native tokens as an offer item (including "implied" mirror orders) must be supplied by the caller executing the order(s) as msg.value. This also explains why there are no `fulfillBasicERC721ForEthOrder` and `fulfillBasicERC1155ForEthOrder` functions, as Ether cannot be taken from the offerer in these cases. One important takeaway from this mechanic is that, technically, anyone can supply Ether on behalf of a given offerer (whereas the offerer themselves must supply all other items).
 
 ## Local Development
 
