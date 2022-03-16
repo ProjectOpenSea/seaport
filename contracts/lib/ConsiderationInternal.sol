@@ -1443,39 +1443,48 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /**
      * @dev Internal function to transfer ERC20 tokens to a given recipient.
      *
-     * @param from       The originator of the ERC20 token transfer.
-     * @param to         The recipient of the ERC20 token transfer.
-     * @param erc20Token The ERC20 token to transfer.
-     * @param amount     The amount of ERC20 tokens to transfer.
-     * @param parameters The parameters of the order.
+     * @param from        The originator of the ERC20 token transfer.
+     * @param to          The recipient of the ERC20 token transfer.
+     * @param erc20Token  The ERC20 token to transfer.
+     * @param amount      The amount of ERC20 tokens to transfer.
+     * @param parameters  The parameters of the order.
+     * @param fromOfferer Whether to decrement amount from the offered amount.
      */
     function _transferERC20AndFinalize(
         address from,
         address to,
         address erc20Token,
         uint256 amount,
-        BasicOrderParameters memory parameters
+        BasicOrderParameters memory parameters,
+        bool fromOfferer
     ) internal {
         // Place proxy owner on the stack (or null address if not using proxy).
         address proxyOwner = parameters.useFulfillerProxy ? from : address(0);
 
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Iterate over each additional recipient.
-            for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
-                // Retrieve the additional recipient.
-                AdditionalRecipient memory additionalRecipient = (
-                    parameters.additionalRecipients[i]
-                );
+        // Iterate over each additional recipient.
+        for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
+            // Retrieve the additional recipient.
+            AdditionalRecipient memory additionalRecipient = (
+                parameters.additionalRecipients[i]
+            );
 
-                // Transfer ERC20 tokens to additional recipient given approval.
-                _transferERC20(
-                    erc20Token,
-                    from,
-                    additionalRecipient.recipient,
-                    additionalRecipient.amount,
-                    proxyOwner
-                );
+            // Decrement the amount to transfer to fulfiller if indicated.
+            if (fromOfferer) {
+                amount -= additionalRecipient.amount;
+            }
+
+            // Transfer ERC20 tokens to additional recipient given approval.
+            _transferERC20(
+                erc20Token,
+                from,
+                additionalRecipient.recipient,
+                additionalRecipient.amount,
+                proxyOwner
+            );
+
+            // Skip overflow check as for loop is indexed starting at zero.
+            unchecked {
+                ++i;
             }
         }
 

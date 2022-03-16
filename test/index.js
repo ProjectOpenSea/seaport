@@ -1738,7 +1738,7 @@ describe("Consideration functional tests", function () {
           });
 
           // Seller mints ERC20
-          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          const tokenAmount = ethers.BigNumber.from(randomLarge());
           await testERC20.mint(seller.address, tokenAmount);
 
           // Seller approves marketplace contract to transfer tokens
@@ -1755,8 +1755,8 @@ describe("Consideration functional tests", function () {
               itemType: 1, // ERC20
               token: testERC20.address,
               identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
+              startAmount: tokenAmount,
+              endAmount: tokenAmount,
             },
           ];
 
@@ -1819,8 +1819,8 @@ describe("Consideration functional tests", function () {
           };
 
           await whileImpersonating(buyer.address, provider, async () => {
-            await withBalanceChecks([order], ethers.BigNumber.from(100), null, async () => {
-              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC721ForERC20Order(testERC20.address, tokenAmount.sub(100), basicOrderParameters);
+            await withBalanceChecks([order], ethers.BigNumber.from(0), null, async () => {
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC721ForERC20Order(testERC20.address, tokenAmount, basicOrderParameters);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
@@ -2566,7 +2566,7 @@ describe("Consideration functional tests", function () {
           });
 
           // Seller mints ERC20
-          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          const tokenAmount = ethers.BigNumber.from(randomLarge());
           await testERC20.mint(seller.address, tokenAmount);
 
           // Seller approves marketplace contract to transfer tokens
@@ -2583,8 +2583,8 @@ describe("Consideration functional tests", function () {
               itemType: 1, // ERC20
               token: testERC20.address,
               identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
+              startAmount: tokenAmount,
+              endAmount: tokenAmount,
             },
           ];
 
@@ -2647,8 +2647,8 @@ describe("Consideration functional tests", function () {
           };
 
           await whileImpersonating(buyer.address, provider, async () => {
-            await withBalanceChecks([order], ethers.BigNumber.from(100), null, async () => {
-              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC1155ForERC20Order(testERC20.address, tokenAmount.sub(100), amount, basicOrderParameters);
+            await withBalanceChecks([order], ethers.BigNumber.from(0), null, async () => {
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC1155ForERC20Order(testERC20.address, tokenAmount, amount, basicOrderParameters);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
