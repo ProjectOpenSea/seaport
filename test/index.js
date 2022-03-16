@@ -482,7 +482,7 @@ describe("Consideration functional tests", function () {
       expect(event.zone).to.equal(order.parameters.zone);
       expect(event.fulfiller).to.equal(fulfiller);
 
-      const compareEventItems = async (item, orderItem) => {
+      const compareEventItems = async (item, orderItem, isConsiderationItem) => {
         expect(item.itemType).to.equal(orderItem.itemType > 3 ? orderItem.itemType - 2 : orderItem.itemType);
         expect(item.token).to.equal(orderItem.token);
         expect(item.token).to.equal(tokenByType[item.itemType].address);
@@ -503,7 +503,7 @@ describe("Consideration functional tests", function () {
             const remaining = duration.sub(elapsed);
 
             expect(item.amount.toString()).to.equal(
-              (ethers.BigNumber.from(orderItem.startAmount).mul(remaining).add(ethers.BigNumber.from(orderItem.endAmount).mul(elapsed))).div(duration).toString()
+              (ethers.BigNumber.from(orderItem.startAmount).mul(remaining).add(ethers.BigNumber.from(orderItem.endAmount).mul(elapsed)).add(isConsiderationItem ? duration.sub(1) : 0)).div(duration).toString()
             );
           }
         } else {
@@ -521,7 +521,7 @@ describe("Consideration functional tests", function () {
       expect(event.offer.length).to.equal(order.parameters.offer.length);
       for ([index, offer] of Object.entries(event.offer)) {
         const offerItem = order.parameters.offer[index];
-        await compareEventItems(offer, offerItem);
+        await compareEventItems(offer, offerItem, false);
 
         const tokenEvents = receipt.events
           .filter(x => x.address === offerItem.token);
@@ -597,7 +597,7 @@ describe("Consideration functional tests", function () {
       expect(event.consideration.length).to.equal(order.parameters.consideration.length);
       for ([index, consideration] of Object.entries(event.consideration)) {
         const considerationItem = order.parameters.consideration[index];
-        await compareEventItems(consideration, considerationItem);
+        await compareEventItems(consideration, considerationItem, true);
         expect(consideration.recipient).to.equal(considerationItem.recipient);
 
         const tokenEvents = receipt.events
@@ -991,8 +991,9 @@ describe("Consideration functional tests", function () {
         }
       }
 
+      const {timestamp} = await provider.getBlock(receipt.blockHash);
+
       for (offerredItem of allOfferedItems) {
-        const {timestamp} = await provider.getBlock(receipt.blockHash);
         const duration = ethers.BigNumber.from(offerredItem.endTime).sub(offerredItem.startTime);
         const elapsed = ethers.BigNumber.from(timestamp).sub(offerredItem.startTime);
         const remaining = duration.sub(elapsed);
@@ -1014,14 +1015,14 @@ describe("Consideration functional tests", function () {
       }
 
       for (receivedItem of allReceivedItems) {
-        if (receivedItem.startAmount.toString() !== receivedItem.endAmount.toString()) {
-          console.error("SLIDING AMOUNT BALANCE RECEIVED CHECKS NOT IMPLEMENTED YET");
-          process.exit(1);
-        }
+        const duration = ethers.BigNumber.from(receivedItem.endTime).sub(receivedItem.startTime);
+        const elapsed = ethers.BigNumber.from(timestamp).sub(receivedItem.startTime);
+        const remaining = duration.sub(elapsed);
+
         expect(
           receivedItem.finalBalance.sub(receivedItem.initialBalance).toString()
         ).to.equal(
-          ethers.BigNumber.from(receivedItem.endAmount).mul(receivedItem.numerator).div(receivedItem.denominator).toString()
+          (ethers.BigNumber.from(receivedItem.startAmount).mul(remaining).add(ethers.BigNumber.from(receivedItem.endAmount).mul(elapsed)).add(duration.sub(1))).div(duration).mul(receivedItem.numerator).div(receivedItem.denominator).toString()
         );
 
         if (receivedItem.itemType === 2) { // ERC721
@@ -4491,6 +4492,107 @@ describe("Consideration functional tests", function () {
             identifierOrCriteria: 0, // ignored for ETH
             startAmount: ethers.utils.parseEther("1"),
             endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, [], async () => {
+            const tx = await marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value});
+            const receipt = await tx.wait();
+            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}], null, null, []);
+            return receipt;
+          });
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(true);
+        expect(orderStatus.totalFilled).to.equal(1);
+        expect(orderStatus.totalSize).to.equal(1);
+      });
+      it("Ascending consideration amount (standard)", async () => {
+        // ABC
+        // Seller mints ERC20
+        const tokenAmount = ethers.BigNumber.from(randomLarge());
+        await testERC20.mint(seller.address, tokenAmount);
+
+        // Seller approves marketplace contract to transfer tokens
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC20.connect(seller).approve(marketplaceContract.address, tokenAmount))
+            .to.emit(testERC20, "Approval")
+            .withArgs(seller.address, marketplaceContract.address, tokenAmount);
+        });
+
+        // Buyer mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const startAmount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        const endAmount = startAmount.mul(2);
+        await testERC1155.mint(buyer.address, nftId, endAmount.mul(10));
+
+        // Buyer approves marketplace contract to transfer NFTs
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(testERC1155.connect(buyer).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(buyer.address, marketplaceContract.address, true);
+        });
+
+        // Buyer needs to approve marketplace to transfer ERC20 tokens too (as it's a standard fulfillment)
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(testERC20.connect(buyer).approve(marketplaceContract.address, tokenAmount))
+            .to.emit(testERC20, "Approval")
+            .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+        });
+
+        const offer = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0, // ignored for ERC20
+            startAmount: tokenAmount,
+            endAmount: tokenAmount,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount,
+            endAmount,
+            recipient: seller.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0, // ignored for ERC20
+            startAmount: 50,
+            endAmount: 50,
+            recipient: zone.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0, // ignored for ERC20
+            startAmount: 50,
+            endAmount: 50,
             recipient: owner.address,
           },
         ];
