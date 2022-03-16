@@ -33,6 +33,48 @@ describe("Consideration functional tests", function () {
     `0x${[...Array(60)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`
   );
 
+  const convertSignatureToEIP2098 = (signature) => {
+    if (signature.length === 130) {
+      return signature;
+    }
+
+    if (signature.length !== 132) {
+      throw error("invalid signature length (must be 64 or 65 bytes)");
+    }
+
+    signature = signature.toLowerCase();
+
+    // flip signature if malleable
+    const secp256k1n = ethers.BigNumber.from('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
+    const maxS = ethers.BigNumber.from('0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0');
+    let s = ethers.BigNumber.from('0x' + signature.slice(66, 130));
+    let v = signature.slice(130);
+
+    if (v !== '1b' && v !== '1c') {
+      throw error("invalid v value (must be 27 or 28)");
+    }
+
+    if (s.gt(maxS)) {
+      s = secp256k1n.sub(s);
+      v = v === '1c' ? '1b' : '1c';
+    }
+
+    const nonMalleableSig = `${signature.slice(0, 66)}${s.toHexString().slice(2)}${v}`;
+
+    // Convert the signature by adding a higher bit
+    return nonMalleableSig.slice(-2) === '1b'
+      ? nonMalleableSig.slice(0, -2)
+      : (
+        `${
+          nonMalleableSig.slice(0, 66)
+        }${
+          (parseInt('0x' + nonMalleableSig[66]) + 8).toString(16)
+        }${
+          nonMalleableSig.slice(67, -2)
+        }`
+      );
+  }
+
   // Returns signature
   async function signOrder(
     orderComponents,
@@ -1313,6 +1355,100 @@ describe("Consideration functional tests", function () {
               .to.emit(marketplaceContract, "OrderValidated")
               .withArgs(orderHash, seller.address, zone.address);
           });
+
+          const basicOrderParameters = {
+            offerer: order.parameters.offerer,
+            zone: order.parameters.zone,
+            orderType: order.parameters.orderType,
+            token: order.parameters.offer[0].token,
+            identifier: order.parameters.offer[0].identifierOrCriteria,
+            startTime: order.parameters.startTime,
+            endTime: order.parameters.endTime,
+            salt: order.parameters.salt,
+            useFulfillerProxy: false,
+            signature: order.signature,
+            additionalRecipients: [
+              {
+                amount: ethers.utils.parseEther("1"),
+                recipient: zone.address,
+              },
+              {
+                amount: ethers.utils.parseEther("1"),
+                recipient: owner.address,
+              }
+            ],
+          };
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicEthForERC721Order(order.parameters.consideration[0].endAmount, basicOrderParameters, {value});
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC721 <=> ETH (basic, EIP-2098 signature)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          const offer = [
+            {
+              itemType: 2, // ERC721
+              token: testERC721.address,
+              identifierOrCriteria: nftId,
+              startAmount: 1,
+              endAmount: 1,
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+          );
+
+          // Convert signature to EIP 2098
+          expect(order.signature.length).to.equal(132);
+          order.signature = convertSignatureToEIP2098(order.signature);
+          expect(order.signature.length).to.equal(130);
 
           const basicOrderParameters = {
             offerer: order.parameters.offerer,
