@@ -358,7 +358,14 @@ describe("Consideration functional tests", function () {
     return {mirrorOrder, mirrorOrderHash, mirrorValue};
   }
 
-  const checkExpectedEvents = async (receipt, orderGroups, standardExecutions, batchExecutions, criteriaResolvers) => {
+  const checkExpectedEvents = async (
+    receipt,
+    orderGroups,
+    standardExecutions,
+    batchExecutions,
+    criteriaResolvers,
+    shouldSkipAmountComparison = false
+  ) => {
     if (standardExecutions && standardExecutions.length > 0) {
       for (standardExecution of standardExecutions) {
         const {
@@ -390,7 +397,7 @@ describe("Consideration functional tests", function () {
                 x.args.to === recipient
               ));
 
-            expect(transferLogs.length).to.equal(1);
+            expect(transferLogs.length > 0).to.be.true;
             const transferLog = transferLogs[0];
             expect(transferLog.args.value.toString()).to.equal(amount.toString());
 
@@ -618,7 +625,10 @@ describe("Consideration functional tests", function () {
 
           if (transferLog.signature === 'TransferSingle(address,address,address,uint256,uint256)') {
             expect(transferLog.args.id.toString()).to.equal(offer.identifier.toString());
-            expect(transferLog.args.value.toString()).to.equal(offer.amount.toString());
+            
+            if (!shouldSkipAmountComparison) {
+              expect(transferLog.args.value.toString()).to.equal(offer.amount.toString());
+            }
           } else {
             let located = false;
             for ([i, batchTokenId] of Object.entries(transferLog.args.ids)) {
@@ -690,11 +700,11 @@ describe("Consideration functional tests", function () {
           expect(transferLogs.length).to.equal(1);
           const transferLog = transferLogs[0];
 
-
-
           if (transferLog.signature === 'TransferSingle(address,address,address,uint256,uint256)') {
             expect(transferLog.args.id.toString()).to.equal(consideration.identifier.toString());
-            expect(transferLog.args.value.toString()).to.equal(consideration.amount.toString());
+            if (!shouldSkipAmountComparison) {
+              expect(transferLog.args.value.toString()).to.equal(consideration.amount.toString());
+            }
           } else {
             let located = false;
             for ([i, batchTokenId] of Object.entries(transferLog.args.ids)) {
@@ -5093,7 +5103,7 @@ describe("Consideration functional tests", function () {
       });
     });
 
-    describe("Cyclical orders", async () => {
+    describe("Sequenced Orders", async () => {
       it("Match A => B => C => A", async () => {
         // Everybody mints an NFT
         const nftId = ethers.BigNumber.from(randomHex());
@@ -5454,6 +5464,381 @@ describe("Consideration functional tests", function () {
           await checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
           await checkExpectedEvents(receipt, [{order: orderTwo, orderHash: orderHashTwo, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
           await checkExpectedEvents(receipt, [{order: orderThree, orderHash: orderHashThree, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          return receipt;
+        });
+      });
+    });
+
+    describe("Order groups", async () => {
+      it("Multiple offer components at once", async () => {
+        // Seller mints NFTs
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, nftId, amount.mul(2));
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        // Buyer mints ERC20s
+        const tokenAmount = ethers.BigNumber.from(randomLarge());
+        await testERC20.mint(buyer.address, tokenAmount.mul(2));
+
+        // Buyer approves marketplace contract to transfer tokens
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(testERC20.connect(buyer).approve(marketplaceContract.address, tokenAmount.mul(2)))
+            .to.emit(testERC20, "Approval")
+            .withArgs(buyer.address, marketplaceContract.address, tokenAmount.mul(2));
+        });
+
+        const offerOne = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount,
+            endAmount: amount,
+          },
+        ];
+
+        const considerationOne = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: tokenAmount,
+            endAmount: tokenAmount,
+            recipient: seller.address,
+          },
+        ];
+
+        const { order: orderOne, orderHash: orderHashOne, value: valueOne, } = await createOrder(
+          seller,
+          zone,
+          offerOne,
+          considerationOne,
+          0, // FULL_OPEN
+        );
+
+        const offerTwo = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount,
+            endAmount: amount,
+          },
+        ];
+
+        const considerationTwo = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: tokenAmount,
+            endAmount: tokenAmount,
+            recipient: seller.address,
+          },
+        ];
+
+        const { order: orderTwo, orderHash: orderHashTwo, value: valueTwo } = await createOrder(
+          seller,
+          zone,
+          offerTwo,
+          considerationTwo,
+          0, // FULL_OPEN
+        );
+
+        const offerThree = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: tokenAmount.mul(2),
+            endAmount: tokenAmount.mul(2),
+          },
+        ];
+
+        const considerationThree = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(2),
+            endAmount: amount.mul(2),
+            recipient: buyer.address,
+          },
+        ];
+
+        const { order: orderThree, orderHash: orderHashThree, value: valueThree } = await createOrder(
+          buyer,
+          zone,
+          offerThree,
+          considerationThree,
+          0, // FULL_OPEN
+        );
+
+        const fulfillments = [
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 0,
+                "itemIndex": 0
+              },
+              {
+                "orderIndex": 1,
+                "itemIndex": 0
+              },
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 2,
+                "itemIndex": 0
+              }
+            ]
+          },
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 2,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 0,
+                "itemIndex": 0
+              }
+            ]
+          },
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 2,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 1,
+                "itemIndex": 0
+              }
+            ]
+          },
+        ];
+
+        const {
+          standardExecutions,
+          batchExecutions
+        } = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0  // no value
+        );
+
+        expect(batchExecutions.length).to.equal(0);
+        expect(standardExecutions.length).to.equal(fulfillments.length);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          const tx = await marketplaceContract.connect(buyer).matchAdvancedOrders([orderOne, orderTwo, orderThree], [], fulfillments, {value: 0});
+          const receipt = await tx.wait();
+          await checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions, [], true);
+          await checkExpectedEvents(receipt, [{order: orderTwo, orderHash: orderHashTwo, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions, [], true);
+          await checkExpectedEvents(receipt, [{order: orderThree, orderHash: orderHashThree, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+
+          expect(ethers.BigNumber.from('0x' + receipt.events[3].data.slice(66)).toString()).to.equal(amount.mul(2).toString());
+
+          return receipt;
+        });
+      });
+      it("Multiple consideration components at once", async () => {
+        // Seller mints NFTs
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, nftId, amount.mul(2));
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        // Buyer mints ERC20s
+        const tokenAmount = ethers.BigNumber.from(randomLarge());
+        await testERC20.mint(buyer.address, tokenAmount.mul(2));
+
+        // Buyer approves marketplace contract to transfer tokens
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(testERC20.connect(buyer).approve(marketplaceContract.address, tokenAmount.mul(2)))
+            .to.emit(testERC20, "Approval")
+            .withArgs(buyer.address, marketplaceContract.address, tokenAmount.mul(2));
+        });
+
+        const offerOne = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(2),
+            endAmount: amount.mul(2),
+          },
+        ];
+
+        const considerationOne = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: tokenAmount.mul(2),
+            endAmount: tokenAmount.mul(2),
+            recipient: seller.address,
+          },
+        ];
+
+        const { order: orderOne, orderHash: orderHashOne, value: valueOne, } = await createOrder(
+          seller,
+          zone,
+          offerOne,
+          considerationOne,
+          0, // FULL_OPEN
+        );
+
+        const offerTwo = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: tokenAmount,
+            endAmount: tokenAmount,
+          },
+        ];
+
+        const considerationTwo = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount,
+            endAmount: amount,
+            recipient: buyer.address,
+          },
+        ];
+
+        const { order: orderTwo, orderHash: orderHashTwo, value: valueTwo } = await createOrder(
+          buyer,
+          zone,
+          offerTwo,
+          considerationTwo,
+          0, // FULL_OPEN
+        );
+
+        const offerThree = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: tokenAmount,
+            endAmount: tokenAmount,
+          },
+        ];
+
+        const considerationThree = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount,
+            endAmount: amount,
+            recipient: buyer.address,
+          },
+        ];
+
+        const { order: orderThree, orderHash: orderHashThree, value: valueThree } = await createOrder(
+          buyer,
+          zone,
+          offerThree,
+          considerationThree,
+          0, // FULL_OPEN
+        );
+
+        const fulfillments = [
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 0,
+                "itemIndex": 0
+              },
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 1,
+                "itemIndex": 0
+              },
+              {
+                "orderIndex": 2,
+                "itemIndex": 0
+              },
+            ]
+          },
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 1,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 0,
+                "itemIndex": 0
+              }
+            ]
+          },
+          {
+            "offerComponents": [
+              {
+                "orderIndex": 2,
+                "itemIndex": 0
+              }
+            ],
+            "considerationComponents": [
+              {
+                "orderIndex": 0,
+                "itemIndex": 0
+              }
+            ]
+          },
+        ];
+
+        const {
+          standardExecutions,
+          batchExecutions
+        } = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0  // no value
+        );
+
+        expect(batchExecutions.length).to.equal(0);
+        expect(standardExecutions.length).to.equal(fulfillments.length);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          const tx = await marketplaceContract.connect(buyer).matchAdvancedOrders([orderOne, orderTwo, orderThree], [], fulfillments, {value: 0});
+          const receipt = await tx.wait();
+          await checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions);
+          await checkExpectedEvents(receipt, [{order: orderTwo, orderHash: orderHashTwo, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions, [], true);
+          await checkExpectedEvents(receipt, [{order: orderThree, orderHash: orderHashThree, fulfiller: constants.AddressZero}], standardExecutions, batchExecutions, [], true);
+
+          // TODO: inlcude balance checks on the duplicate ERC20 transfers
+
           return receipt;
         });
       });
