@@ -1697,6 +1697,7 @@ describe("Consideration functional tests", function () {
             });
           });
         });
+        it.skip("ERC721 <=> ETH (basic, EIP-1271 signature)", async () => {});
         it("ERC721 <=> ETH (basic, extra ether supplied and returned to caller)", async () => {
           // Seller mints nft
           const nftId = ethers.BigNumber.from(randomHex());
@@ -6887,6 +6888,16 @@ describe("Consideration functional tests", function () {
         expect(orderStatus.totalFilled).to.equal(1);
         expect(orderStatus.totalSize).to.equal(1);
       });
+      it.skip("Ascending offer amount (match)", async () => {});
+      it.skip("Ascending consideration amount (match)", async () => {});
+      it.skip("Ascending amount + partial fill (standard)", async () => {});
+      it.skip("Ascending amount + partial fill (match)", async () => {});
+      it.skip("Descending offer amount (standard)", async () => {});
+      it.skip("Descending consideration amount (standard)", async () => {});
+      it.skip("Descending offer amount (match)", async () => {});
+      it.skip("Descending consideration amount (match)", async () => {});
+      it.skip("Descending amount + partial fill (standard)", async () => {});
+      it.skip("Descending amount + partial fill (match)", async () => {});
     });
 
     describe("Sequenced Orders", async () => {
@@ -8736,6 +8747,8 @@ describe("Consideration functional tests", function () {
           });
         });
       });
+      it.skip("Reverts on invalid 1271 signature", async () => {});
+      it.skip("Reverts on invalid 1271 contract", async () => {});
       it("Reverts on missing offer or consideration components", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
@@ -11279,6 +11292,10 @@ describe("Consideration functional tests", function () {
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
       });
+    })
+
+    describe("Reentrancy", async () => {
+      it.skip("Reverts on reentrancy (test all the permutations)", async () => {});
     })
   });
 

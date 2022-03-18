@@ -7,6 +7,8 @@ module.exports = {
     'interfaces/EIP1271Interface.sol',
     'lib/ConsiderationEnums.sol',
     'lib/ConsiderationStructs.sol',
+    'test/EIP1271Wallet.sol',
+    'test/Reenterer.sol',
     'test/TestERC1155.sol',
     'test/TestERC20.sol',
     'test/TestERC721.sol',
