@@ -248,7 +248,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 denominator = uint256(advancedOrder.denominator);
 
         // Ensure that the supplied numerator and denominator are valid.
-        if (numerator > denominator || numerator == 0 || denominator == 0) {
+        if (numerator > denominator || numerator == 0) {
             revert BadFraction();
         }
 
