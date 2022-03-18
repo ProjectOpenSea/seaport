@@ -60,7 +60,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 endTime
     ) internal view {
         // Revert if order's timespan hasn't started yet or has already ended.
-        if (startTime > block.timestamp || endTime < block.timestamp) {
+        if (startTime > block.timestamp || endTime <= block.timestamp) {
             revert InvalidTime();
         }
     }
