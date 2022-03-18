@@ -976,25 +976,25 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address offerer,
         bool useProxy
     ) internal {
-        // If the item type is for Ether or a native token...
+        // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
             // transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
+        // If the item type indicates an ERC20 item...
+        } else if (item.itemType == ItemType.ERC20) {
+            // Transfer ERC20 token from the offerer to the recipient.
+            _transferERC20(
+                item.token,
+                offerer,
+                item.recipient,
+                item.amount
+            );
         // Otherwise, transfer the item based on item type and proxy preference.
         } else {
             // Place proxy owner on stack (or null address if not using proxy).
             address proxyOwner = useProxy ? offerer : address(0);
 
-            if (item.itemType == ItemType.ERC20) {
-                // Transfer ERC20 token from the offerer to the recipient.
-                _transferERC20(
-                    item.token,
-                    offerer,
-                    item.recipient,
-                    item.amount,
-                    proxyOwner
-                );
-            } else if (item.itemType == ItemType.ERC721) {
+            if (item.itemType == ItemType.ERC721) {
                 // Ensure that exactly one 721 item is being transferred.
                 if (item.amount != 1) {
                     revert InvalidERC721TransferAmount();
@@ -1045,54 +1045,25 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
     /**
      * @dev Internal function to transfer ERC20 tokens from a given originator
-     *      to a given recipient. Sufficient approvals must be set, either on
-     *      the respective proxy or on this contract itself.
+     *      to a given recipient. Sufficient approvals must be set on this
+     *      contract (note that proxies are not utilized for ERC20 items).
      *
      * @param token      The ERC20 token to transfer.
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param amount     The amount to transfer.
-     * @param proxyOwner An address indicating the owner of the proxy to utilize
-     *                   when performing the transfer, or the null address if no
-     *                   proxy should be utilized.
      */
     function _transferERC20(
         address token,
         address from,
         address to,
-        uint256 amount,
-        address proxyOwner
+        uint256 amount
     ) internal {
-        // Declare a boolean to represent whether call completes successfully.
-        bool success;
-
-        // If a proxy owner has been specified...
-        if (proxyOwner != address(0)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                proxyOwner,
-                abi.encodeWithSelector(
-                    ProxyInterface.transferERC20.selector,
-                    token,
-                    from,
-                    to,
-                    amount
-                )
-            );
-        } else {
-            // Otherwise, perform transfer via the token contract directly.
-            success = _call(
-                token,
-                abi.encodeCall(
-                    ERC20Interface.transferFrom,
-                    (
-                        from,
-                        to,
-                        amount
-                    )
-                )
-            );
-        }
+        // Perform ERC20 transfer via the token contract directly.
+        bool success = _call(
+            token,
+            abi.encodeCall(ERC20Interface.transferFrom, (from, to, amount))
+        );
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
@@ -1149,36 +1120,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 identifier,
         address proxyOwner
     ) internal {
-        // Declare a boolean to represent whether call completes successfully.
-        bool success;
-
-        // If a proxy owner has been specified...
-        if (proxyOwner != address(0)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                proxyOwner,
-                abi.encodeWithSelector(
-                    ProxyInterface.transferERC721.selector,
-                    token,
-                    from,
-                    to,
-                    identifier
-                )
-            );
-        } else {
-            // Otherwise, perform transfer via the token contract directly.
-            success = _call(
-                token,
-                abi.encodeCall(
-                    ERC721Interface.transferFrom,
-                    (
-                        from,
-                        to,
-                        identifier
-                    )
-                )
-            );
-        }
+        // Perform transfer, either directly or via proxy.
+        bool success = _callDirectlyOrViaProxy(
+            token,
+            proxyOwner,
+            abi.encodeCall(
+                ERC721Interface.transferFrom, (from, to, identifier)
+            )
+        );
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
@@ -1213,37 +1162,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount,
         address proxyOwner
     ) internal {
-        // Declare a boolean to represent whether call completes successfully.
-        bool success;
-
-        // If a proxy owner has been specified...
-        if (proxyOwner != address(0)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                proxyOwner,
-                abi.encodeWithSelector(
-                    ProxyInterface.transferERC1155.selector,
-                    token,
-                    from,
-                    to,
-                    identifier,
-                    amount
-                )
-            );
-        } else {
-            // Otherwise, perform transfer via the token contract directly.
-            success = _call(
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeTransferFrom.selector,
-                    from,
-                    to,
-                    identifier,
-                    amount,
-                    ""
-                )
-            );
-        }
+        // Perform transfer, either directly or via proxy.
+        bool success = _callDirectlyOrViaProxy(
+            token,
+            proxyOwner,
+            abi.encodeWithSelector(
+                ERC1155Interface.safeTransferFrom.selector,
+                from,
+                to,
+                identifier,
+                amount,
+                ""
+            )
+        );
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
@@ -1275,37 +1206,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        // Declare a boolean to represent whether call completes successfully.
-        bool success;
-
-        // If proxy usage has been specified...
-        if (batchExecution.useProxy) {
-            // Perform transfers via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                batchExecution.from,
-                abi.encodeWithSelector(
-                    ProxyInterface.batchTransferERC1155.selector,
-                    token,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts
-                )
-            );
-        } else {
-            // Otherwise, perform transfers via the token contract directly.
-            success = _call(
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeBatchTransferFrom.selector,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts,
-                    ""
-                )
-            );
-        }
+        // Perform transfer, either directly or via proxy.
+        bool success = _callDirectlyOrViaProxy(
+            token,
+            batchExecution.useProxy ? batchExecution.from : address(0),
+            abi.encodeWithSelector(
+                ERC1155Interface.safeBatchTransferFrom.selector,
+                from,
+                to,
+                tokenIds,
+                amounts,
+                ""
+            )
+        );
 
         // If the call fails...
         if (!success) {
@@ -1327,17 +1240,52 @@ contract ConsiderationInternal is ConsiderationInternalView {
     }
 
     /**
-     * @dev Internal function to trigger a call to a proxy contract.
+     * @dev Internal function to trigger a call to a given token, either
+     *      directly or via a proxy contract. The proxy contract must be
+     *      registered on the legacy proxy registry for the given proxy owner
+     *      and must declare that its implementation matches the required proxy
+     *      implementation in accordance with EIP-897.
+     *
+     * @param token      The token contract to call.
+     * @param proxyOwner The original owner of the proxy in question, or the
+     *                   null address if no proxy contract should be used.
+     * @param callData   The calldata to supply when calling the token contract.
+     *
+     * @return success The status of the call to the token contract.
+     */
+    function _callDirectlyOrViaProxy(
+        address token,
+        address proxyOwner,
+        bytes memory callData
+    ) internal returns (bool success) {
+        // If a proxy owner has been specified...
+        if (proxyOwner != address(0)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(proxyOwner, token, callData);
+        } else {
+            // Otherwise, perform transfer via the token contract directly.
+            success = _call(token, callData);
+        }
+    }
+
+    /**
+     * @dev Internal function to trigger a call to a proxy contract. The proxy
+     *      contract must be registered on the legacy proxy registry for the
+     *      given proxy owner and must declare that its implementation matches
+     *      the required proxy implementation in accordance with EIP-897.
      *
      * @param proxyOwner The original owner of the proxy in question. Note that
      *                   this owner may have been modified since the proxy was
      *                   originally deployed.
-     * @param callData   The calldata to supply when calling the proxy.
+     * @param target     The account that should be called by the proxy.
+     * @param callData   The calldata to supply when calling the target from the
+     *                   proxy.
      *
      * @return success The status of the call to the proxy.
      */
     function _callProxy(
         address proxyOwner,
+        address target,
         bytes memory callData
     ) internal returns (bool success) {
         // Retrieve the user proxy from the registry.
@@ -1352,8 +1300,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
             revert InvalidProxyImplementation();
         }
 
-        // perform the call to the proxy.
-        (success,) = proxy.call(callData);
+        // perform call to proxy via proxyAssert and HowToCall = CALL (value 0).
+        success = _call(
+            proxy,
+            abi.encodeWithSelector(
+                ProxyInterface.proxyAssert.selector, target, 0, callData
+            )
+        );
     }
 
     /**
@@ -1374,7 +1327,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
     }
 
     /**
-     * @dev Internal function to transfer Ether to a given recipient.
+     * @dev Internal function to transfer Ether or other native tokens to a
+     *      given recipient. Note that proxies are not utilized for native token
+     *      transfers.
      *
      * @param amount     The amount of Ether to transfer.
      * @param parameters The parameters of the order.
@@ -1442,6 +1397,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
     /**
      * @dev Internal function to transfer ERC20 tokens to a given recipient.
+     *      Note that proxies are not utilized for ERC20 tokens.
      *
      * @param from        The originator of the ERC20 token transfer.
      * @param to          The recipient of the ERC20 token transfer.
@@ -1458,9 +1414,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         BasicOrderParameters memory parameters,
         bool fromOfferer
     ) internal {
-        // Place proxy owner on the stack (or null address if not using proxy).
-        address proxyOwner = parameters.useFulfillerProxy ? from : address(0);
-
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
             // Retrieve the additional recipient.
@@ -1478,8 +1431,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 erc20Token,
                 from,
                 additionalRecipient.recipient,
-                additionalRecipient.amount,
-                proxyOwner
+                additionalRecipient.amount
             );
 
             // Skip overflow check as for loop is indexed starting at zero.
@@ -1493,8 +1445,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             erc20Token,
             from,
             to,
-            amount,
-            proxyOwner
+            amount
         );
 
         // Clear the reentrancy guard.
