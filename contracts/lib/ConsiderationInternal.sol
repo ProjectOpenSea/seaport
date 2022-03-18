@@ -1140,21 +1140,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
     }
 
-    function _callDirectlyOrViaProxy(
-        address token,
-        address proxyOwner,
-        bytes memory callData
-    ) internal returns (bool success) {
-        // If a proxy owner has been specified...
-        if (proxyOwner != address(0)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(proxyOwner, token, callData);
-        } else {
-            // Otherwise, perform transfer via the token contract directly.
-            success = _call(token, callData);
-        }
-    }
-
     /**
      * @dev Internal function to transfer ERC1155 tokens from a given originator
      *      to a given recipient. Sufficient approvals must be set, either on
@@ -1252,6 +1237,35 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Ensure that a contract is deployed to the token address.
         _assertContractIsDeployed(token);
+    }
+
+    /**
+     * @dev Internal function to trigger a call to a given token, either
+     *      directly or via a proxy contract. The proxy contract must be
+     *      registered on the legacy proxy registry for the given proxy owner
+     *      and must declare that its implementation matches the required proxy
+     *      implementation in accordance with EIP-897.
+     *
+     * @param token      The token contract to call.
+     * @param proxyOwner The original owner of the proxy in question, or the
+     *                   null address if no proxy contract should be used.
+     * @param callData   The calldata to supply when calling the token contract.
+     *
+     * @return success The status of the call to the token contract.
+     */
+    function _callDirectlyOrViaProxy(
+        address token,
+        address proxyOwner,
+        bytes memory callData
+    ) internal returns (bool success) {
+        // If a proxy owner has been specified...
+        if (proxyOwner != address(0)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(proxyOwner, token, callData);
+        } else {
+            // Otherwise, perform transfer via the token contract directly.
+            success = _call(token, callData);
+        }
     }
 
     /**
