@@ -12,3 +12,6 @@ artifacts
 
 # VScode
 .vscode
+
+# foundry
+out
