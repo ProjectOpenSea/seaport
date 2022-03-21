@@ -8,6 +8,7 @@ import { OrderType } from "./ConsiderationEnums.sol";
 import {
     OfferedItem,
     ReceivedItem,
+    FulfilledItem,
     OrderParameters,
     Order,
     AdvancedOrder,
@@ -233,7 +234,6 @@ contract ConsiderationInternalView is ConsiderationPure {
 
                 // Otherwise, revert with a generic error message.
                 revert BadContractSignature();
-
             }
 
             // Extract result from returndata buffer in case of memory overflow.
@@ -420,6 +420,67 @@ contract ConsiderationInternalView is ConsiderationPure {
         ) {
             revert InvalidSubmitterOnRestrictedOrder();
         }
+    }
+
+    /**
+     * @dev Internal view function to apply a fraction to an offered item.
+     *
+     * @param offeredItem       The offer item.
+     * @param numerator         A value indicating the portion of the order that
+     *                          should be filled.
+     * @param denominator       A value indicating the total size of the order.
+     * @param elapsed           The time elapsed since the order's start time.
+     * @param remaining         The time left until the order's end time.
+     * @param duration          The total duration of the order.
+     *
+     * @return item The item to transfer with the final amount.
+     */
+    function _applyOfferedFraction(
+        OfferedItem memory offeredItem,
+        uint256 numerator,
+        uint256 denominator,
+        uint256 elapsed,
+        uint256 remaining,
+        uint256 duration
+    ) internal view returns (FulfilledItem memory item) {
+        // Declare variable for final amount.
+        uint256 amount;
+
+        // If start amount equals end amount, apply fraction to end amount.
+        if (offeredItem.startAmount == offeredItem.endAmount) {
+            amount = _getFraction(
+                numerator,
+                denominator,
+                offeredItem.endAmount
+            );
+        } else {
+            // Otherwise, apply fraction to both to extrapolate final amount.
+            amount = _locateCurrentAmount(
+                _getFraction(
+                    numerator,
+                    denominator,
+                    offeredItem.startAmount
+                ),
+                _getFraction(
+                    numerator,
+                    denominator,
+                    offeredItem.endAmount
+                ),
+                elapsed,
+                remaining,
+                duration,
+                false // round down
+            );
+        }
+
+        // Apply order fill fraction, set caller as the receiver, and return.
+        item = FulfilledItem(
+            offeredItem.itemType,
+            offeredItem.token,
+            offeredItem.identifierOrCriteria,
+            amount,
+            payable(msg.sender)
+        );
     }
 
     /**

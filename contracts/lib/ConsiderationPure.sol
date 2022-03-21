@@ -766,6 +766,67 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
+     * @dev Internal pure function to apply a fraction to a received item.
+     *
+     * @param receivedItem      The received item.
+     * @param numerator         A value indicating the portion of the order that
+     *                          should be filled.
+     * @param denominator       A value indicating the total size of the order.
+     * @param elapsed           The time elapsed since the order's start time.
+     * @param remaining         The time left until the order's end time.
+     * @param duration          The total duration of the order.
+     *
+     * @return item The item to transfer with the final amount.
+     */
+    function _applyReceivedFraction(
+        ReceivedItem memory receivedItem,
+        uint256 numerator,
+        uint256 denominator,
+        uint256 elapsed,
+        uint256 remaining,
+        uint256 duration
+    ) internal pure returns (FulfilledItem memory item) {
+        // Declare variable for final amount.
+        uint256 amount;
+
+        // If start amount equals end amount, apply fraction to end amount.
+        if (receivedItem.startAmount == receivedItem.endAmount) {
+            amount = _getFraction(
+                numerator,
+                denominator,
+                receivedItem.endAmount
+            );
+        } else {
+            // Otherwise, apply fraction to both to extrapolate final amount.
+            amount = _locateCurrentAmount(
+                _getFraction(
+                    numerator,
+                    denominator,
+                    receivedItem.startAmount
+                ),
+                _getFraction(
+                    numerator,
+                    denominator,
+                    receivedItem.endAmount
+                ),
+                elapsed,
+                remaining,
+                duration,
+                true // round up
+            );
+        }
+
+        // Apply order fill fraction, set recipient as, receiver, and return.
+        item = FulfilledItem(
+            receivedItem.itemType,
+            receivedItem.token,
+            receivedItem.identifierOrCriteria,
+            amount,
+            receivedItem.recipient
+        );
+    }
+
+    /**
      * @dev Internal pure function to ensure that an order index is in range
      *      and, if so, to return the parameters of the associated order.
      *
