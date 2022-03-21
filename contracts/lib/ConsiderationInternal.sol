@@ -443,13 +443,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Retrieve the offer item.
             OfferedItem memory offeredItem = orderParameters.offer[i];
 
-            // Derive the amount to transfer and transfer the offered item.
-            uint256 amount = _applyOfferedFractionAndTransfer(
+            // Derive the amount to transfer.
+            FulfilledItem memory item = _applyOfferedFraction(
                 offeredItem,
                 numerator,
                 denominator,
-                orderParameters.offerer,
-                useOffererProxy,
                 elapsed,
                 remaining,
                 duration
@@ -458,18 +456,25 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // If offer expects ETH or a native token, reduce value available.
             if (offeredItem.itemType == ItemType.NATIVE) {
                 // Ensure that sufficient native tokens are still available.
-                if (amount > etherRemaining) {
+                if (item.amount > etherRemaining) {
                     revert InsufficientEtherSupplied();
                 }
 
                 // Skip underflow check as amount is less than ether remaining.
                 unchecked {
-                    etherRemaining -= amount;
+                    etherRemaining -= item.amount;
                 }
             }
 
+            // Transfer the item from the offerer to the caller.
+            _transfer(
+                item,
+                orderParameters.offerer,
+                useOffererProxy
+            );
+
             // Update offered amount so that an accurate event can be emitted.
-            offeredItem.endAmount = amount;
+            offeredItem.endAmount = item.amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -482,12 +487,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Retrieve the consideration item.
             ReceivedItem memory receivedItem = orderParameters.consideration[i];
 
-            // Derive the amount to transfer and transfer the received item.
-            uint256 amount = _applyReceivedFractionAndTransfer(
+            // Derive the amount to transfer.
+            FulfilledItem memory item = _applyReceivedFraction(
                 receivedItem,
                 numerator,
                 denominator,
-                useFulfillerProxy,
                 elapsed,
                 remaining,
                 duration
@@ -496,18 +500,25 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // If item expects ETH or a native token, reduce value available.
             if (receivedItem.itemType == ItemType.NATIVE) {
                 // Ensure that sufficient native tokens are still available.
-                if (amount > etherRemaining) {
+                if (item.amount > etherRemaining) {
                     revert InsufficientEtherSupplied();
                 }
 
                 // Skip underflow check as amount is less than ether remaining.
                 unchecked {
-                    etherRemaining -= amount;
+                    etherRemaining -= item.amount;
                 }
             }
 
+            // Transfer the item from the caller to the consideration recipient.
+            _transfer(
+                item,
+                msg.sender,
+                useFulfillerProxy
+            );
+
             // Update offered amount so that an accurate event can be emitted.
-            receivedItem.endAmount = amount;
+            receivedItem.endAmount = item.amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -669,146 +680,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Return memory region designating proxy utilization per order.
         return ordersUseProxy;
-    }
-
-    /**
-     * @dev Internal function to apply a fraction to an offered item and
-     *      transfer that amount.
-     *
-     * @param offeredItem       The offer item.
-     * @param numerator         A value indicating the portion of the order that
-     *                          should be filled.
-     * @param denominator       A value indicating the total size of the order.
-     * @param offerer           The offerer for the order.
-     * @param useOffererProxy   A flag indicating whether to source approvals
-     *                          for consumed tokens from an associated proxy.
-     * @param elapsed           The time elapsed since the order's start time.
-     * @param remaining         The time left until the order's end time.
-     * @param duration          The total duration of the order.
-     *
-     * @return amount The final amount to transfer.
-     */
-    function _applyOfferedFractionAndTransfer(
-        OfferedItem memory offeredItem,
-        uint256 numerator,
-        uint256 denominator,
-        address offerer,
-        bool useOffererProxy,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration
-    ) internal returns (uint256 amount) {
-        // If start amount equals end amount, apply fraction to end amount.
-        if (offeredItem.startAmount == offeredItem.endAmount) {
-            amount = _getFraction(
-                numerator,
-                denominator,
-                offeredItem.endAmount
-            );
-        } else {
-            // Otherwise, apply fraction to both to extrapolate final amount.
-            amount = _locateCurrentAmount(
-                _getFraction(
-                    numerator,
-                    denominator,
-                    offeredItem.startAmount
-                ),
-                _getFraction(
-                    numerator,
-                    denominator,
-                    offeredItem.endAmount
-                ),
-                elapsed,
-                remaining,
-                duration,
-                false // round down
-            );
-        }
-
-        // Apply order fill fraction and set the caller as the receiver.
-        FulfilledItem memory item = FulfilledItem(
-            offeredItem.itemType,
-            offeredItem.token,
-            offeredItem.identifierOrCriteria,
-            amount,
-            payable(msg.sender)
-        );
-
-        // Transfer the item from the offerer to the caller.
-        _transfer(
-            item,
-            offerer,
-            useOffererProxy
-        );
-    }
-
-    /**
-     * @dev Internal function to apply a fraction to a received item and
-     *      transfer that amount.
-     *
-     * @param receivedItem      The received item.
-     * @param numerator         A value indicating the portion of the order that
-     *                          should be filled.
-     * @param denominator       A value indicating the total size of the order.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
-     * @param elapsed           The time elapsed since the order's start time.
-     * @param remaining         The time left until the order's end time.
-     * @param duration          The total duration of the order.
-     *
-     * @return amount The final amount to transfer.
-     */
-    function _applyReceivedFractionAndTransfer(
-        ReceivedItem memory receivedItem,
-        uint256 numerator,
-        uint256 denominator,
-        bool useFulfillerProxy,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration
-    ) internal returns (uint256 amount) {
-        // If start amount equals end amount, apply fraction to end amount.
-        if (receivedItem.startAmount == receivedItem.endAmount) {
-            amount = _getFraction(
-                numerator,
-                denominator,
-                receivedItem.endAmount
-            );
-        } else {
-            // Otherwise, apply fraction to both to extrapolate final amount.
-            amount = _locateCurrentAmount(
-                _getFraction(
-                    numerator,
-                    denominator,
-                    receivedItem.startAmount
-                ),
-                _getFraction(
-                    numerator,
-                    denominator,
-                    receivedItem.endAmount
-                ),
-                elapsed,
-                remaining,
-                duration,
-                true // round up
-            );
-        }
-
-        // Apply order fill fraction and set recipient as the receiver.
-        FulfilledItem memory item = FulfilledItem(
-            receivedItem.itemType,
-            receivedItem.token,
-            receivedItem.identifierOrCriteria,
-            amount,
-            receivedItem.recipient
-        );
-
-        // Transfer the item from the caller to the consideration recipient.
-        _transfer(
-            item,
-            msg.sender,
-            useFulfillerProxy
-        );
     }
 
     /**
