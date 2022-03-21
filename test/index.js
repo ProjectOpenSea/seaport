@@ -27,6 +27,8 @@ describe("Consideration functional tests", function () {
   let withBalanceChecks;
   let simulateMatchOrders;
   let simulateAdvancedMatchOrders;
+  let EIP1271WalletFactory;
+  let reenterer;
 
   const randomHex = () => (
     `0x${[...Array(64)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`
@@ -869,6 +871,14 @@ describe("Consideration functional tests", function () {
     ownedUpgradeabilityProxy = await ethers.getContractFactory(
       "OwnedUpgradeabilityProxy"
     );
+
+    const reentererFactory = await ethers.getContractFactory("Reenterer");
+
+    EIP1271WalletFactory = await ethers.getContractFactory(
+      "EIP1271Wallet"
+    );
+
+    reenterer = await reentererFactory.deploy();
 
     await whileImpersonating(owner.address, provider, async () => {
       legacyProxyRegistry = await legacyProxyRegistryFactory.connect(owner).deploy();
@@ -8013,14 +8023,22 @@ describe("Consideration functional tests", function () {
   describe("Reverts", async () => {
     let seller;
     let buyer;
+    let sellerContract;
+    let buyerContract;
 
     beforeEach(async () => {
       // Setup basic buyer/seller wallets with ETH
       seller = ethers.Wallet.createRandom().connect(provider);
       buyer = ethers.Wallet.createRandom().connect(provider);
       zone = ethers.Wallet.createRandom().connect(provider);
+
+      sellerContract = await EIP1271WalletFactory.deploy(seller.address);
+      buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
+
       await Promise.all(
-        [seller, buyer, zone].map((wallet) => faucet(wallet.address, provider))
+        [seller, buyer, zone, sellerContract, buyerContract].map(
+          (wallet) => faucet(wallet.address, provider)
+        )
       );
     });
 
@@ -11295,7 +11313,65 @@ describe("Consideration functional tests", function () {
     })
 
     describe("Reentrancy", async () => {
-      it.skip("Reverts on reentrancy (test all the permutations)", async () => {});
+      it("Reverts on a reentrant call", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(1),
+            endAmount: ethers.BigNumber.from(1),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: reenterer.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        // prepare the reentrant call on the reenterer
+        const callData = marketplaceContract.interface.encodeFunctionData("fulfillOrder", [order, false]);
+        const tx = await reenterer.prepare(marketplaceContract.address, 0, callData);
+        await tx.wait();
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value})).to.be.reverted;
+        });
+      });
+      it.skip("Reverts on reentrancy (test all the other permutations)", async () => {});
     })
   });
 

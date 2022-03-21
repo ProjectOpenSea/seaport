@@ -6,7 +6,7 @@ contract Reenterer {
 	uint256 msgValue;
 	bytes callData;
 
-	event Reentered(bool success, bytes returnData);
+	event Reentered(bytes returnData);
 
 	function prepare(
 		address targetToUse,
@@ -20,6 +20,14 @@ contract Reenterer {
 
 	receive() external payable {
 		(bool success, bytes memory returnData) = target.call{value: msgValue}(callData);
-		emit Reentered(success, returnData);
+
+		if (!success) {
+			assembly {
+				returndatacopy(0, 0, returndatasize())
+				revert(0, returndatasize())
+			}
+		}
+
+		emit Reentered(returnData);
 	}
 }
