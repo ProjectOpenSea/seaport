@@ -40,12 +40,6 @@ contract EIP1271Wallet {
         token.setApprovalForAll(operator, true);
     }
 
-    function uint8tohexchar(uint8 i) public pure returns (uint8) {
-        return (i > 9) ?
-            (i + 87) : // ascii a-f
-            (i + 48); // ascii 0-9
-    }
-
     function isValidSignature(
         bytes32 digest,
         bytes memory signature
@@ -76,15 +70,7 @@ contract EIP1271Wallet {
 
         if (signer != owner) {
             if (showRevertMessage) {
-                bytes memory data = abi.encodePacked(signer, uint16(0), owner, uint16(0), digest, uint16(0), signature);
-
-                bytes memory readable = new bytes(data.length * 2);
-
-                for (uint256 i = 0; i < (data.length * 2); i += 2) {
-                    readable[i] = bytes1(uint8tohexchar(uint8(data[i / 2]) / 16));
-                    readable[i + 1] = bytes1(uint8tohexchar(uint8(data[i / 2]) % 16));
-                }
-                revert(string(readable));
+                revert("BAD SIGNER");
             }
 
             revert();

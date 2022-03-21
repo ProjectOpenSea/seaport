@@ -8927,16 +8927,16 @@ describe("Consideration functional tests", function () {
             itemType: 1, // ERC20
             token: testERC20.address,
             identifierOrCriteria: 0, // ignored for ERC20
-            startAmount: ethers.BigNumber.from(50),
-            endAmount: ethers.BigNumber.from(50),
+            startAmount: ethers.BigNumber.from(40),
+            endAmount: ethers.BigNumber.from(40),
             recipient: zone.address,
           },
           {
             itemType: 1, // ERC20
             token: testERC20.address,
             identifierOrCriteria: 0, // ignored for ERC20
-            startAmount: ethers.BigNumber.from(50),
-            endAmount: ethers.BigNumber.from(50),
+            startAmount: ethers.BigNumber.from(60),
+            endAmount: ethers.BigNumber.from(60),
             recipient: owner.address,
           },
         ];
@@ -8949,11 +8949,8 @@ describe("Consideration functional tests", function () {
           0, // FULL_OPEN
           [],
           null,
-          seller
+          zone // wrong signer
         );
-
-        const originalSignature = order.signature;
-        order.signature = order.signature.slice(0, 20) + 'abcabcabcabc' + order.signature.slice(32);
 
         const basicOrderParameters = {
           offerer: order.parameters.offerer,
@@ -8967,11 +8964,11 @@ describe("Consideration functional tests", function () {
           signature: order.signature,
           additionalRecipients: [
             {
-              amount: ethers.BigNumber.from(50),
+              amount: ethers.BigNumber.from(40),
               recipient: zone.address,
             },
             {
-              amount: ethers.BigNumber.from(50),
+              amount: ethers.BigNumber.from(60),
               recipient: owner.address,
             }
           ],
@@ -8980,21 +8977,12 @@ describe("Consideration functional tests", function () {
         await whileImpersonating(buyer.address, provider, async () => {
           await expect(marketplaceContract.connect(buyer).fulfillBasicERC20ForERC721Order(testERC20.address, tokenAmount.sub(100), basicOrderParameters)).to.be.reverted;
         });
-
-        basicOrderParameters.signature = originalSignature;
-
-        await whileImpersonating(buyer.address, provider, async () => {
-          await withBalanceChecks([order], 0, null, async () => {
-            const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC721Order(testERC20.address, tokenAmount.sub(100), basicOrderParameters);
-            const receipt = await tx.wait();
-            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
-            return receipt;
-          });
-        });
       });
-      it("Reverts on invalid 1271 signature when contract has no data", async () => {
-        const tx = await sellerContract.revertWithMessage(false);
-        await tx.wait();
+      it("Reverts on invalid 1271 signature and contract does not supply a revert reason", async () => {
+        await whileImpersonating(owner.address, provider, async () => {
+          const tx = await sellerContract.connect(owner).revertWithMessage(false);
+          const receipt = await tx.wait();
+        });
 
         // Seller mints nft to contract
         const nftId = ethers.BigNumber.from(randomHex());
@@ -9063,11 +9051,8 @@ describe("Consideration functional tests", function () {
           0, // FULL_OPEN
           [],
           null,
-          seller
+          zone // wrong signer
         );
-
-        const originalSignature = order.signature;
-        order.signature = order.signature.slice(0, 20) + 'abcabcabcabc' + order.signature.slice(32);
 
         const basicOrderParameters = {
           offerer: order.parameters.offerer,
@@ -9093,17 +9078,6 @@ describe("Consideration functional tests", function () {
 
         await whileImpersonating(buyer.address, provider, async () => {
           await expect(marketplaceContract.connect(buyer).fulfillBasicERC20ForERC721Order(testERC20.address, tokenAmount.sub(100), basicOrderParameters)).to.be.reverted;
-        });
-
-        basicOrderParameters.signature = originalSignature;
-
-        await whileImpersonating(buyer.address, provider, async () => {
-          await withBalanceChecks([order], 0, null, async () => {
-            const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC721Order(testERC20.address, tokenAmount.sub(100), basicOrderParameters);
-            const receipt = await tx.wait();
-            await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
-            return receipt;
-          });
         });
       });
       it("Reverts on missing offer or consideration components", async () => {
@@ -10259,6 +10233,67 @@ describe("Consideration functional tests", function () {
             await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
             return receipt;
           });
+        });
+      });
+      it("Reverts on attempts to transfer >1 ERC721 in single transfer", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(2),
+            endAmount: ethers.BigNumber.from(2),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillOrder(order, false, {value})).to.be.reverted;
         });
       });
     });
