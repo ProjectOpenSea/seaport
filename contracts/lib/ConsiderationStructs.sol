@@ -98,7 +98,6 @@ struct BasicOrderParameters {
     uint256 startTime;
     uint256 endTime;
     uint256 salt;
-    bool useFulfillerProxy;
     AdditionalRecipient[] additionalRecipients;
     bytes signature;
 }
