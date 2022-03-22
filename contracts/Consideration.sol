@@ -7,8 +7,8 @@ import { ItemType } from "./lib/ConsiderationEnums.sol";
 
 import {
     BasicOrderParameters,
-    OfferedItem,
-    ReceivedItem,
+    OfferItem,
+    ConsiderationItem,
     OrderParameters,
     OrderComponents,
     Fulfillment,
@@ -75,14 +75,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Derive and validate order using parameters and update order status.
         bool useOffererProxy = _prepareBasicFulfillment(
             parameters,
-            OfferedItem(
+            OfferItem(
                 ItemType.ERC721,
                 parameters.token,
                 parameters.identifier,
                 1, // Amount of 1 for ERC721 tokens
                 1  // Amount of 1 for ERC721 tokens
             ),
-            ReceivedItem(
+            ConsiderationItem(
                 ItemType.NATIVE,
                 address(0),   // No token address for ETH or other native tokens
                 0,            // No identifier for ETH or other native tokens
@@ -143,14 +143,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Derive and validate order using parameters and update order status.
         bool useOffererProxy = _prepareBasicFulfillment(
             parameters,
-            OfferedItem(
+            OfferItem(
                 ItemType.ERC1155,
                 parameters.token,
                 parameters.identifier,
                 erc1155Amount,
                 erc1155Amount
             ),
-            ReceivedItem(
+            ConsiderationItem(
                 ItemType.NATIVE,
                 address(0),   // No token address for ETH or other native tokens
                 0,            // No identifier for ETH or other native tokens
@@ -206,14 +206,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Derive and validate order using parameters and update order status.
         bool useOffererProxy = _prepareBasicFulfillment(
             parameters,
-            OfferedItem(
+            OfferItem(
                 ItemType.ERC721,
                 parameters.token,
                 parameters.identifier,
                 1, // Amount of 1 for ERC721 tokens
                 1  // Amount of 1 for ERC721 tokens
             ),
-            ReceivedItem(
+            ConsiderationItem(
                 ItemType.ERC20,
                 erc20Token,
                 0, // No identifier for ERC20 tokens
@@ -277,14 +277,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Derive and validate order using parameters and update order status.
         bool useOffererProxy = _prepareBasicFulfillment(
             parameters,
-            OfferedItem(
+            OfferItem(
                 ItemType.ERC1155,
                 parameters.token,
                 parameters.identifier,
                 erc1155Amount,
                 erc1155Amount
             ),
-            ReceivedItem(
+            ConsiderationItem(
                 ItemType.ERC20,
                 erc20Token,
                 0, // No identifier for ERC20 tokens
@@ -357,14 +357,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Derive and validate order using parameters and update order status.
         _prepareBasicFulfillment(
             parameters,
-            OfferedItem(
+            OfferItem(
                 ItemType.ERC20,
                 erc20Token,
                 0, // No identifier for ERC20 tokens
                 erc20Amount,
                 erc20Amount
             ),
-            ReceivedItem(
+            ConsiderationItem(
                 ItemType.ERC721,
                 parameters.token,
                 parameters.identifier,
@@ -441,14 +441,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Derive and validate order using parameters and update order status.
         _prepareBasicFulfillment(
             parameters,
-            OfferedItem(
+            OfferItem(
                 ItemType.ERC20,
                 erc20Token,
                 0, // No identifier for ERC20 tokens
                 erc20Amount,
                 erc20Amount
             ),
-            ReceivedItem(
+            ConsiderationItem(
                 ItemType.ERC1155,
                 parameters.token,
                 parameters.identifier,

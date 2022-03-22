@@ -80,6 +80,73 @@ describe("Consideration functional tests", function () {
       );
   }
 
+  async function getAndVerifyOrderHash(orderComponents) {
+    const orderHash = await marketplaceContract.getOrderHash(orderComponents);
+
+    const offerItemTypeString = "OfferItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)";
+    const considerationItemTypeString = "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)";
+    const orderComponentsPartialTypeString = "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)";
+    const orderTypeString = `${orderComponentsPartialTypeString}${considerationItemTypeString}${offerItemTypeString}`;
+    
+    const offerItemTypeHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(offerItemTypeString));
+    const considerationItemTypeHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(considerationItemTypeString));
+    const orderTypeHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(orderTypeString));
+
+    const offerHash = ethers.utils.keccak256(
+      '0x' + orderComponents.offer.map(
+        offerItem => {
+          return ethers.utils.keccak256(
+            '0x' + [
+              offerItemTypeHash.slice(2),
+              offerItem.itemType.toString().padStart(64, '0'),
+              offerItem.token.slice(2).padStart(64, '0'),
+              ethers.BigNumber.from(offerItem.identifierOrCriteria).toHexString().slice(2).padStart(64, '0'),
+              ethers.BigNumber.from(offerItem.startAmount).toHexString().slice(2).padStart(64, '0'),
+              ethers.BigNumber.from(offerItem.endAmount).toHexString().slice(2).padStart(64, '0')
+            ].join('')
+          ).slice(2);
+        }
+      ).join('')
+    );
+
+    const considerationHash = ethers.utils.keccak256(
+      '0x' + orderComponents.consideration.map(
+        considerationItem => {
+          return ethers.utils.keccak256(
+            '0x' + [
+              considerationItemTypeHash.slice(2),
+              considerationItem.itemType.toString().padStart(64, '0'),
+              considerationItem.token.slice(2).padStart(64, '0'),
+              ethers.BigNumber.from(considerationItem.identifierOrCriteria).toHexString().slice(2).padStart(64, '0'),
+              ethers.BigNumber.from(considerationItem.startAmount).toHexString().slice(2).padStart(64, '0'),
+              ethers.BigNumber.from(considerationItem.endAmount).toHexString().slice(2).padStart(64, '0'),
+              considerationItem.recipient.slice(2).padStart(64, '0')
+            ].join('')
+          ).slice(2);
+        }
+      ).join('')
+    );
+
+    const derivedOrderHash = ethers.utils.keccak256(
+      '0x' + [
+        orderTypeHash.slice(2),
+        orderComponents.offerer.slice(2).padStart(64, '0'),
+        orderComponents.zone.slice(2).padStart(64, '0'),
+        offerHash.slice(2),
+        considerationHash.slice(2),
+        orderComponents.orderType.toString().padStart(64, '0'),
+        ethers.BigNumber.from(orderComponents.startTime).toHexString().slice(2).padStart(64, '0'),
+        ethers.BigNumber.from(orderComponents.endTime).toHexString().slice(2).padStart(64, '0'),
+        orderComponents.salt.slice(2).padStart(64, '0'),
+        ethers.BigNumber.from(orderComponents.nonce).toHexString().slice(2).padStart(64, '0')
+      ].join('')
+    );
+
+    expect(orderHash).to.equal(derivedOrderHash);
+
+    return orderHash;
+  }
+
   // Returns signature
   async function signOrder(
     orderComponents,
@@ -91,10 +158,13 @@ describe("Consideration functional tests", function () {
       orderComponents
     );
 
-    const orderHash = await marketplaceContract.getOrderHash(orderComponents);
+    const orderHash = await getAndVerifyOrderHash(orderComponents);
+
     const domainSeparator = await marketplaceContract.DOMAIN_SEPARATOR();
     const digest = ethers.utils.keccak256(`0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`);
-    expect(ethers.utils.recoverAddress(digest, signature)).to.equal(signer.address);
+    const recoveredAddress = ethers.utils.recoverAddress(digest, signature);
+
+    expect(recoveredAddress).to.equal(signer.address);
 
     return signature;
   }
@@ -121,7 +191,7 @@ describe("Consideration functional tests", function () {
       nonce,
     };
 
-    const orderHash = await marketplaceContract.getOrderHash(orderComponents);
+    const orderHash = await getAndVerifyOrderHash(orderComponents);
 
     const {
       isValidated,
@@ -279,7 +349,7 @@ describe("Consideration functional tests", function () {
 
     const flatSig = await signOrder(orderComponents, offerer);
 
-    const mirrorOrderHash = await marketplaceContract.getOrderHash(orderComponents);
+    const mirrorOrderHash = await getAndVerifyOrderHash(orderComponents);
 
     const mirrorOrder = {
       parameters: orderParameters,
@@ -350,7 +420,7 @@ describe("Consideration functional tests", function () {
 
     const flatSig = await signOrder(orderComponents, offerer);
 
-    const mirrorOrderHash = await marketplaceContract.getOrderHash(orderComponents);
+    const mirrorOrderHash = await getAndVerifyOrderHash(orderComponents);
 
     const mirrorOrder = {
       parameters: orderParameters,

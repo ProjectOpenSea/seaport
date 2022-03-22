@@ -19,8 +19,8 @@ import {
 struct OrderComponents {
     address offerer;
     address zone;
-    OfferedItem[] offer;
-    ReceivedItem[] consideration;
+    OfferItem[] offer;
+    ConsiderationItem[] consideration;
     OrderType orderType;
     uint256 startTime;
     uint256 endTime;
@@ -29,7 +29,7 @@ struct OrderComponents {
 }
 
 /**
- * @dev An offered item has five components: an item type (ETH or other native
+ * @dev An offer item has five components: an item type (ETH or other native
  *      tokens, ERC20, ERC721, and ERC1155, as well as criteria-based ERC721 and
  *      ERC1155), a token address, a dual-purpose "identifierOrCriteria"
  *      component that will either represent a tokenId or a merkle root
@@ -37,7 +37,7 @@ struct OrderComponents {
  *      increasing or decreasing amounts over the duration of the respective
  *      order.
  */
-struct OfferedItem {
+struct OfferItem {
     ItemType itemType;
     address token;
     uint256 identifierOrCriteria;
@@ -46,11 +46,11 @@ struct OfferedItem {
 }
 
 /**
- * @dev A received item has the same five components as an offered item and an
- *      additional sixth component designating the required recipient of the
+ * @dev A consideration item has the same five components as an offer item and
+ *      an additional sixth component designating the required recipient of the
  *      item.
  */
-struct ReceivedItem {
+struct ConsiderationItem {
     ItemType itemType;
     address token;
     uint256 identifierOrCriteria;
@@ -72,7 +72,7 @@ struct ConsumedItem {
 }
 
 /**
- * @dev A fulfilled item has the same four components as an offered item and an
+ * @dev A fulfilled item has the same four components as an offer item and an
  *      additional fifth component designating the required recipient of the
  *      item.
  */
@@ -124,8 +124,8 @@ struct OrderParameters {
     uint256 startTime;
     uint256 endTime;
     uint256 salt;
-    OfferedItem[] offer;
-    ReceivedItem[] consideration;
+    OfferItem[] offer;
+    ConsiderationItem[] consideration;
 }
 
 /**

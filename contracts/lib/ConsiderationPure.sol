@@ -8,8 +8,8 @@ import {
 } from "./ConsiderationEnums.sol";
 
 import {
-    OfferedItem,
-    ReceivedItem,
+    OfferItem,
+    ConsiderationItem,
     ConsumedItem,
     FulfilledItem,
     OrderParameters,
@@ -100,7 +100,7 @@ contract ConsiderationPure is ConsiderationBase {
                     }
 
                     // Retrieve relevant item using order and component index.
-                    OfferedItem memory offer = (
+                    OfferItem memory offer = (
                         orderParameters.offer[componentIndex]
                     );
 
@@ -127,7 +127,7 @@ contract ConsiderationPure is ConsiderationBase {
                     }
 
                     // Retrieve relevant item using order and component index.
-                    ReceivedItem memory consideration = (
+                    ConsiderationItem memory consideration = (
                         orderParameters.consideration[componentIndex]
                     );
 
@@ -614,10 +614,10 @@ contract ConsiderationPure is ConsiderationBase {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
 
-        // Consume offerer & offered item at offer component's first item index.
+        // Get offerer and consume item indicated by initial offer component.
         (
             address offerer,
-            ConsumedItem memory offeredItem,
+            ConsumedItem memory offerItem,
             bool useProxy
         ) = _consumeOfferComponent(
             orders,
@@ -637,9 +637,9 @@ contract ConsiderationPure is ConsiderationBase {
 
         // Ensure offer and consideration share types, tokens and identifiers.
         if (
-            offeredItem.itemType != requiredConsideration.itemType ||
-            offeredItem.token != requiredConsideration.token ||
-            offeredItem.identifier != requiredConsideration.identifier
+            offerItem.itemType != requiredConsideration.itemType ||
+            offerItem.token != requiredConsideration.token ||
+            offerItem.identifier != requiredConsideration.identifier
 
         ) {
             revert MismatchedFulfillmentOfferAndConsiderationComponents();
@@ -652,10 +652,10 @@ contract ConsiderationPure is ConsiderationBase {
                 offerComponents[i]
             );
 
-            // Consume offerer & offered item at offer component's item index.
+            // Get offerer and consume item indicated by next offer component.
             (
                 address subsequentOfferer,
-                ConsumedItem memory nextOfferedItem,
+                ConsumedItem memory nextOfferItem,
                 bool subsequentUseProxy
             ) = _consumeOfferComponent(
                 orders,
@@ -667,16 +667,16 @@ contract ConsiderationPure is ConsiderationBase {
             // Ensure all relevant parameters are consistent with initial offer.
             if (
                 offerer != subsequentOfferer ||
-                offeredItem.itemType != nextOfferedItem.itemType ||
-                offeredItem.token != nextOfferedItem.token ||
-                offeredItem.identifier != nextOfferedItem.identifier ||
+                offerItem.itemType != nextOfferItem.itemType ||
+                offerItem.token != nextOfferItem.token ||
+                offerItem.identifier != nextOfferItem.identifier ||
                 useProxy != subsequentUseProxy
             ) {
                 revert MismatchedFulfillmentOfferComponents();
             }
 
             // Increase the total offer amount by the current amount.
-            offeredItem.amount += nextOfferedItem.amount;
+            offerItem.amount += nextOfferItem.amount;
 
             // Skip overflow check as for loop is indexed starting at one.
             unchecked {
@@ -730,7 +730,7 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // If total consideration amount exceeds the offer amount...
-        if (requiredConsideration.amount > offeredItem.amount) {
+        if (requiredConsideration.amount > offerItem.amount) {
             // Retrieve the first consideration component from the fulfillment.
             FulfillmentComponent memory targetComponent = (
                 considerationComponents[0]
@@ -741,11 +741,11 @@ contract ConsiderationPure is ConsiderationBase {
                 orders,
                 targetComponent.orderIndex,
                 targetComponent.itemIndex,
-                requiredConsideration.amount - offeredItem.amount
+                requiredConsideration.amount - offerItem.amount
             );
 
             // Reduce total consideration amount to equal the offer amount.
-            requiredConsideration.amount = offeredItem.amount;
+            requiredConsideration.amount = offerItem.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = (
@@ -757,7 +757,7 @@ contract ConsiderationPure is ConsiderationBase {
                 orders,
                 targetComponent.orderIndex,
                 targetComponent.itemIndex,
-                offeredItem.amount - requiredConsideration.amount
+                offerItem.amount - requiredConsideration.amount
             );
         }
 
@@ -766,9 +766,9 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to apply a fraction to a received item.
+     * @dev Internal pure function to apply a fraction to a consideration item.
      *
-     * @param receivedItem      The received item.
+     * @param considerationItem The consideration item.
      * @param numerator         A value indicating the portion of the order that
      *                          should be filled.
      * @param denominator       A value indicating the total size of the order.
@@ -778,8 +778,8 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return item The item to transfer with the final amount.
      */
-    function _applyReceivedFraction(
-        ReceivedItem memory receivedItem,
+    function _applyFractionToConsiderationItem(
+        ConsiderationItem memory considerationItem,
         uint256 numerator,
         uint256 denominator,
         uint256 elapsed,
@@ -790,11 +790,11 @@ contract ConsiderationPure is ConsiderationBase {
         uint256 amount;
 
         // If start amount equals end amount, apply fraction to end amount.
-        if (receivedItem.startAmount == receivedItem.endAmount) {
+        if (considerationItem.startAmount == considerationItem.endAmount) {
             amount = _getFraction(
                 numerator,
                 denominator,
-                receivedItem.endAmount
+                considerationItem.endAmount
             );
         } else {
             // Otherwise, apply fraction to both to extrapolate final amount.
@@ -802,12 +802,12 @@ contract ConsiderationPure is ConsiderationBase {
                 _getFraction(
                     numerator,
                     denominator,
-                    receivedItem.startAmount
+                    considerationItem.startAmount
                 ),
                 _getFraction(
                     numerator,
                     denominator,
-                    receivedItem.endAmount
+                    considerationItem.endAmount
                 ),
                 elapsed,
                 remaining,
@@ -816,13 +816,13 @@ contract ConsiderationPure is ConsiderationBase {
             );
         }
 
-        // Apply order fill fraction, set recipient as, receiver, and return.
+        // Apply order fill fraction, set recipient as receiver, and return.
         item = FulfilledItem(
-            receivedItem.itemType,
-            receivedItem.token,
-            receivedItem.identifierOrCriteria,
+            considerationItem.itemType,
+            considerationItem.token,
+            considerationItem.identifierOrCriteria,
             amount,
-            receivedItem.recipient
+            considerationItem.recipient
         );
     }
 
@@ -887,15 +887,15 @@ contract ConsiderationPure is ConsiderationBase {
             revert FulfilledOrderOfferIndexOutOfRange();
         }
 
-        // Retrieve the offered item.
-        OfferedItem memory offeredItem = orderParameters.offer[itemIndex];
+        // Retrieve the offer item.
+        OfferItem memory offerItem = orderParameters.offer[itemIndex];
 
         // Convert to a consumed item.
         ConsumedItem memory offerItemToConsume = ConsumedItem(
-            offeredItem.itemType,
-            offeredItem.token,
-            offeredItem.identifierOrCriteria,
-            offeredItem.endAmount
+            offerItem.itemType,
+            offerItem.token,
+            offerItem.identifierOrCriteria,
+            offerItem.endAmount
         );
 
         // Clear offer amount to indicate offer item has been consumed.
@@ -935,18 +935,18 @@ contract ConsiderationPure is ConsiderationBase {
             revert FulfilledOrderConsiderationIndexOutOfRange();
         }
 
-        // Retrieve the received consideration item.
-        ReceivedItem memory receivedItem = (
+        // Retrieve the consideration item.
+        ConsiderationItem memory considerationItem = (
             orderParameters.consideration[itemIndex]
         );
 
         // Convert to a fulfilled item.
         FulfilledItem memory fulfilledItem = FulfilledItem(
-            receivedItem.itemType,
-            receivedItem.token,
-            receivedItem.identifierOrCriteria,
-            receivedItem.endAmount,
-            receivedItem.recipient
+            considerationItem.itemType,
+            considerationItem.token,
+            considerationItem.identifierOrCriteria,
+            considerationItem.endAmount,
+            considerationItem.recipient
         );
 
         // Clear consideration amount to indicate item has been consumed.

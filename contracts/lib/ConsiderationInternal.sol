@@ -17,8 +17,8 @@ import {
 import {
     AdditionalRecipient,
     BasicOrderParameters,
-    OfferedItem,
-    ReceivedItem,
+    OfferItem,
+    ConsiderationItem,
     ConsumedItem,
     FulfilledItem,
     OrderParameters,
@@ -62,17 +62,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @dev Internal function to derive and validate an order based on a set of
      *      parameters and a primary item for offer and consideration.
      *
-     * @param  parameters      The parameters of the basic order.
-     * @param  offeredItem     The primary item being offered.
-     * @param  receivedItem    The primary item being received as consideration.
+     * @param  parameters        The parameters of the basic order.
+     * @param  offerItem         The primary item being offered.
+     * @param  considerationItem The primary item received as consideration.
      *
-     * @return useOffererProxy A boolean indicating whether to utilize the
-     *                         offerer's proxy.
+     * @return useOffererProxy   A boolean indicating whether to utilize the
+     *                           offerer's proxy.
      */
     function _prepareBasicFulfillment(
         BasicOrderParameters memory parameters,
-        OfferedItem memory offeredItem,
-        ReceivedItem memory receivedItem
+        OfferItem memory offerItem,
+        ConsiderationItem memory considerationItem
     ) internal returns (bool useOffererProxy) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -87,26 +87,26 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _assertValidTime(startTime, endTime);
 
         // Allocate memory: 1 offer, 1+additionalRecipients consideration items.
-        OfferedItem[] memory offer = new OfferedItem[](1);
-        ReceivedItem[] memory consideration = new ReceivedItem[](
+        OfferItem[] memory offer = new OfferItem[](1);
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](
             1 + parameters.additionalRecipients.length
         );
 
         // Set primary offer + consideration item as respective first elements.
-        offer[0] = offeredItem;
-        consideration[0] = receivedItem;
+        offer[0] = offerItem;
+        consideration[0] = considerationItem;
 
-        // Get offered item type and received item token and place on the stack.
-        ItemType itemType = offeredItem.itemType;
-        address token = receivedItem.token;
+        // Get offer item's type and consideration item's token + put on stack.
+        ItemType itemType = offerItem.itemType;
+        address token = considerationItem.token;
 
-        // Use offered item's info for additional recipients of native or ERC20.
+        // Use offer item's info for additional recipients of native or ERC20.
         if (_isEtherOrERC20Item(itemType)) {
-            // Set token for additional recipients to offered item's token.
-            token = offeredItem.token;
+            // Set token for additional recipients to offer item's token.
+            token = offerItem.token;
         } else {
-            // Otherwise, set additional recipient type to received item's type.
-            itemType = receivedItem.itemType;
+            // Otherwise, use consideration item's type on additional recipient.
+            itemType = considerationItem.itemType;
         }
 
         // Skip overflow checks as for loop is indexed starting at one.
@@ -118,8 +118,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     parameters.additionalRecipients[i - 1]
                 );
 
-                // Set new received item as an additional consideration item.
-                consideration[i] = ReceivedItem(
+                // Set new consideration item as additional consideration item.
+                consideration[i] = ConsiderationItem(
                     itemType,
                     token,
                     0, // No identifier for native tokens or ERC20.
@@ -441,11 +441,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Iterate over each offer on the order.
         for (uint256 i = 0; i < orderParameters.offer.length;) {
             // Retrieve the offer item.
-            OfferedItem memory offeredItem = orderParameters.offer[i];
+            OfferItem memory offerItem = orderParameters.offer[i];
 
             // Derive the amount to transfer.
-            FulfilledItem memory item = _applyOfferedFraction(
-                offeredItem,
+            FulfilledItem memory item = _applyFractionToOfferItem(
+                offerItem,
                 numerator,
                 denominator,
                 elapsed,
@@ -454,7 +454,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             );
 
             // If offer expects ETH or a native token, reduce value available.
-            if (offeredItem.itemType == ItemType.NATIVE) {
+            if (offerItem.itemType == ItemType.NATIVE) {
                 // Ensure that sufficient native tokens are still available.
                 if (item.amount > etherRemaining) {
                     revert InsufficientEtherSupplied();
@@ -473,8 +473,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 useOffererProxy
             );
 
-            // Update offered amount so that an accurate event can be emitted.
-            offeredItem.endAmount = item.amount;
+            // Update offer amount so that an accurate event can be emitted.
+            offerItem.endAmount = item.amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -485,11 +485,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Iterate over each consideration on the order.
         for (uint256 i = 0; i < orderParameters.consideration.length;) {
             // Retrieve the consideration item.
-            ReceivedItem memory receivedItem = orderParameters.consideration[i];
+            ConsiderationItem memory considerationItem = (
+                orderParameters.consideration[i]
+            );
 
             // Derive the amount to transfer.
-            FulfilledItem memory item = _applyReceivedFraction(
-                receivedItem,
+            FulfilledItem memory item = _applyFractionToConsiderationItem(
+                considerationItem,
                 numerator,
                 denominator,
                 elapsed,
@@ -498,7 +500,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             );
 
             // If item expects ETH or a native token, reduce value available.
-            if (receivedItem.itemType == ItemType.NATIVE) {
+            if (considerationItem.itemType == ItemType.NATIVE) {
                 // Ensure that sufficient native tokens are still available.
                 if (item.amount > etherRemaining) {
                     revert InsufficientEtherSupplied();
@@ -517,8 +519,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 useFulfillerProxy
             );
 
-            // Update offered amount so that an accurate event can be emitted.
-            receivedItem.endAmount = item.amount;
+            // Update consideration item amount for use in the emitted event.
+            considerationItem.endAmount = item.amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -581,40 +583,40 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 ordersUseProxy[i] = useOffererProxy;
 
                 // Retrieve offer items and consideration items on the order.
-                OfferedItem[] memory offer = order.parameters.offer;
-                ReceivedItem[] memory consideration = (
+                OfferItem[] memory offer = order.parameters.offer;
+                ConsiderationItem[] memory consideration = (
                     order.parameters.consideration
                 );
 
-                // Iterate over each offered item on the order.
+                // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < offer.length; ++j) {
-                    // Retrieve the offered item.
-                    OfferedItem memory offeredItem = offer[j];
+                    // Retrieve the offer item.
+                    OfferItem memory offerItem = offer[j];
 
                     // Reuse same fraction if start and end amounts are equal.
-                    if (offeredItem.startAmount == offeredItem.endAmount) {
+                    if (offerItem.startAmount == offerItem.endAmount) {
                         // Derive the fractional amount based on the end amount.
                         uint256 amount = _getFraction(
                             numerator,
                             denominator,
-                            offeredItem.endAmount
+                            offerItem.endAmount
                         );
 
                         // Apply derived amount to both start and end amount.
-                        offeredItem.startAmount = amount;
-                        offeredItem.endAmount = amount;
+                        offerItem.startAmount = amount;
+                        offerItem.endAmount = amount;
                     } else {
                         // Apply order fill fraction to each offer amount.
-                        offeredItem.startAmount = _getFraction(
+                        offerItem.startAmount = _getFraction(
                             numerator,
                             denominator,
-                            offeredItem.startAmount
+                            offerItem.startAmount
                         );
 
-                        offeredItem.endAmount = _getFraction(
+                        offerItem.endAmount = _getFraction(
                             numerator,
                             denominator,
-                            offeredItem.endAmount
+                            offerItem.endAmount
                         );
                     }
                 }
@@ -622,32 +624,36 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < consideration.length; ++j) {
                     // Retrieve the consideration item.
-                    ReceivedItem memory receivedItem = consideration[j];
+                    ConsiderationItem memory considerationItem = (
+                        consideration[j]
+                    );
 
                     // Reuse same fraction if start and end amounts are equal.
-                    if (receivedItem.startAmount == receivedItem.endAmount) {
+                    if (
+                        considerationItem.startAmount == considerationItem.endAmount
+                    ) {
                         // Derive the fractional amount based on the end amount.
                         uint256 amount = _getFraction(
                             numerator,
                             denominator,
-                            receivedItem.endAmount
+                            considerationItem.endAmount
                         );
 
                         // Apply derived amount to both start and end amount.
-                        receivedItem.startAmount = amount;
-                        receivedItem.endAmount = amount;
+                        considerationItem.startAmount = amount;
+                        considerationItem.endAmount = amount;
                     } else {
-                        // Apply order fill fraction to each received amount.
-                        receivedItem.startAmount = _getFraction(
+                        // Apply order fill fraction to each item amount.
+                        considerationItem.startAmount = _getFraction(
                             numerator,
                             denominator,
-                            receivedItem.startAmount
+                            considerationItem.startAmount
                         );
 
-                        receivedItem.endAmount = _getFraction(
+                        considerationItem.endAmount = _getFraction(
                             numerator,
                             denominator,
-                            receivedItem.endAmount
+                            considerationItem.endAmount
                         );
                     }
                 }
@@ -755,14 +761,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Iterate over orders to ensure all considerations are met.
             for (uint256 i = 0; i < orders.length; ++i) {
                 // Retrieve consideration items to ensure they are fulfilled.
-                ReceivedItem[] memory receivedItems = (
+                ConsiderationItem[] memory consideration = (
                     orders[i].parameters.consideration
                 );
 
                 // Iterate over each consideration item to ensure it is met.
-                for (uint256 j = 0; j < receivedItems.length; ++j) {
-                    // Retrieve the remaining amount on the consideration.
-                    uint256 unmetAmount = receivedItems[j].endAmount;
+                for (uint256 j = 0; j < consideration.length; ++j) {
+                    // Retrieve remaining amount on the consideration item.
+                    uint256 unmetAmount = consideration[j].endAmount;
 
                     // Revert if the remaining amount is not zero.
                     if (unmetAmount != 0) {
@@ -1341,31 +1347,31 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address offerer,
         address zone,
         address fulfiller,
-        OfferedItem[] memory offer,
-        ReceivedItem[] memory consideration
+        OfferItem[] memory offer,
+        ConsiderationItem[] memory consideration
     ) internal {
         ConsumedItem[] memory consumedItems = new ConsumedItem[](offer.length);
         FulfilledItem[] memory fulfilledItems = new FulfilledItem[](consideration.length);
 
         unchecked {
             for (uint256 i = 0; i < offer.length; ++i) {
-                OfferedItem memory offeredItem = offer[i];
+                OfferItem memory offerItem = offer[i];
                 consumedItems[i] = ConsumedItem(
-                    offeredItem.itemType,
-                    offeredItem.token,
-                    offeredItem.identifierOrCriteria,
-                    offeredItem.endAmount
+                    offerItem.itemType,
+                    offerItem.token,
+                    offerItem.identifierOrCriteria,
+                    offerItem.endAmount
                 );
             }
 
             for (uint256 i = 0; i < consideration.length; ++i) {
-                ReceivedItem memory receivedItem = consideration[i];
+                ConsiderationItem memory considerationItem = consideration[i];
                 fulfilledItems[i] = FulfilledItem(
-                    receivedItem.itemType,
-                    receivedItem.token,
-                    receivedItem.identifierOrCriteria,
-                    receivedItem.endAmount,
-                    receivedItem.recipient
+                    considerationItem.itemType,
+                    considerationItem.token,
+                    considerationItem.identifierOrCriteria,
+                    considerationItem.endAmount,
+                    considerationItem.recipient
                 );
             }
         }

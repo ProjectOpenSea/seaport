@@ -13,9 +13,7 @@ import {
  */
 interface ConsiderationEventsAndErrors {
     /**
-     * @dev Emit an event whenever an order is successfully fulfilled. NOTE:
-     *      each offered item currently returns a startAmount and an end amount,
-     *      whereas ideally it would just return a single "amount".
+     * @dev Emit an event whenever an order is successfully fulfilled.
      *
      * @param orderHash     The hash of the fulfilled order.
      * @param offerer       The offerer of the fulfilled order.
@@ -23,7 +21,7 @@ interface ConsiderationEventsAndErrors {
      * @param fulfiller     The fulfiller of the order, or the null address if
      *                      there is no specific fulfiller (i.e. the order is
      *                      part of a group of orders).
-     * @param offer         The offered items consumed as part of the order.
+     * @param offer         The offer items spent as part of the order.
      * @param consideration The consideration items fulfilled as part of the
      *                      order along with the recipients of each item.
      */

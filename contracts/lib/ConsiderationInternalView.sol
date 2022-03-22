@@ -6,8 +6,8 @@ import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 import { OrderType } from "./ConsiderationEnums.sol";
 
 import {
-    OfferedItem,
-    ReceivedItem,
+    OfferItem,
+    ConsiderationItem,
     FulfilledItem,
     OrderParameters,
     Order,
@@ -295,13 +295,13 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Iterate over each offer on the order.
             for (uint256 i = 0; i < offerLength; ++i) {
                 // Hash the offer and place the result into memory.
-                offerHashes[i] = _hashOfferedItem(orderParameters.offer[i]);
+                offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
             }
 
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < considerationLength; ++i) {
                 // Hash the consideration and place the result into memory.
-                considerationHashes[i] = _hashReceivedItem(
+                considerationHashes[i] = _hashConsiderationItem(
                     orderParameters.consideration[i]
                 );
             }
@@ -343,48 +343,47 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to derive the EIP-712 hash for an offererd
-     *      item.
+     * @dev Internal view function to derive the EIP-712 hash for an offer item.
      *
-     * @param offeredItem The offered item to hash.
+     * @param offerItem The offer item to hash.
      *
      * @return The hash.
      */
-    function _hashOfferedItem(
-        OfferedItem memory offeredItem
+    function _hashOfferItem(
+        OfferItem memory offerItem
     ) internal view returns (bytes32) {
         return keccak256(
             abi.encode(
-                _OFFERED_ITEM_TYPEHASH,
-                offeredItem.itemType,
-                offeredItem.token,
-                offeredItem.identifierOrCriteria,
-                offeredItem.startAmount,
-                offeredItem.endAmount
+                _OFFER_ITEM_TYPEHASH,
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifierOrCriteria,
+                offerItem.startAmount,
+                offerItem.endAmount
             )
         );
     }
 
     /**
-     * @dev Internal view function to derive the EIP-712 hash for a received
-     *      item (i.e. a consideration item).
+     * @dev Internal view function to derive the EIP-712 hash for a
+     *      consideration item.
      *
-     * @param receivedItem The received item to hash.
+     * @param considerationItem The consideration item to hash.
      *
      * @return The hash.
      */
-    function _hashReceivedItem(
-        ReceivedItem memory receivedItem
+    function _hashConsiderationItem(
+        ConsiderationItem memory considerationItem
     ) internal view returns (bytes32) {
         return keccak256(
             abi.encode(
-                _RECEIVED_ITEM_TYPEHASH,
-                receivedItem.itemType,
-                receivedItem.token,
-                receivedItem.identifierOrCriteria,
-                receivedItem.startAmount,
-                receivedItem.endAmount,
-                receivedItem.recipient
+                _CONSIDERATION_ITEM_TYPEHASH,
+                considerationItem.itemType,
+                considerationItem.token,
+                considerationItem.identifierOrCriteria,
+                considerationItem.startAmount,
+                considerationItem.endAmount,
+                considerationItem.recipient
             )
         );
     }
@@ -423,9 +422,9 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to apply a fraction to an offered item.
+     * @dev Internal view function to apply a fraction to an offer item.
      *
-     * @param offeredItem       The offer item.
+     * @param offerItem         The offer item.
      * @param numerator         A value indicating the portion of the order that
      *                          should be filled.
      * @param denominator       A value indicating the total size of the order.
@@ -435,8 +434,8 @@ contract ConsiderationInternalView is ConsiderationPure {
      *
      * @return item The item to transfer with the final amount.
      */
-    function _applyOfferedFraction(
-        OfferedItem memory offeredItem,
+    function _applyFractionToOfferItem(
+        OfferItem memory offerItem,
         uint256 numerator,
         uint256 denominator,
         uint256 elapsed,
@@ -447,11 +446,11 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 amount;
 
         // If start amount equals end amount, apply fraction to end amount.
-        if (offeredItem.startAmount == offeredItem.endAmount) {
+        if (offerItem.startAmount == offerItem.endAmount) {
             amount = _getFraction(
                 numerator,
                 denominator,
-                offeredItem.endAmount
+                offerItem.endAmount
             );
         } else {
             // Otherwise, apply fraction to both to extrapolate final amount.
@@ -459,12 +458,12 @@ contract ConsiderationInternalView is ConsiderationPure {
                 _getFraction(
                     numerator,
                     denominator,
-                    offeredItem.startAmount
+                    offerItem.startAmount
                 ),
                 _getFraction(
                     numerator,
                     denominator,
-                    offeredItem.endAmount
+                    offerItem.endAmount
                 ),
                 elapsed,
                 remaining,
@@ -475,9 +474,9 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         // Apply order fill fraction, set caller as the receiver, and return.
         item = FulfilledItem(
-            offeredItem.itemType,
-            offeredItem.token,
-            offeredItem.identifierOrCriteria,
+            offerItem.itemType,
+            offerItem.token,
+            offerItem.identifierOrCriteria,
             amount,
             payable(msg.sender)
         );
@@ -501,10 +500,10 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 startTime = orderParameters.startTime;
 
         // Retrieve the offer items for the order.
-        OfferedItem[] memory offer = orderParameters.offer;
+        OfferItem[] memory offer = orderParameters.offer;
 
         // Retrieve the consideration items for the order.
-        ReceivedItem[] memory consideration = orderParameters.consideration;
+        ConsiderationItem[] memory consideration = orderParameters.consideration;
 
         // Skip checks: for loops indexed at zero and durations are validated.
         unchecked {
@@ -516,12 +515,12 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Iterate over each offer on the order.
             for (uint256 i = 0; i < offer.length; ++i) {
                 // Retrieve the offer item.
-                OfferedItem memory offeredItem = offer[i];
+                OfferItem memory offerItem = offer[i];
 
                 // Adjust offer amounts based on current time (round down).
-                offeredItem.endAmount = _locateCurrentAmount(
-                    offeredItem.startAmount,
-                    offeredItem.endAmount,
+                offerItem.endAmount = _locateCurrentAmount(
+                    offerItem.startAmount,
+                    offerItem.endAmount,
                     elapsed,
                     remaining,
                     duration,
@@ -532,13 +531,13 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < consideration.length; ++i) {
                 // Retrieve the received consideration item.
-                ReceivedItem memory receivedItem = consideration[i];
+                ConsiderationItem memory considerationItem = consideration[i];
 
                 // Adjust consideration amount based on current time (round up).
-                receivedItem.endAmount = (
+                considerationItem.endAmount = (
                     _locateCurrentAmount(
-                        receivedItem.startAmount,
-                        receivedItem.endAmount,
+                        considerationItem.startAmount,
+                        considerationItem.endAmount,
                         elapsed,
                         remaining,
                         duration,
