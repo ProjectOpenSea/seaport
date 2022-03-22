@@ -19,8 +19,8 @@ import {
     BasicOrderParameters,
     OfferItem,
     ConsiderationItem,
-    ConsumedItem,
-    FulfilledItem,
+    SpentItem,
+    ReceivedItem,
     OrderParameters,
     Fulfillment,
     Execution,
@@ -419,7 +419,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          should be filled.
      * @param denominator       A value indicating the total size of the order.
      * @param useOffererProxy   A flag indicating whether to source approvals
-     *                          for consumed tokens from an associated proxy.
+     *                          for offered tokens from an associated proxy.
      * @param useFulfillerProxy A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      */
@@ -443,8 +443,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Retrieve the offer item.
             OfferItem memory offerItem = orderParameters.offer[i];
 
-            // Derive the amount to transfer.
-            FulfilledItem memory item = _applyFractionToOfferItem(
+            // Derive amount to transfer of offer item and return received item.
+            ReceivedItem memory item = _applyFractionToOfferItem(
                 offerItem,
                 numerator,
                 denominator,
@@ -489,8 +489,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 orderParameters.consideration[i]
             );
 
-            // Derive the amount to transfer.
-            FulfilledItem memory item = _applyFractionToConsiderationItem(
+            // Get consideration item transfer amount and return received item.
+            ReceivedItem memory item = _applyFractionToConsiderationItem(
                 considerationItem,
                 numerator,
                 denominator,
@@ -790,9 +790,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Iterate over each standard execution.
         for (uint256 i = 0; i < standardExecutions.length;) {
-            // Retrieve the execution.
+            // Retrieve the execution and the associated received item.
             Execution memory execution = standardExecutions[i];
-            FulfilledItem memory item = execution.item;
+            ReceivedItem memory item = execution.item;
 
             // If execution transfers native tokens, reduce value available.
             if (item.itemType == ItemType.NATIVE) {
@@ -849,7 +849,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                 fulfilled token from the offer's proxy.
      */
     function _transfer(
-        FulfilledItem memory item,
+        ReceivedItem memory item,
         address offerer,
         bool useProxy
     ) internal {
@@ -1350,13 +1350,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         OfferItem[] memory offer,
         ConsiderationItem[] memory consideration
     ) internal {
-        ConsumedItem[] memory consumedItems = new ConsumedItem[](offer.length);
-        FulfilledItem[] memory fulfilledItems = new FulfilledItem[](consideration.length);
+        // Designate memory regions for spent items as well as received items.
+        SpentItem[] memory spentItems = new SpentItem[](offer.length);
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](consideration.length);
 
+        // Skip overflow checks as for loop increments from zero.
         unchecked {
+            // Iterate over each offer item.
             for (uint256 i = 0; i < offer.length; ++i) {
+                // Retrieve the offer item in question.
                 OfferItem memory offerItem = offer[i];
-                consumedItems[i] = ConsumedItem(
+
+                // Convert to a spent item and store in spent items array.
+                spentItems[i] = SpentItem(
                     offerItem.itemType,
                     offerItem.token,
                     offerItem.identifierOrCriteria,
@@ -1364,9 +1370,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 );
             }
 
+            // Iterate over each consideration item.
             for (uint256 i = 0; i < consideration.length; ++i) {
+                // Retrieve the consideration item in question.
                 ConsiderationItem memory considerationItem = consideration[i];
-                fulfilledItems[i] = FulfilledItem(
+
+                // Convert to a received item and store in received items array.
+                receivedItems[i] = ReceivedItem(
                     considerationItem.itemType,
                     considerationItem.token,
                     considerationItem.identifierOrCriteria,
@@ -1382,8 +1392,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             offerer,
             zone,
             fulfiller,
-            consumedItems,
-            fulfilledItems
+            spentItems,
+            receivedItems
         );
     }
 }

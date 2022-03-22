@@ -60,11 +60,11 @@ struct ConsiderationItem {
 }
 
 /**
- * @dev A consumed item has four components: an item type (ETH or other native
- *      tokens, ERC20, ERC721, and ERC1155), a token address, a tokenId, and an
- *      amount.
+ * @dev A spent item is translated from a utilized offer item an has four
+ *      components: an item type (ETH or other native tokens, ERC20, ERC721, and
+ *      ERC1155), a token address, a tokenId, and an amount.
  */
-struct ConsumedItem {
+struct SpentItem {
     ItemType itemType;
     address token;
     uint256 identifier;
@@ -72,11 +72,11 @@ struct ConsumedItem {
 }
 
 /**
- * @dev A fulfilled item has the same four components as an offer item and an
- *      additional fifth component designating the required recipient of the
- *      item.
+ * @dev A received item is translated from a utilized consideration item and has
+ *      the same four components as a spent item, as well as an additional fifth
+ *      component designating the required recipient of the item.
  */
-struct FulfilledItem {
+struct ReceivedItem {
     ItemType itemType;
     address token;
     uint256 identifier;
@@ -211,7 +211,7 @@ struct FulfillmentComponent {
  *      fulfillments) and returned as part of `matchOrders`.
  */
 struct Execution {
-    FulfilledItem item;
+    ReceivedItem item;
     address offerer;
     bool useProxy;
 }

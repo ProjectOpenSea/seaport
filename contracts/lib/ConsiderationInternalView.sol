@@ -8,7 +8,7 @@ import { OrderType } from "./ConsiderationEnums.sol";
 import {
     OfferItem,
     ConsiderationItem,
-    FulfilledItem,
+    ReceivedItem,
     OrderParameters,
     Order,
     AdvancedOrder,
@@ -422,7 +422,8 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to apply a fraction to an offer item.
+     * @dev Internal view function to apply a fraction to an offer item and to
+     *      return a received item.
      *
      * @param offerItem         The offer item.
      * @param numerator         A value indicating the portion of the order that
@@ -432,7 +433,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param remaining         The time left until the order's end time.
      * @param duration          The total duration of the order.
      *
-     * @return item The item to transfer with the final amount.
+     * @return item The received item to transfer, including the final amount.
      */
     function _applyFractionToOfferItem(
         OfferItem memory offerItem,
@@ -441,7 +442,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 elapsed,
         uint256 remaining,
         uint256 duration
-    ) internal view returns (FulfilledItem memory item) {
+    ) internal view returns (ReceivedItem memory item) {
         // Declare variable for final amount.
         uint256 amount;
 
@@ -473,7 +474,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
 
         // Apply order fill fraction, set caller as the receiver, and return.
-        item = FulfilledItem(
+        item = ReceivedItem(
             offerItem.itemType,
             offerItem.token,
             offerItem.identifierOrCriteria,

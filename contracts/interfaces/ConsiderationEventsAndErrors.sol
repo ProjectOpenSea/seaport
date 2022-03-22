@@ -2,8 +2,8 @@
 pragma solidity 0.8.12;
 
 import {
-    ConsumedItem,
-    FulfilledItem
+    SpentItem,
+    ReceivedItem
 } from "../lib/ConsiderationStructs.sol";
 
 /**
@@ -22,7 +22,7 @@ interface ConsiderationEventsAndErrors {
      *                      there is no specific fulfiller (i.e. the order is
      *                      part of a group of orders).
      * @param offer         The offer items spent as part of the order.
-     * @param consideration The consideration items fulfilled as part of the
+     * @param consideration The consideration items received as part of the
      *                      order along with the recipients of each item.
      */
     event OrderFulfilled(
@@ -30,8 +30,8 @@ interface ConsiderationEventsAndErrors {
         address indexed offerer,
         address indexed zone,
         address fulfiller,
-        ConsumedItem[] offer,
-        FulfilledItem[] consideration
+        SpentItem[] offer,
+        ReceivedItem[] consideration
     );
 
     /**
@@ -49,7 +49,8 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Emit an event whenever an order is explicitly validated. Note that
-     *      this event will not be emitted on partial fills.
+     *      this event will not be emitted on partial fills even though they do
+     *      validate the order as part of partial fulfillment.
      *
      * @param orderHash The hash of the validated order.
      * @param offerer   The offerer of the validated order.
