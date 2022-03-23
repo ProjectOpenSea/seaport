@@ -1,7 +1,16 @@
 {
-  "extends": "solhint:recommended",
+  "extends": "solhint:all",
   "rules": {
-    "compiler-version": ["error", "^0.8.0"],
-    "func-visibility": ["warn", { "ignoreConstructors": true }]
+    "compiler-version": ["error", "0.8.12"],
+    "func-visibility": ["warn", { "ignoreConstructors": true }],
+    "no-empty-blocks": "off",
+    "no-inline-assembly": "off",
+    "avoid-low-level-calls": "off",
+    "not-rely-on-time": "off",
+    "var-name-mixedcase": "off",
+    "func-name-mixedcase": "off",
+    "max-line-length": ["error", 80],
+    "function-max-lines": "off",
+    "code-complexity": "off"
   }
 }

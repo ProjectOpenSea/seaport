@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import { ProxyRegistryInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
+import {
+    ProxyRegistryInterface
+} from "../interfaces/AbridgedProxyInterfaces.sol";
 
-import { ConsiderationEventsAndErrors } from "../interfaces/ConsiderationEventsAndErrors.sol";
+import {
+    ConsiderationEventsAndErrors
+} from "../interfaces/ConsiderationEventsAndErrors.sol";
 
 import { OrderStatus } from "./ConsiderationStructs.sol";
 
@@ -63,18 +67,48 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         _NAME_HASH = keccak256(bytes(_NAME));
         _VERSION_HASH = keccak256(bytes(_VERSION));
 
-        bytes memory offerItemTypeString = (
-            "OfferItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)"
+        bytes memory offerItemTypeString = abi.encodePacked(
+            "OfferItem(",
+                "uint8 itemType,",
+                "address token,",
+                "uint256 identifierOrCriteria,",
+                "uint256 startAmount,",
+                "uint256 endAmount",
+            ")"
         );
-        bytes memory considerationItemTypeString = (
-            "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)"
+        bytes memory considerationItemTypeString = abi.encodePacked(
+            "ConsiderationItem(",
+                "uint8 itemType,",
+                "address token,",
+                "uint256 identifierOrCriteria,",
+                "uint256 startAmount,",
+                "uint256 endAmount,",
+                "address recipient",
+            ")"
         );
-        bytes memory orderComponentsPartialTypeString = (
-            "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)"
+        bytes memory orderComponentsPartialTypeString = abi.encodePacked(
+            "OrderComponents(",
+                "address offerer,",
+                "address zone,",
+                "OfferItem[] offer,",
+                "ConsiderationItem[] consideration,",
+                "uint8 orderType,",
+                "uint256 startTime,",
+                "uint256 endTime,",
+                "uint256 salt,",
+                "uint256 nonce",
+            ")"
         );
 
         _EIP_712_DOMAIN_TYPEHASH = keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+            abi.encodePacked(
+                "EIP712Domain(",
+                    "string name,",
+                    "string version,",
+                    "uint256 chainId,",
+                    "address verifyingContract",
+                ")"
+            )
         );
         _OFFER_ITEM_TYPEHASH = keccak256(offerItemTypeString);
         _CONSIDERATION_ITEM_TYPEHASH = keccak256(considerationItemTypeString);

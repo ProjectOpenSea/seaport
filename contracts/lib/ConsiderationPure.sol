@@ -169,8 +169,11 @@ contract ConsiderationPure is ConsiderationBase {
                 // Retrieve the order.
                 AdvancedOrder memory order = orders[i];
 
+                // Read consideration length from memory and place on stack.
+                uint256 arrayLength = order.parameters.consideration.length;
+
                 // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < order.parameters.consideration.length; ++j) {
+                for (uint256 j = 0; j < arrayLength; ++j) {
                     // Ensure item type no longer indicates criteria usage.
                     if (
                         _isItemWithCriteria(
@@ -181,8 +184,11 @@ contract ConsiderationPure is ConsiderationBase {
                     }
                 }
 
+                // Read offer length from memory and place on stack.
+                arrayLength = order.parameters.offer.length;
+
                 // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < order.parameters.offer.length; ++j) {
+                for (uint256 j = 0; j < arrayLength; ++j) {
                     // Ensure item type no longer indicates criteria usage.
                     if (
                         _isItemWithCriteria(
@@ -223,19 +229,19 @@ contract ConsiderationPure is ConsiderationBase {
         // Only modify end amount if it doesn't already equal start amount.
         if (startAmount != endAmount) {
             // Leave extra amount to add for rounding at zero (i.e. round down).
-            uint256 roundingFactor = 0;
+            uint256 extraCeiling = 0;
 
             // If rounding up, set rounding factor to one less than denominator.
             if (roundUp) {
                 // Skip underflow check: duration cannot be zero.
                 unchecked {
-                    roundingFactor = duration - 1;
+                    extraCeiling = duration - 1;
                 }
             }
 
             // Aggregate new amounts weighted by time with rounding factor
             uint256 totalBeforeDivision = (
-                (startAmount * remaining) + (endAmount * elapsed) + roundingFactor
+                (startAmount * remaining) + (endAmount * elapsed) + extraCeiling
             );
 
             // Division is performed without zero check as it cannot be zero.
@@ -1107,7 +1113,7 @@ contract ConsiderationPure is ConsiderationBase {
             // Place the EIP-712 prefix at the start of scratch space.
             mstore(
                 0x00,
-                0x1901000000000000000000000000000000000000000000000000000000000000
+                0x1901000000000000000000000000000000000000000000000000000000000000 // solhint-disable-line max-line-length
             )
 
             // Place the domain separator in the next region of scratch space.

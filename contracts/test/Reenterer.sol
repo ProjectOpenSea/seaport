@@ -2,9 +2,9 @@
 pragma solidity 0.8.12;
 
 contract Reenterer {
-	address target;
-	uint256 msgValue;
-	bytes callData;
+	address public target;
+	uint256 public msgValue;
+	bytes public callData;
 
 	event Reentered(bytes returnData);
 

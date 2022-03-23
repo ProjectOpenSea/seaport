@@ -591,32 +591,27 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < offer.length; ++j) {
                     // Retrieve the offer item.
-                    OfferItem memory offerItem = offer[j];
+                    OfferItem memory item = offer[j];
 
                     // Reuse same fraction if start and end amounts are equal.
-                    if (offerItem.startAmount == offerItem.endAmount) {
+                    if (item.startAmount == item.endAmount) {
                         // Derive the fractional amount based on the end amount.
                         uint256 amount = _getFraction(
-                            numerator,
-                            denominator,
-                            offerItem.endAmount
+                            numerator, denominator, item.endAmount
                         );
 
                         // Apply derived amount to both start and end amount.
-                        offerItem.startAmount = amount;
-                        offerItem.endAmount = amount;
+                        item.startAmount = amount;
+                        item.endAmount = amount;
                     } else {
-                        // Apply order fill fraction to each offer amount.
-                        offerItem.startAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            offerItem.startAmount
+                        // Apply order fill fraction to offer item start amount.
+                        item.startAmount = _getFraction(
+                            numerator, denominator, item.startAmount
                         );
 
-                        offerItem.endAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            offerItem.endAmount
+                        // Apply order fill fraction to offer item end amount.
+                        item.endAmount = _getFraction(
+                            numerator, denominator, item.endAmount
                         );
                     }
                 }
@@ -624,36 +619,27 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < consideration.length; ++j) {
                     // Retrieve the consideration item.
-                    ConsiderationItem memory considerationItem = (
-                        consideration[j]
-                    );
+                    ConsiderationItem memory item = consideration[j];
 
                     // Reuse same fraction if start and end amounts are equal.
-                    if (
-                        considerationItem.startAmount == considerationItem.endAmount
-                    ) {
+                    if (item.startAmount == item.endAmount) {
                         // Derive the fractional amount based on the end amount.
                         uint256 amount = _getFraction(
-                            numerator,
-                            denominator,
-                            considerationItem.endAmount
+                            numerator, denominator, item.endAmount
                         );
 
                         // Apply derived amount to both start and end amount.
-                        considerationItem.startAmount = amount;
-                        considerationItem.endAmount = amount;
+                        item.startAmount = amount;
+                        item.endAmount = amount;
                     } else {
-                        // Apply order fill fraction to each item amount.
-                        considerationItem.startAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            considerationItem.startAmount
+                        // Apply fraction to consideration item start amount.
+                        item.startAmount = _getFraction(
+                            numerator, denominator, item.startAmount
                         );
 
-                        considerationItem.endAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            considerationItem.endAmount
+                        // Apply fraction to consideration item end amount.
+                        item.endAmount = _getFraction(
+                            numerator, denominator, item.endAmount
                         );
                     }
                 }
@@ -1352,7 +1338,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
     ) internal {
         // Designate memory regions for spent items as well as received items.
         SpentItem[] memory spentItems = new SpentItem[](offer.length);
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](consideration.length);
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            consideration.length
+        );
 
         // Skip overflow checks as for loop increments from zero.
         unchecked {

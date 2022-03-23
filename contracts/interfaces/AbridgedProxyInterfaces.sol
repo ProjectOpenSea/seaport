@@ -6,8 +6,9 @@ interface ProxyRegistryInterface {
 }
 
 interface ProxyInterface {
-	function implementation() external view returns (address);
 	function proxyAssert(
 		address dest, uint8 howToCall, bytes calldata callData
 	) external;
+
+	function implementation() external view returns (address);
 }

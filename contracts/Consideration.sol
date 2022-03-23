@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol";
+import {
+    ConsiderationInterface
+} from "./interfaces/ConsiderationInterface.sol";
 
 import { ItemType } from "./lib/ConsiderationEnums.sol";
 
@@ -590,7 +592,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         BatchExecution[] memory batchExecutions
     ) {
         // Convert orders to "advanced" orders.
-        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(orders);
+        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
+            orders
+        );
 
         // Validate orders, apply amounts, & determine if they utilize proxies.
         bool[] memory useProxyPerOrder = _validateOrdersAndPrepareToFulfill(
@@ -907,6 +911,17 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
+     * @notice Retrieve the domain separator, used for signing and verifying
+     * signed orders via EIP-712.
+     *
+     * @return The domain separator.
+     */
+    function DOMAIN_SEPARATOR() external view override returns (bytes32) {
+        // Get domain separator, either precomputed or derived based on chainId.
+        return _domainSeparator();
+    }
+
+    /**
      * @notice Retrieve the name of this contract.
      *
      * @return The name of this contract.
@@ -924,16 +939,5 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function version() external pure override returns (string memory) {
         // Return the version.
         return _VERSION;
-    }
-
-    /**
-     * @notice Retrieve the domain separator, used for signing and verifying
-     * signed orders via EIP-712.
-     *
-     * @return The domain separator.
-     */
-    function DOMAIN_SEPARATOR() external view override returns (bytes32) {
-        // Get domain separator, either precomputed or derived based on chainId.
-        return _domainSeparator();
     }
 }

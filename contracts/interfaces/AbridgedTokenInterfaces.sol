@@ -10,6 +10,19 @@ interface ERC721Interface {
 }
 
 interface ERC1155Interface {
-    function safeTransferFrom(address, address, uint256, uint256, bytes calldata) external;
-    function safeBatchTransferFrom(address, address, uint256[] calldata, uint256[] calldata, bytes calldata) external;
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes calldata data
+    ) external;
+
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] calldata ids,
+        uint256[] calldata amounts,
+        bytes calldata data
+    ) external;
 }

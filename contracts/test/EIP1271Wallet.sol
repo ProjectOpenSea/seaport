@@ -14,10 +14,11 @@ contract EIP1271Wallet {
 
     address public immutable owner;
 
-    bool showRevertMessage = true;
+    bool public showRevertMessage;
 
     constructor(address _owner) {
         owner = _owner;
+        showRevertMessage = true;
     }
 
     function revertWithMessage(bool showMessage) external {

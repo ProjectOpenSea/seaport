@@ -5,7 +5,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Used for minting test ERC20s in our tests
 contract TestERC20 is ERC20("Test20", "TST20") {
-  bool blocked = false;
+  bool public blocked;
+
+  constructor() {
+      blocked = false;
+  }
 
   function blockTransfer(bool blocking) external {
     blocked = blocking;

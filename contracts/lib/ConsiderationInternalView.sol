@@ -199,7 +199,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 // Extract canonical s from vs (all but the highest bit).
                 s := and(
                     vs,
-                    0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                    0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff // solhint-disable-line max-line-length
                 )
 
                 // Extract yParity from highest bit of vs and add 27 to get v.
@@ -504,7 +504,9 @@ contract ConsiderationInternalView is ConsiderationPure {
         OfferItem[] memory offer = orderParameters.offer;
 
         // Retrieve the consideration items for the order.
-        ConsiderationItem[] memory consideration = orderParameters.consideration;
+        ConsiderationItem[] memory consideration = (
+            orderParameters.consideration
+        );
 
         // Skip checks: for loops indexed at zero and durations are validated.
         unchecked {
