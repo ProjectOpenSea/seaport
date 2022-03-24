@@ -20,7 +20,7 @@ import { OrderStatus } from "./ConsiderationStructs.sol";
 contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
-    string internal constant _VERSION = "rc.0";
+    string internal constant _VERSION = "rc.1";
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
 
