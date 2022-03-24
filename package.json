@@ -1,8 +1,8 @@
 {
   "name": "consideration",
-  "version": "0.0.1",
-  "description": "Cheaply and safely offer ERC20, ERC721, and ERC1155 tokens and receive them in consideration.",
-  "main": "index.js",
+  "version": "rc.0",
+  "description": "Consideration is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items. Each order contains an arbitrary number of items that the offerer is willing to give (the \"offer\") along with an arbitrary number of items that must be received along with their respective receivers (the \"consideration\").",
+  "main": "contracts/Consideration.sol",
   "author": "0age",
   "license": "MIT",
   "private": true,

@@ -11,7 +11,9 @@ const { merkleTree } = require("./utils/criteria");
 const { eip712DomainType } = require("../eip-712-types/domain");
 const { orderType } = require("../eip-712-types/order");
 
-describe("Consideration functional tests", function () {
+const VERSION = "rc.0";
+
+describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
   let chainId;
   let marketplaceContract;
@@ -986,7 +988,7 @@ describe("Consideration functional tests", function () {
     // Required for EIP712 signing
     domainData = {
       name: "Consideration",
-      version: "1",
+      version: VERSION,
       chainId: chainId,
       verifyingContract: marketplaceContract.address,
     };
@@ -1214,7 +1216,7 @@ describe("Consideration functional tests", function () {
     });
     it("gets correct version", async () => {
       const version = await marketplaceContract.version();
-      expect(version).to.equal("1");
+      expect(version).to.equal(VERSION);
     });
     it("gets correct domain separator", async () => {
       const name = await marketplaceContract.name();
