@@ -50,6 +50,7 @@
   "scripts": {
     "build": "npx hardhat compile",
     "test": "npx hardhat test",
+    "profile": "REPORT_GAS=true npx hardhat test",
     "coverage": "npx hardhat coverage",
     "lint": "npx hardhat compile && npx solhint 'contracts/**/*.sol'"
   }

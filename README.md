@@ -160,16 +160,22 @@ The following features are good candidates for investigation and potential integ
 - **Native support for attempting fulfillment for a group of orders without requiring that every order fulfillment succeeds.** One potential solution would be to implement a `fulfillAvailableOrders` function that iterates over the supplied orders and attempts to transfer all offer items for each order to the fulfiller; if a particular transfer fails, all prior offer item transfers and order status updates for that order would be rolled back and the order would be excluded from the group. Then, remaining consideration items can be aggregated by item type + token + identifier + recipient and transferred from the fulfiller to the recipient.
 - **General gas efficiency and code size optimizations.**
 
-## Local Development
+## Usage
 
-1. Installing Packages:
-   `yarn install`
+First, install dependencies and compile:
+```bash
+yarn install
+yarn build
+```
 
-2. Running Tests:
-   `REPORT_GAS=true npx hardhat test`
+Next, run linters and tests:
+```bash
+yarn lint
+yarn test
+yarn coverage
+```
 
-3. Other commands
-   `npx hardhat coverage`
-   `npx hardhat compile`
-   `npx solhint 'contracts/**/*.sol'`
-   `npx hardhat node`
+To profile gas usage:
+```bash
+yarn profile
+```
