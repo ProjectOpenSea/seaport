@@ -370,4 +370,10 @@ interface ConsiderationEventsAndErrors {
             does not match the expected proxy implementation.
      */
     error InvalidProxyImplementation();
+
+    /**
+     * @dev Revert with an error when attempting to fill a basic order using
+     *      calldata not produced by default ABI encoding, i.e. suboptimal offsets.
+     */
+    error InvalidBasicOrderParameterEncoding();
 }
