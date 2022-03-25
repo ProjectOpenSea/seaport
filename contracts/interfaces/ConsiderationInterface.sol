@@ -86,17 +86,6 @@ interface ConsiderationInterface {
      *         of "additional recipients" may also be supplied which will each
      *         receive ERC20 tokens from the fulfiller as consideration.
      *
-     * @param erc20Token    The address of the ERC20 token being supplied as
-     *                      consideration to the offerer of the fulfilled order.
-     * @param erc20Amount   ERC20 tokens that will be transferred to the
-     *                      offerer of the fulfilled order. Note that the
-     *                      fulfiller must first approve this contract before
-     *                      the ERC20 tokens required as consideration can be
-     *                      transferred.
-     * @param erc1155Amount Total offererd ERC1155 tokens that will be
-     *                      transferred to the caller. Also note that calling
-     *                      contracts must implement `onERC1155Received` in
-     *                      order to receive tokens.
      * @param parameters    Additional information on the fulfilled order. Note
      *                      that the offerer must first approve this contract
      *                      (or their proxy if indicated by the order) in order
@@ -105,10 +94,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC20ForERC1155Order(
-        address erc20Token,
-        uint256 erc20Amount,
-        uint256 erc1155Amount,
-        BasicOrderParameters calldata parameters
+        BasicOrderParameters2 calldata parameters
     ) external returns (bool);
 
     /**
@@ -116,16 +102,6 @@ interface ConsiderationInterface {
      *         ERC721 token as consideration. An arbitrary number of "additional
      *         recipients" may also be supplied which will each receive ERC20
      *         tokens from the offerer as consideration.
-     *
-     * @param erc20Token        The address of the ERC20 token being offered.
-     * @param erc20Amount       ERC20 tokens that will be transferred from the
-     *                          offerer to the fulfiller and any additional
-     *                          recipients. Note that the offerer must first
-     *                          approve this contract before their offered ERC20
-     *                          tokens to be transferred. Also note that the
-     *                          amount transferred to the fulfiller will be less
-     *                          than this amount if additional recipients have
-     *                          been specified.
      * @param parameters        Additional information on the fulfilled order.
      *                          Note that the fulfiller must first approve this
      *                          contract (or their proxy if indicated by the
@@ -133,17 +109,11 @@ interface ConsiderationInterface {
      *                          consideration can be transferred. Also note that
      *                          the sum of all additional recipient amounts
      *                          cannot exceed `erc20Amount`.
-     * @param useFulfillerProxy A boolean indicating whether to utilize the
-     *                          fulfiller's proxy when transferring the ERC721
-     *                          item from the fulfiller to the offerer.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC721ForERC20Order(
-        address erc20Token,
-        uint256 erc20Amount,
-        BasicOrderParameters memory parameters,
-        bool useFulfillerProxy
+        BasicOrderParameters2 calldata parameters
     ) external returns (bool);
 
     /**
@@ -152,19 +122,6 @@ interface ConsiderationInterface {
      *         recipients" may also be supplied which will each receive ERC20
      *         tokens from the offerer as consideration.
      *
-     * @param erc20Token        The address of the ERC20 token being offered.
-     * @param erc20Amount       ERC20 tokens that will be transferred from the
-     *                          offerer to the fulfiller and any additional
-     *                          recipients. Note that the offerer must first
-     *                          approve this contract before their offered ERC20
-     *                          tokens to be transferred. Also note that the
-     *                          amount transferred to the fulfiller will be less
-     *                          than this amount if additional recipients have
-     *                          been specified.
-     * @param erc1155Amount     Total ERC1155 tokens required to be transferred
-     *                          to the offerer as consideration. Note that
-     *                          offering contracts must implement
-     *                          `onERC1155Received` in order to receive tokens.
      * @param parameters        Additional information on the fulfilled order.
      *                          Note that the fulfiller must first approve this
      *                          contract (or their proxy if indicated by the
@@ -172,18 +129,11 @@ interface ConsiderationInterface {
      *                          consideration can be transferred. Also note that
      *                          the sum of all additional recipient amounts
      *                          cannot exceed `erc20Amount`.
-     * @param useFulfillerProxy A boolean indicating whether to utilize the
-     *                          fulfiller's proxy when transferring the ERC1155
-     *                          item from the fulfiller to the offerer.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC1155ForERC20Order(
-        address erc20Token,
-        uint256 erc20Amount,
-        uint256 erc1155Amount,
-        BasicOrderParameters memory parameters,
-        bool useFulfillerProxy
+        BasicOrderParameters2 calldata parameters
     ) external returns (bool);
 
     /**
