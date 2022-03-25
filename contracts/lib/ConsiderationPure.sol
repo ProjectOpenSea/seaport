@@ -1133,22 +1133,6 @@ contract ConsiderationPure is ConsiderationBase {
 
     /**
      * @dev Internal pure function to check whether a given item type represents
-     *      an Ether or ERC20 item.
-     *
-     * @param itemType The item type in question.
-     *
-     * @return A boolean indicating that the item type represents either Ether
-     *         or an ERC20 item.
-     */
-    function _isEtherOrERC20Item(
-        ItemType itemType
-    ) internal pure returns (bool) {
-        // Ether is item type 0 and ERC20 is item type 1.
-        return uint256(itemType) < 2;
-    }
-
-    /**
-     * @dev Internal pure function to check whether a given item type represents
      *      a criteria-based ERC721 or ERC1155 item (e.g. an item that can be
      *      resolved to one of a number of different identifiers at the time of
      *      order fulfillment).
