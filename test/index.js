@@ -3050,31 +3050,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             0, // FULL_OPEN
           );
 
-          const basicOrderParameters = {
-            offerer: order.parameters.offerer,
-            zone: order.parameters.zone,
-            orderType: order.parameters.orderType,
-            token: order.parameters.consideration[0].token,
-            identifier: order.parameters.consideration[0].identifierOrCriteria,
-            startTime: order.parameters.startTime,
-            endTime: order.parameters.endTime,
-            salt: order.parameters.salt,
-            signature: order.signature,
-            additionalRecipients: [
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: zone.address,
-              },
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: owner.address,
-              }
-            ],
-          };
+          const basicOrderParameters = getBasicOrderParameters(order, [
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: zone.address,
+            },
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: owner.address,
+            }
+          ]);
 
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], ethers.BigNumber.from(0), null, async () => {
-              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC721ForERC20Order(testERC20.address, tokenAmount, basicOrderParameters, false);
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC721ForERC20Order(basicOrderParameters);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
@@ -3151,31 +3140,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             0, // FULL_OPEN
           );
 
-          const basicOrderParameters = {
-            offerer: order.parameters.offerer,
-            zone: order.parameters.zone,
-            orderType: order.parameters.orderType,
-            token: order.parameters.consideration[0].token,
-            identifier: order.parameters.consideration[0].identifierOrCriteria,
-            startTime: order.parameters.startTime,
-            endTime: order.parameters.endTime,
-            salt: order.parameters.salt,
-            signature: order.signature,
-            additionalRecipients: [
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: zone.address,
-              },
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: owner.address,
-              }
-            ],
-          };
+          const basicOrderParameters = getBasicOrderParameters(order, [
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: zone.address,
+            },
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: owner.address,
+            }
+          ], true);
 
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], ethers.BigNumber.from(0), null, async () => {
-              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC721ForERC20Order(testERC20.address, tokenAmount, basicOrderParameters, true);
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC721ForERC20Order(basicOrderParameters);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
@@ -4092,31 +4070,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             0, // FULL_OPEN
           );
 
-          const basicOrderParameters = {
-            offerer: order.parameters.offerer,
-            zone: order.parameters.zone,
-            orderType: order.parameters.orderType,
-            token: order.parameters.offer[0].token,
-            identifier: order.parameters.offer[0].identifierOrCriteria,
-            startTime: order.parameters.startTime,
-            endTime: order.parameters.endTime,
-            salt: order.parameters.salt,
-            signature: order.signature,
-            additionalRecipients: [
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: zone.address,
-              },
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: owner.address,
-              }
-            ],
-          };
+          const basicOrderParameters = getBasicOrderParameters(order, [
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: zone.address,
+            },
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: owner.address,
+            }
+          ]);
 
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], 0, null, async () => {
-              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC1155Order(testERC20.address, tokenAmount.sub(100), amount, basicOrderParameters);
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC1155Order(basicOrderParameters);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
@@ -4192,31 +4159,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             4, // FULL_OPEN_VIA_PROXY
           );
 
-          const basicOrderParameters = {
-            offerer: order.parameters.offerer,
-            zone: order.parameters.zone,
-            orderType: order.parameters.orderType,
-            token: order.parameters.offer[0].token,
-            identifier: order.parameters.offer[0].identifierOrCriteria,
-            startTime: order.parameters.startTime,
-            endTime: order.parameters.endTime,
-            salt: order.parameters.salt,
-            signature: order.signature,
-            additionalRecipients: [
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: zone.address,
-              },
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: owner.address,
-              }
-            ],
-          };
+          const basicOrderParameters = getBasicOrderParameters(order, [
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: zone.address,
+            },
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: owner.address,
+            }
+          ]);
 
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], 0, null, async () => {
-              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC1155Order(testERC20.address, tokenAmount.sub(100), amount, basicOrderParameters);
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC1155Order(basicOrderParameters);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
@@ -4671,31 +4627,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             0, // FULL_OPEN
           );
 
-          const basicOrderParameters = {
-            offerer: order.parameters.offerer,
-            zone: order.parameters.zone,
-            orderType: order.parameters.orderType,
-            token: order.parameters.consideration[0].token,
-            identifier: order.parameters.consideration[0].identifierOrCriteria,
-            startTime: order.parameters.startTime,
-            endTime: order.parameters.endTime,
-            salt: order.parameters.salt,
-            signature: order.signature,
-            additionalRecipients: [
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: zone.address,
-              },
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: owner.address,
-              }
-            ],
-          };
+          const basicOrderParameters = getBasicOrderParameters(order, [
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: zone.address,
+            },
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: owner.address,
+            }
+          ]);
 
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], ethers.BigNumber.from(0), null, async () => {
-              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC1155ForERC20Order(testERC20.address, tokenAmount, amount, basicOrderParameters, false);
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC1155ForERC20Order(basicOrderParameters);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
@@ -4773,31 +4718,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             0, // FULL_OPEN
           );
 
-          const basicOrderParameters = {
-            offerer: order.parameters.offerer,
-            zone: order.parameters.zone,
-            orderType: order.parameters.orderType,
-            token: order.parameters.consideration[0].token,
-            identifier: order.parameters.consideration[0].identifierOrCriteria,
-            startTime: order.parameters.startTime,
-            endTime: order.parameters.endTime,
-            salt: order.parameters.salt,
-            signature: order.signature,
-            additionalRecipients: [
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: zone.address,
-              },
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: owner.address,
-              }
-            ],
-          };
+          const basicOrderParameters = getBasicOrderParameters(order, [
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: zone.address,
+            },
+            {
+              amount: ethers.BigNumber.from(50),
+              recipient: owner.address,
+            }
+          ], true);
 
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], ethers.BigNumber.from(0), null, async () => {
-              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC1155ForERC20Order(testERC20.address, tokenAmount, amount, basicOrderParameters, true);
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC1155ForERC20Order(basicOrderParameters);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
