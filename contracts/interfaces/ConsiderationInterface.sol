@@ -3,6 +3,7 @@ pragma solidity 0.8.12;
 
 import {
     BasicOrderParameters,
+    BasicOrderParameters2,
     OrderComponents,
     Fulfillment,
     Execution,
@@ -26,6 +27,7 @@ import {
  *      Consideration.
  */
 interface ConsiderationInterface {
+  // todo: review basic order fn natspec
     /**
      * @notice Fulfill an order offering a single ERC721 token by supplying
      *         Ether (or the native token for the given chain) as consideration
@@ -33,10 +35,6 @@ interface ConsiderationInterface {
      *         also be supplied which will each receive the native token from
      *         the fulfiller as consideration.
      *
-     * @param etherAmount Ether (or the native token for the given chain) that
-     *                    will be transferred to the offerer of the fulfilled
-     *                    order. Note that msg.value must exceed this amount if
-     *                    additonal recipients are specified.
      * @param parameters  Additional information on the fulfilled order. Note
      *                    that the offerer must first approve this contract (or
      *                    their proxy if indicated by the order) in order for
@@ -45,8 +43,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicEthForERC721Order(
-        uint256 etherAmount,
-        BasicOrderParameters calldata parameters
+        BasicOrderParameters2 calldata parameters
     ) external payable returns (bool);
 
     /**
@@ -55,15 +52,6 @@ interface ConsiderationInterface {
      *         order. An arbitrary number of "additional recipients" may also be
      *         supplied which will each receive native tokens from the fulfiller
      *         as consideration.
-     *
-     * @param etherAmount   Ether (or the native token for the given chain) that
-     *                      will be transferred to the offerer of the fulfilled
-     *                      order. Note that msg.value must exceed this amount
-     *                      if additonal recipients are specified.
-     * @param erc1155Amount Total offererd ERC1155 tokens that will be
-     *                      transferred to the fulfiller. Also note that calling
-     *                      contracts must implement `onERC1155Received` in
-     *                      order to receive tokens.
      * @param parameters    Additional information on the fulfilled order. Note
      *                      that the offerer must first approve this contract
      *                      (or their proxy if indicated by the order) in order
@@ -72,9 +60,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicEthForERC1155Order(
-        uint256 etherAmount,
-        uint256 erc1155Amount,
-        BasicOrderParameters calldata parameters
+        BasicOrderParameters2 calldata parameters
     ) external payable returns (bool);
 
     /**
@@ -83,12 +69,6 @@ interface ConsiderationInterface {
      *         recipients" may also be supplied which will each receive ERC20
      *         tokens from the fulfiller as consideration.
      *
-     * @param erc20Token  The address of the ERC20 token being supplied as
-     *                    consideration to the offerer of the fulfilled order.
-     * @param erc20Amount ERC20 tokens that will be transferred to the offerer
-     *                    of the fulfilled order. Note that the fulfiller must
-     *                    first approve this contract before the ERC20 tokens
-     *                    required as consideration can be transferred.
      * @param parameters  Additional information on the fulfilled order. Note
      *                    that the offerer must first approve this contract (or
      *                    their proxy if indicated by the order) in order for
@@ -97,9 +77,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC20ForERC721Order(
-        address erc20Token,
-        uint256 erc20Amount,
-        BasicOrderParameters calldata parameters
+        BasicOrderParameters2 calldata parameters
     ) external returns (bool);
 
     /**
