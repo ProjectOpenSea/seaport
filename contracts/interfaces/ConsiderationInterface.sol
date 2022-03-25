@@ -3,7 +3,6 @@ pragma solidity 0.8.12;
 
 import {
     BasicOrderParameters,
-    BasicOrderParameters2,
     OrderComponents,
     Fulfillment,
     Execution,
@@ -43,7 +42,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicEthForERC721Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external payable returns (bool);
 
     /**
@@ -60,7 +59,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicEthForERC1155Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external payable returns (bool);
 
     /**
@@ -77,7 +76,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC20ForERC721Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external returns (bool);
 
     /**
@@ -94,7 +93,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC20ForERC1155Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external returns (bool);
 
     /**
@@ -113,7 +112,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC721ForERC20Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external returns (bool);
 
     /**
@@ -133,7 +132,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC1155ForERC20Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external returns (bool);
 
     /**

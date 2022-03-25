@@ -84,28 +84,14 @@ struct ReceivedItem {
     address payable recipient;
 }
 
+// todo: remove cdptr comments
+// todo: update naming scheme to reflect change from OfferedItem -> OfferItem & ReceivedItem -> ConsiderationItem
 /**
  * @dev For basic orders involving ETH / native / ERC20 <=> ERC721 / ERC1155
  *      matching, a group of six functions may be called that only requires a
  *      subset of the usual order arguments.
  */
 struct BasicOrderParameters {
-    address payable offerer;
-    address zone;
-    address token;
-    uint256 identifier;
-    OrderType orderType;
-    uint256 startTime;
-    uint256 endTime;
-    uint256 salt;
-    AdditionalRecipient[] additionalRecipients;
-    bytes signature;
-}
-
-// todo: rename to BasicOrderParameters, delete old struct
-// todo: remove cdptr comments
-// todo: update naming scheme to reflect change from OfferedItem -> OfferItem & ReceivedItem -> ConsiderationItem
-struct BasicOrderParameters2 {
     address receivedToken; // 0x24
     uint256 receivedIdentifier; // 0x44
     uint256 receivedAmount; // 0x64

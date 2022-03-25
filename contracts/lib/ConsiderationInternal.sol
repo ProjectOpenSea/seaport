@@ -17,7 +17,6 @@ import {
 import {
     AdditionalRecipient,
     BasicOrderParameters,
-    BasicOrderParameters2,
     OfferItem,
     ConsiderationItem,
     SpentItem,
@@ -62,7 +61,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
   // todo: update naming scheme to reflect change from OfferedItem -> OfferItem & ReceivedItem -> ConsiderationItem
   // todo: clean up comments, add natspec
   function _prepareBasicFulfillmentFromCalldata(
-    BasicOrderParameters2 calldata parameters,
+    BasicOrderParameters calldata parameters,
     ItemType receivedItemType,
     ItemType additionalRecipientsItemType,
     address additionalRecipientsToken,
@@ -1297,7 +1296,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     // todo: delete old version, add natspec, look into optimizations
     function _transferEthAndFinalize(
         uint256 amount,
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) internal {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
@@ -1373,7 +1372,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address to,
         address erc20Token,
         uint256 amount,
-        BasicOrderParameters2 calldata parameters,
+        BasicOrderParameters calldata parameters,
         bool fromOfferer
     ) internal {
         // Iterate over each additional recipient.

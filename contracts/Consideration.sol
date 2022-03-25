@@ -9,7 +9,6 @@ import { ItemType } from "./lib/ConsiderationEnums.sol";
 
 import {
     BasicOrderParameters,
-    BasicOrderParameters2,
     OfferItem,
     ConsiderationItem,
     OrderParameters,
@@ -51,7 +50,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {}
 
     function fulfillBasicEthForERC721Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external payable override returns (bool) {
         // todo: Look into whether it is necessary to do further validation on parameters
         // Derive and validate order using parameters and update order status.
@@ -99,7 +98,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicEthForERC1155Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external payable override returns (bool) {
         // todo: Look into whether it is necessary to do further validation on parameters
         // Derive and validate order using parameters and update order status.
@@ -147,7 +146,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC20ForERC721Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external override returns (bool) {
         // todo: Look into whether it is necessary to do further validation on parameters
         // Derive and validate order using parameters and update order status.
@@ -197,7 +196,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC20ForERC1155Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external override returns (bool) {
         // todo: Look into whether it is necessary to do further validation on parameters
         // Derive and validate order using parameters and update order status.
@@ -252,7 +251,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC721ForERC20Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external override returns (bool) {
         // todo: Look into whether it is necessary to do further validation on parameters
         // Derive and validate order using parameters and update order status.
@@ -306,7 +305,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillBasicERC1155ForERC20Order(
-        BasicOrderParameters2 calldata parameters
+        BasicOrderParameters calldata parameters
     ) external override returns (bool) {
         // todo: Look into whether it is necessary to do further validation on parameters
         // Derive and validate order using parameters and update order status.
