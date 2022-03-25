@@ -102,14 +102,36 @@ struct BasicOrderParameters {
     bytes signature;
 }
 
+// todo: rename to BasicOrderParameters, delete old struct
+// todo: remove cdptr comments
+// todo: update naming scheme to reflect change from OfferedItem -> OfferItem & ReceivedItem -> ConsiderationItem
+struct BasicOrderParameters2 {
+    address receivedToken; // 0x24
+    uint256 receivedIdentifier; // 0x44
+    uint256 receivedAmount; // 0x64
+    address payable offerer; // 0x84
+    address offeredToken; // 0xa4
+    uint256 offeredIdentifier; // 0xc4
+    uint256 offeredAmount; // 0xe4
+    OrderType orderType; // 0x104
+    uint256 startTime; // 0x124
+    uint256 endTime; // 0x144
+    uint256 salt; // 0x164
+    address zone; // 0x184
+    bool useFulfillerProxy; // 0x1a4
+    AdditionalRecipient[] additionalRecipients; // 0x1c4
+    bytes signature; // 0x1e4
+    // len : 0x204
+}
+
 /**
  * @dev Basic orders can supply any number of additional recipients, with the
  *      implied assumption that they are supplied from the offered ETH (or other
  *      native token) or ERC20 token for the order.
  */
 struct AdditionalRecipient {
-    address payable recipient;
     uint256 amount;
+    address payable recipient;
 }
 
 /**
