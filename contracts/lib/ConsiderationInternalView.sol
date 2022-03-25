@@ -66,6 +66,24 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
+
+    /**
+     * @dev Validate BasicOrderParameters offset match the default abi encoding.
+     * This ensures that functions using the calldata object normally will be
+     * using the same data as the assembly functions.
+     */
+    function _assertValidBasicOrderParameterOffsets() internal pure {
+        bool validOffsets;
+        // todo validate signature offset
+        assembly {
+            validOffsets := and(
+                eq(calldataload(0x04), 0x20), // Order parameters have offset of 0x20
+                eq(calldataload(0x1c4), 0x1e0) // Additional recipients have offset of 0x1e0
+            )
+        }
+        if (!validOffsets) revert InvalidBasicOrderParameterEncoding();
+    }
+
     /**
      * @dev Internal view function to validate whether a token transfer was
      *      successful based on the returned status and data. Note that
