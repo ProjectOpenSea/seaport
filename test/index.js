@@ -2575,30 +2575,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           );
 
           const basicOrderParameters = {
-            offerer: order.parameters.offerer,
-            zone: order.parameters.zone,
-            orderType: order.parameters.orderType,
-            token: order.parameters.offer[0].token,
-            identifier: order.parameters.offer[0].identifierOrCriteria,
-            startTime: order.parameters.startTime,
-            endTime: order.parameters.endTime,
-            salt: order.parameters.salt,
-            signature: "0x", // EMPTY
-            additionalRecipients: [
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: zone.address,
-              },
-              {
-                amount: ethers.BigNumber.from(50),
-                recipient: owner.address,
-              }
-            ],
-          };
+            ...getBasicOrderParameters(order),
+            signature: "0x"
+          }
 
           // Fails before seller contract approves the digest
           await whileImpersonating(buyer.address, provider, async () => {
-            await expect(marketplaceContract.connect(buyer).fulfillBasicERC20ForERC721Order(testERC20.address, tokenAmount.sub(100), basicOrderParameters)).to.be.reverted;
+            await expect(marketplaceContract.connect(buyer).fulfillBasicERC20ForERC721Order(basicOrderParameters)).to.be.reverted;
           });
 
           // Compute the digest based on the order hash
@@ -2613,7 +2596,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           // Now it succeeds
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], 0, null, async () => {
-              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC721Order(testERC20.address, tokenAmount.sub(100), basicOrderParameters);
+              const tx = await marketplaceContract.connect(buyer).fulfillBasicERC20ForERC721Order(basicOrderParameters);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
