@@ -207,6 +207,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             if (v != 27 && v != 28) {
                 revert BadSignatureV(v);
             }
+        // For all other signature lengths, attempt verification using EIP-1271.
         } else {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
             _verifySignatureViaERC1271(offerer, digest, signature);
