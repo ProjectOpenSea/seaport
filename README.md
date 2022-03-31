@@ -7,7 +7,7 @@ Consideration is a marketplace contract for safely and efficiently creating and 
 ## Order
 
 Each order contains nine key components:
--   The `offerer` of the order supplies all offered items and must either fulfill the order personally (i.e. `msg.sender == offerer`) or approve the order via ECDSA signature or by listing the order on-chain (i.e. calling `validate`).
+-   The `offerer` of the order supplies all offered items and must either fulfill the order personally (i.e. `msg.sender == offerer`) or approve the order via signature (either standard 65-byte EDCSA, 64-byte EIP-2098, or an EIP-1271 `isValidSignature` check) or by listing the order on-chain (i.e. calling `validate`).
 - The `zone` of the order is an optional secondary account attached to the order with two additional privileges:
    - The zone may cancel orders where it is named as the zone, either for specific orders (by calling `cancel`) or for a whole category of orders (by calling `incrementNonce`).
    - Only the zone or the offerer can fulfill "restricted" orders if specified by the order type.
