@@ -143,9 +143,11 @@ contract ConsiderationInternalView is ConsiderationPure {
 
     /**
      * @dev Internal view function to verify the signature of an order. An
-     *      ERC-1271 fallback will be attempted should the recovered signature
-     *      not match the supplied offerer. Note that only 32-byte or 33-byte
-     *      ECDSA signatures are supported.
+     *      ERC-1271 fallback will be attempted if either the signature length
+     *      is not 32 or 33 bytes or if the recovered signer not match the
+     *      supplied offerer. Note that in cases where a 32 or 33 byte signature
+     *      is supplied, only standard ECDSA signatures that recover to a
+     *      non-zero address are supported.
      *
      * @param offerer   The offerer for the order.
      * @param orderHash The order hash.
@@ -170,21 +172,8 @@ contract ConsiderationInternalView is ConsiderationPure {
         bytes32 s;
         uint8 v;
 
-        // If signature contains 65 bytes, parse as standard signature. (r+s+v)
-        if (signature.length == 65) {
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                r := mload(add(signature, 0x20)) // Put first word on stack at r
-                s := mload(add(signature, 0x40)) // Put next word on stack at s
-                v := byte(0, mload(add(signature, 0x60))) // Put last byte at v
-            }
-
-            // Ensure v value is properly formatted.
-            if (v != 27 && v != 28) {
-                revert BadSignatureV(v);
-            }
         // If signature contains 64 bytes, parse as EIP-2098 signature. (r+s&v)
-        } else if (signature.length == 64) {
+        if (signature.length == 64) {
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
 
@@ -205,9 +194,22 @@ contract ConsiderationInternalView is ConsiderationPure {
                 // Extract yParity from highest bit of vs and add 27 to get v.
                 v := add(shr(255, vs), 27)
             }
+        // If signature contains 65 bytes, parse as standard signature. (r+s+v)
+        } else if (signature.length == 65) {
+            // Read each parameter directly from the signature's memory region.
+            assembly {
+                r := mload(add(signature, 0x20)) // Put first word on stack at r
+                s := mload(add(signature, 0x40)) // Put next word on stack at s
+                v := byte(0, mload(add(signature, 0x60))) // Put last byte at v
+            }
+
+            // Ensure v value is properly formatted.
+            if (v != 27 && v != 28) {
+                revert BadSignatureV(v);
+            }
         } else {
-            // Disallow signatures that are not 64 or 65 bytes long.
-            revert BadSignatureLength(signature.length);
+            // Attempt EIP-1271 static call to offerer in case it's a contract.
+            _verifySignatureViaERC1271(offerer, digest, signature);
         }
 
         // Attempt to recover signer using the digest and signature parameters.
@@ -219,40 +221,58 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Should a signer be recovered, but it doesn't match the offerer...
         } else if (signer != offerer) {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
-            (bool success, ) = offerer.staticcall(
-                abi.encodeWithSelector(
-                    EIP1271Interface.isValidSignature.selector,
-                    digest,
-                    signature
-                )
-            );
+            _verifySignatureViaERC1271(offerer, digest, signature);
+        }
+    }
 
-            // If the call fails...
-            if (!success) {
-                // Revert and pass reason along if one was returned.
-                _revertWithReasonIfOneIsReturned();
+    /**
+     * @dev Internal view function to verify the signature of an order using
+     *      ERC-1271 (i.e. contract signatures via `isValidSignature`).
+     *
+     * @param offerer   The offerer for the order.
+     * @param digest    The signature digest, derived from the domain separator
+     *                  and the order hash.
+     * @param signature A signature (or other data) used to validate the digest.
+     */
+    function _verifySignatureViaERC1271(
+        address offerer,
+        bytes32 digest,
+        bytes memory signature
+    ) internal view {
+        // Attempt an EIP-1271 static call to the offerer.
+        (bool success, ) = offerer.staticcall(
+            abi.encodeWithSelector(
+                EIP1271Interface.isValidSignature.selector,
+                digest,
+                signature
+            )
+        );
 
-                // Otherwise, revert with a generic error message.
-                revert BadContractSignature();
+        // If the call fails...
+        if (!success) {
+            // Revert and pass reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
+
+            // Otherwise, revert with a generic error message.
+            revert BadContractSignature();
+        }
+
+        // Extract result from returndata buffer in case of memory overflow.
+        bytes4 result;
+        assembly {
+            // Only put result on stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) {
+                // Copy directly from return data into scratch space.
+                returndatacopy(0, 0, 0x20)
+
+                // Take value from scratch space and place it on the stack.
+                result := mload(0)
             }
+        }
 
-            // Extract result from returndata buffer in case of memory overflow.
-            bytes4 result;
-            assembly {
-                // Only put result on stack if return data is exactly 32 bytes.
-                if eq(returndatasize(), 0x20) {
-                    // Copy directly from return data into scratch space.
-                    returndatacopy(0, 0, 0x20)
-
-                    // Take value from scratch space and place it on the stack.
-                    result := mload(0)
-                }
-            }
-
-            // Ensure result was extracted and matches EIP-1271 magic value.
-            if (result != EIP1271Interface.isValidSignature.selector) {
-                revert InvalidSigner();
-            }
+        // Ensure result was extracted and matches EIP-1271 magic value.
+        if (result != EIP1271Interface.isValidSignature.selector) {
+            revert InvalidSigner();
         }
     }
 
