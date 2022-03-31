@@ -81,8 +81,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
    * - Non-reentrancy
    * - Valid start and end times
    * - Valid calldata encoding
-   * protection
-
    */
   function _prepareBasicFulfillmentFromCalldata(
     BasicOrderParameters calldata parameters,
