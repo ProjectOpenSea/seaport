@@ -122,14 +122,6 @@ interface ConsiderationEventsAndErrors {
     error FulfilledOrderConsiderationIndexOutOfRange();
 
     /**
-     * @dev Revert with an error when a signature that is not either 64 bytes or
-     *      65 bytes in length has been supplied.
-     *
-     * @param signatureLength The invalid signature length.
-     */
-    error BadSignatureLength(uint256 signatureLength);
-
-    /**
      * @dev Revert with an error when a signature that does not contain a v
      *      value of 27 or 28 has been supplied.
      *

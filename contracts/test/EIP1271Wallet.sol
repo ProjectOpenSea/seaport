@@ -16,6 +16,8 @@ contract EIP1271Wallet {
 
     bool public showRevertMessage;
 
+    mapping (bytes32 => bool) public digestApproved;
+
     constructor(address _owner) {
         owner = _owner;
         showRevertMessage = true;
@@ -23,6 +25,10 @@ contract EIP1271Wallet {
 
     function revertWithMessage(bool showMessage) external {
         showRevertMessage = showMessage;
+    }
+
+    function registerDigest(bytes32 digest, bool approved) external {
+        digestApproved[digest] = approved;
     }
 
     function approveERC20(ERC20ApprovalInterface token, address operator, uint256 amount) external {
@@ -45,6 +51,14 @@ contract EIP1271Wallet {
         bytes32 digest,
         bytes memory signature
     ) external view returns (bytes4) {
+        if (digestApproved[digest]) {
+            return _EIP_1271_MAGIC_VALUE;
+        }
+
+        if (signature.length != 65) {
+            revert();
+        }
+
         bytes32 r;
         bytes32 s;
         uint8 v;
