@@ -373,7 +373,7 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to fill a basic order using
-     *      calldata not produced by default ABI encoding, i.e. suboptimal offsets.
+     *      calldata not produced by default ABI encoding.
      */
     error InvalidBasicOrderParameterEncoding();
 }
