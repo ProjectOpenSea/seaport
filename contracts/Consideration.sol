@@ -52,7 +52,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function fulfillBasicEthForERC721Order(
         BasicOrderParameters calldata parameters
     ) external payable override returns (bool) {
-        // todo: Look into whether it is necessary to do further validation on parameters
+        // todo: is it necessary to do validation on parameters?
         // Derive and validate order using parameters and update order status.
         (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
           parameters,
@@ -100,7 +100,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function fulfillBasicEthForERC1155Order(
         BasicOrderParameters calldata parameters
     ) external payable override returns (bool) {
-        // todo: Look into whether it is necessary to do further validation on parameters
+        // todo: is it necessary to do validation on parameters?
         // Derive and validate order using parameters and update order status.
         (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
           parameters,
@@ -148,7 +148,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function fulfillBasicERC20ForERC721Order(
         BasicOrderParameters calldata parameters
     ) external override returns (bool) {
-        // todo: Look into whether it is necessary to do further validation on parameters
+        // todo: is it necessary to do validation on parameters?
         // Derive and validate order using parameters and update order status.
         (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
           parameters,
@@ -198,7 +198,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function fulfillBasicERC20ForERC1155Order(
         BasicOrderParameters calldata parameters
     ) external override returns (bool) {
-        // todo: Look into whether it is necessary to do further validation on parameters
+        // todo: is it necessary to do validation on parameters?
         // Derive and validate order using parameters and update order status.
         (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
           parameters,
@@ -253,7 +253,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function fulfillBasicERC721ForERC20Order(
         BasicOrderParameters calldata parameters
     ) external override returns (bool) {
-        // todo: Look into whether it is necessary to do further validation on parameters
+        // todo: is it necessary to do validation on parameters?
         // Derive and validate order using parameters and update order status.
         _prepareBasicFulfillmentFromCalldata(
           parameters,
@@ -307,7 +307,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function fulfillBasicERC1155ForERC20Order(
         BasicOrderParameters calldata parameters
     ) external override returns (bool) {
-        // todo: Look into whether it is necessary to do further validation on parameters
+        // todo: is it necessary to do validation on parameters?
         // Derive and validate order using parameters and update order status.
         _prepareBasicFulfillmentFromCalldata(
           parameters,
