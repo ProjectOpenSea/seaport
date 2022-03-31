@@ -144,7 +144,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
-     *      is not 32 or 33 bytes or if the recovered signer not match the
+     *      is not 32 or 33 bytes or if the recovered signer does not match the
      *      supplied offerer. Note that in cases where a 32 or 33 byte signature
      *      is supplied, only standard ECDSA signatures that recover to a
      *      non-zero address are supported.
