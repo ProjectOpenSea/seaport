@@ -210,6 +210,9 @@ contract ConsiderationInternalView is ConsiderationPure {
         } else {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
             _verifySignatureViaERC1271(offerer, digest, signature);
+
+            // Return early if the ERC-1271 signature check succeeded.
+            return;
         }
 
         // Attempt to recover signer using the digest and signature parameters.
