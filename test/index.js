@@ -11448,6 +11448,92 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     })
 
+    describe("Basic Order Calldata", () => {
+      let calldata, value;
+
+      before(async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(1),
+            endAmount: ethers.BigNumber.from(1),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+        ];
+        let order;
+        ({ order, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+        ));
+
+        const basicOrderParameters = getBasicOrderParameters(order);
+        ({ data: calldata } = await marketplaceContract.populateTransaction.fulfillBasicEthForERC721Order(basicOrderParameters));
+      })
+
+      it("Reverts if BasicOrderParameters has non-default offset", async () => {
+        const badData = [calldata.slice(0, 73), "1", calldata.slice(74)].join('');
+        expect(badData.length).to.eq(calldata.length)
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(buyer.sendTransaction({
+            to: marketplaceContract.address,
+            data: badData,
+            value
+          })).to.be.revertedWith("InvalidBasicOrderParameterEncoding")
+        })
+      })
+
+      it("Reverts if additionalRecipients has non-default offset", async () => {
+        const badData = [calldata.slice(0, 969), "1", calldata.slice(970)].join('');
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(buyer.sendTransaction({
+            to: marketplaceContract.address,
+            data: badData,
+            value
+          })).to.be.revertedWith("InvalidBasicOrderParameterEncoding")
+        })
+      })
+
+      it("Reverts if signature has non-default offset", async () => {
+        const badData = [calldata.slice(0, 1033), "1", calldata.slice(1034)].join('');
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(buyer.sendTransaction({
+            to: marketplaceContract.address,
+            data: badData,
+            value
+          })).to.be.revertedWith("InvalidBasicOrderParameterEncoding")
+        })
+      })
+    })
+    
     describe("Reentrancy", async () => {
       it("Reverts on a reentrant call", async () => {
         // Seller mints nft
