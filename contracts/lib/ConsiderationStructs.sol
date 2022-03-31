@@ -90,14 +90,14 @@ struct ReceivedItem {
  *      subset of the usual order arguments.
  */
 struct BasicOrderParameters {                   // calldata offset
-    address receivedToken;                      // 0x24
-    uint256 receivedIdentifier;                 // 0x44
-    uint256 receivedAmount;                     // 0x64
+    address considerationToken;                 // 0x24
+    uint256 considerationIdentifier;            // 0x44
+    uint256 considerationAmount;                // 0x64
     address payable offerer;                    // 0x84
     address zone;                               // 0xa4
-    address offeredToken;                       // 0xc4
-    uint256 offeredIdentifier;                  // 0xe4
-    uint256 offeredAmount;                      // 0x104
+    address offerToken;                         // 0xc4
+    uint256 offerIdentifier;                    // 0xe4
+    uint256 offerAmount;                        // 0x104
     OrderType orderType;                        // 0x124
     uint256 startTime;                          // 0x144
     uint256 endTime;                            // 0x164

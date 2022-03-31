@@ -67,16 +67,16 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Transfer ERC721 to caller, using offerer's proxy if applicable.
         _transferERC721(
-            parameters.offeredToken,
+            parameters.offerToken,
             offerer,
             msg.sender,
-            parameters.offeredIdentifier,
+            parameters.offerIdentifier,
             useOffererProxy ? offerer : address(0)
         );
 
         // Transfer native to recipients, return excess to caller, and wrap up.
         _transferEthAndFinalize(
-            parameters.receivedAmount,
+            parameters.considerationAmount,
             parameters
         );
 
@@ -115,17 +115,17 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Transfer ERC1155 to caller, using offerer's proxy if applicable.
         _transferERC1155(
-            parameters.offeredToken,
+            parameters.offerToken,
             offerer,
             msg.sender,
-            parameters.offeredIdentifier,
-            parameters.offeredAmount,
+            parameters.offerIdentifier,
+            parameters.offerAmount,
             useOffererProxy ? offerer : address(0)
         );
 
         // Transfer native to recipients, return excess to caller, and wrap up.
         _transferEthAndFinalize(
-            parameters.receivedAmount,
+            parameters.considerationAmount,
             parameters
         );
 
@@ -154,7 +154,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
           parameters,
           ItemType.ERC20,
           ItemType.ERC20,
-          parameters.receivedToken,
+          parameters.considerationToken,
           ItemType.ERC721
         );
 
@@ -163,10 +163,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Transfer ERC721 to caller, using offerer's proxy if applicable.
         _transferERC721(
-            parameters.offeredToken,
+            parameters.offerToken,
             offerer,
             msg.sender,
-            parameters.offeredIdentifier,
+            parameters.offerIdentifier,
             useOffererProxy ? offerer : address(0)
         );
 
@@ -174,8 +174,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _transferERC20AndFinalize(
             msg.sender,
             offerer,
-            parameters.receivedToken,
-            parameters.receivedAmount,
+            parameters.considerationToken,
+            parameters.considerationAmount,
             parameters,
             false // Transfer full amount indicated by all consideration items.
         );
@@ -204,7 +204,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
           parameters,
           ItemType.ERC20,
           ItemType.ERC20,
-          parameters.receivedToken,
+          parameters.considerationToken,
           ItemType.ERC1155
         );
 
@@ -213,11 +213,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Transfer ERC1155 to caller, using offerer's proxy if applicable.
         _transferERC1155(
-            parameters.offeredToken,
+            parameters.offerToken,
             offerer,
             msg.sender,
-            parameters.offeredIdentifier,
-            parameters.offeredAmount,
+            parameters.offerIdentifier,
+            parameters.offerAmount,
             useOffererProxy ? offerer : address(0)
         );
 
@@ -225,8 +225,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _transferERC20AndFinalize(
             msg.sender,
             offerer,
-            parameters.receivedToken,
-            parameters.receivedAmount,
+            parameters.considerationToken,
+            parameters.considerationAmount,
             parameters,
             false // Transfer full amount indicated by all consideration items.
         );
@@ -259,7 +259,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
           parameters,
           ItemType.ERC721,
           ItemType.ERC20,
-          parameters.offeredToken,
+          parameters.offerToken,
           ItemType.ERC20
         );
 
@@ -268,10 +268,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Transfer ERC721 to offerer, using caller's proxy if applicable.
         _transferERC721(
-            parameters.receivedToken,
+            parameters.considerationToken,
             msg.sender,
             offerer,
-            parameters.receivedIdentifier,
+            parameters.considerationIdentifier,
             parameters.useFulfillerProxy ? msg.sender : address(0)
         );
 
@@ -279,8 +279,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _transferERC20AndFinalize(
             offerer,
             msg.sender,
-            parameters.offeredToken,
-            parameters.offeredAmount,
+            parameters.offerToken,
+            parameters.offerAmount,
             parameters,
             true // Reduce erc20Amount sent to fulfiller by additional amounts.
         );
@@ -313,7 +313,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
           parameters,
           ItemType.ERC1155,
           ItemType.ERC20,
-          parameters.offeredToken,
+          parameters.offerToken,
           ItemType.ERC20
         );
         // Move the offerer from memory to the stack.
@@ -321,11 +321,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Transfer ERC1155 to offerer, using caller's proxy if applicable.
         _transferERC1155(
-            parameters.receivedToken,
+            parameters.considerationToken,
             msg.sender,
             offerer,
-            parameters.receivedIdentifier,
-            parameters.receivedAmount,
+            parameters.considerationIdentifier,
+            parameters.considerationAmount,
             parameters.useFulfillerProxy ? msg.sender : address(0)
         );
 
@@ -333,8 +333,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _transferERC20AndFinalize(
             offerer,
             msg.sender,
-            parameters.offeredToken,
-            parameters.offeredAmount,
+            parameters.offerToken,
+            parameters.offerAmount,
             parameters,
             true // Reduce erc20Amount sent to fulfiller by additional amounts.
         );
