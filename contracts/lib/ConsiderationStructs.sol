@@ -84,14 +84,12 @@ struct ReceivedItem {
     address payable recipient;
 }
 
-// todo: update naming scheme to reflect change from
-// OfferedItem -> OfferItem & ReceivedItem -> ConsiderationItem
 /**
  * @dev For basic orders involving ETH / native / ERC20 <=> ERC721 / ERC1155
  *      matching, a group of six functions may be called that only requires a
  *      subset of the usual order arguments.
  */
-struct BasicOrderParameters {
+struct BasicOrderParameters {                   // calldata offset
     address receivedToken;                      // 0x24
     uint256 receivedIdentifier;                 // 0x44
     uint256 receivedAmount;                     // 0x64
@@ -107,7 +105,7 @@ struct BasicOrderParameters {
     bool useFulfillerProxy;                     // 0x1a4
     AdditionalRecipient[] additionalRecipients; // 0x1c4
     bytes signature;                            // 0x1e4
-    // len : 0x204
+    // Total length, excluding dynamic array data: 0x204 (516)
 }
 
 /**
