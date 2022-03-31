@@ -67,41 +67,6 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Validate calldata offsets for dynamic types in BasicOrderParameters.
-     * This ensures that functions using the calldata object normally will be
-     * using the same data as the assembly functions.
-     * Note: No parameters because all basic order functions use the same
-     * calldata encoding.
-     */
-    function _assertValidBasicOrderParameterOffsets() internal pure {
-        bool validOffsets;
-        assembly {
-            /* 
-             * Checks:
-             * 1. Order parameters struct offset = 0x20
-             * 2. Additional recipients arr offset = 0x1e0
-             * 3. Signature offset = 0x200 + (recipients.length * 0x40)
-             */
-            validOffsets := and(
-                // Order parameters have offset of 0x20
-                eq(calldataload(0x04), 0x20),
-                // Additional recipients have offset of 0x1e0
-                eq(calldataload(0x1c4), 0x1e0)
-            )
-            validOffsets := and(
-              validOffsets,
-              eq(
-                // Load signature offset from calldata
-                calldataload(0x1e4),
-                // Calculate expected offset (start of recipients + len * 64)
-                add(0x200, mul(calldataload(0x204), 0x40))
-              )
-            )
-        }
-        if (!validOffsets) revert InvalidBasicOrderParameterEncoding();
-    }
-
-    /**
      * @dev Internal view function to validate whether a token transfer was
      *      successful based on the returned status and data. Note that
      *      malicious or non-compliant tokens (like fee-on-transfer tokens) may
