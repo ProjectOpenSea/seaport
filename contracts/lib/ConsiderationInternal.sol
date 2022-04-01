@@ -997,17 +997,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
             address proxyOwner = useProxy ? offerer : address(0);
 
             if (item.itemType == ItemType.ERC721) {
-                // Ensure that exactly one 721 item is being transferred.
-                if (item.amount != 1) {
-                    revert InvalidERC721TransferAmount();
-                }
-
                 // Transfer ERC721 token from the offerer to the recipient.
                 _transferERC721(
                     item.token,
                     offerer,
                     item.recipient,
                     item.identifier,
+                    item.amount,
                     proxyOwner
                 );
             } else {
@@ -1111,6 +1107,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param identifier The tokenId to transfer.
+     * @param amount     The "amount" (this value must be equal to one).
      * @param proxyOwner An address indicating the owner of the proxy to utilize
      *                   when performing the transfer, or the null address if no
      *                   proxy should be utilized.
@@ -1120,8 +1117,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address from,
         address to,
         uint256 identifier,
+        uint256 amount,
         address proxyOwner
     ) internal {
+        // Ensure that exactly one 721 item is being transferred.
+        if (amount != 1) {
+            revert InvalidERC721TransferAmount();
+        }
+
         // Perform transfer, either directly or via proxy.
         bool success = _callDirectlyOrViaProxy(
             token,
