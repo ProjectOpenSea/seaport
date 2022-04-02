@@ -1315,16 +1315,16 @@ contract ConsiderationPure is ConsiderationBase {
             validOffsets := and(
                 // Order parameters have offset of 0x20
                 eq(calldataload(0x04), 0x20),
-                // Additional recipients have offset of 0x1e0
-                eq(calldataload(0x1c4), 0x1e0)
+                // Additional recipients have offset of 0x200
+                eq(calldataload(0x1e4), 0x200)
             )
             validOffsets := and(
               validOffsets,
               eq(
                 // Load signature offset from calldata
-                calldataload(0x1e4),
+                calldataload(0x204),
                 // Calculate expected offset (start of recipients + len * 64)
-                add(0x200, mul(calldataload(0x204), 0x40))
+                add(0x220, mul(calldataload(0x224), 0x40))
               )
             )
         }
