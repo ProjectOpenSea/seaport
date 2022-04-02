@@ -103,9 +103,10 @@ struct BasicOrderParameters {                   // calldata offset
     uint256 endTime;                            // 0x164
     uint256 salt;                               // 0x184
     bool useFulfillerProxy;                     // 0x1a4
-    AdditionalRecipient[] additionalRecipients; // 0x1c4
-    bytes signature;                            // 0x1e4
-    // Total length, excluding dynamic array data: 0x204 (516)
+    uint256 originalConsiderationsCount;        // 0c1c4
+    AdditionalRecipient[] additionalRecipients; // 0x1e4
+    bytes signature;                            // 0x204
+    // Total length, excluding dynamic array data: 0x224 (516)
 }
 
 /**
