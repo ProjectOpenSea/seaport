@@ -147,7 +147,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         mstore(0xa0, additionalRecipientsItemType)
         mstore(0xc0, additionalRecipientsToken)
         mstore(0xe0, 0)
-        for {let i := 0} lt(i, len) {i := add(i, 1)} {
+        len := calldataload(0x1c4)
+        let i := 0
+        for {} lt(i, len) {i := add(i, 1)} {
           let additionalRecipientCdPtr := add(0x244, mul(0x40, i))
 
           /* a. Write ConsiderationItem hash to order's considerations array */
@@ -160,6 +162,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
           considerationHashesPtr := add(considerationHashesPtr, 0x20)
           // receivedItemHashes[i + 1] = keccak256(abi.encode(receivedItem))
           mstore(considerationHashesPtr, keccak256(0x80, 0xe0))
+
+          /* b. Write ReceivedItem to OrderFulfilled data */
+          // At this point, eventArrPtr points to the beginning of the
+          // ReceivedItem struct for the previous element in the array.
+          eventArrPtr := add(eventArrPtr, 0xa0)
+          // Write item type
+          mstore(eventArrPtr, additionalRecipientsItemType)
+          // Write token
+          mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+          // Copy endAmount, recipient
+          calldatacopy(add(eventArrPtr, 0x60), additionalRecipientCdPtr, 0x40)
+        }
+        len := calldataload(0x224)
+        for {} lt(i, len) {i := add(i, 1)} {
+          let additionalRecipientCdPtr := add(0x244, mul(0x40, i))
 
           /* b. Write ReceivedItem to OrderFulfilled data */
           // At this point, eventArrPtr points to the beginning of the
