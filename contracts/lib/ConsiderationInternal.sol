@@ -59,26 +59,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
     ) {}
 
   /**
-   * @dev Prepare fulfillment of a basic order with manual calldata
-   * and memory access. This calculates the order hash, emits the
-   * OrderFulfilled event, and asserts basic order validity.
-   *
-   * Note: Calldata offsets are validated in this function because it
-   * accesses constant calldata pointers for dynamic types that match
-   * default ABI encoding, but valid ABI encoding can use arbitrary offsets.
-   * Checking that the offsets were produced by default encoding will ensure
-   * that other functions using Solidity's calldata accessors (which
-   * calculate pointers from the stored offsets) are reading the same
-   * data as the order hash is derived from.
-   *
-   * Note: This function accesses memory directly. It does not clear the
-   * expanded memory regions used, nor does it update the free memory pointer,
-   * so other direct memory access must not assume that unused memory is empty.
-   *
-   * Assertions:
-   * - Non-reentrancy
-   * - Valid start and end times
-   * - Valid calldata encoding
+   * @dev Internal function to prepare fulfillment of a basic order with manual
+   *      calldata and memory access. This calculates the order hash, emits an
+   *      OrderFulfilled event, and asserts basic order validity. Note that
+   *      calldata offsets must be validated as this function accesses constant
+   *      calldata pointers for dynamic types that match default ABI encoding,
+   *      but valid ABI encoding can use arbitrary offsets. Checking that the
+   *      offsets were produced by default encoding will ensure that other
+   *      functions using Solidity's calldata accessors (which calculate
+   *      pointers from the stored offsets) are reading the same data as the
+   *      order hash is derived from. Also note that This function accesses
+   *      memory directly. It does not clear the expanded memory regions used,
+   *      nor does it update the free memory pointer, so other direct memory
+   *      access must not assume that unused memory is empty.
    */
   function _prepareBasicFulfillmentFromCalldata(
     BasicOrderParameters calldata parameters,
@@ -89,12 +82,20 @@ contract ConsiderationInternal is ConsiderationInternalView {
   ) internal returns (bytes32 orderHash, bool useOffererProxy) {
       // Ensure this function cannot be triggered during a reentrant call.
       _setReentrancyGuard();
+
       // Ensure current timestamp falls between order start time and end time.
       _assertValidTime(parameters.startTime, parameters.endTime);
-      // Ensure calldata offsets were produced by default encoding
+
+      // Ensure calldata offsets were produced by default encoding.
       _assertValidBasicOrderParameterOffsets();
 
-    { // Handle received items
+      // Ensure supplied consideration array length is not less than original.
+      _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+          parameters.additionalRecipients.length + 1,
+          parameters.totalOriginalConsiderationItems
+      );
+
+    { // Load consideration item typehash from runtime code and place on stack.
       bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
       assembly {
@@ -418,7 +419,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _getNoncedOrderHash(orderParameters);
+        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+            orderParameters
+        );
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
         useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(

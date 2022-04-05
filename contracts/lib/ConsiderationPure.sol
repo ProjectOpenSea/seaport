@@ -1297,16 +1297,39 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
-     * @dev Validate calldata offsets for dynamic types in BasicOrderParameters.
-     * This ensures that functions using the calldata object normally will be
-     * using the same data as the assembly functions.
-     * Note: No parameters because all basic order functions use the same
-     * calldata encoding.
+     * @dev Internal pure function to ensure that the supplied consideration
+     *      array length for an order to be fulfilled is not less than the
+     *      original consideration array length for that order.
+     *
+     * @param suppliedConsiderationItemTotal The number of consideration items
+     *                                       supplied when fulfilling the order.
+     * @param originalConsiderationItemTotal The number of consideration items
+     *                                       supplied on initial order creation.
+     */
+    function _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+        uint256 suppliedConsiderationItemTotal,
+        uint256 originalConsiderationItemTotal
+    ) internal pure {
+        // Ensure supplied consideration array length is not less than original.
+        if (suppliedConsiderationItemTotal < originalConsiderationItemTotal) {
+            revert MissingOriginalConsiderationItems();
+        }
+    }
+
+    /**
+     * @dev Internal pure function to validate calldata offsets for dynamic
+     *      types in BasicOrderParameters. This ensures that functions using the
+     *      calldata object normally will be using the same data as the assembly
+     *      functions. Note that no parameters are supplied as all basic order
+     *      functions use the same calldata encoding.
      */
     function _assertValidBasicOrderParameterOffsets() internal pure {
+        // Declare a boolean designating basic order parameter offset validity.
         bool validOffsets;
+
+        // Utilize assembly in order to read offset data directly from calldata.
         assembly {
-            /* 
+            /*
              * Checks:
              * 1. Order parameters struct offset = 0x20
              * 2. Additional recipients arr offset = 0x1e0
@@ -1328,6 +1351,10 @@ contract ConsiderationPure is ConsiderationBase {
               )
             )
         }
-        if (!validOffsets) revert InvalidBasicOrderParameterEncoding();
+
+        // Revert with an error if basic order parameter offsets are invalid.
+        if (!validOffsets) {
+            revert InvalidBasicOrderParameterEncoding();
+        }
     }
 }

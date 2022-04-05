@@ -57,7 +57,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     startTime: order.parameters.startTime,
     endTime: order.parameters.endTime,
     salt: order.parameters.salt,
-    originalConsiderationsCount: order.parameters.consideration.length - 1,
+    totalOriginalConsiderationItems: order.parameters.consideration.length - 1,
     signature: order.signature,
     useFulfillerProxy,
     additionalRecipients: [
@@ -210,6 +210,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         zone: zone.address,
         offer,
         consideration,
+        totalOriginalConsiderationItems: consideration.length,
         orderType,
         salt,
         startTime,
@@ -366,6 +367,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ...x,
           recipient: offerer.address,
         })),
+        totalOriginalConsiderationItems: compressedOfferItems.length,
         orderType: 0, // FULL_OPEN
         salt,
         startTime,
@@ -437,6 +439,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .reduce((a, b) => a.add(b), ethers.BigNumber.from(0))
           )
         })),
+        totalOriginalConsiderationItems: order.parameters.offer.length,
         orderType: useProxy ? 4 : 0, // FULL_OPEN_VIA_PROXY or FULL_OPEN
         salt,
         startTime,
@@ -1452,6 +1455,76 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value});
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC721 <=> ETH (standard with tip)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          const offer = [
+            {
+              itemType: 2, // ERC721
+              token: testERC721.address,
+              identifierOrCriteria: nftId,
+              startAmount: ethers.BigNumber.from(1),
+              endAmount: ethers.BigNumber.from(1),
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+          );
+
+          // Add a tip
+          order.parameters.consideration.push(
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract.connect(buyer).fulfillOrder(order, false, {value: value.add(ethers.utils.parseEther("1"))});
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [{order, orderHash, fulfiller: buyer.address}]);
               return receipt;
@@ -8608,6 +8681,78 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.isValidated).to.equal(true);
         expect(orderStatus.totalFilled).to.equal(1);
         expect(orderStatus.totalSize).to.equal(1);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value})).to.be.reverted;
+        });
+      });
+      it("Reverts on inadequate consideration items", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount.mul(10000));
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: amount.mul(1000),
+            endAmount: amount.mul(1000),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: amount.mul(20),
+            endAmount: amount.mul(20),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          1, // PARTIAL_OPEN
+        );
+
+        // Remove a consideration item
+        order.parameters.consideration.pop();
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
 
         await whileImpersonating(buyer.address, provider, async () => {
           await expect(marketplaceContract.connect(buyer).fulfillAdvancedOrder(order, [], false, {value})).to.be.reverted;
