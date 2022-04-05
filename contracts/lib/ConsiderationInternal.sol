@@ -417,7 +417,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _getNoncedOrderHash(orderParameters);
+        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+            orderParameters
+        );
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
         useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(

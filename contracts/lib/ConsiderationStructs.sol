@@ -122,7 +122,8 @@ struct AdditionalRecipient {
 /**
  * @dev The full set of order components, with the exception of the nonce, must
  *      be supplied when fulfilling more sophisticated orders or groups of
- *      orders.
+ *      orders. The total number of original consideration items must also be
+ *      supplied, as the caller may specify additional consideration items.
  */
 struct OrderParameters {
     address offerer;
@@ -133,6 +134,7 @@ struct OrderParameters {
     uint256 salt;
     OfferItem[] offer;
     ConsiderationItem[] consideration;
+    uint256 totalOriginalConsiderationItems;
 }
 
 /**

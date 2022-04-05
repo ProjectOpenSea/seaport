@@ -49,6 +49,20 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         address requiredProxyImplementation
     ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {}
 
+    /**
+     * @notice Fulfill an order offering an ERC721 token by supplying Ether (or
+     *         the native token for the given chain) as consideration for the
+     *         order. An arbitrary number of "additional recipients" may also be
+     *         supplied which will each receive native tokens from the fulfiller
+     *         as consideration.
+     *
+     * @param parameters Additional information on the fulfilled order. Note
+     *                   that the offerer must first approve this contract (or
+     *                   their proxy if indicated by the order) in order for
+     *                   their offered ERC721 token to be transferred.
+     *
+     * @return A boolean indicating whether the order has been fulfilled.
+     */
     function fulfillBasicEthForERC721Order(
         BasicOrderParameters calldata parameters
     ) external payable override returns (bool) {
@@ -91,10 +105,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         supplied which will each receive native tokens from the fulfiller
      *         as consideration.
      *
-     * @param parameters    Additional information on the fulfilled order. Note
-     *                      that the offerer must first approve this contract
-     *                      (or their proxy if indicated by the order) in order
-     *                      for their offered ERC1155 tokens to be transferred.
+     * @param parameters Additional information on the fulfilled order. Note
+     *                   that the offerer must first approve this contract (or
+     *                   their proxy if indicated by the order) in order for
+     *                   their offered ERC1155 tokens to be transferred.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -139,10 +153,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         recipients" may also be supplied which will each receive ERC20
      *         tokens from the fulfiller as consideration.
      *
-     * @param parameters  Additional information on the fulfilled order. Note
-     *                    that the offerer must first approve this contract (or
-     *                    their proxy if indicated by the order) in order for
-     *                    their offered ERC721 token to be transferred.
+     * @param parameters Additional information on the fulfilled order. Note
+     *                   that the offerer must first approve this contract (or
+     *                   their proxy if indicated by the order) in order for
+     *                   their offered ERC721 token to be transferred.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -190,10 +204,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         tokens as consideration. An arbitrary number of "additional
      *         recipients" may also be supplied which will each receive ERC20
      *         tokens from the fulfiller as consideration.
-     * @param parameters    Additional information on the fulfilled order. Note
-     *                      that the offerer must first approve this contract
-     *                      (or their proxy if indicated by the order) in order
-     *                      for their offered ERC1155 tokens to be transferred.
+     *
+     * @param parameters Additional information on the fulfilled order. Note
+     *                   that the offerer must first approve this contract (or
+     *                   their proxy if indicated by the order) in order for
+     *                   their offered ERC1155 tokens to be transferred.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -242,13 +257,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         recipients" may also be supplied which will each receive ERC20
      *         tokens from the offerer as consideration.
      *
-     * @param parameters        Additional information on the fulfilled order.
-     *                          Note that the fulfiller must first approve this
-     *                          contract (or their proxy if indicated by the
-     *                          order) before the ERC721 token required as
-     *                          consideration can be transferred. Also note that
-     *                          the sum of all additional recipient amounts
-     *                          cannot exceed `erc20Amount`.
+     * @param parameters Additional information on the fulfilled order. Note
+     *                   that the fulfiller must first approve this contract (or
+     *                   their proxy if indicated by the order) before the
+     *                   ERC721 token required as consideration can be
+     *                   transferred. Also note that the sum of all additional
+     *                   recipient amounts cannot exceed `erc20Amount`.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -297,13 +311,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         recipients" may also be supplied which will each receive ERC20
      *         tokens from the offerer as consideration.
      *
-     * @param parameters        Additional information on the fulfilled order.
-     *                          Note that the fulfiller must first approve this
-     *                          contract (or their proxy if indicated by the
-     *                          order) before the ERC1155 token required as
-     *                          consideration can be transferred. Also note that
-     *                          the sum of all additional recipient amounts
-     *                          cannot exceed `erc20Amount`.
+     * @param parameters Additional information on the fulfilled order. Note
+     *                   that the fulfiller must first approve this contract (or
+     *                   their proxy if indicated by the order) before the
+     *                   ERC1155 token required as consideration can be
+     *                   transferred. Also note that the sum of all additional
+     *                   recipient amounts cannot exceed `erc20Amount`.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -576,7 +589,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                         order.endTime,
                         order.salt,
                         order.offer,
-                        order.consideration
+                        order.consideration,
+                        order.consideration.length
                     ),
                     order.nonce
                 );
@@ -628,7 +642,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 offerer = orderParameters.offerer;
 
                 // Get current nonce and use it w/ params to derive order hash.
-                orderHash = _getNoncedOrderHash(orderParameters);
+                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+                    orderParameters
+                );
 
                 // Retrieve the order status using the derived order hash.
                 OrderStatus memory orderStatus = _orderStatus[orderHash];
@@ -713,7 +729,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 order.endTime,
                 order.salt,
                 order.offer,
-                order.consideration
+                order.consideration,
+                order.consideration.length
             ),
             order.nonce
         );

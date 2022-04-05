@@ -209,6 +209,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         zone: zone.address,
         offer,
         consideration,
+        totalOriginalConsiderationItems: consideration.length,
         orderType,
         salt,
         startTime,
@@ -365,6 +366,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ...x,
           recipient: offerer.address,
         })),
+        totalOriginalConsiderationItems: compressedOfferItems.length,
         orderType: 0, // FULL_OPEN
         salt,
         startTime,
@@ -436,6 +438,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .reduce((a, b) => a.add(b), ethers.BigNumber.from(0))
           )
         })),
+        totalOriginalConsiderationItems: order.parameters.offer.length,
         orderType: useProxy ? 4 : 0, // FULL_OPEN_VIA_PROXY or FULL_OPEN
         salt,
         startTime,
