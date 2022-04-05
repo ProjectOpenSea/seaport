@@ -1133,22 +1133,6 @@ contract ConsiderationPure is ConsiderationBase {
 
     /**
      * @dev Internal pure function to check whether a given item type represents
-     *      an Ether or ERC20 item.
-     *
-     * @param itemType The item type in question.
-     *
-     * @return A boolean indicating that the item type represents either Ether
-     *         or an ERC20 item.
-     */
-    function _isEtherOrERC20Item(
-        ItemType itemType
-    ) internal pure returns (bool) {
-        // Ether is item type 0 and ERC20 is item type 1.
-        return uint256(itemType) < 2;
-    }
-
-    /**
-     * @dev Internal pure function to check whether a given item type represents
      *      a criteria-based ERC721 or ERC1155 item (e.g. an item that can be
      *      resolved to one of a number of different identifiers at the time of
      *      order fulfillment).
@@ -1309,6 +1293,68 @@ contract ConsiderationPure is ConsiderationBase {
             mstore(0x00, a) // Place element a in first word of scratch space.
             mstore(0x20, b) // Place element b in second word of scratch space.
             value := keccak256(0x00, 0x40) // Hash scratch space region.
+        }
+    }
+
+    /**
+     * @dev Internal pure function to ensure that the supplied consideration
+     *      array length for an order to be fulfilled is not less than the
+     *      original consideration array length for that order.
+     *
+     * @param suppliedConsiderationItemTotal The number of consideration items
+     *                                       supplied when fulfilling the order.
+     * @param originalConsiderationItemTotal The number of consideration items
+     *                                       supplied on initial order creation.
+     */
+    function _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+        uint256 suppliedConsiderationItemTotal,
+        uint256 originalConsiderationItemTotal
+    ) internal pure {
+        // Ensure supplied consideration array length is not less than original.
+        if (suppliedConsiderationItemTotal < originalConsiderationItemTotal) {
+            revert MissingOriginalConsiderationItems();
+        }
+    }
+
+    /**
+     * @dev Internal pure function to validate calldata offsets for dynamic
+     *      types in BasicOrderParameters. This ensures that functions using the
+     *      calldata object normally will be using the same data as the assembly
+     *      functions. Note that no parameters are supplied as all basic order
+     *      functions use the same calldata encoding.
+     */
+    function _assertValidBasicOrderParameterOffsets() internal pure {
+        // Declare a boolean designating basic order parameter offset validity.
+        bool validOffsets;
+
+        // Utilize assembly in order to read offset data directly from calldata.
+        assembly {
+            /*
+             * Checks:
+             * 1. Order parameters struct offset = 0x20
+             * 2. Additional recipients arr offset = 0x1e0
+             * 3. Signature offset = 0x200 + (recipients.length * 0x40)
+             */
+            validOffsets := and(
+                // Order parameters have offset of 0x20
+                eq(calldataload(0x04), 0x20),
+                // Additional recipients have offset of 0x200
+                eq(calldataload(0x1e4), 0x200)
+            )
+            validOffsets := and(
+              validOffsets,
+              eq(
+                // Load signature offset from calldata
+                calldataload(0x204),
+                // Calculate expected offset (start of recipients + len * 64)
+                add(0x220, mul(calldataload(0x224), 0x40))
+              )
+            )
+        }
+
+        // Revert with an error if basic order parameter offsets are invalid.
+        if (!validOffsets) {
+            revert InvalidBasicOrderParameterEncoding();
         }
     }
 }

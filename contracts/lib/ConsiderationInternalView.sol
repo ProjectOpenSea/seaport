@@ -294,6 +294,9 @@ contract ConsiderationInternalView is ConsiderationPure {
 
     /**
      * @dev Internal view function to derive the order hash for a given order.
+     *      Note that only the original consideration items are included in the
+     *      order hash, as additional consideration items may be supplied by the
+     *      caller.
      *
      * @param orderParameters The parameters of the order to hash.
      * @param nonce           The nonce of the order to hash.
@@ -304,14 +307,18 @@ contract ConsiderationInternalView is ConsiderationPure {
         OrderParameters memory orderParameters,
         uint256 nonce
     ) internal view returns (bytes32) {
-        // Put offer and consideration item array lengths onto the stack.
+        // Get length of full offer array and place it on the stack.
         uint256 offerLength = orderParameters.offer.length;
-        uint256 considerationLength = orderParameters.consideration.length;
+
+        // Get length of original consideration array and place it on the stack.
+        uint256 originalConsiderationLength = (
+            orderParameters.totalOriginalConsiderationItems
+        );
 
         // Designate new memory regions for offer and consideration item hashes.
         bytes32[] memory offerHashes = new bytes32[](offerLength);
         bytes32[] memory considerationHashes = new bytes32[](
-            considerationLength
+            originalConsiderationLength
         );
 
         // Skip overflow checks as all for loops are indexed starting at zero.
@@ -322,8 +329,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                 offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
             }
 
-            // Iterate over each consideration on the order.
-            for (uint256 i = 0; i < considerationLength; ++i) {
+            // Iterate over each original consideration on the order.
+            for (uint256 i = 0; i < originalConsiderationLength; ++i) {
                 // Hash the consideration and place the result into memory.
                 considerationHashes[i] = _hashConsiderationItem(
                     orderParameters.consideration[i]
@@ -349,16 +356,25 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to retrieve the current nonce for a given
-     *      order's offerer and zone and use that to derive the order hash.
+     * @dev Internal view function to to ensure that the supplied consideration
+     *      array length on a given set of order parameters is not less than the
+     *      original consideration array length for that order and to retrieve
+     *      the current nonce for a given order's offerer and zone and use it to
+     *      derive the order hash.
      *
      * @param orderParameters The parameters of the order to hash.
      *
      * @return The hash.
      */
-    function _getNoncedOrderHash(
+    function _assertConsiderationLengthAndGetNoncedOrderHash(
         OrderParameters memory orderParameters
     ) internal view returns (bytes32) {
+        // Ensure supplied consideration array length is not less than original.
+        _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+            orderParameters.consideration.length,
+            orderParameters.totalOriginalConsiderationItems
+        );
+
         // Derive and return order hash using current nonce for offerer in zone.
         return _getOrderHash(
             orderParameters,

@@ -86,7 +86,8 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to fill an order outside the
-     *      specified start time and end time .*/
+     *      specified start time and end time .
+     */
     error InvalidTime();
 
     /**
@@ -95,6 +96,12 @@ interface ConsiderationEventsAndErrors {
      *      either the offerrer or the order's zone.
      */
     error InvalidSubmitterOnRestrictedOrder();
+
+    /**
+     * @dev Revert with an error when an order is supplied for fulfillment with
+     *      a consideration array that is shorter than the original array.
+     */
+    error MissingOriginalConsiderationItems();
 
     /**
      * @dev Revert with an error when a fulfillment is provided that does not
@@ -353,13 +360,19 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when a caller attempts to reenter a protected
-            function.
+     *      function.
      */
     error NoReentrantCalls();
 
     /**
      * @dev Revert with an error when the implementation of the respectie proxy
-            does not match the expected proxy implementation.
+     *      does not match the expected proxy implementation.
      */
     error InvalidProxyImplementation();
+
+    /**
+     * @dev Revert with an error when attempting to fill a basic order using
+     *      calldata not produced by default ABI encoding.
+     */
+    error InvalidBasicOrderParameterEncoding();
 }
