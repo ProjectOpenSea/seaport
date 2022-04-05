@@ -58,29 +58,20 @@ contract ConsiderationInternal is ConsiderationInternalView {
         requiredProxyImplementation
     ) {}
 
-  // todo: update naming scheme to reflect change from
-  // OfferedItem -> OfferItem & ReceivedItem -> ConsiderationItem
   /**
-   * @dev Prepare fulfillment of a basic order with manual calldata
-   * and memory access. This calculates the order hash, emits the
-   * OrderFulfilled event, and asserts basic order validity.
-   *
-   * Note: Calldata offsets are validated in this function because it
-   * accesses constant calldata pointers for dynamic types that match
-   * default ABI encoding, but valid ABI encoding can use arbitrary offsets.
-   * Checking that the offsets were produced by default encoding will ensure
-   * that other functions using Solidity's calldata accessors (which
-   * calculate pointers from the stored offsets) are reading the same
-   * data as the order hash is derived from.
-   *
-   * Note: This function accesses memory directly. It does not clear the
-   * expanded memory regions used, nor does it update the free memory pointer,
-   * so other direct memory access must not assume that unused memory is empty.
-   *
-   * Assertions:
-   * - Non-reentrancy
-   * - Valid start and end times
-   * - Valid calldata encoding
+   * @dev Internal function to prepare fulfillment of a basic order with manual
+   *      calldata and memory access. This calculates the order hash, emits an
+   *      OrderFulfilled event, and asserts basic order validity. Note that
+   *      calldata offsets must be validated as this function accesses constant
+   *      calldata pointers for dynamic types that match default ABI encoding,
+   *      but valid ABI encoding can use arbitrary offsets. Checking that the
+   *      offsets were produced by default encoding will ensure that other
+   *      functions using Solidity's calldata accessors (which calculate
+   *      pointers from the stored offsets) are reading the same data as the
+   *      order hash is derived from. Also note that This function accesses
+   *      memory directly. It does not clear the expanded memory regions used,
+   *      nor does it update the free memory pointer, so other direct memory
+   *      access must not assume that unused memory is empty.
    */
   function _prepareBasicFulfillmentFromCalldata(
     BasicOrderParameters calldata parameters,
@@ -91,12 +82,20 @@ contract ConsiderationInternal is ConsiderationInternalView {
   ) internal returns (bytes32 orderHash, bool useOffererProxy) {
       // Ensure this function cannot be triggered during a reentrant call.
       _setReentrancyGuard();
+
       // Ensure current timestamp falls between order start time and end time.
       _assertValidTime(parameters.startTime, parameters.endTime);
-      // Ensure calldata offsets were produced by default encoding
+
+      // Ensure calldata offsets were produced by default encoding.
       _assertValidBasicOrderParameterOffsets();
 
-    { // Handle received items
+      // Ensure supplied consideration array length is not less than original.
+      _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+          parameters.additionalRecipients.length + 1,
+          parameters.totalOriginalAdditionalRecipients
+      );
+
+    { // Load consideration item typehash from runtime code and place on stack.
       bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
       assembly {
@@ -115,8 +114,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
          * - 0x160: EIP712 hash of primary consideration
          * - 0x180-END_ARR: EIP712 hashes of additional recipient considerations
          * END_ARR: beginning of data for OrderFulfilled event
-         * END_ARR + 0x120: length of FulfilledItem array
-         * END_ARR + 0x140: beginning of data for first FulfilledItem
+         * END_ARR + 0x120: length of ReceivedItem array
+         * END_ARR + 0x140: beginning of data for first ReceivedItem
          */
         /* 1. Write first ReceivedItem hash to order's considerations array */
         // Write type hash and item type
@@ -129,12 +128,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // receivedItemHashes[0] = keccak256(abi.encode(receivedItem))
         mstore(0x160, keccak256(0x80, 0xe0))
 
-        /* 2. Write first FulfilledItem to OrderFulfilled data */
-        let len := calldataload(0x204)
+        /* 2. Write first ReceivedItem to OrderFulfilled data */
+        let len := calldataload(0x224)
         // END_ARR + 0x120 = 0x2a0 + len*0x20
         let eventArrPtr := add(0x2a0, mul(0x20, len))
-        mstore(eventArrPtr, add(len, 1)) // length
-        // Set ptr to data portion of first FulfilledItem
+        mstore(eventArrPtr, add(calldataload(0x224), 1)) // length
+        // Set ptr to data portion of first ReceivedItem
         eventArrPtr := add(eventArrPtr, 0x20)
         // Write item type
         mstore(eventArrPtr, receivedItemType)
@@ -149,10 +148,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         mstore(0xa0, additionalRecipientsItemType)
         mstore(0xc0, additionalRecipientsToken)
         mstore(0xe0, 0)
-        for {let i := 0} lt(i, len) {i := add(i, 1)} {
-          let additionalRecipientCdPtr := add(0x224, mul(0x40, i))
+        len := calldataload(0x1c4)
+        let i := 0
+        for {} lt(i, len) {i := add(i, 1)} {
+          let additionalRecipientCdPtr := add(0x244, mul(0x40, i))
 
-          /* a. Write ReceivedItem hash to order's considerations array */
+          /* a. Write ConsiderationItem hash to order's considerations array */
           // Copy startAmount
           calldatacopy(0x100, additionalRecipientCdPtr, 0x20)
           // Copy endAmount, recipient
@@ -163,9 +164,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
           // receivedItemHashes[i + 1] = keccak256(abi.encode(receivedItem))
           mstore(considerationHashesPtr, keccak256(0x80, 0xe0))
 
-          /* b. Write FulfilledItem to OrderFulfilled data */
+          /* b. Write ReceivedItem to OrderFulfilled data */
           // At this point, eventArrPtr points to the beginning of the
-          // FulfilledItem struct for the previous element in the array.
+          // ReceivedItem struct for the previous element in the array.
           eventArrPtr := add(eventArrPtr, 0xa0)
           // Write item type
           mstore(eventArrPtr, additionalRecipientsItemType)
@@ -174,16 +175,32 @@ contract ConsiderationInternal is ConsiderationInternalView {
           // Copy endAmount, recipient
           calldatacopy(add(eventArrPtr, 0x60), additionalRecipientCdPtr, 0x40)
         }
-        /* 4. Hash packed array of ReceivedItem EIP712 hashes */
+        /* 4. Hash packed array of ConsiderationItem EIP712 hashes */
         // note: Store at 0x60 - all other memory begins at 0x80
         // keccak256(abi.encodePacked(receivedItemHashes))
         mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
+        /* 5. Write tips to event data */
+        len := calldataload(0x224)
+        for {} lt(i, len) {i := add(i, 1)} {
+          let additionalRecipientCdPtr := add(0x244, mul(0x40, i))
+
+          /* b. Write ReceivedItem to OrderFulfilled data */
+          // At this point, eventArrPtr points to the beginning of the
+          // ReceivedItem struct for the previous element in the array.
+          eventArrPtr := add(eventArrPtr, 0xa0)
+          // Write item type
+          mstore(eventArrPtr, additionalRecipientsItemType)
+          // Write token
+          mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+          // Copy endAmount, recipient
+          calldatacopy(add(eventArrPtr, 0x60), additionalRecipientCdPtr, 0x40)
+        }
       }
     }
 
     { // Handle offered items
       /* Memory Layout
-       * EIP712 data for OfferedItem
+       * EIP712 data for OfferItem
        * - 0x80:  _OFFERED_ITEM_TYPEHASH
        * - 0xa0:  itemType
        * - 0xc0:  token
@@ -193,7 +210,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
        */
       bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
       assembly {
-        /* 1. Calculate OfferedItem EIP712 hash*/
+        /* 1. Calculate OfferItem EIP712 hash*/
         mstore(0x80, typeHash) // _OFFERED_ITEM_TYPEHASH
         mstore(0xa0, offeredItemType) // itemType
         calldatacopy(0xc0, 0xc4, 0x60) // (token, identifier, startAmount)
@@ -205,13 +222,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // note: Write offeredItemsHash to offer struct
         // keccak256(abi.encodePacked(offeredItemHashes))
         mstore(0xe0, keccak256(0x00, 0x20))
-        /* 3. Write ConsumedItem array to event data */
+        /* 3. Write SpentItem array to event data */
         // 0x180 + len*32 = event data ptr
         // offers array length is stored at 0x80 into the event data
-        let eventArrPtr := add(0x200, mul(0x20, calldataload(0x204)))
+        let eventArrPtr := add(0x200, mul(0x20, calldataload(0x224)))
         mstore(eventArrPtr, 1)
         mstore(add(eventArrPtr, 0x20), offeredItemType)
-        // Copy token, identifier, startAmount to ConsumedItem
+        // Copy token, identifier, startAmount to SpentItem
         calldatacopy(
           add(eventArrPtr, 0x40),
           0xc4,
@@ -258,8 +275,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *   address indexed offerer,
      *   address indexed zone,
      *   address fulfiller,
-     *   ConsumedItem[] offer, (itemType, token, id, amount)
-     *   FulfilledItem[] consideration (itemType, token, id, amount, recipient)
+     *   SpentItem[] offer, (itemType, token, id, amount)
+     *   ReceivedItem[] consideration (itemType, token, id, amount, recipient)
      * )
      * topic0 - OrderFulfilled event signature
      * topic1 - offerer
@@ -278,12 +295,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * 0x140: recipient 0
      */
     assembly {
-      let eventDataPtr := add(0x180, mul(0x20, calldataload(0x204)))
+      let eventDataPtr := add(0x180, mul(0x20, calldataload(0x224)))
       mstore(eventDataPtr, orderHash)           // orderHash
       mstore(add(eventDataPtr, 0x20), caller()) // fulfiller
-      mstore(add(eventDataPtr, 0x40), 0x80)     // ConsumedItem array pointer
-      mstore(add(eventDataPtr, 0x60), 0x120)    // FulfilledItem array pointer
-      let dataSize := add(0x1e0, mul(calldataload(0x204), 0xa0))
+      mstore(add(eventDataPtr, 0x40), 0x80)     // SpentItem array pointer
+      mstore(add(eventDataPtr, 0x60), 0x120)    // ReceivedItem array pointer
+      let dataSize := add(0x1e0, mul(calldataload(0x224), 0xa0))
       log3(
         eventDataPtr,
         dataSize,
@@ -402,7 +419,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _getNoncedOrderHash(orderParameters);
+        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+            orderParameters
+        );
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
         useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
@@ -999,17 +1018,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
             address proxyOwner = useProxy ? offerer : address(0);
 
             if (item.itemType == ItemType.ERC721) {
-                // Ensure that exactly one 721 item is being transferred.
-                if (item.amount != 1) {
-                    revert InvalidERC721TransferAmount();
-                }
-
                 // Transfer ERC721 token from the offerer to the recipient.
                 _transferERC721(
                     item.token,
                     offerer,
                     item.recipient,
                     item.identifier,
+                    item.amount,
                     proxyOwner
                 );
             } else {
@@ -1113,6 +1128,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param identifier The tokenId to transfer.
+     * @param amount     The "amount" (this value must be equal to one).
      * @param proxyOwner An address indicating the owner of the proxy to utilize
      *                   when performing the transfer, or the null address if no
      *                   proxy should be utilized.
@@ -1122,8 +1138,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address from,
         address to,
         uint256 identifier,
+        uint256 amount,
         address proxyOwner
     ) internal {
+        // Ensure that exactly one 721 item is being transferred.
+        if (amount != 1) {
+            revert InvalidERC721TransferAmount();
+        }
+
         // Perform transfer, either directly or via proxy.
         bool success = _callDirectlyOrViaProxy(
             token,

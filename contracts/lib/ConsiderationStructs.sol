@@ -84,30 +84,29 @@ struct ReceivedItem {
     address payable recipient;
 }
 
-// todo: update naming scheme to reflect change from
-// OfferedItem -> OfferItem & ReceivedItem -> ConsiderationItem
 /**
  * @dev For basic orders involving ETH / native / ERC20 <=> ERC721 / ERC1155
  *      matching, a group of six functions may be called that only requires a
  *      subset of the usual order arguments.
  */
-struct BasicOrderParameters {
-    address receivedToken;                      // 0x24
-    uint256 receivedIdentifier;                 // 0x44
-    uint256 receivedAmount;                     // 0x64
+struct BasicOrderParameters {                   // calldata offset
+    address considerationToken;                 // 0x24
+    uint256 considerationIdentifier;            // 0x44
+    uint256 considerationAmount;                // 0x64
     address payable offerer;                    // 0x84
     address zone;                               // 0xa4
-    address offeredToken;                       // 0xc4
-    uint256 offeredIdentifier;                  // 0xe4
-    uint256 offeredAmount;                      // 0x104
+    address offerToken;                         // 0xc4
+    uint256 offerIdentifier;                    // 0xe4
+    uint256 offerAmount;                        // 0x104
     OrderType orderType;                        // 0x124
     uint256 startTime;                          // 0x144
     uint256 endTime;                            // 0x164
     uint256 salt;                               // 0x184
     bool useFulfillerProxy;                     // 0x1a4
-    AdditionalRecipient[] additionalRecipients; // 0x1c4
-    bytes signature;                            // 0x1e4
-    // len : 0x204
+    uint256 totalOriginalAdditionalRecipients;  // 0c1c4
+    AdditionalRecipient[] additionalRecipients; // 0x1e4
+    bytes signature;                            // 0x204
+    // Total length, excluding dynamic array data: 0x224 (548)
 }
 
 /**
@@ -123,7 +122,8 @@ struct AdditionalRecipient {
 /**
  * @dev The full set of order components, with the exception of the nonce, must
  *      be supplied when fulfilling more sophisticated orders or groups of
- *      orders.
+ *      orders. The total number of original consideration items must also be
+ *      supplied, as the caller may specify additional consideration items.
  */
 struct OrderParameters {
     address offerer;
@@ -134,6 +134,7 @@ struct OrderParameters {
     uint256 salt;
     OfferItem[] offer;
     ConsiderationItem[] consideration;
+    uint256 totalOriginalConsiderationItems;
 }
 
 /**
