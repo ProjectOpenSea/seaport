@@ -356,8 +356,11 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to retrieve the current nonce for a given
-     *      order's offerer and zone and use that to derive the order hash.
+     * @dev Internal view function to to ensure that the supplied consideration
+     *      array length on a given set of order parameters is not less than the
+     *      original consideration array length for that order and to retrieve
+     *      the current nonce for a given order's offerer and zone and use it to
+     *      derive the order hash.
      *
      * @param orderParameters The parameters of the order to hash.
      *
@@ -367,13 +370,10 @@ contract ConsiderationInternalView is ConsiderationPure {
         OrderParameters memory orderParameters
     ) internal view returns (bytes32) {
         // Ensure supplied consideration array length is not less than original.
-        if (
-            orderParameters.consideration.length < (
-                orderParameters.totalOriginalConsiderationItems
-            )
-        ) {
-            revert MissingOriginalConsiderationItems();
-        }
+        _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+            orderParameters.consideration.length,
+            orderParameters.totalOriginalConsiderationItems
+        );
 
         // Derive and return order hash using current nonce for offerer in zone.
         return _getOrderHash(
