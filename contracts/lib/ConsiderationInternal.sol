@@ -131,7 +131,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         let len := calldataload(0x224)
         // END_ARR + 0x120 = 0x2a0 + len*0x20
         let eventArrPtr := add(0x2a0, mul(0x20, len))
-        mstore(eventArrPtr, add(len, 1)) // length
+        mstore(eventArrPtr, add(calldataload(0x1c4), 1)) // length
         // Set ptr to data portion of first ReceivedItem
         eventArrPtr := add(eventArrPtr, 0x20)
         // Write item type
@@ -174,6 +174,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
           // Copy endAmount, recipient
           calldatacopy(add(eventArrPtr, 0x60), additionalRecipientCdPtr, 0x40)
         }
+        /* 4. Hash packed array of ConsiderationItem EIP712 hashes */
+        // note: Store at 0x60 - all other memory begins at 0x80
+        // keccak256(abi.encodePacked(receivedItemHashes))
+        mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
+        /* 5. Write tips to event data */
         len := calldataload(0x224)
         for {} lt(i, len) {i := add(i, 1)} {
           let additionalRecipientCdPtr := add(0x244, mul(0x40, i))
@@ -189,10 +194,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
           // Copy endAmount, recipient
           calldatacopy(add(eventArrPtr, 0x60), additionalRecipientCdPtr, 0x40)
         }
-        /* 4. Hash packed array of ConsiderationItem EIP712 hashes */
-        // note: Store at 0x60 - all other memory begins at 0x80
-        // keccak256(abi.encodePacked(receivedItemHashes))
-        mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
       }
     }
 
