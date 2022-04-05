@@ -57,7 +57,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     startTime: order.parameters.startTime,
     endTime: order.parameters.endTime,
     salt: order.parameters.salt,
-    totalOriginalConsiderationItems: order.parameters.consideration.length - 1,
+    totalOriginalAdditionalRecipients: order.parameters.consideration.length - 1,
     signature: order.signature,
     useFulfillerProxy,
     additionalRecipients: [

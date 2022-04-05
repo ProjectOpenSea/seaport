@@ -92,7 +92,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
       // Ensure supplied consideration array length is not less than original.
       _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
           parameters.additionalRecipients.length + 1,
-          parameters.totalOriginalConsiderationItems
+          parameters.totalOriginalAdditionalRecipients
       );
 
     { // Load consideration item typehash from runtime code and place on stack.
