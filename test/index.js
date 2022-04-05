@@ -1599,7 +1599,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             });
           });
         });
-        it("ERC721 <=> ETH (basic with tips)", async () => {
+        it.only("ERC721 <=> ETH (basic with tips)", async () => {
           // Seller mints nft
           const nftId = ethers.BigNumber.from(randomHex());
           await testERC721.mint(seller.address, nftId);
@@ -1660,6 +1660,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             amount: ethers.utils.parseEther("2"),
             recipient: owner.address
           }]);
+
+          order.parameters.consideration.push({
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("2"),
+            endAmount: ethers.utils.parseEther("2"),
+            recipient: owner.address,
+          });
 
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], 0, null, async () => {

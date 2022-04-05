@@ -157,7 +157,6 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
 ## Feature Wishlist
 
 The following features are good candidates for investigation and potential integration:
-- **Support for "tipping" on basic and/or standard order fulfillment.** While currently supported via match orders, this would make single order fulfillments more efficient and straightforward while still enabling referral / relayer fees to be paid out. This feature would allow the fulfiller to specify an optional, arbitrary array of consideration items alongside the fulfilled order, and could be accomplished via either an additional argument on existing functions or additional functions that leverage much of the existing logic and perform the additional transfers once all items specified by the fulfilled order have been transferred.
 - **Native support for attempting fulfillment for a group of orders without requiring that every order fulfillment succeeds.** One potential solution would be to implement a `fulfillAvailableOrders` function that iterates over the supplied orders and attempts to transfer all offer items for each order to the fulfiller; if a particular transfer fails, all prior offer item transfers and order status updates for that order would be rolled back and the order would be excluded from the group. Then, remaining consideration items can be aggregated by item type + token + identifier + recipient and transferred from the fulfiller to the recipient.
 - **General gas efficiency and code size optimizations.**
 

@@ -132,7 +132,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         let len := calldataload(0x224)
         // END_ARR + 0x120 = 0x2a0 + len*0x20
         let eventArrPtr := add(0x2a0, mul(0x20, len))
-        mstore(eventArrPtr, add(calldataload(0x1c4), 1)) // length
+        mstore(eventArrPtr, add(calldataload(0x224), 1)) // length
         // Set ptr to data portion of first ReceivedItem
         eventArrPtr := add(eventArrPtr, 0x20)
         // Write item type
