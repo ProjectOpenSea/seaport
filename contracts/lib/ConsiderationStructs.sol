@@ -246,3 +246,11 @@ struct Batch {
     bytes32 hash;
     uint256[] executionIndices;
 }
+
+/**
+ * @dev An internal struct for facilitating order fulfillment.
+ */
+struct FulfillmentDetail {
+    bool fulfillOrder;
+    bool useOffererProxy;
+}

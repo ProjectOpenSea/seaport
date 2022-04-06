@@ -53,17 +53,31 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @dev Internal view function to ensure that the current time falls within
      *      an order's valid timespan.
      *
-     * @param startTime The time at which the order becomes active.
-     * @param endTime   The time at which the order becomes inactive.
+     * @param startTime       The time at which the order becomes active.
+     * @param endTime         The time at which the order becomes inactive.
+     * @param revertOnInvalid A boolean indicating whether to revert if the
+     *                        order is not active.
+     *
+     * @return valid A boolean indicating whether the order is active.
      */
-    function _assertValidTime(
+    function _verifyTime(
         uint256 startTime,
-        uint256 endTime
-    ) internal view {
+        uint256 endTime,
+        bool revertOnInvalid
+    ) internal view returns (bool valid) {
         // Revert if order's timespan hasn't started yet or has already ended.
         if (startTime > block.timestamp || endTime <= block.timestamp) {
-            revert InvalidTime();
+            // Only revert if revertOnInvalid has been supplied as true.
+            if (revertOnInvalid) {
+                revert InvalidTime();
+            }
+
+            // Return false as the order is invalid.
+            return false;
         }
+
+        // Return true as the order time is valid.
+        valid = true;
     }
 
     /**

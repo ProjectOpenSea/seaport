@@ -29,7 +29,8 @@ import {
     OrderStatus,
     CriteriaResolver,
     Batch,
-    BatchExecution
+    BatchExecution,
+    FulfillmentDetail
 } from "./ConsiderationStructs.sol";
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
@@ -84,7 +85,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
       _setReentrancyGuard();
 
       // Ensure current timestamp falls between order start time and end time.
-      _assertValidTime(parameters.startTime, parameters.endTime);
+      _verifyTime(parameters.startTime, parameters.endTime, true);
 
       // Ensure calldata offsets were produced by default encoding.
       _assertValidBasicOrderParameterOffsets();
@@ -350,7 +351,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _verifyOrderStatus(
             orderHash,
             orderStatus,
-            true // Only allow unused orders as part of fulfilling basic orders.
+            true, // Only allow unused orders when fulfilling basic orders.
+            true // Signifies to revert if the order is invalid.
         );
 
         // If the order is not already validated, verify the supplied signature.
@@ -372,10 +374,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      fill, and update its status. The desired fill amount is supplied as
      *      a fraction, as is the returned amount to fill.
      *
-     * @param advancedOrder The order to fulfill as well as the fraction to
-     *                      fill. Note that all offer and consideration amounts
-     *                      must divide with no remainder in order for a partial
-     *                      fill to be valid.
+     * @param advancedOrder   The order to fulfill as well as the fraction to
+     *                        fill. Note that all offer and consideration
+     *                        amounts must divide with no remainder in order for
+     *                        a partial fill to be valid.
+     * @param revertOnInvalid A boolean indicating whether to revert if the
+     *                        order is invalid due to the time or order status.
      *
      * @return orderHash       The order hash.
      * @return newNumerator    A value indicating the portion of the order that
@@ -385,7 +389,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                         offerer's proxy.
      */
     function _validateOrderAndUpdateStatus(
-        AdvancedOrder memory advancedOrder
+        AdvancedOrder memory advancedOrder,
+        bool revertOnInvalid
     ) internal returns (
         bytes32 orderHash,
         uint256 newNumerator,
@@ -396,10 +401,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
         OrderParameters memory orderParameters = advancedOrder.parameters;
 
         // Ensure current timestamp falls between order start time and end time.
-        _assertValidTime(
-            orderParameters.startTime,
-            orderParameters.endTime
-        );
+        if (
+            !_verifyTime(
+                orderParameters.startTime,
+                orderParameters.endTime,
+                revertOnInvalid
+            )
+        ) {
+            // Assuming an invalid time and no revert, return zeroed out values.
+            return (bytes32(0), 0, 0, false);
+        }
 
         // Read numerator and denominator from memory and place on the stack.
         uint256 numerator = uint256(advancedOrder.numerator);
@@ -434,11 +445,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
         OrderStatus memory orderStatus = _orderStatus[orderHash];
 
         // Ensure order is fillable and is not cancelled.
-        _verifyOrderStatus(
-            orderHash,
-            orderStatus,
-            false // Allow partially used orders to be filled.
-        );
+        if (
+            !_verifyOrderStatus(
+                orderHash,
+                orderStatus,
+                false, // Allow partially used orders to be filled.
+                revertOnInvalid
+            )
+        ) {
+            // Assuming an invalid order status and no revert, return zero fill.
+            return (orderHash, 0, 0, useOffererProxy);
+        }
 
         // If the order is not already validated, verify the supplied signature.
         if (!orderStatus.isValidated) {
@@ -534,7 +551,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             uint256 fillNumerator,
             uint256 fillDenominator,
             bool useOffererProxy
-        ) = _validateOrderAndUpdateStatus(advancedOrder);
+        ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Apply criteria resolvers (requires array of orders to be supplied).
         AdvancedOrder[] memory orders = new AdvancedOrder[](1);
@@ -709,19 +726,25 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          a root of zero indicates that any transferrable
      *                          token identifier is valid and that no proof
      *                          needs to be supplied.
+     * @param revertOnInvalid   A boolean indicating whether to revert if the
+     *                          order is invalid due to the time or order
+     *                          status.
      *
-     * @return A array of booleans indicating whether to utilize a proxy for
-     *         each order.
+     * @return fulfillOrdersAndUseProxy A array of FulfillmentDetail structs,
+     *                                  each indicating whether to fulfill the
+     *                                  order and whether to use a proxy for it.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory orders,
-        CriteriaResolver[] memory criteriaResolvers
-    ) internal returns (bool[] memory) {
+        CriteriaResolver[] memory criteriaResolvers,
+        bool revertOnInvalid
+    ) internal returns (FulfillmentDetail[] memory fulfillOrdersAndUseProxy) {
         uint256 ordersLength = orders.length;
 
-        // Declare memory region to determine proxy utilization per order.
-        bool[] memory ordersUseProxy = new bool[](ordersLength);
+        // Use total orders to declare memory region for order fulfillment info.
+        fulfillOrdersAndUseProxy = new FulfillmentDetail[](ordersLength);
 
+        // Track the order hash for each order being fulfilled.
         bytes32[] memory orderHashes = new bytes32[](ordersLength);
 
         // Skip overflow checks as all for loops are indexed starting at zero.
@@ -737,10 +760,24 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     uint256 numerator,
                     uint256 denominator,
                     bool useOffererProxy
-                ) = _validateOrderAndUpdateStatus(order);
+                ) = _validateOrderAndUpdateStatus(order, revertOnInvalid);
 
-                // Mark whether order should utilize offerer's proxy.
-                ordersUseProxy[i] = useOffererProxy;
+                // Determine if order should be fulfilled based on numerator.
+                bool shouldBeFulfilled = numerator != 0;
+
+                // Mark whether to fulfill the order and to use offerer's proxy.
+                fulfillOrdersAndUseProxy[i] = FulfillmentDetail(
+                    shouldBeFulfilled,
+                    useOffererProxy
+                );
+
+                // Do not track hash or adjust prices if order is not fulfilled.
+                if (!shouldBeFulfilled) {
+                    continue;
+                }
+
+                // Otherwise, track the order hash in question.
+                orderHashes[i] = orderHash;
 
                 // Retrieve offer items and consideration items on the order.
                 OfferItem[] memory offer = order.parameters.offer;
@@ -806,9 +843,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                 // Adjust prices based on time, start amount, and end amount.
                 _adjustAdvancedOrderPrice(order);
-
-                // Track the order hash in question.
-                orderHashes[i] = orderHash;
             }
         }
 
@@ -818,7 +852,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Emit an event for each order signifying that it has been fulfilled.
         unchecked {
             for (uint256 i = 0; i < ordersLength; ++i) {
+                // Do not emit an event if no order hash is present.
+                if (orderHashes[i] == bytes32(0)) {
+                    continue;
+                }
+
+                // Retrieve parameters for the order in question.
                 OrderParameters memory order = orders[i].parameters;
+
+                // Emit an OrderFulfilled event.
                 _emitOrderFulfilledEvent(
                     orderHashes[i],
                     order.offerer,
@@ -830,8 +872,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // Return memory region designating proxy utilization per order.
-        return ordersUseProxy;
+        // Return memory region tracking orders to fulfill and use proxies for.
+        return fulfillOrdersAndUseProxy;
     }
 
     /**
@@ -839,15 +881,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      full or partial, after validating, adjusting amounts, and applying
      *      criteria resolvers.
      *
-     * @param orders         The orders to match, including a fraction to
-     *                       attempt to fill for each order.
-     * @param fulfillments   An array of elements allocating offer components to
-     *                       consideration components. Note that the end amount
-     *                       of each consideration component must be zero in
-     *                       order for the match operation to be valid.
-     * @param ordersUseProxy An array of booleans indicating whether to source
-     *                       approvals for the fulfilled tokens on each order
-     *                       from their respective proxy.
+     * @param orders                   The orders to match, including a fraction
+     *                                 to attempt to fill for each order.
+     * @param fulfillments             An array of elements allocating offer
+     *                                 components to consideration components.
+     *                                 Note that the end amount of each
+     *                                 consideration component must be zero in
+     *                                 order for a match operation to be valid.
+     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
+     *                                 indicating whether to fulfill the order
+     *                                 and whether to source approvals for the
+     *                                 fulfilled tokens on each order from their
+     *                                 respective proxy. Note that all orders
+     *                                 will fulfill on calling this function.
      *
      * @return An array of elements indicating the sequence of non-batch
      *         transfers performed as part of matching the given orders.
@@ -857,7 +903,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     function _fulfillAdvancedOrders(
         AdvancedOrder[] memory orders,
         Fulfillment[] memory fulfillments,
-        bool[] memory ordersUseProxy
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy
     ) internal returns (Execution[] memory, BatchExecution[] memory) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -880,7 +926,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     orders,
                     fulfillment.offerComponents,
                     fulfillment.considerationComponents,
-                    ordersUseProxy
+                    fulfillOrdersAndUseProxy
                 );
 
                 // If offerer and recipient on the execution are the same...

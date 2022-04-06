@@ -19,7 +19,8 @@ import {
     AdvancedOrder,
     OrderStatus,
     CriteriaResolver,
-    BatchExecution
+    BatchExecution,
+    FulfillmentDetail
 } from "./lib/ConsiderationStructs.sol";
 
 import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
@@ -575,16 +576,19 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         );
 
         // Validate orders, apply amounts, & determine if they utilize proxies.
-        bool[] memory useProxyPerOrder = _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            new CriteriaResolver[](0) // No criteria resolvers are supplied.
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy = (
+            _validateOrdersAndPrepareToFulfill(
+                advancedOrders,
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                true // Signifies that invalid orders should revert.
+            )
         );
 
         // Fulfill the orders using the supplied fulfillments.
         return _fulfillAdvancedOrders(
             advancedOrders,
             fulfillments,
-            useProxyPerOrder
+            fulfillOrdersAndUseProxy
         );
     }
 
@@ -636,16 +640,19 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         BatchExecution[] memory batchExecutions
     ) {
         // Validate orders, apply amounts, & determine if they utilize proxies.
-        bool[] memory useProxyPerOrder = _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            criteriaResolvers
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy = (
+            _validateOrdersAndPrepareToFulfill(
+                advancedOrders,
+                criteriaResolvers,
+                true // Signifies that invalid orders should revert.
+            )
         );
 
         // Fulfill the orders using the supplied fulfillments.
         return _fulfillAdvancedOrders(
             advancedOrders,
             fulfillments,
-            useProxyPerOrder
+            fulfillOrdersAndUseProxy
         );
     }
 
@@ -756,7 +763,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 _verifyOrderStatus(
                     orderHash,
                     orderStatus,
-                    false // Signifies that partially filled orders are valid.
+                    false, // Signifies that partially filled orders are valid.
+                    true // Signifies to revert if the order is invalid.
                 );
 
                 // If the order has not already been validated...
