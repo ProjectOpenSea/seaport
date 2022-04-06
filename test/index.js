@@ -20,6 +20,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   let legacyProxyRegistry;
   let legacyProxyImplementation;
   let ownedUpgradeabilityProxy;
+  let delegatedContract;
   let testERC20;
   let testERC721;
   let testERC1155;
@@ -980,6 +981,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     ownedUpgradeabilityProxy = await ethers.getContractFactory(
       "OwnedUpgradeabilityProxy"
+    );
+
+    delegatedContract = await ethers.getContractFactory(
+      "ConsiderationDelegated"
     );
 
     const reentererFactory = await ethers.getContractFactory("Reenterer");
@@ -8169,6 +8174,26 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             return receipt;
           });
         });
+    });
+
+    describe("Delegated functionality", async () => {
+      it("Can reach delegated functions", async () => {
+        await whileImpersonating(owner.address, provider, async () => {
+          const tx = await marketplaceContract.connect(owner).fulfillAvailableAdvancedOrders([], [], false);
+          const receipt = await tx.wait();
+          expect(!!receipt.status).to.be.true;
+        });
+      });
+      it("Cannot reach delegated functions directly", async () => {
+        await whileImpersonating(owner.address, provider, async () => {
+          // Compute address of delegated contract from marketplace contract
+          const delegated = delegatedContract.attach(
+            `0x${ethers.utils.keccak256(`0xd694${marketplaceContract.address.slice(2)}01`).slice(26)}`
+          );
+
+          await expect(delegated.connect(owner).fulfillAvailableAdvancedOrders([], [], false)).to.be.reverted;
+        });
+      });
     });
   });
 

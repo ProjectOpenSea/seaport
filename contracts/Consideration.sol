@@ -24,16 +24,21 @@ import {
 
 import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
 
+import { ConsiderationDelegated } from "./lib/ConsiderationDelegated.sol";
+
 /**
  * @title Consideration
  * @author 0age
- * @custom:version 1
+ * @custom:version rc-1
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
  *         provides lightweight methods for common routes as well as more
  *         flexible methods for composing advanced orders.
  */
 contract Consideration is ConsiderationInterface, ConsiderationInternal {
+    // Delegate some complex functionality due to the contract size limit.
+    address internal immutable _DELEGATED;
+
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
@@ -47,7 +52,15 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
-    ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {}
+    ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {
+        // Deploy contract with additional logic where calls can be delegated.
+        _DELEGATED = address(
+            new ConsiderationDelegated(
+                legacyProxyRegistry,
+                requiredProxyImplementation
+            )
+        );
+    }
 
     /**
      * @notice Fulfill an order offering an ERC721 token by supplying Ether (or
@@ -424,6 +437,102 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             criteriaResolvers,
             useFulfillerProxy
         );
+    }
+
+    /**
+     * @notice Attempt to fill a group of orders, fully or partially, with an
+     *         arbitrary number of items for offer and consideration per order
+     *         alongside criteria resolvers containing specific token
+     *         identifiers and associated proofs. Any order that has already
+     *         been fully filled or cancelled, or where an offer item cannot be
+     *         successfully transferred to the fulfiller, will be skipped. If an
+     *         order is skipped, all state changes for that order (including any
+     *         previously transferred offer items for that order) will be rolled
+     *         back and any unapplied criteria resolvers referencing that order
+     *         will be ignored. The fulfiller must then transfer each
+     *         consideration item on the remaining orders to the intended
+     *         recipient — note that a failing transfer of a consideration item
+     *         from the fulfiller will cause the entire transaction to revert.
+     *
+     * @param advancedOrders    The orders to fulfill along with the fraction of
+     *                          those orders to attempt to fill. Note that both
+     *                          the offerer and the fulfiller must first approve
+     *                          this contract (or their proxy if indicated by
+     *                          the order) to transfer any relevant tokens on
+     *                          their behalf and that contracts must implement
+     *                          `onERC1155Received` in order to receive ERC1155
+     *                          tokens as consideration. Also note that all
+     *                          offer and consideration components must have no
+     *                          remainder after multiplication of the respective
+     *                          amount with the supplied fraction for an order's
+     *                          partial fill amount to be considered valid.
+     * @param criteriaResolvers An array where each element contains a reference
+     *                          to a specific offer or consideration, a token
+     *                          identifier, and a proof that the supplied token
+     *                          identifier is contained in the merkle root held
+     *                          by the item in question's criteria element. Note
+     *                          that an empty criteria indicates that any
+     *                          (transferrable) token identifier on the token in
+     *                          question is valid and that no associated proof
+     *                          needs to be supplied.
+     * @param useFulfillerProxy A flag indicating whether to source approvals
+     *                          for fulfilled tokens from an associated proxy.
+     *
+     * @return statuses An array of booleans indicating whether each order has
+     *                  been fulfilled.
+     */
+    function fulfillAvailableAdvancedOrders(
+        AdvancedOrder[] calldata advancedOrders,
+        CriteriaResolver[] calldata criteriaResolvers,
+        bool useFulfillerProxy
+    ) external payable override returns (bool[] memory statuses) {
+        // Reference "unused" variables to silence compiler warnings.
+        advancedOrders;
+        criteriaResolvers;
+        useFulfillerProxy;
+        statuses;
+
+        // Read delegated logic contract from runtime code and place on stack.
+        address delegated = _DELEGATED;
+
+        // Utilize assembly for direct access to calldata and returndata buffer.
+        assembly {
+            // Copy entirety of calldata directly into memory with no offset.
+            // This clobbers existing memory, including the free memory pointer,
+            // but it will not be needed from this point forward.
+            calldatacopy(
+                returndatasize(), // Put 0 on the stack for the memory offset.
+                returndatasize(), // Put 0 on the stack for the calldata offset.
+                calldatasize()    // Supply full length for the calldata length.
+            )
+
+            // Perform the delegatecall to the delegated logic contract. Memory
+            // will not be written to as returndatasize is not known ahead of
+            // time; instead, utilize the returndata buffer.
+            let success := delegatecall(
+                gas(),            // Forward all available gas.
+                delegated,        // Supply delegated logic contract address.
+                returndatasize(), // Put 0 on the stack for memory-in offset.
+                calldatasize(),   // Use calldata length for memory-in length.
+                returndatasize(), // Put 0 on the stack for memory-out offset.
+                returndatasize()  // Put 0 on the stack for memory-out length.
+            )
+
+            // Copy the returndata buffer into memory with no offset.
+            returndatacopy(0, 0, returndatasize())
+
+            // Return or revert based on the success status of the delegatecall,
+            // passing along the original returndata. No special handling in the
+            // case of delegated calls to accounts with no code is required here
+            // as the delegated contract is not destructible.
+            switch success
+            case 0 {
+                revert(0, returndatasize()) // Revert with returndata in memory.
+            }
+            default {
+                return(0, returndatasize()) // Return with returndata in memory.
+            }
+        }
     }
 
     /**
