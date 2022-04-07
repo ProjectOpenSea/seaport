@@ -1,7 +1,10 @@
 [default]
+auto_detect_solc = true
+optimizer = true
+optimizer_runs = 500000
 src = 'src'
 out = 'out'
-libs = ['src/lib']
+libs = ['src/lib', 'contracts/lib']
 remappings = ['ds-test/=src/lib/ds-test/src/']
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
