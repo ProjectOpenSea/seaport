@@ -716,8 +716,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      statuses, reduce amounts by their previously filled fractions, apply
      *      criteria resolvers, and emit OrderFulfilled events.
      *
-     * @param orders            The orders to validate and reduce by their
-     *                          previously filled amounts.
+     * @param advancedOrders    The advanced orders to validate and reduce by
+     *                          their previously filled amounts.
      * @param criteriaResolvers An array where each element contains a reference
      *                          to a specific order as well as that order's
      *                          offer or consideration, a token identifier, and
@@ -735,24 +735,28 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                                  order and whether to use a proxy for it.
      */
     function _validateOrdersAndPrepareToFulfill(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid
     ) internal returns (FulfillmentDetail[] memory fulfillOrdersAndUseProxy) {
-        uint256 ordersLength = orders.length;
+        // Ensure this function cannot be triggered during a reentrant call.
+        _setReentrancyGuard();
+
+        // Read length of orders array and place on the stack.
+        uint256 totalOrders = advancedOrders.length;
 
         // Use total orders to declare memory region for order fulfillment info.
-        fulfillOrdersAndUseProxy = new FulfillmentDetail[](ordersLength);
+        fulfillOrdersAndUseProxy = new FulfillmentDetail[](totalOrders);
 
         // Track the order hash for each order being fulfilled.
-        bytes32[] memory orderHashes = new bytes32[](ordersLength);
+        bytes32[] memory orderHashes = new bytes32[](totalOrders);
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each order.
-            for (uint256 i = 0; i < ordersLength; ++i) {
+            for (uint256 i = 0; i < totalOrders; ++i) {
                 // Retrieve the current order.
-                AdvancedOrder memory order = orders[i];
+                AdvancedOrder memory advancedOrder = advancedOrders[i];
 
                 // Validate it, update status, and determine fraction to fill.
                 (
@@ -760,7 +764,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     uint256 numerator,
                     uint256 denominator,
                     bool useOffererProxy
-                ) = _validateOrderAndUpdateStatus(order, revertOnInvalid);
+                ) = _validateOrderAndUpdateStatus(
+                    advancedOrder,
+                    revertOnInvalid
+                );
 
                 // Determine if order should be fulfilled based on numerator.
                 bool shouldBeFulfilled = numerator != 0;
@@ -780,9 +787,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 orderHashes[i] = orderHash;
 
                 // Retrieve offer items and consideration items on the order.
-                OfferItem[] memory offer = order.parameters.offer;
+                OfferItem[] memory offer = advancedOrder.parameters.offer;
                 ConsiderationItem[] memory consideration = (
-                    order.parameters.consideration
+                    advancedOrder.parameters.consideration
                 );
 
                 // Iterate over each offer item on the order.
@@ -842,32 +849,34 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 }
 
                 // Adjust prices based on time, start amount, and end amount.
-                _adjustAdvancedOrderPrice(order);
+                _adjustAdvancedOrderPrice(advancedOrder);
             }
         }
 
         // Apply criteria resolvers to each order as applicable.
-        _applyCriteriaResolvers(orders, criteriaResolvers);
+        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
         // Emit an event for each order signifying that it has been fulfilled.
         unchecked {
-            for (uint256 i = 0; i < ordersLength; ++i) {
+            for (uint256 i = 0; i < totalOrders; ++i) {
                 // Do not emit an event if no order hash is present.
                 if (orderHashes[i] == bytes32(0)) {
                     continue;
                 }
 
                 // Retrieve parameters for the order in question.
-                OrderParameters memory order = orders[i].parameters;
+                OrderParameters memory orderParameters = (
+                    advancedOrders[i].parameters
+                );
 
-                // Emit an OrderFulfilled event.
+                // Emit an OrderFulfilled event (supply fulfiller on no revert).
                 _emitOrderFulfilledEvent(
                     orderHashes[i],
-                    order.offerer,
-                    order.zone,
-                    address(0),
-                    order.offer,
-                    order.consideration
+                    orderParameters.offerer,
+                    orderParameters.zone,
+                    revertOnInvalid ? address(0) : msg.sender,
+                    orderParameters.offer,
+                    orderParameters.consideration
                 );
             }
         }
@@ -905,9 +914,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         Fulfillment[] memory fulfillments,
         FulfillmentDetail[] memory fulfillOrdersAndUseProxy
     ) internal returns (Execution[] memory, BatchExecution[] memory) {
-        // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
-
         // Allocate executions by fulfillment and apply them to each execution.
         Execution[] memory executions = new Execution[](fulfillments.length);
 

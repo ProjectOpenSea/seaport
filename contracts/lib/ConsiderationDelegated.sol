@@ -7,7 +7,8 @@ import {
 
 import {
     AdvancedOrder,
-    CriteriaResolver
+    CriteriaResolver,
+    FulfillmentDetail
 } from "./ConsiderationStructs.sol";
 
 import { ConsiderationInternal } from "./ConsiderationInternal.sol";
@@ -39,16 +40,13 @@ contract ConsiderationDelegated is
      *         or partially, with an arbitrary number of items for offer and
      *         consideration per order alongside criteria resolvers containing
      *         specific token identifiers and associated proofs. Any order that
-     *         has already been fully filled or cancelled, or where an offer
-     *         item cannot be successfully transferred to the fulfiller, will be
-     *         skipped. If an order is skipped, all state changes for that order
-     *         (including any previously transferred offer items for that order)
-     *         will be rolled back and any unapplied criteria resolvers
-     *         referencing that order will be ignored. The fulfiller must then
-     *         transfer each consideration item on the remaining orders to the
-     *         intended recipient — note that a failing transfer of a
-     *         consideration item from the fulfiller will cause the entire
-     *         transaction to revert.
+     *         is not currently active, has already been fully filled, or has
+     *         been cancelled will be omitted. Remaining offer and consideration
+     *         items will then be aggregated where possible, and aggregated
+     *         offer items will be transferred to the fulfiller. Finally, the
+     *         fulfiller will transfer each aggregated consideration item to the
+     *         intended recipient. Note that a failing item transfer or issue
+     *         with order validation will cause the entire batch to revert.
      *
      * @param advancedOrders    The orders to fulfill along with the fraction of
      *                          those orders to attempt to fill. Note that both
@@ -74,27 +72,41 @@ contract ConsiderationDelegated is
      * @param useFulfillerProxy A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      *
-     * @return statuses An array of booleans indicating whether each order has
-     *                  been fulfilled.
+     * @return fulfillmentDetails A array of FulfillmentDetail structs, each
+     *                            indicating whether the associated order has
+     *                            been fulfilled and whether a proxy was used.
      */
 	function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         bool useFulfillerProxy
-    ) external payable override returns (bool[] memory statuses) {
+    ) external payable override returns (
+    	FulfillmentDetail[] memory fulfillmentDetails
+    ) {
     	// Ensure that only delegatecalls from Consideration are allowed.
 		if (address(this) != _DELEGATOR) {
 			revert OnlyDelegatecallFromConsideration();
 		}
 
-		// Allocate array of booleans for tracking statuses for each order.
-    	statuses = new bool[](advancedOrders.length);
+        // Validate orders, apply amounts, & determine if they utilize proxies.
+        fulfillmentDetails = _validateOrdersAndPrepareToFulfill(
+            advancedOrders,
+            criteriaResolvers,
+            false // Signifies that invalid orders should NOT revert.
+        );
+
+        // Apply criteria resolvers to orders regardless of fulfillment details.
+        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
     	// Declare unused variables — this function is not yet implemented.
-    	criteriaResolvers;
     	useFulfillerProxy;
 
-    	// Return order fulfillment statuses.
-    	return statuses;
+    	// TODO: aggregate remaining offer and consideration items and transfer.
+
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
+
+    	// Return order fulfillment details.
+    	return fulfillmentDetails;
     }
 }
