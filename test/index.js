@@ -8179,7 +8179,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     describe("Delegated functionality", async () => {
       it("Can reach delegated functions", async () => {
         await whileImpersonating(owner.address, provider, async () => {
-          const tx = await marketplaceContract.connect(owner).fulfillAvailableAdvancedOrders([], [], false);
+          const tx = await marketplaceContract.connect(owner).fulfillAvailableAdvancedOrders([], [], [], [], false);
           const receipt = await tx.wait();
           expect(!!receipt.status).to.be.true;
         });
@@ -8191,7 +8191,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             `0x${ethers.utils.keccak256(`0xd694${marketplaceContract.address.slice(2)}01`).slice(26)}`
           );
 
-          await expect(delegated.connect(owner).fulfillAvailableAdvancedOrders([], [], false)).to.be.reverted;
+          await expect(delegated.connect(owner).fulfillAvailableAdvancedOrders([], [], [], [], false)).to.be.reverted;
         });
       });
     });
