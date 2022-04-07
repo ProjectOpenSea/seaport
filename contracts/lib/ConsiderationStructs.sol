@@ -19,8 +19,8 @@ import {
 struct OrderComponents {
     address offerer;
     address zone;
-    OfferedItem[] offer;
-    ReceivedItem[] consideration;
+    OfferItem[] offer;
+    ConsiderationItem[] consideration;
     OrderType orderType;
     uint256 startTime;
     uint256 endTime;
@@ -29,7 +29,7 @@ struct OrderComponents {
 }
 
 /**
- * @dev An offered item has five components: an item type (ETH or other native
+ * @dev An offer item has five components: an item type (ETH or other native
  *      tokens, ERC20, ERC721, and ERC1155, as well as criteria-based ERC721 and
  *      ERC1155), a token address, a dual-purpose "identifierOrCriteria"
  *      component that will either represent a tokenId or a merkle root
@@ -37,7 +37,7 @@ struct OrderComponents {
  *      increasing or decreasing amounts over the duration of the respective
  *      order.
  */
-struct OfferedItem {
+struct OfferItem {
     ItemType itemType;
     address token;
     uint256 identifierOrCriteria;
@@ -46,11 +46,11 @@ struct OfferedItem {
 }
 
 /**
- * @dev A received item has the same five components as an offered item and an
- *      additional sixth component designating the required recipient of the
+ * @dev A consideration item has the same five components as an offer item and
+ *      an additional sixth component designating the required recipient of the
  *      item.
  */
-struct ReceivedItem {
+struct ConsiderationItem {
     ItemType itemType;
     address token;
     uint256 identifierOrCriteria;
@@ -60,11 +60,11 @@ struct ReceivedItem {
 }
 
 /**
- * @dev A consumed item has four components: an item type (ETH or other native
- *      tokens, ERC20, ERC721, and ERC1155), a token address, a tokenId, and an
- *      amount.
+ * @dev A spent item is translated from a utilized offer item an has four
+ *      components: an item type (ETH or other native tokens, ERC20, ERC721, and
+ *      ERC1155), a token address, a tokenId, and an amount.
  */
-struct ConsumedItem {
+struct SpentItem {
     ItemType itemType;
     address token;
     uint256 identifier;
@@ -72,11 +72,11 @@ struct ConsumedItem {
 }
 
 /**
- * @dev A fulfilled item has the same four components as an offered item and an
- *      additional fifth component designating the required recipient of the
- *      item.
+ * @dev A received item is translated from a utilized consideration item and has
+ *      the same four components as a spent item, as well as an additional fifth
+ *      component designating the required recipient of the item.
  */
-struct FulfilledItem {
+struct ReceivedItem {
     ItemType itemType;
     address token;
     uint256 identifier;
@@ -89,18 +89,24 @@ struct FulfilledItem {
  *      matching, a group of six functions may be called that only requires a
  *      subset of the usual order arguments.
  */
-struct BasicOrderParameters {
-    address payable offerer;
-    address zone;
-    address token;
-    uint256 identifier;
-    OrderType orderType;
-    uint256 startTime;
-    uint256 endTime;
-    uint256 salt;
-    bool useFulfillerProxy;
-    AdditionalRecipient[] additionalRecipients;
-    bytes signature;
+struct BasicOrderParameters {                   // calldata offset
+    address considerationToken;                 // 0x24
+    uint256 considerationIdentifier;            // 0x44
+    uint256 considerationAmount;                // 0x64
+    address payable offerer;                    // 0x84
+    address zone;                               // 0xa4
+    address offerToken;                         // 0xc4
+    uint256 offerIdentifier;                    // 0xe4
+    uint256 offerAmount;                        // 0x104
+    OrderType orderType;                        // 0x124
+    uint256 startTime;                          // 0x144
+    uint256 endTime;                            // 0x164
+    uint256 salt;                               // 0x184
+    bool useFulfillerProxy;                     // 0x1a4
+    uint256 totalOriginalAdditionalRecipients;  // 0c1c4
+    AdditionalRecipient[] additionalRecipients; // 0x1e4
+    bytes signature;                            // 0x204
+    // Total length, excluding dynamic array data: 0x224 (548)
 }
 
 /**
@@ -109,14 +115,15 @@ struct BasicOrderParameters {
  *      native token) or ERC20 token for the order.
  */
 struct AdditionalRecipient {
-    address payable recipient;
     uint256 amount;
+    address payable recipient;
 }
 
 /**
  * @dev The full set of order components, with the exception of the nonce, must
  *      be supplied when fulfilling more sophisticated orders or groups of
- *      orders.
+ *      orders. The total number of original consideration items must also be
+ *      supplied, as the caller may specify additional consideration items.
  */
 struct OrderParameters {
     address offerer;
@@ -125,8 +132,9 @@ struct OrderParameters {
     uint256 startTime;
     uint256 endTime;
     uint256 salt;
-    OfferedItem[] offer;
-    ReceivedItem[] consideration;
+    OfferItem[] offer;
+    ConsiderationItem[] consideration;
+    uint256 totalOriginalConsiderationItems;
 }
 
 /**
@@ -212,7 +220,7 @@ struct FulfillmentComponent {
  *      fulfillments) and returned as part of `matchOrders`.
  */
 struct Execution {
-    FulfilledItem item;
+    ReceivedItem item;
     address offerer;
     bool useProxy;
 }

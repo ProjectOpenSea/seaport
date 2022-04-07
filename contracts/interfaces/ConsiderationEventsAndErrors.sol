@@ -2,8 +2,8 @@
 pragma solidity 0.8.12;
 
 import {
-    ConsumedItem,
-    FulfilledItem
+    SpentItem,
+    ReceivedItem
 } from "../lib/ConsiderationStructs.sol";
 
 /**
@@ -13,9 +13,7 @@ import {
  */
 interface ConsiderationEventsAndErrors {
     /**
-     * @dev Emit an event whenever an order is successfully fulfilled. NOTE:
-     *      each offered item currently returns a startAmount and an end amount,
-     *      whereas ideally it would just return a single "amount".
+     * @dev Emit an event whenever an order is successfully fulfilled.
      *
      * @param orderHash     The hash of the fulfilled order.
      * @param offerer       The offerer of the fulfilled order.
@@ -23,8 +21,8 @@ interface ConsiderationEventsAndErrors {
      * @param fulfiller     The fulfiller of the order, or the null address if
      *                      there is no specific fulfiller (i.e. the order is
      *                      part of a group of orders).
-     * @param offer         The offered items consumed as part of the order.
-     * @param consideration The consideration items fulfilled as part of the
+     * @param offer         The offer items spent as part of the order.
+     * @param consideration The consideration items received as part of the
      *                      order along with the recipients of each item.
      */
     event OrderFulfilled(
@@ -32,8 +30,8 @@ interface ConsiderationEventsAndErrors {
         address indexed offerer,
         address indexed zone,
         address fulfiller,
-        ConsumedItem[] offer,
-        FulfilledItem[] consideration
+        SpentItem[] offer,
+        ReceivedItem[] consideration
     );
 
     /**
@@ -51,7 +49,8 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Emit an event whenever an order is explicitly validated. Note that
-     *      this event will not be emitted on partial fills.
+     *      this event will not be emitted on partial fills even though they do
+     *      validate the order as part of partial fulfillment.
      *
      * @param orderHash The hash of the validated order.
      * @param offerer   The offerer of the validated order.
@@ -87,7 +86,8 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to fill an order outside the
-     *      specified start time and end time .*/
+     *      specified start time and end time .
+     */
     error InvalidTime();
 
     /**
@@ -96,6 +96,12 @@ interface ConsiderationEventsAndErrors {
      *      either the offerrer or the order's zone.
      */
     error InvalidSubmitterOnRestrictedOrder();
+
+    /**
+     * @dev Revert with an error when an order is supplied for fulfillment with
+     *      a consideration array that is shorter than the original array.
+     */
+    error MissingOriginalConsiderationItems();
 
     /**
      * @dev Revert with an error when a fulfillment is provided that does not
@@ -121,14 +127,6 @@ interface ConsiderationEventsAndErrors {
      *      an order with a consideration item that has not been supplied.
      */
     error FulfilledOrderConsiderationIndexOutOfRange();
-
-    /**
-     * @dev Revert with an error when a signature that is not either 64 bytes or
-     *      65 bytes in length has been supplied.
-     *
-     * @param signatureLength The invalid signature length.
-     */
-    error BadSignatureLength(uint256 signatureLength);
 
     /**
      * @dev Revert with an error when a signature that does not contain a v
@@ -362,13 +360,19 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when a caller attempts to reenter a protected
-            function.
+     *      function.
      */
     error NoReentrantCalls();
 
     /**
      * @dev Revert with an error when the implementation of the respectie proxy
-            does not match the expected proxy implementation.
+     *      does not match the expected proxy implementation.
      */
     error InvalidProxyImplementation();
+
+    /**
+     * @dev Revert with an error when attempting to fill a basic order using
+     *      calldata not produced by default ABI encoding.
+     */
+    error InvalidBasicOrderParameterEncoding();
 }
