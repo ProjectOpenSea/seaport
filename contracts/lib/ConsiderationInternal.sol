@@ -890,7 +890,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      full or partial, after validating, adjusting amounts, and applying
      *      criteria resolvers.
      *
-     * @param orders                   The orders to match, including a fraction
+     * @param advancedOrders           The orders to match, including a fraction
      *                                 to attempt to fill for each order.
      * @param fulfillments             An array of elements allocating offer
      *                                 components to consideration components.
@@ -910,7 +910,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *         performed as part of matching the given orders.
      */
     function _fulfillAdvancedOrders(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         Fulfillment[] memory fulfillments,
         FulfillmentDetail[] memory fulfillOrdersAndUseProxy
     ) internal returns (Execution[] memory, BatchExecution[] memory) {
@@ -929,7 +929,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                 // Derive the execution corresponding with the fulfillment.
                 Execution memory execution = _applyFulfillment(
-                    orders,
+                    advancedOrders,
                     fulfillment.offerComponents,
                     fulfillment.considerationComponents,
                     fulfillOrdersAndUseProxy
@@ -955,12 +955,61 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                 }
             }
+        }
 
+        // Perform final checks, compress executions, and return.
+        return _performFinalChecksAndExecuteOrders(
+            advancedOrders,
+            executions,
+            fulfillOrdersAndUseProxy
+        );
+    }
+
+    /**
+     * @dev Internal function to perform a final check that each consideration
+     *      item for an arbitrary number of fulfilled orders has been met and to
+     *      compress and trigger associated execututions, transferring the
+     *      respective items.
+     *
+     * @param advancedOrders           The orders to check and perform
+     *                                 executions for.
+     * @param executions               An array of uncompressed elements
+     *                                 indicating the sequence of transfers to
+     *                                 perform when fulfilling the given orders.
+     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
+     *                                 indicating whether to fulfill the order
+     *                                 and whether to source approvals for the
+     *                                 fulfilled tokens on each order from their
+     *                                 respective proxy. Note that all orders
+     *                                 will fulfill on calling this function.
+     *
+     * @return standardExecutions An array of elements indicating the sequence
+     *                            of non-batch transfers performed as part of
+     *                            fulfilling the given orders.
+     * @return batchExecutions    An array of elements indicating the sequence
+     *                            of batch transfers performed as part of
+     *                            fulfilling the given orders.
+     */
+    function _performFinalChecksAndExecuteOrders(
+        AdvancedOrder[] memory advancedOrders,
+        Execution[] memory executions,
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy
+    ) internal returns (
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    ) {
+        // Skip overflow checks as all for loops are indexed starting at zero.
+        unchecked {
             // Iterate over orders to ensure all considerations are met.
-            for (uint256 i = 0; i < orders.length; ++i) {
+            for (uint256 i = 0; i < advancedOrders.length; ++i) {
+                // Skip consideration item checks for order if not fulfilled.
+                if (!fulfillOrdersAndUseProxy[i].fulfillOrder) {
+                    continue;
+                }
+
                 // Retrieve consideration items to ensure they are fulfilled.
                 ConsiderationItem[] memory consideration = (
-                    orders[i].parameters.consideration
+                    advancedOrders[i].parameters.consideration
                 );
 
                 // Iterate over each consideration item to ensure it is met.
@@ -975,10 +1024,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 }
             }
         }
-
-        // Allocate memory for "standard" (no batch) and "batch" executions.
-        Execution[] memory standardExecutions;
-        BatchExecution[] memory batchExecutions;
 
         // Split executions into "standard" (no batch) and "batch" executions.
         (standardExecutions, batchExecutions) = _compressExecutions(executions);
