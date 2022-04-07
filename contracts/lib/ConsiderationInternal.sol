@@ -17,10 +17,10 @@ import {
 import {
     AdditionalRecipient,
     BasicOrderParameters,
-    OfferedItem,
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
     ReceivedItem,
-    ConsumedItem,
-    FulfilledItem,
     OrderParameters,
     Fulfillment,
     Execution,
@@ -58,119 +58,277 @@ contract ConsiderationInternal is ConsiderationInternalView {
         requiredProxyImplementation
     ) {}
 
-    /**
-     * @dev Internal function to derive and validate an order based on a set of
-     *      parameters and a primary item for offer and consideration.
-     *
-     * @param  parameters      The parameters of the basic order.
-     * @param  offeredItem     The primary item being offered.
-     * @param  receivedItem    The primary item being received as consideration.
-     *
-     * @return useOffererProxy A boolean indicating whether to utilize the
-     *                         offerer's proxy.
-     */
-    function _prepareBasicFulfillment(
-        BasicOrderParameters memory parameters,
-        OfferedItem memory offeredItem,
-        ReceivedItem memory receivedItem
-    ) internal returns (bool useOffererProxy) {
-        // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
+  /**
+   * @dev Internal function to prepare fulfillment of a basic order with manual
+   *      calldata and memory access. This calculates the order hash, emits an
+   *      OrderFulfilled event, and asserts basic order validity. Note that
+   *      calldata offsets must be validated as this function accesses constant
+   *      calldata pointers for dynamic types that match default ABI encoding,
+   *      but valid ABI encoding can use arbitrary offsets. Checking that the
+   *      offsets were produced by default encoding will ensure that other
+   *      functions using Solidity's calldata accessors (which calculate
+   *      pointers from the stored offsets) are reading the same data as the
+   *      order hash is derived from. Also note that This function accesses
+   *      memory directly. It does not clear the expanded memory regions used,
+   *      nor does it update the free memory pointer, so other direct memory
+   *      access must not assume that unused memory is empty.
+   */
+  function _prepareBasicFulfillmentFromCalldata(
+    BasicOrderParameters calldata parameters,
+    ItemType receivedItemType,
+    ItemType additionalRecipientsItemType,
+    address additionalRecipientsToken,
+    ItemType offeredItemType
+  ) internal returns (bytes32 orderHash, bool useOffererProxy) {
+      // Ensure this function cannot be triggered during a reentrant call.
+      _setReentrancyGuard();
 
-        // Pull frequently used arguments from memory & place them on the stack.
-        address payable offerer = parameters.offerer;
-        address zone = parameters.zone;
-        uint256 startTime = parameters.startTime;
-        uint256 endTime = parameters.endTime;
+      // Ensure current timestamp falls between order start time and end time.
+      _assertValidTime(parameters.startTime, parameters.endTime);
 
-        // Ensure current timestamp falls between order start time and end time.
-        _assertValidTime(startTime, endTime);
+      // Ensure calldata offsets were produced by default encoding.
+      _assertValidBasicOrderParameterOffsets();
 
-        // Allocate memory: 1 offer, 1+additionalRecipients consideration items.
-        OfferedItem[] memory offer = new OfferedItem[](1);
-        ReceivedItem[] memory consideration = new ReceivedItem[](
-            1 + parameters.additionalRecipients.length
-        );
+      // Ensure supplied consideration array length is not less than original.
+      _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+          parameters.additionalRecipients.length + 1,
+          parameters.totalOriginalAdditionalRecipients
+      );
 
-        // Set primary offer + consideration item as respective first elements.
-        offer[0] = offeredItem;
-        consideration[0] = receivedItem;
+    { // Load consideration item typehash from runtime code and place on stack.
+      bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
-        // Get offered item type and received item token and place on the stack.
-        ItemType itemType = offeredItem.itemType;
-        address token = receivedItem.token;
+      assembly {
+        /* Memory Layout
+         * 0x60: hash of considerations array
+         * 0x80-0x160: reused space for EIP712 hashing of considerations
+         * - 0x80: _RECEIVED_ITEM_TYPEHASH
+         * - 0xa0: itemType
+         * - 0xc0: token
+         * - 0xe0: identifier
+         * - 0x100: startAmount
+         * - 0x120: endAmount
+         * - 0x140: recipient
+         * - 0x160-END_ARR: array of consideration hashes
+         *                  (END_ARR = 0x180 + RECIPIENTS_LENGTH * 0x20)
+         * - 0x160: EIP712 hash of primary consideration
+         * - 0x180-END_ARR: EIP712 hashes of additional recipient considerations
+         * END_ARR: beginning of data for OrderFulfilled event
+         * END_ARR + 0x120: length of ReceivedItem array
+         * END_ARR + 0x140: beginning of data for first ReceivedItem
+         */
+        /* 1. Write first ReceivedItem hash to order's considerations array */
+        // Write type hash and item type
+        mstore(0x80, typeHash)
+        mstore(0xa0, receivedItemType)
+        // Copy (token, identifier, startAmount)
+        calldatacopy(0xc0, 0x24, 0x60)
+        // Copy (endAmount, recipient)
+        calldatacopy(0x120, 0x64, 0x40)
+        // receivedItemHashes[0] = keccak256(abi.encode(receivedItem))
+        mstore(0x160, keccak256(0x80, 0xe0))
 
-        // Use offered item's info for additional recipients of native or ERC20.
-        if (_isEtherOrERC20Item(itemType)) {
-            // Set token for additional recipients to offered item's token.
-            token = offeredItem.token;
-        } else {
-            // Otherwise, set additional recipient type to received item's type.
-            itemType = receivedItem.itemType;
+        /* 2. Write first ReceivedItem to OrderFulfilled data */
+        let len := calldataload(0x224)
+        // END_ARR + 0x120 = 0x2a0 + len*0x20
+        let eventArrPtr := add(0x2a0, mul(0x20, len))
+        mstore(eventArrPtr, add(calldataload(0x224), 1)) // length
+        // Set ptr to data portion of first ReceivedItem
+        eventArrPtr := add(eventArrPtr, 0x20)
+        // Write item type
+        mstore(eventArrPtr, receivedItemType)
+        // Copy (token, identifier, amount, recipient)
+        calldatacopy(add(eventArrPtr, 0x20), 0x24, 0x80)
+
+        /* 3. Handle additional recipients */
+        // ptr to current place in receivedItemHashes
+        let considerationHashesPtr := 0x160
+        // Write type, token, identifier for additional recipients memory
+        // which will be reused for each recipient
+        mstore(0xa0, additionalRecipientsItemType)
+        mstore(0xc0, additionalRecipientsToken)
+        mstore(0xe0, 0)
+        len := calldataload(0x1c4)
+        let i := 0
+        for {} lt(i, len) {i := add(i, 1)} {
+          let additionalRecipientCdPtr := add(0x244, mul(0x40, i))
+
+          /* a. Write ConsiderationItem hash to order's considerations array */
+          // Copy startAmount
+          calldatacopy(0x100, additionalRecipientCdPtr, 0x20)
+          // Copy endAmount, recipient
+          calldatacopy(0x120, additionalRecipientCdPtr, 0x40)
+          // note: Add 1 word to the pointer each loop to reduce ops
+          // needed to get local offset into the array
+          considerationHashesPtr := add(considerationHashesPtr, 0x20)
+          // receivedItemHashes[i + 1] = keccak256(abi.encode(receivedItem))
+          mstore(considerationHashesPtr, keccak256(0x80, 0xe0))
+
+          /* b. Write ReceivedItem to OrderFulfilled data */
+          // At this point, eventArrPtr points to the beginning of the
+          // ReceivedItem struct for the previous element in the array.
+          eventArrPtr := add(eventArrPtr, 0xa0)
+          // Write item type
+          mstore(eventArrPtr, additionalRecipientsItemType)
+          // Write token
+          mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+          // Copy endAmount, recipient
+          calldatacopy(add(eventArrPtr, 0x60), additionalRecipientCdPtr, 0x40)
         }
+        /* 4. Hash packed array of ConsiderationItem EIP712 hashes */
+        // note: Store at 0x60 - all other memory begins at 0x80
+        // keccak256(abi.encodePacked(receivedItemHashes))
+        mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
+        /* 5. Write tips to event data */
+        len := calldataload(0x224)
+        for {} lt(i, len) {i := add(i, 1)} {
+          let additionalRecipientCdPtr := add(0x244, mul(0x40, i))
 
-        // Skip overflow checks as for loop is indexed starting at one.
-        unchecked {
-            // Iterate over each consideration beyond primary one on the order.
-            for (uint256 i = 1; i < consideration.length; ++i) {
-                // Retrieve additional recipient corresponding to consideration.
-                AdditionalRecipient memory additionalRecipient = (
-                    parameters.additionalRecipients[i - 1]
-                );
-
-                // Set new received item as an additional consideration item.
-                consideration[i] = ReceivedItem(
-                    itemType,
-                    token,
-                    0, // No identifier for native tokens or ERC20.
-                    additionalRecipient.amount,
-                    additionalRecipient.amount,
-                    additionalRecipient.recipient
-                );
-            }
+          /* b. Write ReceivedItem to OrderFulfilled data */
+          // At this point, eventArrPtr points to the beginning of the
+          // ReceivedItem struct for the previous element in the array.
+          eventArrPtr := add(eventArrPtr, 0xa0)
+          // Write item type
+          mstore(eventArrPtr, additionalRecipientsItemType)
+          // Write token
+          mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+          // Copy endAmount, recipient
+          calldatacopy(add(eventArrPtr, 0x60), additionalRecipientCdPtr, 0x40)
         }
-
-        // Retrieve current nonce and use it w/ parameters to derive order hash.
-        bytes32 orderHash = _getNoncedOrderHash(
-            OrderParameters(
-                offerer,
-                zone,
-                parameters.orderType,
-                startTime,
-                endTime,
-                parameters.salt,
-                offer,
-                consideration
-            )
-        );
-
-        // Verify and update the status of the derived order.
-        _validateBasicOrderAndUpdateStatus(
-            orderHash,
-            offerer,
-            parameters.signature
-        );
-
-        // Determine if a proxy should be utilized and ensure a valid submitter.
-        useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
-            parameters.orderType,
-            offerer,
-            zone
-        );
-
-        // Emit an event signifying that the order has been fulfilled.
-        _emitOrderFulfilledEvent(
-            orderHash,
-            offerer,
-            zone,
-            msg.sender,
-            offer,
-            consideration
-        );
-
-        // Return a boolean indicating whether to utilize offerer's proxy.
-        return useOffererProxy;
+      }
     }
+
+    { // Handle offered items
+      /* Memory Layout
+       * EIP712 data for OfferItem
+       * - 0x80:  _OFFERED_ITEM_TYPEHASH
+       * - 0xa0:  itemType
+       * - 0xc0:  token
+       * - 0xe0:  identifier (reused for offeredItemsHash)
+       * - 0x100: startAmount
+       * - 0x120: endAmount
+       */
+      bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
+      assembly {
+        /* 1. Calculate OfferItem EIP712 hash*/
+        mstore(0x80, typeHash) // _OFFERED_ITEM_TYPEHASH
+        mstore(0xa0, offeredItemType) // itemType
+        calldatacopy(0xc0, 0xc4, 0x60) // (token, identifier, startAmount)
+        calldatacopy(0x120, 0x104, 0x20) // endAmount
+        // note: Write offered item hash to scratch space
+        // keccak256(abi.encode(offeredItem))
+        mstore(0x00, keccak256(0x80, 0xc0))
+        /* 2. Calculate hash of array of EIP712 hashes */
+        // note: Write offeredItemsHash to offer struct
+        // keccak256(abi.encodePacked(offeredItemHashes))
+        mstore(0xe0, keccak256(0x00, 0x20))
+        /* 3. Write SpentItem array to event data */
+        // 0x180 + len*32 = event data ptr
+        // offers array length is stored at 0x80 into the event data
+        let eventArrPtr := add(0x200, mul(0x20, calldataload(0x224)))
+        mstore(eventArrPtr, 1)
+        mstore(add(eventArrPtr, 0x20), offeredItemType)
+        // Copy token, identifier, startAmount to SpentItem
+        calldatacopy(
+          add(eventArrPtr, 0x40),
+          0xc4,
+          0x60
+        )
+      }
+    }
+    { // Calculate order hash
+      address offerer;
+      address zone;
+      assembly {
+        offerer := calldataload(0x84)
+        zone := calldataload(0xa4)
+      }
+      uint256 nonce = _nonces[offerer][zone];
+      bytes32 typeHash = _ORDER_HASH;
+      assembly {
+        /* Memory Layout
+         * 0x80-0x1c0: EIP712 data for order
+         * - 0x80:    _ORDER_HASH,
+         * - 0xa0:    orderParameters.offerer,
+         * - 0xc0:    orderParameters.zone,
+         * - 0xe0:    keccak256(abi.encodePacked(offerHashes)),
+         * - 0x100:   keccak256(abi.encodePacked(considerationHashes)),
+         * - 0x120:   orderParameters.orderType,
+         * - 0x140:   orderParameters.startTime,
+         * - 0x160:   orderParameters.endTime,
+         * - 0x180:   orderParameters.salt,
+         * - 0x1a0:   nonce
+         */
+        mstore(0x80, typeHash)
+        // Copy offerer and zone
+        calldatacopy(0xa0, 0x84, 0x40)
+        // load receivedItemsHash from zero slot
+        mstore(0x100, mload(0x60))
+        // orderType, startTime, endTime, salt
+        calldatacopy(0x120, 0x124, 0x80)
+        mstore(0x1a0, nonce) // nonce
+        orderHash := keccak256(0x80, 0x140)
+      }
+    }
+    /* event OrderFulfilled(
+     *   bytes32 orderHash,
+     *   address indexed offerer,
+     *   address indexed zone,
+     *   address fulfiller,
+     *   SpentItem[] offer, (itemType, token, id, amount)
+     *   ReceivedItem[] consideration (itemType, token, id, amount, recipient)
+     * )
+     * topic0 - OrderFulfilled event signature
+     * topic1 - offerer
+     * topic2 - zone
+     * data
+     * 0x00: orderHash
+     * 0x20: fulfiller
+     * 0x40: offer arr ptr (0x80)
+     * 0x60: consideration arr ptr (0x120)
+     * 0x80: offer arr len (1)
+     * 0xa0: offer.itemType
+     * 0xc0: offer.token
+     * 0xe0: offer.identifier
+     * 0x100: offer.amount
+     * 0x120: 1 + recipients.length
+     * 0x140: recipient 0
+     */
+    assembly {
+      let eventDataPtr := add(0x180, mul(0x20, calldataload(0x224)))
+      mstore(eventDataPtr, orderHash)           // orderHash
+      mstore(add(eventDataPtr, 0x20), caller()) // fulfiller
+      mstore(add(eventDataPtr, 0x40), 0x80)     // SpentItem array pointer
+      mstore(add(eventDataPtr, 0x60), 0x120)    // ReceivedItem array pointer
+      let dataSize := add(0x1e0, mul(calldataload(0x224), 0xa0))
+      log3(
+        eventDataPtr,
+        dataSize,
+        // OrderFulfilled event signature
+        0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31,
+        // topic1 - offerer
+        calldataload(0x84),
+        // topic2 - zone
+        calldataload(0xa4)
+      )
+      /* Restore the zero slot */
+      mstore(0x60, 0)
+    }
+
+    // Verify and update the status of the derived order.
+    _validateBasicOrderAndUpdateStatus(
+        orderHash,
+        parameters.offerer,
+        parameters.signature
+    );
+
+    // Determine if a proxy should be utilized and ensure a valid submitter.
+    useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
+        parameters.orderType,
+        parameters.offerer,
+        parameters.zone
+    );
+  }
 
     /**
      * @dev Internal function to verify and update the status of a basic order.
@@ -261,7 +419,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _getNoncedOrderHash(orderParameters);
+        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+            orderParameters
+        );
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
         useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
@@ -419,7 +579,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          should be filled.
      * @param denominator       A value indicating the total size of the order.
      * @param useOffererProxy   A flag indicating whether to source approvals
-     *                          for consumed tokens from an associated proxy.
+     *                          for offered tokens from an associated proxy.
      * @param useFulfillerProxy A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      */
@@ -441,35 +601,40 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Iterate over each offer on the order.
         for (uint256 i = 0; i < orderParameters.offer.length;) {
             // Retrieve the offer item.
-            OfferedItem memory offeredItem = orderParameters.offer[i];
+            OfferItem memory offerItem = orderParameters.offer[i];
 
-            // Derive the amount to transfer and transfer the offered item.
-            uint256 amount = _applyOfferedFractionAndTransfer(
-                offeredItem,
+            // Derive amount to transfer of offer item and return received item.
+            ReceivedItem memory item = _applyFractionToOfferItem(
+                offerItem,
                 numerator,
                 denominator,
-                orderParameters.offerer,
-                useOffererProxy,
                 elapsed,
                 remaining,
                 duration
             );
 
             // If offer expects ETH or a native token, reduce value available.
-            if (offeredItem.itemType == ItemType.NATIVE) {
+            if (offerItem.itemType == ItemType.NATIVE) {
                 // Ensure that sufficient native tokens are still available.
-                if (amount > etherRemaining) {
+                if (item.amount > etherRemaining) {
                     revert InsufficientEtherSupplied();
                 }
 
                 // Skip underflow check as amount is less than ether remaining.
                 unchecked {
-                    etherRemaining -= amount;
+                    etherRemaining -= item.amount;
                 }
             }
 
-            // Update offered amount so that an accurate event can be emitted.
-            offeredItem.endAmount = amount;
+            // Transfer the item from the offerer to the caller.
+            _transfer(
+                item,
+                orderParameters.offerer,
+                useOffererProxy
+            );
+
+            // Update offer amount so that an accurate event can be emitted.
+            offerItem.endAmount = item.amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -480,34 +645,42 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Iterate over each consideration on the order.
         for (uint256 i = 0; i < orderParameters.consideration.length;) {
             // Retrieve the consideration item.
-            ReceivedItem memory receivedItem = orderParameters.consideration[i];
+            ConsiderationItem memory considerationItem = (
+                orderParameters.consideration[i]
+            );
 
-            // Derive the amount to transfer and transfer the received item.
-            uint256 amount = _applyReceivedFractionAndTransfer(
-                receivedItem,
+            // Get consideration item transfer amount and return received item.
+            ReceivedItem memory item = _applyFractionToConsiderationItem(
+                considerationItem,
                 numerator,
                 denominator,
-                useFulfillerProxy,
                 elapsed,
                 remaining,
                 duration
             );
 
             // If item expects ETH or a native token, reduce value available.
-            if (receivedItem.itemType == ItemType.NATIVE) {
+            if (considerationItem.itemType == ItemType.NATIVE) {
                 // Ensure that sufficient native tokens are still available.
-                if (amount > etherRemaining) {
+                if (item.amount > etherRemaining) {
                     revert InsufficientEtherSupplied();
                 }
 
                 // Skip underflow check as amount is less than ether remaining.
                 unchecked {
-                    etherRemaining -= amount;
+                    etherRemaining -= item.amount;
                 }
             }
 
-            // Update offered amount so that an accurate event can be emitted.
-            receivedItem.endAmount = amount;
+            // Transfer the item from the caller to the consideration recipient.
+            _transfer(
+                item,
+                msg.sender,
+                useFulfillerProxy
+            );
+
+            // Update consideration item amount for use in the emitted event.
+            considerationItem.endAmount = item.amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -570,40 +743,35 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 ordersUseProxy[i] = useOffererProxy;
 
                 // Retrieve offer items and consideration items on the order.
-                OfferedItem[] memory offer = order.parameters.offer;
-                ReceivedItem[] memory consideration = (
+                OfferItem[] memory offer = order.parameters.offer;
+                ConsiderationItem[] memory consideration = (
                     order.parameters.consideration
                 );
 
-                // Iterate over each offered item on the order.
+                // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < offer.length; ++j) {
-                    // Retrieve the offered item.
-                    OfferedItem memory offeredItem = offer[j];
+                    // Retrieve the offer item.
+                    OfferItem memory item = offer[j];
 
                     // Reuse same fraction if start and end amounts are equal.
-                    if (offeredItem.startAmount == offeredItem.endAmount) {
+                    if (item.startAmount == item.endAmount) {
                         // Derive the fractional amount based on the end amount.
                         uint256 amount = _getFraction(
-                            numerator,
-                            denominator,
-                            offeredItem.endAmount
+                            numerator, denominator, item.endAmount
                         );
 
                         // Apply derived amount to both start and end amount.
-                        offeredItem.startAmount = amount;
-                        offeredItem.endAmount = amount;
+                        item.startAmount = amount;
+                        item.endAmount = amount;
                     } else {
-                        // Apply order fill fraction to each offer amount.
-                        offeredItem.startAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            offeredItem.startAmount
+                        // Apply order fill fraction to offer item start amount.
+                        item.startAmount = _getFraction(
+                            numerator, denominator, item.startAmount
                         );
 
-                        offeredItem.endAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            offeredItem.endAmount
+                        // Apply order fill fraction to offer item end amount.
+                        item.endAmount = _getFraction(
+                            numerator, denominator, item.endAmount
                         );
                     }
                 }
@@ -611,32 +779,27 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < consideration.length; ++j) {
                     // Retrieve the consideration item.
-                    ReceivedItem memory receivedItem = consideration[j];
+                    ConsiderationItem memory item = consideration[j];
 
                     // Reuse same fraction if start and end amounts are equal.
-                    if (receivedItem.startAmount == receivedItem.endAmount) {
+                    if (item.startAmount == item.endAmount) {
                         // Derive the fractional amount based on the end amount.
                         uint256 amount = _getFraction(
-                            numerator,
-                            denominator,
-                            receivedItem.endAmount
+                            numerator, denominator, item.endAmount
                         );
 
                         // Apply derived amount to both start and end amount.
-                        receivedItem.startAmount = amount;
-                        receivedItem.endAmount = amount;
+                        item.startAmount = amount;
+                        item.endAmount = amount;
                     } else {
-                        // Apply order fill fraction to each received amount.
-                        receivedItem.startAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            receivedItem.startAmount
+                        // Apply fraction to consideration item start amount.
+                        item.startAmount = _getFraction(
+                            numerator, denominator, item.startAmount
                         );
 
-                        receivedItem.endAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            receivedItem.endAmount
+                        // Apply fraction to consideration item end amount.
+                        item.endAmount = _getFraction(
+                            numerator, denominator, item.endAmount
                         );
                     }
                 }
@@ -669,146 +832,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Return memory region designating proxy utilization per order.
         return ordersUseProxy;
-    }
-
-    /**
-     * @dev Internal function to apply a fraction to an offered item and
-     *      transfer that amount.
-     *
-     * @param offeredItem       The offer item.
-     * @param numerator         A value indicating the portion of the order that
-     *                          should be filled.
-     * @param denominator       A value indicating the total size of the order.
-     * @param offerer           The offerer for the order.
-     * @param useOffererProxy   A flag indicating whether to source approvals
-     *                          for consumed tokens from an associated proxy.
-     * @param elapsed           The time elapsed since the order's start time.
-     * @param remaining         The time left until the order's end time.
-     * @param duration          The total duration of the order.
-     *
-     * @return amount The final amount to transfer.
-     */
-    function _applyOfferedFractionAndTransfer(
-        OfferedItem memory offeredItem,
-        uint256 numerator,
-        uint256 denominator,
-        address offerer,
-        bool useOffererProxy,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration
-    ) internal returns (uint256 amount) {
-        // If start amount equals end amount, apply fraction to end amount.
-        if (offeredItem.startAmount == offeredItem.endAmount) {
-            amount = _getFraction(
-                numerator,
-                denominator,
-                offeredItem.endAmount
-            );
-        } else {
-            // Otherwise, apply fraction to both to extrapolate final amount.
-            amount = _locateCurrentAmount(
-                _getFraction(
-                    numerator,
-                    denominator,
-                    offeredItem.startAmount
-                ),
-                _getFraction(
-                    numerator,
-                    denominator,
-                    offeredItem.endAmount
-                ),
-                elapsed,
-                remaining,
-                duration,
-                false // round down
-            );
-        }
-
-        // Apply order fill fraction and set the caller as the receiver.
-        FulfilledItem memory item = FulfilledItem(
-            offeredItem.itemType,
-            offeredItem.token,
-            offeredItem.identifierOrCriteria,
-            amount,
-            payable(msg.sender)
-        );
-
-        // Transfer the item from the offerer to the caller.
-        _transfer(
-            item,
-            offerer,
-            useOffererProxy
-        );
-    }
-
-    /**
-     * @dev Internal function to apply a fraction to a received item and
-     *      transfer that amount.
-     *
-     * @param receivedItem      The received item.
-     * @param numerator         A value indicating the portion of the order that
-     *                          should be filled.
-     * @param denominator       A value indicating the total size of the order.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
-     * @param elapsed           The time elapsed since the order's start time.
-     * @param remaining         The time left until the order's end time.
-     * @param duration          The total duration of the order.
-     *
-     * @return amount The final amount to transfer.
-     */
-    function _applyReceivedFractionAndTransfer(
-        ReceivedItem memory receivedItem,
-        uint256 numerator,
-        uint256 denominator,
-        bool useFulfillerProxy,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration
-    ) internal returns (uint256 amount) {
-        // If start amount equals end amount, apply fraction to end amount.
-        if (receivedItem.startAmount == receivedItem.endAmount) {
-            amount = _getFraction(
-                numerator,
-                denominator,
-                receivedItem.endAmount
-            );
-        } else {
-            // Otherwise, apply fraction to both to extrapolate final amount.
-            amount = _locateCurrentAmount(
-                _getFraction(
-                    numerator,
-                    denominator,
-                    receivedItem.startAmount
-                ),
-                _getFraction(
-                    numerator,
-                    denominator,
-                    receivedItem.endAmount
-                ),
-                elapsed,
-                remaining,
-                duration,
-                true // round up
-            );
-        }
-
-        // Apply order fill fraction and set recipient as the receiver.
-        FulfilledItem memory item = FulfilledItem(
-            receivedItem.itemType,
-            receivedItem.token,
-            receivedItem.identifierOrCriteria,
-            amount,
-            receivedItem.recipient
-        );
-
-        // Transfer the item from the caller to the consideration recipient.
-        _transfer(
-            item,
-            msg.sender,
-            useFulfillerProxy
-        );
     }
 
     /**
@@ -884,14 +907,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Iterate over orders to ensure all considerations are met.
             for (uint256 i = 0; i < orders.length; ++i) {
                 // Retrieve consideration items to ensure they are fulfilled.
-                ReceivedItem[] memory receivedItems = (
+                ConsiderationItem[] memory consideration = (
                     orders[i].parameters.consideration
                 );
 
                 // Iterate over each consideration item to ensure it is met.
-                for (uint256 j = 0; j < receivedItems.length; ++j) {
-                    // Retrieve the remaining amount on the consideration.
-                    uint256 unmetAmount = receivedItems[j].endAmount;
+                for (uint256 j = 0; j < consideration.length; ++j) {
+                    // Retrieve remaining amount on the consideration item.
+                    uint256 unmetAmount = consideration[j].endAmount;
 
                     // Revert if the remaining amount is not zero.
                     if (unmetAmount != 0) {
@@ -913,9 +936,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Iterate over each standard execution.
         for (uint256 i = 0; i < standardExecutions.length;) {
-            // Retrieve the execution.
+            // Retrieve the execution and the associated received item.
             Execution memory execution = standardExecutions[i];
-            FulfilledItem memory item = execution.item;
+            ReceivedItem memory item = execution.item;
 
             // If execution transfers native tokens, reduce value available.
             if (item.itemType == ItemType.NATIVE) {
@@ -972,40 +995,36 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                 fulfilled token from the offer's proxy.
      */
     function _transfer(
-        FulfilledItem memory item,
+        ReceivedItem memory item,
         address offerer,
         bool useProxy
     ) internal {
-        // If the item type is for Ether or a native token...
+        // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
             // transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
+        // If the item type indicates an ERC20 item...
+        } else if (item.itemType == ItemType.ERC20) {
+            // Transfer ERC20 token from the offerer to the recipient.
+            _transferERC20(
+                item.token,
+                offerer,
+                item.recipient,
+                item.amount
+            );
         // Otherwise, transfer the item based on item type and proxy preference.
         } else {
             // Place proxy owner on stack (or null address if not using proxy).
             address proxyOwner = useProxy ? offerer : address(0);
 
-            if (item.itemType == ItemType.ERC20) {
-                // Transfer ERC20 token from the offerer to the recipient.
-                _transferERC20(
-                    item.token,
-                    offerer,
-                    item.recipient,
-                    item.amount,
-                    proxyOwner
-                );
-            } else if (item.itemType == ItemType.ERC721) {
-                // Ensure that exactly one 721 item is being transferred.
-                if (item.amount != 1) {
-                    revert InvalidERC721TransferAmount();
-                }
-
+            if (item.itemType == ItemType.ERC721) {
                 // Transfer ERC721 token from the offerer to the recipient.
                 _transferERC721(
                     item.token,
                     offerer,
                     item.recipient,
                     item.identifier,
+                    item.amount,
                     proxyOwner
                 );
             } else {
@@ -1045,54 +1064,25 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
     /**
      * @dev Internal function to transfer ERC20 tokens from a given originator
-     *      to a given recipient. Sufficient approvals must be set, either on
-     *      the respective proxy or on this contract itself.
+     *      to a given recipient. Sufficient approvals must be set on this
+     *      contract (note that proxies are not utilized for ERC20 items).
      *
      * @param token      The ERC20 token to transfer.
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param amount     The amount to transfer.
-     * @param proxyOwner An address indicating the owner of the proxy to utilize
-     *                   when performing the transfer, or the null address if no
-     *                   proxy should be utilized.
      */
     function _transferERC20(
         address token,
         address from,
         address to,
-        uint256 amount,
-        address proxyOwner
+        uint256 amount
     ) internal {
-        // Declare a boolean to represent whether call completes successfully.
-        bool success;
-
-        // If a proxy owner has been specified...
-        if (proxyOwner != address(0)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                proxyOwner,
-                abi.encodeWithSelector(
-                    ProxyInterface.transferERC20.selector,
-                    token,
-                    from,
-                    to,
-                    amount
-                )
-            );
-        } else {
-            // Otherwise, perform transfer via the token contract directly.
-            success = _call(
-                token,
-                abi.encodeCall(
-                    ERC20Interface.transferFrom,
-                    (
-                        from,
-                        to,
-                        amount
-                    )
-                )
-            );
-        }
+        // Perform ERC20 transfer via the token contract directly.
+        bool success = _call(
+            token,
+            abi.encodeCall(ERC20Interface.transferFrom, (from, to, amount))
+        );
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
@@ -1138,6 +1128,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param identifier The tokenId to transfer.
+     * @param amount     The "amount" (this value must be equal to one).
      * @param proxyOwner An address indicating the owner of the proxy to utilize
      *                   when performing the transfer, or the null address if no
      *                   proxy should be utilized.
@@ -1147,38 +1138,22 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address from,
         address to,
         uint256 identifier,
+        uint256 amount,
         address proxyOwner
     ) internal {
-        // Declare a boolean to represent whether call completes successfully.
-        bool success;
-
-        // If a proxy owner has been specified...
-        if (proxyOwner != address(0)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                proxyOwner,
-                abi.encodeWithSelector(
-                    ProxyInterface.transferERC721.selector,
-                    token,
-                    from,
-                    to,
-                    identifier
-                )
-            );
-        } else {
-            // Otherwise, perform transfer via the token contract directly.
-            success = _call(
-                token,
-                abi.encodeCall(
-                    ERC721Interface.transferFrom,
-                    (
-                        from,
-                        to,
-                        identifier
-                    )
-                )
-            );
+        // Ensure that exactly one 721 item is being transferred.
+        if (amount != 1) {
+            revert InvalidERC721TransferAmount();
         }
+
+        // Perform transfer, either directly or via proxy.
+        bool success = _callDirectlyOrViaProxy(
+            token,
+            proxyOwner,
+            abi.encodeCall(
+                ERC721Interface.transferFrom, (from, to, identifier)
+            )
+        );
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
@@ -1213,37 +1188,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount,
         address proxyOwner
     ) internal {
-        // Declare a boolean to represent whether call completes successfully.
-        bool success;
-
-        // If a proxy owner has been specified...
-        if (proxyOwner != address(0)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                proxyOwner,
-                abi.encodeWithSelector(
-                    ProxyInterface.transferERC1155.selector,
-                    token,
-                    from,
-                    to,
-                    identifier,
-                    amount
-                )
-            );
-        } else {
-            // Otherwise, perform transfer via the token contract directly.
-            success = _call(
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeTransferFrom.selector,
-                    from,
-                    to,
-                    identifier,
-                    amount,
-                    ""
-                )
-            );
-        }
+        // Perform transfer, either directly or via proxy.
+        bool success = _callDirectlyOrViaProxy(
+            token,
+            proxyOwner,
+            abi.encodeWithSelector(
+                ERC1155Interface.safeTransferFrom.selector,
+                from,
+                to,
+                identifier,
+                amount,
+                ""
+            )
+        );
 
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(
@@ -1275,37 +1232,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        // Declare a boolean to represent whether call completes successfully.
-        bool success;
-
-        // If proxy usage has been specified...
-        if (batchExecution.useProxy) {
-            // Perform transfers via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                batchExecution.from,
-                abi.encodeWithSelector(
-                    ProxyInterface.batchTransferERC1155.selector,
-                    token,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts
-                )
-            );
-        } else {
-            // Otherwise, perform transfers via the token contract directly.
-            success = _call(
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeBatchTransferFrom.selector,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts,
-                    ""
-                )
-            );
-        }
+        // Perform transfer, either directly or via proxy.
+        bool success = _callDirectlyOrViaProxy(
+            token,
+            batchExecution.useProxy ? batchExecution.from : address(0),
+            abi.encodeWithSelector(
+                ERC1155Interface.safeBatchTransferFrom.selector,
+                from,
+                to,
+                tokenIds,
+                amounts,
+                ""
+            )
+        );
 
         // If the call fails...
         if (!success) {
@@ -1327,17 +1266,52 @@ contract ConsiderationInternal is ConsiderationInternalView {
     }
 
     /**
-     * @dev Internal function to trigger a call to a proxy contract.
+     * @dev Internal function to trigger a call to a given token, either
+     *      directly or via a proxy contract. The proxy contract must be
+     *      registered on the legacy proxy registry for the given proxy owner
+     *      and must declare that its implementation matches the required proxy
+     *      implementation in accordance with EIP-897.
+     *
+     * @param token      The token contract to call.
+     * @param proxyOwner The original owner of the proxy in question, or the
+     *                   null address if no proxy contract should be used.
+     * @param callData   The calldata to supply when calling the token contract.
+     *
+     * @return success The status of the call to the token contract.
+     */
+    function _callDirectlyOrViaProxy(
+        address token,
+        address proxyOwner,
+        bytes memory callData
+    ) internal returns (bool success) {
+        // If a proxy owner has been specified...
+        if (proxyOwner != address(0)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(proxyOwner, token, callData);
+        } else {
+            // Otherwise, perform transfer via the token contract directly.
+            success = _call(token, callData);
+        }
+    }
+
+    /**
+     * @dev Internal function to trigger a call to a proxy contract. The proxy
+     *      contract must be registered on the legacy proxy registry for the
+     *      given proxy owner and must declare that its implementation matches
+     *      the required proxy implementation in accordance with EIP-897.
      *
      * @param proxyOwner The original owner of the proxy in question. Note that
      *                   this owner may have been modified since the proxy was
      *                   originally deployed.
-     * @param callData   The calldata to supply when calling the proxy.
+     * @param target     The account that should be called by the proxy.
+     * @param callData   The calldata to supply when calling the target from the
+     *                   proxy.
      *
      * @return success The status of the call to the proxy.
      */
     function _callProxy(
         address proxyOwner,
+        address target,
         bytes memory callData
     ) internal returns (bool success) {
         // Retrieve the user proxy from the registry.
@@ -1352,8 +1326,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
             revert InvalidProxyImplementation();
         }
 
-        // perform the call to the proxy.
-        (success,) = proxy.call(callData);
+        // perform call to proxy via proxyAssert and HowToCall = CALL (value 0).
+        success = _call(
+            proxy,
+            abi.encodeWithSelector(
+                ProxyInterface.proxyAssert.selector, target, 0, callData
+            )
+        );
     }
 
     /**
@@ -1373,15 +1352,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         (success, ) = target.call(callData);
     }
 
-    /**
-     * @dev Internal function to transfer Ether to a given recipient.
-     *
-     * @param amount     The amount of Ether to transfer.
-     * @param parameters The parameters of the order.
-     */
+    // todo: delete old version, add natspec, look into optimizations
     function _transferEthAndFinalize(
         uint256 amount,
-        BasicOrderParameters memory parameters
+        BasicOrderParameters calldata parameters
     ) internal {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
@@ -1389,7 +1363,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
             // Retrieve the additional recipient.
-            AdditionalRecipient memory additionalRecipient = (
+            AdditionalRecipient calldata additionalRecipient = (
                 parameters.additionalRecipients[i]
             );
 
@@ -1440,8 +1414,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
+    // todo: delete old version, add natspec, look into optimizations
     /**
      * @dev Internal function to transfer ERC20 tokens to a given recipient.
+     *      Note that proxies are not utilized for ERC20 tokens.
      *
      * @param from        The originator of the ERC20 token transfer.
      * @param to          The recipient of the ERC20 token transfer.
@@ -1455,16 +1431,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address to,
         address erc20Token,
         uint256 amount,
-        BasicOrderParameters memory parameters,
+        BasicOrderParameters calldata parameters,
         bool fromOfferer
     ) internal {
-        // Place proxy owner on the stack (or null address if not using proxy).
-        address proxyOwner = parameters.useFulfillerProxy ? from : address(0);
-
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
             // Retrieve the additional recipient.
-            AdditionalRecipient memory additionalRecipient = (
+            AdditionalRecipient calldata additionalRecipient = (
                 parameters.additionalRecipients[i]
             );
 
@@ -1478,8 +1451,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 erc20Token,
                 from,
                 additionalRecipient.recipient,
-                additionalRecipient.amount,
-                proxyOwner
+                additionalRecipient.amount
             );
 
             // Skip overflow check as for loop is indexed starting at zero.
@@ -1493,8 +1465,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             erc20Token,
             from,
             to,
-            amount,
-            proxyOwner
+            amount
         );
 
         // Clear the reentrancy guard.
@@ -1514,36 +1485,49 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _ENTERED;
     }
 
+    // todo: delete
     function _emitOrderFulfilledEvent(
         bytes32 orderHash,
         address offerer,
         address zone,
         address fulfiller,
-        OfferedItem[] memory offer,
-        ReceivedItem[] memory consideration
+        OfferItem[] memory offer,
+        ConsiderationItem[] memory consideration
     ) internal {
-        ConsumedItem[] memory consumedItems = new ConsumedItem[](offer.length);
-        FulfilledItem[] memory fulfilledItems = new FulfilledItem[](consideration.length);
+        // Designate memory regions for spent items as well as received items.
+        SpentItem[] memory spentItems = new SpentItem[](offer.length);
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            consideration.length
+        );
 
+        // Skip overflow checks as for loop increments from zero.
         unchecked {
+            // Iterate over each offer item.
             for (uint256 i = 0; i < offer.length; ++i) {
-                OfferedItem memory offeredItem = offer[i];
-                consumedItems[i] = ConsumedItem(
-                    offeredItem.itemType,
-                    offeredItem.token,
-                    offeredItem.identifierOrCriteria,
-                    offeredItem.endAmount
+                // Retrieve the offer item in question.
+                OfferItem memory offerItem = offer[i];
+
+                // Convert to a spent item and store in spent items array.
+                spentItems[i] = SpentItem(
+                    offerItem.itemType,
+                    offerItem.token,
+                    offerItem.identifierOrCriteria,
+                    offerItem.endAmount
                 );
             }
 
+            // Iterate over each consideration item.
             for (uint256 i = 0; i < consideration.length; ++i) {
-                ReceivedItem memory receivedItem = consideration[i];
-                fulfilledItems[i] = FulfilledItem(
-                    receivedItem.itemType,
-                    receivedItem.token,
-                    receivedItem.identifierOrCriteria,
-                    receivedItem.endAmount,
-                    receivedItem.recipient
+                // Retrieve the consideration item in question.
+                ConsiderationItem memory considerationItem = consideration[i];
+
+                // Convert to a received item and store in received items array.
+                receivedItems[i] = ReceivedItem(
+                    considerationItem.itemType,
+                    considerationItem.token,
+                    considerationItem.identifierOrCriteria,
+                    considerationItem.endAmount,
+                    considerationItem.recipient
                 );
             }
         }
@@ -1554,8 +1538,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             offerer,
             zone,
             fulfiller,
-            consumedItems,
-            fulfilledItems
+            spentItems,
+            receivedItems
         );
     }
 }

@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import { ProxyRegistryInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
+import {
+    ProxyRegistryInterface
+} from "../interfaces/AbridgedProxyInterfaces.sol";
 
-import { ConsiderationEventsAndErrors } from "../interfaces/ConsiderationEventsAndErrors.sol";
+import {
+    ConsiderationEventsAndErrors
+} from "../interfaces/ConsiderationEventsAndErrors.sol";
 
 import { OrderStatus } from "./ConsiderationStructs.sol";
 
@@ -16,7 +20,7 @@ import { OrderStatus } from "./ConsiderationStructs.sol";
 contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
-    string internal constant _VERSION = "1";
+    string internal constant _VERSION = "rc.1";
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
 
@@ -24,8 +28,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     bytes32 internal immutable _NAME_HASH;
     bytes32 internal immutable _VERSION_HASH;
     bytes32 internal immutable _EIP_712_DOMAIN_TYPEHASH;
-    bytes32 internal immutable _OFFERED_ITEM_TYPEHASH;
-    bytes32 internal immutable _RECEIVED_ITEM_TYPEHASH;
+    bytes32 internal immutable _OFFER_ITEM_TYPEHASH;
+    bytes32 internal immutable _CONSIDERATION_ITEM_TYPEHASH;
     bytes32 internal immutable _ORDER_HASH;
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
@@ -62,10 +66,59 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         // Derive hashes, reference chainId, and associated domain separator.
         _NAME_HASH = keccak256(bytes(_NAME));
         _VERSION_HASH = keccak256(bytes(_VERSION));
-        _EIP_712_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-        _OFFERED_ITEM_TYPEHASH = keccak256("OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)");
-        _RECEIVED_ITEM_TYPEHASH = keccak256("ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)");
-        _ORDER_HASH = keccak256("OrderComponents(address offerer,address zone,OfferedItem[] offer,ReceivedItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)OfferedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)ReceivedItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)");
+
+        bytes memory offerItemTypeString = abi.encodePacked(
+            "OfferItem(",
+                "uint8 itemType,",
+                "address token,",
+                "uint256 identifierOrCriteria,",
+                "uint256 startAmount,",
+                "uint256 endAmount",
+            ")"
+        );
+        bytes memory considerationItemTypeString = abi.encodePacked(
+            "ConsiderationItem(",
+                "uint8 itemType,",
+                "address token,",
+                "uint256 identifierOrCriteria,",
+                "uint256 startAmount,",
+                "uint256 endAmount,",
+                "address recipient",
+            ")"
+        );
+        bytes memory orderComponentsPartialTypeString = abi.encodePacked(
+            "OrderComponents(",
+                "address offerer,",
+                "address zone,",
+                "OfferItem[] offer,",
+                "ConsiderationItem[] consideration,",
+                "uint8 orderType,",
+                "uint256 startTime,",
+                "uint256 endTime,",
+                "uint256 salt,",
+                "uint256 nonce",
+            ")"
+        );
+
+        _EIP_712_DOMAIN_TYPEHASH = keccak256(
+            abi.encodePacked(
+                "EIP712Domain(",
+                    "string name,",
+                    "string version,",
+                    "uint256 chainId,",
+                    "address verifyingContract",
+                ")"
+            )
+        );
+        _OFFER_ITEM_TYPEHASH = keccak256(offerItemTypeString);
+        _CONSIDERATION_ITEM_TYPEHASH = keccak256(considerationItemTypeString);
+        _ORDER_HASH = keccak256(
+            abi.encodePacked(
+                orderComponentsPartialTypeString,
+                considerationItemTypeString,
+                offerItemTypeString
+            )
+        );
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = _deriveDomainSeparator();
 

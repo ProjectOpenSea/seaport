@@ -6,7 +6,8 @@ import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 import { OrderType } from "./ConsiderationEnums.sol";
 
 import {
-    OfferedItem,
+    OfferItem,
+    ConsiderationItem,
     ReceivedItem,
     OrderParameters,
     Order,
@@ -142,9 +143,11 @@ contract ConsiderationInternalView is ConsiderationPure {
 
     /**
      * @dev Internal view function to verify the signature of an order. An
-     *      ERC-1271 fallback will be attempted should the recovered signature
-     *      not match the supplied offerer. Note that only 32-byte or 33-byte
-     *      ECDSA signatures are supported.
+     *      ERC-1271 fallback will be attempted if either the signature length
+     *      is not 32 or 33 bytes or if the recovered signer does not match the
+     *      supplied offerer. Note that in cases where a 32 or 33 byte signature
+     *      is supplied, only standard ECDSA signatures that recover to a
+     *      non-zero address are supported.
      *
      * @param offerer   The offerer for the order.
      * @param orderHash The order hash.
@@ -169,21 +172,8 @@ contract ConsiderationInternalView is ConsiderationPure {
         bytes32 s;
         uint8 v;
 
-        // If signature contains 65 bytes, parse as standard signature. (r+s+v)
-        if (signature.length == 65) {
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                r := mload(add(signature, 0x20)) // Put first word on stack at r
-                s := mload(add(signature, 0x40)) // Put next word on stack at s
-                v := byte(0, mload(add(signature, 0x60))) // Put last byte at v
-            }
-
-            // Ensure v value is properly formatted.
-            if (v != 27 && v != 28) {
-                revert BadSignatureV(v);
-            }
         // If signature contains 64 bytes, parse as EIP-2098 signature. (r+s&v)
-        } else if (signature.length == 64) {
+        if (signature.length == 64) {
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
 
@@ -198,15 +188,32 @@ contract ConsiderationInternalView is ConsiderationPure {
                 // Extract canonical s from vs (all but the highest bit).
                 s := and(
                     vs,
-                    0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                    0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff // solhint-disable-line max-line-length
                 )
 
                 // Extract yParity from highest bit of vs and add 27 to get v.
                 v := add(shr(255, vs), 27)
             }
+        // If signature contains 65 bytes, parse as standard signature. (r+s+v)
+        } else if (signature.length == 65) {
+            // Read each parameter directly from the signature's memory region.
+            assembly {
+                r := mload(add(signature, 0x20)) // Put first word on stack at r
+                s := mload(add(signature, 0x40)) // Put next word on stack at s
+                v := byte(0, mload(add(signature, 0x60))) // Put last byte at v
+            }
+
+            // Ensure v value is properly formatted.
+            if (v != 27 && v != 28) {
+                revert BadSignatureV(v);
+            }
+        // For all other signature lengths, attempt verification using EIP-1271.
         } else {
-            // Disallow signatures that are not 64 or 65 bytes long.
-            revert BadSignatureLength(signature.length);
+            // Attempt EIP-1271 static call to offerer in case it's a contract.
+            _verifySignatureViaERC1271(offerer, digest, signature);
+
+            // Return early if the ERC-1271 signature check succeeded.
+            return;
         }
 
         // Attempt to recover signer using the digest and signature parameters.
@@ -218,41 +225,58 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Should a signer be recovered, but it doesn't match the offerer...
         } else if (signer != offerer) {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
-            (bool success, ) = offerer.staticcall(
-                abi.encodeWithSelector(
-                    EIP1271Interface.isValidSignature.selector,
-                    digest,
-                    signature
-                )
-            );
+            _verifySignatureViaERC1271(offerer, digest, signature);
+        }
+    }
 
-            // If the call fails...
-            if (!success) {
-                // Revert and pass reason along if one was returned.
-                _revertWithReasonIfOneIsReturned();
+    /**
+     * @dev Internal view function to verify the signature of an order using
+     *      ERC-1271 (i.e. contract signatures via `isValidSignature`).
+     *
+     * @param offerer   The offerer for the order.
+     * @param digest    The signature digest, derived from the domain separator
+     *                  and the order hash.
+     * @param signature A signature (or other data) used to validate the digest.
+     */
+    function _verifySignatureViaERC1271(
+        address offerer,
+        bytes32 digest,
+        bytes memory signature
+    ) internal view {
+        // Attempt an EIP-1271 static call to the offerer.
+        (bool success, ) = offerer.staticcall(
+            abi.encodeWithSelector(
+                EIP1271Interface.isValidSignature.selector,
+                digest,
+                signature
+            )
+        );
 
-                // Otherwise, revert with a generic error message.
-                revert BadContractSignature();
+        // If the call fails...
+        if (!success) {
+            // Revert and pass reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
 
+            // Otherwise, revert with a generic error message.
+            revert BadContractSignature();
+        }
+
+        // Extract result from returndata buffer in case of memory overflow.
+        bytes4 result;
+        assembly {
+            // Only put result on stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) {
+                // Copy directly from return data into scratch space.
+                returndatacopy(0, 0, 0x20)
+
+                // Take value from scratch space and place it on the stack.
+                result := mload(0)
             }
+        }
 
-            // Extract result from returndata buffer in case of memory overflow.
-            bytes4 result;
-            assembly {
-                // Only put result on stack if return data is exactly 32 bytes.
-                if eq(returndatasize(), 0x20) {
-                    // Copy directly from return data into scratch space.
-                    returndatacopy(0, 0, 0x20)
-
-                    // Take value from scratch space and place it on the stack.
-                    result := mload(0)
-                }
-            }
-
-            // Ensure result was extracted and matches EIP-1271 magic value.
-            if (result != EIP1271Interface.isValidSignature.selector) {
-                revert InvalidSigner();
-            }
+        // Ensure result was extracted and matches EIP-1271 magic value.
+        if (result != EIP1271Interface.isValidSignature.selector) {
+            revert InvalidSigner();
         }
     }
 
@@ -270,6 +294,9 @@ contract ConsiderationInternalView is ConsiderationPure {
 
     /**
      * @dev Internal view function to derive the order hash for a given order.
+     *      Note that only the original consideration items are included in the
+     *      order hash, as additional consideration items may be supplied by the
+     *      caller.
      *
      * @param orderParameters The parameters of the order to hash.
      * @param nonce           The nonce of the order to hash.
@@ -280,14 +307,18 @@ contract ConsiderationInternalView is ConsiderationPure {
         OrderParameters memory orderParameters,
         uint256 nonce
     ) internal view returns (bytes32) {
-        // Put offer and consideration item array lengths onto the stack.
+        // Get length of full offer array and place it on the stack.
         uint256 offerLength = orderParameters.offer.length;
-        uint256 considerationLength = orderParameters.consideration.length;
+
+        // Get length of original consideration array and place it on the stack.
+        uint256 originalConsiderationLength = (
+            orderParameters.totalOriginalConsiderationItems
+        );
 
         // Designate new memory regions for offer and consideration item hashes.
         bytes32[] memory offerHashes = new bytes32[](offerLength);
         bytes32[] memory considerationHashes = new bytes32[](
-            considerationLength
+            originalConsiderationLength
         );
 
         // Skip overflow checks as all for loops are indexed starting at zero.
@@ -295,13 +326,13 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Iterate over each offer on the order.
             for (uint256 i = 0; i < offerLength; ++i) {
                 // Hash the offer and place the result into memory.
-                offerHashes[i] = _hashOfferedItem(orderParameters.offer[i]);
+                offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
             }
 
-            // Iterate over each consideration on the order.
-            for (uint256 i = 0; i < considerationLength; ++i) {
+            // Iterate over each original consideration on the order.
+            for (uint256 i = 0; i < originalConsiderationLength; ++i) {
                 // Hash the consideration and place the result into memory.
-                considerationHashes[i] = _hashReceivedItem(
+                considerationHashes[i] = _hashConsiderationItem(
                     orderParameters.consideration[i]
                 );
             }
@@ -325,16 +356,25 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to retrieve the current nonce for a given
-     *      order's offerer and zone and use that to derive the order hash.
+     * @dev Internal view function to to ensure that the supplied consideration
+     *      array length on a given set of order parameters is not less than the
+     *      original consideration array length for that order and to retrieve
+     *      the current nonce for a given order's offerer and zone and use it to
+     *      derive the order hash.
      *
      * @param orderParameters The parameters of the order to hash.
      *
      * @return The hash.
      */
-    function _getNoncedOrderHash(
+    function _assertConsiderationLengthAndGetNoncedOrderHash(
         OrderParameters memory orderParameters
     ) internal view returns (bytes32) {
+        // Ensure supplied consideration array length is not less than original.
+        _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+            orderParameters.consideration.length,
+            orderParameters.totalOriginalConsiderationItems
+        );
+
         // Derive and return order hash using current nonce for offerer in zone.
         return _getOrderHash(
             orderParameters,
@@ -343,48 +383,47 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to derive the EIP-712 hash for an offererd
-     *      item.
+     * @dev Internal view function to derive the EIP-712 hash for an offer item.
      *
-     * @param offeredItem The offered item to hash.
+     * @param offerItem The offer item to hash.
      *
      * @return The hash.
      */
-    function _hashOfferedItem(
-        OfferedItem memory offeredItem
+    function _hashOfferItem(
+        OfferItem memory offerItem
     ) internal view returns (bytes32) {
         return keccak256(
             abi.encode(
-                _OFFERED_ITEM_TYPEHASH,
-                offeredItem.itemType,
-                offeredItem.token,
-                offeredItem.identifierOrCriteria,
-                offeredItem.startAmount,
-                offeredItem.endAmount
+                _OFFER_ITEM_TYPEHASH,
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifierOrCriteria,
+                offerItem.startAmount,
+                offerItem.endAmount
             )
         );
     }
 
     /**
-     * @dev Internal view function to derive the EIP-712 hash for a received
-     *      item (i.e. a consideration item).
+     * @dev Internal view function to derive the EIP-712 hash for a
+     *      consideration item.
      *
-     * @param receivedItem The received item to hash.
+     * @param considerationItem The consideration item to hash.
      *
      * @return The hash.
      */
-    function _hashReceivedItem(
-        ReceivedItem memory receivedItem
+    function _hashConsiderationItem(
+        ConsiderationItem memory considerationItem
     ) internal view returns (bytes32) {
         return keccak256(
             abi.encode(
-                _RECEIVED_ITEM_TYPEHASH,
-                receivedItem.itemType,
-                receivedItem.token,
-                receivedItem.identifierOrCriteria,
-                receivedItem.startAmount,
-                receivedItem.endAmount,
-                receivedItem.recipient
+                _CONSIDERATION_ITEM_TYPEHASH,
+                considerationItem.itemType,
+                considerationItem.token,
+                considerationItem.identifierOrCriteria,
+                considerationItem.startAmount,
+                considerationItem.endAmount,
+                considerationItem.recipient
             )
         );
     }
@@ -423,6 +462,68 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
+     * @dev Internal view function to apply a fraction to an offer item and to
+     *      return a received item.
+     *
+     * @param offerItem         The offer item.
+     * @param numerator         A value indicating the portion of the order that
+     *                          should be filled.
+     * @param denominator       A value indicating the total size of the order.
+     * @param elapsed           The time elapsed since the order's start time.
+     * @param remaining         The time left until the order's end time.
+     * @param duration          The total duration of the order.
+     *
+     * @return item The received item to transfer, including the final amount.
+     */
+    function _applyFractionToOfferItem(
+        OfferItem memory offerItem,
+        uint256 numerator,
+        uint256 denominator,
+        uint256 elapsed,
+        uint256 remaining,
+        uint256 duration
+    ) internal view returns (ReceivedItem memory item) {
+        // Declare variable for final amount.
+        uint256 amount;
+
+        // If start amount equals end amount, apply fraction to end amount.
+        if (offerItem.startAmount == offerItem.endAmount) {
+            amount = _getFraction(
+                numerator,
+                denominator,
+                offerItem.endAmount
+            );
+        } else {
+            // Otherwise, apply fraction to both to extrapolate final amount.
+            amount = _locateCurrentAmount(
+                _getFraction(
+                    numerator,
+                    denominator,
+                    offerItem.startAmount
+                ),
+                _getFraction(
+                    numerator,
+                    denominator,
+                    offerItem.endAmount
+                ),
+                elapsed,
+                remaining,
+                duration,
+                false // round down
+            );
+        }
+
+        // Apply order fill fraction, set caller as the receiver, and return.
+        item = ReceivedItem(
+            offerItem.itemType,
+            offerItem.token,
+            offerItem.identifierOrCriteria,
+            amount,
+            payable(msg.sender)
+        );
+    }
+
+    /**
      * @dev Internal view function to derive the current amount of each item for
      *      an advanced order based on the current price, the starting price,
      *      and the ending price. If the start and end prices differ, the
@@ -440,10 +541,12 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 startTime = orderParameters.startTime;
 
         // Retrieve the offer items for the order.
-        OfferedItem[] memory offer = orderParameters.offer;
+        OfferItem[] memory offer = orderParameters.offer;
 
         // Retrieve the consideration items for the order.
-        ReceivedItem[] memory consideration = orderParameters.consideration;
+        ConsiderationItem[] memory consideration = (
+            orderParameters.consideration
+        );
 
         // Skip checks: for loops indexed at zero and durations are validated.
         unchecked {
@@ -455,12 +558,12 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Iterate over each offer on the order.
             for (uint256 i = 0; i < offer.length; ++i) {
                 // Retrieve the offer item.
-                OfferedItem memory offeredItem = offer[i];
+                OfferItem memory offerItem = offer[i];
 
                 // Adjust offer amounts based on current time (round down).
-                offeredItem.endAmount = _locateCurrentAmount(
-                    offeredItem.startAmount,
-                    offeredItem.endAmount,
+                offerItem.endAmount = _locateCurrentAmount(
+                    offerItem.startAmount,
+                    offerItem.endAmount,
                     elapsed,
                     remaining,
                     duration,
@@ -471,13 +574,13 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < consideration.length; ++i) {
                 // Retrieve the received consideration item.
-                ReceivedItem memory receivedItem = consideration[i];
+                ConsiderationItem memory considerationItem = consideration[i];
 
                 // Adjust consideration amount based on current time (round up).
-                receivedItem.endAmount = (
+                considerationItem.endAmount = (
                     _locateCurrentAmount(
-                        receivedItem.startAmount,
-                        receivedItem.endAmount,
+                        considerationItem.startAmount,
+                        considerationItem.endAmount,
                         elapsed,
                         remaining,
                         duration,
