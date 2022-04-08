@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
+import { Side } from "./ConsiderationEnums.sol";
+
 import {
     ERC20Interface,
     ERC721Interface,
@@ -23,6 +25,7 @@ import {
     ReceivedItem,
     OrderParameters,
     Fulfillment,
+    FulfillmentComponent,
     Execution,
     Order,
     AdvancedOrder,
@@ -942,6 +945,96 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 } else {
                     // Otherwise, assign the execution to the executions array.
                     executions[i - totalFilteredExecutions] = execution;
+                }
+            }
+
+            // If some number of executions have been filtered...
+            if (totalFilteredExecutions != 0) {
+                // reduce the total length of the executions array.
+                assembly {
+                    mstore(
+                        executions,
+                        sub(mload(executions), totalFilteredExecutions)
+                    )
+                }
+            }
+        }
+
+        // Perform final checks, compress executions, and return.
+        return _performFinalChecksAndExecuteOrders(
+            advancedOrders,
+            executions,
+            fulfillOrdersAndUseProxy
+        );
+    }
+
+    // TODO: natspec
+    function _fulfillAvailableOrders(
+        AdvancedOrder[] memory advancedOrders,
+        FulfillmentComponent[][] memory offerFulfillments,
+        FulfillmentComponent[][] memory considerationFulfillments,
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy,
+        bool useFulfillerProxy
+    ) internal returns (Execution[] memory, BatchExecution[] memory) {
+        // Allocate an execution for each offer and consideration fulfillment.
+        Execution[] memory executions = new Execution[](
+            offerFulfillments.length + considerationFulfillments.length
+        );
+
+        // Skip overflow checks as all for loops are indexed starting at zero.
+        unchecked {
+            // Track number of filtered executions.
+            uint256 totalFilteredExecutions = 0;
+
+            // Iterate over each offer fulfillment.
+            for (uint256 i = 0; i < offerFulfillments.length; ++i) {
+                /// Retrieve the offer fulfillment components in question.
+                FulfillmentComponent[] memory components = offerFulfillments[i];
+
+                // Derive aggregated execution corresponding with fulfillment.
+                Execution memory execution = _aggregateAvailable(
+                    advancedOrders,
+                    Side.OFFER,
+                    components,
+                    fulfillOrdersAndUseProxy,
+                    useFulfillerProxy
+                );
+
+                // If offerer and recipient on the execution are the same...
+                if (execution.item.recipient == execution.offerer) {
+                    // increment total filtered executions.
+                    totalFilteredExecutions += 1;
+                } else {
+                    // Otherwise, assign the execution to the executions array.
+                    executions[i - totalFilteredExecutions] = execution;
+                }
+            }
+
+            // Iterate over each consideration fulfillment.
+            for (uint256 i = 0; i < considerationFulfillments.length; ++i) {
+                /// Retrieve consideration fulfillment components in question.
+                FulfillmentComponent[] memory components = (
+                    considerationFulfillments[i]
+                );
+
+                // Derive aggregated execution corresponding with fulfillment.
+                Execution memory execution = _aggregateAvailable(
+                    advancedOrders,
+                    Side.CONSIDERATION,
+                    components,
+                    fulfillOrdersAndUseProxy,
+                    useFulfillerProxy
+                );
+
+                // If offerer and recipient on the execution are the same...
+                if (execution.item.recipient == execution.offerer) {
+                    // increment total filtered executions.
+                    totalFilteredExecutions += 1;
+                } else {
+                    // Otherwise, assign the execution to the executions array.
+                    executions[
+                        i + offerFulfillments.length - totalFilteredExecutions
+                    ] = execution;
                 }
             }
 

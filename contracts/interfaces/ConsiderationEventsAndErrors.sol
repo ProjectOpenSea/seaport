@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
+import { Side } from "../lib/ConsiderationEnums.sol";
+
 import {
     SpentItem,
     ReceivedItem
@@ -102,6 +104,13 @@ interface ConsiderationEventsAndErrors {
      *      a consideration array that is shorter than the original array.
      */
     error MissingOriginalConsiderationItems();
+
+    /**
+     * @dev Revert with an error when a fulfillment is provided as part of an
+     *      call to fulfill available orders that does not declare at least one
+     *      component.
+     */
+    error MissingFulfillmentComponentOnAggregation(Side side);
 
     /**
      * @dev Revert with an error when a fulfillment is provided that does not
