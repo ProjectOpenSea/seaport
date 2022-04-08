@@ -781,11 +781,8 @@ contract ConsiderationPure is ConsiderationBase {
     ) internal view returns (
         Execution memory execution
     ) {
-        // Read length of fulfillment components array and place on the stack.
-        uint256 totalComponents = fulfillmentComponents.length;
-
         // Ensure at least one fulfillment component has been supplied.
-        if (totalComponents == 0) {
+        if (fulfillmentComponents.length == 0) {
             revert MissingFulfillmentComponentOnAggregation(side);
         }
 
@@ -795,7 +792,7 @@ contract ConsiderationPure is ConsiderationBase {
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over components until finding one with a fulfilled order.
-            for (uint256 i = 0; i < totalComponents; ++i) {
+            for (uint256 i = 0; i < fulfillmentComponents.length; ++i) {
                 // Retrieve the fulfillment component index.
                 uint256 orderIndex = fulfillmentComponents[i].orderIndex;
 
@@ -838,153 +835,196 @@ contract ConsiderationPure is ConsiderationBase {
 
         // If the fulfillment components are offer components...
         if (side == Side.OFFER) {
-            // Get offerer and consume offer component, returning a spent item.
-            (
-                address offerer,
-                SpentItem memory offerItem,
-                bool useProxy
-            ) = _consumeOfferComponent(
-                orders,
-                firstAvailableComponent.orderIndex,
-                firstAvailableComponent.itemIndex,
-                fulfillOrdersAndUseProxy
-            );
-
-            // Iterate over each remaining component on the fulfillment.
-            for (uint256 i = nextComponentIndex; i < totalComponents;) {
-                // Retrieve the offer component from the fulfillment.
-                FulfillmentComponent memory offerComponent = (
-                    fulfillmentComponents[i]
-                );
-
-                // Read order index from offer component and place on the stack.
-                uint256 orderIndex = offerComponent.orderIndex;
-
-                // If order is not being fulfilled (i.e. it is unavailable)...
-                if (!fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
-                    // Do not consume associated offer item but continue search.
-                    continue;
-                }
-
-                // Get offerer & consume offer component, returning spent item.
-                (
-                    address subsequentOfferer,
-                    SpentItem memory nextOfferItem,
-                    bool subsequentUseProxy
-                ) = _consumeOfferComponent(
-                    orders,
-                    orderIndex,
-                    offerComponent.itemIndex,
-                    fulfillOrdersAndUseProxy
-                );
-
-                // Ensure all relevant parameters are consistent with initial offer.
-                if (
-                    offerer != subsequentOfferer ||
-                    offerItem.itemType != nextOfferItem.itemType ||
-                    offerItem.token != nextOfferItem.token ||
-                    offerItem.identifier != nextOfferItem.identifier ||
-                    useProxy != subsequentUseProxy
-                ) {
-                    revert MismatchedFulfillmentOfferComponents();
-                }
-
-                // Increase the total offer amount by the current amount.
-                offerItem.amount += nextOfferItem.amount;
-
-                // Skip overflow check as for loop is indexed starting at one.
-                unchecked {
-                    ++i;
-                }
-            }
-
-            // Convert offer item into received item with fulfiller as receiver.
-            ReceivedItem memory receivedOfferItem = ReceivedItem(
-                offerItem.itemType,
-                offerItem.token,
-                offerItem.identifier,
-                offerItem.amount,
-                payable(msg.sender)
-            );
-
             // Return execution for aggregated items provided by the offerer.
-            return Execution(
-                receivedOfferItem,
-                offerer,
-                useProxy
+            return _aggregateOfferItems(
+                orders,
+                fulfillmentComponents,
+                firstAvailableComponent,
+                nextComponentIndex,
+                fulfillOrdersAndUseProxy
             );
         // Otherwise, fulfillment components are consideration components.
         } else {
-            // Consume consideration component, returning a received item.
-            ReceivedItem memory requiredConsideration = (
-                _consumeConsiderationComponent(
-                    orders,
-                    firstAvailableComponent.orderIndex,
-                    firstAvailableComponent.itemIndex
-                )
-            );
-
-            // Iterate over each remaining component on the fulfillment.
-            for (uint256 i = nextComponentIndex; i < totalComponents;) {
-                // Retrieve the consideration component from the fulfillment.
-                FulfillmentComponent memory considerationComponent = (
-                    fulfillmentComponents[i]
-                );
-
-                // Read order index from consideration component & put on stack.
-                uint256 orderIndex = considerationComponent.orderIndex;
-
-                // If order is not being fulfilled (i.e. it is unavailable)...
-                if (!fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
-                    // Do not consume the consideration item & continue search.
-                    continue;
-                }
-
-                // Consume consideration component, returning a received item.
-                ReceivedItem memory nextRequiredConsideration = (
-                    _consumeConsiderationComponent(
-                        orders,
-                        orderIndex,
-                        considerationComponent.itemIndex
-                    )
-                );
-
-                // Ensure parameters are consistent with initial consideration.
-                if (
-                    requiredConsideration.recipient != (
-                        nextRequiredConsideration.recipient
-                    ) ||
-                    requiredConsideration.itemType != (
-                        nextRequiredConsideration.itemType
-                    ) ||
-                    requiredConsideration.token != (
-                        nextRequiredConsideration.token
-                    ) ||
-                    requiredConsideration.identifier != (
-                        nextRequiredConsideration.identifier
-                    )
-                ) {
-                    revert MismatchedFulfillmentConsiderationComponents();
-                }
-
-                // Increase total consideration amount by the current amount.
-                requiredConsideration.amount += (
-                    nextRequiredConsideration.amount
-                );
-
-                // Skip overflow check as for loop is indexed starting at one.
-                unchecked {
-                    ++i;
-                }
-            }
-
             // Return execution for aggregated items provided by the fulfiller.
-            return Execution(
-                requiredConsideration,
-                msg.sender,
+            return _aggregateConsiderationItems(
+                orders,
+                fulfillmentComponents,
+                firstAvailableComponent,
+                nextComponentIndex,
+                fulfillOrdersAndUseProxy,
                 useFulfillerProxy
             );
         }
+    }
+
+    // todo: natspec (also note that this is a view function)
+    function _aggregateOfferItems(
+        AdvancedOrder[] memory orders,
+        FulfillmentComponent[] memory fulfillmentComponents,
+        FulfillmentComponent memory firstAvailableComponent,
+        uint256 nextComponentIndex,
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy
+    ) internal view returns (Execution memory execution) {
+        // Get offerer and consume offer component, returning a spent item.
+        (
+            address offerer,
+            SpentItem memory offerItem,
+            bool useProxy
+        ) = _consumeOfferComponent(
+            orders,
+            firstAvailableComponent.orderIndex,
+            firstAvailableComponent.itemIndex,
+            fulfillOrdersAndUseProxy
+        );
+
+        // Iterate over each remaining component on the fulfillment.
+        for (
+            uint256 i = nextComponentIndex;
+            i < fulfillmentComponents.length;
+        ) {
+            // Retrieve the offer component from the fulfillment.
+            FulfillmentComponent memory offerComponent = (
+                fulfillmentComponents[i]
+            );
+
+            // If order is not being fulfilled (i.e. it is unavailable)...
+            if (!fulfillOrdersAndUseProxy[
+                offerComponent.orderIndex
+            ].fulfillOrder) {
+                // Do not consume associated offer item but continue search.
+                continue;
+            }
+
+            // Get offerer & consume offer component, returning spent item.
+            (
+                address subsequentOfferer,
+                SpentItem memory nextOfferItem,
+                bool subsequentUseProxy
+            ) = _consumeOfferComponent(
+                orders,
+                offerComponent.orderIndex,
+                offerComponent.itemIndex,
+                fulfillOrdersAndUseProxy
+            );
+
+            // Ensure all relevant parameters are consistent with initial offer.
+            if (
+                offerer != subsequentOfferer ||
+                offerItem.itemType != nextOfferItem.itemType ||
+                offerItem.token != nextOfferItem.token ||
+                offerItem.identifier != nextOfferItem.identifier ||
+                useProxy != subsequentUseProxy
+            ) {
+                revert MismatchedFulfillmentOfferComponents();
+            }
+
+            // Increase the total offer amount by the current amount.
+            offerItem.amount += nextOfferItem.amount;
+
+            // Skip overflow check as for loop is indexed starting at one.
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Convert offer item into received item with fulfiller as receiver.
+        ReceivedItem memory receivedOfferItem = ReceivedItem(
+            offerItem.itemType,
+            offerItem.token,
+            offerItem.identifier,
+            offerItem.amount,
+            payable(msg.sender)
+        );
+
+        // Return execution for aggregated items provided by the offerer.
+        execution = Execution(
+            receivedOfferItem,
+            offerer,
+            useProxy
+        );
+    }
+
+    // TODO: natspec (also note that this is a view function)
+    function _aggregateConsiderationItems(
+        AdvancedOrder[] memory orders,
+        FulfillmentComponent[] memory fulfillmentComponents,
+        FulfillmentComponent memory firstAvailableComponent,
+        uint256 nextComponentIndex,
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy,
+        bool useFulfillerProxy
+    ) internal view returns (Execution memory execution) {
+        // Consume consideration component, returning a received item.
+        ReceivedItem memory requiredConsideration = (
+            _consumeConsiderationComponent(
+                orders,
+                firstAvailableComponent.orderIndex,
+                firstAvailableComponent.itemIndex
+            )
+        );
+
+        // Iterate over each remaining component on the fulfillment.
+        for (
+            uint256 i = nextComponentIndex;
+            i < fulfillmentComponents.length;
+        ) {
+            // Retrieve the consideration component from the fulfillment.
+            FulfillmentComponent memory considerationComponent = (
+                fulfillmentComponents[i]
+            );
+
+            // Read order index from consideration component & put on stack.
+            uint256 orderIndex = considerationComponent.orderIndex;
+
+            // If order is not being fulfilled (i.e. it is unavailable)...
+            if (!fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
+                // Do not consume the consideration item & continue search.
+                continue;
+            }
+
+            // Consume consideration component, returning a received item.
+            ReceivedItem memory nextRequiredConsideration = (
+                _consumeConsiderationComponent(
+                    orders,
+                    orderIndex,
+                    considerationComponent.itemIndex
+                )
+            );
+
+            // Ensure parameters are consistent with initial consideration.
+            if (
+                requiredConsideration.recipient != (
+                    nextRequiredConsideration.recipient
+                ) ||
+                requiredConsideration.itemType != (
+                    nextRequiredConsideration.itemType
+                ) ||
+                requiredConsideration.token != (
+                    nextRequiredConsideration.token
+                ) ||
+                requiredConsideration.identifier != (
+                    nextRequiredConsideration.identifier
+                )
+            ) {
+                revert MismatchedFulfillmentConsiderationComponents();
+            }
+
+            // Increase total consideration amount by the current amount.
+            requiredConsideration.amount += (
+                nextRequiredConsideration.amount
+            );
+
+            // Skip overflow check as for loop is indexed starting at one.
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Return execution for aggregated items provided by the fulfiller.
+        return Execution(
+            requiredConsideration,
+            msg.sender,
+            useFulfillerProxy
+        );
     }
 
     /**
