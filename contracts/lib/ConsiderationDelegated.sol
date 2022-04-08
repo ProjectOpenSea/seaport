@@ -2,7 +2,7 @@
 pragma solidity 0.8.12;
 
 import {
-	ConsiderationDelegatedInterface
+    ConsiderationDelegatedInterface
 } from "../interfaces/ConsiderationDelegatedInterface.sol";
 
 import {
@@ -24,8 +24,8 @@ import { ConsiderationInternal } from "./ConsiderationInternal.sol";
  *         restraints introduced by EIP-170.
  */
 contract ConsiderationDelegated is
-	ConsiderationDelegatedInterface,
-	ConsiderationInternal {
+    ConsiderationDelegatedInterface,
+    ConsiderationInternal {
     // Only delegator may call this contract (stricter than using a library).
     address internal immutable _DELEGATOR;
 
@@ -99,21 +99,21 @@ contract ConsiderationDelegated is
      *                            of batch transfers performed as part of
      *                            matching the given orders.
      */
-	function fulfillAvailableAdvancedOrders(
+    function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         bool useFulfillerProxy
     ) external payable override returns (
-    	FulfillmentDetail[] memory fulfillmentDetails,
+        FulfillmentDetail[] memory fulfillmentDetails,
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
-    	// Ensure that only delegatecalls from Consideration are allowed.
-		if (address(this) != _DELEGATOR) {
-			revert OnlyDelegatecallFromConsideration();
-		}
+        // Ensure that only delegatecalls from Consideration are allowed.
+        if (address(this) != _DELEGATOR) {
+            revert OnlyDelegatecallFromConsideration();
+        }
 
         // Validate orders, apply amounts, & determine if they utilize proxies.
         fulfillmentDetails = _validateOrdersAndPrepareToFulfill(
@@ -125,17 +125,16 @@ contract ConsiderationDelegated is
         // Apply criteria resolvers to orders regardless of fulfillment details.
         _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
-    	// Declare unused variables — this function is not yet implemented.
-    	offerFulfillments;
-    	considerationFulfillments;
-    	useFulfillerProxy;
+        // Aggregate used offer and consideration items and execute transfers.
+        (standardExecutions, batchExecutions) = _fulfillAvailableOrders(
+            advancedOrders,
+            offerFulfillments,
+            considerationFulfillments,
+            fulfillmentDetails,
+            useFulfillerProxy
+        );
 
-    	// TODO: aggregate remaining offer and consideration items and transfer.
-
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
-
-    	// Return order fulfillment details and executions.
-    	return (fulfillmentDetails, standardExecutions, batchExecutions);
+        // Return order fulfillment details and executions.
+        return (fulfillmentDetails, standardExecutions, batchExecutions);
     }
 }
