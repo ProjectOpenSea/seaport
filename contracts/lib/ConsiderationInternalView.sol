@@ -300,7 +300,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      separator will be returned; otherwise, it will be derived from
      *      scratch.
      */
-    function _domainSeparator() internal view returns (bytes32) {
+    function _domainSeparator() internal view virtual returns (bytes32) {
         return block.chainid == _CHAIN_ID
             ? _DOMAIN_SEPARATOR
             : _deriveDomainSeparator();

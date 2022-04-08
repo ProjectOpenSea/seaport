@@ -2,6 +2,10 @@
 pragma solidity 0.8.12;
 
 import {
+    ConsiderationInterface
+} from "../interfaces/ConsiderationInterface.sol";
+
+import {
     ConsiderationDelegatedInterface
 } from "../interfaces/ConsiderationDelegatedInterface.sol";
 
@@ -136,5 +140,18 @@ contract ConsiderationDelegated is
 
         // Return order fulfillment details and executions.
         return (fulfillmentDetails, standardExecutions, batchExecutions);
+    }
+
+    /**
+     * @dev Override the view function to get the EIP-712 domain separator so
+     *      that it retrieves it from the original Consideration contract. It
+     *      should be derived and stored in the same manner as on the original
+     *      contract, but overriding constructor logic that assigns immutable
+     *      variables is not well-supported by solidity.
+     *
+     * @return The domain separator on the Consideration contract.
+     */
+    function _domainSeparator() internal view override returns (bytes32) {
+        return ConsiderationInterface(_DELEGATOR).DOMAIN_SEPARATOR();
     }
 }

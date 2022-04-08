@@ -135,7 +135,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      *
      * @return The derived domain separator.
      */
-    function _deriveDomainSeparator() internal view returns (bytes32) {
+    function _deriveDomainSeparator() internal view virtual returns (bytes32) {
         return keccak256(
             abi.encode(
                 _EIP_712_DOMAIN_TYPEHASH,

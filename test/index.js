@@ -111,7 +111,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
   }
 
-  async function getAndVerifyOrderHash(orderComponents) {
+  const getAndVerifyOrderHash = async (orderComponents) => {
     const orderHash = await marketplaceContract.getOrderHash(orderComponents);
 
     const offerItemTypeString = "OfferItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)";
@@ -179,10 +179,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   }
 
   // Returns signature
-  async function signOrder(
+  const signOrder = async (
     orderComponents,
     signer
-  ) {
+  ) => {
     const signature = await signer._signTypedData(
       domainData,
       orderType,
@@ -8194,7 +8194,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(delegated.connect(owner).fulfillAvailableAdvancedOrders([], [], [], [], false)).to.be.reverted;
         });
       });
-      it.only("Can fulfill a single order via fulfillAvailableOrders", async () => {
+      it("Can fulfill a single order via fulfillAvailableOrders", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
         await testERC721.mint(seller.address, nftId);
