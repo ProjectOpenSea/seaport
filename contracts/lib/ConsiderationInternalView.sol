@@ -759,10 +759,21 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Retrieve the offer component from the fulfillment array.
             FulfillmentComponent memory offerComponent = offerComponents[i];
 
+            // Read order index from offer component and place on the stack.
+            uint256 orderIndex = offerComponent.orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= orders.length) {
+                revert FulfilledOrderIndexOutOfRange();
+            }
+
             // If order is not being fulfilled (i.e. it is unavailable)...
-            if (!fulfillOrdersAndUseProxy[
-                offerComponent.orderIndex
-            ].fulfillOrder) {
+            if (!fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
+                // Skip overflow check as for loop is indexed starting at one.
+                unchecked {
+                    ++i;
+                }
+
                 // Do not consume associated offer item but continue search.
                 continue;
             }
@@ -774,7 +785,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 bool subsequentUseProxy
             ) = _consumeOfferComponent(
                 orders,
-                offerComponent.orderIndex,
+                orderIndex,
                 offerComponent.itemIndex,
                 fulfillOrdersAndUseProxy
             );
@@ -867,11 +878,21 @@ contract ConsiderationInternalView is ConsiderationPure {
                 considerationComponents[i]
             );
 
-            // Read order index from consideration component & put on stack.
+            // Read order index from consideration component and place on stack.
             uint256 orderIndex = considerationComponent.orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= orders.length) {
+                revert FulfilledOrderIndexOutOfRange();
+            }
 
             // If order is not being fulfilled (i.e. it is unavailable)...
             if (!fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
+                // Skip overflow check as for loop is indexed starting at one.
+                unchecked {
+                    ++i;
+                }
+
                 // Do not consume the consideration item & continue search.
                 continue;
             }
