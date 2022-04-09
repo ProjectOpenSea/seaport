@@ -144,14 +144,41 @@ contract ConsiderationDelegated is
 
     /**
      * @dev Override the view function to get the EIP-712 domain separator so
-     *      that it retrieves it from the original Consideration contract. It
-     *      should be derived and stored in the same manner as on the original
-     *      contract, but overriding constructor logic that assigns immutable
-     *      variables is not well-supported by solidity.
+     *      that it uses the address of the original Consideration contract as
+     *      the verifying address.
      *
      * @return The domain separator on the Consideration contract.
      */
-    function _domainSeparator() internal view override returns (bytes32) {
-        return ConsiderationInterface(_DELEGATOR).DOMAIN_SEPARATOR();
+    function _deriveInitialDomainSeparator() internal view override returns (
+        bytes32
+    ) {
+        return keccak256(
+            abi.encode(
+                _EIP_712_DOMAIN_TYPEHASH,
+                _NAME_HASH,
+                _VERSION_HASH,
+                block.chainid,
+                msg.sender
+            )
+        );
+    }
+
+    /**
+     * @dev Override the view function to get the EIP-712 domain separator so
+     *      that it uses the address of the original Consideration contract as
+     *      the verifying address.
+     *
+     * @return The domain separator on the Consideration contract.
+     */
+    function _deriveDomainSeparator() internal view override returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                _EIP_712_DOMAIN_TYPEHASH,
+                _NAME_HASH,
+                _VERSION_HASH,
+                block.chainid,
+                _DELEGATOR
+            )
+        );
     }
 }

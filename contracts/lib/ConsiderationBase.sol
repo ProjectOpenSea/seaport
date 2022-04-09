@@ -120,7 +120,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
             )
         );
         _CHAIN_ID = block.chainid;
-        _DOMAIN_SEPARATOR = _deriveDomainSeparator();
+        _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator();
 
         // TODO: validate each of these based on expected codehash
         _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
@@ -128,6 +128,18 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
 
         // Initialize the reentrancy guard in a cleared state.
         _reentrancyGuard = _NOT_ENTERED;
+    }
+
+    /**
+     * @dev Internal view function to derive the initial EIP-712 domain
+     *      separator.
+     *
+     * @return The derived domain separator.
+     */
+    function _deriveInitialDomainSeparator() internal view virtual returns (
+        bytes32
+    ) {
+        return _deriveDomainSeparator();
     }
 
     /**
