@@ -6,11 +6,13 @@ pragma solidity 0.8.12;
 import "ds-test/test.sol";
 import "../../contracts/Consideration.sol";
 import "src/test/NFT721.sol";
+import "src/test/CheatCodes.sol";
 
 contract ConsiderationTest is DSTest {
     Consideration consider;
+    address considerAddress;
 
-    VM internal vm;
+    CheatCodes internal vm;
 
     address accountA;
     address accountB;
@@ -20,9 +22,10 @@ contract ConsiderationTest is DSTest {
 
     function setUp() public {
 
-      vm = VM(HEVM_ADDRESS);
+      vm = CheatCodes(HEVM_ADDRESS);
 
-      consider = new Consideration(address(0), address(0));
+      considerAddress = address(new Consideration(address(0), address(0)));
+      consider = Consideration(consider);
 
       //deploy a test 721
       test721 = new NFT("Nifty", "NFT");
@@ -34,9 +37,19 @@ contract ConsiderationTest is DSTest {
       accountB = 0xb8722FD62E5589241228970b165aB617ed186AeD;
       accountC = 0x81f464ed27111E8c1606546D5DC7fD72fF45EE0e;
 
-      for(uint i; i < 50; i++){
+      for(uint i; i < 10; i++){
         test721.mintTo(accountA);
       }
+      emit log("Account A airdropped 10 NFTs.");
+
+      vm.prank(accountA);
+      test721.setApprovalForAll(considerAddress, true);
+      vm.prank(accountB);
+      test721.setApprovalForAll(considerAddress, true);
+      vm.prank(accountC);
+      test721.setApprovalForAll(considerAddress, true);
+      emit log("Accounts A B C have approved consideration.");
+
 
       vm.label(accountA, "Account A");
 
@@ -47,6 +60,29 @@ contract ConsiderationTest is DSTest {
         emit log("Basic Orders, Buy Now");
         address seller = accountA;
         vm.startPrank(seller);
+
+        //setup order
+        /**
+        OrderParameters orderParams = new OrderParameters(
+          address offerer;
+          address zone;
+          OrderType orderType;
+          uint256 startTime;
+          uint256 endTime;
+          uint256 salt;
+          OfferItem[] offer;
+          ConsiderationItem[] consideration;
+          uint256 totalOriginalConsiderationItems;
+        );
+
+        Order myOrder = Order(
+          orderParams,
+          vm.sign(d6e900755be565cb8eb4dbd2bbb77583c5996f9c254aa80c6270d8756f6efb00, data)
+        );**/
+
+        //create signature for basic order
+        //bytes32 data;
+        //var (v, r, s) = vm.sign(d6e900755be565cb8eb4dbd2bbb77583c5996f9c254aa80c6270d8756f6efb00, data);
     }
 
     function testBasicOrder721to20() external {
@@ -66,7 +102,7 @@ contract ConsiderationTest is DSTest {
 
     //match
     function testMatchOrder721toEth() external {
-        emit log("Basic Order, Match Order")
+        emit log("Basic Order, Match Order");
         address seller = accountA;
         vm.startPrank(seller);
     }
@@ -99,24 +135,24 @@ contract ConsiderationTest is DSTest {
       vm.startPrank(seller);
     }
 
-    function TestSequenceOrder(){
+    function TestSequenceOrder() external{
       emit log("SequenceOrder");
       address seller = accountA;
       vm.startPrank(seller);
     }
 
-    function testFailNoSequencerder(){
+    function testFailNoSequencerder() external{
       address seller = accountA;
       vm.startPrank(seller);
     }
 
-    function testFailReenterSell(){
+    function testFailReenterSell() external{
       emit log("Re-entrency tests on ever function that should have it.");
       address seller = accountA;
       vm.startPrank(seller);
     }
 
-    function testFailReenterSell(){
+    function testFailReenterBuy() external{
       emit log("Re-entrency tests on ever function that should have it.");
       address seller = accountA;
       address buyer = accountB;
@@ -129,7 +165,7 @@ contract ConsiderationTest is DSTest {
     }
 
     function testFailInsufficientBuys() external{
-      emit log("Insufficient amounts and bad items orders.")
+      emit log("Insufficient amounts and bad items orders.");
     }
 
     //ascending and descending
