@@ -23,6 +23,11 @@ Next, run the tests with:
 forge test
 ```
 
+To run just the Consideration specified tests, which skips the automated generated tests for the token standards that are imported, try:
+```bash
+forge test  --match-contract ConsiderationTest
+```
+
 ## Notes
 
 One weird decision... since this repo has hardhat & foundry tests, we want to keep the foundry together in one section so the testing libraries know which code to run. So we put the foundry `lib` section in side the `/src` folder. It's cleaner and noted in the `foundry.toml` where the default locations of everything is set:
