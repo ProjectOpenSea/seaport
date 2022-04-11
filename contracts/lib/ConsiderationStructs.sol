@@ -246,3 +246,14 @@ struct Batch {
     bytes32 hash;
     uint256[] executionIndices;
 }
+
+/**
+ * @dev An fulfillment detail will be returned for each supplied order when
+ *      attempting to fulfill any available orders from a given group, and
+ *      indicates whether the order in question was fulfilled as well as whether
+ *      a proxy was utilized when fulfilling the order.
+ */
+struct FulfillmentDetail {
+    bool fulfillOrder;
+    bool useOffererProxy;
+}

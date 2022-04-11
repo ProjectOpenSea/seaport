@@ -21,7 +21,8 @@ import {
     OrderStatus,
     CriteriaResolver,
     Batch,
-    BatchExecution
+    BatchExecution,
+    FulfillmentDetail
 } from "./ConsiderationStructs.sol";
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
@@ -588,27 +589,26 @@ contract ConsiderationPure is ConsiderationBase {
      * @dev Internal pure function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
      *
-     * @param orders                  The orders to match.
-     * @param offerComponents         An array designating offer components to
-     *                                match to consideration components.
-     * @param considerationComponents An array designating consideration
-     *                                components to match to offer components.
-     *                                Note that each consideration amount must
-     *                                be zero in order for the match operation
-     *                                to be valid.
-     * @param useOffererProxyPerOrder An array of booleans indicating whether to
-     *                                source approvals for the offered tokens
-     *                                on each order from their respective proxy.
+     * @param orders                   The orders to match.
+     * @param offerComponents          An array designating offer components to
+     *                                 match to consideration components.
+     * @param considerationComponents  An array designating consideration
+     *                                 components to match to offer components.
+     *                                 Note that each consideration amount must
+     *                                 be zero in order for the match operation
+     *                                 to be valid.
+     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
+     *                                 indicating whether to source approvals
+     *                                 for the offered tokens on each order from
+     *                                 their respective proxy.
      *
      * @return execution The transfer performed as a result of the fulfillment.
-     *                   Note that this execution object could potentially be
-     *                   compressed further by aggregating batch transfers.
      */
     function _applyFulfillment(
         AdvancedOrder[] memory orders,
         FulfillmentComponent[] memory offerComponents,
         FulfillmentComponent[] memory considerationComponents,
-        bool[] memory useOffererProxyPerOrder
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy
     ) internal pure returns (
         Execution memory execution
     ) {
@@ -629,7 +629,7 @@ contract ConsiderationPure is ConsiderationBase {
             orders,
             offerComponents[0].orderIndex,
             offerComponents[0].itemIndex,
-            useOffererProxyPerOrder
+            fulfillOrdersAndUseProxy
         );
 
         // Consume consideration component, returning a received item.
@@ -667,7 +667,7 @@ contract ConsiderationPure is ConsiderationBase {
                 orders,
                 offerComponent.orderIndex,
                 offerComponent.itemIndex,
-                useOffererProxyPerOrder
+                fulfillOrdersAndUseProxy
             );
 
             // Ensure all relevant parameters are consistent with initial offer.
@@ -859,14 +859,15 @@ contract ConsiderationPure is ConsiderationBase {
      *      range and, if so, to zero out the offer amount and return the
      *      associated spent item.
      *
-     * @param orders                  An array of orders.
-     * @param orderIndex              The order index specified by the
-     *                                fulfillment component.
-     * @param itemIndex               The item index specified by the
-     *                                fulfillment component.
-     * @param useOffererProxyPerOrder An array of booleans indicating whether to
-     *                                source approvals for the offered tokens
-     *                                on each order from their respective proxy.
+     * @param orders                   An array of orders.
+     * @param orderIndex               The order index specified by the
+     *                                 fulfillment component.
+     * @param itemIndex                The item index specified by the
+     *                                 fulfillment component.
+     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
+     *                                 indicating whether to source approvals
+     *                                 for the offered tokens on each order from
+     *                                 their respective proxy.
      *
      * @return offerer   The offerer for the given order.
      * @return spentItem The spent item corresponding to the offer item at the
@@ -878,7 +879,7 @@ contract ConsiderationPure is ConsiderationBase {
         AdvancedOrder[] memory orders,
         uint256 orderIndex,
         uint256 itemIndex,
-        bool[] memory useOffererProxyPerOrder
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy
     ) internal pure returns (
         address offerer,
         SpentItem memory spentItem,
@@ -912,7 +913,7 @@ contract ConsiderationPure is ConsiderationBase {
         return (
             orderParameters.offerer,
             spentItemConvertedFromOfferItem,
-            useOffererProxyPerOrder[orderIndex]
+            fulfillOrdersAndUseProxy[orderIndex].useOffererProxy
         );
     }
 
@@ -1012,27 +1013,49 @@ contract ConsiderationPure is ConsiderationBase {
      *                        been cancelled and the fraction filled.
      * @param onlyAllowUnused A boolean flag indicating whether partial fills
      *                        are supported by the calling function.
+     * @param revertOnInvalid A boolean indicating whether to revert if the
+     *                        order has been cancelled or filled beyond the
+     *                        allowable amount.
+     *
+     * @return valid A boolean indicating whether the order is valid.
      */
     function _verifyOrderStatus(
         bytes32 orderHash,
         OrderStatus memory orderStatus,
-        bool onlyAllowUnused
-    ) internal pure {
+        bool onlyAllowUnused,
+        bool revertOnInvalid
+    ) internal pure returns (bool valid) {
         // Ensure that the order has not been cancelled.
         if (orderStatus.isCancelled) {
-            revert OrderIsCancelled(orderHash);
+            // Only revert if revertOnInvalid has been supplied as true.
+            if (revertOnInvalid) {
+                revert OrderIsCancelled(orderHash);
+            }
+
+            // Return false as the order status is invalid.
+            return false;
         }
 
         // If the order is not entirely unused...
         if (orderStatus.numerator != 0) {
             // ensure the order has not been partially filled when not allowed.
             if (onlyAllowUnused) {
+                // Always revert on partial fills when onlyAllowUnused is true.
                 revert OrderPartiallyFilled(orderHash);
             // Otherwise, ensure that order has not been entirely filled.
             } else if (orderStatus.numerator >= orderStatus.denominator) {
-                revert OrderAlreadyFilled(orderHash);
+                // Only revert if revertOnInvalid has been supplied as true.
+                if (revertOnInvalid) {
+                    revert OrderAlreadyFilled(orderHash);
+                }
+
+                // Return false as the order status is invalid.
+                return false;
             }
         }
+
+        // Return true as the order status is valid.
+        valid = true;
     }
 
     /**

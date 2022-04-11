@@ -14,26 +14,33 @@ import {
     OrderParameters,
     OrderComponents,
     Fulfillment,
+    FulfillmentComponent,
     Execution,
     Order,
     AdvancedOrder,
     OrderStatus,
     CriteriaResolver,
-    BatchExecution
+    BatchExecution,
+    FulfillmentDetail
 } from "./lib/ConsiderationStructs.sol";
 
 import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
 
+import { ConsiderationDelegated } from "./lib/ConsiderationDelegated.sol";
+
 /**
  * @title Consideration
  * @author 0age
- * @custom:version 1
+ * @custom:version rc-1
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
  *         provides lightweight methods for common routes as well as more
  *         flexible methods for composing advanced orders.
  */
 contract Consideration is ConsiderationInterface, ConsiderationInternal {
+    // Delegate some complex functionality due to the contract size limit.
+    address internal immutable _DELEGATED;
+
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
@@ -47,7 +54,15 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
-    ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {}
+    ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {
+        // Deploy contract with additional logic where calls can be delegated.
+        _DELEGATED = address(
+            new ConsiderationDelegated(
+                legacyProxyRegistry,
+                requiredProxyImplementation
+            )
+        );
+    }
 
     /**
      * @notice Fulfill an order offering an ERC721 token by supplying Ether (or
@@ -427,6 +442,131 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
+     * @notice Attempt to fill a group of orders, fully or partially, with an
+     *         arbitrary number of items for offer and consideration per order
+     *         alongside criteria resolvers containing specific token
+     *         identifiers and associated proofs. Any order that is not
+     *         currently active, has already been fully filled, or has been
+     *         cancelled will be omitted. Remaining offer and consideration
+     *         items will then be aggregated where possible as indicated by the
+     *         supplied offer and consideration component arrays and aggregated
+     *         items will be transferred to the fulfiller or to each intended
+     *         recipient, respectively. Note that a failing item transfer or an
+     *         issue with order formatting will cause the entire batch to fail.
+     *
+     * @param advancedOrders            The orders to fulfill along with the
+     *                                  fraction of those orders to attempt to
+     *                                  fill. Note that both the offerer and the
+     *                                  fulfiller must first approve this
+     *                                  contract (or their proxy if indicated by
+     *                                  the order) to transfer any relevant
+     *                                  tokens on their behalf and that
+     *                                  contracts must implement
+     *                                  `onERC1155Received` in order to receive
+     *                                  ERC1155 tokens as consideration. Also
+     *                                  note that all offer and consideration
+     *                                  components must have no remainder after
+     *                                  multiplication of the respective amount
+     *                                  with the supplied fraction for an
+     *                                  order's partial fill amount to be
+     *                                  considered valid.
+     * @param criteriaResolvers         An array where each element contains a
+     *                                  reference to a specific offer or
+     *                                  consideration, a token identifier, and a
+     *                                  proof that the supplied token identifier
+     *                                  is contained in the merkle root held by
+     *                                  the item in question's criteria element.
+     *                                  Note that an empty criteria indicates
+     *                                  that any (transferrable) token
+     *                                  identifier on the token in question is
+     *                                  valid and that no associated proof needs
+     *                                  to be supplied.
+     * @param offerFulfillments         An array of FulfillmentComponent arrays
+     *                                  indicating which offer items to attempt
+     *                                  to aggregate when preparing executions.
+     * @param considerationFulfillments An array of FulfillmentComponent arrays
+     *                                  indicating which consideration items to
+     *                                  attempt to aggregate when preparing
+     *                                  executions.
+     * @param useFulfillerProxy         A flag indicating whether to source
+     *                                  approvals for fulfilled tokens from an
+     *                                  associated proxy.
+     *
+     * @return fulfillmentDetails A array of FulfillmentDetail structs, each
+     *                            indicating whether the associated order has
+     *                            been fulfilled and whether a proxy was used.
+     * @return standardExecutions An array of elements indicating the sequence
+     *                            of non-batch transfers performed as part of
+     *                            matching the given orders.
+     * @return batchExecutions    An array of elements indicating the sequence
+     *                            of batch transfers performed as part of
+     *                            matching the given orders.
+     */
+    function fulfillAvailableAdvancedOrders(
+        AdvancedOrder[] calldata advancedOrders,
+        CriteriaResolver[] calldata criteriaResolvers,
+        FulfillmentComponent[][] calldata offerFulfillments,
+        FulfillmentComponent[][] calldata considerationFulfillments,
+        bool useFulfillerProxy
+    ) external payable override returns (
+        FulfillmentDetail[] memory fulfillmentDetails,
+        Execution[] memory standardExecutions,
+        BatchExecution[] memory batchExecutions
+    ) {
+        // Reference "unused" variables to silence compiler warnings.
+        advancedOrders;
+        criteriaResolvers;
+        offerFulfillments;
+        considerationFulfillments;
+        useFulfillerProxy;
+        fulfillmentDetails;
+        standardExecutions;
+        batchExecutions;
+
+        // Read delegated logic contract from runtime code and place on stack.
+        address delegated = _DELEGATED;
+
+        // Utilize assembly for direct access to calldata and returndata buffer.
+        assembly {
+            // Copy entirety of calldata directly into memory with no offset.
+            // This clobbers existing memory, including the free memory pointer,
+            // but it will not be needed from this point forward.
+            calldatacopy(
+                returndatasize(), // Put 0 on the stack for the memory offset.
+                returndatasize(), // Put 0 on the stack for the calldata offset.
+                calldatasize()    // Supply full length for the calldata length.
+            )
+
+            // Perform the delegatecall to the delegated logic contract. Memory
+            // will not be written to as returndatasize is not known ahead of
+            // time; instead, utilize the returndata buffer.
+            let success := delegatecall(
+                gas(),            // Forward all available gas.
+                delegated,        // Supply delegated logic contract address.
+                returndatasize(), // Put 0 on the stack for memory-in offset.
+                calldatasize(),   // Use calldata length for memory-in length.
+                returndatasize(), // Put 0 on the stack for memory-out offset.
+                returndatasize()  // Put 0 on the stack for memory-out length.
+            )
+
+            // Copy the returndata buffer into memory with no offset.
+            returndatacopy(0, 0, returndatasize())
+
+            // Return or revert based on the success status of the delegatecall,
+            // passing along the original returndata. No special handling in the
+            // case of delegated calls to accounts with no code is required here
+            // as the delegated contract is not destructible.
+            switch success
+            case 0 {
+                revert(0, returndatasize()) // Revert with returndata in memory.
+            }
+            default {
+                return(0, returndatasize()) // Return with returndata in memory.
+            }
+        }
+    }
+
+    /**
      * @notice Match an arbitrary number of orders, each with an arbitrary
      *         number of items for offer and consideration along with a set of
      *         fulfillments allocating offer components to consideration
@@ -466,16 +606,19 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         );
 
         // Validate orders, apply amounts, & determine if they utilize proxies.
-        bool[] memory useProxyPerOrder = _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            new CriteriaResolver[](0) // No criteria resolvers are supplied.
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy = (
+            _validateOrdersAndPrepareToFulfill(
+                advancedOrders,
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                true // Signifies that invalid orders should revert.
+            )
         );
 
         // Fulfill the orders using the supplied fulfillments.
         return _fulfillAdvancedOrders(
             advancedOrders,
             fulfillments,
-            useProxyPerOrder
+            fulfillOrdersAndUseProxy
         );
     }
 
@@ -527,16 +670,19 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         BatchExecution[] memory batchExecutions
     ) {
         // Validate orders, apply amounts, & determine if they utilize proxies.
-        bool[] memory useProxyPerOrder = _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            criteriaResolvers
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy = (
+            _validateOrdersAndPrepareToFulfill(
+                advancedOrders,
+                criteriaResolvers,
+                true // Signifies that invalid orders should revert.
+            )
         );
 
         // Fulfill the orders using the supplied fulfillments.
         return _fulfillAdvancedOrders(
             advancedOrders,
             fulfillments,
-            useProxyPerOrder
+            fulfillOrdersAndUseProxy
         );
     }
 
@@ -656,7 +802,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 _verifyOrderStatus(
                     orderHash,
                     orderStatus,
-                    false // Signifies that partially filled orders are valid.
+                    false, // Signifies that partially filled orders are valid.
+                    true // Signifies to revert if the order is invalid.
                 );
 
                 // If the order has not already been validated...
