@@ -8,6 +8,9 @@ typechain-types
 cache
 artifacts
 
+#foundry test compilation files
+out/
+
 .DS_Store
 
 # VScode
