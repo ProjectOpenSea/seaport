@@ -1050,6 +1050,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
+        // Revert if no orders are available.
+        if (executions.length == 0) {
+            revert NoSpecifiedOrdersAvailable();
+        }
+
         // Perform final checks, compress executions, and return.
         return _performFinalChecksAndExecuteOrders(
             advancedOrders,

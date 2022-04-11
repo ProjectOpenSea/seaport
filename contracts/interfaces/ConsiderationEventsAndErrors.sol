@@ -384,4 +384,10 @@ interface ConsiderationEventsAndErrors {
      *      calldata not produced by default ABI encoding.
      */
     error InvalidBasicOrderParameterEncoding();
+
+    /**
+     * @dev Revert with an error when attempting to fulfill any number of
+     *      available orders when none are fulfillable.
+     */
+    error NoSpecifiedOrdersAvailable();
 }
