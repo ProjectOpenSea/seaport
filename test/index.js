@@ -8179,13 +8179,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("Fulfill Available Orders", async () => {
-      it("Can reach delegated functions", async () => {
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = await marketplaceContract.connect(owner).fulfillAvailableAdvancedOrders([], [], [], [], false);
-          const receipt = await tx.wait();
-          expect(!!receipt.status).to.be.true;
-        });
+      let domainSeparatorTester;
+
+      beforeEach(async () => {
+        const domainSeparatorTesterFactory = await ethers.getContractFactory(
+          "DelegatedDomainSeparatorTester"
+        );
+
+        domainSeparatorTester = await domainSeparatorTesterFactory.deploy(
+          legacyProxyRegistry.address,
+          legacyProxyImplementation
+        );
       });
+
       it("Cannot reach delegated functions directly", async () => {
         await whileImpersonating(owner.address, provider, async () => {
           // Compute address of delegated contract from marketplace contract
@@ -8738,6 +8744,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         });
       });
+      it("Can derive a new domain separator using the deployer as the verifying contract", async () => {
+        await whileImpersonating(owner.address, provider, async () => {
+          // Compute address of delegated contract from marketplace contract
+          const delegated = delegatedContract.attach(
+            `0x${ethers.utils.keccak256(`0xd694${marketplaceContract.address.slice(2)}01`).slice(26)}`
+          );
+
+          await expect(domainSeparatorTester.connect(owner).deriveDomainSeparatorAndCompare()).to.not.be.reverted;
+        });
+      });
     });
   });
 
@@ -8746,6 +8762,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     let buyer;
     let sellerContract;
     let buyerContract;
+    let domainSeparatorTester;
 
     beforeEach(async () => {
       // Setup basic buyer/seller wallets with ETH
@@ -10684,9 +10701,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
       it("Reverts on fulfillAvailable with out-of-range offer order", async () => {
-        // Seller mints nft
+        // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex());
         await testERC721.mint(seller.address, nftId);
+
+        // Seller mints second nft
+        const secondNFTId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, secondNFTId);
 
         // Seller approves marketplace contract to transfer NFT
         await whileImpersonating(seller.address, provider, async () => {
@@ -10700,6 +10721,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             itemType: 2, // ERC721
             token: testERC721.address,
             identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(1),
+            endAmount: ethers.BigNumber.from(1),
+          },
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: secondNFTId,
             startAmount: ethers.BigNumber.from(1),
             endAmount: ethers.BigNumber.from(1),
           },
@@ -10741,6 +10769,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
 
         const offerComponents = [
+          [{
+            orderIndex: 0,
+            itemIndex: 0
+          }],
           [{
             orderIndex: 2,
             itemIndex: 0
@@ -10926,7 +10958,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const considerationComponents = [
           [{
-            orderIndex: 2,
+            orderIndex: 0,
             itemIndex: 0
           }],
           [{
