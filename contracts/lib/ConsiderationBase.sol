@@ -46,8 +46,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping (bytes32 => OrderStatus) internal _orderStatus;
 
-    // Cancel offerer's orders with given zone (offerer => zone => nonce).
-    mapping (address => mapping (address => uint256)) internal _nonces;
+    // Cancel all of a given offerer's orders signed with their current nonce.
+    mapping (address => uint256) internal _nonces;
 
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain

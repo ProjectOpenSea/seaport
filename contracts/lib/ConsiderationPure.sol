@@ -1205,7 +1205,8 @@ contract ConsiderationPure is ConsiderationBase {
             order.parameters,
             1,
             1,
-            order.signature
+            order.signature,
+            "0x"
         );
     }
 

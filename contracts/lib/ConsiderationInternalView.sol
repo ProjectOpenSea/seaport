@@ -3,6 +3,8 @@ pragma solidity 0.8.12;
 
 import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 
+import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+
 import {
     OrderType,
     ItemType,
@@ -265,9 +267,9 @@ contract ConsiderationInternalView is ConsiderationPure {
         bytes32 digest,
         bytes memory signature
     ) internal view {
-        // Attempt an EIP-1271 static call to the offerer.
-        (bool success, ) = offerer.staticcall(
-            abi.encodeWithSelector(
+        // Attempt an EIP-1271 staticcall to the offerer.
+        bool success = _staticcall(
+            offerer, abi.encodeWithSelector(
                 EIP1271Interface.isValidSignature.selector,
                 digest,
                 signature
@@ -300,6 +302,23 @@ contract ConsiderationInternalView is ConsiderationPure {
         if (result != EIP1271Interface.isValidSignature.selector) {
             revert InvalidSigner();
         }
+    }
+
+    /**
+     * @dev Internal view function to staticcall an arbitrary target with given
+     *      calldata. Note that no data is written to memory and no contract
+     *      size check is performed.
+     *
+     * @param target   The account to staticcall.
+     * @param callData The calldata to supply when staticcalling the target.
+     *
+     * @return success The status of the staticcall to the target.
+     */
+    function _staticcall(
+        address target,
+        bytes memory callData
+    ) internal view returns (bool success) {
+        (success, ) = target.staticcall(callData);
     }
 
     /**
@@ -397,11 +416,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             orderParameters.totalOriginalConsiderationItems
         );
 
-        // Derive and return order hash using current nonce for offerer in zone.
-        return _getOrderHash(
-            orderParameters,
-            _nonces[orderParameters.offerer][orderParameters.zone]
-        );
+        // Derive and return order hash using current nonce for the offerer.
+        return _getOrderHash(orderParameters, _nonces[orderParameters.offerer]);
     }
 
     /**
@@ -455,14 +471,16 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      for a given order and to ensure that the submitter is allowed by the
      *      order type.
      *
-     * @param orderType        The type of the order.
-     * @param offerer          The offerer in question.
-     * @param zone             The zone in question.
+     * @param orderHash The hash of the order.
+     * @param orderType The type of the order.
+     * @param offerer   The offerer in question.
+     * @param zone      The zone in question.
      *
      * @return useOffererProxy A boolean indicating whether a proxy should be
      *                         utilized for the order.
      */
-    function _determineProxyUtilizationAndEnsureValidSubmitter(
+    function _determineProxyUtilizationAndEnsureValidBasicOrder(
+        bytes32 orderHash,
         OrderType orderType,
         address offerer,
         address zone
@@ -479,7 +497,118 @@ contract ConsiderationInternalView is ConsiderationPure {
             msg.sender != zone &&
             msg.sender != offerer
         ) {
-            revert InvalidSubmitterOnRestrictedOrder();
+            // Perform minimal staticcall to the zone.
+            bool success = _staticcall(
+                zone,
+                abi.encodeWithSelector(
+                    ZoneInterface.isValidOrder.selector,
+                    orderHash,
+                    msg.sender,
+                    offerer
+                )
+            );
+
+            // Ensure call was successful and returned the correct magic value.
+            _assertIsValidOrderStaticcallSuccess(success, orderHash);
+        }
+    }
+
+    function _assertIsValidOrderStaticcallSuccess(
+        bool success,
+        bytes32 orderHash
+    ) internal view {
+        // If the call failed...
+        if (!success) {
+            // Revert and pass reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
+
+            // Otherwise, revert with a generic error message.
+            revert InvalidRestrictedOrder(orderHash);
+        }
+
+        // Extract result from returndata buffer in case of memory overflow.
+        bytes4 result;
+        assembly {
+            // Only put result on stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) {
+                // Copy directly from return data into scratch space.
+                returndatacopy(0, 0, 0x20)
+
+                // Take value from scratch space and place it on the stack.
+                result := mload(0)
+            }
+        }
+
+        // Ensure result was extracted and matches isValidOrder magic value.
+        if (result != ZoneInterface.isValidOrder.selector) {
+            revert InvalidRestrictedOrder(orderHash);
+        }
+    }
+
+    /**
+     * @dev Internal view function to determine if a proxy should be utilized
+     *      for a given order and to ensure that the submitter is allowed by the
+     *      order type.
+     *
+     * @param advancedOrder The order in question.
+     * @param orderHash     The hash of the order.
+     * @param orderType     The type of the order.
+     * @param offerer       The offerer in question.
+     * @param zone          The zone in question.
+     *
+     * @return useOffererProxy A boolean indicating whether a proxy should be
+     *                         utilized for the order.
+     */
+    function _determineProxyUtilizationAndEnsureValidAdvancedOrder(
+        AdvancedOrder memory advancedOrder,
+        bytes32 orderHash,
+        OrderType orderType,
+        address offerer,
+        address zone
+    ) internal view returns (bool useOffererProxy) {
+        // Convert the order type from enum to uint256.
+        uint256 orderTypeAsUint256 = uint256(orderType);
+
+        // Order type 0-3 are executed directly while 4-7 are executed by proxy.
+        useOffererProxy = orderTypeAsUint256 > 3;
+
+        // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
+        if (
+            orderTypeAsUint256 > (useOffererProxy ? 5 : 1) &&
+            msg.sender != zone &&
+            msg.sender != offerer
+        ) {
+            // Declare a variable for the status of the staticcall to the zone.
+            bool success;
+
+            // If no extraData is supplied...
+            if (advancedOrder.extraData.length == 0) {
+                // Perform minimal staticcall to the zone.
+                success = _staticcall(
+                    zone,
+                    abi.encodeWithSelector(
+                        ZoneInterface.isValidOrder.selector,
+                        orderHash,
+                        msg.sender,
+                        offerer
+                    )
+                );
+            // Otherwise, extraData has been supplied.
+            } else {
+                // Perform verbose staticcall to zone.
+                success = _staticcall(
+                    zone,
+                    abi.encodeWithSelector(
+                        ZoneInterface.isValidOrderIncludingExtraData.selector,
+                        orderHash,
+                        msg.sender,
+                        advancedOrder
+                    )
+                );
+            }
+
+            // Ensure call was successful and returned the correct magic value.
+            _assertIsValidOrderStaticcallSuccess(success, orderHash);
         }
     }
 

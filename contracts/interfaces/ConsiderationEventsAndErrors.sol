@@ -65,17 +65,14 @@ interface ConsiderationEventsAndErrors {
     );
 
     /**
-     * @dev Emit an event whenever a nonce for a given offerer + zone pair is
-     *      incremented.
+     * @dev Emit an event whenever a nonce for a given offerer is incremented.
      *
-     * @param newNonce The new nonce for the offerer + zone pair.
+     * @param newNonce The new nonce for the offerer.
      * @param offerer  The offerer in question.
-     * @param zone     The zone in question.
      */
     event NonceIncremented(
         uint256 newNonce,
-        address indexed offerer,
-        address indexed zone
+        address indexed offerer
     );
 
     /**
@@ -95,9 +92,12 @@ interface ConsiderationEventsAndErrors {
     /**
      * @dev Revert with an error when attempting to fill an order that specifies
      *      a restricted submitter as its order type when not submitted by
-     *      either the offerrer or the order's zone.
+     *      either the offerrer or the order's zone or approved as valid by the
+     *      zone in question via a staticcall to `isValidOrder`.
+     *
+     * @param orderHash The order hash for the invalid restricted order.
      */
-    error InvalidSubmitterOnRestrictedOrder();
+    error InvalidRestrictedOrder(bytes32 orderHash);
 
     /**
      * @dev Revert with an error when an order is supplied for fulfillment with
@@ -347,12 +347,6 @@ interface ConsiderationEventsAndErrors {
      *      other than the indicated offerer or zone.
      */
     error InvalidCanceller();
-
-    /**
-     * @dev Revert with an error when attempting to increment a nonce as a
-     *      caller other than the indicated offerer or zone.
-     */
-    error InvalidNonceIncrementor();
 
     /**
      * @dev Revert with an error when supplying a fraction with a value of zero

@@ -242,12 +242,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
     }
     { // Calculate order hash
       address offerer;
-      address zone;
       assembly {
         offerer := calldataload(0x84)
-        zone := calldataload(0xa4)
       }
-      uint256 nonce = _nonces[offerer][zone];
+      uint256 nonce = _nonces[offerer];
       bytes32 typeHash = _ORDER_HASH;
       assembly {
         /* Memory Layout
@@ -319,18 +317,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
       mstore(0x60, 0)
     }
 
+    // Determine if a proxy should be used and that restricted orders are valid.
+    useOffererProxy = _determineProxyUtilizationAndEnsureValidBasicOrder(
+        orderHash,
+        parameters.orderType,
+        parameters.offerer,
+        parameters.zone
+    );
+
     // Verify and update the status of the derived order.
     _validateBasicOrderAndUpdateStatus(
         orderHash,
         parameters.offerer,
         parameters.signature
-    );
-
-    // Determine if a proxy should be utilized and ensure a valid submitter.
-    useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
-        parameters.orderType,
-        parameters.offerer,
-        parameters.zone
     );
   }
 
@@ -438,7 +437,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
-        useOffererProxy = _determineProxyUtilizationAndEnsureValidSubmitter(
+        useOffererProxy = _determineProxyUtilizationAndEnsureValidAdvancedOrder(
+            advancedOrder,
+            orderHash,
             orderParameters.orderType,
             orderParameters.offerer,
             orderParameters.zone

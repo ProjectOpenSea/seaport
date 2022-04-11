@@ -834,32 +834,23 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer or the zone
-     *         may increment the nonce.
-     *
-     * @param offerer The offerer in question.
-     * @param zone    The zone in question.
+     *         by incrementing a nonce. Note that only the offerer may increment
+     *         the nonce.
      *
      * @return newNonce The new nonce.
      */
-    function incrementNonce(
-        address offerer,
-        address zone
-    ) external override returns (uint256 newNonce) {
+    function incrementNonce() external override returns (uint256 newNonce) {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
-        if (msg.sender != offerer && msg.sender != zone) {
-            revert InvalidNonceIncrementor();
-        }
 
         // No need to check for overflow; nonce cannot be incremented that far.
         unchecked {
-            // Increment current nonce for the supplied offerer + zone pair.
-            newNonce = ++_nonces[offerer][zone];
+            // Increment current nonce for the supplied offerer.
+            newNonce = ++_nonces[msg.sender];
         }
 
         // Emit an event containing the new nonce.
-        emit NonceIncremented(newNonce, offerer, zone);
+        emit NonceIncremented(newNonce, msg.sender);
     }
 
     /**
@@ -927,19 +918,17 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
-     * @notice Retrieve the current nonce for a given offerer + zone pair.
+     * @notice Retrieve the current nonce for a given offerer.
      *
      * @param offerer The offerer in question.
-     * @param zone    The zone in question.
      *
      * @return The current nonce.
      */
     function getNonce(
-        address offerer,
-        address zone
+        address offerer
     ) external view override returns (uint256) {
-        // Return the nonce for the supplied offerer + zone pair.
-        return _nonces[offerer][zone];
+        // Return the nonce for the supplied offerer.
+        return _nonces[offerer];
     }
 
     /**
