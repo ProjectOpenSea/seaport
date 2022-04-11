@@ -561,10 +561,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
              // Read length of the orders array from memory and place on stack.
-             uint256 length = orders.length;
+             uint256 totalOrders = orders.length;
 
             // Iterate over each order.
-            for (uint256 i = 0; i < length;) {
+            for (uint256 i = 0; i < totalOrders;) {
                 // Retrieve the order.
                 OrderComponents memory order = orders[i];
 
@@ -599,7 +599,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 // Emit an event signifying that the order has been cancelled.
                 emit OrderCancelled(orderHash, offerer, zone);
 
-                // Increment loop counter inside body of the loop for gas efficiency.
+                // Increment counter inside body of loop for gas efficiency.
                 ++i;
             }
         }
@@ -630,11 +630,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
-            // Read length of the orders array from memory and place on stack
-            uint length = orders.length;
+            // Read length of the orders array from memory and place on stack.
+            uint256 totalOrders = orders.length;
 
             // Iterate over each order.
-            for (uint256 i = 0; i < length;) {
+            for (uint256 i = 0; i < totalOrders;) {
                 // Retrieve the order.
                 Order memory order = orders[i];
 
@@ -676,7 +676,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                         orderParameters.zone
                     );
                 }
-                // Increment loop counter inside body of the loop for gas efficiency
+
+                // Increment counter inside body of the loop for gas efficiency.
                 ++i;
             }
         }
