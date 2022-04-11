@@ -2,6 +2,7 @@ module.exports = {
   skipFiles: [
     'interfaces/AbridgedProxyInterfaces.sol',
     'interfaces/AbridgedTokenInterfaces.sol',
+    'interfaces/ConsiderationDelegatedInterface.sol',
     'interfaces/ConsiderationEventsAndErrors.sol',
     'interfaces/ConsiderationInterface.sol',
     'interfaces/EIP1271Interface.sol',

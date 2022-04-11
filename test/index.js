@@ -8762,7 +8762,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     let buyer;
     let sellerContract;
     let buyerContract;
-    let domainSeparatorTester;
 
     beforeEach(async () => {
       // Setup basic buyer/seller wallets with ETH
@@ -10701,35 +10700,32 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
       it("Reverts on fulfillAvailable with out-of-range offer order", async () => {
-        // Seller mints first nft
-        const nftId = ethers.BigNumber.from(randomHex());
-        await testERC721.mint(seller.address, nftId);
-
-        // Seller mints second nft
-        const secondNFTId = ethers.BigNumber.from(randomHex());
-        await testERC721.mint(seller.address, secondNFTId);
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, nftId, amount.mul(2));
 
         // Seller approves marketplace contract to transfer NFT
         await whileImpersonating(seller.address, provider, async () => {
-          await expect(testERC721.connect(seller).setApprovalForAll(marketplaceContract.address, true))
-            .to.emit(testERC721, "ApprovalForAll")
+          await expect(testERC1155.connect(seller).setApprovalForAll(marketplaceContract.address, true))
+            .to.emit(testERC1155, "ApprovalForAll")
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
         const offer = [
           {
-            itemType: 2, // ERC721
-            token: testERC721.address,
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
             identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
+            startAmount: amount,
+            endAmount: amount,
           },
           {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: secondNFTId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount,
+            endAmount: amount,
           },
         ];
 
@@ -10772,8 +10768,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           [{
             orderIndex: 0,
             itemIndex: 0
-          }],
-          [{
+          }, {
             orderIndex: 2,
             itemIndex: 0
           }],
@@ -10957,14 +10952,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const considerationComponents = [
-          [{
-            orderIndex: 0,
-            itemIndex: 0
-          }],
-          [{
-            orderIndex: 2,
-            itemIndex: 1
-          }],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0
+            },
+            {
+              orderIndex: 2,
+              itemIndex: 1
+            }
+          ],
           [{
             orderIndex: 2,
             itemIndex: 2
