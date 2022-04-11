@@ -513,38 +513,6 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
-    function _assertIsValidOrderStaticcallSuccess(
-        bool success,
-        bytes32 orderHash
-    ) internal view {
-        // If the call failed...
-        if (!success) {
-            // Revert and pass reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert InvalidRestrictedOrder(orderHash);
-        }
-
-        // Extract result from returndata buffer in case of memory overflow.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        // Ensure result was extracted and matches isValidOrder magic value.
-        if (result != ZoneInterface.isValidOrder.selector) {
-            revert InvalidRestrictedOrder(orderHash);
-        }
-    }
-
     /**
      * @dev Internal view function to determine if a proxy should be utilized
      *      for a given order and to ensure that the submitter is allowed by the

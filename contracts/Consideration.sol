@@ -523,47 +523,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         standardExecutions;
         batchExecutions;
 
-        // Read delegated logic contract from runtime code and place on stack.
-        address delegated = _DELEGATED;
-
-        // Utilize assembly for direct access to calldata and returndata buffer.
-        assembly {
-            // Copy entirety of calldata directly into memory with no offset.
-            // This clobbers existing memory, including the free memory pointer,
-            // but it will not be needed from this point forward.
-            calldatacopy(
-                returndatasize(), // Put 0 on the stack for the memory offset.
-                returndatasize(), // Put 0 on the stack for the calldata offset.
-                calldatasize()    // Supply full length for the calldata length.
-            )
-
-            // Perform the delegatecall to the delegated logic contract. Memory
-            // will not be written to as returndatasize is not known ahead of
-            // time; instead, utilize the returndata buffer.
-            let success := delegatecall(
-                gas(),            // Forward all available gas.
-                delegated,        // Supply delegated logic contract address.
-                returndatasize(), // Put 0 on the stack for memory-in offset.
-                calldatasize(),   // Use calldata length for memory-in length.
-                returndatasize(), // Put 0 on the stack for memory-out offset.
-                returndatasize()  // Put 0 on the stack for memory-out length.
-            )
-
-            // Copy the returndata buffer into memory with no offset.
-            returndatacopy(0, 0, returndatasize())
-
-            // Return or revert based on the success status of the delegatecall,
-            // passing along the original returndata. No special handling in the
-            // case of delegated calls to accounts with no code is required here
-            // as the delegated contract is not destructible.
-            switch success
-            case 0 {
-                revert(0, returndatasize()) // Revert with returndata in memory.
-            }
-            default {
-                return(0, returndatasize()) // Return with returndata in memory.
-            }
-        }
+        // Execute all logic via the delegated contract.
+        _delegate();
     }
 
     /**
@@ -600,26 +561,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
     ) {
-        // Convert orders to "advanced" orders.
-        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
-            orders
-        );
+        // Reference "unused" variables to silence compiler warnings.
+        orders;
+        fulfillments;
+        standardExecutions;
+        batchExecutions;
 
-        // Validate orders, apply amounts, & determine if they utilize proxies.
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy = (
-            _validateOrdersAndPrepareToFulfill(
-                advancedOrders,
-                new CriteriaResolver[](0), // No criteria resolvers supplied.
-                true // Signifies that invalid orders should revert.
-            )
-        );
-
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(
-            advancedOrders,
-            fulfillments,
-            fulfillOrdersAndUseProxy
-        );
+        // Execute all logic via the delegated contract.
+        _delegate();
     }
 
     /**
@@ -767,69 +716,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function validate(
         Order[] memory orders
     ) external override returns (bool) {
-        // Ensure that the reentrancy guard is not currently set.
-        _assertNonReentrant();
+        // Reference "unused" variables to silence compiler warnings.
+        orders;
 
-        // Declare variables outside of the loop.
-        bytes32 orderHash;
-        address offerer;
-
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Read length of the orders array from memory and place on stack.
-            uint256 totalOrders = orders.length;
-
-            // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders;) {
-                // Retrieve the order.
-                Order memory order = orders[i];
-
-                // Retrieve the order parameters.
-                OrderParameters memory orderParameters = order.parameters;
-
-                // Move offerer from memory to the stack.
-                offerer = orderParameters.offerer;
-
-                // Get current nonce and use it w/ params to derive order hash.
-                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
-                    orderParameters
-                );
-
-                // Retrieve the order status using the derived order hash.
-                OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-                // Ensure order is fillable and retrieve the filled amount.
-                _verifyOrderStatus(
-                    orderHash,
-                    orderStatus,
-                    false, // Signifies that partially filled orders are valid.
-                    true // Signifies to revert if the order is invalid.
-                );
-
-                // If the order has not already been validated...
-                if (!orderStatus.isValidated) {
-                    // Verify the supplied signature.
-                    _verifySignature(
-                        offerer, orderHash, order.signature
-                    );
-
-                    // Update order status to mark the order as valid.
-                    _orderStatus[orderHash].isValidated = true;
-
-                    // Emit an event signifying the order has been validated.
-                    emit OrderValidated(
-                        orderHash,
-                        offerer,
-                        orderParameters.zone
-                    );
-                }
-
-                // Increment counter inside body of the loop for gas efficiency.
-                ++i;
-            }
-        }
-
-        return true;
+        // Execute all logic via the delegated contract.
+        _delegate();
     }
 
     /**
@@ -840,17 +731,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return newNonce The new nonce.
      */
     function incrementNonce() external override returns (uint256 newNonce) {
-        // Ensure that the reentrancy guard is not currently set.
-        _assertNonReentrant();
+        // Reference "unused" variables to silence compiler warnings.
+        newNonce;
 
-        // No need to check for overflow; nonce cannot be incremented that far.
-        unchecked {
-            // Increment current nonce for the supplied offerer.
-            newNonce = ++_nonces[msg.sender];
-        }
-
-        // Emit an event containing the new nonce.
-        emit NonceIncremented(newNonce, msg.sender);
+        // Execute all logic via the delegated contract.
+        _delegate();
     }
 
     /**
@@ -960,5 +845,53 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function version() external pure override returns (string memory) {
         // Return the version.
         return _VERSION;
+    }
+
+    /**
+     * @dev Internal function to delegate all logic to the delegated contract.
+     *      Control flow will be completely overridden on calling this function.
+     */
+    function _delegate() internal {
+        // Read delegated logic contract from runtime code and place on stack.
+        address delegated = _DELEGATED;
+
+        // Utilize assembly for direct access to calldata and returndata buffer.
+        assembly {
+            // Copy entirety of calldata directly into memory with no offset.
+            // This clobbers existing memory, including the free memory pointer,
+            // but it will not be needed from this point forward.
+            calldatacopy(
+                returndatasize(), // Put 0 on the stack for the memory offset.
+                returndatasize(), // Put 0 on the stack for the calldata offset.
+                calldatasize()    // Supply full length for the calldata length.
+            )
+
+            // Perform the delegatecall to the delegated logic contract. Memory
+            // will not be written to as returndatasize is not known ahead of
+            // time; instead, utilize the returndata buffer.
+            let success := delegatecall(
+                gas(),            // Forward all available gas.
+                delegated,        // Supply delegated logic contract address.
+                returndatasize(), // Put 0 on the stack for memory-in offset.
+                calldatasize(),   // Use calldata length for memory-in length.
+                returndatasize(), // Put 0 on the stack for memory-out offset.
+                returndatasize()  // Put 0 on the stack for memory-out length.
+            )
+
+            // Copy the returndata buffer into memory with no offset.
+            returndatacopy(0, 0, returndatasize())
+
+            // Return or revert based on the success status of the delegatecall,
+            // passing along the original returndata. No special handling in the
+            // case of delegated calls to accounts with no code is required here
+            // as the delegated contract is not destructible.
+            switch success
+            case 0 {
+                revert(0, returndatasize()) // Revert with returndata in memory.
+            }
+            default {
+                return(0, returndatasize()) // Return with returndata in memory.
+            }
+        }
     }
 }
