@@ -120,7 +120,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
             )
         );
         _CHAIN_ID = block.chainid;
-        _DOMAIN_SEPARATOR = _deriveDomainSeparator();
+        _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator();
 
         // TODO: validate each of these based on expected codehash
         _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
@@ -131,11 +131,23 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     }
 
     /**
+     * @dev Internal view function to derive the initial EIP-712 domain
+     *      separator.
+     *
+     * @return The derived domain separator.
+     */
+    function _deriveInitialDomainSeparator() internal view virtual returns (
+        bytes32
+    ) {
+        return _deriveDomainSeparator();
+    }
+
+    /**
      * @dev Internal view function to derive the EIP-712 domain separator.
      *
      * @return The derived domain separator.
      */
-    function _deriveDomainSeparator() internal view returns (bytes32) {
+    function _deriveDomainSeparator() internal view virtual returns (bytes32) {
         return keccak256(
             abi.encode(
                 _EIP_712_DOMAIN_TYPEHASH,

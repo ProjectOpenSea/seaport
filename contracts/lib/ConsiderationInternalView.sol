@@ -3,16 +3,24 @@ pragma solidity 0.8.12;
 
 import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 
-import { OrderType } from "./ConsiderationEnums.sol";
+import {
+    OrderType,
+    ItemType,
+    Side
+} from "./ConsiderationEnums.sol";
 
 import {
     OfferItem,
     ConsiderationItem,
+    SpentItem,
     ReceivedItem,
     OrderParameters,
     Order,
     AdvancedOrder,
-    OrderStatus
+    OrderStatus,
+    Execution,
+    FulfillmentComponent,
+    FulfillmentDetail
 } from "./ConsiderationStructs.sol";
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
@@ -53,17 +61,31 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @dev Internal view function to ensure that the current time falls within
      *      an order's valid timespan.
      *
-     * @param startTime The time at which the order becomes active.
-     * @param endTime   The time at which the order becomes inactive.
+     * @param startTime       The time at which the order becomes active.
+     * @param endTime         The time at which the order becomes inactive.
+     * @param revertOnInvalid A boolean indicating whether to revert if the
+     *                        order is not active.
+     *
+     * @return valid A boolean indicating whether the order is active.
      */
-    function _assertValidTime(
+    function _verifyTime(
         uint256 startTime,
-        uint256 endTime
-    ) internal view {
+        uint256 endTime,
+        bool revertOnInvalid
+    ) internal view returns (bool valid) {
         // Revert if order's timespan hasn't started yet or has already ended.
         if (startTime > block.timestamp || endTime <= block.timestamp) {
-            revert InvalidTime();
+            // Only revert if revertOnInvalid has been supplied as true.
+            if (revertOnInvalid) {
+                revert InvalidTime();
+            }
+
+            // Return false as the order is invalid.
+            return false;
         }
+
+        // Return true as the order time is valid.
+        valid = true;
     }
 
     /**
@@ -589,5 +611,335 @@ contract ConsiderationInternalView is ConsiderationPure {
                 );
             }
         }
+    }
+
+    /**
+     * @dev Internal view function to aggregate offer or consideration items
+     *      from a group of orders into a single execution via a supplied array
+     *      of fulfillment components. Items that are not available to aggregate
+     *      will not be included in the aggregated execution.
+     *
+     * @param orders                   The orders to match.
+     * @param side                     The side (i.e. offer or consideration).
+     * @param fulfillmentComponents    An array designating item components to
+     *                                 aggregate if part of an available order.
+     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
+     *                                 indicating whether to source approvals
+     *                                 for the relevant items on each order from
+     *                                 the offerer's respective proxy.
+     * @param useFulfillerProxy        A flag indicating whether to source
+     *                                 approvals for fulfilled tokens from the
+     *                                 fulfiller's respective proxy.
+     *
+     * @return execution The transfer performed as a result of the fulfillment.
+     */
+    function _aggregateAvailable(
+        AdvancedOrder[] memory orders,
+        Side side,
+        FulfillmentComponent[] memory fulfillmentComponents,
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy,
+        bool useFulfillerProxy
+    ) internal view returns (Execution memory execution) {
+        // Ensure at least one fulfillment component has been supplied.
+        if (fulfillmentComponents.length == 0) {
+            revert MissingFulfillmentComponentOnAggregation(side);
+        }
+
+        // Determine component index after first available (zero implies none).
+        uint256 nextComponentIndex = 0;
+
+        // Skip overflow checks as all for loops are indexed starting at zero.
+        unchecked {
+            // Iterate over components until finding one with a fulfilled order.
+            for (uint256 i = 0; i < fulfillmentComponents.length; ++i) {
+                // Retrieve the fulfillment component index.
+                uint256 orderIndex = fulfillmentComponents[i].orderIndex;
+
+                // Ensure that the order index is in range.
+                if (orderIndex >= orders.length) {
+                    revert FulfilledOrderIndexOutOfRange();
+                }
+
+                // If order is being fulfilled (i.e. it is still available)...
+                if (fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
+                    // Update the next potential component index.
+                    nextComponentIndex = i + 1;
+
+                    // Exit the loop.
+                    break;
+                }
+            }
+        }
+
+        // If no available order was located...
+        if (nextComponentIndex == 0) {
+            // Return early with a null execution element that will be filtered.
+            return Execution(
+                ReceivedItem(
+                    ItemType.NATIVE, address(0), 0, 0, payable(address(0))
+                ),
+                address(0),
+                false
+            );
+        }
+
+        // Otherwise, get first available fulfillment component.
+        FulfillmentComponent memory firstAvailableComponent;
+        unchecked {
+            // Skip check decrementing next potential index as it is not zero.
+            firstAvailableComponent = (
+                fulfillmentComponents[nextComponentIndex - 1]
+            );
+        }
+
+        // If the fulfillment components are offer components...
+        if (side == Side.OFFER) {
+            // Return execution for aggregated items provided by the offerer.
+            return _aggregateOfferItems(
+                orders,
+                fulfillmentComponents,
+                firstAvailableComponent,
+                nextComponentIndex,
+                fulfillOrdersAndUseProxy
+            );
+        // Otherwise, fulfillment components are consideration components.
+        } else {
+            // Return execution for aggregated items provided by the fulfiller.
+            return _aggregateConsiderationItems(
+                orders,
+                fulfillmentComponents,
+                firstAvailableComponent,
+                nextComponentIndex,
+                fulfillOrdersAndUseProxy,
+                useFulfillerProxy
+            );
+        }
+    }
+
+    /**
+     * @dev Internal view function to aggregate offer items from a group of
+     *      orders into a single execution via a supplied array of components.
+     *      Offer items that are not available to aggregate will not be included
+     *      in the aggregated execution.
+     *
+     * @param orders                   The orders to match.
+     * @param offerComponents          An array designating offer components to
+     *                                 aggregate if part of an available order.
+     * @param firstAvailableComponent  The first available offer component.
+     * @param nextComponentIndex       The index of the next potential offer
+     *                                 component.
+     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
+     *                                 indicating whether to source approvals
+     *                                 for the relevant items on each order from
+     *                                 the offerer's respective proxy.
+     *
+     * @return execution The transfer performed as a result of the fulfillment.
+     */
+    function _aggregateOfferItems(
+        AdvancedOrder[] memory orders,
+        FulfillmentComponent[] memory offerComponents,
+        FulfillmentComponent memory firstAvailableComponent,
+        uint256 nextComponentIndex,
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy
+    ) internal view returns (Execution memory execution) {
+        // Get offerer and consume offer component, returning a spent item.
+        (
+            address offerer,
+            SpentItem memory offerItem,
+            bool useProxy
+        ) = _consumeOfferComponent(
+            orders,
+            firstAvailableComponent.orderIndex,
+            firstAvailableComponent.itemIndex,
+            fulfillOrdersAndUseProxy
+        );
+
+        // Iterate over each remaining component on the fulfillment.
+        for (uint256 i = nextComponentIndex; i < offerComponents.length;) {
+            // Retrieve the offer component from the fulfillment array.
+            FulfillmentComponent memory offerComponent = offerComponents[i];
+
+            // Read order index from offer component and place on the stack.
+            uint256 orderIndex = offerComponent.orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= orders.length) {
+                revert FulfilledOrderIndexOutOfRange();
+            }
+
+            // If order is not being fulfilled (i.e. it is unavailable)...
+            if (!fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
+                // Skip overflow check as for loop is indexed starting at one.
+                unchecked {
+                    ++i;
+                }
+
+                // Do not consume associated offer item but continue search.
+                continue;
+            }
+
+            // Get offerer & consume offer component, returning spent item.
+            (
+                address subsequentOfferer,
+                SpentItem memory nextOfferItem,
+                bool subsequentUseProxy
+            ) = _consumeOfferComponent(
+                orders,
+                orderIndex,
+                offerComponent.itemIndex,
+                fulfillOrdersAndUseProxy
+            );
+
+            // Ensure all relevant parameters are consistent with initial offer.
+            if (
+                offerer != subsequentOfferer ||
+                offerItem.itemType != nextOfferItem.itemType ||
+                offerItem.token != nextOfferItem.token ||
+                offerItem.identifier != nextOfferItem.identifier ||
+                useProxy != subsequentUseProxy
+            ) {
+                revert MismatchedFulfillmentOfferComponents();
+            }
+
+            // Increase the total offer amount by the current amount.
+            offerItem.amount += nextOfferItem.amount;
+
+            // Skip overflow check as for loop is indexed starting at one.
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Convert offer item into received item with fulfiller as receiver.
+        ReceivedItem memory receivedOfferItem = ReceivedItem(
+            offerItem.itemType,
+            offerItem.token,
+            offerItem.identifier,
+            offerItem.amount,
+            payable(msg.sender)
+        );
+
+        // Return execution for aggregated items provided by the offerer.
+        execution = Execution(
+            receivedOfferItem,
+            offerer,
+            useProxy
+        );
+    }
+
+    /**
+     * @dev Internal view function to aggregate consideration items from a group
+     *      of orders into a single execution via a supplied components array.
+     *      Consideration items that are not available to aggregate will not be
+     *      included in the aggregated execution.
+     *
+     * @param orders                   The orders to match.
+     * @param considerationComponents  An array designating consideration
+     *                                 components to aggregate if part of an
+     *                                 available order.
+     * @param firstAvailableComponent  The first available consideration
+     *                                 component.
+     * @param nextComponentIndex       The index of the next potential
+     *                                 consideration component.
+     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
+     *                                 indicating whether to source approvals
+     *                                 for the relevant items on each order from
+     *                                 the offerer's respective proxy.
+     * @param useFulfillerProxy        A flag indicating whether to source
+     *                                 approvals for fulfilled tokens from the
+     *                                 fulfiller's respective proxy.
+     *
+     * @return execution The transfer performed as a result of the fulfillment.
+     */
+    function _aggregateConsiderationItems(
+        AdvancedOrder[] memory orders,
+        FulfillmentComponent[] memory considerationComponents,
+        FulfillmentComponent memory firstAvailableComponent,
+        uint256 nextComponentIndex,
+        FulfillmentDetail[] memory fulfillOrdersAndUseProxy,
+        bool useFulfillerProxy
+    ) internal view returns (Execution memory execution) {
+        // Consume consideration component, returning a received item.
+        ReceivedItem memory requiredConsideration = (
+            _consumeConsiderationComponent(
+                orders,
+                firstAvailableComponent.orderIndex,
+                firstAvailableComponent.itemIndex
+            )
+        );
+
+        // Iterate over each remaining component on the fulfillment.
+        for (
+            uint256 i = nextComponentIndex;
+            i < considerationComponents.length;
+        ) {
+            // Retrieve the consideration component from the fulfillment array.
+            FulfillmentComponent memory considerationComponent = (
+                considerationComponents[i]
+            );
+
+            // Read order index from consideration component and place on stack.
+            uint256 orderIndex = considerationComponent.orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= orders.length) {
+                revert FulfilledOrderIndexOutOfRange();
+            }
+
+            // If order is not being fulfilled (i.e. it is unavailable)...
+            if (!fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
+                // Skip overflow check as for loop is indexed starting at one.
+                unchecked {
+                    ++i;
+                }
+
+                // Do not consume the consideration item & continue search.
+                continue;
+            }
+
+            // Consume consideration component, returning a received item.
+            ReceivedItem memory nextRequiredConsideration = (
+                _consumeConsiderationComponent(
+                    orders,
+                    orderIndex,
+                    considerationComponent.itemIndex
+                )
+            );
+
+            // Ensure parameters are consistent with initial consideration.
+            if (
+                requiredConsideration.recipient != (
+                    nextRequiredConsideration.recipient
+                ) ||
+                requiredConsideration.itemType != (
+                    nextRequiredConsideration.itemType
+                ) ||
+                requiredConsideration.token != (
+                    nextRequiredConsideration.token
+                ) ||
+                requiredConsideration.identifier != (
+                    nextRequiredConsideration.identifier
+                )
+            ) {
+                revert MismatchedFulfillmentConsiderationComponents();
+            }
+
+            // Increase total consideration amount by the current amount.
+            requiredConsideration.amount += (
+                nextRequiredConsideration.amount
+            );
+
+            // Skip overflow check as for loop is indexed starting at one.
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Return execution for aggregated items provided by the fulfiller.
+        return Execution(
+            requiredConsideration,
+            msg.sender,
+            useFulfillerProxy
+        );
     }
 }
