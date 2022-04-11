@@ -5,12 +5,12 @@ pragma solidity 0.8.12;
 
 import "ds-test/test.sol";
 import "../../contracts/Consideration.sol";
-import "src/test/NFT721.sol";
 import "src/test/CheatCodes.sol";
 
 //use solmate tokens
-import "solmate/src/tokens/ERC20.sol"
-import "solmate/src/tokens/ERC1155.sol"
+import "solmate/src/tokens/ERC20.sol";
+import "solmate/src/tokens/ERC1155.sol";
+import "solmate/src/tokens/ERC721.sol";
 
 contract ConsiderationTest is DSTest {
     Consideration consider;
