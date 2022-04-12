@@ -687,12 +687,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                     OrderParameters(
                         offerer,
                         zone,
+                        order.offer,
+                        order.consideration,
                         order.orderType,
                         order.startTime,
                         order.endTime,
                         order.salt,
-                        order.offer,
-                        order.consideration,
                         order.consideration.length
                     ),
                     order.nonce
@@ -827,12 +827,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             OrderParameters(
                 order.offerer,
                 order.zone,
+                order.offer,
+                order.consideration,
                 order.orderType,
                 order.startTime,
                 order.endTime,
                 order.salt,
-                order.offer,
-                order.consideration,
                 order.consideration.length
             ),
             order.nonce
