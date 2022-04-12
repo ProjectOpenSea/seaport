@@ -382,18 +382,12 @@ interface ConsiderationInterface {
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer or the zone
-     *         may increment the nonce.
-     *
-     * @param offerer The offerer in question.
-     * @param zone    The zone in question.
+     *         by incrementing a nonce. Note that only the offerer may increment
+     *         the nonce.
      *
      * @return newNonce The new nonce.
      */
-    function incrementNonce(
-        address offerer,
-        address zone
-    ) external returns (uint256 newNonce);
+    function incrementNonce() external returns (uint256 newNonce);
 
     /**
      * @notice Retrieve the order hash for a given order.
@@ -433,17 +427,13 @@ interface ConsiderationInterface {
     );
 
     /**
-     * @notice Retrieve the current nonce for a given offerer + zone pair.
+     * @notice Retrieve the current nonce for a given offerer.
      *
      * @param offerer The offerer in question.
-     * @param zone    The zone in question.
      *
      * @return The current nonce.
      */
-    function getNonce(
-        address offerer,
-        address zone
-    ) external view returns (uint256);
+    function getNonce(address offerer) external view returns (uint256);
 
     /**
      * @notice Retrieve the name of this contract.

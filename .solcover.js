@@ -14,6 +14,7 @@ module.exports = {
     'test/TestERC1155.sol',
     'test/TestERC20.sol',
     'test/TestERC721.sol',
+    'test/TestZone.sol',
     'test/wyvern/AuthenticatedProxy.sol',
     'test/wyvern/ERC20.sol',
     'test/wyvern/ERC20Basic.sol',
