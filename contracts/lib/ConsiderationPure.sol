@@ -1249,7 +1249,7 @@ contract ConsiderationPure is ConsiderationBase {
             1,
             1,
             order.signature,
-            "0x"
+            ""
         );
     }
 
@@ -1398,23 +1398,23 @@ contract ConsiderationPure is ConsiderationBase {
         assembly {
             /*
              * Checks:
-             * 1. Order parameters struct offset = 0x20
-             * 2. Additional recipients arr offset = 0x1e0
-             * 3. Signature offset = 0x200 + (recipients.length * 0x40)
+             * 1. Order parameters struct offset == 0x20
+             * 2. Additional recipients arr offset == 0x200
+             * 3. Signature offset == 0x240 + (recipients.length * 0x40)
              */
             validOffsets := and(
                 // Order parameters have offset of 0x20
                 eq(calldataload(0x04), 0x20),
                 // Additional recipients have offset of 0x200
-                eq(calldataload(0x1e4), 0x200)
+                eq(calldataload(0x204), 0x220)
             )
             validOffsets := and(
               validOffsets,
               eq(
                 // Load signature offset from calldata
-                calldataload(0x204),
+                calldataload(0x224),
                 // Calculate expected offset (start of recipients + len * 64)
-                add(0x220, mul(calldataload(0x224), 0x40))
+                add(0x240, mul(calldataload(0x244), 0x40))
               )
             )
         }

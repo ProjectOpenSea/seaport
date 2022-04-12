@@ -342,58 +342,104 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param orderParameters The parameters of the order to hash.
      * @param nonce           The nonce of the order to hash.
      *
-     * @return The hash.
+     * @return orderHash The hash.
      */
     function _getOrderHash(
         OrderParameters memory orderParameters,
         uint256 nonce
-    ) internal view returns (bytes32) {
-        // Get length of full offer array and place it on the stack.
-        uint256 offerLength = orderParameters.offer.length;
-
+    ) internal view returns (bytes32 orderHash) {
         // Get length of original consideration array and place it on the stack.
         uint256 originalConsiderationLength = (
-            orderParameters.totalOriginalConsiderationItems
+          orderParameters.totalOriginalConsiderationItems
         );
-
-        // Designate new memory regions for offer and consideration item hashes.
-        bytes32[] memory offerHashes = new bytes32[](offerLength);
-        bytes32[] memory considerationHashes = new bytes32[](
-            originalConsiderationLength
-        );
-
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over each offer on the order.
-            for (uint256 i = 0; i < offerLength; ++i) {
-                // Hash the offer and place the result into memory.
-                offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
-            }
-
-            // Iterate over each original consideration on the order.
-            for (uint256 i = 0; i < originalConsiderationLength; ++i) {
-                // Hash the consideration and place the result into memory.
-                considerationHashes[i] = _hashConsiderationItem(
-                    orderParameters.consideration[i]
-                );
-            }
+        /*
+          * Memory layout for an array of structs (dynamic or not) is similar
+          * to ABI encoding of dynamic types, with a head segment followed by
+          * a data segment. The main difference is that the head of an element
+          * is a memory pointer rather than an offset.
+          */
+        bytes32 offersHash;
+        bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
+        assembly {
+          // Pointer to free memory
+          let hashArrPtr := mload(0x40)
+          // Get the pointer to the offers array
+          let offerArrPtr := mload(add(orderParameters, 0x40))
+          // Load the length
+          let offerLength := mload(offerArrPtr)
+          // Set the pointer to the first offer's head
+          offerArrPtr := add(offerArrPtr, 0x20)
+          for {let i := 0} lt(i, offerLength) {i:=add(i, 1)} {
+            // Read the pointer to the offer data and subtract 32
+            // to get typeHash pointer
+            let ptr := sub(mload(offerArrPtr), 0x20)
+            // Read the current value before the offer data
+            let value := mload(ptr)
+            // Write the type hash to the previous word
+            mstore(ptr, typeHash)
+            // Take the EIP712 hash and store it in the hash array
+            mstore(hashArrPtr, keccak256(ptr, 0xc0))
+            // Restore the previous word
+            mstore(ptr, value)
+            // Increment the array pointers
+            offerArrPtr := add(offerArrPtr, 0x20)
+            hashArrPtr := add(hashArrPtr, 0x20)
+          }
+          offersHash := keccak256(mload(0x40), mul(offerLength, 0x20))
         }
+        bytes32 considerationsHash;
+        typeHash = _CONSIDERATION_ITEM_TYPEHASH;
+        assembly {
+          let hashArrPtr := mload(0x40)
+          // Get the pointer to the considerations array
+          let considerationsArrPtr := add(
+            mload(add(orderParameters, 0x60)),
+            0x20
+          )
+          for {let i := 0} lt(i, originalConsiderationLength) {i:=add(i, 1)} {
+            // Read the pointer to the consideration data and subtract 32
+            // to get typeHash pointer
+            let ptr := sub(mload(considerationsArrPtr), 0x20)
+            // Read the current value before the consideration data
+            let value := mload(ptr)
+            // Write the type hash to the previous word
+            mstore(ptr, typeHash)
+            // Take the EIP712 hash and store it in the hash array
+            mstore(hashArrPtr, keccak256(ptr, 0xe0))
+            // Restore the previous word
+            mstore(ptr, value)
+            // Increment the array pointers
+            considerationsArrPtr := add(considerationsArrPtr, 0x20)
+            hashArrPtr := add(hashArrPtr, 0x20)
+          }
+          considerationsHash := keccak256(
+            mload(0x40),
+            mul(originalConsiderationLength, 0x20)
+          )
+        }
+        typeHash = _ORDER_HASH;
+        assembly {
+          let typeHashPtr := sub(orderParameters, 0x20)
+          let previousValue := mload(typeHashPtr)
+          mstore(typeHashPtr, typeHash)
 
-        // Derive and return the order hash as specified by EIP-712.
-        return keccak256(
-            abi.encode(
-                _ORDER_HASH,
-                orderParameters.offerer,
-                orderParameters.zone,
-                keccak256(abi.encodePacked(offerHashes)),
-                keccak256(abi.encodePacked(considerationHashes)),
-                orderParameters.orderType,
-                orderParameters.startTime,
-                orderParameters.endTime,
-                orderParameters.salt,
-                nonce
-            )
-        );
+          let offerHeadPtr := add(orderParameters, 0x40)
+          let offerDataPtr := mload(offerHeadPtr)
+          mstore(offerHeadPtr, offersHash)
+
+          let considerationsHeadPtr := add(orderParameters, 0x60)
+          let considerationsDataPtr := mload(considerationsHeadPtr)
+          mstore(considerationsHeadPtr, considerationsHash)
+
+          let noncePtr := add(orderParameters, 0x120)
+          mstore(noncePtr, nonce)
+
+          orderHash := keccak256(typeHashPtr, 0x160)
+          mstore(typeHashPtr, previousValue)
+          mstore(offerHeadPtr, offerDataPtr)
+          mstore(considerationsHeadPtr, considerationsDataPtr)
+          mstore(noncePtr, originalConsiderationLength)
+        }
     }
 
     /**
@@ -421,57 +467,12 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to derive the EIP-712 hash for an offer item.
-     *
-     * @param offerItem The offer item to hash.
-     *
-     * @return The hash.
-     */
-    function _hashOfferItem(
-        OfferItem memory offerItem
-    ) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _OFFER_ITEM_TYPEHASH,
-                offerItem.itemType,
-                offerItem.token,
-                offerItem.identifierOrCriteria,
-                offerItem.startAmount,
-                offerItem.endAmount
-            )
-        );
-    }
-
-    /**
-     * @dev Internal view function to derive the EIP-712 hash for a
-     *      consideration item.
-     *
-     * @param considerationItem The consideration item to hash.
-     *
-     * @return The hash.
-     */
-    function _hashConsiderationItem(
-        ConsiderationItem memory considerationItem
-    ) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _CONSIDERATION_ITEM_TYPEHASH,
-                considerationItem.itemType,
-                considerationItem.token,
-                considerationItem.identifierOrCriteria,
-                considerationItem.startAmount,
-                considerationItem.endAmount,
-                considerationItem.recipient
-            )
-        );
-    }
-
-    /**
      * @dev Internal view function to determine if a proxy should be utilized
      *      for a given order and to ensure that the submitter is allowed by the
      *      order type.
      *
      * @param orderHash The hash of the order.
+     * @param zoneHash  The hash to provide upon calling the zone.
      * @param orderType The type of the order.
      * @param offerer   The offerer in question.
      * @param zone      The zone in question.
@@ -481,6 +482,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      */
     function _determineProxyUtilizationAndEnsureValidBasicOrder(
         bytes32 orderHash,
+        bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
@@ -504,7 +506,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                     ZoneInterface.isValidOrder.selector,
                     orderHash,
                     msg.sender,
-                    offerer
+                    offerer,
+                    zoneHash
                 )
             );
 
@@ -520,6 +523,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      *
      * @param advancedOrder The order in question.
      * @param orderHash     The hash of the order.
+     * @param zoneHash      The hash to provide upon calling the zone.
      * @param orderType     The type of the order.
      * @param offerer       The offerer in question.
      * @param zone          The zone in question.
@@ -530,6 +534,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _determineProxyUtilizationAndEnsureValidAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         bytes32 orderHash,
+        bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
@@ -558,7 +563,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                         ZoneInterface.isValidOrder.selector,
                         orderHash,
                         msg.sender,
-                        offerer
+                        offerer,
+                        zoneHash
                     )
                 );
             // Otherwise, extraData has been supplied.

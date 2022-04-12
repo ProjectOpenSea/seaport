@@ -133,10 +133,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         mstore(0x160, keccak256(0x80, 0xe0))
 
         /* 2. Write first ReceivedItem to OrderFulfilled data */
-        let len := calldataload(0x224)
+        let len := calldataload(0x244)
         // END_ARR + 0x120 = 0x2a0 + len*0x20
         let eventArrPtr := add(0x2a0, mul(0x20, len))
-        mstore(eventArrPtr, add(calldataload(0x224), 1)) // length
+        mstore(eventArrPtr, add(calldataload(0x244), 1)) // length
         // Set ptr to data portion of first ReceivedItem
         eventArrPtr := add(eventArrPtr, 0x20)
         // Write item type
@@ -152,10 +152,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         mstore(0xa0, additionalRecipientsItemType)
         mstore(0xc0, additionalRecipientsToken)
         mstore(0xe0, 0)
-        len := calldataload(0x1c4)
+        len := calldataload(0x1e4)
         let i := 0
         for {} lt(i, len) {i := add(i, 1)} {
-          let additionalRecipientCdPtr := add(0x244, mul(0x40, i))
+          let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
 
           /* a. Write ConsiderationItem hash to order's considerations array */
           // Copy startAmount
@@ -184,9 +184,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // keccak256(abi.encodePacked(receivedItemHashes))
         mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
         /* 5. Write tips to event data */
-        len := calldataload(0x224)
+        len := calldataload(0x244)
         for {} lt(i, len) {i := add(i, 1)} {
-          let additionalRecipientCdPtr := add(0x244, mul(0x40, i))
+          let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
 
           /* b. Write ReceivedItem to OrderFulfilled data */
           // At this point, eventArrPtr points to the beginning of the
@@ -229,7 +229,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         /* 3. Write SpentItem array to event data */
         // 0x180 + len*32 = event data ptr
         // offers array length is stored at 0x80 into the event data
-        let eventArrPtr := add(0x200, mul(0x20, calldataload(0x224)))
+        let eventArrPtr := add(0x200, mul(0x20, calldataload(0x244)))
         mstore(eventArrPtr, 1)
         mstore(add(eventArrPtr, 0x20), offeredItemType)
         // Copy token, identifier, startAmount to SpentItem
@@ -266,10 +266,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         calldatacopy(0xa0, 0x84, 0x40)
         // load receivedItemsHash from zero slot
         mstore(0x100, mload(0x60))
-        // orderType, startTime, endTime, salt
-        calldatacopy(0x120, 0x124, 0x80)
-        mstore(0x1a0, nonce) // nonce
-        orderHash := keccak256(0x80, 0x140)
+        // orderType, startTime, endTime, zoneHash, salt
+        calldatacopy(0x120, 0x124, 0xa0)
+        mstore(0x1c0, nonce) // nonce
+        orderHash := keccak256(0x80, 0x160)
       }
     }
     /* event OrderFulfilled(
@@ -297,12 +297,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * 0x140: recipient 0
      */
     assembly {
-      let eventDataPtr := add(0x180, mul(0x20, calldataload(0x224)))
+      let eventDataPtr := add(0x180, mul(0x20, calldataload(0x244)))
       mstore(eventDataPtr, orderHash)           // orderHash
       mstore(add(eventDataPtr, 0x20), caller()) // fulfiller
       mstore(add(eventDataPtr, 0x40), 0x80)     // SpentItem array pointer
       mstore(add(eventDataPtr, 0x60), 0x120)    // ReceivedItem array pointer
-      let dataSize := add(0x1e0, mul(calldataload(0x224), 0xa0))
+      let dataSize := add(0x1e0, mul(calldataload(0x244), 0xa0))
       log3(
         eventDataPtr,
         dataSize,
@@ -320,6 +320,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     // Determine if a proxy should be used and that restricted orders are valid.
     useOffererProxy = _determineProxyUtilizationAndEnsureValidBasicOrder(
         orderHash,
+        parameters.zoneHash,
         parameters.orderType,
         parameters.offerer,
         parameters.zone
@@ -440,6 +441,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         useOffererProxy = _determineProxyUtilizationAndEnsureValidAdvancedOrder(
             advancedOrder,
             orderHash,
+            orderParameters.zoneHash,
             orderParameters.orderType,
             orderParameters.offerer,
             orderParameters.zone

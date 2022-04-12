@@ -81,9 +81,7 @@ contract ConsiderationDelegated is
         BatchExecution[] memory batchExecutions
     ) {
         // Ensure that only delegatecalls from Consideration are allowed.
-        if (address(this) != _DELEGATOR) {
-            revert OnlyDelegatecallFromConsideration();
-        }
+        _assertDelegatecallFromConsideration();
 
         // Convert orders to "advanced" orders.
         AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
@@ -181,9 +179,7 @@ contract ConsiderationDelegated is
         BatchExecution[] memory batchExecutions
     ) {
         // Ensure that only delegatecalls from Consideration are allowed.
-        if (address(this) != _DELEGATOR) {
-            revert OnlyDelegatecallFromConsideration();
-        }
+        _assertDelegatecallFromConsideration();
 
         // Validate orders, apply amounts, & determine if they utilize proxies.
         fulfillmentDetails = _validateOrdersAndPrepareToFulfill(
@@ -223,9 +219,7 @@ contract ConsiderationDelegated is
         Order[] memory orders
     ) external override returns (bool) {
         // Ensure that only delegatecalls from Consideration are allowed.
-        if (address(this) != _DELEGATOR) {
-            revert OnlyDelegatecallFromConsideration();
-        }
+        _assertDelegatecallFromConsideration();
 
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
@@ -301,9 +295,7 @@ contract ConsiderationDelegated is
      */
     function incrementNonce() external override returns (uint256 newNonce) {
         // Ensure that only delegatecalls from Consideration are allowed.
-        if (address(this) != _DELEGATOR) {
-            revert OnlyDelegatecallFromConsideration();
-        }
+        _assertDelegatecallFromConsideration();
 
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
@@ -356,5 +348,16 @@ contract ConsiderationDelegated is
                 _DELEGATOR
             )
         );
+    }
+
+    /**
+     * @dev Internal view function to ensure that Consideration is performing a
+     *      delegatecall into the given function.
+     */
+    function _assertDelegatecallFromConsideration() internal view {
+        // Ensure that only delegatecalls from Consideration are allowed.
+        if (address(this) != _DELEGATOR) {
+            revert OnlyDelegatecallFromConsideration();
+        }
     }
 }
