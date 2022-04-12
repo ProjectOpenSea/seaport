@@ -1249,7 +1249,7 @@ contract ConsiderationPure is ConsiderationBase {
             1,
             1,
             order.signature,
-            "0x"
+            ""
         );
     }
 
