@@ -95,6 +95,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
                 "uint8 orderType,",
                 "uint256 startTime,",
                 "uint256 endTime,",
+                "bytes32 zoneHash,",
                 "uint256 salt,",
                 "uint256 nonce",
             ")"

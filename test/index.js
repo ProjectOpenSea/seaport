@@ -116,7 +116,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     const offerItemTypeString = "OfferItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)";
     const considerationItemTypeString = "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)";
-    const orderComponentsPartialTypeString = "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,uint256 salt,uint256 nonce)";
+    const orderComponentsPartialTypeString = "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,uint256 nonce)";
     const orderTypeString = `${orderComponentsPartialTypeString}${considerationItemTypeString}${offerItemTypeString}`;
     
     const offerItemTypeHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(offerItemTypeString));
@@ -168,6 +168,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         orderComponents.orderType.toString().padStart(64, '0'),
         ethers.BigNumber.from(orderComponents.startTime).toHexString().slice(2).padStart(64, '0'),
         ethers.BigNumber.from(orderComponents.endTime).toHexString().slice(2).padStart(64, '0'),
+        orderComponents.zoneHash.slice(2),
         orderComponents.salt.slice(2).padStart(64, '0'),
         ethers.BigNumber.from(orderComponents.nonce).toHexString().slice(2).padStart(64, '0')
       ].join('')
@@ -213,6 +214,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         consideration,
         totalOriginalConsiderationItems: consideration.length,
         orderType,
+        zoneHash: "0x".padEnd(66, "0"),
         salt,
         startTime,
         endTime,
@@ -371,6 +373,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         })),
         totalOriginalConsiderationItems: compressedOfferItems.length,
         orderType: 0, // FULL_OPEN
+        zoneHash: "0x".padEnd(66, "0"),
         salt,
         startTime,
         endTime,
@@ -444,6 +447,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         })),
         totalOriginalConsiderationItems: order.parameters.offer.length,
         orderType: useProxy ? 4 : 0, // FULL_OPEN_VIA_PROXY or FULL_OPEN
+        zoneHash: "0x".padEnd(66, "0"),
         salt,
         startTime,
         endTime,

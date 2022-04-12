@@ -8,11 +8,12 @@ import {
 } from "./ConsiderationEnums.sol";
 
 /**
- * @dev An order contains nine components: an offerer, a zone (or account that
+ * @dev An order contains ten components: an offerer, a zone (or account that
  *      can cancel the order or restrict who can fulfill the order depending on
  *      the type), the order type (specifying partial fill support, restricted
- *      fulfiller requirement, and the offerer's proxy usage preference), the
- *      start and end time, a salt, a nonce, and an arbitrary number of offer
+ *      order status, and the offerer's proxy usage preference), the start and
+ *      end time, a hash that will be provided to the zone when validating
+ *      restricted orders, a salt, a nonce, and an arbitrary number of offer
  *      items that can be spent along with consideration items that must be
  *      received by their respective recipient.
  */
@@ -24,6 +25,7 @@ struct OrderComponents {
     OrderType orderType;
     uint256 startTime;
     uint256 endTime;
+    bytes32 zoneHash;
     uint256 salt;
     uint256 nonce;
 }
@@ -101,12 +103,13 @@ struct BasicOrderParameters {                   // calldata offset
     OrderType orderType;                        // 0x124
     uint256 startTime;                          // 0x144
     uint256 endTime;                            // 0x164
-    uint256 salt;                               // 0x184
-    bool useFulfillerProxy;                     // 0x1a4
-    uint256 totalOriginalAdditionalRecipients;  // 0c1c4
-    AdditionalRecipient[] additionalRecipients; // 0x1e4
-    bytes signature;                            // 0x204
-    // Total length, excluding dynamic array data: 0x224 (548)
+    bytes32 zoneHash;                           // 0x184
+    uint256 salt;                               // 0x1a4
+    bool useFulfillerProxy;                     // 0x1c4
+    uint256 totalOriginalAdditionalRecipients;  // 0c1e4
+    AdditionalRecipient[] additionalRecipients; // 0x204
+    bytes signature;                            // 0x224
+    // Total length, excluding dynamic array data: 0x244 (580)
 }
 
 /**
@@ -131,6 +134,7 @@ struct OrderParameters {
     OrderType orderType;
     uint256 startTime;
     uint256 endTime;
+    bytes32 zoneHash;
     uint256 salt;
     OfferItem[] offer;
     ConsiderationItem[] consideration;
@@ -150,8 +154,8 @@ struct Order {
  *      and a denominator (the total size of the order) in additon to the
  *      signature and other order parameters. It also supports an optional field
  *      for supplying extra data; this data will be included in a staticcall to
- *      isValidOrder on the zone for the order if the order type is restricted
- *      and the offerer or zone are not the caller.
+ *      `isValidOrderIncludingExtraData` on the zone for the order if the order
+ *      type is restricted and the offerer or zone are not the caller.
  */
 struct AdvancedOrder {
     OrderParameters parameters;

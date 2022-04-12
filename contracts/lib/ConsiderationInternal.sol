@@ -320,6 +320,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     // Determine if a proxy should be used and that restricted orders are valid.
     useOffererProxy = _determineProxyUtilizationAndEnsureValidBasicOrder(
         orderHash,
+        parameters.zoneHash,
         parameters.orderType,
         parameters.offerer,
         parameters.zone
@@ -440,6 +441,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         useOffererProxy = _determineProxyUtilizationAndEnsureValidAdvancedOrder(
             advancedOrder,
             orderHash,
+            orderParameters.zoneHash,
             orderParameters.orderType,
             orderParameters.offerer,
             orderParameters.zone

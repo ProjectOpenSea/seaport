@@ -390,6 +390,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 orderParameters.orderType,
                 orderParameters.startTime,
                 orderParameters.endTime,
+                orderParameters.zoneHash,
                 orderParameters.salt,
                 nonce
             )
@@ -472,6 +473,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      order type.
      *
      * @param orderHash The hash of the order.
+     * @param zoneHash  The hash to provide upon calling the zone.
      * @param orderType The type of the order.
      * @param offerer   The offerer in question.
      * @param zone      The zone in question.
@@ -481,6 +483,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      */
     function _determineProxyUtilizationAndEnsureValidBasicOrder(
         bytes32 orderHash,
+        bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
@@ -504,7 +507,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                     ZoneInterface.isValidOrder.selector,
                     orderHash,
                     msg.sender,
-                    offerer
+                    offerer,
+                    zoneHash
                 )
             );
 
@@ -520,6 +524,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      *
      * @param advancedOrder The order in question.
      * @param orderHash     The hash of the order.
+     * @param zoneHash      The hash to provide upon calling the zone.
      * @param orderType     The type of the order.
      * @param offerer       The offerer in question.
      * @param zone          The zone in question.
@@ -530,6 +535,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _determineProxyUtilizationAndEnsureValidAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         bytes32 orderHash,
+        bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
@@ -558,7 +564,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                         ZoneInterface.isValidOrder.selector,
                         orderHash,
                         msg.sender,
-                        offerer
+                        offerer,
+                        zoneHash
                     )
                 );
             // Otherwise, extraData has been supplied.

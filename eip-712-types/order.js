@@ -7,6 +7,7 @@ const orderType = {
     { name: "orderType", type: "uint8" },
     { name: "startTime", type: "uint256" },
     { name: "endTime", type: "uint256" },
+    { name: "zoneHash", type: "bytes32" },
     { name: "salt", type: "uint256" },
     { name: "nonce", type: "uint256" },
   ],
