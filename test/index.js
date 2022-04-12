@@ -57,6 +57,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     considerationAmount: order.parameters.consideration[0].endAmount,
     startTime: order.parameters.startTime,
     endTime: order.parameters.endTime,
+    zoneHash: order.parameters.zoneHash,
     salt: order.parameters.salt,
     totalOriginalAdditionalRecipients: order.parameters.consideration.length - 1,
     signature: order.signature,
@@ -12853,7 +12854,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       })
 
       it("Reverts if additionalRecipients has non-default offset", async () => {
-        const badData = [calldata.slice(0, 1033), "1", calldata.slice(1034)].join('');
+        const badData = [calldata.slice(0, 1097), "1", calldata.slice(1098)].join('');
 
         await whileImpersonating(owner.address, provider, async () => {
           await expect(buyer.sendTransaction({
@@ -12865,7 +12866,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       })
 
       it("Reverts if signature has non-default offset", async () => {
-        const badData = [calldata.slice(0, 1097), "1", calldata.slice(1098)].join('');
+        const badData = [calldata.slice(0, 1161), "2", calldata.slice(1162)].join('');
 
         await whileImpersonating(owner.address, provider, async () => {
           await expect(buyer.sendTransaction({
