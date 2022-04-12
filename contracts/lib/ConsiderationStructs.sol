@@ -131,13 +131,13 @@ struct AdditionalRecipient {
 struct OrderParameters {
     address offerer;
     address zone;
+    OfferItem[] offer;
+    ConsiderationItem[] consideration;
     OrderType orderType;
     uint256 startTime;
     uint256 endTime;
     bytes32 zoneHash;
     uint256 salt;
-    OfferItem[] offer;
-    ConsiderationItem[] consideration;
     uint256 totalOriginalConsiderationItems;
 }
 
