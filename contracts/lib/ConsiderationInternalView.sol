@@ -722,25 +722,24 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      of fulfillment components. Items that are not available to aggregate
      *      will not be included in the aggregated execution.
      *
-     * @param orders                   The orders to match.
-     * @param side                     The side (i.e. offer or consideration).
-     * @param fulfillmentComponents    An array designating item components to
-     *                                 aggregate if part of an available order.
-     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
-     *                                 indicating whether to source approvals
-     *                                 for the relevant items on each order from
-     *                                 the offerer's respective proxy.
-     * @param useFulfillerProxy        A flag indicating whether to source
-     *                                 approvals for fulfilled tokens from the
-     *                                 fulfiller's respective proxy.
+     * @param advancedOrders        The orders to aggregate.
+     * @param side                  The side (i.e. offer or consideration).
+     * @param fulfillmentComponents An array designating item components to
+     *                              aggregate if part of an available order.
+     * @param fulfillmentDetails    An array of FulfillmentDetail structs, each
+     *                              indicating whether to fulfill the order and
+     *                              whether to use a proxy for it.
+     * @param useFulfillerProxy     A flag indicating whether to source
+     *                              approvals for fulfilled tokens from the
+     *                              fulfiller's respective proxy.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
     function _aggregateAvailable(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         Side side,
         FulfillmentComponent[] memory fulfillmentComponents,
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy,
+        FulfillmentDetail[] memory fulfillmentDetails,
         bool useFulfillerProxy
     ) internal view returns (Execution memory execution) {
         // Ensure at least one fulfillment component has been supplied.
@@ -759,12 +758,12 @@ contract ConsiderationInternalView is ConsiderationPure {
                 uint256 orderIndex = fulfillmentComponents[i].orderIndex;
 
                 // Ensure that the order index is in range.
-                if (orderIndex >= orders.length) {
+                if (orderIndex >= advancedOrders.length) {
                     revert FulfilledOrderIndexOutOfRange();
                 }
 
                 // If order is being fulfilled (i.e. it is still available)...
-                if (fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
+                if (fulfillmentDetails[orderIndex].fulfillOrder) {
                     // Update the next potential component index.
                     nextComponentIndex = i + 1;
 
@@ -799,21 +798,21 @@ contract ConsiderationInternalView is ConsiderationPure {
         if (side == Side.OFFER) {
             // Return execution for aggregated items provided by the offerer.
             return _aggregateOfferItems(
-                orders,
+                advancedOrders,
                 fulfillmentComponents,
                 firstAvailableComponent,
                 nextComponentIndex,
-                fulfillOrdersAndUseProxy
+                fulfillmentDetails
             );
         // Otherwise, fulfillment components are consideration components.
         } else {
             // Return execution for aggregated items provided by the fulfiller.
             return _aggregateConsiderationItems(
-                orders,
+                advancedOrders,
                 fulfillmentComponents,
                 firstAvailableComponent,
                 nextComponentIndex,
-                fulfillOrdersAndUseProxy,
+                fulfillmentDetails,
                 useFulfillerProxy
             );
         }
@@ -825,25 +824,24 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      Offer items that are not available to aggregate will not be included
      *      in the aggregated execution.
      *
-     * @param orders                   The orders to match.
-     * @param offerComponents          An array designating offer components to
-     *                                 aggregate if part of an available order.
-     * @param firstAvailableComponent  The first available offer component.
-     * @param nextComponentIndex       The index of the next potential offer
-     *                                 component.
-     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
-     *                                 indicating whether to source approvals
-     *                                 for the relevant items on each order from
-     *                                 the offerer's respective proxy.
+     * @param advancedOrders          The orders to aggregate.
+     * @param offerComponents         An array designating offer components to
+     *                                aggregate if part of an available order.
+     * @param firstAvailableComponent The first available offer component.
+     * @param nextComponentIndex      The index of the next potential offer
+     *                                component.
+     * @param fulfillmentDetails      An array of FulfillmentDetail structs,
+     *                                each indicating whether to fulfill the
+     *                                order and whether to use a proxy for it.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
     function _aggregateOfferItems(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
         FulfillmentComponent memory firstAvailableComponent,
         uint256 nextComponentIndex,
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy
+        FulfillmentDetail[] memory fulfillmentDetails
     ) internal view returns (Execution memory execution) {
         // Get offerer and consume offer component, returning a spent item.
         (
@@ -851,10 +849,10 @@ contract ConsiderationInternalView is ConsiderationPure {
             SpentItem memory offerItem,
             bool useProxy
         ) = _consumeOfferComponent(
-            orders,
+            advancedOrders,
             firstAvailableComponent.orderIndex,
             firstAvailableComponent.itemIndex,
-            fulfillOrdersAndUseProxy
+            fulfillmentDetails
         );
 
         // Iterate over each remaining component on the fulfillment.
@@ -866,12 +864,12 @@ contract ConsiderationInternalView is ConsiderationPure {
             uint256 orderIndex = offerComponent.orderIndex;
 
             // Ensure that the order index is in range.
-            if (orderIndex >= orders.length) {
+            if (orderIndex >= advancedOrders.length) {
                 revert FulfilledOrderIndexOutOfRange();
             }
 
             // If order is not being fulfilled (i.e. it is unavailable)...
-            if (!fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
+            if (!fulfillmentDetails[orderIndex].fulfillOrder) {
                 // Skip overflow check as for loop is indexed starting at one.
                 unchecked {
                     ++i;
@@ -887,10 +885,10 @@ contract ConsiderationInternalView is ConsiderationPure {
                 SpentItem memory nextOfferItem,
                 bool subsequentUseProxy
             ) = _consumeOfferComponent(
-                orders,
+                advancedOrders,
                 orderIndex,
                 offerComponent.itemIndex,
-                fulfillOrdersAndUseProxy
+                fulfillmentDetails
             );
 
             // Ensure all relevant parameters are consistent with initial offer.
@@ -936,36 +934,35 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      Consideration items that are not available to aggregate will not be
      *      included in the aggregated execution.
      *
-     * @param orders                   The orders to match.
-     * @param considerationComponents  An array designating consideration
-     *                                 components to aggregate if part of an
-     *                                 available order.
-     * @param firstAvailableComponent  The first available consideration
-     *                                 component.
-     * @param nextComponentIndex       The index of the next potential
-     *                                 consideration component.
-     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
-     *                                 indicating whether to source approvals
-     *                                 for the relevant items on each order from
-     *                                 the offerer's respective proxy.
-     * @param useFulfillerProxy        A flag indicating whether to source
-     *                                 approvals for fulfilled tokens from the
-     *                                 fulfiller's respective proxy.
+     * @param advancedOrders          The orders to aggregate.
+     * @param considerationComponents An array designating consideration
+     *                                components to aggregate if part of an
+     *                                available order.
+     * @param firstAvailableComponent The first available consideration
+     *                                component.
+     * @param nextComponentIndex      The index of the next potential
+     *                                consideration component.
+     * @param fulfillmentDetails      An array of FulfillmentDetail structs,
+     *                                each indicating whether to fulfill the
+     *                                order and whether to use a proxy for it.
+     * @param useFulfillerProxy       A flag indicating whether to source
+     *                                approvals for fulfilled tokens from the
+     *                                fulfiller's respective proxy.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
     function _aggregateConsiderationItems(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory considerationComponents,
         FulfillmentComponent memory firstAvailableComponent,
         uint256 nextComponentIndex,
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy,
+        FulfillmentDetail[] memory fulfillmentDetails,
         bool useFulfillerProxy
     ) internal view returns (Execution memory execution) {
         // Consume consideration component, returning a received item.
         ReceivedItem memory requiredConsideration = (
             _consumeConsiderationComponent(
-                orders,
+                advancedOrders,
                 firstAvailableComponent.orderIndex,
                 firstAvailableComponent.itemIndex
             )
@@ -985,12 +982,12 @@ contract ConsiderationInternalView is ConsiderationPure {
             uint256 orderIndex = considerationComponent.orderIndex;
 
             // Ensure that the order index is in range.
-            if (orderIndex >= orders.length) {
+            if (orderIndex >= advancedOrders.length) {
                 revert FulfilledOrderIndexOutOfRange();
             }
 
             // If order is not being fulfilled (i.e. it is unavailable)...
-            if (!fulfillOrdersAndUseProxy[orderIndex].fulfillOrder) {
+            if (!fulfillmentDetails[orderIndex].fulfillOrder) {
                 // Skip overflow check as for loop is indexed starting at one.
                 unchecked {
                     ++i;
@@ -1003,7 +1000,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Consume consideration component, returning a received item.
             ReceivedItem memory nextRequiredConsideration = (
                 _consumeConsiderationComponent(
-                    orders,
+                    advancedOrders,
                     orderIndex,
                     considerationComponent.itemIndex
                 )

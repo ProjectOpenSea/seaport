@@ -89,7 +89,7 @@ contract ConsiderationDelegated is
         );
 
         // Validate orders, apply amounts, & determine if they utilize proxies.
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy = (
+        FulfillmentDetail[] memory fulfillmentDetails = (
             _validateOrdersAndPrepareToFulfill(
                 advancedOrders,
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
@@ -101,7 +101,7 @@ contract ConsiderationDelegated is
         return _fulfillAdvancedOrders(
             advancedOrders,
             fulfillments,
-            fulfillOrdersAndUseProxy
+            fulfillmentDetails
         );
     }
 

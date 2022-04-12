@@ -619,7 +619,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         BatchExecution[] memory batchExecutions
     ) {
         // Validate orders, apply amounts, & determine if they utilize proxies.
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy = (
+        FulfillmentDetail[] memory fulfillmentDetails = (
             _validateOrdersAndPrepareToFulfill(
                 advancedOrders,
                 criteriaResolvers,
@@ -631,7 +631,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         return _fulfillAdvancedOrders(
             advancedOrders,
             fulfillments,
-            fulfillOrdersAndUseProxy
+            fulfillmentDetails
         );
     }
 
