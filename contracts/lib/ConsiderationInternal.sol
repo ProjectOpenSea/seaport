@@ -559,13 +559,25 @@ contract ConsiderationInternal is ConsiderationInternalView {
             bool useOffererProxy
         ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
-        // Apply criteria resolvers (requires array of orders to be supplied).
-        AdvancedOrder[] memory orders = new AdvancedOrder[](1);
-        orders[0] = advancedOrder;
-        _applyCriteriaResolvers(orders, criteriaResolvers);
+        // Create an array with length 1 containing the order.
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
+        advancedOrders[0] = advancedOrder;
+
+        // Create an array with length 1 containing order fulfillment details.
+        FulfillmentDetail[] memory fulfillmentDetails = (
+            new FulfillmentDetail[](1)
+        );
+        fulfillmentDetails[0] = FulfillmentDetail(true, useOffererProxy);
+
+        // Apply criteria resolvers using generated orders and details arrays.
+        _applyCriteriaResolvers(
+            advancedOrders,
+            criteriaResolvers,
+            fulfillmentDetails
+        );
 
         // Retrieve the parameters of the order.
-        OrderParameters memory orderParameters = orders[0].parameters;
+        OrderParameters memory orderParameters = advancedOrders[0].parameters;
 
         // Perform each item transfer with the appropriate fractional amount.
         _applyFractionsAndTransferEach(
@@ -736,15 +748,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          order is invalid due to the time or order
      *                          status.
      *
-     * @return fulfillOrdersAndUseProxy A array of FulfillmentDetail structs,
-     *                                  each indicating whether to fulfill the
-     *                                  order and whether to use a proxy for it.
+     * @return fulfillmentDetails An array of FulfillmentDetail structs, each
+     *                            indicating whether to fulfill the order and
+     *                            whether to use a proxy for it.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid
-    ) internal returns (FulfillmentDetail[] memory fulfillOrdersAndUseProxy) {
+    ) internal returns (FulfillmentDetail[] memory fulfillmentDetails) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
@@ -752,7 +764,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 totalOrders = advancedOrders.length;
 
         // Use total orders to declare memory region for order fulfillment info.
-        fulfillOrdersAndUseProxy = new FulfillmentDetail[](totalOrders);
+        fulfillmentDetails = new FulfillmentDetail[](totalOrders);
 
         // Track the order hash for each order being fulfilled.
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
@@ -779,7 +791,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 bool shouldBeFulfilled = numerator != 0;
 
                 // Mark whether to fulfill the order and to use offerer's proxy.
-                fulfillOrdersAndUseProxy[i] = FulfillmentDetail(
+                fulfillmentDetails[i] = FulfillmentDetail(
                     shouldBeFulfilled,
                     useOffererProxy
                 );
@@ -860,7 +872,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Apply criteria resolvers to each order as applicable.
-        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
+        _applyCriteriaResolvers(
+            advancedOrders,
+            criteriaResolvers,
+            fulfillmentDetails
+        );
 
         // Emit an event for each order signifying that it has been fulfilled.
         unchecked {
@@ -888,7 +904,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Return memory region tracking orders to fulfill and use proxies for.
-        return fulfillOrdersAndUseProxy;
+        return fulfillmentDetails;
     }
 
     /**
@@ -896,19 +912,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      full or partial, after validating, adjusting amounts, and applying
      *      criteria resolvers.
      *
-     * @param advancedOrders           The orders to match, including a fraction
-     *                                 to attempt to fill for each order.
-     * @param fulfillments             An array of elements allocating offer
-     *                                 components to consideration components.
-     *                                 Note that the end amount of each
-     *                                 consideration component must be zero in
-     *                                 order for a match operation to be valid.
-     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
-     *                                 indicating whether to fulfill the order
-     *                                 and whether to source approvals for the
-     *                                 fulfilled tokens on each order from their
-     *                                 respective proxy. Note that all orders
-     *                                 will fulfill on calling this function.
+     * @param advancedOrders     The orders to match, including a fraction to
+     *                           attempt to fill for each order.
+     * @param fulfillments       An array of elements allocating offer
+     *                           components to consideration components. Note
+     *                           that the final amount of each consideration
+     *                           component must be zero for a match operation to
+     *                           be considered valid.
+     * @param fulfillmentDetails An array of FulfillmentDetail structs, each
+     *                           indicating whether to fulfill the order and
+     *                           whether to use a proxy for it. Note that all
+     *                           orders will fulfill on calling this function.
      *
      * @return An array of elements indicating the sequence of non-batch
      *         transfers performed as part of matching the given orders.
@@ -918,7 +932,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     function _fulfillAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         Fulfillment[] memory fulfillments,
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy
+        FulfillmentDetail[] memory fulfillmentDetails
     ) internal returns (Execution[] memory, BatchExecution[] memory) {
         // Allocate executions by fulfillment and apply them to each execution.
         Execution[] memory executions = new Execution[](fulfillments.length);
@@ -938,7 +952,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     advancedOrders,
                     fulfillment.offerComponents,
                     fulfillment.considerationComponents,
-                    fulfillOrdersAndUseProxy
+                    fulfillmentDetails
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -967,16 +981,61 @@ contract ConsiderationInternal is ConsiderationInternalView {
         return _performFinalChecksAndExecuteOrders(
             advancedOrders,
             executions,
-            fulfillOrdersAndUseProxy
+            fulfillmentDetails
         );
     }
 
-    // TODO: natspec
+    /**
+     * @notice Internal function to fulfill a group of validated orders, fully
+     *         or partially, with an arbitrary number of items for offer and
+     *         consideration per order and to execute transfers. Any order that
+     *         is not currently active, has already been fully filled, or has
+     *         been cancelled will be omitted. Remaining offer and consideration
+     *         items will then be aggregated where possible as indicated by the
+     *         supplied offer and consideration component arrays and aggregated
+     *         items will be transferred to the fulfiller or to each intended
+     *         recipient, respectively. Note that a failing item transfer or an
+     *         issue with order formatting will cause the entire batch to fail.
+     *
+     * @param advancedOrders            The orders to fulfill along with the
+     *                                  fraction of those orders to attempt to
+     *                                  fill. Note that both the offerer and the
+     *                                  fulfiller must first approve this
+     *                                  contract (or their proxy if indicated by
+     *                                  the order) to transfer any relevant
+     *                                  tokens on their behalf and that
+     *                                  contracts must implement
+     *                                  `onERC1155Received` in order to receive
+     *                                  ERC1155 tokens as consideration. Also
+     *                                  note that all offer and consideration
+     *                                  components must have no remainder after
+     *                                  multiplication of the respective amount
+     *                                  with the supplied fraction for an
+     *                                  order's partial fill amount to be
+     *                                  considered valid.
+     * @param offerFulfillments         An array of FulfillmentComponent arrays
+     *                                  indicating which offer items to attempt
+     *                                  to aggregate when preparing executions.
+     * @param considerationFulfillments An array of FulfillmentComponent arrays
+     *                                  indicating which consideration items to
+     *                                  attempt to aggregate when preparing
+     *                                  executions.
+     * @param fulfillmentDetails        An array of FulfillmentDetail structs,
+     *                                  each indicating whether to fulfill the
+     *                                  order and whether to use a proxy for it.
+     *
+     * @return standardExecutions An array of elements indicating the sequence
+     *                            of non-batch transfers performed as part of
+     *                            matching the given orders.
+     * @return batchExecutions    An array of elements indicating the sequence
+     *                            of batch transfers performed as part of
+     *                            matching the given orders.
+     */
     function _fulfillAvailableOrders(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy,
+        FulfillmentDetail[] memory fulfillmentDetails,
         bool useFulfillerProxy
     ) internal returns (Execution[] memory, BatchExecution[] memory) {
         // Allocate an execution for each offer and consideration fulfillment.
@@ -999,7 +1058,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     advancedOrders,
                     Side.OFFER,
                     components,
-                    fulfillOrdersAndUseProxy,
+                    fulfillmentDetails,
                     useFulfillerProxy
                 );
 
@@ -1025,7 +1084,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     advancedOrders,
                     Side.CONSIDERATION,
                     components,
-                    fulfillOrdersAndUseProxy,
+                    fulfillmentDetails,
                     useFulfillerProxy
                 );
 
@@ -1062,7 +1121,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         return _performFinalChecksAndExecuteOrders(
             advancedOrders,
             executions,
-            fulfillOrdersAndUseProxy
+            fulfillmentDetails
         );
     }
 
@@ -1072,17 +1131,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      compress and trigger associated execututions, transferring the
      *      respective items.
      *
-     * @param advancedOrders           The orders to check and perform
-     *                                 executions for.
-     * @param executions               An array of uncompressed elements
-     *                                 indicating the sequence of transfers to
-     *                                 perform when fulfilling the given orders.
-     * @param fulfillOrdersAndUseProxy An array of FulfillmentDetail structs
-     *                                 indicating whether to fulfill the order
-     *                                 and whether to source approvals for the
-     *                                 fulfilled tokens on each order from their
-     *                                 respective proxy. Note that all orders
-     *                                 will fulfill on calling this function.
+     * @param advancedOrders     The orders to check and perform executions for.
+     * @param executions         An array of uncompressed elements indicating
+     *                           the sequence of transfers to perform when
+     *                           fulfilling the given orders.
+     * @param fulfillmentDetails An array of FulfillmentDetail structs, each
+     *                           indicating whether to fulfill the order and
+     *                           whether to use a proxy for it. Note that all
+     *                           orders will fulfill on calling this function.
      *
      * @return standardExecutions An array of elements indicating the sequence
      *                            of non-batch transfers performed as part of
@@ -1094,7 +1150,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     function _performFinalChecksAndExecuteOrders(
         AdvancedOrder[] memory advancedOrders,
         Execution[] memory executions,
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy
+        FulfillmentDetail[] memory fulfillmentDetails
     ) internal returns (
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
@@ -1104,7 +1160,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Iterate over orders to ensure all considerations are met.
             for (uint256 i = 0; i < advancedOrders.length; ++i) {
                 // Skip consideration item checks for order if not fulfilled.
-                if (!fulfillOrdersAndUseProxy[i].fulfillOrder) {
+                if (!fulfillmentDetails[i].fulfillOrder) {
                     continue;
                 }
 
@@ -1550,7 +1606,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
         (success, ) = target.call(callData);
     }
 
-    // todo: delete old version, add natspec, look into optimizations
+    /**
+     * @dev Internal function to transfer Ether (or other native tokens) to a
+     *      given recipient as part of basic order fulfillment. Note that
+     *      proxies are not utilized for native tokens as the transferred amount
+     *      must be provided as msg.value.
+     *
+     * @param amount      The amount to transfer.
+     * @param parameters  The parameters of the basic order in question.
+     */
     function _transferEthAndFinalize(
         uint256 amount,
         BasicOrderParameters calldata parameters
@@ -1612,10 +1676,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    // todo: delete old version, add natspec, look into optimizations
     /**
-     * @dev Internal function to transfer ERC20 tokens to a given recipient.
-     *      Note that proxies are not utilized for ERC20 tokens.
+     * @dev Internal function to transfer ERC20 tokens to a given recipient as
+     *      part of basic order fulfillment. Note that proxies are not utilized
+     *      for ERC20 tokens.
      *
      * @param from        The originator of the ERC20 token transfer.
      * @param to          The recipient of the ERC20 token transfer.
@@ -1683,7 +1747,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _ENTERED;
     }
 
-    // todo: delete
+    /**
+     * @dev Internal function to emit an OrderFulfilled event. OfferItems are
+     *      translated into SpentItems and ConsiderationItems are translated
+     *      into ReceivedItems.
+     *
+     * @param orderHash     The order hash.
+     * @param offerer       The offerer for the order.
+     * @param zone          The zone for the order.
+     * @param fulfiller     The fulfiller of the order, or the null address if
+     *                      the order was fulfilled via order matching.
+     * @param offer         The offer items for the order.
+     * @param consideration The consideration items for the order.
+     */
     function _emitOrderFulfilledEvent(
         bytes32 orderHash,
         address offerer,

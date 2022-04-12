@@ -89,7 +89,7 @@ contract ConsiderationDelegated is
         );
 
         // Validate orders, apply amounts, & determine if they utilize proxies.
-        FulfillmentDetail[] memory fulfillOrdersAndUseProxy = (
+        FulfillmentDetail[] memory fulfillmentDetails = (
             _validateOrdersAndPrepareToFulfill(
                 advancedOrders,
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
@@ -101,7 +101,7 @@ contract ConsiderationDelegated is
         return _fulfillAdvancedOrders(
             advancedOrders,
             fulfillments,
-            fulfillOrdersAndUseProxy
+            fulfillmentDetails
         );
     }
 
@@ -188,8 +188,12 @@ contract ConsiderationDelegated is
             false // Signifies that invalid orders should NOT revert.
         );
 
-        // Apply criteria resolvers to orders regardless of fulfillment details.
-        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
+        // Apply criteria resolvers to orders.
+        _applyCriteriaResolvers(
+            advancedOrders,
+            criteriaResolvers,
+            fulfillmentDetails
+        );
 
         // Aggregate used offer and consideration items and execute transfers.
         (standardExecutions, batchExecutions) = _fulfillAvailableOrders(
