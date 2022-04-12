@@ -188,8 +188,12 @@ contract ConsiderationDelegated is
             false // Signifies that invalid orders should NOT revert.
         );
 
-        // Apply criteria resolvers to orders regardless of fulfillment details.
-        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
+        // Apply criteria resolvers to orders.
+        _applyCriteriaResolvers(
+            advancedOrders,
+            criteriaResolvers,
+            fulfillmentDetails
+        );
 
         // Aggregate used offer and consideration items and execute transfers.
         (standardExecutions, batchExecutions) = _fulfillAvailableOrders(
