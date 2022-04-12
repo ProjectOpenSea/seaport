@@ -1606,7 +1606,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
         (success, ) = target.call(callData);
     }
 
-    // todo: delete old version, add natspec, look into optimizations
+    /**
+     * @dev Internal function to transfer Ether (or other native tokens) to a
+     *      given recipient as part of basic order fulfillment. Note that
+     *      proxies are not utilized for native tokens as the transferred amount
+     *      must be provided as msg.value.
+     *
+     * @param amount      The amount to transfer.
+     * @param parameters  The parameters of the basic order in question.
+     */
     function _transferEthAndFinalize(
         uint256 amount,
         BasicOrderParameters calldata parameters
@@ -1668,10 +1676,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _NOT_ENTERED;
     }
 
-    // todo: delete old version, add natspec, look into optimizations
     /**
-     * @dev Internal function to transfer ERC20 tokens to a given recipient.
-     *      Note that proxies are not utilized for ERC20 tokens.
+     * @dev Internal function to transfer ERC20 tokens to a given recipient as
+     *      part of basic order fulfillment. Note that proxies are not utilized
+     *      for ERC20 tokens.
      *
      * @param from        The originator of the ERC20 token transfer.
      * @param to          The recipient of the ERC20 token transfer.
@@ -1739,7 +1747,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _reentrancyGuard = _ENTERED;
     }
 
-    // todo: delete
+    /**
+     * @dev Internal function to emit an OrderFulfilled event. OfferItems are
+     *      translated into SpentItems and ConsiderationItems are translated
+     *      into ReceivedItems.
+     *
+     * @param orderHash     The order hash.
+     * @param offerer       The offerer for the order.
+     * @param zone          The zone for the order.
+     * @param fulfiller     The fulfiller of the order, or the null address if
+     *                      the order was fulfilled via order matching.
+     * @param offer         The offer items for the order.
+     * @param consideration The consideration items for the order.
+     */
     function _emitOrderFulfilledEvent(
         bytes32 orderHash,
         address offerer,
