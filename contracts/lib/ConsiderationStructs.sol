@@ -126,15 +126,15 @@ struct AdditionalRecipient {
  *      supplied, as the caller may specify additional consideration items.
  */
 struct OrderParameters {
-    address offerer;
-    address zone;
-    OrderType orderType;
-    uint256 startTime;
-    uint256 endTime;
-    uint256 salt;
-    OfferItem[] offer;
-    ConsiderationItem[] consideration;
-    uint256 totalOriginalConsiderationItems;
+    address offerer;                              // 0x00
+    address zone;                                 // 0x20
+    OfferItem[] offer;                            // 0x40
+    ConsiderationItem[] consideration;            // 0x60
+    OrderType orderType;                          // 0x80
+    uint256 startTime;                            // 0xa0
+    uint256 endTime;                              // 0xc0
+    uint256 salt;                                 // 0xe0
+    uint256 totalOriginalConsiderationItems;      // 0x100
 }
 
 /**
