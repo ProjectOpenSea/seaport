@@ -493,15 +493,9 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Order type 0-3 are executed directly while 4-7 are executed by proxy.
         useOffererProxy = orderTypeAsUint256 > 3;
 
-        // Equivalent to useOffererProxy ? 5 : 1.
-        uint256 requiresZoneOrOffererBeCaller;
-        assembly {
-            requiresZoneOrOffererBeCaller := add(1, shl(2, useOffererProxy))
-        }
-
         // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
         if (
-            orderTypeAsUint256 > requiresZoneOrOffererBeCaller &&
+            orderTypeAsUint256 & 3 < 2 && // if (≡ 0 mod 4) or (≡ 1 mod 4)
             msg.sender != zone &&
             msg.sender != offerer
         ) {
@@ -551,15 +545,9 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Order type 0-3 are executed directly while 4-7 are executed by proxy.
         useOffererProxy = orderTypeAsUint256 > 3;
 
-        // Equivalent to useOffererProxy ? 5 : 1.
-        uint256 requiresZoneOrOffererBeCaller;
-        assembly {
-            requiresZoneOrOffererBeCaller := add(1, shl(2, useOffererProxy))
-        }
-
         // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
         if (
-            orderTypeAsUint256 > requiresZoneOrOffererBeCaller &&
+            orderTypeAsUint256 & 3 < 2 && // if (≡ 0 mod 4) or (≡ 1 mod 4)
             msg.sender != zone &&
             msg.sender != offerer
         ) {
