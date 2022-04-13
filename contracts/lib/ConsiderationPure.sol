@@ -1256,7 +1256,8 @@ contract ConsiderationPure is ConsiderationBase {
         OrderType orderType
     ) internal pure returns (bool) {
         // The "full" order types are even, while "partial" order types are odd.
-        return uint256(orderType) % 2 == 0;
+        // Bitwise and by 1 is equivalent to modulo by 2, but 2 gas cheaper.
+        return uint256(orderType) & 1 == 0;
     }
 
     /**
