@@ -532,14 +532,27 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             BatchExecution[] memory batchExecutions
         )
     {
-        // Reference "unused" variables to silence compiler warnings.
-        orders;
-        fulfillments;
-        standardExecutions;
-        batchExecutions;
+        // Convert orders to "advanced" orders.
+        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
+            orders
+        );
 
-        // Execute all logic via the delegated contract.
-        _delegate();
+        // Validate orders, apply amounts, & determine if they utilize proxies.
+        FulfillmentDetail[] memory fulfillmentDetails = (
+            _validateOrdersAndPrepareToFulfill(
+                advancedOrders,
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                true // Signifies that invalid orders should revert.
+            )
+        );
+
+        // Fulfill the orders using the supplied fulfillments.
+        return
+            _fulfillAdvancedOrders(
+                advancedOrders,
+                fulfillments,
+                fulfillmentDetails
+            );
     }
 
     /**
@@ -693,16 +706,68 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function validate(Order[] calldata orders)
-        external
-        override
-        returns (bool)
-    {
-        // Reference "unused" variables to silence compiler warnings.
-        orders;
+    function validate(Order[] memory orders) external override returns (bool) {
+        // Ensure that the reentrancy guard is not currently set.
+        _assertNonReentrant();
 
-        // Execute all logic via the delegated contract.
-        _delegate();
+        // Declare variables outside of the loop.
+        bytes32 orderHash;
+        address offerer;
+
+        // Skip overflow check as for loop is indexed starting at zero.
+        unchecked {
+            // Read length of the orders array from memory and place on stack.
+            uint256 totalOrders = orders.length;
+
+            // Iterate over each order.
+            for (uint256 i = 0; i < totalOrders; ) {
+                // Retrieve the order.
+                Order memory order = orders[i];
+
+                // Retrieve the order parameters.
+                OrderParameters memory orderParameters = order.parameters;
+
+                // Move offerer from memory to the stack.
+                offerer = orderParameters.offerer;
+
+                // Get current nonce and use it w/ params to derive order hash.
+                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+                    orderParameters
+                );
+
+                // Retrieve the order status using the derived order hash.
+                OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+                // Ensure order is fillable and retrieve the filled amount.
+                _verifyOrderStatus(
+                    orderHash,
+                    orderStatus,
+                    false, // Signifies that partially filled orders are valid.
+                    true // Signifies to revert if the order is invalid.
+                );
+
+                // If the order has not already been validated...
+                if (!orderStatus.isValidated) {
+                    // Verify the supplied signature.
+                    _verifySignature(offerer, orderHash, order.signature);
+
+                    // Update order status to mark the order as valid.
+                    _orderStatus[orderHash].isValidated = true;
+
+                    // Emit an event signifying the order has been validated.
+                    emit OrderValidated(
+                        orderHash,
+                        offerer,
+                        orderParameters.zone
+                    );
+                }
+
+                // Increment counter inside body of the loop for gas efficiency.
+                ++i;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -713,11 +778,17 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return newNonce The new nonce.
      */
     function incrementNonce() external override returns (uint256 newNonce) {
-        // Reference "unused" variables to silence compiler warnings.
-        newNonce;
+        // Ensure that the reentrancy guard is not currently set.
+        _assertNonReentrant();
 
-        // Execute all logic via the delegated contract.
-        _delegate();
+        // No need to check for overflow; nonce cannot be incremented that far.
+        unchecked {
+            // Increment current nonce for the supplied offerer.
+            newNonce = ++_nonces[msg.sender];
+        }
+
+        // Emit an event containing the new nonce.
+        emit NonceIncremented(newNonce, msg.sender);
     }
 
     /**
