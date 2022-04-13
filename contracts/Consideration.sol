@@ -198,7 +198,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 offerer,
                 msg.sender,
                 parameters.offerIdentifier,
-                parameters.offerAmount,
+                1,
                 proxyOwner
             );
 
@@ -273,7 +273,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
            offerer,
            msg.sender,
            parameters.offerIdentifier,
-           parameters.offerAmount,
+           1,
            proxyOwner
        );
 
