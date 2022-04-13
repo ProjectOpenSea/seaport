@@ -1246,7 +1246,7 @@ contract ConsiderationPure is ConsiderationBase {
     function _convertOrderToAdvanced(Order calldata order)
         internal
         pure
-        returns (AdvancedOrder memory)
+        returns (AdvancedOrder memory advancedOrder)
     {
         // Convert to partial order (1/1 or full fill) and return new value.
         advancedOrder = AdvancedOrder(
