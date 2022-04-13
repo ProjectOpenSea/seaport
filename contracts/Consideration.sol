@@ -555,8 +555,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                            matching the given orders.
      */
     function matchOrders(
-        Order[] memory orders,
-        Fulfillment[] memory fulfillments
+        Order[] calldata orders,
+        Fulfillment[] calldata fulfillments
     ) external payable override returns (
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
@@ -715,7 +715,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         successfully validated.
      */
     function validate(
-        Order[] memory orders
+        Order[] calldata orders
     ) external override returns (bool) {
         // Reference "unused" variables to silence compiler warnings.
         orders;
