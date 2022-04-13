@@ -85,11 +85,87 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
        //Basic Order uses special BasicOrderType enum
        if(BasicOrderParameters.BasicOrderType > 15){
          //erc1155 for erc20
+         // Derive and validate order using parameters and update order status.
+         _prepareBasicFulfillmentFromCalldata(
+            parameters,
+            ItemType.ERC1155,
+            ItemType.ERC20,
+            parameters.offerToken,
+            ItemType.ERC20
+          );
+          // Move the offerer from memory to the stack.
+          address payable offerer = parameters.offerer;
+
+          bool useFulfillerProxy = parameters.useFulfillerProxy;
+
+          // Equivalent to useFulfillerProxy ? msg.sender : address(0)
+          address proxyOwner;
+          assembly {
+              proxyOwner := mul(caller(), useFulfillerProxy)
+          }
+
+          // Transfer ERC1155 to offerer, using caller's proxy if applicable.
+          _transferERC1155(
+              parameters.considerationToken,
+              msg.sender,
+              offerer,
+              parameters.considerationIdentifier,
+              parameters.considerationAmount,
+              proxyOwner
+          );
+
+          // Transfer ERC20 tokens to all recipients and wrap up.
+          _transferERC20AndFinalize(
+              offerer,
+              msg.sender,
+              parameters.offerToken,
+              parameters.offerAmount,
+              parameters,
+              true // Reduce erc20Amount sent to fulfiller by additional amounts.
+          );
 
          return true
        }
        else if(BasicOrderParameters.BasicOrderType > 7){
          //erc721 for erc20
+         _prepareBasicFulfillmentFromCalldata(
+          parameters,
+          ItemType.ERC721,
+          ItemType.ERC20,
+          parameters.offerToken,
+          ItemType.ERC20
+        );
+
+        // Move the offerer from memory to the stack.
+        address payable offerer = parameters.offerer;
+
+        bool useFulfillerProxy = parameters.useFulfillerProxy;
+
+        // Equivalent to useFulfillerProxy ? msg.sender : address(0)
+        address proxyOwner;
+        assembly {
+            proxyOwner := mul(caller(), useFulfillerProxy)
+        }
+
+        // Transfer ERC721 to offerer, using caller's proxy if applicable.
+        _transferERC721(
+            parameters.considerationToken,
+            msg.sender,
+            offerer,
+            parameters.considerationIdentifier,
+            parameters.considerationAmount,
+            proxyOwner
+        );
+
+        // Transfer ERC20 tokens to all recipients and wrap up.
+        _transferERC20AndFinalize(
+            offerer,
+            msg.sender,
+            parameters.offerToken,
+            parameters.offerAmount,
+            parameters,
+            true // Reduce erc20Amount sent to fulfiller by additional amounts.
+        );
 
          return true
        }
@@ -98,18 +174,158 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
          //eth for NFT
          if(BasicOrderParameters.offerAmount == 0){
            //eth for 721
+           // Derive and validate order using parameters and update order status.
+            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+              parameters,
+              ItemType.NATIVE,
+              ItemType.NATIVE,
+              address(0),
+              ItemType.ERC721
+            );
+
+            // Move the offerer from memory to the stack.
+            address payable offerer = parameters.offerer;
+
+            // Equivalent to useOffererProxy ? offerer : address(0)
+            address proxyOwner;
+            assembly {
+                proxyOwner := mul(offerer, useOffererProxy)
+            }
+
+            // Transfer ERC721 to caller, using offerer's proxy if applicable.
+            _transferERC721(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                parameters.offerAmount,
+                proxyOwner
+            );
+
+            // Transfer native to recipients, return excess to caller, and wrap up.
+            _transferEthAndFinalize(
+                parameters.considerationAmount,
+                parameters
+            );
          }
          else{
            //eth for 1155
+           // Derive and validate order using parameters and update order status.
+            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+              parameters,
+              ItemType.NATIVE,
+              ItemType.NATIVE,
+              address(0),
+              ItemType.ERC1155
+            );
+
+            // Move the offerer from memory to the stack.
+            address payable offerer = parameters.offerer;
+
+            // Equivalent to useOffererProxy ? offerer : address(0)
+            address proxyOwner;
+            assembly {
+                proxyOwner := mul(offerer, useOffererProxy)
+            }
+
+            // Transfer ERC1155 to caller, using offerer's proxy if applicable.
+            _transferERC1155(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                parameters.offerAmount,
+                proxyOwner
+            );
+
+            // Transfer native to recipients, return excess to caller, and wrap up.
+            _transferEthAndFinalize(
+                parameters.considerationAmount,
+                parameters
+            );
          }
        }
        else{
          //erc20 for NFT
          if(BasicOrderParameters.offerAmount == 0){
-           //eth for 721
+           //erc20 for 721
+           // Derive and validate order using parameters and update order status.
+       (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+         parameters,
+         ItemType.ERC20,
+         ItemType.ERC20,
+         parameters.considerationToken,
+         ItemType.ERC721
+       );
+
+       // Move the offerer from memory to the stack.
+       address payable offerer = parameters.offerer;
+
+       // Equivalent to useOffererProxy ? offerer : address(0)
+       address proxyOwner;
+       assembly {
+           proxyOwner := mul(offerer, useOffererProxy)
+       }
+
+       // Transfer ERC721 to caller, using offerer's proxy if applicable.
+       _transferERC721(
+           parameters.offerToken,
+           offerer,
+           msg.sender,
+           parameters.offerIdentifier,
+           parameters.offerAmount,
+           proxyOwner
+       );
+
+       // Transfer ERC20 tokens to all recipients and wrap up.
+       _transferERC20AndFinalize(
+           msg.sender,
+           offerer,
+           parameters.considerationToken,
+           parameters.considerationAmount,
+           parameters,
+           false // Transfer full amount indicated by all consideration items.
+       );
          }
          else{
-           //eth for 1155
+           //erc20 for 1155
+           // Derive and validate order using parameters and update order status.
+        (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+          parameters,
+          ItemType.ERC20,
+          ItemType.ERC20,
+          parameters.considerationToken,
+          ItemType.ERC1155
+        );
+
+        // Move the offerer from memory to the stack.
+        address payable offerer = parameters.offerer;
+
+        // Equivalent to useOffererProxy ? offerer : address(0)
+        address proxyOwner;
+        assembly {
+            proxyOwner := mul(offerer, useOffererProxy)
+        }
+
+        // Transfer ERC1155 to caller, using offerer's proxy if applicable.
+        _transferERC1155(
+            parameters.offerToken,
+            offerer,
+            msg.sender,
+            parameters.offerIdentifier,
+            parameters.offerAmount,
+            proxyOwner
+        );
+
+        // Transfer ERC20 tokens to all recipients and wrap up.
+        _transferERC20AndFinalize(
+            msg.sender,
+            offerer,
+            parameters.considerationToken,
+            parameters.considerationAmount,
+            parameters,
+            false // Transfer full amount indicated by all consideration items.
+        );
          }
        }
 
