@@ -495,7 +495,7 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
         if (
-            orderTypeAsUint256 & 3 < 2 && // if (≡ 0 mod 4) or (≡ 1 mod 4)
+            orderTypeAsUint256 & 3 > 1 && // if (≡ 2 mod 4) or (≡ 3 mod 4)
             msg.sender != zone &&
             msg.sender != offerer
         ) {
@@ -547,7 +547,7 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
         if (
-            orderTypeAsUint256 & 3 < 2 && // if (≡ 0 mod 4) or (≡ 1 mod 4)
+            orderTypeAsUint256 & 3 > 1 && // if (≡ 2 mod 4) or (≡ 3 mod 4)
             msg.sender != zone &&
             msg.sender != offerer
         ) {
