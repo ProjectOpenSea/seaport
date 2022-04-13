@@ -931,7 +931,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      */
     function _fulfillAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
-        Fulfillment[] memory fulfillments,
+        Fulfillment[] calldata fulfillments,
         FulfillmentDetail[] memory fulfillmentDetails
     ) internal returns (Execution[] memory, BatchExecution[] memory) {
         // Allocate executions by fulfillment and apply them to each execution.
