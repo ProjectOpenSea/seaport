@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    OrderType,
-    BasicOrderType,
-    ItemType,
-    Side
-} from "./ConsiderationEnums.sol";
+import {OrderType, BasicOrderType, ItemType, Side} from "./ConsiderationEnums.sol";
 
 /**
  * @dev An order contains ten components: an offerer, a zone (or account that
@@ -92,24 +87,25 @@ struct ReceivedItem {
  *      matching, a group of six functions may be called that only requires a
  *      subset of the usual order arguments.
  */
-struct BasicOrderParameters {                   // calldata offset
-    address considerationToken;                 // 0x24
-    uint256 considerationIdentifier;            // 0x44
-    uint256 considerationAmount;                // 0x64
-    address payable offerer;                    // 0x84
-    address zone;                               // 0xa4
-    address offerToken;                         // 0xc4
-    uint256 offerIdentifier;                    // 0xe4
-    uint256 offerAmount;                        // 0x104
-    BasicOrderType orderType;                   // 0x124
-    uint256 startTime;                          // 0x144
-    uint256 endTime;                            // 0x164
-    bytes32 zoneHash;                           // 0x184
-    uint256 salt;                               // 0x1a4
-    bool useFulfillerProxy;                     // 0x1c4
-    uint256 totalOriginalAdditionalRecipients;  // 0x1e4
+struct BasicOrderParameters {
+    // calldata offset
+    address considerationToken; // 0x24
+    uint256 considerationIdentifier; // 0x44
+    uint256 considerationAmount; // 0x64
+    address payable offerer; // 0x84
+    address zone; // 0xa4
+    address offerToken; // 0xc4
+    uint256 offerIdentifier; // 0xe4
+    uint256 offerAmount; // 0x104
+    BasicOrderType orderType; // 0x124
+    uint256 startTime; // 0x144
+    uint256 endTime; // 0x164
+    bytes32 zoneHash; // 0x184
+    uint256 salt; // 0x1a4
+    bool useFulfillerProxy; // 0x1c4
+    uint256 totalOriginalAdditionalRecipients; // 0x1e4
     AdditionalRecipient[] additionalRecipients; // 0x204
-    bytes signature;                            // 0x224
+    bytes signature; // 0x224
     // Total length, excluding dynamic array data: 0x244 (580)
 }
 
