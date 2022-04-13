@@ -50,7 +50,7 @@ enum BasicOrderType {
     FULL_RESTRICTED_VIA_PROXY,
 
     // 7: partial fills ok, only offerer or zone executes, routed through proxy
-    PARTIAL_RESTRICTED_VIA_PROXY
+    PARTIAL_RESTRICTED_VIA_PROXY,
 
     // 8: no partial fills, anyone can execute
     FULL_OPEN_ERC721,
@@ -74,7 +74,7 @@ enum BasicOrderType {
     FULL_RESTRICTED_VIA_PROXY_ERC721,
 
     // 15: partial fills ok, only offerer or zone executes, routed through proxy
-    PARTIAL_RESTRICTED_VIA_PROXY_ERC721
+    PARTIAL_RESTRICTED_VIA_PROXY_ERC721,
 
     // 16: no partial fills, anyone can execute
     FULL_OPEN_ERC1155,

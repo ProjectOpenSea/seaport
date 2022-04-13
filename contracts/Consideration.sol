@@ -83,7 +83,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      ) external payable override returns (bool) {
 
        //Basic Order uses special BasicOrderType enum
-       if(BasicOrderParameters.BasicOrderType > 15){
+       if(BasicOrderParameters.orderType > 15){
          //erc1155 for erc20
          // Derive and validate order using parameters and update order status.
          _prepareBasicFulfillmentFromCalldata(
@@ -124,9 +124,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
               true // Reduce erc20Amount sent to fulfiller by additional amounts.
           );
 
-         return true
+         return true;
        }
-       else if(BasicOrderParameters.BasicOrderType > 7){
+       else if(BasicOrderParameters.orderType > 7){
          //erc721 for erc20
          _prepareBasicFulfillmentFromCalldata(
           parameters,
@@ -167,7 +167,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             true // Reduce erc20Amount sent to fulfiller by additional amounts.
         );
 
-         return true
+         return true;
        }
 
        if(BasicOrderParameters.considerationToken == address(0)){
