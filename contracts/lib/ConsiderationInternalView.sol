@@ -496,7 +496,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Equivalent to useOffererProxy ? 5 : 1.
         uint256 requiresZoneOrOffererBeCaller;
         assembly {
-            requiresZoneOrOffererBeCaller := add(1, mul(4, useOffererProxy))
+            requiresZoneOrOffererBeCaller := add(1, shl(2, useOffererProxy))
         }
 
         // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
