@@ -91,58 +91,84 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             route := div(calldataload(0x124), 8)
         }
 
-        if (route == BasicOrderRouteType.ETH_TO_ERC721) {
+        ItemType additionalRecipientsItemType;
+        address additionalRecipientsToken;
+
+        // Utilize assembly to retrieve function arguments and cast types.
+        assembly {
+            // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
+            additionalRecipientsItemType := gt(route, 1)
+
+            // If route > 3 additionalRecipientsToken is at 0xc4 else 0x24
+            additionalRecipientsToken := calldataload(
+                add(0x24, mul(0xa0, gt(route, 3)))
+            )
+        }
+
+        uint8 uint8Route = uint8(route);
+
+        // These can still be optimized further; this is more of a demonstration
+        ItemType offeredItemType;
+        ItemType receivedItemType;
+        unchecked {
+            offeredItemType = ItemType(
+                uint8Route > 3 ? 1 : (
+                    uint8Route > 1 ? uint8Route : uint8Route + 2
+                )
+            );
+            receivedItemType = ItemType(
+                uint8Route > 2 ? uint8Route - 2 : (
+                    uint8Route == 2 ? 1 : 0
+                )
+            );
+        }
+
+        address payable offerer;
+        address proxyOwner;
+        {
             // Derive & validate order using parameters and update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
                 parameters,
                 orderType,
-                ItemType.NATIVE,
-                ItemType.NATIVE,
-                address(0),
-                ItemType.ERC721
+                receivedItemType,
+                additionalRecipientsItemType,
+                additionalRecipientsToken,
+                offeredItemType
             );
 
             // Move the offerer from memory to the stack.
-            address payable offerer = parameters.offerer;
+            offerer = parameters.offerer;
 
-            // Equivalent to useOffererProxy ? offerer : address(0)
-            address proxyOwner;
-            assembly {
-                proxyOwner := mul(offerer, useOffererProxy)
+            if (uint8Route < 4) {
+                // Equivalent to useOffererProxy ? offerer : address(0)
+                assembly {
+                    proxyOwner := mul(offerer, useOffererProxy)
+                }
+            } else {
+                bool useFulfillerProxy = parameters.useFulfillerProxy;
+
+                // Equivalent to useFulfillerProxy ? msg.sender : address(0)
+                assembly {
+                    proxyOwner := mul(caller(), useFulfillerProxy)
+                }
             }
+        }
 
+        // Transfer tokens based on the route.
+        if (route == BasicOrderRouteType.ETH_TO_ERC721) {
             // Transfer ERC721 to caller, using offerer's proxy if applicable.
             _transferERC721(
                 parameters.offerToken,
                 offerer,
                 msg.sender,
                 parameters.offerIdentifier,
-                1,
+                parameters.offerAmount,
                 proxyOwner
             );
 
             // Transfer native to recipients, return excess to caller, and wrap up.
             _transferEthAndFinalize(parameters.considerationAmount, parameters);
         } else if (route == BasicOrderRouteType.ETH_TO_ERC1155) {
-            // Derive and validate order using parameters and update order status.
-            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
-                parameters,
-                orderType,
-                ItemType.NATIVE,
-                ItemType.NATIVE,
-                address(0),
-                ItemType.ERC1155
-            );
-
-            // Move the offerer from memory to the stack.
-            address payable offerer = parameters.offerer;
-
-            // Equivalent to useOffererProxy ? offerer : address(0)
-            address proxyOwner;
-            assembly {
-                proxyOwner := mul(offerer, useOffererProxy)
-            }
-
             // Transfer ERC1155 to caller, using offerer's proxy if applicable.
             _transferERC1155(
                 parameters.offerToken,
@@ -156,32 +182,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // Transfer native to recipients, return excess to caller & wrap up.
             _transferEthAndFinalize(parameters.considerationAmount, parameters);
         } else if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
-            // Derive and validate order using parameters & update order status.
-            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
-                parameters,
-                orderType,
-                ItemType.ERC20,
-                ItemType.ERC20,
-                parameters.considerationToken,
-                ItemType.ERC721
-            );
-
-            // Move the offerer from memory to the stack.
-            address payable offerer = parameters.offerer;
-
-            // Equivalent to useOffererProxy ? offerer : address(0)
-            address proxyOwner;
-            assembly {
-                proxyOwner := mul(offerer, useOffererProxy)
-            }
-
             // Transfer ERC721 to caller, using offerer's proxy if applicable.
             _transferERC721(
                 parameters.offerToken,
                 offerer,
                 msg.sender,
                 parameters.offerIdentifier,
-                1,
+                parameters.offerAmount,
                 proxyOwner
             );
 
@@ -195,25 +202,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 false // Send full amount indicated by all consideration items.
             );
         } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
-            // Derive and validate order using parameters & update order status.
-            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
-                parameters,
-                orderType,
-                ItemType.ERC20,
-                ItemType.ERC20,
-                parameters.considerationToken,
-                ItemType.ERC1155
-            );
-
-            // Move the offerer from memory to the stack.
-            address payable offerer = parameters.offerer;
-
-            // Equivalent to useOffererProxy ? offerer : address(0)
-            address proxyOwner;
-            assembly {
-                proxyOwner := mul(offerer, useOffererProxy)
-            }
-
             // Transfer ERC1155 to caller, using offerer's proxy if applicable.
             _transferERC1155(
                 parameters.offerToken,
@@ -234,26 +222,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 false // Send full amount indicated by all consideration items.
             );
         } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
-            _prepareBasicFulfillmentFromCalldata(
-                parameters,
-                orderType,
-                ItemType.ERC721,
-                ItemType.ERC20,
-                parameters.offerToken,
-                ItemType.ERC20
-            );
-
-            // Move the offerer from memory to the stack.
-            address payable offerer = parameters.offerer;
-
-            bool useFulfillerProxy = parameters.useFulfillerProxy;
-
-            // Equivalent to useFulfillerProxy ? msg.sender : address(0)
-            address proxyOwner;
-            assembly {
-                proxyOwner := mul(caller(), useFulfillerProxy)
-            }
-
             // Transfer ERC721 to offerer, using caller's proxy if applicable.
             _transferERC721(
                 parameters.considerationToken,
@@ -275,25 +243,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             );
         } else {
             // route == BasicOrderRouteType.ERC1155_TO_ERC20
-            // Derive and validate order using parameters & update order status.
-            _prepareBasicFulfillmentFromCalldata(
-                parameters,
-                orderType,
-                ItemType.ERC1155,
-                ItemType.ERC20,
-                parameters.offerToken,
-                ItemType.ERC20
-            );
-            // Move the offerer from memory to the stack.
-            address payable offerer = parameters.offerer;
-
-            bool useFulfillerProxy = parameters.useFulfillerProxy;
-
-            // Equivalent to useFulfillerProxy ? msg.sender : address(0)
-            address proxyOwner;
-            assembly {
-                proxyOwner := mul(caller(), useFulfillerProxy)
-            }
 
             // Transfer ERC1155 to offerer, using caller's proxy if applicable.
             _transferERC1155(
