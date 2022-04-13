@@ -3,10 +3,7 @@ pragma solidity 0.8.12;
 
 import { Side } from "../lib/ConsiderationEnums.sol";
 
-import {
-    SpentItem,
-    ReceivedItem
-} from "../lib/ConsiderationStructs.sol";
+import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationEventsAndErrors
@@ -70,10 +67,7 @@ interface ConsiderationEventsAndErrors {
      * @param newNonce The new nonce for the offerer.
      * @param offerer  The offerer in question.
      */
-    event NonceIncremented(
-        uint256 newNonce,
-        address indexed offerer
-    );
+    event NonceIncremented(uint256 newNonce, address indexed offerer);
 
     /**
      * @dev Revert with an error when attempting to fill an order that has

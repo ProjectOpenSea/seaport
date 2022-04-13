@@ -4,7 +4,6 @@ import "./Ownable.sol";
 import "./OwnableDelegateProxy.sol";
 
 contract ProxyRegistry is Ownable {
-
     /* DelegateProxy implementation contract. Must be initialized. */
     address public delegateProxyImplementation;
 
@@ -12,7 +11,7 @@ contract ProxyRegistry is Ownable {
     mapping(address => OwnableDelegateProxy) public proxies;
 
     /* Contracts pending access. */
-    mapping(address => uint) public pending;
+    mapping(address => uint256) public pending;
 
     /* Contracts allowed to call those proxies. */
     mapping(address => bool) public contracts;
@@ -22,7 +21,7 @@ contract ProxyRegistry is Ownable {
        a malicious but rational attacker could buy half the Wyvern and grant themselves access to all the proxy contracts. A delay period renders this attack nonthreatening - given two weeks, if that happened, users would have
        plenty of time to notice and transfer their assets.
     */
-    uint public DELAY_PERIOD = 2 weeks;
+    uint256 public DELAY_PERIOD = 2 weeks;
 
     /**
      * Start the process to enable access for specified contract. Subject to delay period.
@@ -30,10 +29,7 @@ contract ProxyRegistry is Ownable {
      * @dev ProxyRegistry owner only
      * @param addr Address to which to grant permissions
      */
-    function startGrantAuthentication (address addr)
-        public
-        onlyOwner
-    {
+    function startGrantAuthentication(address addr) public onlyOwner {
         require(!contracts[addr] && pending[addr] == 0);
         pending[addr] = now;
     }
@@ -44,11 +40,12 @@ contract ProxyRegistry is Ownable {
      * @dev ProxyRegistry owner only
      * @param addr Address to which to grant permissions
      */
-    function endGrantAuthentication (address addr)
-        public
-        onlyOwner
-    {
-        require(!contracts[addr] && pending[addr] != 0 && ((pending[addr] + DELAY_PERIOD) < now));
+    function endGrantAuthentication(address addr) public onlyOwner {
+        require(
+            !contracts[addr] &&
+                pending[addr] != 0 &&
+                ((pending[addr] + DELAY_PERIOD) < now)
+        );
         pending[addr] = 0;
         contracts[addr] = true;
     }
@@ -59,10 +56,7 @@ contract ProxyRegistry is Ownable {
      * @dev ProxyRegistry owner only
      * @param addr Address of which to revoke permissions
      */
-    function revokeAuthentication (address addr)
-        public
-        onlyOwner
-    {
+    function revokeAuthentication(address addr) public onlyOwner {
         contracts[addr] = false;
     }
 
@@ -72,12 +66,17 @@ contract ProxyRegistry is Ownable {
      * @dev Must be called by the user which the proxy is for, creates a new AuthenticatedProxy
      * @return New AuthenticatedProxy contract
      */
-    function registerProxy()
-        public
-        returns (OwnableDelegateProxy proxy)
-    {
+    function registerProxy() public returns (OwnableDelegateProxy proxy) {
         require(proxies[msg.sender] == address(0));
-        proxy = new OwnableDelegateProxy(msg.sender, delegateProxyImplementation, abi.encodeWithSignature("initialize(address,address)", msg.sender, address(this)));
+        proxy = new OwnableDelegateProxy(
+            msg.sender,
+            delegateProxyImplementation,
+            abi.encodeWithSignature(
+                "initialize(address,address)",
+                msg.sender,
+                address(this)
+            )
+        );
         proxies[msg.sender] = proxy;
         return proxy;
     }

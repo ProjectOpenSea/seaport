@@ -9,7 +9,7 @@
     "not-rely-on-time": "off",
     "var-name-mixedcase": "off",
     "func-name-mixedcase": "off",
-    "max-line-length": ["error", 80],
+    "max-line-length": "off",
     "function-max-lines": "off",
     "code-complexity": "off"
   }

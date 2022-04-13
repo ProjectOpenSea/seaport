@@ -9,10 +9,7 @@ contract DelegatedDomainSeparatorTester is ConsiderationDelegated {
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
-    ) ConsiderationDelegated(
-        legacyProxyRegistry,
-        requiredProxyImplementation
-    ) {
+    ) ConsiderationDelegated(legacyProxyRegistry, requiredProxyImplementation) {
         _DEPLOYER = msg.sender;
     }
 

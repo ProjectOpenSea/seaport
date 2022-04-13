@@ -1,17 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    Order,
-    AdvancedOrder,
-    OrderComponents,
-    CriteriaResolver,
-    Fulfillment,
-    FulfillmentComponent,
-    FulfillmentDetail,
-    Execution,
-    BatchExecution
-} from "../lib/ConsiderationStructs.sol";
+import { Order, AdvancedOrder, OrderComponents, CriteriaResolver, Fulfillment, FulfillmentComponent, FulfillmentDetail, Execution, BatchExecution } from "../lib/ConsiderationStructs.sol";
 
 interface ConsiderationDelegatedInterface {
     /**
@@ -44,10 +34,13 @@ interface ConsiderationDelegatedInterface {
     function matchOrders(
         Order[] memory orders,
         Fulfillment[] memory fulfillments
-    ) external payable returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    );
+    )
+        external
+        payable
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        );
 
     /**
      * @notice External function, only callable from the Consideration contract
@@ -117,11 +110,14 @@ interface ConsiderationDelegatedInterface {
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
         bool useFulfillerProxy
-    ) external payable returns (
-        FulfillmentDetail[] memory fulfillmentDetails,
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    );
+    )
+        external
+        payable
+        returns (
+            FulfillmentDetail[] memory fulfillmentDetails,
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        );
 
     /**
      * @notice Validate an arbitrary number of orders, thereby registering them
@@ -149,5 +145,5 @@ interface ConsiderationDelegatedInterface {
      * @dev Revert when called or delegatecalled via any method other than a
      *      delegatecall from Consideration.
      */
-     error OnlyDelegatecallFromConsideration();
+    error OnlyDelegatecallFromConsideration();
 }

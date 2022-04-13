@@ -5,25 +5,9 @@ import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-import {
-    OrderType,
-    ItemType,
-    Side
-} from "./ConsiderationEnums.sol";
+import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
 
-import {
-    OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem,
-    OrderParameters,
-    Order,
-    AdvancedOrder,
-    OrderStatus,
-    Execution,
-    FulfillmentComponent,
-    FulfillmentDetail
-} from "./ConsiderationStructs.sol";
+import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Order, AdvancedOrder, OrderStatus, Execution, FulfillmentComponent, FulfillmentDetail } from "./ConsiderationStructs.sol";
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
 
@@ -209,7 +193,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 // Extract yParity from highest bit of vs and add 27 to get v.
                 v := add(shr(255, vs), 27)
             }
-        // If signature contains 65 bytes, parse as standard signature. (r+s+v)
+            // If signature contains 65 bytes, parse as standard signature. (r+s+v)
         } else if (signature.length == 65) {
             // Read each parameter directly from the signature's memory region.
             assembly {
@@ -222,7 +206,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             if (v != 27 && v != 28) {
                 revert BadSignatureV(v);
             }
-        // For all other signature lengths, attempt verification using EIP-1271.
+            // For all other signature lengths, attempt verification using EIP-1271.
         } else {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
             _verifySignatureViaERC1271(offerer, digest, signature);
@@ -237,7 +221,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Disallow invalid signers.
         if (signer == address(0)) {
             revert InvalidSignature();
-        // Should a signer be recovered, but it doesn't match the offerer...
+            // Should a signer be recovered, but it doesn't match the offerer...
         } else if (signer != offerer) {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
             _verifySignatureViaERC1271(offerer, digest, signature);
@@ -260,7 +244,8 @@ contract ConsiderationInternalView is ConsiderationPure {
     ) internal view {
         // Attempt an EIP-1271 staticcall to the offerer.
         bool success = _staticcall(
-            offerer, abi.encodeWithSelector(
+            offerer,
+            abi.encodeWithSelector(
                 EIP1271Interface.isValidSignature.selector,
                 digest,
                 signature
@@ -305,10 +290,11 @@ contract ConsiderationInternalView is ConsiderationPure {
      *
      * @return success The status of the staticcall to the target.
      */
-    function _staticcall(
-        address target,
-        bytes memory callData
-    ) internal view returns (bool success) {
+    function _staticcall(address target, bytes memory callData)
+        internal
+        view
+        returns (bool success)
+    {
         (success, ) = target.staticcall(callData);
     }
 
@@ -319,9 +305,10 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      scratch.
      */
     function _domainSeparator() internal view returns (bytes32) {
-        return block.chainid == _CHAIN_ID
-            ? _DOMAIN_SEPARATOR
-            : _deriveDomainSeparator();
+        return
+            block.chainid == _CHAIN_ID
+                ? _DOMAIN_SEPARATOR
+                : _deriveDomainSeparator();
     }
 
     /**
@@ -341,95 +328,103 @@ contract ConsiderationInternalView is ConsiderationPure {
     ) internal view returns (bytes32 orderHash) {
         // Get length of original consideration array and place it on the stack.
         uint256 originalConsiderationLength = (
-          orderParameters.totalOriginalConsiderationItems
+            orderParameters.totalOriginalConsiderationItems
         );
         /*
-          * Memory layout for an array of structs (dynamic or not) is similar
-          * to ABI encoding of dynamic types, with a head segment followed by
-          * a data segment. The main difference is that the head of an element
-          * is a memory pointer rather than an offset.
-          */
+         * Memory layout for an array of structs (dynamic or not) is similar
+         * to ABI encoding of dynamic types, with a head segment followed by
+         * a data segment. The main difference is that the head of an element
+         * is a memory pointer rather than an offset.
+         */
         bytes32 offersHash;
         bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
         assembly {
-          // Pointer to free memory
-          let hashArrPtr := mload(0x40)
-          // Get the pointer to the offers array
-          let offerArrPtr := mload(add(orderParameters, 0x40))
-          // Load the length
-          let offerLength := mload(offerArrPtr)
-          // Set the pointer to the first offer's head
-          offerArrPtr := add(offerArrPtr, 0x20)
-          for {let i := 0} lt(i, offerLength) {i:=add(i, 1)} {
-            // Read the pointer to the offer data and subtract 32
-            // to get typeHash pointer
-            let ptr := sub(mload(offerArrPtr), 0x20)
-            // Read the current value before the offer data
-            let value := mload(ptr)
-            // Write the type hash to the previous word
-            mstore(ptr, typeHash)
-            // Take the EIP712 hash and store it in the hash array
-            mstore(hashArrPtr, keccak256(ptr, 0xc0))
-            // Restore the previous word
-            mstore(ptr, value)
-            // Increment the array pointers
+            // Pointer to free memory
+            let hashArrPtr := mload(0x40)
+            // Get the pointer to the offers array
+            let offerArrPtr := mload(add(orderParameters, 0x40))
+            // Load the length
+            let offerLength := mload(offerArrPtr)
+            // Set the pointer to the first offer's head
             offerArrPtr := add(offerArrPtr, 0x20)
-            hashArrPtr := add(hashArrPtr, 0x20)
-          }
-          offersHash := keccak256(mload(0x40), mul(offerLength, 0x20))
+            for {
+                let i := 0
+            } lt(i, offerLength) {
+                i := add(i, 1)
+            } {
+                // Read the pointer to the offer data and subtract 32
+                // to get typeHash pointer
+                let ptr := sub(mload(offerArrPtr), 0x20)
+                // Read the current value before the offer data
+                let value := mload(ptr)
+                // Write the type hash to the previous word
+                mstore(ptr, typeHash)
+                // Take the EIP712 hash and store it in the hash array
+                mstore(hashArrPtr, keccak256(ptr, 0xc0))
+                // Restore the previous word
+                mstore(ptr, value)
+                // Increment the array pointers
+                offerArrPtr := add(offerArrPtr, 0x20)
+                hashArrPtr := add(hashArrPtr, 0x20)
+            }
+            offersHash := keccak256(mload(0x40), mul(offerLength, 0x20))
         }
         bytes32 considerationsHash;
         typeHash = _CONSIDERATION_ITEM_TYPEHASH;
         assembly {
-          let hashArrPtr := mload(0x40)
-          // Get the pointer to the considerations array
-          let considerationsArrPtr := add(
-            mload(add(orderParameters, 0x60)),
-            0x20
-          )
-          for {let i := 0} lt(i, originalConsiderationLength) {i:=add(i, 1)} {
-            // Read the pointer to the consideration data and subtract 32
-            // to get typeHash pointer
-            let ptr := sub(mload(considerationsArrPtr), 0x20)
-            // Read the current value before the consideration data
-            let value := mload(ptr)
-            // Write the type hash to the previous word
-            mstore(ptr, typeHash)
-            // Take the EIP712 hash and store it in the hash array
-            mstore(hashArrPtr, keccak256(ptr, 0xe0))
-            // Restore the previous word
-            mstore(ptr, value)
-            // Increment the array pointers
-            considerationsArrPtr := add(considerationsArrPtr, 0x20)
-            hashArrPtr := add(hashArrPtr, 0x20)
-          }
-          considerationsHash := keccak256(
-            mload(0x40),
-            mul(originalConsiderationLength, 0x20)
-          )
+            let hashArrPtr := mload(0x40)
+            // Get the pointer to the considerations array
+            let considerationsArrPtr := add(
+                mload(add(orderParameters, 0x60)),
+                0x20
+            )
+            for {
+                let i := 0
+            } lt(i, originalConsiderationLength) {
+                i := add(i, 1)
+            } {
+                // Read the pointer to the consideration data and subtract 32
+                // to get typeHash pointer
+                let ptr := sub(mload(considerationsArrPtr), 0x20)
+                // Read the current value before the consideration data
+                let value := mload(ptr)
+                // Write the type hash to the previous word
+                mstore(ptr, typeHash)
+                // Take the EIP712 hash and store it in the hash array
+                mstore(hashArrPtr, keccak256(ptr, 0xe0))
+                // Restore the previous word
+                mstore(ptr, value)
+                // Increment the array pointers
+                considerationsArrPtr := add(considerationsArrPtr, 0x20)
+                hashArrPtr := add(hashArrPtr, 0x20)
+            }
+            considerationsHash := keccak256(
+                mload(0x40),
+                mul(originalConsiderationLength, 0x20)
+            )
         }
         typeHash = _ORDER_HASH;
         assembly {
-          let typeHashPtr := sub(orderParameters, 0x20)
-          let previousValue := mload(typeHashPtr)
-          mstore(typeHashPtr, typeHash)
+            let typeHashPtr := sub(orderParameters, 0x20)
+            let previousValue := mload(typeHashPtr)
+            mstore(typeHashPtr, typeHash)
 
-          let offerHeadPtr := add(orderParameters, 0x40)
-          let offerDataPtr := mload(offerHeadPtr)
-          mstore(offerHeadPtr, offersHash)
+            let offerHeadPtr := add(orderParameters, 0x40)
+            let offerDataPtr := mload(offerHeadPtr)
+            mstore(offerHeadPtr, offersHash)
 
-          let considerationsHeadPtr := add(orderParameters, 0x60)
-          let considerationsDataPtr := mload(considerationsHeadPtr)
-          mstore(considerationsHeadPtr, considerationsHash)
+            let considerationsHeadPtr := add(orderParameters, 0x60)
+            let considerationsDataPtr := mload(considerationsHeadPtr)
+            mstore(considerationsHeadPtr, considerationsHash)
 
-          let noncePtr := add(orderParameters, 0x120)
-          mstore(noncePtr, nonce)
+            let noncePtr := add(orderParameters, 0x120)
+            mstore(noncePtr, nonce)
 
-          orderHash := keccak256(typeHashPtr, 0x160)
-          mstore(typeHashPtr, previousValue)
-          mstore(offerHeadPtr, offerDataPtr)
-          mstore(considerationsHeadPtr, considerationsDataPtr)
-          mstore(noncePtr, originalConsiderationLength)
+            orderHash := keccak256(typeHashPtr, 0x160)
+            mstore(typeHashPtr, previousValue)
+            mstore(offerHeadPtr, offerDataPtr)
+            mstore(considerationsHeadPtr, considerationsDataPtr)
+            mstore(noncePtr, originalConsiderationLength)
         }
     }
 
@@ -558,7 +553,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                         zoneHash
                     )
                 );
-            // Otherwise, extraData has been supplied.
+                // Otherwise, extraData has been supplied.
             } else {
                 // Perform verbose staticcall to zone.
                 success = _staticcall(
@@ -604,24 +599,12 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         // If start amount equals end amount, apply fraction to end amount.
         if (offerItem.startAmount == offerItem.endAmount) {
-            amount = _getFraction(
-                numerator,
-                denominator,
-                offerItem.endAmount
-            );
+            amount = _getFraction(numerator, denominator, offerItem.endAmount);
         } else {
             // Otherwise, apply fraction to both to extrapolate final amount.
             amount = _locateCurrentAmount(
-                _getFraction(
-                    numerator,
-                    denominator,
-                    offerItem.startAmount
-                ),
-                _getFraction(
-                    numerator,
-                    denominator,
-                    offerItem.endAmount
-                ),
+                _getFraction(numerator, denominator, offerItem.startAmount),
+                _getFraction(numerator, denominator, offerItem.endAmount),
                 elapsed,
                 remaining,
                 duration,
@@ -647,9 +630,10 @@ contract ConsiderationInternalView is ConsiderationPure {
      *
      * @param advancedOrder The advanced order order.
      */
-    function _adjustAdvancedOrderPrice(
-        AdvancedOrder memory advancedOrder
-    ) internal view {
+    function _adjustAdvancedOrderPrice(AdvancedOrder memory advancedOrder)
+        internal
+        view
+    {
         // Retrieve the order parameters for the order.
         OrderParameters memory orderParameters = advancedOrder.parameters;
 
@@ -767,13 +751,18 @@ contract ConsiderationInternalView is ConsiderationPure {
         // If no available order was located...
         if (nextComponentIndex == 0) {
             // Return early with a null execution element that will be filtered.
-            return Execution(
-                ReceivedItem(
-                    ItemType.NATIVE, address(0), 0, 0, payable(address(0))
-                ),
-                address(0),
-                false
-            );
+            return
+                Execution(
+                    ReceivedItem(
+                        ItemType.NATIVE,
+                        address(0),
+                        0,
+                        0,
+                        payable(address(0))
+                    ),
+                    address(0),
+                    false
+                );
         }
 
         // Otherwise, get first available fulfillment component.
@@ -788,24 +777,26 @@ contract ConsiderationInternalView is ConsiderationPure {
         // If the fulfillment components are offer components...
         if (side == Side.OFFER) {
             // Return execution for aggregated items provided by the offerer.
-            return _aggregateOfferItems(
-                advancedOrders,
-                fulfillmentComponents,
-                firstAvailableComponent,
-                nextComponentIndex,
-                fulfillmentDetails
-            );
-        // Otherwise, fulfillment components are consideration components.
+            return
+                _aggregateOfferItems(
+                    advancedOrders,
+                    fulfillmentComponents,
+                    firstAvailableComponent,
+                    nextComponentIndex,
+                    fulfillmentDetails
+                );
+            // Otherwise, fulfillment components are consideration components.
         } else {
             // Return execution for aggregated items provided by the fulfiller.
-            return _aggregateConsiderationItems(
-                advancedOrders,
-                fulfillmentComponents,
-                firstAvailableComponent,
-                nextComponentIndex,
-                fulfillmentDetails,
-                useFulfillerProxy
-            );
+            return
+                _aggregateConsiderationItems(
+                    advancedOrders,
+                    fulfillmentComponents,
+                    firstAvailableComponent,
+                    nextComponentIndex,
+                    fulfillmentDetails,
+                    useFulfillerProxy
+                );
         }
     }
 
@@ -840,14 +831,14 @@ contract ConsiderationInternalView is ConsiderationPure {
             SpentItem memory offerItem,
             bool useProxy
         ) = _consumeOfferComponent(
-            advancedOrders,
-            firstAvailableComponent.orderIndex,
-            firstAvailableComponent.itemIndex,
-            fulfillmentDetails
-        );
+                advancedOrders,
+                firstAvailableComponent.orderIndex,
+                firstAvailableComponent.itemIndex,
+                fulfillmentDetails
+            );
 
         // Iterate over each remaining component on the fulfillment.
-        for (uint256 i = nextComponentIndex; i < offerComponents.length;) {
+        for (uint256 i = nextComponentIndex; i < offerComponents.length; ) {
             // Retrieve the offer component from the fulfillment array.
             FulfillmentComponent memory offerComponent = offerComponents[i];
 
@@ -876,11 +867,11 @@ contract ConsiderationInternalView is ConsiderationPure {
                 SpentItem memory nextOfferItem,
                 bool subsequentUseProxy
             ) = _consumeOfferComponent(
-                advancedOrders,
-                orderIndex,
-                offerComponent.itemIndex,
-                fulfillmentDetails
-            );
+                    advancedOrders,
+                    orderIndex,
+                    offerComponent.itemIndex,
+                    fulfillmentDetails
+                );
 
             // Ensure all relevant parameters are consistent with initial offer.
             if (
@@ -912,11 +903,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         );
 
         // Return execution for aggregated items provided by the offerer.
-        execution = Execution(
-            receivedOfferItem,
-            offerer,
-            useProxy
-        );
+        execution = Execution(receivedOfferItem, offerer, useProxy);
     }
 
     /**
@@ -963,6 +950,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         for (
             uint256 i = nextComponentIndex;
             i < considerationComponents.length;
+
         ) {
             // Retrieve the consideration component from the fulfillment array.
             FulfillmentComponent memory considerationComponent = (
@@ -999,26 +987,20 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             // Ensure parameters are consistent with initial consideration.
             if (
-                requiredConsideration.recipient != (
-                    nextRequiredConsideration.recipient
-                ) ||
-                requiredConsideration.itemType != (
-                    nextRequiredConsideration.itemType
-                ) ||
-                requiredConsideration.token != (
-                    nextRequiredConsideration.token
-                ) ||
-                requiredConsideration.identifier != (
-                    nextRequiredConsideration.identifier
-                )
+                requiredConsideration.recipient !=
+                (nextRequiredConsideration.recipient) ||
+                requiredConsideration.itemType !=
+                (nextRequiredConsideration.itemType) ||
+                requiredConsideration.token !=
+                (nextRequiredConsideration.token) ||
+                requiredConsideration.identifier !=
+                (nextRequiredConsideration.identifier)
             ) {
                 revert MismatchedFulfillmentConsiderationComponents();
             }
 
             // Increase total consideration amount by the current amount.
-            requiredConsideration.amount += (
-                nextRequiredConsideration.amount
-            );
+            requiredConsideration.amount += (nextRequiredConsideration.amount);
 
             // Skip overflow check as for loop is indexed starting at one.
             unchecked {
@@ -1027,10 +1009,6 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
 
         // Return execution for aggregated items provided by the fulfiller.
-        return Execution(
-            requiredConsideration,
-            msg.sender,
-            useFulfillerProxy
-        );
+        return Execution(requiredConsideration, msg.sender, useFulfillerProxy);
     }
 }

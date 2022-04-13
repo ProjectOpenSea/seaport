@@ -1,27 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    ConsiderationInterface
-} from "../interfaces/ConsiderationInterface.sol";
+import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
 
-import {
-    ConsiderationDelegatedInterface
-} from "../interfaces/ConsiderationDelegatedInterface.sol";
+import { ConsiderationDelegatedInterface } from "../interfaces/ConsiderationDelegatedInterface.sol";
 
-import {
-    Order,
-    AdvancedOrder,
-    OrderComponents,
-    OrderParameters,
-    OrderStatus,
-    CriteriaResolver,
-    Fulfillment,
-    FulfillmentComponent,
-    FulfillmentDetail,
-    Execution,
-    BatchExecution
-} from "./ConsiderationStructs.sol";
+import { Order, AdvancedOrder, OrderComponents, OrderParameters, OrderStatus, CriteriaResolver, Fulfillment, FulfillmentComponent, FulfillmentDetail, Execution, BatchExecution } from "./ConsiderationStructs.sol";
 
 import { ConsiderationInternal } from "./ConsiderationInternal.sol";
 
@@ -34,7 +18,8 @@ import { ConsiderationInternal } from "./ConsiderationInternal.sol";
  */
 contract ConsiderationDelegated is
     ConsiderationDelegatedInterface,
-    ConsiderationInternal {
+    ConsiderationInternal
+{
     // Only delegator may call this contract (stricter than using a library).
     address internal immutable _DELEGATOR;
 
@@ -76,10 +61,15 @@ contract ConsiderationDelegated is
     function matchOrders(
         Order[] memory orders,
         Fulfillment[] memory fulfillments
-    ) external payable override returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    ) {
+    )
+        external
+        payable
+        override
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        )
+    {
         // Ensure that only delegatecalls from Consideration are allowed.
         _assertDelegatecallFromConsideration();
 
@@ -98,11 +88,12 @@ contract ConsiderationDelegated is
         );
 
         // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(
-            advancedOrders,
-            fulfillments,
-            fulfillmentDetails
-        );
+        return
+            _fulfillAdvancedOrders(
+                advancedOrders,
+                fulfillments,
+                fulfillmentDetails
+            );
     }
 
     /**
@@ -173,11 +164,16 @@ contract ConsiderationDelegated is
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         bool useFulfillerProxy
-    ) external payable override returns (
-        FulfillmentDetail[] memory fulfillmentDetails,
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    ) {
+    )
+        external
+        payable
+        override
+        returns (
+            FulfillmentDetail[] memory fulfillmentDetails,
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        )
+    {
         // Ensure that only delegatecalls from Consideration are allowed.
         _assertDelegatecallFromConsideration();
 
@@ -219,9 +215,7 @@ contract ConsiderationDelegated is
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function validate(
-        Order[] memory orders
-    ) external override returns (bool) {
+    function validate(Order[] memory orders) external override returns (bool) {
         // Ensure that only delegatecalls from Consideration are allowed.
         _assertDelegatecallFromConsideration();
 
@@ -238,7 +232,7 @@ contract ConsiderationDelegated is
             uint256 totalOrders = orders.length;
 
             // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders;) {
+            for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
                 Order memory order = orders[i];
 
@@ -267,9 +261,7 @@ contract ConsiderationDelegated is
                 // If the order has not already been validated...
                 if (!orderStatus.isValidated) {
                     // Verify the supplied signature.
-                    _verifySignature(
-                        offerer, orderHash, order.signature
-                    );
+                    _verifySignature(offerer, orderHash, order.signature);
 
                     // Update order status to mark the order as valid.
                     _orderStatus[orderHash].isValidated = true;
@@ -321,18 +313,22 @@ contract ConsiderationDelegated is
      *
      * @return The domain separator on the Consideration contract.
      */
-    function _deriveInitialDomainSeparator() internal view override returns (
-        bytes32
-    ) {
-        return keccak256(
-            abi.encode(
-                _EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH,
-                block.chainid,
-                msg.sender
-            )
-        );
+    function _deriveInitialDomainSeparator()
+        internal
+        view
+        override
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encode(
+                    _EIP_712_DOMAIN_TYPEHASH,
+                    _NAME_HASH,
+                    _VERSION_HASH,
+                    block.chainid,
+                    msg.sender
+                )
+            );
     }
 
     /**
@@ -343,15 +339,16 @@ contract ConsiderationDelegated is
      * @return The domain separator on the Consideration contract.
      */
     function _deriveDomainSeparator() internal view override returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH,
-                block.chainid,
-                _DELEGATOR
-            )
-        );
+        return
+            keccak256(
+                abi.encode(
+                    _EIP_712_DOMAIN_TYPEHASH,
+                    _NAME_HASH,
+                    _VERSION_HASH,
+                    block.chainid,
+                    _DELEGATOR
+                )
+            );
     }
 
     /**
