@@ -93,6 +93,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
 
+        // Equivalent to useOffererProxy ? offerer : address(0)
+        address proxyOwner;
+        assembly {
+            proxyOwner := mul(offerer, useOffererProxy)
+        }
+
         // Transfer ERC721 to caller, using offerer's proxy if applicable.
         _transferERC721(
             parameters.offerToken,
@@ -100,7 +106,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             msg.sender,
             parameters.offerIdentifier,
             parameters.offerAmount,
-            useOffererProxy ? offerer : address(0)
+            proxyOwner
         );
 
         // Transfer native to recipients, return excess to caller, and wrap up.
@@ -141,6 +147,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
 
+        // Equivalent to useOffererProxy ? offerer : address(0)
+        address proxyOwner;
+        assembly {
+            proxyOwner := mul(offerer, useOffererProxy)
+        }
+
         // Transfer ERC1155 to caller, using offerer's proxy if applicable.
         _transferERC1155(
             parameters.offerToken,
@@ -148,7 +160,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             msg.sender,
             parameters.offerIdentifier,
             parameters.offerAmount,
-            useOffererProxy ? offerer : address(0)
+            proxyOwner
         );
 
         // Transfer native to recipients, return excess to caller, and wrap up.
@@ -188,6 +200,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
 
+        // Equivalent to useOffererProxy ? offerer : address(0)
+        address proxyOwner;
+        assembly {
+            proxyOwner := mul(offerer, useOffererProxy)
+        }
+
         // Transfer ERC721 to caller, using offerer's proxy if applicable.
         _transferERC721(
             parameters.offerToken,
@@ -195,7 +213,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             msg.sender,
             parameters.offerIdentifier,
             parameters.offerAmount,
-            useOffererProxy ? offerer : address(0)
+            proxyOwner
         );
 
         // Transfer ERC20 tokens to all recipients and wrap up.
@@ -239,6 +257,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
 
+        // Equivalent to useOffererProxy ? offerer : address(0)
+        address proxyOwner;
+        assembly {
+            proxyOwner := mul(offerer, useOffererProxy)
+        }
+
         // Transfer ERC1155 to caller, using offerer's proxy if applicable.
         _transferERC1155(
             parameters.offerToken,
@@ -246,7 +270,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             msg.sender,
             parameters.offerIdentifier,
             parameters.offerAmount,
-            useOffererProxy ? offerer : address(0)
+            proxyOwner
         );
 
         // Transfer ERC20 tokens to all recipients and wrap up.
@@ -292,6 +316,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
 
+        bool useFulfillerProxy = parameters.useFulfillerProxy;
+
+        // Equivalent to useFulfillerProxy ? msg.sender : address(0)
+        address proxyOwner;
+        assembly {
+            proxyOwner := mul(caller(), useFulfillerProxy)
+        }
+
         // Transfer ERC721 to offerer, using caller's proxy if applicable.
         _transferERC721(
             parameters.considerationToken,
@@ -299,7 +331,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             offerer,
             parameters.considerationIdentifier,
             parameters.considerationAmount,
-            parameters.useFulfillerProxy ? msg.sender : address(0)
+            proxyOwner
         );
 
         // Transfer ERC20 tokens to all recipients and wrap up.
@@ -344,6 +376,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Move the offerer from memory to the stack.
         address payable offerer = parameters.offerer;
 
+        bool useFulfillerProxy = parameters.useFulfillerProxy;
+
+        // Equivalent to useFulfillerProxy ? msg.sender : address(0)
+        address proxyOwner;
+        assembly {
+            proxyOwner := mul(caller(), useFulfillerProxy)
+        }
+
         // Transfer ERC1155 to offerer, using caller's proxy if applicable.
         _transferERC1155(
             parameters.considerationToken,
@@ -351,7 +391,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             offerer,
             parameters.considerationIdentifier,
             parameters.considerationAmount,
-            parameters.useFulfillerProxy ? msg.sender : address(0)
+            proxyOwner
         );
 
         // Transfer ERC20 tokens to all recipients and wrap up.

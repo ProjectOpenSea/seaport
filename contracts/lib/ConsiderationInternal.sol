@@ -1268,8 +1268,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
             );
         // Otherwise, transfer the item based on item type and proxy preference.
         } else {
-            // Place proxy owner on stack (or null address if not using proxy).
-            address proxyOwner = useProxy ? offerer : address(0);
+            // Equivalent to useProxy ? offerer : address(0)
+            address proxyOwner;
+            assembly {
+                proxyOwner := mul(offerer, useProxy)
+            }
 
             if (item.itemType == ItemType.ERC721) {
                 // Transfer ERC721 token from the offerer to the recipient.
@@ -1478,6 +1481,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         BatchExecution memory batchExecution
     ) internal {
         // Place elements of the batch execution in memory onto the stack.
+        bool useProxy = batchExecution.useProxy;
         address token = batchExecution.token;
         address from = batchExecution.from;
         address to = batchExecution.to;
@@ -1486,10 +1490,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
+        // Equivalent to useProxy ? from : address(0)
+        address proxyOwner;
+        assembly {
+            proxyOwner := mul(from, useProxy)
+        }
+
         // Perform transfer, either directly or via proxy.
         bool success = _callDirectlyOrViaProxy(
             token,
-            batchExecution.useProxy ? batchExecution.from : address(0),
+            proxyOwner,
             abi.encodeWithSelector(
                 ERC1155Interface.safeBatchTransferFrom.selector,
                 from,
