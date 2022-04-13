@@ -112,14 +112,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         ItemType receivedItemType;
         unchecked {
             offeredItemType = ItemType(
-                uint8Route > 3 ? 1 : (
-                    uint8Route > 1 ? uint8Route : uint8Route + 2
-                )
+                uint8Route > 3
+                    ? 1
+                    : (uint8Route > 1 ? uint8Route : uint8Route + 2)
             );
             receivedItemType = ItemType(
-                uint8Route > 2 ? uint8Route - 2 : (
-                    uint8Route == 2 ? 1 : 0
-                )
+                uint8Route > 2 ? uint8Route - 2 : (uint8Route == 2 ? 1 : 0)
             );
         }
 
