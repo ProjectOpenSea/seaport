@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 
 import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol";
 
-import { ItemType } from "./lib/ConsiderationEnums.sol";
+import { OrderType, ItemType, BasicOrderRouteType } from "./lib/ConsiderationEnums.sol";
 
 import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution, FulfillmentDetail } from "./lib/ConsiderationStructs.sol";
 
@@ -48,338 +48,273 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
-     * @notice Fulfill an order offering an ERC721 token by supplying Ether (or
-     *         the native token for the given chain) as consideration for the
-     *         order. An arbitrary number of "additional recipients" may also be
-     *         supplied which will each receive native tokens from the fulfiller
-     *         as consideration.
+     * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
+     *         supplying Ether (or other native tokens), ERC20 tokens, an ERC721
+     *         item, or an ERC1155 item as consideration. Six permutations are
+     *         supported: Native token to ERC721, Native token to ERC1155, ERC20
+     *         to ERC721, ERC20 to ERC1155, ERC721 to ERC20, and ERC1155 to
+     *         ERC20 (with native tokens supplied as msg.value). For an order to
+     *         be eligible for fulfillment via this method, it must contain a
+     *         single offer item (though that item may have a greater amount if
+     *         the item is not an ERC721). An arbitrary number of "additional
+     *         recipients" may also be supplied which will each receive native
+     *         tokens or ERC20 items from the fulfiller as consideration. Refer
+     *         to the documentation for a more comprehensive summary of how to
+     *         utilize with this method and what orders are compatible with it.
      *
      * @param parameters Additional information on the fulfilled order. Note
-     *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
-     *                   their offered ERC721 token to be transferred.
+     *                   that the offerer and the fulfiller must first approve
+     *                   this contract (or their proxy if indicated) in order
+     *                   for any tokens to be transferred. Also note that any
+     *                   contract recipients of ERC1155 consideration items must
+     *                   implement `onERC1155Received` in order to receive those
+     *                   items.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function fulfillBasicEthForERC721Order(
-        BasicOrderParameters calldata parameters
-    ) external payable override returns (bool) {
-        // Derive and validate order using parameters and update order status.
-        (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
-            parameters,
-            ItemType.NATIVE,
-            ItemType.NATIVE,
-            address(0),
-            ItemType.ERC721
-        );
+    function fulfillBasicOrder(BasicOrderParameters calldata parameters)
+        external
+        payable
+        override
+        returns (bool)
+    {
+        // Declare enums for order route type to extract from basicOrderType.
+        BasicOrderRouteType route;
+        OrderType orderType;
 
-        // Move the offerer from memory to the stack.
-        address payable offerer = parameters.offerer;
-
-        // Equivalent to useOffererProxy ? offerer : address(0)
-        address proxyOwner;
+        // Utilize assembly to extract the order type and the basic order route.
         assembly {
-            proxyOwner := mul(offerer, useOffererProxy)
+            // Mask all but 8 least-significant bits to derive the order type.
+            orderType := and(calldataload(0x124), 7)
+
+            // Divide basicOrderType by eight to derive the route.
+            route := div(calldataload(0x124), 8)
         }
 
-        // Transfer ERC721 to caller, using offerer's proxy if applicable.
-        _transferERC721(
-            parameters.offerToken,
-            offerer,
-            msg.sender,
-            parameters.offerIdentifier,
-            parameters.offerAmount,
-            proxyOwner
-        );
+        if (route == BasicOrderRouteType.ETH_TO_ERC721) {
+            // Derive & validate order using parameters and update order status.
+            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+                parameters,
+                orderType,
+                ItemType.NATIVE,
+                ItemType.NATIVE,
+                address(0),
+                ItemType.ERC721
+            );
 
-        // Transfer native to recipients, return excess to caller, and wrap up.
-        _transferEthAndFinalize(parameters.considerationAmount, parameters);
+            // Move the offerer from memory to the stack.
+            address payable offerer = parameters.offerer;
 
-        return true;
-    }
+            // Equivalent to useOffererProxy ? offerer : address(0)
+            address proxyOwner;
+            assembly {
+                proxyOwner := mul(offerer, useOffererProxy)
+            }
 
-    /**
-     * @notice Fulfill an order offering ERC1155 tokens by supplying Ether (or
-     *         the native token for the given chain) as consideration for the
-     *         order. An arbitrary number of "additional recipients" may also be
-     *         supplied which will each receive native tokens from the fulfiller
-     *         as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
-     *                   their offered ERC1155 tokens to be transferred.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicEthForERC1155Order(
-        BasicOrderParameters calldata parameters
-    ) external payable override returns (bool) {
-        // Derive and validate order using parameters and update order status.
-        (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
-            parameters,
-            ItemType.NATIVE,
-            ItemType.NATIVE,
-            address(0),
-            ItemType.ERC1155
-        );
+            // Transfer ERC721 to caller, using offerer's proxy if applicable.
+            _transferERC721(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                1,
+                proxyOwner
+            );
 
-        // Move the offerer from memory to the stack.
-        address payable offerer = parameters.offerer;
+            // Transfer native to recipients, return excess to caller, and wrap up.
+            _transferEthAndFinalize(parameters.considerationAmount, parameters);
+        } else if (route == BasicOrderRouteType.ETH_TO_ERC1155) {
+            // Derive and validate order using parameters and update order status.
+            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+                parameters,
+                orderType,
+                ItemType.NATIVE,
+                ItemType.NATIVE,
+                address(0),
+                ItemType.ERC1155
+            );
 
-        // Equivalent to useOffererProxy ? offerer : address(0)
-        address proxyOwner;
-        assembly {
-            proxyOwner := mul(offerer, useOffererProxy)
+            // Move the offerer from memory to the stack.
+            address payable offerer = parameters.offerer;
+
+            // Equivalent to useOffererProxy ? offerer : address(0)
+            address proxyOwner;
+            assembly {
+                proxyOwner := mul(offerer, useOffererProxy)
+            }
+
+            // Transfer ERC1155 to caller, using offerer's proxy if applicable.
+            _transferERC1155(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                parameters.offerAmount,
+                proxyOwner
+            );
+
+            // Transfer native to recipients, return excess to caller & wrap up.
+            _transferEthAndFinalize(parameters.considerationAmount, parameters);
+        } else if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
+            // Derive and validate order using parameters & update order status.
+            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+                parameters,
+                orderType,
+                ItemType.ERC20,
+                ItemType.ERC20,
+                parameters.considerationToken,
+                ItemType.ERC721
+            );
+
+            // Move the offerer from memory to the stack.
+            address payable offerer = parameters.offerer;
+
+            // Equivalent to useOffererProxy ? offerer : address(0)
+            address proxyOwner;
+            assembly {
+                proxyOwner := mul(offerer, useOffererProxy)
+            }
+
+            // Transfer ERC721 to caller, using offerer's proxy if applicable.
+            _transferERC721(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                1,
+                proxyOwner
+            );
+
+            // Transfer ERC20 tokens to all recipients and wrap up.
+            _transferERC20AndFinalize(
+                msg.sender,
+                offerer,
+                parameters.considerationToken,
+                parameters.considerationAmount,
+                parameters,
+                false // Send full amount indicated by all consideration items.
+            );
+        } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
+            // Derive and validate order using parameters & update order status.
+            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+                parameters,
+                orderType,
+                ItemType.ERC20,
+                ItemType.ERC20,
+                parameters.considerationToken,
+                ItemType.ERC1155
+            );
+
+            // Move the offerer from memory to the stack.
+            address payable offerer = parameters.offerer;
+
+            // Equivalent to useOffererProxy ? offerer : address(0)
+            address proxyOwner;
+            assembly {
+                proxyOwner := mul(offerer, useOffererProxy)
+            }
+
+            // Transfer ERC1155 to caller, using offerer's proxy if applicable.
+            _transferERC1155(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                parameters.offerAmount,
+                proxyOwner
+            );
+
+            // Transfer ERC20 tokens to all recipients and wrap up.
+            _transferERC20AndFinalize(
+                msg.sender,
+                offerer,
+                parameters.considerationToken,
+                parameters.considerationAmount,
+                parameters,
+                false // Send full amount indicated by all consideration items.
+            );
+        } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
+            _prepareBasicFulfillmentFromCalldata(
+                parameters,
+                orderType,
+                ItemType.ERC721,
+                ItemType.ERC20,
+                parameters.offerToken,
+                ItemType.ERC20
+            );
+
+            // Move the offerer from memory to the stack.
+            address payable offerer = parameters.offerer;
+
+            bool useFulfillerProxy = parameters.useFulfillerProxy;
+
+            // Equivalent to useFulfillerProxy ? msg.sender : address(0)
+            address proxyOwner;
+            assembly {
+                proxyOwner := mul(caller(), useFulfillerProxy)
+            }
+
+            // Transfer ERC721 to offerer, using caller's proxy if applicable.
+            _transferERC721(
+                parameters.considerationToken,
+                msg.sender,
+                offerer,
+                parameters.considerationIdentifier,
+                parameters.considerationAmount,
+                proxyOwner
+            );
+
+            // Transfer ERC20 tokens to all recipients and wrap up.
+            _transferERC20AndFinalize(
+                offerer,
+                msg.sender,
+                parameters.offerToken,
+                parameters.offerAmount,
+                parameters,
+                true // Reduce amount sent to fulfiller by additional amounts.
+            );
+        } else {
+            // route == BasicOrderRouteType.ERC1155_TO_ERC20
+            // Derive and validate order using parameters & update order status.
+            _prepareBasicFulfillmentFromCalldata(
+                parameters,
+                orderType,
+                ItemType.ERC1155,
+                ItemType.ERC20,
+                parameters.offerToken,
+                ItemType.ERC20
+            );
+            // Move the offerer from memory to the stack.
+            address payable offerer = parameters.offerer;
+
+            bool useFulfillerProxy = parameters.useFulfillerProxy;
+
+            // Equivalent to useFulfillerProxy ? msg.sender : address(0)
+            address proxyOwner;
+            assembly {
+                proxyOwner := mul(caller(), useFulfillerProxy)
+            }
+
+            // Transfer ERC1155 to offerer, using caller's proxy if applicable.
+            _transferERC1155(
+                parameters.considerationToken,
+                msg.sender,
+                offerer,
+                parameters.considerationIdentifier,
+                parameters.considerationAmount,
+                proxyOwner
+            );
+
+            // Transfer ERC20 tokens to all recipients and wrap up.
+            _transferERC20AndFinalize(
+                offerer,
+                msg.sender,
+                parameters.offerToken,
+                parameters.offerAmount,
+                parameters,
+                true // Reduce amount sent to fulfiller by additional amounts.
+            );
         }
-
-        // Transfer ERC1155 to caller, using offerer's proxy if applicable.
-        _transferERC1155(
-            parameters.offerToken,
-            offerer,
-            msg.sender,
-            parameters.offerIdentifier,
-            parameters.offerAmount,
-            proxyOwner
-        );
-
-        // Transfer native to recipients, return excess to caller, and wrap up.
-        _transferEthAndFinalize(parameters.considerationAmount, parameters);
-
-        return true;
-    }
-
-    /**
-     * @notice Fulfill an order offering a single ERC721 token by supplying
-     *         ERC20 tokens as consideration. An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive ERC20
-     *         tokens from the fulfiller as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
-     *                   their offered ERC721 token to be transferred.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicERC20ForERC721Order(
-        BasicOrderParameters calldata parameters
-    ) external override returns (bool) {
-        // Derive and validate order using parameters and update order status.
-        (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
-            parameters,
-            ItemType.ERC20,
-            ItemType.ERC20,
-            parameters.considerationToken,
-            ItemType.ERC721
-        );
-
-        // Move the offerer from memory to the stack.
-        address payable offerer = parameters.offerer;
-
-        // Equivalent to useOffererProxy ? offerer : address(0)
-        address proxyOwner;
-        assembly {
-            proxyOwner := mul(offerer, useOffererProxy)
-        }
-
-        // Transfer ERC721 to caller, using offerer's proxy if applicable.
-        _transferERC721(
-            parameters.offerToken,
-            offerer,
-            msg.sender,
-            parameters.offerIdentifier,
-            parameters.offerAmount,
-            proxyOwner
-        );
-
-        // Transfer ERC20 tokens to all recipients and wrap up.
-        _transferERC20AndFinalize(
-            msg.sender,
-            offerer,
-            parameters.considerationToken,
-            parameters.considerationAmount,
-            parameters,
-            false // Transfer full amount indicated by all consideration items.
-        );
-
-        return true;
-    }
-
-    /**
-     * @notice Fulfill an order offering ERC1155 tokens by supplying ERC20
-     *         tokens as consideration. An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive ERC20
-     *         tokens from the fulfiller as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
-     *                   their offered ERC1155 tokens to be transferred.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicERC20ForERC1155Order(
-        BasicOrderParameters calldata parameters
-    ) external override returns (bool) {
-        // Derive and validate order using parameters and update order status.
-        (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
-            parameters,
-            ItemType.ERC20,
-            ItemType.ERC20,
-            parameters.considerationToken,
-            ItemType.ERC1155
-        );
-
-        // Move the offerer from memory to the stack.
-        address payable offerer = parameters.offerer;
-
-        // Equivalent to useOffererProxy ? offerer : address(0)
-        address proxyOwner;
-        assembly {
-            proxyOwner := mul(offerer, useOffererProxy)
-        }
-
-        // Transfer ERC1155 to caller, using offerer's proxy if applicable.
-        _transferERC1155(
-            parameters.offerToken,
-            offerer,
-            msg.sender,
-            parameters.offerIdentifier,
-            parameters.offerAmount,
-            proxyOwner
-        );
-
-        // Transfer ERC20 tokens to all recipients and wrap up.
-        _transferERC20AndFinalize(
-            msg.sender,
-            offerer,
-            parameters.considerationToken,
-            parameters.considerationAmount,
-            parameters,
-            false // Transfer full amount indicated by all consideration items.
-        );
-
-        return true;
-    }
-
-    /**
-     * @notice Fulfill an order offering ERC20 tokens by supplying a single
-     *         ERC721 token as consideration. An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive ERC20
-     *         tokens from the offerer as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the fulfiller must first approve this contract (or
-     *                   their proxy if indicated by the order) before the
-     *                   ERC721 token required as consideration can be
-     *                   transferred. Also note that the sum of all additional
-     *                   recipient amounts cannot exceed `erc20Amount`.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicERC721ForERC20Order(
-        BasicOrderParameters calldata parameters
-    ) external override returns (bool) {
-        // Derive and validate order using parameters and update order status.
-        _prepareBasicFulfillmentFromCalldata(
-            parameters,
-            ItemType.ERC721,
-            ItemType.ERC20,
-            parameters.offerToken,
-            ItemType.ERC20
-        );
-
-        // Move the offerer from memory to the stack.
-        address payable offerer = parameters.offerer;
-
-        bool useFulfillerProxy = parameters.useFulfillerProxy;
-
-        // Equivalent to useFulfillerProxy ? msg.sender : address(0)
-        address proxyOwner;
-        assembly {
-            proxyOwner := mul(caller(), useFulfillerProxy)
-        }
-
-        // Transfer ERC721 to offerer, using caller's proxy if applicable.
-        _transferERC721(
-            parameters.considerationToken,
-            msg.sender,
-            offerer,
-            parameters.considerationIdentifier,
-            parameters.considerationAmount,
-            proxyOwner
-        );
-
-        // Transfer ERC20 tokens to all recipients and wrap up.
-        _transferERC20AndFinalize(
-            offerer,
-            msg.sender,
-            parameters.offerToken,
-            parameters.offerAmount,
-            parameters,
-            true // Reduce erc20Amount sent to fulfiller by additional amounts.
-        );
-
-        return true;
-    }
-
-    /**
-     * @notice Fulfill an order offering ERC20 tokens by supplying ERC1155
-     *         tokens as consideration. An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive ERC20
-     *         tokens from the offerer as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the fulfiller must first approve this contract (or
-     *                   their proxy if indicated by the order) before the
-     *                   ERC1155 token required as consideration can be
-     *                   transferred. Also note that the sum of all additional
-     *                   recipient amounts cannot exceed `erc20Amount`.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicERC1155ForERC20Order(
-        BasicOrderParameters calldata parameters
-    ) external override returns (bool) {
-        // Derive and validate order using parameters and update order status.
-        _prepareBasicFulfillmentFromCalldata(
-            parameters,
-            ItemType.ERC1155,
-            ItemType.ERC20,
-            parameters.offerToken,
-            ItemType.ERC20
-        );
-        // Move the offerer from memory to the stack.
-        address payable offerer = parameters.offerer;
-
-        bool useFulfillerProxy = parameters.useFulfillerProxy;
-
-        // Equivalent to useFulfillerProxy ? msg.sender : address(0)
-        address proxyOwner;
-        assembly {
-            proxyOwner := mul(caller(), useFulfillerProxy)
-        }
-
-        // Transfer ERC1155 to offerer, using caller's proxy if applicable.
-        _transferERC1155(
-            parameters.considerationToken,
-            msg.sender,
-            offerer,
-            parameters.considerationIdentifier,
-            parameters.considerationAmount,
-            proxyOwner
-        );
-
-        // Transfer ERC20 tokens to all recipients and wrap up.
-        _transferERC20AndFinalize(
-            offerer,
-            msg.sender,
-            parameters.offerToken,
-            parameters.offerAmount,
-            parameters,
-            true // Reduce erc20Amount sent to fulfiller by additional amounts.
-        );
 
         return true;
     }
@@ -592,14 +527,27 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             BatchExecution[] memory batchExecutions
         )
     {
-        // Reference "unused" variables to silence compiler warnings.
-        orders;
-        fulfillments;
-        standardExecutions;
-        batchExecutions;
+        // Convert orders to "advanced" orders.
+        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
+            orders
+        );
 
-        // Execute all logic via the delegated contract.
-        _delegate();
+        // Validate orders, apply amounts, & determine if they utilize proxies.
+        FulfillmentDetail[] memory fulfillmentDetails = (
+            _validateOrdersAndPrepareToFulfill(
+                advancedOrders,
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                true // Signifies that invalid orders should revert.
+            )
+        );
+
+        // Fulfill the orders using the supplied fulfillments.
+        return
+            _fulfillAdvancedOrders(
+                advancedOrders,
+                fulfillments,
+                fulfillmentDetails
+            );
     }
 
     /**
@@ -753,16 +701,68 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function validate(Order[] calldata orders)
-        external
-        override
-        returns (bool)
-    {
-        // Reference "unused" variables to silence compiler warnings.
-        orders;
+    function validate(Order[] memory orders) external override returns (bool) {
+        // Ensure that the reentrancy guard is not currently set.
+        _assertNonReentrant();
 
-        // Execute all logic via the delegated contract.
-        _delegate();
+        // Declare variables outside of the loop.
+        bytes32 orderHash;
+        address offerer;
+
+        // Skip overflow check as for loop is indexed starting at zero.
+        unchecked {
+            // Read length of the orders array from memory and place on stack.
+            uint256 totalOrders = orders.length;
+
+            // Iterate over each order.
+            for (uint256 i = 0; i < totalOrders; ) {
+                // Retrieve the order.
+                Order memory order = orders[i];
+
+                // Retrieve the order parameters.
+                OrderParameters memory orderParameters = order.parameters;
+
+                // Move offerer from memory to the stack.
+                offerer = orderParameters.offerer;
+
+                // Get current nonce and use it w/ params to derive order hash.
+                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+                    orderParameters
+                );
+
+                // Retrieve the order status using the derived order hash.
+                OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+                // Ensure order is fillable and retrieve the filled amount.
+                _verifyOrderStatus(
+                    orderHash,
+                    orderStatus,
+                    false, // Signifies that partially filled orders are valid.
+                    true // Signifies to revert if the order is invalid.
+                );
+
+                // If the order has not already been validated...
+                if (!orderStatus.isValidated) {
+                    // Verify the supplied signature.
+                    _verifySignature(offerer, orderHash, order.signature);
+
+                    // Update order status to mark the order as valid.
+                    _orderStatus[orderHash].isValidated = true;
+
+                    // Emit an event signifying the order has been validated.
+                    emit OrderValidated(
+                        orderHash,
+                        offerer,
+                        orderParameters.zone
+                    );
+                }
+
+                // Increment counter inside body of the loop for gas efficiency.
+                ++i;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -773,11 +773,17 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return newNonce The new nonce.
      */
     function incrementNonce() external override returns (uint256 newNonce) {
-        // Reference "unused" variables to silence compiler warnings.
-        newNonce;
+        // Ensure that the reentrancy guard is not currently set.
+        _assertNonReentrant();
 
-        // Execute all logic via the delegated contract.
-        _delegate();
+        // No need to check for overflow; nonce cannot be incremented that far.
+        unchecked {
+            // Increment current nonce for the supplied offerer.
+            newNonce = ++_nonces[msg.sender];
+        }
+
+        // Emit an event containing the new nonce.
+        emit NonceIncremented(newNonce, msg.sender);
     }
 
     /**

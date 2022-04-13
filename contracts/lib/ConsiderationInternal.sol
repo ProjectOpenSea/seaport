@@ -56,6 +56,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      */
     function _prepareBasicFulfillmentFromCalldata(
         BasicOrderParameters calldata parameters,
+        OrderType orderType,
         ItemType receivedItemType,
         ItemType additionalRecipientsItemType,
         address additionalRecipientsToken,
@@ -247,20 +248,31 @@ contract ConsiderationInternal is ConsiderationInternalView {
                  * - 0xc0:    orderParameters.zone,
                  * - 0xe0:    keccak256(abi.encodePacked(offerHashes)),
                  * - 0x100:   keccak256(abi.encodePacked(considerationHashes)),
-                 * - 0x120:   orderParameters.orderType,
+                 * - 0x120:   orderParameters.basicOrderType, (% 8 = orderType)
                  * - 0x140:   orderParameters.startTime,
                  * - 0x160:   orderParameters.endTime,
                  * - 0x180:   orderParameters.salt,
                  * - 0x1a0:   nonce
                  */
+                // Set the typehash in memory.
                 mstore(0x80, typeHash)
-                // Copy offerer and zone
+
+                // Copy offerer and zone from calldata and set them in memory.
                 calldatacopy(0xa0, 0x84, 0x40)
-                // load receivedItemsHash from zero slot
+
+                // Copy receivedItemsHash from zero slot to the required region.
                 mstore(0x100, mload(0x60))
-                // orderType, startTime, endTime, zoneHash, salt
-                calldatacopy(0x120, 0x124, 0xa0)
-                mstore(0x1c0, nonce) // nonce
+
+                // Set supplied order type in memory.
+                mstore(0x120, orderType)
+
+                // Copy startTime, endTime, zoneHash, & salt and set in memory.
+                calldatacopy(0x140, 0x144, 0x80)
+
+                // Take offerer's nonce retrieved from storage & set in memory.
+                mstore(0x1c0, nonce)
+
+                // Compute the order hash.
                 orderHash := keccak256(0x80, 0x160)
             }
         }
@@ -313,7 +325,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         useOffererProxy = _determineProxyUtilizationAndEnsureValidBasicOrder(
             orderHash,
             parameters.zoneHash,
-            parameters.orderType,
+            orderType,
             parameters.offerer,
             parameters.zone
         );

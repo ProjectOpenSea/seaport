@@ -5,44 +5,6 @@ import { Order, AdvancedOrder, OrderComponents, CriteriaResolver, Fulfillment, F
 
 interface ConsiderationDelegatedInterface {
     /**
-     * @notice Match an arbitrary number of orders, each with an arbitrary
-     *         number of items for offer and consideration along with a set of
-     *         fulfillments allocating offer components to consideration
-     *         components. Note that this function does not support
-     *         criteria-based or partial filling of orders (though filling the
-     *         remainder of a partially-filled order is supported).
-     *
-     * @param orders            The orders to match. Note that both the offerer
-     *                          and fulfiller on each order must first approve
-     *                          this contract (or their proxy if indicated by
-     *                          the order) to transfer any relevant tokens on
-     *                          their behalf and each consideration recipient
-     *                          must implement `onERC1155Received` in order to
-     *                          receive ERC1155 tokens.
-     * @param fulfillments      An array of elements allocating offer components
-     *                          to consideration components. Note that each
-     *                          consideration component must be fully met in
-     *                          order for the match operation to be valid.
-     *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
-     */
-    function matchOrders(
-        Order[] memory orders,
-        Fulfillment[] memory fulfillments
-    )
-        external
-        payable
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        );
-
-    /**
      * @notice External function, only callable from the Consideration contract
      *         via delegatecall, that attempts to fill a group of orders, fully
      *         or partially, with an arbitrary number of items for offer and
@@ -118,28 +80,6 @@ interface ConsiderationDelegatedInterface {
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
         );
-
-    /**
-     * @notice Validate an arbitrary number of orders, thereby registering them
-     *         as valid and allowing the fulfiller to skip verification. Note
-     *         that anyone can validate a signed order but only the offerer can
-     *         validate an order without supplying a signature.
-     *
-     * @param orders The orders to validate.
-     *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully validated.
-     */
-    function validate(Order[] memory orders) external returns (bool);
-
-    /**
-     * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer may increment
-     *         the nonce.
-     *
-     * @return newNonce The new nonce.
-     */
-    function incrementNonce() external returns (uint256 newNonce);
 
     /**
      * @dev Revert when called or delegatecalled via any method other than a
