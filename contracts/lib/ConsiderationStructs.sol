@@ -100,7 +100,7 @@ struct BasicOrderParameters {                   // calldata offset
     address offerToken;                         // 0xc4
     uint256 offerIdentifier;                    // 0xe4
     uint256 offerAmount;                        // 0x104
-    OrderType orderType;                        // 0x124
+    BasicOrderType orderType;                        // 0x124
     uint256 startTime;                          // 0x144
     uint256 endTime;                            // 0x164
     bytes32 zoneHash;                           // 0x184
