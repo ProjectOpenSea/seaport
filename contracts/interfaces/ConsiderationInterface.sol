@@ -1,19 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    BasicOrderParameters,
-    OrderComponents,
-    Fulfillment,
-    FulfillmentComponent,
-    Execution,
-    BatchExecution,
-    Order,
-    AdvancedOrder,
-    OrderStatus,
-    CriteriaResolver,
-    FulfillmentDetail
-} from "../lib/ConsiderationStructs.sol";
+import { BasicOrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, BatchExecution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, FulfillmentDetail } from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationInterface
@@ -154,10 +142,10 @@ interface ConsiderationInterface {
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function fulfillOrder(
-        Order calldata order,
-        bool useFulfillerProxy
-    ) external payable returns (bool);
+    function fulfillOrder(Order calldata order, bool useFulfillerProxy)
+        external
+        payable
+        returns (bool);
 
     /**
      * @notice Fill an order, fully or partially, with an arbitrary number of
@@ -263,11 +251,14 @@ interface ConsiderationInterface {
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
         bool useFulfillerProxy
-    ) external payable returns (
-        FulfillmentDetail[] memory fulfillmentDetails,
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    );
+    )
+        external
+        payable
+        returns (
+            FulfillmentDetail[] memory fulfillmentDetails,
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        );
 
     /**
      * @notice Match an arbitrary number of orders, each with an arbitrary
@@ -299,10 +290,13 @@ interface ConsiderationInterface {
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    );
+    )
+        external
+        payable
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        );
 
     /**
      * @notice Match an arbitrary number of full or partial orders, each with an
@@ -347,10 +341,13 @@ interface ConsiderationInterface {
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    );
+    )
+        external
+        payable
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        );
 
     /**
      * @notice Cancel an arbitrary number of orders. Note that only the offerer
@@ -361,9 +358,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the supplied orders were
      *         successfully cancelled.
      */
-    function cancel(
-        OrderComponents[] calldata orders
-    ) external returns (bool);
+    function cancel(OrderComponents[] calldata orders) external returns (bool);
 
     /**
      * @notice Validate an arbitrary number of orders, thereby registering them
@@ -376,9 +371,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function validate(
-        Order[] calldata orders
-    ) external returns (bool);
+    function validate(Order[] calldata orders) external returns (bool);
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
@@ -396,9 +389,10 @@ interface ConsiderationInterface {
      *
      * @return The order hash.
      */
-    function getOrderHash(
-        OrderComponents calldata order
-    ) external view returns (bytes32);
+    function getOrderHash(OrderComponents calldata order)
+        external
+        view
+        returns (bytes32);
 
     /**
      * @notice Retrieve the status of a given order by hash, including whether
@@ -417,14 +411,15 @@ interface ConsiderationInterface {
      * @return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
-    function getOrderStatus(
-        bytes32 orderHash
-    ) external view returns (
-        bool isValidated,
-        bool isCancelled,
-        uint256 totalFilled,
-        uint256 totalSize
-    );
+    function getOrderStatus(bytes32 orderHash)
+        external
+        view
+        returns (
+            bool isValidated,
+            bool isCancelled,
+            uint256 totalFilled,
+            uint256 totalSize
+        );
 
     /**
      * @notice Retrieve the current nonce for a given offerer.

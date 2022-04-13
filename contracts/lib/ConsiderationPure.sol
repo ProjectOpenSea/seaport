@@ -1,29 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    OrderType,
-    ItemType,
-    Side
-} from "./ConsiderationEnums.sol";
+import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
 
-import {
-    OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem,
-    OrderParameters,
-    Fulfillment,
-    FulfillmentComponent,
-    Execution,
-    Order,
-    AdvancedOrder,
-    OrderStatus,
-    CriteriaResolver,
-    Batch,
-    BatchExecution,
-    FulfillmentDetail
-} from "./ConsiderationStructs.sol";
+import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution, FulfillmentDetail } from "./ConsiderationStructs.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
@@ -129,7 +109,7 @@ contract ConsiderationPure is ConsiderationBase {
 
                     // Optimistically update identifier w/ supplied identifier.
                     offer.identifierOrCriteria = criteriaResolver.identifier;
-                // Otherwise, criteria resolver refers to a consideration item.
+                    // Otherwise, criteria resolver refers to a consideration item.
                 } else {
                     // Ensure that the component index is in range.
                     if (
@@ -259,9 +239,9 @@ contract ConsiderationPure is ConsiderationBase {
             }
 
             // Aggregate new amounts weighted by time with rounding factor
-            uint256 totalBeforeDivision = (
-                (startAmount * remaining) + (endAmount * elapsed) + extraCeiling
-            );
+            uint256 totalBeforeDivision = ((startAmount * remaining) +
+                (endAmount * elapsed) +
+                extraCeiling);
 
             // Division is performed without zero check as it cannot be zero.
             uint256 newAmount;
@@ -327,12 +307,14 @@ contract ConsiderationPure is ConsiderationBase {
      * @return batchExecutions    An array of executions (all ERC1155 transfers)
      *                            that have been compressed into batches.
      */
-    function _compressExecutions(
-        Execution[] memory executions
-    ) internal pure returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    ) {
+    function _compressExecutions(Execution[] memory executions)
+        internal
+        pure
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        )
+    {
         // Skip overflow checks as all incremented values start at low amounts.
         unchecked {
             // Read executions array length from memory and place on the stack.
@@ -486,13 +468,14 @@ contract ConsiderationPure is ConsiderationBase {
             }
 
             // Split executions into standard and batched executions and return.
-            return _splitExecution(
-                executions,
-                batches,
-                usedInBatch,
-                totals[0],
-                totals[1]
-            );
+            return
+                _splitExecution(
+                    executions,
+                    batches,
+                    usedInBatch,
+                    totals[0],
+                    totals[1]
+                );
         }
     }
 
@@ -519,10 +502,7 @@ contract ConsiderationPure is ConsiderationBase {
         uint256[] memory batchExecutionPointers,
         uint256 totalUsedInBatch,
         uint256 totalBatches
-    ) internal pure returns (
-        Execution[] memory,
-        BatchExecution[] memory
-    ) {
+    ) internal pure returns (Execution[] memory, BatchExecution[] memory) {
         // Skip overflow checks as all incremented values start at low amounts.
         unchecked {
             // Read executions array length from memory and place on the stack.
@@ -558,7 +538,7 @@ contract ConsiderationPure is ConsiderationBase {
                     standardExecutions[nextStandardExecutionIndex++] = (
                         execution
                     );
-                // Otherwise, it is a batch execution.
+                    // Otherwise, it is a batch execution.
                 } else {
                     // Decrement pointer to derive the batch execution index.
                     uint256 batchIndex = batchExecutionPointer - 1;
@@ -572,12 +552,12 @@ contract ConsiderationPure is ConsiderationBase {
 
                         // Populate all other fields using execution parameters.
                         batchExecutions[batchIndex] = BatchExecution(
-                            execution.item.token,         // token
-                            execution.offerer,            // from
-                            execution.item.recipient,     // to
+                            execution.item.token, // token
+                            execution.offerer, // from
+                            execution.item.recipient, // to
                             new uint256[](totalElements), // tokenIds
                             new uint256[](totalElements), // amounts
-                            execution.useProxy            // useProxy
+                            execution.useProxy // useProxy
                         );
                     }
 
@@ -626,13 +606,10 @@ contract ConsiderationPure is ConsiderationBase {
         FulfillmentComponent[] memory offerComponents,
         FulfillmentComponent[] memory considerationComponents,
         FulfillmentDetail[] memory fulfillmentDetails
-    ) internal pure returns (
-        Execution memory execution
-    ) {
+    ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
-            offerComponents.length == 0 ||
-            considerationComponents.length == 0
+            offerComponents.length == 0 || considerationComponents.length == 0
         ) {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
@@ -643,11 +620,11 @@ contract ConsiderationPure is ConsiderationBase {
             SpentItem memory offerItem,
             bool useProxy
         ) = _consumeOfferComponent(
-            advancedOrders,
-            offerComponents[0].orderIndex,
-            offerComponents[0].itemIndex,
-            fulfillmentDetails
-        );
+                advancedOrders,
+                offerComponents[0].orderIndex,
+                offerComponents[0].itemIndex,
+                fulfillmentDetails
+            );
 
         // Consume consideration component, returning a received item.
         ReceivedItem memory requiredConsideration = (
@@ -663,17 +640,14 @@ contract ConsiderationPure is ConsiderationBase {
             offerItem.itemType != requiredConsideration.itemType ||
             offerItem.token != requiredConsideration.token ||
             offerItem.identifier != requiredConsideration.identifier
-
         ) {
             revert MismatchedFulfillmentOfferAndConsiderationComponents();
         }
 
         // Iterate over each offer component on the fulfillment.
-        for (uint256 i = 1; i < offerComponents.length;) {
+        for (uint256 i = 1; i < offerComponents.length; ) {
             // Retrieve the offer component from the fulfillment.
-            FulfillmentComponent memory offerComponent = (
-                offerComponents[i]
-            );
+            FulfillmentComponent memory offerComponent = (offerComponents[i]);
 
             // Get offerer & consume next offer component, returning spent item.
             (
@@ -681,11 +655,11 @@ contract ConsiderationPure is ConsiderationBase {
                 SpentItem memory nextOfferItem,
                 bool subsequentUseProxy
             ) = _consumeOfferComponent(
-                advancedOrders,
-                offerComponent.orderIndex,
-                offerComponent.itemIndex,
-                fulfillmentDetails
-            );
+                    advancedOrders,
+                    offerComponent.orderIndex,
+                    offerComponent.itemIndex,
+                    fulfillmentDetails
+                );
 
             // Ensure all relevant parameters are consistent with initial offer.
             if (
@@ -708,7 +682,7 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Iterate over each consideration component on the fulfillment.
-        for (uint256 i = 1; i < considerationComponents.length;) {
+        for (uint256 i = 1; i < considerationComponents.length; ) {
             // Retrieve the consideration component from the fulfillment.
             FulfillmentComponent memory considerationComponent = (
                 considerationComponents[i]
@@ -725,26 +699,20 @@ contract ConsiderationPure is ConsiderationBase {
 
             // Ensure key parameters are consistent with initial consideration.
             if (
-                requiredConsideration.recipient != (
-                    nextRequiredConsideration.recipient
-                ) ||
-                requiredConsideration.itemType != (
-                    nextRequiredConsideration.itemType
-                ) ||
-                requiredConsideration.token != (
-                    nextRequiredConsideration.token
-                ) ||
-                requiredConsideration.identifier != (
-                    nextRequiredConsideration.identifier
-                )
+                requiredConsideration.recipient !=
+                (nextRequiredConsideration.recipient) ||
+                requiredConsideration.itemType !=
+                (nextRequiredConsideration.itemType) ||
+                requiredConsideration.token !=
+                (nextRequiredConsideration.token) ||
+                requiredConsideration.identifier !=
+                (nextRequiredConsideration.identifier)
             ) {
                 revert MismatchedFulfillmentConsiderationComponents();
             }
 
             // Increase the total consideration amount by the current amount.
-            requiredConsideration.amount += (
-                nextRequiredConsideration.amount
-            );
+            requiredConsideration.amount += (nextRequiredConsideration.amount);
 
             // Skip overflow check as for loop is indexed starting at one.
             unchecked {
@@ -771,9 +739,7 @@ contract ConsiderationPure is ConsiderationBase {
             requiredConsideration.amount = offerItem.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (
-                offerComponents[0]
-            );
+            FulfillmentComponent memory targetComponent = (offerComponents[0]);
 
             // Add excess offer amount to the original orders array.
             _setOfferAmount(
@@ -938,11 +904,15 @@ contract ConsiderationPure is ConsiderationBase {
         uint256 orderIndex,
         uint256 itemIndex,
         FulfillmentDetail[] memory fulfillmentDetails
-    ) internal pure returns (
-        address offerer,
-        SpentItem memory spentItem,
-        bool useProxy
-    ) {
+    )
+        internal
+        pure
+        returns (
+            address offerer,
+            SpentItem memory spentItem,
+            bool useProxy
+        )
+    {
         // Retrieve the order parameters using the supplied order index.
         OrderParameters memory orderParameters = (
             _getOrderParametersByFulfillmentIndexIfInRange(
@@ -1067,11 +1037,10 @@ contract ConsiderationPure is ConsiderationBase {
         uint256 itemIndex,
         uint256 amount
     ) internal pure {
-        advancedOrders[
-            orderIndex
-        ].parameters.consideration[
-            itemIndex
-        ].endAmount = amount;
+        advancedOrders[orderIndex]
+            .parameters
+            .consideration[itemIndex]
+            .endAmount = amount;
     }
 
     /**
@@ -1112,7 +1081,7 @@ contract ConsiderationPure is ConsiderationBase {
             if (onlyAllowUnused) {
                 // Always revert on partial fills when onlyAllowUnused is true.
                 revert OrderPartiallyFilled(orderHash);
-            // Otherwise, ensure that order has not been entirely filled.
+                // Otherwise, ensure that order has not been entirely filled.
             } else if (orderStatus.numerator >= orderStatus.denominator) {
                 // Only revert if revertOnInvalid has been supplied as true.
                 if (revertOnInvalid) {
@@ -1149,12 +1118,13 @@ contract ConsiderationPure is ConsiderationBase {
         ReceivedItem memory item = execution.item;
 
         // Derive hash based on token, offerer, recipient, and proxy usage.
-        return _hashBatchableItemIdentifier(
-            item.token,
-            execution.offerer,
-            item.recipient,
-            execution.useProxy
-        );
+        return
+            _hashBatchableItemIdentifier(
+                item.token,
+                execution.offerer,
+                item.recipient,
+                execution.useProxy
+            );
     }
 
     /**
@@ -1197,10 +1167,11 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return value The hash.
      */
-    function _hashDigest(
-        bytes32 domainSeparator,
-        bytes32 orderHash
-    ) internal pure returns (bytes32 value) {
+    function _hashDigest(bytes32 domainSeparator, bytes32 orderHash)
+        internal
+        pure
+        returns (bytes32 value)
+    {
         // Leverage scratch space to perform an efficient hash.
         assembly {
             // Place the EIP-712 prefix at the start of scratch space.
@@ -1235,9 +1206,11 @@ contract ConsiderationPure is ConsiderationBase {
      * @return A boolean indicating that the item type in question represents a
      *         criteria-based item.
      */
-    function _isItemWithCriteria(
-        ItemType itemType
-    ) internal pure returns (bool) {
+    function _isItemWithCriteria(ItemType itemType)
+        internal
+        pure
+        returns (bool)
+    {
         // ERC721WithCriteria is item type 4. ERC115WithCriteria is item type 5.
         return uint256(itemType) > 3;
     }
@@ -1252,9 +1225,11 @@ contract ConsiderationPure is ConsiderationBase {
      * @return A boolean indicating whether the order type only supports full
      *         fills.
      */
-    function _doesNotSupportPartialFills(
-        OrderType orderType
-    ) internal pure returns (bool) {
+    function _doesNotSupportPartialFills(OrderType orderType)
+        internal
+        pure
+        returns (bool)
+    {
         // The "full" order types are even, while "partial" order types are odd.
         // Bitwise and by 1 is equivalent to modulo by 2, but 2 gas cheaper.
         return uint256(orderType) & 1 == 0;
@@ -1268,9 +1243,11 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return advancedOrder The new advanced order.
      */
-    function _convertOrderToAdvanced(
-        Order calldata order
-    ) internal pure returns (AdvancedOrder memory advancedOrder) {
+    function _convertOrderToAdvanced(Order calldata order)
+        internal
+        pure
+        returns (AdvancedOrder memory advancedOrder)
+    {
         // Convert to partial order (1/1 or full fill) and return new value.
         advancedOrder = AdvancedOrder(
             order.parameters,
@@ -1287,18 +1264,18 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @param orders The orders to convert.
      *
-     * @return The new array of partial orders.
+     * @return advancedOrders The new array of partial orders.
      */
-    function _convertOrdersToAdvanced(
-        Order[] calldata orders
-    ) internal pure returns (AdvancedOrder[] memory) {
+    function _convertOrdersToAdvanced(Order[] calldata orders)
+        internal
+        pure
+        returns (AdvancedOrder[] memory advancedOrders)
+    {
         // Read the number of orders from calldata and place on the stack.
         uint256 totalOrders = orders.length;
 
         // Allocate new empty array for each partial order in memory.
-        AdvancedOrder[] memory advancedOrders = (
-            new AdvancedOrder[](totalOrders)
-        );
+        advancedOrders = new AdvancedOrder[](totalOrders);
 
         // Skip overflow check as the index for the loop starts at zero.
         unchecked {
@@ -1383,10 +1360,11 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return value The hash.
      */
-    function _efficientHash(
-        bytes32 a,
-        bytes32 b
-    ) internal pure returns (bytes32 value) {
+    function _efficientHash(bytes32 a, bytes32 b)
+        internal
+        pure
+        returns (bytes32 value)
+    {
         assembly {
             mstore(0x00, a) // Place element a in first word of scratch space.
             mstore(0x20, b) // Place element b in second word of scratch space.
@@ -1440,13 +1418,13 @@ contract ConsiderationPure is ConsiderationBase {
                 eq(calldataload(0x204), 0x220)
             )
             validOffsets := and(
-              validOffsets,
-              eq(
-                // Load signature offset from calldata
-                calldataload(0x224),
-                // Calculate expected offset (start of recipients + len * 64)
-                add(0x240, mul(calldataload(0x244), 0x40))
-              )
+                validOffsets,
+                eq(
+                    // Load signature offset from calldata
+                    calldataload(0x224),
+                    // Calculate expected offset (start of recipients + len * 64)
+                    add(0x240, mul(calldataload(0x244), 0x40))
+                )
             )
         }
 

@@ -19,8 +19,6 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn build
-        env:
-          CI: true
 
   lint:
     name: Run Linters
@@ -37,9 +35,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
-      - run: yarn lint
-        env:
-          CI: true
+      - run: yarn lint:check
 
   test:
     name: Run Tests
@@ -57,8 +53,6 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn test
-        env:
-          CI: true
 
   coverage:
     name: Run Coverage Tests
@@ -76,9 +70,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn coverage
-        env:
-          CI: true
       - uses: VeryGoodOpenSource/very_good_coverage@v1
         with:
-          path: './coverage/lcov.info'
+          path: "./coverage/lcov.info"
           min_coverage: 100

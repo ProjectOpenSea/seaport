@@ -48,10 +48,11 @@
     "typescript": "^4.5.4"
   },
   "scripts": {
-    "build": "npx hardhat compile",
-    "test": "npx hardhat test",
-    "profile": "REPORT_GAS=true npx hardhat test",
-    "coverage": "npx hardhat coverage",
-    "lint": "npx hardhat compile && npx solhint 'contracts/**/*.sol'"
+    "build": "hardhat compile",
+    "test": "hardhat test",
+    "profile": "REPORT_GAS=true hardhat test",
+    "coverage": "hardhat coverage",
+    "lint:check": "prettier --check **.sol && hardhat compile && npx solhint 'contracts/**/*.sol'",
+    "lint:fix": "prettier --write **.sol"
   }
 }

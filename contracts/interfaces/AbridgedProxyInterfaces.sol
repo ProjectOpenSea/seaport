@@ -2,13 +2,15 @@
 pragma solidity 0.8.12;
 
 interface ProxyRegistryInterface {
-	function proxies(address user) external view returns (address proxy);
+    function proxies(address user) external view returns (address proxy);
 }
 
 interface ProxyInterface {
-	function proxyAssert(
-		address dest, uint8 howToCall, bytes calldata callData
-	) external;
+    function proxyAssert(
+        address dest,
+        uint8 howToCall,
+        bytes calldata callData
+    ) external;
 
-	function implementation() external view returns (address);
+    function implementation() external view returns (address);
 }

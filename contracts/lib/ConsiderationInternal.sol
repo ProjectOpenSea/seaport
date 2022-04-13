@@ -3,38 +3,13 @@ pragma solidity 0.8.12;
 
 import { Side } from "./ConsiderationEnums.sol";
 
-import {
-    ERC20Interface,
-    ERC721Interface,
-    ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
+import { ERC20Interface, ERC721Interface, ERC1155Interface } from "../interfaces/AbridgedTokenInterfaces.sol";
 
 import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
 
-import {
-    OrderType,
-    ItemType
-} from "./ConsiderationEnums.sol";
+import { OrderType, ItemType } from "./ConsiderationEnums.sol";
 
-import {
-    AdditionalRecipient,
-    BasicOrderParameters,
-    OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem,
-    OrderParameters,
-    Fulfillment,
-    FulfillmentComponent,
-    Execution,
-    Order,
-    AdvancedOrder,
-    OrderStatus,
-    CriteriaResolver,
-    Batch,
-    BatchExecution,
-    FulfillmentDetail
-} from "./ConsiderationStructs.sol";
+import { AdditionalRecipient, BasicOrderParameters, OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution, FulfillmentDetail } from "./ConsiderationStructs.sol";
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
 
@@ -57,282 +32,299 @@ contract ConsiderationInternal is ConsiderationInternalView {
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
-    ) ConsiderationInternalView(
-        legacyProxyRegistry,
-        requiredProxyImplementation
-    ) {}
-
-  /**
-   * @dev Internal function to prepare fulfillment of a basic order with manual
-   *      calldata and memory access. This calculates the order hash, emits an
-   *      OrderFulfilled event, and asserts basic order validity. Note that
-   *      calldata offsets must be validated as this function accesses constant
-   *      calldata pointers for dynamic types that match default ABI encoding,
-   *      but valid ABI encoding can use arbitrary offsets. Checking that the
-   *      offsets were produced by default encoding will ensure that other
-   *      functions using Solidity's calldata accessors (which calculate
-   *      pointers from the stored offsets) are reading the same data as the
-   *      order hash is derived from. Also note that This function accesses
-   *      memory directly. It does not clear the expanded memory regions used,
-   *      nor does it update the free memory pointer, so other direct memory
-   *      access must not assume that unused memory is empty.
-   */
-  function _prepareBasicFulfillmentFromCalldata(
-    BasicOrderParameters calldata parameters,
-    ItemType receivedItemType,
-    ItemType additionalRecipientsItemType,
-    address additionalRecipientsToken,
-    ItemType offeredItemType
-  ) internal returns (bytes32 orderHash, bool useOffererProxy) {
-      // Ensure this function cannot be triggered during a reentrant call.
-      _setReentrancyGuard();
-
-      // Ensure current timestamp falls between order start time and end time.
-      _verifyTime(parameters.startTime, parameters.endTime, true);
-
-      // Ensure calldata offsets were produced by default encoding.
-      _assertValidBasicOrderParameterOffsets();
-
-      // Ensure supplied consideration array length is not less than original.
-      _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
-          parameters.additionalRecipients.length + 1,
-          parameters.totalOriginalAdditionalRecipients
-      );
-
-    { // Load consideration item typehash from runtime code and place on stack.
-      bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
-
-      assembly {
-        /* Memory Layout
-         * 0x60: hash of considerations array
-         * 0x80-0x160: reused space for EIP712 hashing of considerations
-         * - 0x80: _RECEIVED_ITEM_TYPEHASH
-         * - 0xa0: itemType
-         * - 0xc0: token
-         * - 0xe0: identifier
-         * - 0x100: startAmount
-         * - 0x120: endAmount
-         * - 0x140: recipient
-         * - 0x160-END_ARR: array of consideration hashes
-         *                  (END_ARR = 0x180 + RECIPIENTS_LENGTH * 0x20)
-         * - 0x160: EIP712 hash of primary consideration
-         * - 0x180-END_ARR: EIP712 hashes of additional recipient considerations
-         * END_ARR: beginning of data for OrderFulfilled event
-         * END_ARR + 0x120: length of ReceivedItem array
-         * END_ARR + 0x140: beginning of data for first ReceivedItem
-         */
-        /* 1. Write first ReceivedItem hash to order's considerations array */
-        // Write type hash and item type
-        mstore(0x80, typeHash)
-        mstore(0xa0, receivedItemType)
-        // Copy (token, identifier, startAmount)
-        calldatacopy(0xc0, 0x24, 0x60)
-        // Copy (endAmount, recipient)
-        calldatacopy(0x120, 0x64, 0x40)
-        // receivedItemHashes[0] = keccak256(abi.encode(receivedItem))
-        mstore(0x160, keccak256(0x80, 0xe0))
-
-        /* 2. Write first ReceivedItem to OrderFulfilled data */
-        let len := calldataload(0x244)
-        // END_ARR + 0x120 = 0x2a0 + len*0x20
-        let eventArrPtr := add(0x2a0, mul(0x20, len))
-        mstore(eventArrPtr, add(calldataload(0x244), 1)) // length
-        // Set ptr to data portion of first ReceivedItem
-        eventArrPtr := add(eventArrPtr, 0x20)
-        // Write item type
-        mstore(eventArrPtr, receivedItemType)
-        // Copy (token, identifier, amount, recipient)
-        calldatacopy(add(eventArrPtr, 0x20), 0x24, 0x80)
-
-        /* 3. Handle additional recipients */
-        // ptr to current place in receivedItemHashes
-        let considerationHashesPtr := 0x160
-        // Write type, token, identifier for additional recipients memory
-        // which will be reused for each recipient
-        mstore(0xa0, additionalRecipientsItemType)
-        mstore(0xc0, additionalRecipientsToken)
-        mstore(0xe0, 0)
-        len := calldataload(0x1e4)
-        let i := 0
-        for {} lt(i, len) {i := add(i, 1)} {
-          let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
-
-          /* a. Write ConsiderationItem hash to order's considerations array */
-          // Copy startAmount
-          calldatacopy(0x100, additionalRecipientCdPtr, 0x20)
-          // Copy endAmount, recipient
-          calldatacopy(0x120, additionalRecipientCdPtr, 0x40)
-          // note: Add 1 word to the pointer each loop to reduce ops
-          // needed to get local offset into the array
-          considerationHashesPtr := add(considerationHashesPtr, 0x20)
-          // receivedItemHashes[i + 1] = keccak256(abi.encode(receivedItem))
-          mstore(considerationHashesPtr, keccak256(0x80, 0xe0))
-
-          /* b. Write ReceivedItem to OrderFulfilled data */
-          // At this point, eventArrPtr points to the beginning of the
-          // ReceivedItem struct for the previous element in the array.
-          eventArrPtr := add(eventArrPtr, 0xa0)
-          // Write item type
-          mstore(eventArrPtr, additionalRecipientsItemType)
-          // Write token
-          mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
-          // Copy endAmount, recipient
-          calldatacopy(add(eventArrPtr, 0x60), additionalRecipientCdPtr, 0x40)
-        }
-        /* 4. Hash packed array of ConsiderationItem EIP712 hashes */
-        // note: Store at 0x60 - all other memory begins at 0x80
-        // keccak256(abi.encodePacked(receivedItemHashes))
-        mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
-        /* 5. Write tips to event data */
-        len := calldataload(0x244)
-        for {} lt(i, len) {i := add(i, 1)} {
-          let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
-
-          /* b. Write ReceivedItem to OrderFulfilled data */
-          // At this point, eventArrPtr points to the beginning of the
-          // ReceivedItem struct for the previous element in the array.
-          eventArrPtr := add(eventArrPtr, 0xa0)
-          // Write item type
-          mstore(eventArrPtr, additionalRecipientsItemType)
-          // Write token
-          mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
-          // Copy endAmount, recipient
-          calldatacopy(add(eventArrPtr, 0x60), additionalRecipientCdPtr, 0x40)
-        }
-      }
-    }
-
-    { // Handle offered items
-      /* Memory Layout
-       * EIP712 data for OfferItem
-       * - 0x80:  _OFFERED_ITEM_TYPEHASH
-       * - 0xa0:  itemType
-       * - 0xc0:  token
-       * - 0xe0:  identifier (reused for offeredItemsHash)
-       * - 0x100: startAmount
-       * - 0x120: endAmount
-       */
-      bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
-      assembly {
-        /* 1. Calculate OfferItem EIP712 hash*/
-        mstore(0x80, typeHash) // _OFFERED_ITEM_TYPEHASH
-        mstore(0xa0, offeredItemType) // itemType
-        calldatacopy(0xc0, 0xc4, 0x60) // (token, identifier, startAmount)
-        calldatacopy(0x120, 0x104, 0x20) // endAmount
-        // note: Write offered item hash to scratch space
-        // keccak256(abi.encode(offeredItem))
-        mstore(0x00, keccak256(0x80, 0xc0))
-        /* 2. Calculate hash of array of EIP712 hashes */
-        // note: Write offeredItemsHash to offer struct
-        // keccak256(abi.encodePacked(offeredItemHashes))
-        mstore(0xe0, keccak256(0x00, 0x20))
-        /* 3. Write SpentItem array to event data */
-        // 0x180 + len*32 = event data ptr
-        // offers array length is stored at 0x80 into the event data
-        let eventArrPtr := add(0x200, mul(0x20, calldataload(0x244)))
-        mstore(eventArrPtr, 1)
-        mstore(add(eventArrPtr, 0x20), offeredItemType)
-        // Copy token, identifier, startAmount to SpentItem
-        calldatacopy(
-          add(eventArrPtr, 0x40),
-          0xc4,
-          0x60
+    )
+        ConsiderationInternalView(
+            legacyProxyRegistry,
+            requiredProxyImplementation
         )
-      }
-    }
-    { // Calculate order hash
-      address offerer;
-      assembly {
-        offerer := calldataload(0x84)
-      }
-      uint256 nonce = _nonces[offerer];
-      bytes32 typeHash = _ORDER_HASH;
-      assembly {
-        /* Memory Layout
-         * 0x80-0x1c0: EIP712 data for order
-         * - 0x80:    _ORDER_HASH,
-         * - 0xa0:    orderParameters.offerer,
-         * - 0xc0:    orderParameters.zone,
-         * - 0xe0:    keccak256(abi.encodePacked(offerHashes)),
-         * - 0x100:   keccak256(abi.encodePacked(considerationHashes)),
-         * - 0x120:   orderParameters.orderType,
-         * - 0x140:   orderParameters.startTime,
-         * - 0x160:   orderParameters.endTime,
-         * - 0x180:   orderParameters.salt,
-         * - 0x1a0:   nonce
-         */
-        mstore(0x80, typeHash)
-        // Copy offerer and zone
-        calldatacopy(0xa0, 0x84, 0x40)
-        // load receivedItemsHash from zero slot
-        mstore(0x100, mload(0x60))
-        // orderType, startTime, endTime, zoneHash, salt
-        calldatacopy(0x120, 0x124, 0xa0)
-        mstore(0x1c0, nonce) // nonce
-        orderHash := keccak256(0x80, 0x160)
-      }
-    }
-    /* event OrderFulfilled(
-     *   bytes32 orderHash,
-     *   address indexed offerer,
-     *   address indexed zone,
-     *   address fulfiller,
-     *   SpentItem[] offer, (itemType, token, id, amount)
-     *   ReceivedItem[] consideration (itemType, token, id, amount, recipient)
-     * )
-     * topic0 - OrderFulfilled event signature
-     * topic1 - offerer
-     * topic2 - zone
-     * data
-     * 0x00: orderHash
-     * 0x20: fulfiller
-     * 0x40: offer arr ptr (0x80)
-     * 0x60: consideration arr ptr (0x120)
-     * 0x80: offer arr len (1)
-     * 0xa0: offer.itemType
-     * 0xc0: offer.token
-     * 0xe0: offer.identifier
-     * 0x100: offer.amount
-     * 0x120: 1 + recipients.length
-     * 0x140: recipient 0
+    {}
+
+    /**
+     * @dev Internal function to prepare fulfillment of a basic order with manual
+     *      calldata and memory access. This calculates the order hash, emits an
+     *      OrderFulfilled event, and asserts basic order validity. Note that
+     *      calldata offsets must be validated as this function accesses constant
+     *      calldata pointers for dynamic types that match default ABI encoding,
+     *      but valid ABI encoding can use arbitrary offsets. Checking that the
+     *      offsets were produced by default encoding will ensure that other
+     *      functions using Solidity's calldata accessors (which calculate
+     *      pointers from the stored offsets) are reading the same data as the
+     *      order hash is derived from. Also note that This function accesses
+     *      memory directly. It does not clear the expanded memory regions used,
+     *      nor does it update the free memory pointer, so other direct memory
+     *      access must not assume that unused memory is empty.
      */
-    assembly {
-      let eventDataPtr := add(0x180, mul(0x20, calldataload(0x244)))
-      mstore(eventDataPtr, orderHash)           // orderHash
-      mstore(add(eventDataPtr, 0x20), caller()) // fulfiller
-      mstore(add(eventDataPtr, 0x40), 0x80)     // SpentItem array pointer
-      mstore(add(eventDataPtr, 0x60), 0x120)    // ReceivedItem array pointer
-      let dataSize := add(0x1e0, mul(calldataload(0x244), 0xa0))
-      log3(
-        eventDataPtr,
-        dataSize,
-        // OrderFulfilled event signature
-        0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31,
-        // topic1 - offerer
-        calldataload(0x84),
-        // topic2 - zone
-        calldataload(0xa4)
-      )
-      /* Restore the zero slot */
-      mstore(0x60, 0)
+    function _prepareBasicFulfillmentFromCalldata(
+        BasicOrderParameters calldata parameters,
+        ItemType receivedItemType,
+        ItemType additionalRecipientsItemType,
+        address additionalRecipientsToken,
+        ItemType offeredItemType
+    ) internal returns (bytes32 orderHash, bool useOffererProxy) {
+        // Ensure this function cannot be triggered during a reentrant call.
+        _setReentrancyGuard();
+
+        // Ensure current timestamp falls between order start time and end time.
+        _verifyTime(parameters.startTime, parameters.endTime, true);
+
+        // Ensure calldata offsets were produced by default encoding.
+        _assertValidBasicOrderParameterOffsets();
+
+        // Ensure supplied consideration array length is not less than original.
+        _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
+            parameters.additionalRecipients.length + 1,
+            parameters.totalOriginalAdditionalRecipients
+        );
+
+        {
+            // Load consideration item typehash from runtime code and place on stack.
+            bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
+
+            assembly {
+                /* Memory Layout
+                 * 0x60: hash of considerations array
+                 * 0x80-0x160: reused space for EIP712 hashing of considerations
+                 * - 0x80: _RECEIVED_ITEM_TYPEHASH
+                 * - 0xa0: itemType
+                 * - 0xc0: token
+                 * - 0xe0: identifier
+                 * - 0x100: startAmount
+                 * - 0x120: endAmount
+                 * - 0x140: recipient
+                 * - 0x160-END_ARR: array of consideration hashes
+                 *                  (END_ARR = 0x180 + RECIPIENTS_LENGTH * 0x20)
+                 * - 0x160: EIP712 hash of primary consideration
+                 * - 0x180-END_ARR: EIP712 hashes of additional recipient considerations
+                 * END_ARR: beginning of data for OrderFulfilled event
+                 * END_ARR + 0x120: length of ReceivedItem array
+                 * END_ARR + 0x140: beginning of data for first ReceivedItem
+                 */
+                /* 1. Write first ReceivedItem hash to order's considerations array */
+                // Write type hash and item type
+                mstore(0x80, typeHash)
+                mstore(0xa0, receivedItemType)
+                // Copy (token, identifier, startAmount)
+                calldatacopy(0xc0, 0x24, 0x60)
+                // Copy (endAmount, recipient)
+                calldatacopy(0x120, 0x64, 0x40)
+                // receivedItemHashes[0] = keccak256(abi.encode(receivedItem))
+                mstore(0x160, keccak256(0x80, 0xe0))
+
+                /* 2. Write first ReceivedItem to OrderFulfilled data */
+                let len := calldataload(0x244)
+                // END_ARR + 0x120 = 0x2a0 + len*0x20
+                let eventArrPtr := add(0x2a0, mul(0x20, len))
+                mstore(eventArrPtr, add(calldataload(0x244), 1)) // length
+                // Set ptr to data portion of first ReceivedItem
+                eventArrPtr := add(eventArrPtr, 0x20)
+                // Write item type
+                mstore(eventArrPtr, receivedItemType)
+                // Copy (token, identifier, amount, recipient)
+                calldatacopy(add(eventArrPtr, 0x20), 0x24, 0x80)
+
+                /* 3. Handle additional recipients */
+                // ptr to current place in receivedItemHashes
+                let considerationHashesPtr := 0x160
+                // Write type, token, identifier for additional recipients memory
+                // which will be reused for each recipient
+                mstore(0xa0, additionalRecipientsItemType)
+                mstore(0xc0, additionalRecipientsToken)
+                mstore(0xe0, 0)
+                len := calldataload(0x1e4)
+                let i := 0
+                for {
+
+                } lt(i, len) {
+                    i := add(i, 1)
+                } {
+                    let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
+
+                    /* a. Write ConsiderationItem hash to order's considerations array */
+                    // Copy startAmount
+                    calldatacopy(0x100, additionalRecipientCdPtr, 0x20)
+                    // Copy endAmount, recipient
+                    calldatacopy(0x120, additionalRecipientCdPtr, 0x40)
+                    // note: Add 1 word to the pointer each loop to reduce ops
+                    // needed to get local offset into the array
+                    considerationHashesPtr := add(considerationHashesPtr, 0x20)
+                    // receivedItemHashes[i + 1] = keccak256(abi.encode(receivedItem))
+                    mstore(considerationHashesPtr, keccak256(0x80, 0xe0))
+
+                    /* b. Write ReceivedItem to OrderFulfilled data */
+                    // At this point, eventArrPtr points to the beginning of the
+                    // ReceivedItem struct for the previous element in the array.
+                    eventArrPtr := add(eventArrPtr, 0xa0)
+                    // Write item type
+                    mstore(eventArrPtr, additionalRecipientsItemType)
+                    // Write token
+                    mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+                    // Copy endAmount, recipient
+                    calldatacopy(
+                        add(eventArrPtr, 0x60),
+                        additionalRecipientCdPtr,
+                        0x40
+                    )
+                }
+                /* 4. Hash packed array of ConsiderationItem EIP712 hashes */
+                // note: Store at 0x60 - all other memory begins at 0x80
+                // keccak256(abi.encodePacked(receivedItemHashes))
+                mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
+                /* 5. Write tips to event data */
+                len := calldataload(0x244)
+                for {
+
+                } lt(i, len) {
+                    i := add(i, 1)
+                } {
+                    let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
+
+                    /* b. Write ReceivedItem to OrderFulfilled data */
+                    // At this point, eventArrPtr points to the beginning of the
+                    // ReceivedItem struct for the previous element in the array.
+                    eventArrPtr := add(eventArrPtr, 0xa0)
+                    // Write item type
+                    mstore(eventArrPtr, additionalRecipientsItemType)
+                    // Write token
+                    mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+                    // Copy endAmount, recipient
+                    calldatacopy(
+                        add(eventArrPtr, 0x60),
+                        additionalRecipientCdPtr,
+                        0x40
+                    )
+                }
+            }
+        }
+
+        {
+            // Handle offered items
+            /* Memory Layout
+             * EIP712 data for OfferItem
+             * - 0x80:  _OFFERED_ITEM_TYPEHASH
+             * - 0xa0:  itemType
+             * - 0xc0:  token
+             * - 0xe0:  identifier (reused for offeredItemsHash)
+             * - 0x100: startAmount
+             * - 0x120: endAmount
+             */
+            bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
+            assembly {
+                /* 1. Calculate OfferItem EIP712 hash*/
+                mstore(0x80, typeHash) // _OFFERED_ITEM_TYPEHASH
+                mstore(0xa0, offeredItemType) // itemType
+                calldatacopy(0xc0, 0xc4, 0x60) // (token, identifier, startAmount)
+                calldatacopy(0x120, 0x104, 0x20) // endAmount
+                // note: Write offered item hash to scratch space
+                // keccak256(abi.encode(offeredItem))
+                mstore(0x00, keccak256(0x80, 0xc0))
+                /* 2. Calculate hash of array of EIP712 hashes */
+                // note: Write offeredItemsHash to offer struct
+                // keccak256(abi.encodePacked(offeredItemHashes))
+                mstore(0xe0, keccak256(0x00, 0x20))
+                /* 3. Write SpentItem array to event data */
+                // 0x180 + len*32 = event data ptr
+                // offers array length is stored at 0x80 into the event data
+                let eventArrPtr := add(0x200, mul(0x20, calldataload(0x244)))
+                mstore(eventArrPtr, 1)
+                mstore(add(eventArrPtr, 0x20), offeredItemType)
+                // Copy token, identifier, startAmount to SpentItem
+                calldatacopy(add(eventArrPtr, 0x40), 0xc4, 0x60)
+            }
+        }
+        {
+            // Calculate order hash
+            address offerer;
+            assembly {
+                offerer := calldataload(0x84)
+            }
+            uint256 nonce = _nonces[offerer];
+            bytes32 typeHash = _ORDER_HASH;
+            assembly {
+                /* Memory Layout
+                 * 0x80-0x1c0: EIP712 data for order
+                 * - 0x80:    _ORDER_HASH,
+                 * - 0xa0:    orderParameters.offerer,
+                 * - 0xc0:    orderParameters.zone,
+                 * - 0xe0:    keccak256(abi.encodePacked(offerHashes)),
+                 * - 0x100:   keccak256(abi.encodePacked(considerationHashes)),
+                 * - 0x120:   orderParameters.orderType,
+                 * - 0x140:   orderParameters.startTime,
+                 * - 0x160:   orderParameters.endTime,
+                 * - 0x180:   orderParameters.salt,
+                 * - 0x1a0:   nonce
+                 */
+                mstore(0x80, typeHash)
+                // Copy offerer and zone
+                calldatacopy(0xa0, 0x84, 0x40)
+                // load receivedItemsHash from zero slot
+                mstore(0x100, mload(0x60))
+                // orderType, startTime, endTime, zoneHash, salt
+                calldatacopy(0x120, 0x124, 0xa0)
+                mstore(0x1c0, nonce) // nonce
+                orderHash := keccak256(0x80, 0x160)
+            }
+        }
+        /* event OrderFulfilled(
+         *   bytes32 orderHash,
+         *   address indexed offerer,
+         *   address indexed zone,
+         *   address fulfiller,
+         *   SpentItem[] offer, (itemType, token, id, amount)
+         *   ReceivedItem[] consideration (itemType, token, id, amount, recipient)
+         * )
+         * topic0 - OrderFulfilled event signature
+         * topic1 - offerer
+         * topic2 - zone
+         * data
+         * 0x00: orderHash
+         * 0x20: fulfiller
+         * 0x40: offer arr ptr (0x80)
+         * 0x60: consideration arr ptr (0x120)
+         * 0x80: offer arr len (1)
+         * 0xa0: offer.itemType
+         * 0xc0: offer.token
+         * 0xe0: offer.identifier
+         * 0x100: offer.amount
+         * 0x120: 1 + recipients.length
+         * 0x140: recipient 0
+         */
+        assembly {
+            let eventDataPtr := add(0x180, mul(0x20, calldataload(0x244)))
+            mstore(eventDataPtr, orderHash) // orderHash
+            mstore(add(eventDataPtr, 0x20), caller()) // fulfiller
+            mstore(add(eventDataPtr, 0x40), 0x80) // SpentItem array pointer
+            mstore(add(eventDataPtr, 0x60), 0x120) // ReceivedItem array pointer
+            let dataSize := add(0x1e0, mul(calldataload(0x244), 0xa0))
+            log3(
+                eventDataPtr,
+                dataSize,
+                // OrderFulfilled event signature
+                0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31,
+                // topic1 - offerer
+                calldataload(0x84),
+                // topic2 - zone
+                calldataload(0xa4)
+            )
+            /* Restore the zero slot */
+            mstore(0x60, 0)
+        }
+
+        // Determine if a proxy should be used and that restricted orders are valid.
+        useOffererProxy = _determineProxyUtilizationAndEnsureValidBasicOrder(
+            orderHash,
+            parameters.zoneHash,
+            parameters.orderType,
+            parameters.offerer,
+            parameters.zone
+        );
+
+        // Verify and update the status of the derived order.
+        _validateBasicOrderAndUpdateStatus(
+            orderHash,
+            parameters.offerer,
+            parameters.signature
+        );
     }
-
-    // Determine if a proxy should be used and that restricted orders are valid.
-    useOffererProxy = _determineProxyUtilizationAndEnsureValidBasicOrder(
-        orderHash,
-        parameters.zoneHash,
-        parameters.orderType,
-        parameters.offerer,
-        parameters.zone
-    );
-
-    // Verify and update the status of the derived order.
-    _validateBasicOrderAndUpdateStatus(
-        orderHash,
-        parameters.offerer,
-        parameters.signature
-    );
-  }
 
     /**
      * @dev Internal function to verify and update the status of a basic order.
@@ -360,9 +352,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // If the order is not already validated, verify the supplied signature.
         if (!orderStatus.isValidated) {
-            _verifySignature(
-                offerer, orderHash, signature
-            );
+            _verifySignature(offerer, orderHash, signature);
         }
 
         // Update order status as fully filled, packing struct values.
@@ -394,12 +384,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
         bool revertOnInvalid
-    ) internal returns (
-        bytes32 orderHash,
-        uint256 newNumerator,
-        uint256 newDenominator,
-        bool useOffererProxy
-    ) {
+    )
+        internal
+        returns (
+            bytes32 orderHash,
+            uint256 newNumerator,
+            uint256 newDenominator,
+            bool useOffererProxy
+        )
+    {
         // Retrieve the parameters for the order.
         OrderParameters memory orderParameters = advancedOrder.parameters;
 
@@ -466,7 +459,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // If the order is not already validated, verify the supplied signature.
         if (!orderStatus.isValidated) {
             _verifySignature(
-                orderParameters.offerer, orderHash, advancedOrder.signature
+                orderParameters.offerer,
+                orderHash,
+                advancedOrder.signature
             );
         }
 
@@ -481,7 +476,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Scale numerator & denominator to match current denominator.
                 numerator = filledDenominator;
                 denominator = filledDenominator;
-            } // Otherwise, if supplied denominator differs from current one...
+            }
+            // Otherwise, if supplied denominator differs from current one...
             else if (filledDenominator != denominator) {
                 // scale current numerator by the supplied denominator, then...
                 filledNumerator *= denominator;
@@ -634,7 +630,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 etherRemaining = msg.value;
 
         // Iterate over each offer on the order.
-        for (uint256 i = 0; i < orderParameters.offer.length;) {
+        for (uint256 i = 0; i < orderParameters.offer.length; ) {
             // Retrieve the offer item.
             OfferItem memory offerItem = orderParameters.offer[i];
 
@@ -662,23 +658,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
 
             // Transfer the item from the offerer to the caller.
-            _transfer(
-                item,
-                orderParameters.offerer,
-                useOffererProxy
-            );
+            _transfer(item, orderParameters.offerer, useOffererProxy);
 
             // Update offer amount so that an accurate event can be emitted.
             offerItem.endAmount = item.amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
-                 ++i;
+                ++i;
             }
         }
 
         // Iterate over each consideration on the order.
-        for (uint256 i = 0; i < orderParameters.consideration.length;) {
+        for (uint256 i = 0; i < orderParameters.consideration.length; ) {
             // Retrieve the consideration item.
             ConsiderationItem memory considerationItem = (
                 orderParameters.consideration[i]
@@ -708,18 +700,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
 
             // Transfer the item from the caller to the consideration recipient.
-            _transfer(
-                item,
-                msg.sender,
-                useFulfillerProxy
-            );
+            _transfer(item, msg.sender, useFulfillerProxy);
 
             // Update consideration item amount for use in the emitted event.
             considerationItem.endAmount = item.amount;
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
-                 ++i;
+                ++i;
             }
         }
 
@@ -783,9 +771,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     uint256 denominator,
                     bool useOffererProxy
                 ) = _validateOrderAndUpdateStatus(
-                    advancedOrder,
-                    revertOnInvalid
-                );
+                        advancedOrder,
+                        revertOnInvalid
+                    );
 
                 // Determine if order should be fulfilled based on numerator.
                 bool shouldBeFulfilled = numerator != 0;
@@ -819,7 +807,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     if (item.startAmount == item.endAmount) {
                         // Derive the fractional amount based on the end amount.
                         uint256 amount = _getFraction(
-                            numerator, denominator, item.endAmount
+                            numerator,
+                            denominator,
+                            item.endAmount
                         );
 
                         // Apply derived amount to both start and end amount.
@@ -828,12 +818,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     } else {
                         // Apply order fill fraction to offer item start amount.
                         item.startAmount = _getFraction(
-                            numerator, denominator, item.startAmount
+                            numerator,
+                            denominator,
+                            item.startAmount
                         );
 
                         // Apply order fill fraction to offer item end amount.
                         item.endAmount = _getFraction(
-                            numerator, denominator, item.endAmount
+                            numerator,
+                            denominator,
+                            item.endAmount
                         );
                     }
                 }
@@ -847,7 +841,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     if (item.startAmount == item.endAmount) {
                         // Derive the fractional amount based on the end amount.
                         uint256 amount = _getFraction(
-                            numerator, denominator, item.endAmount
+                            numerator,
+                            denominator,
+                            item.endAmount
                         );
 
                         // Apply derived amount to both start and end amount.
@@ -856,12 +852,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     } else {
                         // Apply fraction to consideration item start amount.
                         item.startAmount = _getFraction(
-                            numerator, denominator, item.startAmount
+                            numerator,
+                            denominator,
+                            item.startAmount
                         );
 
                         // Apply fraction to consideration item end amount.
                         item.endAmount = _getFraction(
-                            numerator, denominator, item.endAmount
+                            numerator,
+                            denominator,
+                            item.endAmount
                         );
                     }
                 }
@@ -978,11 +978,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Perform final checks, compress executions, and return.
-        return _performFinalChecksAndExecuteOrders(
-            advancedOrders,
-            executions,
-            fulfillmentDetails
-        );
+        return
+            _performFinalChecksAndExecuteOrders(
+                advancedOrders,
+                executions,
+                fulfillmentDetails
+            );
     }
 
     /**
@@ -1118,11 +1119,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Perform final checks, compress executions, and return.
-        return _performFinalChecksAndExecuteOrders(
-            advancedOrders,
-            executions,
-            fulfillmentDetails
-        );
+        return
+            _performFinalChecksAndExecuteOrders(
+                advancedOrders,
+                executions,
+                fulfillmentDetails
+            );
     }
 
     /**
@@ -1151,10 +1153,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         AdvancedOrder[] memory advancedOrders,
         Execution[] memory executions,
         FulfillmentDetail[] memory fulfillmentDetails
-    ) internal returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    ) {
+    )
+        internal
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        )
+    {
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over orders to ensure all considerations are met.
@@ -1189,7 +1194,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 etherRemaining = msg.value;
 
         // Iterate over each standard execution.
-        for (uint256 i = 0; i < standardExecutions.length;) {
+        for (uint256 i = 0; i < standardExecutions.length; ) {
             // Retrieve the execution and the associated received item.
             Execution memory execution = standardExecutions[i];
             ReceivedItem memory item = execution.item;
@@ -1208,11 +1213,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
 
             // Transfer the item specified by the execution.
-            _transfer(
-                item,
-                execution.offerer,
-                execution.useProxy
-            );
+            _transfer(item, execution.offerer, execution.useProxy);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -1257,16 +1258,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         if (item.itemType == ItemType.NATIVE) {
             // transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
-        // If the item type indicates an ERC20 item...
+            // If the item type indicates an ERC20 item...
         } else if (item.itemType == ItemType.ERC20) {
             // Transfer ERC20 token from the offerer to the recipient.
-            _transferERC20(
-                item.token,
-                offerer,
-                item.recipient,
-                item.amount
-            );
-        // Otherwise, transfer the item based on item type and proxy preference.
+            _transferERC20(item.token, offerer, item.recipient, item.amount);
+            // Otherwise, transfer the item based on item type and proxy preference.
         } else {
             // Equivalent to useProxy ? offerer : address(0)
             address proxyOwner;
@@ -1307,7 +1303,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      */
     function _transferEth(address payable to, uint256 amount) internal {
         // Attempt to transfer the native tokens to the recipient.
-        (bool success,) = to.call{value: amount}("");
+        (bool success, ) = to.call{ value: amount }("");
 
         // If the call fails...
         if (!success) {
@@ -1342,14 +1338,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
 
         // Ensure that the transfer succeeded.
-        _assertValidTokenTransfer(
-            success,
-            token,
-            from,
-            to,
-            0,
-            amount
-        );
+        _assertValidTokenTransfer(success, token, from, to, 0, amount);
 
         // Extract result directly from returndata buffer if one is returned.
         bool result = true;
@@ -1367,12 +1356,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // If a falsey result is extracted...
         if (!result) {
             // Revert with a "Bad Return Value" error.
-            revert BadReturnValueFromERC20OnTransfer(
-                token,
-                from,
-                to,
-                amount
-            );
+            revert BadReturnValueFromERC20OnTransfer(token, from, to, amount);
         }
     }
 
@@ -1407,20 +1391,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         bool success = _callDirectlyOrViaProxy(
             token,
             proxyOwner,
-            abi.encodeCall(
-                ERC721Interface.transferFrom, (from, to, identifier)
-            )
+            abi.encodeCall(ERC721Interface.transferFrom, (from, to, identifier))
         );
 
         // Ensure that the transfer succeeded.
-        _assertValidTokenTransfer(
-            success,
-            token,
-            from,
-            to,
-            identifier,
-            1
-        );
+        _assertValidTokenTransfer(success, token, from, to, identifier, 1);
     }
 
     /**
@@ -1460,14 +1435,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
 
         // Ensure that the transfer succeeded.
-        _assertValidTokenTransfer(
-            success,
-            token,
-            from,
-            to,
-            identifier,
-            amount
-        );
+        _assertValidTokenTransfer(success, token, from, to, identifier, amount);
     }
 
     /**
@@ -1477,9 +1445,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *
      * @param batchExecution The batch of 1155 tokens to be transferred.
      */
-    function _batchTransferERC1155(
-        BatchExecution memory batchExecution
-    ) internal {
+    function _batchTransferERC1155(BatchExecution memory batchExecution)
+        internal
+    {
         // Place elements of the batch execution in memory onto the stack.
         bool useProxy = batchExecution.useProxy;
         address token = batchExecution.token;
@@ -1583,9 +1551,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Assert that the user proxy has the correct implementation.
         if (
-            ProxyInterface(
-                proxy
-            ).implementation() != _REQUIRED_PROXY_IMPLEMENTATION
+            ProxyInterface(proxy).implementation() !=
+            _REQUIRED_PROXY_IMPLEMENTATION
         ) {
             revert InvalidProxyImplementation();
         }
@@ -1594,7 +1561,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         success = _call(
             proxy,
             abi.encodeWithSelector(
-                ProxyInterface.proxyAssert.selector, target, 0, callData
+                ProxyInterface.proxyAssert.selector,
+                target,
+                0,
+                callData
             )
         );
     }
@@ -1609,10 +1579,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *
      * @return success The status of the call to the target.
      */
-    function _call(
-        address target,
-        bytes memory callData
-    ) internal returns (bool success) {
+    function _call(address target, bytes memory callData)
+        internal
+        returns (bool success)
+    {
         (success, ) = target.call(callData);
     }
 
@@ -1633,7 +1603,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 etherRemaining = msg.value;
 
         // Iterate over each additional recipient.
-        for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
+        for (uint256 i = 0; i < parameters.additionalRecipients.length; ) {
             // Retrieve the additional recipient.
             AdditionalRecipient calldata additionalRecipient = (
                 parameters.additionalRecipients[i]
@@ -1707,7 +1677,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         bool fromOfferer
     ) internal {
         // Iterate over each additional recipient.
-        for (uint256 i = 0; i < parameters.additionalRecipients.length;) {
+        for (uint256 i = 0; i < parameters.additionalRecipients.length; ) {
             // Retrieve the additional recipient.
             AdditionalRecipient calldata additionalRecipient = (
                 parameters.additionalRecipients[i]
@@ -1733,12 +1703,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(
-            erc20Token,
-            from,
-            to,
-            amount
-        );
+        _transferERC20(erc20Token, from, to, amount);
 
         // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;
