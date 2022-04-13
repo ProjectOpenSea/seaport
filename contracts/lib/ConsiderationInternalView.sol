@@ -133,7 +133,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         assembly {
             returnDataSize := returndatasize()
         }
-        
+
         // If no data was returned, ensure that the account has code.
         if (returnDataSize == 0 && account.code.length == 0) {
             revert NoContract(account);
