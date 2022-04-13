@@ -10,7 +10,7 @@ Each order contains ten key components:
 -   The `offerer` of the order supplies all offered items and must either fulfill the order personally (i.e. `msg.sender == offerer`) or approve the order via signature (either standard 65-byte EDCSA, 64-byte EIP-2098, or an EIP-1271 `isValidSignature` check) or by listing the order on-chain (i.e. calling `validate`).
 - The `zone` of the order is an optional secondary account attached to the order with two additional privileges:
    - The zone may cancel orders where it is named as the zone by calling `cancel`. (Note that offerers can also cancel their own orders, either individually or for all orders signed with their current nonce at once by calling `incrementNonce`).
-   - Only the zone or the offerer can fulfill "restricted" orders if specified by the order type.
+   - "Restricted" orders (as specified by the order type) must either be executed by the zone or the offerer, or must be approved as indicated by a call to an `isValidOrder` view function on the zone.
 - The `offer` contains an array of items that may be transferred from the offerer's account, where each item consists of the following components:
    - The `itemType` designates the type of item, with valid types being Ether (or other native token for the given chain), ERC20, ERC721, ERC1155, ERC721 with "criteria" (explained below), and ERC1155 with criteria.
    - The `token` designates the account of the item's token contract (with the null address used for Ether or other native tokens).
