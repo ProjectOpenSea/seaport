@@ -171,13 +171,24 @@ enum BasicOrderType {
     PARTIAL_RESTRICTED_VIA_PROXY_ERC1155ForERC20
 }
 
-enum BasicOrderRoutes{
-  EthToERC721,
-  EthToERC1155,
-  ERC20ToERC721,
-  ERC20ToERC1155,
-  ERC721ToERC20,
-  ERC1155ToERC20
+enum BasicOrderRouteType {
+    // 0: provide Ether (or other native token) to receive offered ERC721 item.
+    ETH_TO_ERC721,
+
+    // 1: provide Ether (or other native token) to receive offered ERC1155 item.
+    ETH_TO_ERC1155,
+
+    // 2: provide ERC20 item to receive offered ERC721 item.
+    ERC20_TO_ERC721,
+
+    // 3: provide ERC20 item to receive offered ERC1155 item.
+    ERC20_TO_ERC1155,
+
+    // 4: provide ERC721 item to receive offered ERC20 item.
+    ERC721_TO_ERC_20,
+
+    // 5: provide ERC1155 item to receive offered ERC20 item.
+    ERC1155_TO_ERC_20
 }
 
 enum ItemType {

@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 
 import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol";
 
-import { ItemType, BasicOrderRoutes } from "./lib/ConsiderationEnums.sol";
+import { ItemType, BasicOrderRouteType } from "./lib/ConsiderationEnums.sol";
 
 import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution, FulfillmentDetail } from "./lib/ConsiderationStructs.sol";
 
@@ -68,7 +68,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         returns (bool)
     {
         // Declare enums for order route type to extract from basicOrderType.
-        BasicOrderRoutes route;
+        BasicOrderRouteType route;
         OrderType orderType;
 
         // Utilize assembly to extract the order type and the basic order route.
@@ -80,7 +80,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             route := shr(calldataload(0x124), 8)
         }
 
-        if (route == BasicOrderRoutes.EthToERC721) {
+        if (route == BasicOrderRouteType.EthToERC721) {
             // Derive and validate order using parameters and update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
                 parameters,
@@ -115,7 +115,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.considerationAmount,
                 parameters
             );
-        } else if (route == BasicOrderRoutes.EthToERC1155) {
+        } else if (route == BasicOrderRouteType.EthToERC1155) {
             // Derive and validate order using parameters and update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
                 parameters,
@@ -150,7 +150,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.considerationAmount,
                 parameters
             );
-        } else if (route == BasicOrderRoutes.ERC20ToERC721) {
+        } else if (route == BasicOrderRouteType.ERC20ToERC721) {
             // Derive and validate order using parameters and update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
                 parameters,
@@ -189,7 +189,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters,
                 false // Transfer full amount indicated by all consideration items.
             );
-        } else if (route == BasicOrderRoutes.ERC20ToERC1155) {
+        } else if (route == BasicOrderRouteType.ERC20ToERC1155) {
             // Derive and validate order using parameters and update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
                 parameters,
@@ -268,7 +268,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters,
                 true // Reduce erc20Amount sent to fulfiller by additional amounts.
             );
-        } else { // route == BasicOrderRoutes.ERC1155ToERC20
+        } else { // route == BasicOrderRouteType.ERC1155ToERC20
             // Derive and validate order using parameters and update order status.
             _prepareBasicFulfillmentFromCalldata(
                 parameters,
