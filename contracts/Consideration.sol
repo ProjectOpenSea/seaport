@@ -386,7 +386,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillOrder(
-        Order memory order,
+        Order calldata order,
         bool useFulfillerProxy
     ) external payable override returns (bool) {
         // Convert order to "advanced" order, then validate and fulfill it.
@@ -613,7 +613,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
-        Fulfillment[] memory fulfillments
+        Fulfillment[] calldata fulfillments
     ) external payable override returns (
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
