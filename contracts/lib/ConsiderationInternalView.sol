@@ -149,19 +149,10 @@ contract ConsiderationInternalView is ConsiderationPure {
         assembly {
             returnDataSize := returndatasize()
         }
-
-        // If no data was returned...
-        if (returnDataSize == 0) {
-            // get the codesize of the account.
-            uint256 size;
-            assembly {
-                size := extcodesize(account)
-            }
-
-            // Ensure that the account has code.
-            if (size == 0) {
-                revert NoContract(account);
-            }
+        
+        // If no data was returned, ensure that the account has code.
+        if (returnDataSize == 0 && account.code.length == 0) {
+            revert NoContract(account);
         }
     }
 
