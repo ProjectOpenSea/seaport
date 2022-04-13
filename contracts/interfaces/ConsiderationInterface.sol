@@ -30,9 +30,10 @@ interface ConsiderationInterface {
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function fulfillBasicOrder(
-        BasicOrderParameters calldata parameters
-    ) external payable returns (bool);
+    function fulfillBasicOrder(BasicOrderParameters calldata parameters)
+        external
+        payable
+        returns (bool);
 
     /**
      * @notice Fulfill an order with an arbitrary number of items for offer and

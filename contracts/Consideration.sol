@@ -122,10 +122,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             );
 
             // Transfer native to recipients, return excess to caller, and wrap up.
-            _transferEthAndFinalize(
-                parameters.considerationAmount,
-                parameters
-            );
+            _transferEthAndFinalize(parameters.considerationAmount, parameters);
         } else if (route == BasicOrderRouteType.ETH_TO_ERC1155) {
             // Derive and validate order using parameters and update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
@@ -157,10 +154,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
-            _transferEthAndFinalize(
-                parameters.considerationAmount,
-                parameters
-            );
+            _transferEthAndFinalize(parameters.considerationAmount, parameters);
         } else if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
             // Derive and validate order using parameters & update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
@@ -279,7 +273,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters,
                 true // Reduce amount sent to fulfiller by additional amounts.
             );
-        } else { // route == BasicOrderRouteType.ERC1155_TO_ERC20
+        } else {
+            // route == BasicOrderRouteType.ERC1155_TO_ERC20
             // Derive and validate order using parameters & update order status.
             _prepareBasicFulfillmentFromCalldata(
                 parameters,
