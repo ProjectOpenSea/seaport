@@ -3,76 +3,28 @@ pragma solidity 0.8.12;
 
 enum OrderType {
     // 0: no partial fills, anyone can execute
-    FULL_OPEN_1155,
+    FULL_OPEN,
 
     // 1: partial fills supported, anyone can execute
-    PARTIAL_OPEN_1155,
+    PARTIAL_OPEN,
 
     // 2: no partial fills, only offerer or zone can execute
-    FULL_RESTRICTED_1155,
+    FULL_RESTRICTED,
 
     // 3: partial fills supported, only offerer or zone can execute
-    PARTIAL_RESTRICTED_1155,
+    PARTIAL_RESTRICTED,
 
     // 4: no partial fills, anyone can execute, routed through proxy
-    FULL_OPEN_VIA_PROXY_1155,
+    FULL_OPEN_VIA_PROXY,
 
     // 5: partial fills supported, anyone can execute, routed through proxy
-    PARTIAL_OPEN_VIA_PROXY_1155,
+    PARTIAL_OPEN_VIA_PROXY,
 
     // 6: no partial fills, only offerer zone executes, routed through proxy
-    FULL_RESTRICTED_VIA_PROXY_1155,
+    FULL_RESTRICTED_VIA_PROXY,
 
     // 7: partial fills ok, only offerer or zone executes, routed through proxy
-    PARTIAL_RESTRICTED_VIA_PROXY_1155
-
-    // 8: no partial fills, anyone can execute
-    FULL_OPEN_20,
-
-    // 9: partial fills supported, anyone can execute
-    PARTIAL_OPEN_20,
-
-    // 10: no partial fills, only offerer or zone can execute
-    FULL_RESTRICTED_20,
-
-    // 11: partial fills supported, only offerer or zone can execute
-    PARTIAL_RESTRICTED_20,
-
-    // 12: no partial fills, anyone can execute, routed through proxy
-    FULL_OPEN_VIA_PROXY_20,
-
-    // 13: partial fills supported, anyone can execute, routed through proxy
-    PARTIAL_OPEN_VIA_PROXY_20,
-
-    // 14: no partial fills, only offerer zone executes, routed through proxy
-    FULL_RESTRICTED_VIA_PROXY_20,
-
-    // 15: partial fills ok, only offerer or zone executes, routed through proxy
-    PARTIAL_RESTRICTED_VIA_PROXY_20
-
-    // 16: no partial fills, anyone can execute
-    FULL_OPEN_721,
-
-    // 17: partial fills supported, anyone can execute
-    PARTIAL_OPEN_721,
-
-    // 18: no partial fills, only offerer or zone can execute
-    FULL_RESTRICTED_721,
-
-    // 19: partial fills supported, only offerer or zone can execute
-    PARTIAL_RESTRICTED_721,
-
-    // 20: no partial fills, anyone can execute, routed through proxy
-    FULL_OPEN_VIA_PROXY_721,
-
-    // 21: partial fills supported, anyone can execute, routed through proxy
-    PARTIAL_OPEN_VIA_PROXY_721,
-
-    // 22: no partial fills, only offerer zone executes, routed through proxy
-    FULL_RESTRICTED_VIA_PROXY_721,
-
-    // 23: partial fills ok, only offerer or zone executes, routed through proxy
-    PARTIAL_RESTRICTED_VIA_PROXY_721
+    PARTIAL_RESTRICTED_VIA_PROXY
 }
 
 enum ItemType {
