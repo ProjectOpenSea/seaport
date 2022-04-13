@@ -54,7 +54,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      */
     function _assertNonReentrant() internal view {
         // Ensure that the reentrancy guard is not currently set.
-        if (_reentrancyGuard == _ENTERED) {
+        if (_reentrancyGuard != _NOT_ENTERED) {
             revert NoReentrantCalls();
         }
     }
