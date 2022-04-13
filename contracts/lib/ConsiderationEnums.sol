@@ -94,28 +94,28 @@ enum BasicOrderType {
     ERC20_TO_ERC721_PARTIAL_RESTRICTED_VIA_PROXY,
 
     // 24: no partial fills, anyone can execute
-    ERC20_TO_ERC721_FULL_OPEN,
+    ERC20_TO_ERC1155_FULL_OPEN,
 
     // 25: partial fills supported, anyone can execute
-    ERC20_TO_ERC721_PARTIAL_OPEN,
+    ERC20_TO_ERC1155_PARTIAL_OPEN,
 
     // 26: no partial fills, only offerer or zone can execute
-    ERC20_TO_ERC721_FULL_RESTRICTED,
+    ERC20_TO_ERC1155_FULL_RESTRICTED,
 
     // 27: partial fills supported, only offerer or zone can execute
-    ERC20_TO_ERC721_PARTIAL_RESTRICTED,
+    ERC20_TO_ERC1155_PARTIAL_RESTRICTED,
 
     // 28: no partial fills, anyone can execute, routed through proxy
-    ERC20_TO_ERC721_FULL_OPEN_VIA_PROXY,
+    ERC20_TO_ERC1155_FULL_OPEN_VIA_PROXY,
 
     // 29: partial fills supported, anyone can execute, routed through proxy
-    ERC20_TO_ERC721_PARTIAL_OPEN_VIA_PROXY,
+    ERC20_TO_ERC1155_PARTIAL_OPEN_VIA_PROXY,
 
     // 30: no partial fills, only offerer zone executes, routed through proxy
-    ERC20_TO_ERC721_FULL_RESTRICTED_VIA_PROXY,
+    ERC20_TO_ERC1155_FULL_RESTRICTED_VIA_PROXY,
 
     // 31: partial fills ok, only offerer or zone executes, routed through proxy
-    ERC20_TO_ERC721_PARTIAL_RESTRICTED_VIA_PROXY,
+    ERC20_TO_ERC1155_PARTIAL_RESTRICTED_VIA_PROXY,
 
     // 32: no partial fills, anyone can execute
     ERC721_TO_ERC20_FULL_OPEN,
@@ -180,10 +180,10 @@ enum BasicOrderRouteType {
     ERC20_TO_ERC1155,
 
     // 4: provide ERC721 item to receive offered ERC20 item.
-    ERC721_TO_ERC_20,
+    ERC721_TO_ERC20,
 
     // 5: provide ERC1155 item to receive offered ERC20 item.
-    ERC1155_TO_ERC_20
+    ERC1155_TO_ERC20
 }
 
 enum ItemType {
@@ -194,11 +194,11 @@ enum ItemType {
     // 2: ERC721 items
     ERC721,
     // 3: ERC1155 items
-    EthForERC1155,
+    ERC1155,
     // 4: ERC721 items where a number of tokenIds are supported
     ERC721_WITH_CRITERIA,
-    // 5: EthForERC1155 items where a number of ids are supported
-    EthForERC1155_WITH_CRITERIA
+    // 5: ERC1155 items where a number of ids are supported
+    ERC1155_WITH_CRITERIA
 }
 
 enum Side {

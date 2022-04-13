@@ -85,7 +85,10 @@ struct ReceivedItem {
 /**
  * @dev For basic orders involving ETH / native / ERC20 <=> ERC721 / ERC1155
  *      matching, a group of six functions may be called that only requires a
- *      subset of the usual order arguments.
+ *      subset of the usual order arguments. Note the use of a "basicOrderType"
+ *      enum; this represents both the usual order type as well as the "route"
+ *      of the basic order (a simple derivation function for the basic order
+ *      type is `basicOrderType = orderType + (8 * basicOrderRoute)`.)
  */
 struct BasicOrderParameters {
     // calldata offset
@@ -97,7 +100,7 @@ struct BasicOrderParameters {
     address offerToken; // 0xc4
     uint256 offerIdentifier; // 0xe4
     uint256 offerAmount; // 0x104
-    BasicOrderType orderType; // 0x124
+    BasicOrderType basicOrderType; // 0x124
     uint256 startTime; // 0x144
     uint256 endTime; // 0x164
     bytes32 zoneHash; // 0x184

@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 
 import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol";
 
-import { ItemType, BasicOrderRouteType } from "./lib/ConsiderationEnums.sol";
+import { OrderType, ItemType, BasicOrderRouteType } from "./lib/ConsiderationEnums.sol";
 
 import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution, FulfillmentDetail } from "./lib/ConsiderationStructs.sol";
 
@@ -48,16 +48,27 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
-     * @notice Fulfill an order offering an ERC721 or an ERC1155 token by supplying Ether (or
-     *         the native token for the given chain) as consideration for the
-     *         order. An arbitrary number of "additional recipients" may also be
-     *         supplied which will each receive native tokens from the fulfiller
-     *         as consideration.
+     * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
+     *         supplying Ether (or other native tokens), ERC20 tokens, an ERC721
+     *         item, or an ERC1155 item as consideration. Six permutations are
+     *         supported: Native token to ERC721, Native token to ERC1155, ERC20
+     *         to ERC721, ERC20 to ERC1155, ERC721 to ERC20, and ERC1155 to
+     *         ERC20 (with native tokens supplied as msg.value). For an order to
+     *         be eligible for fulfillment via this method, it must contain a
+     *         single offer item (though that item may have a greater amount if
+     *         the item is not an ERC721). An arbitrary number of "additional
+     *         recipients" may also be supplied which will each receive native
+     *         tokens or ERC20 items from the fulfiller as consideration. Refer
+     *         to the documentation for a more comprehensive summary of how to
+     *         utilize with this method and what orders are compatible with it.
      *
      * @param parameters Additional information on the fulfilled order. Note
-     *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
-     *                   their offered ERC721 token to be transferred.
+     *                   that the offerer and the fulfiller must first approve
+     *                   this contract (or their proxy if indicated) in order
+     *                   for any tokens to be transferred. Also note that any
+     *                   contract recipients of ERC1155 consideration items must
+     *                   implement `onERC1155Received` in order to receive those
+     *                   items.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -76,12 +87,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // Mask all but 8 least-significant bits to derive the order type.
             orderType := and(calldataload(0x124), 7)
 
-            // Shift basicOrderType right by eight bits to derive the route.
-            route := shr(calldataload(0x124), 8)
+            // Divide basicOrderType by eight to derive the route.
+            route := div(calldataload(0x124), 8)
         }
 
-        if (route == BasicOrderRouteType.EthToERC721) {
-            // Derive and validate order using parameters and update order status.
+        if (route == BasicOrderRouteType.ETH_TO_ERC721) {
+            // Derive & validate order using parameters and update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
                 parameters,
                 orderType,
@@ -115,7 +126,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.considerationAmount,
                 parameters
             );
-        } else if (route == BasicOrderRouteType.EthToERC1155) {
+        } else if (route == BasicOrderRouteType.ETH_TO_ERC1155) {
             // Derive and validate order using parameters and update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
                 parameters,
@@ -145,13 +156,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 proxyOwner
             );
 
-            // Transfer native to recipients, return excess to caller, and wrap up.
+            // Transfer native to recipients, return excess to caller & wrap up.
             _transferEthAndFinalize(
                 parameters.considerationAmount,
                 parameters
             );
-        } else if (route == BasicOrderRouteType.ERC20ToERC721) {
-            // Derive and validate order using parameters and update order status.
+        } else if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
+            // Derive and validate order using parameters & update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
                 parameters,
                 orderType,
@@ -187,10 +198,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
-                false // Transfer full amount indicated by all consideration items.
+                false // Send full amount indicated by all consideration items.
             );
-        } else if (route == BasicOrderRouteType.ERC20ToERC1155) {
-            // Derive and validate order using parameters and update order status.
+        } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
+            // Derive and validate order using parameters & update order status.
             (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
                 parameters,
                 orderType,
@@ -226,9 +237,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
-                false // Transfer full amount indicated by all consideration items.
+                false // Send full amount indicated by all consideration items.
             );
-        } else if (route == ERC721ToERC20) {
+        } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
             _prepareBasicFulfillmentFromCalldata(
                 parameters,
                 orderType,
@@ -266,10 +277,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.offerToken,
                 parameters.offerAmount,
                 parameters,
-                true // Reduce erc20Amount sent to fulfiller by additional amounts.
+                true // Reduce amount sent to fulfiller by additional amounts.
             );
-        } else { // route == BasicOrderRouteType.ERC1155ToERC20
-            // Derive and validate order using parameters and update order status.
+        } else { // route == BasicOrderRouteType.ERC1155_TO_ERC20
+            // Derive and validate order using parameters & update order status.
             _prepareBasicFulfillmentFromCalldata(
                 parameters,
                 orderType,
@@ -306,7 +317,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.offerToken,
                 parameters.offerAmount,
                 parameters,
-                true // Reduce erc20Amount sent to fulfiller by additional amounts.
+                true // Reduce amount sent to fulfiller by additional amounts.
             );
         }
 
