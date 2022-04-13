@@ -76,28 +76,28 @@ enum BasicOrderType {
     // 15: partial fills ok, only offerer or zone executes, routed through proxy
     PARTIAL_RESTRICTED_VIA_PROXY_ERC721
 
-    // 8: no partial fills, anyone can execute
+    // 16: no partial fills, anyone can execute
     FULL_OPEN_ERC1155,
 
-    // 9: partial fills supported, anyone can execute
+    // 17: partial fills supported, anyone can execute
     PARTIAL_OPEN_ERC1155,
 
-    // 10: no partial fills, only offerer or zone can execute
+    // 18: no partial fills, only offerer or zone can execute
     FULL_RESTRICTED_ERC1155,
 
-    // 11: partial fills supported, only offerer or zone can execute
+    // 19: partial fills supported, only offerer or zone can execute
     PARTIAL_RESTRICTED_ERC1155,
 
-    // 12: no partial fills, anyone can execute, routed through proxy
+    // 20: no partial fills, anyone can execute, routed through proxy
     FULL_OPEN_VIA_PROXY_ERC1155,
 
-    // 13: partial fills supported, anyone can execute, routed through proxy
+    // 21: partial fills supported, anyone can execute, routed through proxy
     PARTIAL_OPEN_VIA_PROXY_ERC1155,
 
-    // 14: no partial fills, only offerer zone executes, routed through proxy
+    // 22: no partial fills, only offerer zone executes, routed through proxy
     FULL_RESTRICTED_VIA_PROXY_ERC1155,
 
-    // 15: partial fills ok, only offerer or zone executes, routed through proxy
+    // 23: partial fills ok, only offerer or zone executes, routed through proxy
     PARTIAL_RESTRICTED_VIA_PROXY_ERC1155
 }
 
