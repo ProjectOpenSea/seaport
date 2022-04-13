@@ -74,8 +74,8 @@ contract ConsiderationDelegated is
      *                            matching the given orders.
      */
     function matchOrders(
-        Order[] memory orders,
-        Fulfillment[] memory fulfillments
+        Order[] calldata orders,
+        Fulfillment[] calldata fulfillments
     ) external payable override returns (
         Execution[] memory standardExecutions,
         BatchExecution[] memory batchExecutions
