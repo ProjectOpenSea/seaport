@@ -56,6 +56,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      */
     function _prepareBasicFulfillmentFromCalldata(
         BasicOrderParameters calldata parameters,
+        OrderType orderType,
         ItemType receivedItemType,
         ItemType additionalRecipientsItemType,
         address additionalRecipientsToken,
@@ -262,9 +263,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Copy receivedItemsHash from zero slot to the required region.
                 mstore(0x100, mload(0x60))
 
-                // Load basicOrderType from calldata, convert to orderType by
-                // applying a mask to least-significant 8 bits, & set in memory.
-                mstore(0x120, and(calldataload(0x124), 7))
+                // Set supplied order type in memory.
+                mstore(0x120, orderType)
 
                 // Copy startTime, endTime, zoneHash, & salt and set in memory.
                 calldatacopy(0x140, 0x144, 0x80)
@@ -325,7 +325,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         useOffererProxy = _determineProxyUtilizationAndEnsureValidBasicOrder(
             orderHash,
             parameters.zoneHash,
-            parameters.orderType,
+            orderType,
             parameters.offerer,
             parameters.zone
         );
