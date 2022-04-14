@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 //Author: CupOJoseph
 
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import "ds-test/test.sol";
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
@@ -75,46 +75,47 @@ contract ConsiderationTest is DSTest {
         vm.assume(_id < 10);
         emit log("Basic Order");
 
-        OfferItem memory offerItem = new OfferItem(
+        OfferItem memory offerItem = OfferItem(
             ItemType.ERC721,
             test721Address,
             _id,
             1,
             1
         );
-        OfferItem[] memory offer = OfferItem[](1);
+
+        OfferItem[] memory offer = new OfferItem[](1);
         offer[0] = offerItem;
 
-        ConsiderationItem memory considerationItem = new ConsiderationItem(
+        ConsiderationItem memory considerationItem = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
             _ethAmount,
             _ethAmount,
-            accountA
+            payable(accountA)
         );
-        ConsiderationItem[] memory consideration = ConsiderationItem[](1);
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
         consideration[0] = considerationItem;
 
         uint256 nonce = consider.getNonce(accountA);
         //getOrderHash
-        OrderComponents memory orderComponents = new OrderComponents(
+        OrderComponents memory orderComponents = OrderComponents(
             accountA,
             zone,
             offer,
             consideration,
-            0,
+            OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
             _zoneHash,
             _salt,
             nonce
         );
-        bytes32 orderHash = consider.getOrderHash(OrderComponents);
+        bytes32 orderHash = consider.getOrderHash(orderComponents);
         bytes32 domainSep = consider.DOMAIN_SEPARATOR();
 
         bytes32 digest = keccak256(
-            abi.encodePacked(0x1901, domainSep, orderHash)
+            abi.encodePacked(bytes2(0x1901), domainSep, orderHash)
         );
 
         //accountA is pk 1.
@@ -124,7 +125,7 @@ contract ConsiderationTest is DSTest {
         address considerationToken = address(0); // eth
         uint256 considerationIdentifier = 0; //TODO check on this
         uint256 considerationAmount = _ethAmount;
-        address payable offerer = accountA;
+        address payable offerer = payable(accountA);
         address zone = accountB;
         address offerToken = test721Address;
         uint256 offerIdentifier = _id;
@@ -143,7 +144,7 @@ contract ConsiderationTest is DSTest {
 
         //list
         vm.prank(accountA);
-        BasicOrderParameters memory order = new BasicOrderParameters(
+        BasicOrderParameters memory order = BasicOrderParameters(
             considerationToken,
             considerationIdentifier,
             considerationAmount,
