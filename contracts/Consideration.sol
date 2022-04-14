@@ -604,7 +604,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
                 // Ensure caller is either offerer or zone of the order.
                 if (msg.sender != offerer && msg.sender != zone) {
-                    revert InvalidCanceller();
+                    revert InvalidCanceller("cannot cancel order from a random account");
                 }
 
                 // Derive order hash using the order parameters and the nonce.
