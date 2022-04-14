@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol";
 
@@ -8,8 +8,6 @@ import { OrderType, ItemType, BasicOrderRouteType } from "./lib/ConsiderationEnu
 import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution, FulfillmentDetail } from "./lib/ConsiderationStructs.sol";
 
 import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
-
-import { ConsiderationDelegated } from "./lib/ConsiderationDelegated.sol";
 
 /**
  * @title Consideration
@@ -21,9 +19,6 @@ import { ConsiderationDelegated } from "./lib/ConsiderationDelegated.sol";
  *         flexible methods for composing advanced orders.
  */
 contract Consideration is ConsiderationInterface, ConsiderationInternal {
-    // Delegate some complex functionality due to the contract size limit.
-    address internal immutable _DELEGATED;
-
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
@@ -37,15 +32,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     constructor(
         address legacyProxyRegistry,
         address requiredProxyImplementation
-    ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {
-        // Deploy contract with additional logic where calls can be delegated.
-        _DELEGATED = address(
-            new ConsiderationDelegated(
-                legacyProxyRegistry,
-                requiredProxyImplementation
-            )
-        );
-    }
+    ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {}
 
     /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
@@ -408,10 +395,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                            matching the given orders.
      */
     function fulfillAvailableAdvancedOrders(
-        AdvancedOrder[] calldata advancedOrders,
-        CriteriaResolver[] calldata criteriaResolvers,
-        FulfillmentComponent[][] calldata offerFulfillments,
-        FulfillmentComponent[][] calldata considerationFulfillments,
+        AdvancedOrder[] memory advancedOrders,
+        CriteriaResolver[] memory criteriaResolvers,
+        FulfillmentComponent[][] memory offerFulfillments,
+        FulfillmentComponent[][] memory considerationFulfillments,
         bool useFulfillerProxy
     )
         external
@@ -423,18 +410,31 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             BatchExecution[] memory batchExecutions
         )
     {
-        // Reference "unused" variables to silence compiler warnings.
-        advancedOrders;
-        criteriaResolvers;
-        offerFulfillments;
-        considerationFulfillments;
-        useFulfillerProxy;
-        fulfillmentDetails;
-        standardExecutions;
-        batchExecutions;
+        // Validate orders, apply amounts, & determine if they utilize proxies.
+        fulfillmentDetails = _validateOrdersAndPrepareToFulfill(
+            advancedOrders,
+            criteriaResolvers,
+            false // Signifies that invalid orders should NOT revert.
+        );
 
-        // Execute all logic via the delegated contract.
-        _delegate();
+        // Apply criteria resolvers to orders.
+        _applyCriteriaResolvers(
+            advancedOrders,
+            criteriaResolvers,
+            fulfillmentDetails
+        );
+
+        // Aggregate used offer and consideration items and execute transfers.
+        (standardExecutions, batchExecutions) = _fulfillAvailableOrders(
+            advancedOrders,
+            offerFulfillments,
+            considerationFulfillments,
+            fulfillmentDetails,
+            useFulfillerProxy
+        );
+
+        // Return order fulfillment details and executions.
+        return (fulfillmentDetails, standardExecutions, batchExecutions);
     }
 
     /**
@@ -853,53 +853,5 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function version() external pure override returns (string memory) {
         // Return the version.
         return _VERSION;
-    }
-
-    /**
-     * @dev Internal function to delegate all logic to the delegated contract.
-     *      Control flow will be completely overridden on calling this function.
-     */
-    function _delegate() internal {
-        // Read delegated logic contract from runtime code and place on stack.
-        address delegated = _DELEGATED;
-
-        // Utilize assembly for direct access to calldata and returndata buffer.
-        assembly {
-            // Copy entirety of calldata directly into memory with no offset.
-            // This clobbers existing memory, including the free memory pointer,
-            // but it will not be needed from this point forward.
-            calldatacopy(
-                returndatasize(), // Put 0 on the stack for the memory offset.
-                returndatasize(), // Put 0 on the stack for the calldata offset.
-                calldatasize() // Supply full length for the calldata length.
-            )
-
-            // Perform the delegatecall to the delegated logic contract. Memory
-            // will not be written to as returndatasize is not known ahead of
-            // time; instead, utilize the returndata buffer.
-            let success := delegatecall(
-                gas(), // Forward all available gas.
-                delegated, // Supply delegated logic contract address.
-                returndatasize(), // Put 0 on the stack for memory-in offset.
-                calldatasize(), // Use calldata length for memory-in length.
-                returndatasize(), // Put 0 on the stack for memory-out offset.
-                returndatasize() // Put 0 on the stack for memory-out length.
-            )
-
-            // Copy the returndata buffer into memory with no offset.
-            returndatacopy(0, 0, returndatasize())
-
-            // Return or revert based on the success status of the delegatecall,
-            // passing along the original returndata. No special handling in the
-            // case of delegated calls to accounts with no code is required here
-            // as the delegated contract is not destructible.
-            switch success
-            case 0 {
-                revert(0, returndatasize()) // Revert with returndata in memory.
-            }
-            default {
-                return(0, returndatasize()) // Return with returndata in memory.
-            }
-        }
     }
 }

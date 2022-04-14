@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import { Side } from "./ConsiderationEnums.sol";
 
@@ -373,6 +373,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
          *  - 0x120: 1 + recipients.length
          *  - 0x140: recipient 0
          */
+
         assembly {
             // Derive pointer from calldata via length of additional recipients.
             let eventDataPtr := add(0x180, mul(0x20, calldataload(0x244)))
