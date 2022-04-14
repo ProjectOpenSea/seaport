@@ -64,7 +64,7 @@ contract ConsiderationTest is DSTest {
     //20 to 721
     //20 to 1155
     //721 to 20
-    // 1155 to 20 
+    // 1155 to 20
 
 
     //match
@@ -74,77 +74,4 @@ contract ConsiderationTest is DSTest {
         vm.startPrank(seller);
     }
 
-    function testMatchOrder721to20() external {
-        address seller = accountA;
-        vm.startPrank(seller);
-    }
-
-    function testMatchOrder1155toEth() external {
-        address seller = accountA;
-        vm.startPrank(seller);
-    }
-
-    function testMatchOrder1155to20() external {
-        address seller = accountA;
-        vm.startPrank(seller);
-    }
-
-    //getters
-    function testGetters() external {
-        emit log("Getter Tests");
-        address seller = accountA;
-        vm.startPrank(seller);
-    }
-
-    function testCanceledOrder() external {
-        emit log("Cancel Order");
-        address seller = accountA;
-        vm.startPrank(seller);
-    }
-
-    function TestSequenceOrder() external {
-        emit log("SequenceOrder");
-        address seller = accountA;
-        vm.startPrank(seller);
-    }
-
-    function testFailNoSequencerder() external {
-        address seller = accountA;
-        vm.startPrank(seller);
-    }
-
-    function testFailReenterSell() external {
-        emit log("Re-entrency tests on ever function that should have it.");
-        address seller = accountA;
-        vm.startPrank(seller);
-    }
-
-    function testFailReenterBuy() external {
-        emit log("Re-entrency tests on ever function that should have it.");
-        address seller = accountA;
-        address buyer = accountB;
-
-        //make a valid order
-        vm.prank(seller);
-
-        //make a valid buy but try to re-enter using a callback.
-        //TODO this will need a second helper contract to have a callback since our test tokens do not have it.
-    }
-
-    function testFailInsufficientBuys() external {
-        emit log("Insufficient amounts and bad items orders.");
-    }
-
-    //ascending and descending
-    function testCreateDescendingPriceOrders() external {
-        emit log("TODO");
-
-        assertTrue(false, "this is false.");
-    }
-
-    function testCreateAscendingPriceOrders() external {
-        emit log("TODO");
-
-        assertTrue(false, "this is false.");
-    }
 }
