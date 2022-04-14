@@ -121,7 +121,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     const considerationItemTypeString = "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)";
     const orderComponentsPartialTypeString = "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,uint256 nonce)";
     const orderTypeString = `${orderComponentsPartialTypeString}${considerationItemTypeString}${offerItemTypeString}`;
-    
+
     const offerItemTypeHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(offerItemTypeString));
     const considerationItemTypeHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(considerationItemTypeString));
     const orderTypeHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(orderTypeString));
@@ -748,7 +748,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           if (transferLog.signature === 'TransferSingle(address,address,address,uint256,uint256)') {
             expect(transferLog.args.id.toString()).to.equal(offer.identifier.toString());
-            
+
             if (!shouldSkipAmountComparison) {
               expect(transferLog.args.value.toString()).to.equal(offer.amount.mul(multiplier).toString());
             }
@@ -5627,7 +5627,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(marketplaceContract.connect(seller).cancel([orderComponents]))
             .to.emit(marketplaceContract, "OrderCancelled")
             .withArgs(orderHash, seller.address, zone.address);
-        });     
+        });
 
         // cannot validate it from the seller
         await whileImpersonating(seller.address, provider, async () => {
@@ -5712,7 +5712,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await whileImpersonating(owner.address, provider, async () => {
           await expect(marketplaceContract.connect(owner).cancel([orderComponents]))
             .to.be.reverted;
-        }); 
+        });
 
         const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
         expect(initialStatus.isValidated).to.be.false;
@@ -5725,7 +5725,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(marketplaceContract.connect(seller).cancel([orderComponents]))
             .to.emit(marketplaceContract, "OrderCancelled")
             .withArgs(orderHash, seller.address, zone.address);
-        }); 
+        });
 
         // cannot fill the order anymore
         await whileImpersonating(buyer.address, provider, async () => {
@@ -5800,7 +5800,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await whileImpersonating(owner.address, provider, async () => {
           await expect(marketplaceContract.connect(owner).cancel([orderComponents]))
             .to.be.reverted;
-        }); 
+        });
 
         const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
         expect(initialStatus.isValidated).to.be.false;
@@ -5826,7 +5826,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(marketplaceContract.connect(seller).cancel([orderComponents]))
             .to.emit(marketplaceContract, "OrderCancelled")
             .withArgs(orderHash, seller.address, zone.address);
-        }); 
+        });
 
         // cannot fill the order anymore
         await whileImpersonating(buyer.address, provider, async () => {
@@ -5900,8 +5900,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         // cannot cancel it from a random account
         await whileImpersonating(owner.address, provider, async () => {
           await expect(marketplaceContract.connect(owner).cancel([orderComponents]))
-            .to.be.reverted;
-        }); 
+            .to.be.revertedWith("cannot cancel order from a random account");
+        });
 
         const initialStatus = await marketplaceContract.getOrderStatus(orderHash);
         expect(initialStatus.isValidated).to.be.false;
@@ -5914,7 +5914,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(marketplaceContract.connect(zone).cancel([orderComponents]))
             .to.emit(marketplaceContract, "OrderCancelled")
             .withArgs(orderHash, seller.address, zone.address);
-        }); 
+        });
 
         // cannot fill the order anymore
         await whileImpersonating(buyer.address, provider, async () => {
@@ -6002,7 +6002,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await whileImpersonating(owner.address, provider, async () => {
           await expect(marketplaceContract.connect(owner).cancel([orderComponents]))
             .to.be.reverted;
-        }); 
+        });
 
         const newStatus = await marketplaceContract.getOrderStatus(orderHash);
         expect(newStatus.isValidated).to.be.true;
@@ -6015,7 +6015,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(marketplaceContract.connect(zone).cancel([orderComponents]))
             .to.emit(marketplaceContract, "OrderCancelled")
             .withArgs(orderHash, seller.address, zone.address);
-        }); 
+        });
 
         // cannot fill the order anymore
         await whileImpersonating(buyer.address, provider, async () => {
@@ -8960,7 +8960,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 0; 
+        order.numerator = 0;
         order.denominator = 10;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -8974,7 +8974,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 1; 
+        order.numerator = 1;
         order.denominator = 0;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -8988,7 +8988,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 2; 
+        order.numerator = 2;
         order.denominator = 1;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -9002,7 +9002,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 1; 
+        order.numerator = 1;
         order.denominator = 2;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -9086,7 +9086,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 1; 
+        order.numerator = 1;
         order.denominator = 8191;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -9100,7 +9100,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 1; 
+        order.numerator = 1;
         order.denominator = 2;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -9184,7 +9184,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 1; 
+        order.numerator = 1;
         order.denominator = 2;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -9198,7 +9198,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 1; 
+        order.numerator = 1;
         order.denominator = 1;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -9282,7 +9282,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 1; 
+        order.numerator = 1;
         order.denominator = 2;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -9375,7 +9375,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
 
-        order.numerator = 1; 
+        order.numerator = 1;
         order.denominator = 1;
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -12610,7 +12610,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0, // FULL_OPEN
         );
 
-        // block transfers 
+        // block transfers
         await testERC20.blockTransfer(true);
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -13240,7 +13240,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         })
       })
     })
-    
+
     describe("Reentrancy", async () => {
       it("Reverts on a reentrant call", async () => {
         // Seller mints nft
