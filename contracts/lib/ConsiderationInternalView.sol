@@ -330,6 +330,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 originalConsiderationLength = (
             orderParameters.totalOriginalConsiderationItems
         );
+
         /*
          * Memory layout for an array of structs (dynamic or not) is similar
          * to ABI encoding of dynamic types, with a head segment followed by
@@ -338,72 +339,96 @@ contract ConsiderationInternalView is ConsiderationPure {
          */
         bytes32 offersHash;
         bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
+
         assembly {
-            // Pointer to free memory
+            // Pointer to free memory.
             let hashArrPtr := mload(0x40)
-            // Get the pointer to the offers array
+
+            // Get the pointer to the offers array.
             let offerArrPtr := mload(add(orderParameters, 0x40))
-            // Load the length
+
+            // Load the length.
             let offerLength := mload(offerArrPtr)
-            // Set the pointer to the first offer's head
+
+            // Set the pointer to the first offer's head.
             offerArrPtr := add(offerArrPtr, 0x20)
+
+            // Iterate over the offer items.
             for {
                 let i := 0
             } lt(i, offerLength) {
                 i := add(i, 1)
             } {
                 // Read the pointer to the offer data and subtract 32
-                // to get typeHash pointer
+                // to get typeHash pointer.
                 let ptr := sub(mload(offerArrPtr), 0x20)
-                // Read the current value before the offer data
+
+                // Read the current value before the offer data.
                 let value := mload(ptr)
-                // Write the type hash to the previous word
+
+                // Write the type hash to the previous word.
                 mstore(ptr, typeHash)
-                // Take the EIP712 hash and store it in the hash array
+
+                // Take the EIP712 hash and store it in the hash array.
                 mstore(hashArrPtr, keccak256(ptr, 0xc0))
-                // Restore the previous word
+
+                // Restore the previous word.
                 mstore(ptr, value)
-                // Increment the array pointers
+
+                // Increment the array pointers.
                 offerArrPtr := add(offerArrPtr, 0x20)
                 hashArrPtr := add(hashArrPtr, 0x20)
             }
+
             offersHash := keccak256(mload(0x40), mul(offerLength, 0x20))
         }
-        bytes32 considerationsHash;
+
+        bytes32 considerationHash;
         typeHash = _CONSIDERATION_ITEM_TYPEHASH;
+
         assembly {
             let hashArrPtr := mload(0x40)
-            // Get the pointer to the considerations array
-            let considerationsArrPtr := add(
+
+            // Get the pointer to the consideration array.
+            let considerationArrPtr := add(
                 mload(add(orderParameters, 0x60)),
                 0x20
             )
+
             for {
                 let i := 0
             } lt(i, originalConsiderationLength) {
                 i := add(i, 1)
             } {
                 // Read the pointer to the consideration data and subtract 32
-                // to get typeHash pointer
-                let ptr := sub(mload(considerationsArrPtr), 0x20)
-                // Read the current value before the consideration data
+                // to get typeHash pointer.
+                let ptr := sub(mload(considerationArrPtr), 0x20)
+
+                // Read the current value before the consideration data.
                 let value := mload(ptr)
-                // Write the type hash to the previous word
+
+                // Write the type hash to the previous word.
                 mstore(ptr, typeHash)
-                // Take the EIP712 hash and store it in the hash array
+
+                // Take the EIP712 hash and store it in the hash array.
                 mstore(hashArrPtr, keccak256(ptr, 0xe0))
-                // Restore the previous word
+
+                // Restore the previous word.
                 mstore(ptr, value)
-                // Increment the array pointers
-                considerationsArrPtr := add(considerationsArrPtr, 0x20)
+
+                // Increment the array pointers.
+                considerationArrPtr := add(considerationArrPtr, 0x20)
                 hashArrPtr := add(hashArrPtr, 0x20)
             }
-            considerationsHash := keccak256(
+
+            considerationHash := keccak256(
                 mload(0x40),
                 mul(originalConsiderationLength, 0x20)
             )
         }
-        typeHash = _ORDER_HASH;
+
+        typeHash = _ORDER_TYPEHASH;
+
         assembly {
             let typeHashPtr := sub(orderParameters, 0x20)
             let previousValue := mload(typeHashPtr)
@@ -413,9 +438,9 @@ contract ConsiderationInternalView is ConsiderationPure {
             let offerDataPtr := mload(offerHeadPtr)
             mstore(offerHeadPtr, offersHash)
 
-            let considerationsHeadPtr := add(orderParameters, 0x60)
-            let considerationsDataPtr := mload(considerationsHeadPtr)
-            mstore(considerationsHeadPtr, considerationsHash)
+            let considerationHeadPtr := add(orderParameters, 0x60)
+            let considerationDataPtr := mload(considerationHeadPtr)
+            mstore(considerationHeadPtr, considerationHash)
 
             let noncePtr := add(orderParameters, 0x120)
             mstore(noncePtr, nonce)
@@ -423,7 +448,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             orderHash := keccak256(typeHashPtr, 0x160)
             mstore(typeHashPtr, previousValue)
             mstore(offerHeadPtr, offerDataPtr)
-            mstore(considerationsHeadPtr, considerationsDataPtr)
+            mstore(considerationHeadPtr, considerationDataPtr)
             mstore(noncePtr, originalConsiderationLength)
         }
     }
