@@ -138,7 +138,7 @@ contract ConsiderationTest is DSTest {
         bool useFulfillerProxy = false; // 0x1c4
         uint256 totalOriginalAdditionalRecipients = 0; // 0x1e4
         AdditionalRecipient[]
-            memory additionalRecipients = new AdditionalRecipient[](0); // 0x204
+        memory additionalRecipients = new AdditionalRecipient[](0); // 0x204
         bytes memory signature = sig; // 0x224
         // Total length, excluding dynamic array data: 0x244 (580)
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 import { Order, AdvancedOrder, OrderComponents, CriteriaResolver, Fulfillment, FulfillmentComponent, FulfillmentDetail, Execution, BatchExecution } from "../lib/ConsiderationStructs.sol";
 
