@@ -101,11 +101,11 @@ contract ConsiderationPure is ConsiderationBase {
                     identifierOrCriteria = offer.identifierOrCriteria;
 
                     // Optimistically update item type to remove criteria usage.
-                    offer.itemType = (
-                        itemType == ItemType.ERC721_WITH_CRITERIA
-                            ? ItemType.ERC721
-                            : ItemType.ERC1155
-                    );
+                    ItemType newItemType;
+                    assembly {
+                        newItemType := sub(3, eq(itemType, 4))
+                    }
+                    offer.itemType = newItemType;
 
                     // Optimistically update identifier w/ supplied identifier.
                     offer.identifierOrCriteria = criteriaResolver.identifier;
@@ -128,11 +128,11 @@ contract ConsiderationPure is ConsiderationBase {
                     identifierOrCriteria = consideration.identifierOrCriteria;
 
                     // Optimistically update item type to remove criteria usage.
-                    consideration.itemType = (
-                        itemType == ItemType.ERC721_WITH_CRITERIA
-                            ? ItemType.ERC721
-                            : ItemType.ERC1155
-                    );
+                    ItemType newItemType;
+                    assembly {
+                        newItemType := sub(3, eq(itemType, 4))
+                    }
+                    consideration.itemType = newItemType;
 
                     // Optimistically update identifier w/ supplied identifier.
                     consideration.identifierOrCriteria = (
