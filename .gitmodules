@@ -1,9 +1,12 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
-	url = https://github.com/Rari-Capital/solmate
+	url = https://github.com/rari-capital/solmate
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/Openzeppelin/openzeppelin-contracts
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/brockelmore/forge-std
+[submodule "src/lib/solmate"]
+	path = src/lib/solmate
+	url = https://github.com/rari-capital/solmate
