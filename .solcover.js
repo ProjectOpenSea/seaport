@@ -2,13 +2,11 @@ module.exports = {
   skipFiles: [
     'interfaces/AbridgedProxyInterfaces.sol',
     'interfaces/AbridgedTokenInterfaces.sol',
-    'interfaces/ConsiderationDelegatedInterface.sol',
     'interfaces/ConsiderationEventsAndErrors.sol',
     'interfaces/ConsiderationInterface.sol',
     'interfaces/EIP1271Interface.sol',
     'lib/ConsiderationEnums.sol',
     'lib/ConsiderationStructs.sol',
-    'test/DelegatedDomainSeparatorTester.sol',
     'test/EIP1271Wallet.sol',
     'test/Reenterer.sol',
     'test/TestERC1155.sol',
@@ -27,4 +25,5 @@ module.exports = {
     'test/wyvern/TokenRecipient.sol',
     'test/wyvern/WyvernProxyRegistry.sol',
   ],
+  configureYulOptimizer: true,
 };
