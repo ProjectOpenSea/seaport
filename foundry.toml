@@ -1,7 +1,7 @@
 [default]
 auto_detect_solc = true
 optimizer = true
-optimizer_runs = 500000
+optimizer_runs = 200
 src = 'src'
 out = 'out'
 libs = ['src/lib', 'contracts/lib']
