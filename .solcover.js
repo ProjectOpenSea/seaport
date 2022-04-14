@@ -25,5 +25,4 @@ module.exports = {
     'test/wyvern/TokenRecipient.sol',
     'test/wyvern/WyvernProxyRegistry.sol',
   ],
-  configureYulOptimizer: true,
 };
