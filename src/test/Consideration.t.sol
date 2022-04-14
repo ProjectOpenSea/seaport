@@ -11,9 +11,7 @@ import "src/test/NFT721.sol";
 import "src/test/CheatCodes.sol";
 
 //use solmate tokens
-import "solmate/tokens/ERC20.sol";
-import "solmate/tokens/ERC1155.sol";
-import "solmate/tokens/ERC721.sol";
+
 
 contract ConsiderationTest is DSTest {
     Consideration consider;
@@ -75,92 +73,73 @@ contract ConsiderationTest is DSTest {
         vm.assume(_id < 10);
         emit log("Basic Order");
 
-        OfferItem memory offerItem = new OfferItem(
+        OfferItem memory offerItem = OfferItem(
             ItemType.ERC721,
             test721Address,
             _id,
             1,
             1
         );
-        OfferItem[] memory offer = OfferItem[](1);
+
+        OfferItem[] memory offer = new OfferItem[](1);
         offer[0] = offerItem;
 
-        ConsiderationItem memory considerationItem = new ConsiderationItem(
+        ConsiderationItem memory considerationItem = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
             _ethAmount,
             _ethAmount,
-            accountA
+            payable(accountA)
         );
-        ConsiderationItem[] memory consideration = ConsiderationItem[](1);
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
         consideration[0] = considerationItem;
 
         uint256 nonce = consider.getNonce(accountA);
         //getOrderHash
-        OrderComponents memory orderComponents = new OrderComponents(
+        OrderComponents memory orderComponents = OrderComponents(
             accountA,
             zone,
             offer,
             consideration,
-            0,
+            OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
             _zoneHash,
             _salt,
             nonce
         );
-        bytes32 orderHash = consider.getOrderHash(OrderComponents);
+        bytes32 orderHash = consider.getOrderHash(orderComponents);
         bytes32 domainSep = consider.DOMAIN_SEPARATOR();
 
         bytes32 digest = keccak256(
-            abi.encodePacked(0x1901, domainSep, orderHash)
+            abi.encodePacked(bytes2(0x1901), domainSep, orderHash)
         );
 
         //accountA is pk 1.
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
 
-        address considerationToken = address(0); // eth
-        uint256 considerationIdentifier = 0; //TODO check on this
-        uint256 considerationAmount = _ethAmount;
-        address payable offerer = accountA;
-        address zone = accountB;
-        address offerToken = test721Address;
-        uint256 offerIdentifier = _id;
-        uint256 offerAmount = 1;
-        BasicOrderType basicOrderType = BasicOrderType.ETH_TO_ERC721_FULL_OPEN; // eth to 721 open
-        uint256 startTime = block.timestamp; // 0x144
-        uint256 endTime = block.timestamp + 5000; // 0x164
-        bytes32 zoneHash = _zoneHash; // 0x184
-        uint256 salt = _salt; // 0x1a4
-        bool useFulfillerProxy = false; // 0x1c4
-        uint256 totalOriginalAdditionalRecipients = 0; // 0x1e4
-        AdditionalRecipient[]
-            memory additionalRecipients = new AdditionalRecipient[](0); // 0x204
-        bytes memory signature = sig; // 0x224
-        // Total length, excluding dynamic array data: 0x244 (580)
-
         //list
         vm.prank(accountA);
-        BasicOrderParameters memory order = new BasicOrderParameters(
-            considerationToken,
-            considerationIdentifier,
-            considerationAmount,
-            offerer,
-            zone,
-            offerToken,
-            offerIdentifier,
-            offerAmount,
-            basicOrderType,
-            startTime,
-            endTime,
-            zoneHash,
-            salt,
-            useFulfillerProxy,
-            totalOriginalAdditionalRecipients,
-            additionalRecipients,
-            signature
+        BasicOrderParameters memory order = BasicOrderParameters(
+            address(0),
+            0,
+            _ethAmount,
+            payable(accountA),
+            address(0),
+            test721Address,
+            _id,
+            1,
+            BasicOrderType.ETH_TO_ERC721_FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 5000,
+            _zoneHash,
+            _salt,
+            false,
+            0,
+            new AdditionalRecipient[](0),
+            sig
         );
 
         consider.fulfillBasicOrder(order);
