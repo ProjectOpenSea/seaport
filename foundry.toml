@@ -7,8 +7,7 @@ remappings = [
   "@ds=lib/ds-test/src/",
   "@solmate=lib/solmate/src/",
   "@std=lib/forge-std/src/",
-  "@openzeppelin=lib/openzeppelin-contracts/",
-  "src=src/",
+  "@openzeppelin=lib/openzeppelin-contracts",
 ]
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config

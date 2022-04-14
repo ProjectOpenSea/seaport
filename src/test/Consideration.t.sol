@@ -3,12 +3,11 @@
 
 pragma solidity 0.8.13;
 
-import { DSTestPlus } from "src/test/utils/DSTestPlus.sol";
-
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
 import "../../contracts/Consideration.sol";
 
+import { DSTestPlus } from "src/test/utils/DSTestPlus.sol";
 import "src/test/NFT721.sol";
 import "src/test/CheatCodes.sol";
 
