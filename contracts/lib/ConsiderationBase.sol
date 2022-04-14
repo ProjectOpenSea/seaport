@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    ProxyRegistryInterface
-} from "../interfaces/AbridgedProxyInterfaces.sol";
+import { ProxyRegistryInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
 
-import {
-    ConsiderationEventsAndErrors
-} from "../interfaces/ConsiderationEventsAndErrors.sol";
+import { ConsiderationEventsAndErrors } from "../interfaces/ConsiderationEventsAndErrors.sol";
 
 import { OrderStatus } from "./ConsiderationStructs.sol";
 
@@ -30,7 +26,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     bytes32 internal immutable _EIP_712_DOMAIN_TYPEHASH;
     bytes32 internal immutable _OFFER_ITEM_TYPEHASH;
     bytes32 internal immutable _CONSIDERATION_ITEM_TYPEHASH;
-    bytes32 internal immutable _ORDER_HASH;
+    bytes32 internal immutable _ORDER_TYPEHASH;
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
@@ -44,10 +40,10 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     uint256 internal _reentrancyGuard;
 
     // Track status of each order (validated, cancelled, and fraction filled).
-    mapping (bytes32 => OrderStatus) internal _orderStatus;
+    mapping(bytes32 => OrderStatus) internal _orderStatus;
 
-    // Cancel offerer's orders with given zone (offerer => zone => nonce).
-    mapping (address => mapping (address => uint256)) internal _nonces;
+    // Cancel all of a given offerer's orders signed with their current nonce.
+    mapping(address => uint256) internal _nonces;
 
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
@@ -69,50 +65,51 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
 
         bytes memory offerItemTypeString = abi.encodePacked(
             "OfferItem(",
-                "uint8 itemType,",
-                "address token,",
-                "uint256 identifierOrCriteria,",
-                "uint256 startAmount,",
-                "uint256 endAmount",
+            "uint8 itemType,",
+            "address token,",
+            "uint256 identifierOrCriteria,",
+            "uint256 startAmount,",
+            "uint256 endAmount",
             ")"
         );
         bytes memory considerationItemTypeString = abi.encodePacked(
             "ConsiderationItem(",
-                "uint8 itemType,",
-                "address token,",
-                "uint256 identifierOrCriteria,",
-                "uint256 startAmount,",
-                "uint256 endAmount,",
-                "address recipient",
+            "uint8 itemType,",
+            "address token,",
+            "uint256 identifierOrCriteria,",
+            "uint256 startAmount,",
+            "uint256 endAmount,",
+            "address recipient",
             ")"
         );
         bytes memory orderComponentsPartialTypeString = abi.encodePacked(
             "OrderComponents(",
-                "address offerer,",
-                "address zone,",
-                "OfferItem[] offer,",
-                "ConsiderationItem[] consideration,",
-                "uint8 orderType,",
-                "uint256 startTime,",
-                "uint256 endTime,",
-                "uint256 salt,",
-                "uint256 nonce",
+            "address offerer,",
+            "address zone,",
+            "OfferItem[] offer,",
+            "ConsiderationItem[] consideration,",
+            "uint8 orderType,",
+            "uint256 startTime,",
+            "uint256 endTime,",
+            "bytes32 zoneHash,",
+            "uint256 salt,",
+            "uint256 nonce",
             ")"
         );
 
         _EIP_712_DOMAIN_TYPEHASH = keccak256(
             abi.encodePacked(
                 "EIP712Domain(",
-                    "string name,",
-                    "string version,",
-                    "uint256 chainId,",
-                    "address verifyingContract",
+                "string name,",
+                "string version,",
+                "uint256 chainId,",
+                "address verifyingContract",
                 ")"
             )
         );
         _OFFER_ITEM_TYPEHASH = keccak256(offerItemTypeString);
         _CONSIDERATION_ITEM_TYPEHASH = keccak256(considerationItemTypeString);
-        _ORDER_HASH = keccak256(
+        _ORDER_TYPEHASH = keccak256(
             abi.encodePacked(
                 orderComponentsPartialTypeString,
                 considerationItemTypeString,
@@ -120,7 +117,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
             )
         );
         _CHAIN_ID = block.chainid;
-        _DOMAIN_SEPARATOR = _deriveDomainSeparator();
+        _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator();
 
         // TODO: validate each of these based on expected codehash
         _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
@@ -131,19 +128,35 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     }
 
     /**
+     * @dev Internal view function to derive the initial EIP-712 domain
+     *      separator.
+     *
+     * @return The derived domain separator.
+     */
+    function _deriveInitialDomainSeparator()
+        internal
+        view
+        virtual
+        returns (bytes32)
+    {
+        return _deriveDomainSeparator();
+    }
+
+    /**
      * @dev Internal view function to derive the EIP-712 domain separator.
      *
      * @return The derived domain separator.
      */
-    function _deriveDomainSeparator() internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH,
-                block.chainid,
-                address(this)
-            )
-        );
+    function _deriveDomainSeparator() internal view virtual returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    _EIP_712_DOMAIN_TYPEHASH,
+                    _NAME_HASH,
+                    _VERSION_HASH,
+                    block.chainid,
+                    address(this)
+                )
+            );
     }
 }

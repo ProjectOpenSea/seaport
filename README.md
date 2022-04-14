@@ -6,31 +6,32 @@ Consideration is a marketplace contract for safely and efficiently creating and 
 
 ## Order
 
-Each order contains nine key components:
+Each order contains ten key components:
 -   The `offerer` of the order supplies all offered items and must either fulfill the order personally (i.e. `msg.sender == offerer`) or approve the order via signature (either standard 65-byte EDCSA, 64-byte EIP-2098, or an EIP-1271 `isValidSignature` check) or by listing the order on-chain (i.e. calling `validate`).
 - The `zone` of the order is an optional secondary account attached to the order with two additional privileges:
-   - The zone may cancel orders where it is named as the zone, either for specific orders (by calling `cancel`) or for a whole category of orders (by calling `incrementNonce`).
-   - Only the zone or the offerer can fulfill "restricted" orders if specified by the order type.
+   - The zone may cancel orders where it is named as the zone by calling `cancel`. (Note that offerers can also cancel their own orders, either individually or for all orders signed with their current nonce at once by calling `incrementNonce`).
+   - "Restricted" orders (as specified by the order type) must either be executed by the zone or the offerer, or must be approved as indicated by a call to an `isValidOrder` or `isValidOrderIncludingExtraData` view function on the zone.
 - The `offer` contains an array of items that may be transferred from the offerer's account, where each item consists of the following components:
    - The `itemType` designates the type of item, with valid types being Ether (or other native token for the given chain), ERC20, ERC721, ERC1155, ERC721 with "criteria" (explained below), and ERC1155 with criteria.
    - The `token` designates the account of the item's token contract (with the null address used for Ether or other native tokens).
-   - The `identifierOrCriteria` represents either the ERC721 or ERC1155 token identifier or, in the case of a criteria-based item type, a merkle root composed of the valid set of token identifiers for the item. This value will always be zero for Ether and ERC20 item types, and can optionally be zero for criteria-based item types to allow for any identifier.
+   - The `identifierOrCriteria` represents either the ERC721 or ERC1155 token identifier or, in the case of a criteria-based item type, a merkle root composed of the valid set of token identifiers for the item. This value will be ignored for Ether and ERC20 item types, and can optionally be zero for criteria-based item types to allow for any identifier.
    - The `startAmount` represents the amount of the item in question that will be required should the order be fulfilled at the moment the order becomes active.
    - The `endAmount` represents the amount of the item in question that will be required should the order be fulfilled at the moment the order expires. If this value differs from the item's `startAmount`, the realized amount is calculated linearly based on the time elapsed since the order became active.
 - The `consideration` contains an array of items that must be received in order to fulfill the order. It contains all of the same components as an offered item, and additionally includes a `recipient` that will receive each item. This array may be extended by the fulfiller on order fulfillment so as to support "tipping" (e.g. relayer or referral payments).
 - The `orderType` designates one of eight types for the order depending on three distinct preferences:
    - `FULL` indicates that the order does not support partial fills, whereas `PARTIAL` enables filling some fraction of the order, with the important caveat that each item must be cleanly divisible by the supplied fraction (i.e. no remainder after division).
-   - `OPEN` indicates that the call to execute the order can be submitted by any account, whereas `RESTRICTED` requires that the order can only be executed by either the offerer or the zone of the order.
+   - `OPEN` indicates that the call to execute the order can be submitted by any account, whereas `RESTRICTED` requires that the order either be executed by the offerer or the zone of the order, or that a magic value indicating that the order is approved is returned upon calling an `isValidOrder` or `isValidOrderIncludingExtraData` view function on the zone.
    - `VIA_PROXY` indicates that ERC721 and ERC1155 items on the order should be transferred via the offerer's "proxy" contract where the respective items have already been approved. Otherwise, the offerer will approve Consideration to transfer items on the order directly.
 - The `startTime` indicates the block timestamp at which the order becomes active.
 - The `endTime` indicates the block timestamp at which the order expires. This value and the `startTime` are used in conjunction with the `startAmount` and `endAmount` of each item to derive their current amount.
+- The `zoneHash` represents an arbitrary 32-byte value that will be supplied to the zone when fulfilling restricted orders that the zone can utilize when making a determination on whether to authorize the order.
 - The `salt` represents an arbitrary source of entropy for the order.
-- The `nonce` indicates a value that must match the current nonce for the given offerer+zone pair.
+- The `nonce` indicates a value that must match the current nonce for the given offerer.
 
 ## Order Fulfillment
 
-Orders are fulfilled via one of three methods:
-- Calling one of two "standard" functions, `fulfillOrder` and `fulfillAdvancedOrder`, where a second implied order will be constructed with the caller as the offerer, the consideration of the fulfilled order as the offer, and the offer of the fulfilled order as the consideration (with "advanced" orders containing the fraction that should be filled alongside a set of "criteria resolvers" that designate an identifier and a corresponding inclusion proof for each criteria-based item on the fulfilled order).
+Orders are fulfilled via one of four methods:
+- Calling one of two "standard" functions, `fulfillOrder` and `fulfillAdvancedOrder`, where a second implied order will be constructed with the caller as the offerer, the consideration of the fulfilled order as the offer, and the offer of the fulfilled order as the consideration (with "advanced" orders containing the fraction that should be filled alongside a set of "criteria resolvers" that designate an identifier and a corresponding inclusion proof for each criteria-based item on the fulfilled order). All offer items will be transferred from the offerer of the order to the fulfiller, then all consideration items will be transferred from the fulfiller to the named recipient.
 - Calling one of six "basic" functions, `fulfillBasicEthForERC721Order`, `fulfillBasicEthForERC1155Order`, `fulfillBasicERC20ForERC721Order`, `fulfillBasicERC20ForERC1155Order`, `fulfillBasicERC721ForERC20Order`, and `fulfillBasicERC1155ForERC20Order`, that derive the order to fulfill from a subset of components, assuming the order in question adheres to the following:
    - The order only contains a single offer item and contains at least one consideration item.
    - The order contains exactly one ERC721 or ERC1155 item and that item is not criteria-based.
@@ -41,10 +42,11 @@ Orders are fulfilled via one of three methods:
    - All "ignored" item fields (i.e. `token` and `identifierOrCriteria` on native items and `identifierOrCriteria` on ERC20 items) are set to the null address or zero.
    - If the order has an ERC721 item, that item has an amount of `1`.
    - If the order has multiple consideration items and all consideration items other than the first consideration item have the same item type as the offered item, the offered item amount is not less than the sum of all consideration item amounts excluding the first consideration item amount.
-- Calling one of two "match" functions, `matchOrders` and `matchAdvancedOrders`, where a group of explicit orders are supplied alongside a group of "fulfillments" specifying which offer items to apply to which consideration items (and with the "advanced" case operating in a similar fashion to the standard method).
+- Calling one of two "match" functions, `matchOrders` and `matchAdvancedOrders`, where a group of explicit orders are supplied alongside a group of "fulfillments" specifying which offer items to apply to which consideration items (and with the "advanced" case operating in a similar fashion to the standard method, but supporting partial fills via supplied `numerator` and `denominator` fractional values as well as an optional `extraData` argument that will be supplied as part of a call to the `isValidOrderIncludingExtraData` view function on the zone when fulfilling restricted order types).
+- Calling a "fulfill available" function, `fulfillAvailableAdvancedOrders`, where a group of orders are supplied alongside a group of fulfillments specifying which offer items can be aggregated into distinct transfers and which consideration items can be accordingly aggregated, and where any orders that have been cancelled, have an invalid time, or have already been fully filled will be skipped without causing the rest of the available orders to revert. Similar to the standard fulfillment method, all offer items will be transferred from the respective offerer to the fulfiller, then all consideration items will be transferred from the fulfiller to the named recipient.
 
-While the standard method can technically be used for fulfilling any order, it suffers from key efficiency limitations:
-- It requires significantly more calldata than the basic method for simple "hot paths".
+While the standard method can technically be used for fulfilling any order, it suffers from key efficiency limitations in certain scenarios:
+- It requires additional calldata compared to the basic method for simple "hot paths".
 - It requires the fulfiller to approve each consideration item, even if the consideration item can be fulfilled using an offer item (as is commonly the case when fulfilling an order that offers ERC20 items for an ERC721 or ERC1155 item and also includes consideration items with the same ERC20 item type for paying fees).
 - It can result in unnecessary transfers, whereas in the "match" case those transfers can be reduced to a more minimal set.
 
@@ -86,21 +88,20 @@ When constructing an order, the offerer may elect to enable partial fills by set
 ## Sequence of Events
 
 ### Fulfill Order
+
 When fulfilling an order via `fulfillOrder` or `fulfillAdvancedOrder`:
   1. Hash order
      - Derive hashes for offer items and consideration items
-     - Retrieve current nonce for offerer and zone
+     - Retrieve current nonce for the offerer
      - Derive hash for order
   2. Perform initial validation
       - Ensure current time is inside order range
-      - Ensure valid caller for the order type
+      - Ensure valid caller for the order type; if the order type is restricted and the caller is not the offerer or the zone, call the zone to determine whether the order is valid
   3. Retrieve and update order status
      - Ensure order is not cancelled
      - Ensure order is not fully filled
        - If the order is _partially_ filled, reduce the supplied fill amount if necessary so that the order is not overfilled
-     - Perform additional validation if not performed previously
-       - verify signature
-       - other general order validation?
+     - Verify the order signature if not already validated
      - Determine fraction to fill based on preference + available amount
      - Update order status (validated + fill fraction)
   4. Determine amount for each item
@@ -141,18 +142,17 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
 
 ## Known Limitations and Workarounds
 
-- As all offer and consideration items are allocated against one another in memory, there are scenarios in which the actual received item amount will differ from the amount specified by the order — notably, this includes items with a fee-on-transfer mechanic. Orders that contain items of this nature (or, more broadly, items that have some post-fulfillment state that should be met) should leverage "restricted" order types and route the order fulfillment through a zone contract that performs the necessary checks.
-- As all offer items are taken directly from the offerer and all consideration items are given directly to the named recipient, there are scenarios where those accounts can increase the gas cost of order fulfillment or block orders from being fulfilled outright depending on the item being transferred. If the item in question is Ether or a similar native token, a recipient can throw in the payable fallback or even spend excess gas from the submitter. Similar mechanics can be leveraged by both offerers and receives if the item in question is a token with a transfer hook (like ERC1155 and ERC777) or a non-standard token implementation. Potential remediations to this category of issue include wrapping Ether as WETH as a fallback if the initial transfer fails and allowing submitters to specify the amount of gas that should be allocated as part of a given fulfillment.
-- As all consideration items are supplied at the time of order creation, dynamic adjustment of recipients or amounts after creation (e.g. modifications to royalty payout info) is not supported. A workaround would be to name a zone as a consideration recipient and have the zone compute the intended recipient or amount and use that to relay the item in question, returning any excess to the fulfiller. The requirement to specify consideration items at order creation time also implies that `matchOrders` must be used in cases where an additional "relayer fee" needs to be derived and applied at the time of order fulfillment.
+- As all offer and consideration items are allocated against one another in memory, there are scenarios in which the actual received item amount will differ from the amount specified by the order — notably, this includes items with a fee-on-transfer mechanic. Orders that contain items of this nature (or, more broadly, items that have some post-fulfillment state that should be met) should leverage "restricted" order types and route the order fulfillment through a zone contract that performs the necessary checks after order fulfillment is completed.
+- As all offer items are taken directly from the offerer and all consideration items are given directly to the named recipient, there are scenarios where those accounts can increase the gas cost of order fulfillment or block orders from being fulfilled outright depending on the item being transferred. If the item in question is Ether or a similar native token, a recipient can throw in the payable fallback or even spend excess gas from the submitter. Similar mechanics can be leveraged by both offerers and receives if the item in question is a token with a transfer hook (like ERC1155 and ERC777) or a non-standard token implementation. Potential remediations to this category of issue include wrapping Ether as WETH as a fallback if the initial transfer fails and allowing submitters to specify the amount of gas that should be allocated as part of a given fulfillment. Orders that support explicit fulfillments can also elect to leave problematic or unwanted offer items unspent as long as all consideration items are received in full.
+- As all consideration items are supplied at the time of order creation, dynamic adjustment of recipients or amounts after creation (e.g. modifications to royalty payout info) is not supported. A workaround would be to name a zone as a consideration recipient and have the zone compute the intended recipient or amount and use that to append additional consideration items or relay the item in question after fulfillment, returning any excess to the fulfiller.
 - As all criteria-based items are tied to a particular token, there is no native way to construct orders where items specify cross-token criteria. Additionally, each potential identifier for a particular criteria-based item must have the same amount as any other identifier.
 - As orders with ascending and descending amounts may not be filled as quickly as a fulfiller would like (e.g. transactions taking longer than expected to be included), there is a risk that fulfillment on those orders will supply a larger item amount, or receive back a smaller item amount, than they intended or expected. One way to prevent these outcomes is to utilize matchOrders, supplying a contrasting order for the fulfiller that explicitly specifies the maximum allowable offer items to be spent and consideration items to be received back.
 - As all items on orders supporting partial fills must be "cleanly divisible" when performing a partial fill, orders with multiple items should to be constructed with care. A straightforward heuristic is to start with a "unit" bundle (e.g. 1 NFT item A, 3 NFT item B, and 5 NFT item C for 2 ETH) then applying a multiple to that unit bundle (e.g. 7 of those units results in a partial order for 7 NFT item A, 21 NFT item B, and 35 NFT item C for 14 ETH).
 - As Ether cannot be "taken" from an account, any order that contains Ether or other native tokens as an offer item (including "implied" mirror orders) must be supplied by the caller executing the order(s) as msg.value. This also explains why there are no `fulfillBasicERC721ForEthOrder` and `fulfillBasicERC1155ForEthOrder` functions, as Ether cannot be taken from the offerer in these cases. One important takeaway from this mechanic is that, technically, anyone can supply Ether on behalf of a given offerer (whereas the offerer themselves must supply all other items).
-- As restricted orders must be fulfilled by the named zone, multiple restricted orders with differing zones cannot be composed via `matchOrders` — they must either be fulfilled independently or make use of a shared zone that routes orders in accordance with the requirements of each original zone.
 - As extensions to the consideration array on fulfillment (i.e. "tipping") can be arbitrarily set by the caller, fulfillments where all matched orders have already been signed for or validated can be frontrun on submission, with the frontrunner modifying any tips. Therefore, it is important that orders fulfilled in this manner either leverage "restricted" order types that route through a zone that enforces appropriate allocation of consideration extensions, or that each offer item is fully spent and each consideration item is appropriately declared on order creation.
-- As each consideration item on each order fulfilled via `matchOrders` must be met in order for the group of orders to be matchable, any failing transfer will cause the entire group to fail. Two workarounds are available in cases where failing order fulfillment should not prevent the rest of the desired orders from being successfully fulfilled:
-   - The orders can be broken up into distinct calls and submitted via a multicall contract or flashbots bundle. This method does not allow for cross-order fulfillment aggregation and will also require the fulfiller to sign for each order in the multicall contract case.
-   - The orders can be routed through a zone or wrapper contract that determines whether the offered items on each order are still spendable, and filters out unfulfillable orders when composing the final group before providing them to Consideration. This approach allows for cross-order fulfillment aggregation, with the tradeoff of either needing to supply adequate item balances and approvals to the zone or wrapper for items offered by the fulfiller, or to sign for each order as above. This method would add appreciable gas overhead for larger order groups, in many cases negating the gas savings resulting from fulfillment aggregation.
+- As orders that have been verified (via a call to `validate`) or partially filled will skip signature validation on subsequent fulfillments, orders that utilize EIP-1271 for verifying orders may end up in an inconsistent state where the original signature is no longer valid but the order is still fulfillable. In these cases, the offerer must explicitly cancel the previously verified order in question if they no longer wish for the order to be fulfillable.
+- As orders filled by the "fulfill available" method will only be skipped if those orders have been cancelled, fully filled, or are inactive, fulfillments may still be attempted on unfulfillable orders (examples include revoked approvals or insufficient balances). This scenario (as well as issues with order formatting) will result in the full batch failing. One remediation to this failure condition is to perform additional checks from an executing zone or wrapper contract when constructing the call and filtering orders based on those checks.
+
 
 ## Feature Wishlist
 
@@ -175,7 +175,7 @@ yarn test
 yarn coverage
 ```
 
-To profile gas usage:
+To profile gas usage (note that gas usage is mildly non-deterministic at the moment due to random inputs in tests):
 ```bash
 yarn profile
 ```

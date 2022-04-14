@@ -1,28 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    OrderType,
-    ItemType,
-    Side
-} from "./ConsiderationEnums.sol";
+import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
 
-import {
-    OfferItem,
-    ConsiderationItem,
-    SpentItem,
-    ReceivedItem,
-    OrderParameters,
-    Fulfillment,
-    FulfillmentComponent,
-    Execution,
-    Order,
-    AdvancedOrder,
-    OrderStatus,
-    CriteriaResolver,
-    Batch,
-    BatchExecution
-} from "./ConsiderationStructs.sol";
+import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution, FulfillmentDetail } from "./ConsiderationStructs.sol";
+
+import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
 
@@ -51,19 +34,23 @@ contract ConsiderationPure is ConsiderationBase {
      * @dev Internal pure function to apply criteria resolvers containing
      *      specific token identifiers and associated proofs to order items.
      *
-     * @param orders            The orders to apply criteria resolvers to.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific order as well as that order's
-     *                          offer or consideration, a token identifier, and
-     *                          a proof that the supplied token identifier is
-     *                          contained in the order's merkle root. Note that
-     *                          a root of zero indicates that any transferrable
-     *                          token identifier is valid and that no proof
-     *                          needs to be supplied.
+     * @param advancedOrders     The orders to apply criteria resolvers to.
+     * @param criteriaResolvers  An array where each element contains a
+     *                           reference to a specific order as well as that
+     *                           order's offer or consideration, a token
+     *                           identifier, and a proof that the supplied token
+     *                           identifier is contained in the order's merkle
+     *                           root. Note that a root of zero indicates that
+     *                           any transferrable token identifier is valid and
+     *                           that no proof needs to be supplied.
+     * @param fulfillmentDetails An array of FulfillmentDetail structs, each
+     *                           indicating whether to fulfill the order and
+     *                           whether to use a proxy for it.
      */
     function _applyCriteriaResolvers(
-        AdvancedOrder[] memory orders,
-        CriteriaResolver[] memory criteriaResolvers
+        AdvancedOrder[] memory advancedOrders,
+        CriteriaResolver[] memory criteriaResolvers,
+        FulfillmentDetail[] memory fulfillmentDetails
     ) internal pure {
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
@@ -76,13 +63,18 @@ contract ConsiderationPure is ConsiderationBase {
                 uint256 orderIndex = criteriaResolver.orderIndex;
 
                 // Ensure that the order index is in range.
-                if (orderIndex >= orders.length) {
+                if (orderIndex >= advancedOrders.length) {
                     revert OrderCriteriaResolverOutOfRange();
+                }
+
+                // Skip criteria resolution for order if not fulfilled.
+                if (!fulfillmentDetails[orderIndex].fulfillOrder) {
+                    continue;
                 }
 
                 // Retrieve the parameters for the order.
                 OrderParameters memory orderParameters = (
-                    orders[orderIndex].parameters
+                    advancedOrders[orderIndex].parameters
                 );
 
                 // Read component index from memory and place it on the stack.
@@ -109,15 +101,15 @@ contract ConsiderationPure is ConsiderationBase {
                     identifierOrCriteria = offer.identifierOrCriteria;
 
                     // Optimistically update item type to remove criteria usage.
-                    offer.itemType = (
-                        itemType == ItemType.ERC721_WITH_CRITERIA
-                            ? ItemType.ERC721
-                            : ItemType.ERC1155
-                    );
+                    ItemType newItemType;
+                    assembly {
+                        newItemType := sub(3, eq(itemType, 4))
+                    }
+                    offer.itemType = newItemType;
 
                     // Optimistically update identifier w/ supplied identifier.
                     offer.identifierOrCriteria = criteriaResolver.identifier;
-                // Otherwise, criteria resolver refers to a consideration item.
+                    // Otherwise, criteria resolver refers to a consideration item.
                 } else {
                     // Ensure that the component index is in range.
                     if (
@@ -136,11 +128,11 @@ contract ConsiderationPure is ConsiderationBase {
                     identifierOrCriteria = consideration.identifierOrCriteria;
 
                     // Optimistically update item type to remove criteria usage.
-                    consideration.itemType = (
-                        itemType == ItemType.ERC721_WITH_CRITERIA
-                            ? ItemType.ERC721
-                            : ItemType.ERC1155
-                    );
+                    ItemType newItemType;
+                    assembly {
+                        newItemType := sub(3, eq(itemType, 4))
+                    }
+                    consideration.itemType = newItemType;
 
                     // Optimistically update identifier w/ supplied identifier.
                     consideration.identifierOrCriteria = (
@@ -165,19 +157,26 @@ contract ConsiderationPure is ConsiderationBase {
             }
 
             // Iterate over each order.
-            for (uint256 i = 0; i < orders.length; ++i) {
+            for (uint256 i = 0; i < advancedOrders.length; ++i) {
+                // Skip criteria resolution for order if not fulfilled.
+                if (!fulfillmentDetails[i].fulfillOrder) {
+                    continue;
+                }
+
                 // Retrieve the order.
-                AdvancedOrder memory order = orders[i];
+                AdvancedOrder memory advancedOrder = advancedOrders[i];
 
                 // Read consideration length from memory and place on stack.
-                uint256 arrayLength = order.parameters.consideration.length;
+                uint256 totalItems = (
+                    advancedOrder.parameters.consideration.length
+                );
 
                 // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < arrayLength; ++j) {
+                for (uint256 j = 0; j < totalItems; ++j) {
                     // Ensure item type no longer indicates criteria usage.
                     if (
                         _isItemWithCriteria(
-                            order.parameters.consideration[j].itemType
+                            advancedOrder.parameters.consideration[j].itemType
                         )
                     ) {
                         revert UnresolvedConsiderationCriteria();
@@ -185,14 +184,14 @@ contract ConsiderationPure is ConsiderationBase {
                 }
 
                 // Read offer length from memory and place on stack.
-                arrayLength = order.parameters.offer.length;
+                totalItems = advancedOrder.parameters.offer.length;
 
                 // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < arrayLength; ++j) {
+                for (uint256 j = 0; j < totalItems; ++j) {
                     // Ensure item type no longer indicates criteria usage.
                     if (
                         _isItemWithCriteria(
-                            order.parameters.offer[j].itemType
+                            advancedOrder.parameters.offer[j].itemType
                         )
                     ) {
                         revert UnresolvedOfferCriteria();
@@ -240,9 +239,9 @@ contract ConsiderationPure is ConsiderationBase {
             }
 
             // Aggregate new amounts weighted by time with rounding factor
-            uint256 totalBeforeDivision = (
-                (startAmount * remaining) + (endAmount * elapsed) + extraCeiling
-            );
+            uint256 totalBeforeDivision = ((startAmount * remaining) +
+                (endAmount * elapsed) +
+                extraCeiling);
 
             // Division is performed without zero check as it cannot be zero.
             uint256 newAmount;
@@ -308,12 +307,14 @@ contract ConsiderationPure is ConsiderationBase {
      * @return batchExecutions    An array of executions (all ERC1155 transfers)
      *                            that have been compressed into batches.
      */
-    function _compressExecutions(
-        Execution[] memory executions
-    ) internal pure returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    ) {
+    function _compressExecutions(Execution[] memory executions)
+        internal
+        pure
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        )
+    {
         // Skip overflow checks as all incremented values start at low amounts.
         unchecked {
             // Read executions array length from memory and place on the stack.
@@ -467,13 +468,14 @@ contract ConsiderationPure is ConsiderationBase {
             }
 
             // Split executions into standard and batched executions and return.
-            return _splitExecution(
-                executions,
-                batches,
-                usedInBatch,
-                totals[0],
-                totals[1]
-            );
+            return
+                _splitExecution(
+                    executions,
+                    batches,
+                    usedInBatch,
+                    totals[0],
+                    totals[1]
+                );
         }
     }
 
@@ -500,10 +502,7 @@ contract ConsiderationPure is ConsiderationBase {
         uint256[] memory batchExecutionPointers,
         uint256 totalUsedInBatch,
         uint256 totalBatches
-    ) internal pure returns (
-        Execution[] memory,
-        BatchExecution[] memory
-    ) {
+    ) internal pure returns (Execution[] memory, BatchExecution[] memory) {
         // Skip overflow checks as all incremented values start at low amounts.
         unchecked {
             // Read executions array length from memory and place on the stack.
@@ -539,7 +538,7 @@ contract ConsiderationPure is ConsiderationBase {
                     standardExecutions[nextStandardExecutionIndex++] = (
                         execution
                     );
-                // Otherwise, it is a batch execution.
+                    // Otherwise, it is a batch execution.
                 } else {
                     // Decrement pointer to derive the batch execution index.
                     uint256 batchIndex = batchExecutionPointer - 1;
@@ -553,12 +552,12 @@ contract ConsiderationPure is ConsiderationBase {
 
                         // Populate all other fields using execution parameters.
                         batchExecutions[batchIndex] = BatchExecution(
-                            execution.item.token,         // token
-                            execution.offerer,            // from
-                            execution.item.recipient,     // to
+                            execution.item.token, // token
+                            execution.offerer, // from
+                            execution.item.recipient, // to
                             new uint256[](totalElements), // tokenIds
                             new uint256[](totalElements), // amounts
-                            execution.useProxy            // useProxy
+                            execution.useProxy // useProxy
                         );
                     }
 
@@ -588,7 +587,7 @@ contract ConsiderationPure is ConsiderationBase {
      * @dev Internal pure function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
      *
-     * @param orders                  The orders to match.
+     * @param advancedOrders          The orders to match.
      * @param offerComponents         An array designating offer components to
      *                                match to consideration components.
      * @param considerationComponents An array designating consideration
@@ -596,26 +595,21 @@ contract ConsiderationPure is ConsiderationBase {
      *                                Note that each consideration amount must
      *                                be zero in order for the match operation
      *                                to be valid.
-     * @param useOffererProxyPerOrder An array of booleans indicating whether to
-     *                                source approvals for the offered tokens
-     *                                on each order from their respective proxy.
+     * @param fulfillmentDetails      An array of FulfillmentDetail structs,
+     *                                each indicating whether to fulfill the
+     *                                order and whether to use a proxy for it.
      *
      * @return execution The transfer performed as a result of the fulfillment.
-     *                   Note that this execution object could potentially be
-     *                   compressed further by aggregating batch transfers.
      */
     function _applyFulfillment(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
         FulfillmentComponent[] memory considerationComponents,
-        bool[] memory useOffererProxyPerOrder
-    ) internal pure returns (
-        Execution memory execution
-    ) {
+        FulfillmentDetail[] memory fulfillmentDetails
+    ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
-            offerComponents.length == 0 ||
-            considerationComponents.length == 0
+            offerComponents.length == 0 || considerationComponents.length == 0
         ) {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
@@ -626,16 +620,16 @@ contract ConsiderationPure is ConsiderationBase {
             SpentItem memory offerItem,
             bool useProxy
         ) = _consumeOfferComponent(
-            orders,
-            offerComponents[0].orderIndex,
-            offerComponents[0].itemIndex,
-            useOffererProxyPerOrder
-        );
+                advancedOrders,
+                offerComponents[0].orderIndex,
+                offerComponents[0].itemIndex,
+                fulfillmentDetails
+            );
 
         // Consume consideration component, returning a received item.
         ReceivedItem memory requiredConsideration = (
             _consumeConsiderationComponent(
-                orders,
+                advancedOrders,
                 considerationComponents[0].orderIndex,
                 considerationComponents[0].itemIndex
             )
@@ -646,17 +640,14 @@ contract ConsiderationPure is ConsiderationBase {
             offerItem.itemType != requiredConsideration.itemType ||
             offerItem.token != requiredConsideration.token ||
             offerItem.identifier != requiredConsideration.identifier
-
         ) {
             revert MismatchedFulfillmentOfferAndConsiderationComponents();
         }
 
         // Iterate over each offer component on the fulfillment.
-        for (uint256 i = 1; i < offerComponents.length;) {
+        for (uint256 i = 1; i < offerComponents.length; ) {
             // Retrieve the offer component from the fulfillment.
-            FulfillmentComponent memory offerComponent = (
-                offerComponents[i]
-            );
+            FulfillmentComponent memory offerComponent = (offerComponents[i]);
 
             // Get offerer & consume next offer component, returning spent item.
             (
@@ -664,11 +655,11 @@ contract ConsiderationPure is ConsiderationBase {
                 SpentItem memory nextOfferItem,
                 bool subsequentUseProxy
             ) = _consumeOfferComponent(
-                orders,
-                offerComponent.orderIndex,
-                offerComponent.itemIndex,
-                useOffererProxyPerOrder
-            );
+                    advancedOrders,
+                    offerComponent.orderIndex,
+                    offerComponent.itemIndex,
+                    fulfillmentDetails
+                );
 
             // Ensure all relevant parameters are consistent with initial offer.
             if (
@@ -691,7 +682,7 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Iterate over each consideration component on the fulfillment.
-        for (uint256 i = 1; i < considerationComponents.length;) {
+        for (uint256 i = 1; i < considerationComponents.length; ) {
             // Retrieve the consideration component from the fulfillment.
             FulfillmentComponent memory considerationComponent = (
                 considerationComponents[i]
@@ -700,7 +691,7 @@ contract ConsiderationPure is ConsiderationBase {
             // Consume next consideration component, returning a received item.
             ReceivedItem memory nextRequiredConsideration = (
                 _consumeConsiderationComponent(
-                    orders,
+                    advancedOrders,
                     considerationComponent.orderIndex,
                     considerationComponent.itemIndex
                 )
@@ -708,26 +699,20 @@ contract ConsiderationPure is ConsiderationBase {
 
             // Ensure key parameters are consistent with initial consideration.
             if (
-                requiredConsideration.recipient != (
-                    nextRequiredConsideration.recipient
-                ) ||
-                requiredConsideration.itemType != (
-                    nextRequiredConsideration.itemType
-                ) ||
-                requiredConsideration.token != (
-                    nextRequiredConsideration.token
-                ) ||
-                requiredConsideration.identifier != (
-                    nextRequiredConsideration.identifier
-                )
+                requiredConsideration.recipient !=
+                (nextRequiredConsideration.recipient) ||
+                requiredConsideration.itemType !=
+                (nextRequiredConsideration.itemType) ||
+                requiredConsideration.token !=
+                (nextRequiredConsideration.token) ||
+                requiredConsideration.identifier !=
+                (nextRequiredConsideration.identifier)
             ) {
                 revert MismatchedFulfillmentConsiderationComponents();
             }
 
             // Increase the total consideration amount by the current amount.
-            requiredConsideration.amount += (
-                nextRequiredConsideration.amount
-            );
+            requiredConsideration.amount += (nextRequiredConsideration.amount);
 
             // Skip overflow check as for loop is indexed starting at one.
             unchecked {
@@ -744,7 +729,7 @@ contract ConsiderationPure is ConsiderationBase {
 
             // Add excess consideration amount to the original orders array.
             _setConsiderationAmount(
-                orders,
+                advancedOrders,
                 targetComponent.orderIndex,
                 targetComponent.itemIndex,
                 requiredConsideration.amount - offerItem.amount
@@ -754,13 +739,11 @@ contract ConsiderationPure is ConsiderationBase {
             requiredConsideration.amount = offerItem.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (
-                offerComponents[0]
-            );
+            FulfillmentComponent memory targetComponent = (offerComponents[0]);
 
             // Add excess offer amount to the original orders array.
             _setOfferAmount(
-                orders,
+                advancedOrders,
                 targetComponent.orderIndex,
                 targetComponent.itemIndex,
                 offerItem.amount - requiredConsideration.amount
@@ -836,22 +819,64 @@ contract ConsiderationPure is ConsiderationBase {
      * @dev Internal pure function to ensure that an order index is in range
      *      and, if so, to return the parameters of the associated order.
      *
-     * @param orders An array of orders.
-     * @param index  The order index specified by the fulfillment component.
+     * @param advancedOrders An array of orders.
+     * @param orderIndex     The order index specified by the fulfillment
+     *                       component.
      *
      * @return The parameters of the order at the given index.
      */
     function _getOrderParametersByFulfillmentIndexIfInRange(
-        AdvancedOrder[] memory orders,
-        uint256 index
+        AdvancedOrder[] memory advancedOrders,
+        uint256 orderIndex
     ) internal pure returns (OrderParameters memory) {
         // Ensure that the order index is in range.
-        if (index >= orders.length) {
+        if (orderIndex >= advancedOrders.length) {
             revert FulfilledOrderIndexOutOfRange();
         }
 
         // Return the parameters of the order at the given order index.
-        return orders[index].parameters;
+        return advancedOrders[orderIndex].parameters;
+    }
+
+    /**
+     * @dev Internal pure function to ensure that a staticcall to `isValidOrder`
+     *      or `isValidOrderIncludingExtraData` as part of validating a
+     *      restricted order that was not submitted by the named offerer or zone
+     *      was successful and returned the required magic value.
+     *
+     * @param success   A boolean indicating the status of the staticcall.
+     * @param orderHash The order hash of the order in question.
+     */
+    function _assertIsValidOrderStaticcallSuccess(
+        bool success,
+        bytes32 orderHash
+    ) internal pure {
+        // If the call failed...
+        if (!success) {
+            // Revert and pass reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
+
+            // Otherwise, revert with a generic error message.
+            revert InvalidRestrictedOrder(orderHash);
+        }
+
+        // Extract result from returndata buffer in case of memory overflow.
+        bytes4 result;
+        assembly {
+            // Only put result on stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) {
+                // Copy directly from return data into scratch space.
+                returndatacopy(0, 0, 0x20)
+
+                // Take value from scratch space and place it on the stack.
+                result := mload(0)
+            }
+        }
+
+        // Ensure result was extracted and matches isValidOrder magic value.
+        if (result != ZoneInterface.isValidOrder.selector) {
+            revert InvalidRestrictedOrder(orderHash);
+        }
     }
 
     /**
@@ -859,14 +884,14 @@ contract ConsiderationPure is ConsiderationBase {
      *      range and, if so, to zero out the offer amount and return the
      *      associated spent item.
      *
-     * @param orders                  An array of orders.
-     * @param orderIndex              The order index specified by the
-     *                                fulfillment component.
-     * @param itemIndex               The item index specified by the
-     *                                fulfillment component.
-     * @param useOffererProxyPerOrder An array of booleans indicating whether to
-     *                                source approvals for the offered tokens
-     *                                on each order from their respective proxy.
+     * @param advancedOrders     An array of orders.
+     * @param orderIndex         The order index specified by the fulfillment
+     *                           component.
+     * @param itemIndex          The item index specified by the fulfillment
+     *                           component.
+     * @param fulfillmentDetails An array of FulfillmentDetail structs, each
+     *                           indicating whether to fulfill the order and
+     *                           whether to use a proxy for it.
      *
      * @return offerer   The offerer for the given order.
      * @return spentItem The spent item corresponding to the offer item at the
@@ -875,18 +900,25 @@ contract ConsiderationPure is ConsiderationBase {
      *                   offered tokens from the order's respective proxy.
      */
     function _consumeOfferComponent(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         uint256 orderIndex,
         uint256 itemIndex,
-        bool[] memory useOffererProxyPerOrder
-    ) internal pure returns (
-        address offerer,
-        SpentItem memory spentItem,
-        bool useProxy
-    ) {
+        FulfillmentDetail[] memory fulfillmentDetails
+    )
+        internal
+        pure
+        returns (
+            address offerer,
+            SpentItem memory spentItem,
+            bool useProxy
+        )
+    {
         // Retrieve the order parameters using the supplied order index.
         OrderParameters memory orderParameters = (
-            _getOrderParametersByFulfillmentIndexIfInRange(orders, orderIndex)
+            _getOrderParametersByFulfillmentIndexIfInRange(
+                advancedOrders,
+                orderIndex
+            )
         );
 
         // Ensure that the offer index is in range.
@@ -906,13 +938,13 @@ contract ConsiderationPure is ConsiderationBase {
         );
 
         // Clear offer amount to indicate offer item has been spent.
-        _setOfferAmount(orders, orderIndex, itemIndex, 0);
+        _setOfferAmount(advancedOrders, orderIndex, itemIndex, 0);
 
         // Return the offerer and the spent offer item at the given index.
         return (
             orderParameters.offerer,
             spentItemConvertedFromOfferItem,
-            useOffererProxyPerOrder[orderIndex]
+            fulfillmentDetails[orderIndex].useOffererProxy
         );
     }
 
@@ -921,21 +953,26 @@ contract ConsiderationPure is ConsiderationBase {
      *      index is in range and, if so, to zero out the amount and return the
      *      associated received item.
      *
-     * @param orders     An array of orders.
-     * @param orderIndex The order index specified by the fulfillment component.
-     * @param itemIndex  The item index specified by the fulfillment component.
+     * @param advancedOrders An array of orders.
+     * @param orderIndex     The order index specified by the fulfillment
+     *                       component.
+     * @param itemIndex      The item index specified by the fulfillment
+     *                       component.
      *
      * @return The received item corresponding to the consideration item at the
      *         given index.
      */
     function _consumeConsiderationComponent(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         uint256 orderIndex,
         uint256 itemIndex
     ) internal pure returns (ReceivedItem memory) {
         // Retrieve the order parameters using the supplied order index.
         OrderParameters memory orderParameters = (
-            _getOrderParametersByFulfillmentIndexIfInRange(orders, orderIndex)
+            _getOrderParametersByFulfillmentIndexIfInRange(
+                advancedOrders,
+                orderIndex
+            )
         );
 
         // Ensure that the consideration index is in range.
@@ -958,7 +995,7 @@ contract ConsiderationPure is ConsiderationBase {
         );
 
         // Clear consideration amount to indicate item will be received.
-        _setConsiderationAmount(orders, orderIndex, itemIndex, 0);
+        _setConsiderationAmount(advancedOrders, orderIndex, itemIndex, 0);
 
         // Return the received item at the given index.
         return receivedItem;
@@ -967,40 +1004,43 @@ contract ConsiderationPure is ConsiderationBase {
     /**
      * @dev Internal pure function to update the offer amount for an order.
      *
-     * @param orders      An array of orders.
-     * @param orderIndex  The order index specified by fulfillment component.
-     * @param itemIndex   The offer item index specified by the fulfillment
-     *                    component.
-     * @param amount      The new offer item amount.
+     * @param advancedOrders An array of orders.
+     * @param orderIndex     The order index specified by fulfillment component.
+     * @param itemIndex      The offer item index specified by the fulfillment
+     *                       component.
+     * @param amount         The new offer item amount.
      */
     function _setOfferAmount(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         uint256 orderIndex,
         uint256 itemIndex,
         uint256 amount
     ) internal pure {
-        orders[orderIndex].parameters.offer[itemIndex].endAmount = amount;
+        advancedOrders[orderIndex].parameters.offer[itemIndex].endAmount = (
+            amount
+        );
     }
 
     /**
      * @dev Internal pure function to update the consideration amount for an
      *      order.
      *
-     * @param orders      An array of orders.
-     * @param orderIndex  The order index specified by fulfillment component.
-     * @param itemIndex   The consideration item index specified by the
-     *                    fulfillment component.
-     * @param amount      The new consideration item amount.
+     * @param advancedOrders An array of orders.
+     * @param orderIndex     The order index specified by fulfillment component.
+     * @param itemIndex      The consideration item index specified by the
+     *                       fulfillment component.
+     * @param amount         The new consideration item amount.
      */
     function _setConsiderationAmount(
-        AdvancedOrder[] memory orders,
+        AdvancedOrder[] memory advancedOrders,
         uint256 orderIndex,
         uint256 itemIndex,
         uint256 amount
     ) internal pure {
-        orders[orderIndex].parameters.consideration[itemIndex].endAmount = (
-            amount
-        );
+        advancedOrders[orderIndex]
+            .parameters
+            .consideration[itemIndex]
+            .endAmount = amount;
     }
 
     /**
@@ -1012,27 +1052,49 @@ contract ConsiderationPure is ConsiderationBase {
      *                        been cancelled and the fraction filled.
      * @param onlyAllowUnused A boolean flag indicating whether partial fills
      *                        are supported by the calling function.
+     * @param revertOnInvalid A boolean indicating whether to revert if the
+     *                        order has been cancelled or filled beyond the
+     *                        allowable amount.
+     *
+     * @return valid A boolean indicating whether the order is valid.
      */
     function _verifyOrderStatus(
         bytes32 orderHash,
         OrderStatus memory orderStatus,
-        bool onlyAllowUnused
-    ) internal pure {
+        bool onlyAllowUnused,
+        bool revertOnInvalid
+    ) internal pure returns (bool valid) {
         // Ensure that the order has not been cancelled.
         if (orderStatus.isCancelled) {
-            revert OrderIsCancelled(orderHash);
+            // Only revert if revertOnInvalid has been supplied as true.
+            if (revertOnInvalid) {
+                revert OrderIsCancelled(orderHash);
+            }
+
+            // Return false as the order status is invalid.
+            return false;
         }
 
         // If the order is not entirely unused...
         if (orderStatus.numerator != 0) {
             // ensure the order has not been partially filled when not allowed.
             if (onlyAllowUnused) {
+                // Always revert on partial fills when onlyAllowUnused is true.
                 revert OrderPartiallyFilled(orderHash);
-            // Otherwise, ensure that order has not been entirely filled.
+                // Otherwise, ensure that order has not been entirely filled.
             } else if (orderStatus.numerator >= orderStatus.denominator) {
-                revert OrderAlreadyFilled(orderHash);
+                // Only revert if revertOnInvalid has been supplied as true.
+                if (revertOnInvalid) {
+                    revert OrderAlreadyFilled(orderHash);
+                }
+
+                // Return false as the order status is invalid.
+                return false;
             }
         }
+
+        // Return true as the order status is valid.
+        valid = true;
     }
 
     /**
@@ -1056,12 +1118,13 @@ contract ConsiderationPure is ConsiderationBase {
         ReceivedItem memory item = execution.item;
 
         // Derive hash based on token, offerer, recipient, and proxy usage.
-        return _hashBatchableItemIdentifier(
-            item.token,
-            execution.offerer,
-            item.recipient,
-            execution.useProxy
-        );
+        return
+            _hashBatchableItemIdentifier(
+                item.token,
+                execution.offerer,
+                item.recipient,
+                execution.useProxy
+            );
     }
 
     /**
@@ -1104,10 +1167,11 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return value The hash.
      */
-    function _hashDigest(
-        bytes32 domainSeparator,
-        bytes32 orderHash
-    ) internal pure returns (bytes32 value) {
+    function _hashDigest(bytes32 domainSeparator, bytes32 orderHash)
+        internal
+        pure
+        returns (bytes32 value)
+    {
         // Leverage scratch space to perform an efficient hash.
         assembly {
             // Place the EIP-712 prefix at the start of scratch space.
@@ -1142,9 +1206,11 @@ contract ConsiderationPure is ConsiderationBase {
      * @return A boolean indicating that the item type in question represents a
      *         criteria-based item.
      */
-    function _isItemWithCriteria(
-        ItemType itemType
-    ) internal pure returns (bool) {
+    function _isItemWithCriteria(ItemType itemType)
+        internal
+        pure
+        returns (bool)
+    {
         // ERC721WithCriteria is item type 4. ERC115WithCriteria is item type 5.
         return uint256(itemType) > 3;
     }
@@ -1159,30 +1225,36 @@ contract ConsiderationPure is ConsiderationBase {
      * @return A boolean indicating whether the order type only supports full
      *         fills.
      */
-    function _doesNotSupportPartialFills(
-        OrderType orderType
-    ) internal pure returns (bool) {
+    function _doesNotSupportPartialFills(OrderType orderType)
+        internal
+        pure
+        returns (bool)
+    {
         // The "full" order types are even, while "partial" order types are odd.
-        return uint256(orderType) % 2 == 0;
+        // Bitwise and by 1 is equivalent to modulo by 2, but 2 gas cheaper.
+        return uint256(orderType) & 1 == 0;
     }
 
     /**
      * @dev Internal pure function to convert an order to an advanced order with
-     *      numerator and denominator of 1.
+     *      numerator and denominator of 1 and empty extraData.
      *
      * @param order The order to convert.
      *
-     * @return The new advanced order.
+     * @return advancedOrder The new advanced order.
      */
-    function _convertOrderToAdvanced(
-        Order memory order
-    ) internal pure returns (AdvancedOrder memory) {
+    function _convertOrderToAdvanced(Order calldata order)
+        internal
+        pure
+        returns (AdvancedOrder memory advancedOrder)
+    {
         // Convert to partial order (1/1 or full fill) and return new value.
-        return AdvancedOrder(
+        advancedOrder = AdvancedOrder(
             order.parameters,
             1,
             1,
-            order.signature
+            order.signature,
+            ""
         );
     }
 
@@ -1192,20 +1264,23 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @param orders The orders to convert.
      *
-     * @return The new array of partial orders.
+     * @return advancedOrders The new array of partial orders.
      */
-    function _convertOrdersToAdvanced(
-        Order[] memory orders
-    ) internal pure returns (AdvancedOrder[] memory) {
+    function _convertOrdersToAdvanced(Order[] calldata orders)
+        internal
+        pure
+        returns (AdvancedOrder[] memory advancedOrders)
+    {
+        // Read the number of orders from calldata and place on the stack.
+        uint256 totalOrders = orders.length;
+
         // Allocate new empty array for each partial order in memory.
-        AdvancedOrder[] memory advancedOrders = (
-            new AdvancedOrder[](orders.length)
-        );
+        advancedOrders = new AdvancedOrder[](totalOrders);
 
         // Skip overflow check as the index for the loop starts at zero.
         unchecked {
             // Iterate over the given orders.
-            for (uint256 i = 0; i < orders.length; ++i) {
+            for (uint256 i = 0; i < totalOrders; ++i) {
                 // Convert to partial order (1/1 or full fill) and update array.
                 advancedOrders[i] = _convertOrderToAdvanced(orders[i]);
             }
@@ -1285,10 +1360,11 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @return value The hash.
      */
-    function _efficientHash(
-        bytes32 a,
-        bytes32 b
-    ) internal pure returns (bytes32 value) {
+    function _efficientHash(bytes32 a, bytes32 b)
+        internal
+        pure
+        returns (bytes32 value)
+    {
         assembly {
             mstore(0x00, a) // Place element a in first word of scratch space.
             mstore(0x20, b) // Place element b in second word of scratch space.
@@ -1331,24 +1407,24 @@ contract ConsiderationPure is ConsiderationBase {
         assembly {
             /*
              * Checks:
-             * 1. Order parameters struct offset = 0x20
-             * 2. Additional recipients arr offset = 0x1e0
-             * 3. Signature offset = 0x200 + (recipients.length * 0x40)
+             * 1. Order parameters struct offset == 0x20
+             * 2. Additional recipients arr offset == 0x200
+             * 3. Signature offset == 0x240 + (recipients.length * 0x40)
              */
             validOffsets := and(
                 // Order parameters have offset of 0x20
                 eq(calldataload(0x04), 0x20),
                 // Additional recipients have offset of 0x200
-                eq(calldataload(0x1e4), 0x200)
+                eq(calldataload(0x204), 0x220)
             )
             validOffsets := and(
-              validOffsets,
-              eq(
-                // Load signature offset from calldata
-                calldataload(0x204),
-                // Calculate expected offset (start of recipients + len * 64)
-                add(0x220, mul(calldataload(0x224), 0x40))
-              )
+                validOffsets,
+                eq(
+                    // Load signature offset from calldata
+                    calldataload(0x224),
+                    // Calculate expected offset (start of recipients + len * 64)
+                    add(0x240, mul(calldataload(0x244), 0x40))
+                )
             )
         }
 

@@ -3,17 +3,11 @@ pragma solidity 0.8.12;
 
 import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 
-import { OrderType } from "./ConsiderationEnums.sol";
+import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-import {
-    OfferItem,
-    ConsiderationItem,
-    ReceivedItem,
-    OrderParameters,
-    Order,
-    AdvancedOrder,
-    OrderStatus
-} from "./ConsiderationStructs.sol";
+import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
+
+import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Order, AdvancedOrder, OrderStatus, Execution, FulfillmentComponent, FulfillmentDetail } from "./ConsiderationStructs.sol";
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
 
@@ -44,7 +38,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      */
     function _assertNonReentrant() internal view {
         // Ensure that the reentrancy guard is not currently set.
-        if (_reentrancyGuard == _ENTERED) {
+        if (_reentrancyGuard != _NOT_ENTERED) {
             revert NoReentrantCalls();
         }
     }
@@ -53,17 +47,31 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @dev Internal view function to ensure that the current time falls within
      *      an order's valid timespan.
      *
-     * @param startTime The time at which the order becomes active.
-     * @param endTime   The time at which the order becomes inactive.
+     * @param startTime       The time at which the order becomes active.
+     * @param endTime         The time at which the order becomes inactive.
+     * @param revertOnInvalid A boolean indicating whether to revert if the
+     *                        order is not active.
+     *
+     * @return valid A boolean indicating whether the order is active.
      */
-    function _assertValidTime(
+    function _verifyTime(
         uint256 startTime,
-        uint256 endTime
-    ) internal view {
+        uint256 endTime,
+        bool revertOnInvalid
+    ) internal view returns (bool valid) {
         // Revert if order's timespan hasn't started yet or has already ended.
         if (startTime > block.timestamp || endTime <= block.timestamp) {
-            revert InvalidTime();
+            // Only revert if revertOnInvalid has been supplied as true.
+            if (revertOnInvalid) {
+                revert InvalidTime();
+            }
+
+            // Return false as the order is invalid.
+            return false;
         }
+
+        // Return true as the order time is valid.
+        valid = true;
     }
 
     /**
@@ -126,18 +134,9 @@ contract ConsiderationInternalView is ConsiderationPure {
             returnDataSize := returndatasize()
         }
 
-        // If no data was returned...
-        if (returnDataSize == 0) {
-            // get the codesize of the account.
-            uint256 size;
-            assembly {
-                size := extcodesize(account)
-            }
-
-            // Ensure that the account has code.
-            if (size == 0) {
-                revert NoContract(account);
-            }
+        // If no data was returned, ensure that the account has code.
+        if (returnDataSize == 0 && account.code.length == 0) {
+            revert NoContract(account);
         }
     }
 
@@ -194,7 +193,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 // Extract yParity from highest bit of vs and add 27 to get v.
                 v := add(shr(255, vs), 27)
             }
-        // If signature contains 65 bytes, parse as standard signature. (r+s+v)
+            // If signature contains 65 bytes, parse as standard signature. (r+s+v)
         } else if (signature.length == 65) {
             // Read each parameter directly from the signature's memory region.
             assembly {
@@ -207,7 +206,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             if (v != 27 && v != 28) {
                 revert BadSignatureV(v);
             }
-        // For all other signature lengths, attempt verification using EIP-1271.
+            // For all other signature lengths, attempt verification using EIP-1271.
         } else {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
             _verifySignatureViaERC1271(offerer, digest, signature);
@@ -222,7 +221,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Disallow invalid signers.
         if (signer == address(0)) {
             revert InvalidSignature();
-        // Should a signer be recovered, but it doesn't match the offerer...
+            // Should a signer be recovered, but it doesn't match the offerer...
         } else if (signer != offerer) {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
             _verifySignatureViaERC1271(offerer, digest, signature);
@@ -243,8 +242,9 @@ contract ConsiderationInternalView is ConsiderationPure {
         bytes32 digest,
         bytes memory signature
     ) internal view {
-        // Attempt an EIP-1271 static call to the offerer.
-        (bool success, ) = offerer.staticcall(
+        // Attempt an EIP-1271 staticcall to the offerer.
+        bool success = _staticcall(
+            offerer,
             abi.encodeWithSelector(
                 EIP1271Interface.isValidSignature.selector,
                 digest,
@@ -281,15 +281,34 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
+     * @dev Internal view function to staticcall an arbitrary target with given
+     *      calldata. Note that no data is written to memory and no contract
+     *      size check is performed.
+     *
+     * @param target   The account to staticcall.
+     * @param callData The calldata to supply when staticcalling the target.
+     *
+     * @return success The status of the staticcall to the target.
+     */
+    function _staticcall(address target, bytes memory callData)
+        internal
+        view
+        returns (bool success)
+    {
+        (success, ) = target.staticcall(callData);
+    }
+
+    /**
      * @dev Internal view function to get the EIP-712 domain separator. If the
      *      chainId matches the chainId set on deployment, the cached domain
      *      separator will be returned; otherwise, it will be derived from
      *      scratch.
      */
     function _domainSeparator() internal view returns (bytes32) {
-        return block.chainid == _CHAIN_ID
-            ? _DOMAIN_SEPARATOR
-            : _deriveDomainSeparator();
+        return
+            block.chainid == _CHAIN_ID
+                ? _DOMAIN_SEPARATOR
+                : _deriveDomainSeparator();
     }
 
     /**
@@ -301,58 +320,137 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param orderParameters The parameters of the order to hash.
      * @param nonce           The nonce of the order to hash.
      *
-     * @return The hash.
+     * @return orderHash The hash.
      */
     function _getOrderHash(
         OrderParameters memory orderParameters,
         uint256 nonce
-    ) internal view returns (bytes32) {
-        // Get length of full offer array and place it on the stack.
-        uint256 offerLength = orderParameters.offer.length;
-
+    ) internal view returns (bytes32 orderHash) {
         // Get length of original consideration array and place it on the stack.
         uint256 originalConsiderationLength = (
             orderParameters.totalOriginalConsiderationItems
         );
 
-        // Designate new memory regions for offer and consideration item hashes.
-        bytes32[] memory offerHashes = new bytes32[](offerLength);
-        bytes32[] memory considerationHashes = new bytes32[](
-            originalConsiderationLength
-        );
+        /*
+         * Memory layout for an array of structs (dynamic or not) is similar
+         * to ABI encoding of dynamic types, with a head segment followed by
+         * a data segment. The main difference is that the head of an element
+         * is a memory pointer rather than an offset.
+         */
+        bytes32 offersHash;
+        bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
 
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over each offer on the order.
-            for (uint256 i = 0; i < offerLength; ++i) {
-                // Hash the offer and place the result into memory.
-                offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
+        assembly {
+            // Pointer to free memory.
+            let hashArrPtr := mload(0x40)
+
+            // Get the pointer to the offers array.
+            let offerArrPtr := mload(add(orderParameters, 0x40))
+
+            // Load the length.
+            let offerLength := mload(offerArrPtr)
+
+            // Set the pointer to the first offer's head.
+            offerArrPtr := add(offerArrPtr, 0x20)
+
+            // Iterate over the offer items.
+            for {
+                let i := 0
+            } lt(i, offerLength) {
+                i := add(i, 1)
+            } {
+                // Read the pointer to the offer data and subtract 32
+                // to get typeHash pointer.
+                let ptr := sub(mload(offerArrPtr), 0x20)
+
+                // Read the current value before the offer data.
+                let value := mload(ptr)
+
+                // Write the type hash to the previous word.
+                mstore(ptr, typeHash)
+
+                // Take the EIP712 hash and store it in the hash array.
+                mstore(hashArrPtr, keccak256(ptr, 0xc0))
+
+                // Restore the previous word.
+                mstore(ptr, value)
+
+                // Increment the array pointers.
+                offerArrPtr := add(offerArrPtr, 0x20)
+                hashArrPtr := add(hashArrPtr, 0x20)
             }
 
-            // Iterate over each original consideration on the order.
-            for (uint256 i = 0; i < originalConsiderationLength; ++i) {
-                // Hash the consideration and place the result into memory.
-                considerationHashes[i] = _hashConsiderationItem(
-                    orderParameters.consideration[i]
-                );
-            }
+            offersHash := keccak256(mload(0x40), mul(offerLength, 0x20))
         }
 
-        // Derive and return the order hash as specified by EIP-712.
-        return keccak256(
-            abi.encode(
-                _ORDER_HASH,
-                orderParameters.offerer,
-                orderParameters.zone,
-                keccak256(abi.encodePacked(offerHashes)),
-                keccak256(abi.encodePacked(considerationHashes)),
-                orderParameters.orderType,
-                orderParameters.startTime,
-                orderParameters.endTime,
-                orderParameters.salt,
-                nonce
+        bytes32 considerationHash;
+        typeHash = _CONSIDERATION_ITEM_TYPEHASH;
+
+        assembly {
+            let hashArrPtr := mload(0x40)
+
+            // Get the pointer to the consideration array.
+            let considerationArrPtr := add(
+                mload(add(orderParameters, 0x60)),
+                0x20
             )
-        );
+
+            for {
+                let i := 0
+            } lt(i, originalConsiderationLength) {
+                i := add(i, 1)
+            } {
+                // Read the pointer to the consideration data and subtract 32
+                // to get typeHash pointer.
+                let ptr := sub(mload(considerationArrPtr), 0x20)
+
+                // Read the current value before the consideration data.
+                let value := mload(ptr)
+
+                // Write the type hash to the previous word.
+                mstore(ptr, typeHash)
+
+                // Take the EIP712 hash and store it in the hash array.
+                mstore(hashArrPtr, keccak256(ptr, 0xe0))
+
+                // Restore the previous word.
+                mstore(ptr, value)
+
+                // Increment the array pointers.
+                considerationArrPtr := add(considerationArrPtr, 0x20)
+                hashArrPtr := add(hashArrPtr, 0x20)
+            }
+
+            considerationHash := keccak256(
+                mload(0x40),
+                mul(originalConsiderationLength, 0x20)
+            )
+        }
+
+        typeHash = _ORDER_TYPEHASH;
+
+        assembly {
+            let typeHashPtr := sub(orderParameters, 0x20)
+            let previousValue := mload(typeHashPtr)
+            mstore(typeHashPtr, typeHash)
+
+            let offerHeadPtr := add(orderParameters, 0x40)
+            let offerDataPtr := mload(offerHeadPtr)
+            mstore(offerHeadPtr, offersHash)
+
+            let considerationHeadPtr := add(orderParameters, 0x60)
+            let considerationDataPtr := mload(considerationHeadPtr)
+            mstore(considerationHeadPtr, considerationHash)
+
+            let noncePtr := add(orderParameters, 0x120)
+            mstore(noncePtr, nonce)
+
+            orderHash := keccak256(typeHashPtr, 0x160)
+            mstore(typeHashPtr, previousValue)
+            mstore(offerHeadPtr, offerDataPtr)
+            mstore(considerationHeadPtr, considerationDataPtr)
+            mstore(noncePtr, originalConsiderationLength)
+        }
     }
 
     /**
@@ -375,57 +473,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             orderParameters.totalOriginalConsiderationItems
         );
 
-        // Derive and return order hash using current nonce for offerer in zone.
-        return _getOrderHash(
-            orderParameters,
-            _nonces[orderParameters.offerer][orderParameters.zone]
-        );
-    }
-
-    /**
-     * @dev Internal view function to derive the EIP-712 hash for an offer item.
-     *
-     * @param offerItem The offer item to hash.
-     *
-     * @return The hash.
-     */
-    function _hashOfferItem(
-        OfferItem memory offerItem
-    ) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _OFFER_ITEM_TYPEHASH,
-                offerItem.itemType,
-                offerItem.token,
-                offerItem.identifierOrCriteria,
-                offerItem.startAmount,
-                offerItem.endAmount
-            )
-        );
-    }
-
-    /**
-     * @dev Internal view function to derive the EIP-712 hash for a
-     *      consideration item.
-     *
-     * @param considerationItem The consideration item to hash.
-     *
-     * @return The hash.
-     */
-    function _hashConsiderationItem(
-        ConsiderationItem memory considerationItem
-    ) internal view returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                _CONSIDERATION_ITEM_TYPEHASH,
-                considerationItem.itemType,
-                considerationItem.token,
-                considerationItem.identifierOrCriteria,
-                considerationItem.startAmount,
-                considerationItem.endAmount,
-                considerationItem.recipient
-            )
-        );
+        // Derive and return order hash using current nonce for the offerer.
+        return _getOrderHash(orderParameters, _nonces[orderParameters.offerer]);
     }
 
     /**
@@ -433,14 +482,18 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      for a given order and to ensure that the submitter is allowed by the
      *      order type.
      *
-     * @param orderType        The type of the order.
-     * @param offerer          The offerer in question.
-     * @param zone             The zone in question.
+     * @param orderHash The hash of the order.
+     * @param zoneHash  The hash to provide upon calling the zone.
+     * @param orderType The type of the order.
+     * @param offerer   The offerer in question.
+     * @param zone      The zone in question.
      *
      * @return useOffererProxy A boolean indicating whether a proxy should be
      *                         utilized for the order.
      */
-    function _determineProxyUtilizationAndEnsureValidSubmitter(
+    function _determineProxyUtilizationAndEnsureValidBasicOrder(
+        bytes32 orderHash,
+        bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
@@ -457,7 +510,90 @@ contract ConsiderationInternalView is ConsiderationPure {
             msg.sender != zone &&
             msg.sender != offerer
         ) {
-            revert InvalidSubmitterOnRestrictedOrder();
+            // Perform minimal staticcall to the zone.
+            bool success = _staticcall(
+                zone,
+                abi.encodeWithSelector(
+                    ZoneInterface.isValidOrder.selector,
+                    orderHash,
+                    msg.sender,
+                    offerer,
+                    zoneHash
+                )
+            );
+
+            // Ensure call was successful and returned the correct magic value.
+            _assertIsValidOrderStaticcallSuccess(success, orderHash);
+        }
+    }
+
+    /**
+     * @dev Internal view function to determine if a proxy should be utilized
+     *      for a given order and to ensure that the submitter is allowed by the
+     *      order type.
+     *
+     * @param advancedOrder The order in question.
+     * @param orderHash     The hash of the order.
+     * @param zoneHash      The hash to provide upon calling the zone.
+     * @param orderType     The type of the order.
+     * @param offerer       The offerer in question.
+     * @param zone          The zone in question.
+     *
+     * @return useOffererProxy A boolean indicating whether a proxy should be
+     *                         utilized for the order.
+     */
+    function _determineProxyUtilizationAndEnsureValidAdvancedOrder(
+        AdvancedOrder memory advancedOrder,
+        bytes32 orderHash,
+        bytes32 zoneHash,
+        OrderType orderType,
+        address offerer,
+        address zone
+    ) internal view returns (bool useOffererProxy) {
+        // Convert the order type from enum to uint256.
+        uint256 orderTypeAsUint256 = uint256(orderType);
+
+        // Order type 0-3 are executed directly while 4-7 are executed by proxy.
+        useOffererProxy = orderTypeAsUint256 > 3;
+
+        // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
+        if (
+            orderTypeAsUint256 > (useOffererProxy ? 5 : 1) &&
+            msg.sender != zone &&
+            msg.sender != offerer
+        ) {
+            // Declare a variable for the status of the staticcall to the zone.
+            bool success;
+
+            // If no extraData is supplied...
+            if (advancedOrder.extraData.length == 0) {
+                // Perform minimal staticcall to the zone.
+                success = _staticcall(
+                    zone,
+                    abi.encodeWithSelector(
+                        ZoneInterface.isValidOrder.selector,
+                        orderHash,
+                        msg.sender,
+                        offerer,
+                        zoneHash
+                    )
+                );
+                // Otherwise, extraData has been supplied.
+            } else {
+                // Perform verbose staticcall to zone.
+                success = _staticcall(
+                    zone,
+                    abi.encodeWithSelector(
+                        ZoneInterface.isValidOrderIncludingExtraData.selector,
+                        orderHash,
+                        msg.sender,
+                        advancedOrder
+                    )
+                );
+            }
+
+            // Ensure call was successful and returned the correct magic value.
+            _assertIsValidOrderStaticcallSuccess(success, orderHash);
         }
     }
 
@@ -488,24 +624,12 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         // If start amount equals end amount, apply fraction to end amount.
         if (offerItem.startAmount == offerItem.endAmount) {
-            amount = _getFraction(
-                numerator,
-                denominator,
-                offerItem.endAmount
-            );
+            amount = _getFraction(numerator, denominator, offerItem.endAmount);
         } else {
             // Otherwise, apply fraction to both to extrapolate final amount.
             amount = _locateCurrentAmount(
-                _getFraction(
-                    numerator,
-                    denominator,
-                    offerItem.startAmount
-                ),
-                _getFraction(
-                    numerator,
-                    denominator,
-                    offerItem.endAmount
-                ),
+                _getFraction(numerator, denominator, offerItem.startAmount),
+                _getFraction(numerator, denominator, offerItem.endAmount),
                 elapsed,
                 remaining,
                 duration,
@@ -531,9 +655,10 @@ contract ConsiderationInternalView is ConsiderationPure {
      *
      * @param advancedOrder The advanced order order.
      */
-    function _adjustAdvancedOrderPrice(
-        AdvancedOrder memory advancedOrder
-    ) internal view {
+    function _adjustAdvancedOrderPrice(AdvancedOrder memory advancedOrder)
+        internal
+        view
+    {
         // Retrieve the order parameters for the order.
         OrderParameters memory orderParameters = advancedOrder.parameters;
 
@@ -589,5 +714,326 @@ contract ConsiderationInternalView is ConsiderationPure {
                 );
             }
         }
+    }
+
+    /**
+     * @dev Internal view function to aggregate offer or consideration items
+     *      from a group of orders into a single execution via a supplied array
+     *      of fulfillment components. Items that are not available to aggregate
+     *      will not be included in the aggregated execution.
+     *
+     * @param advancedOrders        The orders to aggregate.
+     * @param side                  The side (i.e. offer or consideration).
+     * @param fulfillmentComponents An array designating item components to
+     *                              aggregate if part of an available order.
+     * @param fulfillmentDetails    An array of FulfillmentDetail structs, each
+     *                              indicating whether to fulfill the order and
+     *                              whether to use a proxy for it.
+     * @param useFulfillerProxy     A flag indicating whether to source
+     *                              approvals for fulfilled tokens from the
+     *                              fulfiller's respective proxy.
+     *
+     * @return execution The transfer performed as a result of the fulfillment.
+     */
+    function _aggregateAvailable(
+        AdvancedOrder[] memory advancedOrders,
+        Side side,
+        FulfillmentComponent[] memory fulfillmentComponents,
+        FulfillmentDetail[] memory fulfillmentDetails,
+        bool useFulfillerProxy
+    ) internal view returns (Execution memory execution) {
+        // Ensure at least one fulfillment component has been supplied.
+        if (fulfillmentComponents.length == 0) {
+            revert MissingFulfillmentComponentOnAggregation(side);
+        }
+
+        // Determine component index after first available (zero implies none).
+        uint256 nextComponentIndex = 0;
+
+        // Skip overflow checks as all for loops are indexed starting at zero.
+        unchecked {
+            // Iterate over components until finding one with a fulfilled order.
+            for (uint256 i = 0; i < fulfillmentComponents.length; ++i) {
+                // Retrieve the fulfillment component index.
+                uint256 orderIndex = fulfillmentComponents[i].orderIndex;
+
+                // Ensure that the order index is in range.
+                if (orderIndex >= advancedOrders.length) {
+                    revert FulfilledOrderIndexOutOfRange();
+                }
+
+                // If order is being fulfilled (i.e. it is still available)...
+                if (fulfillmentDetails[orderIndex].fulfillOrder) {
+                    // Update the next potential component index.
+                    nextComponentIndex = i + 1;
+
+                    // Exit the loop.
+                    break;
+                }
+            }
+        }
+
+        // If no available order was located...
+        if (nextComponentIndex == 0) {
+            // Return early with a null execution element that will be filtered.
+            return
+                Execution(
+                    ReceivedItem(
+                        ItemType.NATIVE,
+                        address(0),
+                        0,
+                        0,
+                        payable(address(0))
+                    ),
+                    address(0),
+                    false
+                );
+        }
+
+        // Otherwise, get first available fulfillment component.
+        FulfillmentComponent memory firstAvailableComponent;
+        unchecked {
+            // Skip check decrementing next potential index as it is not zero.
+            firstAvailableComponent = (
+                fulfillmentComponents[nextComponentIndex - 1]
+            );
+        }
+
+        // If the fulfillment components are offer components...
+        if (side == Side.OFFER) {
+            // Return execution for aggregated items provided by the offerer.
+            return
+                _aggregateOfferItems(
+                    advancedOrders,
+                    fulfillmentComponents,
+                    firstAvailableComponent,
+                    nextComponentIndex,
+                    fulfillmentDetails
+                );
+            // Otherwise, fulfillment components are consideration components.
+        } else {
+            // Return execution for aggregated items provided by the fulfiller.
+            return
+                _aggregateConsiderationItems(
+                    advancedOrders,
+                    fulfillmentComponents,
+                    firstAvailableComponent,
+                    nextComponentIndex,
+                    fulfillmentDetails,
+                    useFulfillerProxy
+                );
+        }
+    }
+
+    /**
+     * @dev Internal view function to aggregate offer items from a group of
+     *      orders into a single execution via a supplied array of components.
+     *      Offer items that are not available to aggregate will not be included
+     *      in the aggregated execution.
+     *
+     * @param advancedOrders          The orders to aggregate.
+     * @param offerComponents         An array designating offer components to
+     *                                aggregate if part of an available order.
+     * @param firstAvailableComponent The first available offer component.
+     * @param nextComponentIndex      The index of the next potential offer
+     *                                component.
+     * @param fulfillmentDetails      An array of FulfillmentDetail structs,
+     *                                each indicating whether to fulfill the
+     *                                order and whether to use a proxy for it.
+     *
+     * @return execution The transfer performed as a result of the fulfillment.
+     */
+    function _aggregateOfferItems(
+        AdvancedOrder[] memory advancedOrders,
+        FulfillmentComponent[] memory offerComponents,
+        FulfillmentComponent memory firstAvailableComponent,
+        uint256 nextComponentIndex,
+        FulfillmentDetail[] memory fulfillmentDetails
+    ) internal view returns (Execution memory execution) {
+        // Get offerer and consume offer component, returning a spent item.
+        (
+            address offerer,
+            SpentItem memory offerItem,
+            bool useProxy
+        ) = _consumeOfferComponent(
+                advancedOrders,
+                firstAvailableComponent.orderIndex,
+                firstAvailableComponent.itemIndex,
+                fulfillmentDetails
+            );
+
+        // Iterate over each remaining component on the fulfillment.
+        for (uint256 i = nextComponentIndex; i < offerComponents.length; ) {
+            // Retrieve the offer component from the fulfillment array.
+            FulfillmentComponent memory offerComponent = offerComponents[i];
+
+            // Read order index from offer component and place on the stack.
+            uint256 orderIndex = offerComponent.orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= advancedOrders.length) {
+                revert FulfilledOrderIndexOutOfRange();
+            }
+
+            // If order is not being fulfilled (i.e. it is unavailable)...
+            if (!fulfillmentDetails[orderIndex].fulfillOrder) {
+                // Skip overflow check as for loop is indexed starting at one.
+                unchecked {
+                    ++i;
+                }
+
+                // Do not consume associated offer item but continue search.
+                continue;
+            }
+
+            // Get offerer & consume offer component, returning spent item.
+            (
+                address subsequentOfferer,
+                SpentItem memory nextOfferItem,
+                bool subsequentUseProxy
+            ) = _consumeOfferComponent(
+                    advancedOrders,
+                    orderIndex,
+                    offerComponent.itemIndex,
+                    fulfillmentDetails
+                );
+
+            // Ensure all relevant parameters are consistent with initial offer.
+            if (
+                offerer != subsequentOfferer ||
+                offerItem.itemType != nextOfferItem.itemType ||
+                offerItem.token != nextOfferItem.token ||
+                offerItem.identifier != nextOfferItem.identifier ||
+                useProxy != subsequentUseProxy
+            ) {
+                revert MismatchedFulfillmentOfferComponents();
+            }
+
+            // Increase the total offer amount by the current amount.
+            offerItem.amount += nextOfferItem.amount;
+
+            // Skip overflow check as for loop is indexed starting at one.
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Convert offer item into received item with fulfiller as receiver.
+        ReceivedItem memory receivedOfferItem = ReceivedItem(
+            offerItem.itemType,
+            offerItem.token,
+            offerItem.identifier,
+            offerItem.amount,
+            payable(msg.sender)
+        );
+
+        // Return execution for aggregated items provided by the offerer.
+        execution = Execution(receivedOfferItem, offerer, useProxy);
+    }
+
+    /**
+     * @dev Internal view function to aggregate consideration items from a group
+     *      of orders into a single execution via a supplied components array.
+     *      Consideration items that are not available to aggregate will not be
+     *      included in the aggregated execution.
+     *
+     * @param advancedOrders          The orders to aggregate.
+     * @param considerationComponents An array designating consideration
+     *                                components to aggregate if part of an
+     *                                available order.
+     * @param firstAvailableComponent The first available consideration
+     *                                component.
+     * @param nextComponentIndex      The index of the next potential
+     *                                consideration component.
+     * @param fulfillmentDetails      An array of FulfillmentDetail structs,
+     *                                each indicating whether to fulfill the
+     *                                order and whether to use a proxy for it.
+     * @param useFulfillerProxy       A flag indicating whether to source
+     *                                approvals for fulfilled tokens from the
+     *                                fulfiller's respective proxy.
+     *
+     * @return execution The transfer performed as a result of the fulfillment.
+     */
+    function _aggregateConsiderationItems(
+        AdvancedOrder[] memory advancedOrders,
+        FulfillmentComponent[] memory considerationComponents,
+        FulfillmentComponent memory firstAvailableComponent,
+        uint256 nextComponentIndex,
+        FulfillmentDetail[] memory fulfillmentDetails,
+        bool useFulfillerProxy
+    ) internal view returns (Execution memory execution) {
+        // Consume consideration component, returning a received item.
+        ReceivedItem memory requiredConsideration = (
+            _consumeConsiderationComponent(
+                advancedOrders,
+                firstAvailableComponent.orderIndex,
+                firstAvailableComponent.itemIndex
+            )
+        );
+
+        // Iterate over each remaining component on the fulfillment.
+        for (
+            uint256 i = nextComponentIndex;
+            i < considerationComponents.length;
+
+        ) {
+            // Retrieve the consideration component from the fulfillment array.
+            FulfillmentComponent memory considerationComponent = (
+                considerationComponents[i]
+            );
+
+            // Read order index from consideration component and place on stack.
+            uint256 orderIndex = considerationComponent.orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= advancedOrders.length) {
+                revert FulfilledOrderIndexOutOfRange();
+            }
+
+            // If order is not being fulfilled (i.e. it is unavailable)...
+            if (!fulfillmentDetails[orderIndex].fulfillOrder) {
+                // Skip overflow check as for loop is indexed starting at one.
+                unchecked {
+                    ++i;
+                }
+
+                // Do not consume the consideration item & continue search.
+                continue;
+            }
+
+            // Consume consideration component, returning a received item.
+            ReceivedItem memory nextRequiredConsideration = (
+                _consumeConsiderationComponent(
+                    advancedOrders,
+                    orderIndex,
+                    considerationComponent.itemIndex
+                )
+            );
+
+            // Ensure parameters are consistent with initial consideration.
+            if (
+                requiredConsideration.recipient !=
+                (nextRequiredConsideration.recipient) ||
+                requiredConsideration.itemType !=
+                (nextRequiredConsideration.itemType) ||
+                requiredConsideration.token !=
+                (nextRequiredConsideration.token) ||
+                requiredConsideration.identifier !=
+                (nextRequiredConsideration.identifier)
+            ) {
+                revert MismatchedFulfillmentConsiderationComponents();
+            }
+
+            // Increase total consideration amount by the current amount.
+            requiredConsideration.amount += (nextRequiredConsideration.amount);
+
+            // Skip overflow check as for loop is indexed starting at one.
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Return execution for aggregated items provided by the fulfiller.
+        return Execution(requiredConsideration, msg.sender, useFulfillerProxy);
     }
 }

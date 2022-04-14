@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    SpentItem,
-    ReceivedItem
-} from "../lib/ConsiderationStructs.sol";
+import { Side } from "../lib/ConsiderationEnums.sol";
+
+import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationEventsAndErrors
@@ -63,18 +62,12 @@ interface ConsiderationEventsAndErrors {
     );
 
     /**
-     * @dev Emit an event whenever a nonce for a given offerer + zone pair is
-     *      incremented.
+     * @dev Emit an event whenever a nonce for a given offerer is incremented.
      *
-     * @param newNonce The new nonce for the offerer + zone pair.
+     * @param newNonce The new nonce for the offerer.
      * @param offerer  The offerer in question.
-     * @param zone     The zone in question.
      */
-    event NonceIncremented(
-        uint256 newNonce,
-        address indexed offerer,
-        address indexed zone
-    );
+    event NonceIncremented(uint256 newNonce, address indexed offerer);
 
     /**
      * @dev Revert with an error when attempting to fill an order that has
@@ -93,15 +86,25 @@ interface ConsiderationEventsAndErrors {
     /**
      * @dev Revert with an error when attempting to fill an order that specifies
      *      a restricted submitter as its order type when not submitted by
-     *      either the offerrer or the order's zone.
+     *      either the offerrer or the order's zone or approved as valid by the
+     *      zone in question via a staticcall to `isValidOrder`.
+     *
+     * @param orderHash The order hash for the invalid restricted order.
      */
-    error InvalidSubmitterOnRestrictedOrder();
+    error InvalidRestrictedOrder(bytes32 orderHash);
 
     /**
      * @dev Revert with an error when an order is supplied for fulfillment with
      *      a consideration array that is shorter than the original array.
      */
     error MissingOriginalConsiderationItems();
+
+    /**
+     * @dev Revert with an error when a fulfillment is provided as part of an
+     *      call to fulfill available orders that does not declare at least one
+     *      component.
+     */
+    error MissingFulfillmentComponentOnAggregation(Side side);
 
     /**
      * @dev Revert with an error when a fulfillment is provided that does not
@@ -340,12 +343,6 @@ interface ConsiderationEventsAndErrors {
     error InvalidCanceller();
 
     /**
-     * @dev Revert with an error when attempting to increment a nonce as a
-     *      caller other than the indicated offerer or zone.
-     */
-    error InvalidNonceIncrementor();
-
-    /**
      * @dev Revert with an error when supplying a fraction with a value of zero
      *      for the numerator or denominator, or one where the numerator exceeds
      *      the denominator.
@@ -375,4 +372,10 @@ interface ConsiderationEventsAndErrors {
      *      calldata not produced by default ABI encoding.
      */
     error InvalidBasicOrderParameterEncoding();
+
+    /**
+     * @dev Revert with an error when attempting to fulfill any number of
+     *      available orders when none are fulfillable.
+     */
+    error NoSpecifiedOrdersAvailable();
 }

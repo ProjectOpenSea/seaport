@@ -4,15 +4,12 @@ import "./ProxyRegistry.sol";
 import "./AuthenticatedProxy.sol";
 
 contract WyvernProxyRegistry is ProxyRegistry {
-
     string public constant name = "Project Wyvern Proxy Registry";
 
     /* Whether the initial auth address has been set. */
     bool public initialAddressSet = false;
 
-    constructor ()
-        public
-    {
+    constructor() public {
         delegateProxyImplementation = new AuthenticatedProxy();
     }
 
@@ -22,10 +19,7 @@ contract WyvernProxyRegistry is ProxyRegistry {
      * @dev No delay, can only be called once - after that the standard registry process with a delay must be used
      * @param authAddress Address of the contract to grant authentication
      */
-    function grantInitialAuthentication (address authAddress)
-        onlyOwner
-        public
-    {
+    function grantInitialAuthentication(address authAddress) public onlyOwner {
         require(!initialAddressSet);
         initialAddressSet = true;
         contracts[authAddress] = true;

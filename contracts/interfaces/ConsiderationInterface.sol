@@ -1,17 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    BasicOrderParameters,
-    OrderComponents,
-    Fulfillment,
-    Execution,
-    BatchExecution,
-    Order,
-    AdvancedOrder,
-    OrderStatus,
-    CriteriaResolver
-} from "../lib/ConsiderationStructs.sol";
+import { BasicOrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, BatchExecution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, FulfillmentDetail } from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationInterface
@@ -40,99 +30,10 @@ interface ConsiderationInterface {
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function fulfillBasicEthForERC721Order(
-        BasicOrderParameters calldata parameters
-    ) external payable returns (bool);
-
-    /**
-     * @notice Fulfill an order offering ERC1155 tokens by supplying Ether (or
-     *         the native token for the given chain) as consideration for the
-     *         order. An arbitrary number of "additional recipients" may also be
-     *         supplied which will each receive native tokens from the fulfiller
-     *         as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
-     *                   their offered ERC1155 tokens to be transferred.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicEthForERC1155Order(
-        BasicOrderParameters calldata parameters
-    ) external payable returns (bool);
-
-    /**
-     * @notice Fulfill an order offering a single ERC721 token by supplying
-     *         ERC20 tokens as consideration. An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive ERC20
-     *         tokens from the fulfiller as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
-     *                   their offered ERC721 token to be transferred.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicERC20ForERC721Order(
-        BasicOrderParameters calldata parameters
-    ) external returns (bool);
-
-    /**
-     * @notice Fulfill an order offering ERC1155 tokens by supplying ERC20
-     *         tokens as consideration. An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive ERC20
-     *         tokens from the fulfiller as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
-     *                   their offered ERC1155 tokens to be transferred.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicERC20ForERC1155Order(
-        BasicOrderParameters calldata parameters
-    ) external returns (bool);
-
-    /**
-     * @notice Fulfill an order offering ERC20 tokens by supplying a single
-     *         ERC721 token as consideration. An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive ERC20
-     *         tokens from the offerer as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the fulfiller must first approve this contract (or
-     *                   their proxy if indicated by the order) before the
-     *                   ERC721 token required as consideration can be
-     *                   transferred. Also note that the sum of all additional
-     *                   recipient amounts cannot exceed `erc20Amount`.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicERC721ForERC20Order(
-        BasicOrderParameters calldata parameters
-    ) external returns (bool);
-
-    /**
-     * @notice Fulfill an order offering ERC20 tokens by supplying ERC1155
-     *         tokens as consideration. An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive ERC20
-     *         tokens from the offerer as consideration.
-     *
-     * @param parameters Additional information on the fulfilled order. Note
-     *                   that the fulfiller must first approve this contract (or
-     *                   their proxy if indicated by the order) before the
-     *                   ERC1155 token required as consideration can be
-     *                   transferred. Also note that the sum of all additional
-     *                   recipient amounts cannot exceed `erc20Amount`.
-     *
-     * @return A boolean indicating whether the order has been fulfilled.
-     */
-    function fulfillBasicERC1155ForERC20Order(
-        BasicOrderParameters calldata parameters
-    ) external returns (bool);
+    function fulfillBasicOrder(BasicOrderParameters calldata parameters)
+        external
+        payable
+        returns (bool);
 
     /**
      * @notice Fulfill an order with an arbitrary number of items for offer and
@@ -152,10 +53,10 @@ interface ConsiderationInterface {
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function fulfillOrder(
-        Order calldata order,
-        bool useFulfillerProxy
-    ) external payable returns (bool);
+    function fulfillOrder(Order calldata order, bool useFulfillerProxy)
+        external
+        payable
+        returns (bool);
 
     /**
      * @notice Fill an order, fully or partially, with an arbitrary number of
@@ -195,6 +96,82 @@ interface ConsiderationInterface {
     ) external payable returns (bool);
 
     /**
+     * @notice Attempt to fill a group of orders, fully or partially, with an
+     *         arbitrary number of items for offer and consideration per order
+     *         alongside criteria resolvers containing specific token
+     *         identifiers and associated proofs. Any order that is not
+     *         currently active, has already been fully filled, or has been
+     *         cancelled will be omitted. Remaining offer and consideration
+     *         items will then be aggregated where possible as indicated by the
+     *         supplied offer and consideration component arrays and aggregated
+     *         items will be transferred to the fulfiller or to each intended
+     *         recipient, respectively. Note that a failing item transfer or an
+     *         issue with order formatting will cause the entire batch to fail.
+     *
+     * @param advancedOrders            The orders to fulfill along with the
+     *                                  fraction of those orders to attempt to
+     *                                  fill. Note that both the offerer and the
+     *                                  fulfiller must first approve this
+     *                                  contract (or their proxy if indicated by
+     *                                  the order) to transfer any relevant
+     *                                  tokens on their behalf and that
+     *                                  contracts must implement
+     *                                  `onERC1155Received` in order to receive
+     *                                  ERC1155 tokens as consideration. Also
+     *                                  note that all offer and consideration
+     *                                  components must have no remainder after
+     *                                  multiplication of the respective amount
+     *                                  with the supplied fraction for an
+     *                                  order's partial fill amount to be
+     *                                  considered valid.
+     * @param criteriaResolvers         An array where each element contains a
+     *                                  reference to a specific offer or
+     *                                  consideration, a token identifier, and a
+     *                                  proof that the supplied token identifier
+     *                                  is contained in the merkle root held by
+     *                                  the item in question's criteria element.
+     *                                  Note that an empty criteria indicates
+     *                                  that any (transferrable) token
+     *                                  identifier on the token in question is
+     *                                  valid and that no associated proof needs
+     *                                  to be supplied.
+     * @param offerFulfillments         An array of FulfillmentComponent arrays
+     *                                  indicating which offer items to attempt
+     *                                  to aggregate when preparing executions.
+     * @param considerationFulfillments An array of FulfillmentComponent arrays
+     *                                  indicating which consideration items to
+     *                                  attempt to aggregate when preparing
+     *                                  executions.
+     * @param useFulfillerProxy         A flag indicating whether to source
+     *                                  approvals for fulfilled tokens from an
+     *                                  associated proxy.
+     *
+     * @return fulfillmentDetails A array of FulfillmentDetail structs, each
+     *                            indicating whether the associated order has
+     *                            been fulfilled and whether a proxy was used.
+     * @return standardExecutions An array of elements indicating the sequence
+     *                            of non-batch transfers performed as part of
+     *                            matching the given orders.
+     * @return batchExecutions    An array of elements indicating the sequence
+     *                            of batch transfers performed as part of
+     *                            matching the given orders.
+     */
+    function fulfillAvailableAdvancedOrders(
+        AdvancedOrder[] calldata advancedOrders,
+        CriteriaResolver[] calldata criteriaResolvers,
+        FulfillmentComponent[][] calldata offerFulfillments,
+        FulfillmentComponent[][] calldata considerationFulfillments,
+        bool useFulfillerProxy
+    )
+        external
+        payable
+        returns (
+            FulfillmentDetail[] memory fulfillmentDetails,
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        );
+
+    /**
      * @notice Match an arbitrary number of orders, each with an arbitrary
      *         number of items for offer and consideration along with as set of
      *         fulfillments allocating offer components to consideration
@@ -224,10 +201,13 @@ interface ConsiderationInterface {
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    );
+    )
+        external
+        payable
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        );
 
     /**
      * @notice Match an arbitrary number of full or partial orders, each with an
@@ -272,10 +252,13 @@ interface ConsiderationInterface {
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (
-        Execution[] memory standardExecutions,
-        BatchExecution[] memory batchExecutions
-    );
+    )
+        external
+        payable
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        );
 
     /**
      * @notice Cancel an arbitrary number of orders. Note that only the offerer
@@ -286,9 +269,7 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the supplied orders were
      *         successfully cancelled.
      */
-    function cancel(
-        OrderComponents[] calldata orders
-    ) external returns (bool);
+    function cancel(OrderComponents[] calldata orders) external returns (bool);
 
     /**
      * @notice Validate an arbitrary number of orders, thereby registering them
@@ -301,24 +282,16 @@ interface ConsiderationInterface {
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function validate(
-        Order[] calldata orders
-    ) external returns (bool);
+    function validate(Order[] calldata orders) external returns (bool);
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer or the zone
-     *         may increment the nonce.
-     *
-     * @param offerer The offerer in question.
-     * @param zone    The zone in question.
+     *         by incrementing a nonce. Note that only the offerer may increment
+     *         the nonce.
      *
      * @return newNonce The new nonce.
      */
-    function incrementNonce(
-        address offerer,
-        address zone
-    ) external returns (uint256 newNonce);
+    function incrementNonce() external returns (uint256 newNonce);
 
     /**
      * @notice Retrieve the order hash for a given order.
@@ -327,9 +300,10 @@ interface ConsiderationInterface {
      *
      * @return The order hash.
      */
-    function getOrderHash(
-        OrderComponents calldata order
-    ) external view returns (bytes32);
+    function getOrderHash(OrderComponents calldata order)
+        external
+        view
+        returns (bytes32);
 
     /**
      * @notice Retrieve the status of a given order by hash, including whether
@@ -348,27 +322,24 @@ interface ConsiderationInterface {
      * @return totalSize   The total size of the order that is either filled or
      *                     unfilled (i.e. the "denominator").
      */
-    function getOrderStatus(
-        bytes32 orderHash
-    ) external view returns (
-        bool isValidated,
-        bool isCancelled,
-        uint256 totalFilled,
-        uint256 totalSize
-    );
+    function getOrderStatus(bytes32 orderHash)
+        external
+        view
+        returns (
+            bool isValidated,
+            bool isCancelled,
+            uint256 totalFilled,
+            uint256 totalSize
+        );
 
     /**
-     * @notice Retrieve the current nonce for a given offerer + zone pair.
+     * @notice Retrieve the current nonce for a given offerer.
      *
      * @param offerer The offerer in question.
-     * @param zone    The zone in question.
      *
      * @return The current nonce.
      */
-    function getNonce(
-        address offerer,
-        address zone
-    ) external view returns (uint256);
+    function getNonce(address offerer) external view returns (uint256);
 
     /**
      * @notice Retrieve the name of this contract.

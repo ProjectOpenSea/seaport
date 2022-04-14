@@ -2,8 +2,8 @@
 pragma solidity 0.8.12;
 
 interface EIP1271Interface {
-	function isValidSignature(
-		bytes32 digest,
-		bytes calldata signature
-	) external view returns (bytes4);
+    function isValidSignature(bytes32 digest, bytes calldata signature)
+        external
+        view
+        returns (bytes4);
 }

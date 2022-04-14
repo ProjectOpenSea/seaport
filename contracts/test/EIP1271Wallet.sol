@@ -16,7 +16,7 @@ contract EIP1271Wallet {
 
     bool public showRevertMessage;
 
-    mapping (bytes32 => bool) public digestApproved;
+    mapping(bytes32 => bool) public digestApproved;
 
     constructor(address _owner) {
         owner = _owner;
@@ -31,9 +31,13 @@ contract EIP1271Wallet {
         digestApproved[digest] = approved;
     }
 
-    function approveERC20(ERC20ApprovalInterface token, address operator, uint256 amount) external {
+    function approveERC20(
+        ERC20ApprovalInterface token,
+        address operator,
+        uint256 amount
+    ) external {
         if (msg.sender != owner) {
-            revert ("Only owner");
+            revert("Only owner");
         }
 
         token.approve(operator, amount);
@@ -41,16 +45,17 @@ contract EIP1271Wallet {
 
     function approveNFT(NFTApprovalInterface token, address operator) external {
         if (msg.sender != owner) {
-            revert ("Only owner");
+            revert("Only owner");
         }
 
         token.setApprovalForAll(operator, true);
     }
 
-    function isValidSignature(
-        bytes32 digest,
-        bytes memory signature
-    ) external view returns (bytes4) {
+    function isValidSignature(bytes32 digest, bytes memory signature)
+        external
+        view
+        returns (bytes4)
+    {
         if (digestApproved[digest]) {
             return _EIP_1271_MAGIC_VALUE;
         }
@@ -69,7 +74,10 @@ contract EIP1271Wallet {
             v := byte(0, mload(add(signature, 0x60)))
         }
 
-        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
+        if (
+            uint256(s) >
+            0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+        ) {
             revert();
         }
 

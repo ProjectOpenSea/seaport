@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
-import {
-    OrderType,
-    ItemType,
-    Side
-} from "./ConsiderationEnums.sol";
+import { OrderType, BasicOrderType, ItemType, Side } from "./ConsiderationEnums.sol";
 
 /**
- * @dev An order contains nine components: an offerer, a zone (or account that
+ * @dev An order contains ten components: an offerer, a zone (or account that
  *      can cancel the order or restrict who can fulfill the order depending on
  *      the type), the order type (specifying partial fill support, restricted
- *      fulfiller requirement, and the offerer's proxy usage preference), the
- *      start and end time, a salt, a nonce, and an arbitrary number of offer
+ *      order status, and the offerer's proxy usage preference), the start and
+ *      end time, a hash that will be provided to the zone when validating
+ *      restricted orders, a salt, a nonce, and an arbitrary number of offer
  *      items that can be spent along with consideration items that must be
  *      received by their respective recipient.
  */
@@ -24,6 +21,7 @@ struct OrderComponents {
     OrderType orderType;
     uint256 startTime;
     uint256 endTime;
+    bytes32 zoneHash;
     uint256 salt;
     uint256 nonce;
 }
@@ -87,26 +85,31 @@ struct ReceivedItem {
 /**
  * @dev For basic orders involving ETH / native / ERC20 <=> ERC721 / ERC1155
  *      matching, a group of six functions may be called that only requires a
- *      subset of the usual order arguments.
+ *      subset of the usual order arguments. Note the use of a "basicOrderType"
+ *      enum; this represents both the usual order type as well as the "route"
+ *      of the basic order (a simple derivation function for the basic order
+ *      type is `basicOrderType = orderType + (8 * basicOrderRoute)`.)
  */
-struct BasicOrderParameters {                   // calldata offset
-    address considerationToken;                 // 0x24
-    uint256 considerationIdentifier;            // 0x44
-    uint256 considerationAmount;                // 0x64
-    address payable offerer;                    // 0x84
-    address zone;                               // 0xa4
-    address offerToken;                         // 0xc4
-    uint256 offerIdentifier;                    // 0xe4
-    uint256 offerAmount;                        // 0x104
-    OrderType orderType;                        // 0x124
-    uint256 startTime;                          // 0x144
-    uint256 endTime;                            // 0x164
-    uint256 salt;                               // 0x184
-    bool useFulfillerProxy;                     // 0x1a4
-    uint256 totalOriginalAdditionalRecipients;  // 0c1c4
-    AdditionalRecipient[] additionalRecipients; // 0x1e4
-    bytes signature;                            // 0x204
-    // Total length, excluding dynamic array data: 0x224 (548)
+struct BasicOrderParameters {
+    // calldata offset
+    address considerationToken; // 0x24
+    uint256 considerationIdentifier; // 0x44
+    uint256 considerationAmount; // 0x64
+    address payable offerer; // 0x84
+    address zone; // 0xa4
+    address offerToken; // 0xc4
+    uint256 offerIdentifier; // 0xe4
+    uint256 offerAmount; // 0x104
+    BasicOrderType basicOrderType; // 0x124
+    uint256 startTime; // 0x144
+    uint256 endTime; // 0x164
+    bytes32 zoneHash; // 0x184
+    uint256 salt; // 0x1a4
+    bool useFulfillerProxy; // 0x1c4
+    uint256 totalOriginalAdditionalRecipients; // 0x1e4
+    AdditionalRecipient[] additionalRecipients; // 0x204
+    bytes signature; // 0x224
+    // Total length, excluding dynamic array data: 0x244 (580)
 }
 
 /**
@@ -128,12 +131,13 @@ struct AdditionalRecipient {
 struct OrderParameters {
     address offerer;
     address zone;
+    OfferItem[] offer;
+    ConsiderationItem[] consideration;
     OrderType orderType;
     uint256 startTime;
     uint256 endTime;
+    bytes32 zoneHash;
     uint256 salt;
-    OfferItem[] offer;
-    ConsiderationItem[] consideration;
     uint256 totalOriginalConsiderationItems;
 }
 
@@ -148,13 +152,17 @@ struct Order {
 /**
  * @dev Advanced orders include a numerator (i.e. a fraction to attempt to fill)
  *      and a denominator (the total size of the order) in additon to the
- *      signature and other order parameters.
+ *      signature and other order parameters. It also supports an optional field
+ *      for supplying extra data; this data will be included in a staticcall to
+ *      `isValidOrderIncludingExtraData` on the zone for the order if the order
+ *      type is restricted and the offerer or zone are not the caller.
  */
 struct AdvancedOrder {
     OrderParameters parameters;
     uint120 numerator;
     uint120 denominator;
     bytes signature;
+    bytes extraData;
 }
 
 /**
@@ -245,4 +253,15 @@ struct BatchExecution {
 struct Batch {
     bytes32 hash;
     uint256[] executionIndices;
+}
+
+/**
+ * @dev An fulfillment detail will be returned for each supplied order when
+ *      attempting to fulfill any available orders from a given group, and
+ *      indicates whether the order in question was fulfilled as well as whether
+ *      a proxy was utilized when fulfilling the order.
+ */
+struct FulfillmentDetail {
+    bool fulfillOrder;
+    bool useOffererProxy;
 }
