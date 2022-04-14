@@ -26,7 +26,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     bytes32 internal immutable _EIP_712_DOMAIN_TYPEHASH;
     bytes32 internal immutable _OFFER_ITEM_TYPEHASH;
     bytes32 internal immutable _CONSIDERATION_ITEM_TYPEHASH;
-    bytes32 internal immutable _ORDER_HASH;
+    bytes32 internal immutable _ORDER_TYPEHASH;
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
@@ -109,7 +109,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         );
         _OFFER_ITEM_TYPEHASH = keccak256(offerItemTypeString);
         _CONSIDERATION_ITEM_TYPEHASH = keccak256(considerationItemTypeString);
-        _ORDER_HASH = keccak256(
+        _ORDER_TYPEHASH = keccak256(
             abi.encodePacked(
                 orderComponentsPartialTypeString,
                 considerationItemTypeString,

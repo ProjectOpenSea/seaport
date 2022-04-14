@@ -129,7 +129,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         }
 
         // Derive & validate order using parameters and update order status.
-        (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+        bool useOffererProxy = _prepareBasicFulfillmentFromCalldata(
             parameters,
             orderType,
             receivedItemType,
