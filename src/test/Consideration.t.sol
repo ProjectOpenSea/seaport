@@ -23,6 +23,7 @@ contract ConsiderationTest is DSTest {
     address accountB;
     address accountC;
 
+    address test721Address;
     NFT test721;
 
     function setUp() public {
@@ -32,7 +33,8 @@ contract ConsiderationTest is DSTest {
         consider = Consideration(consider);
 
         //deploy a test 721
-        test721 = new NFT("Nifty", "NFT");
+        test721Address = address(new NFT("Nifty", "NFT"));
+        test721 = NFT(test721Address);
 
         //d6e900755be565cb8eb4dbd2bbb77583c5996f9c254aa80c6270d8756f6efb00
         //d6e900755be565cb8eb4dbd2bbb77583c5996f9c254aa80c6270d8756f6efb01
@@ -60,12 +62,70 @@ contract ConsiderationTest is DSTest {
     //basic Order
 
     //eth to 721
+    function testListBasicETHto721(
+        uint256 _id,
+        uint256 _ethAmount,
+        bytes32 _zoneHash,
+        uint256 _salt,
+        bytes sig
+    ) external {
+        vm.cheats.assume(_id > 0);
+        vm.cheats.assume(_id < 10);
+        emit log("Basic Order");
+
+        address considerationToken = address(0); // eth
+        uint256 considerationIdentifier = 0; //TODO check on this
+        uint256 considerationAmount = _ethAmount;
+        address payable offerer = accountA;
+        address zone = accountB;
+        address offerToken = test721Address;
+        uint256 id = _id;
+        uint256 offerAmount = 1;
+        BasicOrderType basicOrderType = 0; // eth to 721 open
+        uint256 startTime = block.timestamp; // 0x144
+        uint256 endTime = block.timestamp + 5000; // 0x164
+        bytes32 zoneHash = _zoneHash; // 0x184
+        uint256 salt = _salt; // 0x1a4
+        bool useFulfillerProxy = false; // 0x1c4
+        uint256 totalOriginalAdditionalRecipients = 0; // 0x1e4
+        AdditionalRecipient[] additionalRecipients = []; // 0x204
+        bytes signature = sig; // 0x224
+        // Total length, excluding dynamic array data: 0x244 (580)
+
+        //list
+        vm.prank(accountA);
+        BasicOrderParameters order = new BasicOrderParameters(
+            considerationToken,
+            considerationIdentifier,
+            considerationAmount,
+            offerer,
+            zone,
+            offerToken,
+            offerIdentifier,
+            offerAmount,
+            basicOrderType,
+            startTime,
+            endTime,
+            zoneHash,
+            salt,
+            useFulfillerProxy,
+            totalOriginalAdditionalRecipients,
+            additionalRecipients,
+            signature
+        );
+
+        consider.fulfillBasicOrder(order);
+        emit log("Consideration basic order made for AccountA");
+
+        //fulfill
+        vm.prank(accountB);
+    }
+
     //eth to 1155
     //20 to 721
     //20 to 1155
     //721 to 20
     // 1155 to 20
-
 
     //match
     function testMatchOrder721toEth() external {
@@ -73,5 +133,4 @@ contract ConsiderationTest is DSTest {
         address seller = accountA;
         vm.startPrank(seller);
     }
-
 }

@@ -1,3 +1,5 @@
+pragma solidity ^0.8.12;
+
 interface CheatCodes {
 
     function warp(uint256) external;
