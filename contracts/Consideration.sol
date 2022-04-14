@@ -126,8 +126,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             )
         }
 
-        uint8 uint8Route = uint8(route);
-
         address payable offerer;
         address proxyOwner;
         {
