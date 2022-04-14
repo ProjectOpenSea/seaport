@@ -73,6 +73,9 @@ contract ConsiderationTest is DSTest {
         vm.cheats.assume(_id < 10);
         emit log("Basic Order");
 
+        address alice vm.cheat.addr(1);
+        (uint8 v, bytes32 r, bytes32 s) = vm.cheats.sign(1, _zoneHash);
+
         address considerationToken = address(0); // eth
         uint256 considerationIdentifier = 0; //TODO check on this
         uint256 considerationAmount = _ethAmount;
