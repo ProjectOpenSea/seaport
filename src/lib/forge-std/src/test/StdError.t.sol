@@ -103,7 +103,7 @@ contract ErrorsTest {
         assembly {
             sstore(someBytes.slot, 1)
         }
-        bytes memory b = someBytes;
+        // bytes memory b = someBytes;
     }
 
     function pop() public {
