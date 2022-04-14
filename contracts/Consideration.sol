@@ -91,6 +91,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             route := div(calldataload(0x124), 8)
         }
 
+        // Declare arguments that will be derived from route and calldata.
         ItemType additionalRecipientsItemType;
         address additionalRecipientsToken;
         ItemType receivedItemType;
@@ -101,6 +102,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
             additionalRecipientsItemType := gt(route, 1)
 
+            // Determine if offered item type == additional recipient item type.
             let offerTypeIsAdditionalRecipientsType := gt(route, 3)
 
             // If route > 3 additionalRecipientsToken is at 0xc4 else 0x24
@@ -126,31 +128,30 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             )
         }
 
-        address payable offerer;
+        // Derive & validate order using parameters and update order status.
+        (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
+            parameters,
+            orderType,
+            receivedItemType,
+            additionalRecipientsItemType,
+            additionalRecipientsToken,
+            offeredItemType
+        );
+
+        // Read offerer from calldata and place on the stack.
+        address payable offerer = parameters.offerer;
+
+        // Declare proxy owner argument used by transfer functions.
         address proxyOwner;
-        {
-            // Derive & validate order using parameters and update order status.
-            (, bool useOffererProxy) = _prepareBasicFulfillmentFromCalldata(
-                parameters,
-                orderType,
-                receivedItemType,
-                additionalRecipientsItemType,
-                additionalRecipientsToken,
-                offeredItemType
-            );
 
-            // Move offerer and fulfiller proxy preference from memory to stack.
-            offerer = parameters.offerer;
-            bool useFulfillerProxy = parameters.useFulfillerProxy;
-
-            assembly {
-                // Set proxyOwner = useOffererProxy ? offerer : address(0) for
-                // route < 4 else = useFulfillerProxy ? msg.sender : address(0)
-                proxyOwner := add(
-                    mul(and(lt(route, 4), useOffererProxy), offerer),
-                    mul(and(gt(route, 3), useFulfillerProxy), caller())
-                )
-            }
+        // Utilize assembly to derive proxy owner (if relevant) based on route.
+        assembly {
+            // Set proxyOwner = useOffererProxy ? offerer : address(0) for
+            // route < 4 else = useFulfillerProxy ? msg.sender : address(0)
+            proxyOwner := add(
+                mul(and(lt(route, 4), useOffererProxy), offerer),
+                mul(and(gt(route, 3), calldataload(0x1c4)), caller())
+            )
         }
 
         // Transfer tokens based on the route.
