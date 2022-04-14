@@ -1,11 +1,22 @@
 [default]
-auto_detect_solc = true
+solc_version = '0.8.13'
+auto_detect_solc = false
 optimizer = true
 optimizer_runs = 200
 src = 'src'
 out = 'out'
-libs = ['src/lib', 'contracts/lib']
-remappings = ['ds-test/=src/lib/ds-test/src/']
+libs = ['lib']
+remappings = [
+  "@ds=lib/ds-test/src/",
+  "@solmate=lib/solmate/src/",
+  "@std=lib/forge-std/src/",
+  "@openzeppelin=lib/openzeppelin-contracts",
+]
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
-viaIR = true
+
+# Commented out because:
+# Error: 
+#    0: Compiler run failed
+#       YulException: Variable _2 is 1 too deep in the stack ...
+# viaIR = true
