@@ -51,7 +51,7 @@
     "build": "hardhat compile",
     "test": "hardhat test",
     "profile": "REPORT_GAS=true hardhat test",
-    "coverage": "hardhat coverage",
+    "coverage": "hardhat coverage --config hardhat-coverage.config.ts",
     "lint:check": "prettier --check **.sol && hardhat compile && npx solhint 'contracts/**/*.sol'",
     "lint:fix": "prettier --write **.sol"
   }

@@ -20,7 +20,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   let legacyProxyRegistry;
   let legacyProxyImplementation;
   let ownedUpgradeabilityProxy;
-  let delegatedContract;
   let testERC20;
   let testERC721;
   let testERC1155;
@@ -992,10 +991,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     ownedUpgradeabilityProxy = await ethers.getContractFactory(
       "OwnedUpgradeabilityProxy"
-    );
-
-    delegatedContract = await ethers.getContractFactory(
-      "ConsiderationDelegated"
     );
 
     const reentererFactory = await ethers.getContractFactory("Reenterer");
@@ -8294,29 +8289,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("Fulfill Available Orders", async () => {
-      let domainSeparatorTester;
-
-      beforeEach(async () => {
-        const domainSeparatorTesterFactory = await ethers.getContractFactory(
-          "DelegatedDomainSeparatorTester"
-        );
-
-        domainSeparatorTester = await domainSeparatorTesterFactory.deploy(
-          legacyProxyRegistry.address,
-          legacyProxyImplementation
-        );
-      });
-
-      it("Cannot reach delegated functions directly", async () => {
-        await whileImpersonating(owner.address, provider, async () => {
-          // Compute address of delegated contract from marketplace contract
-          const delegated = delegatedContract.attach(
-            `0x${ethers.utils.keccak256(`0xd694${marketplaceContract.address.slice(2)}01`).slice(26)}`
-          );
-
-          await expect(delegated.connect(owner).fulfillAvailableAdvancedOrders([], [], [], [], false)).to.be.reverted;
-        });
-      });
       it("Can fulfill a single order via fulfillAvailableOrders", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
@@ -8857,16 +8829,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(receipt, [{order: orderOne, orderHash: orderHashOne, fulfiller: buyer.address}]);
             return receipt;
           });
-        });
-      });
-      it("Can derive a new domain separator using the deployer as the verifying contract", async () => {
-        await whileImpersonating(owner.address, provider, async () => {
-          // Compute address of delegated contract from marketplace contract
-          const delegated = delegatedContract.attach(
-            `0x${ethers.utils.keccak256(`0xd694${marketplaceContract.address.slice(2)}01`).slice(26)}`
-          );
-
-          await expect(domainSeparatorTester.connect(owner).deriveDomainSeparatorAndCompare()).to.not.be.reverted;
         });
       });
     });
