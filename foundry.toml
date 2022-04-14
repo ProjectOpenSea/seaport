@@ -8,3 +8,4 @@ libs = ['src/lib', 'contracts/lib']
 remappings = ['ds-test/=src/lib/ds-test/src/']
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
+viaIR = true
