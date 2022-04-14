@@ -8,5 +8,5 @@
 	path = lib/forge-std
 	url = https://github.com/brockelmore/forge-std
 [submodule "src/lib/solmate"]
-	path = src/lib/solmate
+	path = lib/solmate
 	url = https://github.com/rari-capital/solmate
