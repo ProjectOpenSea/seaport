@@ -3,7 +3,7 @@
 	url = https://github.com/Rari-Capital/solmate
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
-	url = https://github.com/Openzeppelin/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/brockelmore/forge-std
