@@ -93,33 +93,40 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         ItemType additionalRecipientsItemType;
         address additionalRecipientsToken;
+        ItemType receivedItemType;
+        ItemType offeredItemType;
 
         // Utilize assembly to retrieve function arguments and cast types.
         assembly {
             // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
             additionalRecipientsItemType := gt(route, 1)
 
+            let offerTypeIsAdditionalRecipientsType := gt(route, 3)
+
             // If route > 3 additionalRecipientsToken is at 0xc4 else 0x24
             additionalRecipientsToken := calldataload(
-                add(0x24, mul(0xa0, gt(route, 3)))
+                add(0x24, mul(0xa0, offerTypeIsAdditionalRecipientsType))
+            )
+
+            // If route > 2, receivedItemType is route - 2. If route is 2, then
+            // receivedItemType is ERC20 (1). Otherwise, it is Eth (0).
+            receivedItemType := add(
+                mul(sub(route, 2), gt(route, 2)),
+                eq(route, 2)
+            )
+
+            // If route > 3, offeredItemType is ERC20 (1). If route is 2 or 3,
+            // offeredItemType = route. If route is 0 or 1, it is route + 2.
+            offeredItemType := sub(
+                add(route, mul(iszero(additionalRecipientsItemType), 2)),
+                mul(
+                    offerTypeIsAdditionalRecipientsType,
+                    add(receivedItemType, 1)
+                )
             )
         }
 
         uint8 uint8Route = uint8(route);
-
-        // These can still be optimized further; this is more of a demonstration
-        ItemType offeredItemType;
-        ItemType receivedItemType;
-        unchecked {
-            offeredItemType = ItemType(
-                uint8Route > 3
-                    ? 1
-                    : (uint8Route > 1 ? uint8Route : uint8Route + 2)
-            );
-            receivedItemType = ItemType(
-                uint8Route > 2 ? uint8Route - 2 : (uint8Route == 2 ? 1 : 0)
-            );
-        }
 
         address payable offerer;
         address proxyOwner;
@@ -134,21 +141,17 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 offeredItemType
             );
 
-            // Move the offerer from memory to the stack.
+            // Move offerer and fulfiller proxy preference from memory to stack.
             offerer = parameters.offerer;
+            bool useFulfillerProxy = parameters.useFulfillerProxy;
 
-            if (uint8Route < 4) {
-                // Equivalent to useOffererProxy ? offerer : address(0)
-                assembly {
-                    proxyOwner := mul(offerer, useOffererProxy)
-                }
-            } else {
-                bool useFulfillerProxy = parameters.useFulfillerProxy;
-
-                // Equivalent to useFulfillerProxy ? msg.sender : address(0)
-                assembly {
-                    proxyOwner := mul(caller(), useFulfillerProxy)
-                }
+            assembly {
+                // Set proxyOwner = useOffererProxy ? offerer : address(0) for
+                // route < 4 else = useFulfillerProxy ? msg.sender : address(0)
+                proxyOwner := add(
+                    mul(and(lt(route, 4), useOffererProxy), offerer),
+                    mul(and(gt(route, 3), useFulfillerProxy), caller())
+                )
             }
         }
 
