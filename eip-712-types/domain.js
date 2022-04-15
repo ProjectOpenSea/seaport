@@ -8,5 +8,5 @@ const eip712DomainType = {
 };
 
 module.exports = Object.freeze({
-    eip712DomainType,
+  eip712DomainType,
 });
