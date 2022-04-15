@@ -372,7 +372,7 @@ interface ConsiderationEventsAndErrors {
      * @dev Revert with an error when the implementation of the respective proxy
      *      does not match the expected proxy implementation.
      */
-    error InvalidProxyImplementation(address invalidImplementation);
+    error InvalidProxyImplementation();
 
     /**
      * @dev Revert with an error when attempting to fill a basic order using

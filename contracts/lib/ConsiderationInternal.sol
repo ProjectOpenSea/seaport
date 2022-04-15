@@ -1647,12 +1647,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Retrieve the user proxy from the registry assuming one is set.
         address proxy = _LEGACY_PROXY_REGISTRY.proxies(proxyOwner);
 
-        // Retrieve current user proxy implementation assuming the proxy exists.
-        address implementation = ProxyInterface(proxy).implementation();
-
         // Assert that the user proxy has the correct implementation.
-        if (implementation != _REQUIRED_PROXY_IMPLEMENTATION) {
-            revert InvalidProxyImplementation(implementation);
+        if (
+            ProxyInterface(proxy).implementation() !=
+            _REQUIRED_PROXY_IMPLEMENTATION
+        ) {
+            revert InvalidProxyImplementation();
         }
 
         // perform call to proxy via proxyAssert and HowToCall = CALL (value 0).
