@@ -14192,6 +14192,95 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("Insufficient amounts and bad items", async () => {
+      it("Reverts when no enough ether is supplied (basic)", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(1),
+            endAmount: ethers.BigNumber.from(1),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("10"),
+            endAmount: ethers.utils.parseEther("10"),
+            recipient: seller.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: zone.address,
+          },
+          {
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("1"),
+            endAmount: ethers.utils.parseEther("1"),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          0, // EthForERC721
+          order
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, {
+                value: ethers.BigNumber.from(0),
+              })
+          ).to.be.reverted;
+        });
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, { value });
+            const receipt = await tx.wait();
+            await checkExpectedEvents(receipt, [
+              { order, orderHash, fulfiller: buyer.address },
+            ]);
+            return receipt;
+          });
+        });
+      });
       it("Reverts when not enough ether is supplied (basic)", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
@@ -14637,6 +14726,123 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
+
+      it("Reverts when ether is supplied to a non-payable route (basic)", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        // Buyer mints ERC20
+        const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+        await testERC20.mint(buyer.address, tokenAmount);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        // Buyer approves marketplace contract to transfer tokens
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            testERC20
+              .connect(buyer)
+              .approve(marketplaceContract.address, tokenAmount)
+          )
+            .to.emit(testERC20, "Approval")
+            .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(1),
+            endAmount: ethers.BigNumber.from(1),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0, // ignored for ERC20
+            startAmount: tokenAmount.sub(100),
+            endAmount: tokenAmount.sub(100),
+            recipient: seller.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0, // ignored for ERC20
+            startAmount: ethers.BigNumber.from(50),
+            endAmount: ethers.BigNumber.from(50),
+            recipient: zone.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0, // ignored for ERC20
+            startAmount: ethers.BigNumber.from(50),
+            endAmount: ethers.BigNumber.from(50),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          2, // ERC20ForERC721
+          order
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, {
+                value: ethers.BigNumber.from(1),
+              })
+          ).to.be.reverted;
+        });
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters);
+            const receipt = await tx.wait();
+            await checkExpectedEvents(receipt, [
+              { order, orderHash, fulfiller: buyer.address },
+            ]);
+            return receipt;
+          });
+        });
+      });
+
       it("Reverts when tokens are not approved", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());

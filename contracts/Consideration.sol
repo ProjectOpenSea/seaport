@@ -65,9 +65,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         override
         returns (bool)
     {
-        // Declare enums for order route type to extract from basicOrderType.
+        // Declare enums for order type & route to extract from basicOrderType.
         BasicOrderRouteType route;
         OrderType orderType;
+
+        // Declare additional recipient item type to derive from the route type.
+        ItemType additionalRecipientsItemType;
 
         // Utilize assembly to extract the order type and the basic order route.
         assembly {
@@ -76,19 +79,38 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
             // Divide basicOrderType by eight to derive the route.
             route := div(calldataload(0x124), 8)
+
+            // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
+            additionalRecipientsItemType := gt(route, 1)
         }
 
-        // Declare arguments that will be derived from route and calldata.
-        ItemType additionalRecipientsItemType;
+        {
+            // Declare temporary variable for enforcing payable status.
+            bool correctPayableStatus;
+
+            // Utilize assembly to compare the route to the callvalue.
+            assembly {
+                // route 0 and 1 are payable, otherwise route is not payable.
+                correctPayableStatus := eq(
+                    additionalRecipientsItemType,
+                    iszero(callvalue())
+                )
+            }
+
+            // Revert if msg.value has not been supplied as part of payable
+            // routes or has been supplied as part of non-payable routes.
+            if (!correctPayableStatus) {
+                revert InvalidMsgValue(msg.value);
+            }
+        }
+
+        // Declare more arguments that will be derived from route and calldata.
         address additionalRecipientsToken;
         ItemType receivedItemType;
         ItemType offeredItemType;
 
         // Utilize assembly to retrieve function arguments and cast types.
         assembly {
-            // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
-            additionalRecipientsItemType := gt(route, 1)
-
             // Determine if offered item type == additional recipient item type.
             let offerTypeIsAdditionalRecipientsType := gt(route, 3)
 
