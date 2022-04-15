@@ -29,5 +29,5 @@ const orderType = {
 };
 
 module.exports = Object.freeze({
-    orderType,
+  orderType,
 });

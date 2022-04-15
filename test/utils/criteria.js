@@ -1,12 +1,15 @@
-const { ethers } = require('ethers');
-const { bufferToHex, keccak256 } = require('ethereumjs-util');
+const { ethers } = require("ethers");
+const { bufferToHex, keccak256 } = require("ethereumjs-util");
 
 const merkleTree = (tokenIds) => {
-  let elements = tokenIds.map(
-    tokenId => Buffer.from(tokenId.toHexString().slice(2).padStart(64, '0'), 'hex')
-  ).sort(Buffer.compare).filter((el, idx, arr) => {
-    return idx === 0 || !arr[idx - 1].equals(el);
-  });
+  let elements = tokenIds
+    .map((tokenId) =>
+      Buffer.from(tokenId.toHexString().slice(2).padStart(64, "0"), "hex")
+    )
+    .sort(Buffer.compare)
+    .filter((el, idx, arr) => {
+      return idx === 0 || !arr[idx - 1].equals(el);
+    });
 
   const bufferElementPositionIndex = elements.reduce((memo, el, index) => {
     memo[bufferToHex(el)] = index;
@@ -18,20 +21,27 @@ const merkleTree = (tokenIds) => {
 
   const root = bufferToHex(layers[layers.length - 1][0]);
 
-  const proofs = Object.fromEntries(elements.map(el => [ethers.BigNumber.from('0x' + el.toString('hex')).toString(), getHexProof(el, bufferElementPositionIndex, layers)]));
+  const proofs = Object.fromEntries(
+    elements.map((el) => [
+      ethers.BigNumber.from("0x" + el.toString("hex")).toString(),
+      getHexProof(el, bufferElementPositionIndex, layers),
+    ])
+  );
 
-  const maxProofLength = Math.max(...Object.values(proofs).map(i => i.length));
+  const maxProofLength = Math.max(
+    ...Object.values(proofs).map((i) => i.length)
+  );
 
   return {
     root,
     proofs,
     maxProofLength,
-  }
-}
+  };
+};
 
 const getLayers = (elements) => {
   if (elements.length === 0) {
-    throw new Error('empty tree');
+    throw new Error("empty tree");
   }
 
   const layers = [];
@@ -43,7 +53,7 @@ const getLayers = (elements) => {
   }
 
   return layers;
-}
+};
 
 const getNextLayer = (elements) => {
   return elements.reduce((layer, el, idx, arr) => {
@@ -54,7 +64,7 @@ const getNextLayer = (elements) => {
 
     return layer;
   }, []);
-}
+};
 
 const combinedHash = (first, second) => {
   if (!first) {
@@ -65,13 +75,13 @@ const combinedHash = (first, second) => {
   }
 
   return keccak256(Buffer.concat([first, second].sort(Buffer.compare)));
-}
+};
 
 const getHexProof = (el, bufferElementPositionIndex, layers) => {
   let idx = bufferElementPositionIndex[bufferToHex(el)];
 
-  if (typeof idx !== 'number') {
-    throw new Error('Element does not exist in Merkle tree');
+  if (typeof idx !== "number") {
+    throw new Error("Element does not exist in Merkle tree");
   }
 
   const proofBuffer = layers.reduce((proof, layer) => {
@@ -87,9 +97,9 @@ const getHexProof = (el, bufferElementPositionIndex, layers) => {
     return proof;
   }, []);
 
-  return proofBuffer.map((el) => '0x' + el.toString('hex'));
-}
+  return proofBuffer.map((el) => "0x" + el.toString("hex"));
+};
 
 module.exports = Object.freeze({
-    merkleTree,
+  merkleTree,
 });
