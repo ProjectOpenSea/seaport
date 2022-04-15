@@ -1,6 +1,5 @@
 [default]
-solc_version = '0.8.13'
-auto_detect_solc = false
+auto_detect_solc = true
 optimizer = true
 optimizer_runs = 200
 remappings = [
@@ -11,9 +10,3 @@ remappings = [
 ]
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
-
-# Commented out because:
-# Error: 
-#    0: Compiler run failed
-#       YulException: Variable _2 is 1 too deep in the stack ...
-# viaIR = true

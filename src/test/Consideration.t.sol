@@ -24,13 +24,9 @@ contract ConsiderationTest is DSTestPlus {
     address test721Address;
     NFT test721;
 
-    address zone;
-
     function setUp() public {
-        zone = address(0);
-
         considerAddress = address(new Consideration(address(0), address(0)));
-        consider = Consideration(consider);
+        consider = Consideration(considerAddress);
 
         //deploy a test 721
         test721Address = address(new NFT("Nifty", "NFT"));
@@ -39,11 +35,6 @@ contract ConsiderationTest is DSTestPlus {
         accountA = vm.addr(1);
         accountB = vm.addr(2);
         accountC = vm.addr(3);
-
-        for (uint256 i; i < 10; i++) {
-            test721.mintTo(accountA);
-        }
-        emit log("Account A airdropped 10 NFTs.");
 
         vm.prank(accountA);
         test721.setApprovalForAll(considerAddress, true);
@@ -61,13 +52,18 @@ contract ConsiderationTest is DSTestPlus {
     //eth to 721
     //accountA is offering their 721 for ETH
     function testListBasicETHto721(
+        address _zone,
         uint256 _id,
         uint256 _ethAmount,
         bytes32 _zoneHash,
         uint256 _salt
     ) external {
-        vm.assume(_id > 0);
-        vm.assume(_id < 10);
+        test721.mintTo(accountA, _id);
+        emit log("Account A airdropped an NFT.");
+
+        vm.deal(address(this), _ethAmount);
+        emit log("Caller airdropped ETH.");
+
         emit log("Basic Order");
 
         OfferItem[] memory offer = new OfferItem[](1);
@@ -83,11 +79,13 @@ contract ConsiderationTest is DSTestPlus {
             payable(accountA)
         );
 
+        // getNonce
         uint256 nonce = consider.getNonce(accountA);
-        //getOrderHash
+
+        // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
             accountA,
-            zone,
+            _zone,
             offer,
             consideration,
             OrderType.FULL_OPEN,
@@ -111,14 +109,13 @@ contract ConsiderationTest is DSTestPlus {
             )
         );
 
-        //list
-        vm.prank(accountA);
+        // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(0),
             0,
             _ethAmount,
             payable(accountA),
-            address(0),
+            _zone,
             test721Address,
             _id,
             1,
@@ -133,11 +130,27 @@ contract ConsiderationTest is DSTestPlus {
             abi.encodePacked(r, s, v)
         );
 
-        consider.fulfillBasicOrder(order);
-        emit log("Consideration basic order made for AccountA");
+        emit log(">>>>");
 
-        //fulfill
-        vm.prank(accountB);
+        // simple
+        consider.fulfillBasicOrder{value: _ethAmount}(order);
+
+        //// to debug a bit
+        // try consider.fulfillBasicOrder{value: _ethAmount}(order) {
+        //         emit log("ok");
+        //     } catch (bytes memory err) {
+        //         if (keccak256(abi.encodeWithSignature("InvalidSigner()")) == keccak256(err)) {
+        //             revert("bad signer");
+        //         } else {
+        //             if (err.length == 0) {
+        //                 revert("no error data");
+        //             } else {
+        //                 revert("an error was returned");
+        //             }
+        //         }
+        // }
+
+        emit log("Fulfilled Consideration basic order signed by AccountA");
     }
 
     //eth to 1155
@@ -147,9 +160,9 @@ contract ConsiderationTest is DSTestPlus {
     // 1155 to 20
 
     //match
-    function testMatchOrder721toEth() external {
-        emit log("Basic Order, Match Order");
-        address seller = accountA;
-        vm.startPrank(seller);
-    }
+    // function testMatchOrder721toEth() external {
+    //     emit log("Basic Order, Match Order");
+    //     address seller = accountA;
+    //     vm.startPrank(seller);
+    // }
 }

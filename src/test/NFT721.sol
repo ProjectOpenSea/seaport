@@ -5,16 +5,13 @@ import "@solmate/tokens/ERC721.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract NFT is ERC721 {
-    uint256 public currentTokenId;
-
     constructor(string memory _name, string memory _symbol)
         ERC721(_name, _symbol)
     {}
 
-    function mintTo(address recipient) public payable returns (uint256) {
-        uint256 newItemId = ++currentTokenId;
-        _safeMint(recipient, newItemId);
-        return newItemId;
+    function mintTo(address recipient, uint256 tokenId) public payable returns (uint256) {
+        _safeMint(recipient, tokenId);
+        return tokenId;
     }
 
     function tokenURI(uint256 id)
