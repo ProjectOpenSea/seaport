@@ -598,56 +598,6 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to apply a fraction to an offer item and to
-     *      return a received item.
-     *
-     * @param offerItem         The offer item.
-     * @param numerator         A value indicating the portion of the order that
-     *                          should be filled.
-     * @param denominator       A value indicating the total size of the order.
-     * @param elapsed           The time elapsed since the order's start time.
-     * @param remaining         The time left until the order's end time.
-     * @param duration          The total duration of the order.
-     *
-     * @return item The received item to transfer, including the final amount.
-     */
-    function _applyFractionToOfferItem(
-        OfferItem memory offerItem,
-        uint256 numerator,
-        uint256 denominator,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration
-    ) internal view returns (ReceivedItem memory item) {
-        // Declare variable for final amount.
-        uint256 amount;
-
-        // If start amount equals end amount, apply fraction to end amount.
-        if (offerItem.startAmount == offerItem.endAmount) {
-            amount = _getFraction(numerator, denominator, offerItem.endAmount);
-        } else {
-            // Otherwise, apply fraction to both to extrapolate final amount.
-            amount = _locateCurrentAmount(
-                _getFraction(numerator, denominator, offerItem.startAmount),
-                _getFraction(numerator, denominator, offerItem.endAmount),
-                elapsed,
-                remaining,
-                duration,
-                false // round down
-            );
-        }
-
-        // Apply order fill fraction, set caller as the receiver, and return.
-        item = ReceivedItem(
-            offerItem.itemType,
-            offerItem.token,
-            offerItem.identifierOrCriteria,
-            amount,
-            payable(msg.sender)
-        );
-    }
-
-    /**
      * @dev Internal view function to derive the current amount of each item for
      *      an advanced order based on the current price, the starting price,
      *      and the ending price. If the start and end prices differ, the
