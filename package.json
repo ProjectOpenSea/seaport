@@ -47,6 +47,13 @@
     "typechain": "^8.0.0",
     "typescript": "^4.5.4"
   },
+  "resolutions": {
+    "async": ">=2.6.4",
+    "lodash": ">=4.17.21",
+    "node-fetch": ">=2.6.7",
+    "underscore": ">=1.12.1",
+    "yargs-parser": ">=5.0.1"
+  },
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
