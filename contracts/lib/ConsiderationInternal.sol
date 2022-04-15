@@ -345,36 +345,36 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        /**
-         * After the order hash has been derived, emit an OrderFulfilled event:
-         *   event OrderFulfilled(
-         *     bytes32 orderHash,
-         *     address indexed offerer,
-         *     address indexed zone,
-         *     address fulfiller,
-         *     SpentItem[] offer,
-         *       > (itemType, token, id, amount)
-         *     ReceivedItem[] consideration
-         *       > (itemType, token, id, amount, recipient)
-         *   )
-         * topic0 - OrderFulfilled event signature
-         * topic1 - offerer
-         * topic2 - zone
-         * data:
-         *  - 0x00: orderHash
-         *  - 0x20: fulfiller
-         *  - 0x40: offer arr ptr (0x80)
-         *  - 0x60: consideration arr ptr (0x120)
-         *  - 0x80: offer arr len (1)
-         *  - 0xa0: offer.itemType
-         *  - 0xc0: offer.token
-         *  - 0xe0: offer.identifier
-         *  - 0x100: offer.amount
-         *  - 0x120: 1 + recipients.length
-         *  - 0x140: recipient 0
-         */
-
         assembly {
+            /**
+             * After the order hash has been derived, emit OrderFulfilled event:
+             *   event OrderFulfilled(
+             *     bytes32 orderHash,
+             *     address indexed offerer,
+             *     address indexed zone,
+             *     address fulfiller,
+             *     SpentItem[] offer,
+             *       > (itemType, token, id, amount)
+             *     ReceivedItem[] consideration
+             *       > (itemType, token, id, amount, recipient)
+             *   )
+             * topic0 - OrderFulfilled event signature
+             * topic1 - offerer
+             * topic2 - zone
+             * data:
+             *  - 0x00: orderHash
+             *  - 0x20: fulfiller
+             *  - 0x40: offer arr ptr (0x80)
+             *  - 0x60: consideration arr ptr (0x120)
+             *  - 0x80: offer arr len (1)
+             *  - 0xa0: offer.itemType
+             *  - 0xc0: offer.token
+             *  - 0xe0: offer.identifier
+             *  - 0x100: offer.amount
+             *  - 0x120: 1 + recipients.length
+             *  - 0x140: recipient 0
+             */
+
             // Derive pointer from calldata via length of additional recipients.
             let eventDataPtr := add(0x180, mul(0x20, calldataload(0x244)))
 
@@ -1085,16 +1085,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
     }
 
     /**
-     * @notice Internal function to fulfill a group of validated orders, fully
-     *         or partially, with an arbitrary number of items for offer and
-     *         consideration per order and to execute transfers. Any order that
-     *         is not currently active, has already been fully filled, or has
-     *         been cancelled will be omitted. Remaining offer and consideration
-     *         items will then be aggregated where possible as indicated by the
-     *         supplied offer and consideration component arrays and aggregated
-     *         items will be transferred to the fulfiller or to each intended
-     *         recipient, respectively. Note that a failing item transfer or an
-     *         issue with order formatting will cause the entire batch to fail.
+     * @dev Internal function to fulfill a group of validated orders, fully or
+     *      partially, with an arbitrary number of items for offer and
+     *      consideration per order and to execute transfers. Any order that is
+     *      not currently active, has already been fully filled, or has been
+     *      cancelled will be omitted. Remaining offer and consideration items
+     *      will then be aggregated where possible as indicated by the supplied
+     *      offer and consideration component arrays and aggregated items will
+     *      be transferred to the fulfiller or to each intended recipient,
+     *      respectively. Note that a failing item transfer or an issue with
+     *      order formatting will cause the entire batch to fail.
      *
      * @param advancedOrders            The orders to fulfill along with the
      *                                  fraction of those orders to attempt to
