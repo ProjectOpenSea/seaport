@@ -525,7 +525,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
             expect(transferLogs.length > 0).to.be.true;
             const transferLog = transferLogs[0];
-            expect(transferLog.args.value.toString()).to.equal(amount.toString());
+            expect(transferLog.args.amount.toString()).to.equal(amount.toString());
 
           } else if (itemType === 2) { // ERC721
             // search for transfer
@@ -538,7 +538,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
             expect(transferLogs.length).to.equal(1);
             const transferLog = transferLogs[0];
-            expect(transferLog.args.tokenId.toString()).to.equal(identifier.toString());
+            expect(transferLog.args.id.toString()).to.equal(identifier.toString());
 
           } else if (itemType === 3) {
             // search for transfer
@@ -552,7 +552,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             expect(transferLogs.length).to.equal(1);
             const transferLog = transferLogs[0];
             expect(transferLog.args.id.toString()).to.equal(identifier.toString());
-            expect(transferLog.args.value.toString()).to.equal(amount.toString());
+            expect(transferLog.args.amount.toString()).to.equal(amount.toString());
           } else {
             expect(false).to.be.true; // bad item type
           }
@@ -726,7 +726,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           expect(transferLogs.length).to.equal(1);
           const transferLog = transferLogs[0];
-          expect(transferLog.args.tokenId.toString()).to.equal(offer.identifier.toString());
+          expect(transferLog.args.id.toString()).to.equal(offer.identifier.toString());
 
         } else if (offer.itemType === 3) {
           // search for transfer
@@ -749,7 +749,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             expect(transferLog.args.id.toString()).to.equal(offer.identifier.toString());
             
             if (!shouldSkipAmountComparison) {
-              expect(transferLog.args.value.toString()).to.equal(offer.amount.mul(multiplier).toString());
+              expect(transferLog.args.amount.toString()).to.equal(offer.amount.mul(multiplier).toString());
             }
           } else {
             let located = false;
@@ -803,7 +803,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           expect(transferLogs.length).to.equal(1);
           const transferLog = transferLogs[0];
-          expect(transferLog.args.tokenId.toString()).to.equal(consideration.identifier.toString());
+          expect(transferLog.args.id.toString()).to.equal(consideration.identifier.toString());
 
         } else if (consideration.itemType === 3) {
           // search for transfer
@@ -823,7 +823,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           if (transferLog.signature === 'TransferSingle(address,address,address,uint256,uint256)') {
             expect(transferLog.args.id.toString()).to.equal(consideration.identifier.toString());
             if (!shouldSkipAmountComparison) {
-              expect(transferLog.args.value.toString()).to.equal(consideration.amount.toString());
+              expect(transferLog.args.amount.toString()).to.equal(consideration.amount.toString());
             }
           } else {
             let located = false;

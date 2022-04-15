@@ -1,10 +1,10 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@rari-capital/solmate/src/tokens/ERC1155.sol";
 
 // Used for minting test ERC1155s in our tests
-contract TestERC1155 is ERC1155("Test1155") {
+contract TestERC1155 is ERC1155() {
     function mint(
         address to,
         uint256 tokenId,
@@ -12,5 +12,9 @@ contract TestERC1155 is ERC1155("Test1155") {
     ) public returns (bool) {
         _mint(to, tokenId, amount, "");
         return true;
+    }
+
+    function uri(uint256) public pure override returns (string memory) {
+        return "uri";
     }
 }
