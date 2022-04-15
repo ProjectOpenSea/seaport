@@ -1,10 +1,10 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@rari-capital/solmate/src/tokens/ERC20.sol";
 
 // Used for minting test ERC20s in our tests
-contract TestERC20 is ERC20("Test20", "TST20") {
+contract TestERC20 is ERC20("Test20", "TST20", 18) {
     bool public blocked;
 
     constructor() {
