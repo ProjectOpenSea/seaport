@@ -2,13 +2,14 @@
 pragma solidity >=0.6.0 <0.9.0;
 
 import "ds-test/test.sol";
-import {stdCheats} from "../stdlib.sol";
+import { stdCheats } from "../stdlib.sol";
 import "../Vm.sol";
 
 contract StdCheatsTest is DSTest, stdCheats {
     Vm public constant vm = Vm(HEVM_ADDRESS);
 
     Bar test;
+
     function setUp() public {
         test = new Bar();
     }
@@ -27,31 +28,31 @@ contract StdCheatsTest is DSTest, stdCheats {
 
     function testHoax() public {
         hoax(address(1337));
-        test.bar{value: 100}(address(1337));
+        test.bar{ value: 100 }(address(1337));
     }
 
     function testHoaxOrigin() public {
         hoax(address(1337), address(1337));
-        test.origin{value: 100}(address(1337));
+        test.origin{ value: 100 }(address(1337));
     }
 
     function testHoaxDifferentAddresses() public {
         hoax(address(1337), address(7331));
-        test.origin{value: 100}(address(1337), address(7331));
+        test.origin{ value: 100 }(address(1337), address(7331));
     }
 
     function testStartHoax() public {
         startHoax(address(1337));
-        test.bar{value: 100}(address(1337));
-        test.bar{value: 100}(address(1337));
+        test.bar{ value: 100 }(address(1337));
+        test.bar{ value: 100 }(address(1337));
         vm.stopPrank();
         test.bar(address(this));
     }
 
     function testStartHoaxOrigin() public {
         startHoax(address(1337), address(1337));
-        test.origin{value: 100}(address(1337));
-        test.origin{value: 100}(address(1337));
+        test.origin{ value: 100 }(address(1337));
+        test.origin{ value: 100 }(address(1337));
         vm.stopPrank();
         test.bar(address(this));
     }
@@ -64,7 +65,10 @@ contract StdCheatsTest is DSTest, stdCheats {
     }
 
     function testDeployCode() public {
-        address deployed = deployCode("StdCheats.t.sol:StdCheatsTest", bytes(""));
+        address deployed = deployCode(
+            "StdCheats.t.sol:StdCheatsTest",
+            bytes("")
+        );
         assertEq(string(getCode(deployed)), string(getCode(address(this))));
     }
 
@@ -81,7 +85,10 @@ contract StdCheatsTest is DSTest, stdCheats {
             // by using o_code = new bytes(size)
             o_code := mload(0x40)
             // new "memory end" including padding
-            mstore(0x40, add(o_code, and(add(add(size, 0x20), 0x1f), not(0x1f))))
+            mstore(
+                0x40,
+                add(o_code, and(add(add(size, 0x20), 0x1f), not(0x1f)))
+            )
             // store length in memory
             mstore(o_code, size)
             // actually retrieve the code, this needs assembly
@@ -95,14 +102,20 @@ contract Bar {
     function bar(address expectedSender) public payable {
         require(msg.sender == expectedSender, "!prank");
     }
+
     function origin(address expectedSender) public payable {
         require(msg.sender == expectedSender, "!prank");
         require(tx.origin == expectedSender, "!prank");
     }
-    function origin(address expectedSender, address expectedOrigin) public payable {
+
+    function origin(address expectedSender, address expectedOrigin)
+        public
+        payable
+    {
         require(msg.sender == expectedSender, "!prank");
         require(tx.origin == expectedOrigin, "!prank");
     }
+
     /// `TIP` STDCHEAT
-    mapping (address => uint256) public balanceOf;
+    mapping(address => uint256) public balanceOf;
 }

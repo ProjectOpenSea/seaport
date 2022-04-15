@@ -133,7 +133,7 @@ contract ConsiderationTest is DSTestPlus {
         emit log(">>>>");
 
         // simple
-        consider.fulfillBasicOrder{value: _ethAmount}(order);
+        consider.fulfillBasicOrder{ value: _ethAmount }(order);
 
         //// to debug a bit
         // try consider.fulfillBasicOrder{value: _ethAmount}(order) {

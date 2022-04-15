@@ -2,13 +2,14 @@
 pragma solidity 0.8.10;
 
 import "ds-test/test.sol";
-import {stdError} from "../stdlib.sol";
+import { stdError } from "../stdlib.sol";
 import "../Vm.sol";
 
 contract StdErrorsTest is DSTest {
     Vm public constant vm = Vm(HEVM_ADDRESS);
 
     ErrorsTest test;
+
     function setUp() public {
         test = new ErrorsTest();
     }
@@ -121,7 +122,7 @@ contract ErrorsTest {
     }
 
     function intern() public returns (uint256) {
-        function (uint256) internal returns (uint256) x;
+        function(uint256) internal returns (uint256) x;
         x(2);
         return 7;
     }
