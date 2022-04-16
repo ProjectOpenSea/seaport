@@ -997,9 +997,9 @@ contract ConsiderationPure is ConsiderationBase {
         uint256 amount
     ) internal pure {
         advancedOrders[orderIndex]
-          .parameters
-          .offer[itemIndex]
-          .startAmount = amount;
+            .parameters
+            .offer[itemIndex]
+            .startAmount = amount;
     }
 
     /**
