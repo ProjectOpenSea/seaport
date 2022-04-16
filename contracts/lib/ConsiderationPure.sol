@@ -755,64 +755,44 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to apply a fraction to a consideration item.
+     * @dev Internal pure function to apply a fraction to a consideration
+     * or offer item.
      *
-     * @param considerationItem The consideration item.
-     * @param numerator         A value indicating the portion of the order that
-     *                          should be filled.
-     * @param denominator       A value indicating the total size of the order.
-     * @param elapsed           The time elapsed since the order's start time.
-     * @param remaining         The time left until the order's end time.
-     * @param duration          The total duration of the order.
+     * @param startAmount     The starting amount of the item.
+     * @param endAmount       The ending amount of the item.
+     * @param numerator       A value indicating the portion of the order that
+     *                        should be filled.
+     * @param denominator     A value indicating the total size of the order.
+     * @param elapsed         The time elapsed since the order's start time.
+     * @param remaining       The time left until the order's end time.
+     * @param duration        The total duration of the order.
      *
-     * @return item The received item to transfer with the final amount.
+     * @return amount The received item to transfer with the final amount.
      */
-    function _applyFractionToConsiderationItem(
-        ConsiderationItem memory considerationItem,
+    function _applyFraction(
+        uint256 startAmount,
+        uint256 endAmount,
         uint256 numerator,
         uint256 denominator,
         uint256 elapsed,
         uint256 remaining,
-        uint256 duration
-    ) internal pure returns (ReceivedItem memory item) {
-        // Declare variable for final amount.
-        uint256 amount;
-
+        uint256 duration,
+        bool roundUp
+    ) internal pure returns (uint256 amount) {
         // If start amount equals end amount, apply fraction to end amount.
-        if (considerationItem.startAmount == considerationItem.endAmount) {
-            amount = _getFraction(
-                numerator,
-                denominator,
-                considerationItem.endAmount
-            );
+        if (startAmount == endAmount) {
+            amount = _getFraction(numerator, denominator, endAmount);
         } else {
             // Otherwise, apply fraction to both to extrapolate final amount.
             amount = _locateCurrentAmount(
-                _getFraction(
-                    numerator,
-                    denominator,
-                    considerationItem.startAmount
-                ),
-                _getFraction(
-                    numerator,
-                    denominator,
-                    considerationItem.endAmount
-                ),
+                _getFraction(numerator, denominator, startAmount),
+                _getFraction(numerator, denominator, endAmount),
                 elapsed,
                 remaining,
                 duration,
-                true // round up
+                roundUp
             );
         }
-
-        // Apply order fill fraction, set recipient as receiver, and return.
-        item = ReceivedItem(
-            considerationItem.itemType,
-            considerationItem.token,
-            considerationItem.identifierOrCriteria,
-            amount,
-            considerationItem.recipient
-        );
     }
 
     /**
@@ -934,7 +914,7 @@ contract ConsiderationPure is ConsiderationBase {
             offerItem.itemType,
             offerItem.token,
             offerItem.identifierOrCriteria,
-            offerItem.endAmount
+            offerItem.startAmount
         );
 
         // Clear offer amount to indicate offer item has been spent.
@@ -990,7 +970,7 @@ contract ConsiderationPure is ConsiderationBase {
             considerationItem.itemType,
             considerationItem.token,
             considerationItem.identifierOrCriteria,
-            considerationItem.endAmount,
+            considerationItem.startAmount,
             considerationItem.recipient
         );
 
@@ -1016,9 +996,10 @@ contract ConsiderationPure is ConsiderationBase {
         uint256 itemIndex,
         uint256 amount
     ) internal pure {
-        advancedOrders[orderIndex].parameters.offer[itemIndex].endAmount = (
-            amount
-        );
+        advancedOrders[orderIndex]
+            .parameters
+            .offer[itemIndex]
+            .startAmount = amount;
     }
 
     /**
@@ -1040,7 +1021,7 @@ contract ConsiderationPure is ConsiderationBase {
         advancedOrders[orderIndex]
             .parameters
             .consideration[itemIndex]
-            .endAmount = amount;
+            .startAmount = amount;
     }
 
     /**

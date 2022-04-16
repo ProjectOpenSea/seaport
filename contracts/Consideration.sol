@@ -439,13 +439,6 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             false // Signifies that invalid orders should NOT revert.
         );
 
-        // Apply criteria resolvers to orders.
-        _applyCriteriaResolvers(
-            advancedOrders,
-            criteriaResolvers,
-            fulfillmentDetails
-        );
-
         // Aggregate used offer and consideration items and execute transfers.
         (standardExecutions, batchExecutions) = _fulfillAvailableOrders(
             advancedOrders,
