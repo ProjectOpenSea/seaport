@@ -138,7 +138,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         }
 
         // Derive & validate order using parameters and update order status.
-        bool useOffererProxy = _prepareBasicFulfillmentFromCalldata(
+        address offererConduit = _prepareBasicFulfillmentFromCalldata(
             parameters,
             orderType,
             receivedItemType,
@@ -155,10 +155,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Utilize assembly to derive proxy owner (if relevant) based on route.
         assembly {
-            // Set proxyOwner = useOffererProxy ? offerer : address(0) for
-            // route < 4 else = useFulfillerProxy ? msg.sender : address(0)
+            // Set proxyOwner = offererConduit ? offerer : address(0) for
+            // route < 4 else = fulfillerConduit ? msg.sender : address(0)
             proxyOwner := add(
-                mul(and(lt(route, 4), useOffererProxy), offerer),
+                mul(and(lt(route, 4), offererConduit), offerer),
                 mul(and(gt(route, 3), calldataload(0x1c4)), caller())
             )
         }
@@ -290,12 +290,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          behalf and that contracts must implement
      *                          `onERC1155Received` in order to receive ERC1155
      *                          tokens as consideration.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
+     * @param fulfillerConduit A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function fulfillOrder(Order calldata order, bool useFulfillerProxy)
+    function fulfillOrder(Order calldata order, address fulfillerConduit)
         external
         payable
         override
@@ -306,7 +306,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             _validateAndFulfillAdvancedOrder(
                 _convertOrderToAdvanced(order),
                 new CriteriaResolver[](0), // No criteria resolvers are supplied.
-                useFulfillerProxy
+                fulfillerConduit
             );
     }
 
@@ -336,7 +336,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          (transferrable) token identifier on the token in
      *                          question is valid and that no associated proof
      *                          needs to be supplied.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
+     * @param fulfillerConduit A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      *
      * @return A boolean indicating whether the order has been fulfilled.
@@ -344,14 +344,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     function fulfillAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
-        bool useFulfillerProxy
+        address fulfillerConduit
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
         return
             _validateAndFulfillAdvancedOrder(
                 advancedOrder,
                 criteriaResolvers,
-                useFulfillerProxy
+                fulfillerConduit
             );
     }
 
@@ -402,7 +402,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
-     * @param useFulfillerProxy         A flag indicating whether to source
+     * @param fulfillerConduit         A flag indicating whether to source
      *                                  approvals for fulfilled tokens from an
      *                                  associated proxy.
      *
@@ -421,7 +421,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         CriteriaResolver[] memory criteriaResolvers,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        bool useFulfillerProxy
+        address fulfillerConduit
     )
         external
         payable
@@ -445,7 +445,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             offerFulfillments,
             considerationFulfillments,
             fulfillmentDetails,
-            useFulfillerProxy
+            fulfillerConduit
         );
 
         // Return order fulfillment details and executions.

@@ -66,7 +66,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param offeredItemType              The item type of the offered item on
      *                                     the order.
      *
-     * @return useOffererProxy A boolean indicating whether the offerer has
+     * @return offererConduit A boolean indicating whether the offerer has
      *                         elected to utilize their proxy when transferring
      *                         ERC721 or ERC1155 offer items.
      */
@@ -77,7 +77,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         ItemType additionalRecipientsItemType,
         address additionalRecipientsToken,
         ItemType offeredItemType
-    ) internal returns (bool useOffererProxy) {
+    ) internal returns (address offererConduit) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
@@ -408,7 +408,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Determine if a proxy should be used and that restricted orders are valid.
-        useOffererProxy = _determineProxyUtilizationAndEnsureValidBasicOrder(
+        offererConduit = _determineProxyUtilizationAndEnsureValidBasicOrder(
             orderHash,
             parameters.zoneHash,
             orderType,
@@ -476,7 +476,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @return newNumerator    A value indicating the portion of the order that
      *                         will be filled.
      * @return newDenominator  A value indicating the total size of the order.
-     * @return useOffererProxy A boolean indicating whether to utilize the
+     * @return offererConduit A boolean indicating whether to utilize the
      *                         offerer's proxy.
      */
     function _validateOrderAndUpdateStatus(
@@ -488,7 +488,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             bytes32 orderHash,
             uint256 newNumerator,
             uint256 newDenominator,
-            bool useOffererProxy
+            address offererConduit
         )
     {
         // Retrieve the parameters for the order.
@@ -503,7 +503,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
         ) {
             // Assuming an invalid time and no revert, return zeroed out values.
-            return (bytes32(0), 0, 0, false);
+            return (bytes32(0), 0, 0, address(0));
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -529,7 +529,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
-        useOffererProxy = _determineProxyUtilizationAndEnsureValidAdvancedOrder(
+        offererConduit = _determineProxyUtilizationAndEnsureValidAdvancedOrder(
             advancedOrder,
             orderHash,
             orderParameters.zoneHash,
@@ -551,7 +551,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
         ) {
             // Assuming an invalid order status and no revert, return zero fill.
-            return (orderHash, 0, 0, useOffererProxy);
+            return (orderHash, 0, 0, offererConduit);
         }
 
         // If the order is not already validated, verify the supplied signature.
@@ -613,7 +613,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Return order hash, new numerator and denominator, and proxy boolean.
-        return (orderHash, numerator, denominator, useOffererProxy);
+        return (orderHash, numerator, denominator, offererConduit);
     }
 
     /**
@@ -632,7 +632,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          root. Note that a criteria of zero indicates
      *                          that any (transferrable) token identifier is
      *                          valid and that no proof needs to be supplied.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
+     * @param fulfillerConduit A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      *
      * @return A boolean indicating whether the order has been fulfilled.
@@ -640,7 +640,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     function _validateAndFulfillAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
-        bool useFulfillerProxy
+        address fulfillerConduit
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -650,7 +650,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             bytes32 orderHash,
             uint256 fillNumerator,
             uint256 fillDenominator,
-            bool useOffererProxy
+            address offererConduit
         ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Create an array with length 1 containing the order.
@@ -661,7 +661,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         FulfillmentDetail[] memory fulfillmentDetails = (
             new FulfillmentDetail[](1)
         );
-        fulfillmentDetails[0] = FulfillmentDetail(true, useOffererProxy);
+        fulfillmentDetails[0] = FulfillmentDetail(true, offererConduit);
 
         // Apply criteria resolvers using generated orders and details arrays.
         _applyCriteriaResolvers(
@@ -678,8 +678,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderParameters,
             fillNumerator,
             fillDenominator,
-            useOffererProxy,
-            useFulfillerProxy
+            offererConduit,
+            fulfillerConduit
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -707,17 +707,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param numerator         A value indicating the portion of the order that
      *                          should be filled.
      * @param denominator       A value indicating the total size of the order.
-     * @param useOffererProxy   A flag indicating whether to source approvals
+     * @param offererConduit   A flag indicating whether to source approvals
      *                          for offered tokens from an associated proxy.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
+     * @param fulfillerConduit A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
-        bool useOffererProxy,
-        bool useFulfillerProxy
+        address offererConduit,
+        address fulfillerConduit
     ) internal {
         // @todo - add better comments
         // Derive order duration, time elapsed, and time remaining.
@@ -728,9 +728,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
         {
-            function(OfferItem memory, address, bool)
+            function(OfferItem memory, address, address)
                 internal _transferOfferItem;
-            function(ReceivedItem memory, address, bool)
+            function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
             assembly {
                 _transferOfferItem := _transferReceivedItem
@@ -776,7 +776,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferOfferItem(
                     offerItem,
                     orderParameters.offerer,
-                    useOffererProxy
+                    offererConduit
                 );
 
                 // Skip overflow check as for loop is indexed starting at zero.
@@ -786,9 +786,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
         {
-            function(ConsiderationItem memory, address, bool)
+            function(ConsiderationItem memory, address, address)
                 internal _transferConsiderationItem;
-            function(ReceivedItem memory, address, bool)
+            function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
             assembly {
                 _transferConsiderationItem := _transferReceivedItem
@@ -838,7 +838,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferConsiderationItem(
                     considerationItem,
                     msg.sender,
-                    useFulfillerProxy
+                    fulfillerConduit
                 );
 
                 // Skip overflow check as for loop is indexed starting at zero.
@@ -906,7 +906,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     bytes32 orderHash,
                     uint256 numerator,
                     uint256 denominator,
-                    bool useOffererProxy
+                    address offererConduit
                 ) = _validateOrderAndUpdateStatus(
                         advancedOrder,
                         revertOnInvalid
@@ -923,7 +923,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Mark whether to fulfill the order and to use offerer's proxy.
                 fulfillmentDetails[i] = FulfillmentDetail(
                     shouldBeFulfilled,
-                    useOffererProxy
+                    offererConduit
                 );
 
                 // Do not track hash or adjust prices if order is not fulfilled.
@@ -1193,7 +1193,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         FulfillmentDetail[] memory fulfillmentDetails,
-        bool useFulfillerProxy
+        address fulfillerConduit
     ) internal returns (Execution[] memory, BatchExecution[] memory) {
         // Allocate an execution for each offer and consideration fulfillment.
         Execution[] memory executions = new Execution[](
@@ -1216,7 +1216,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     Side.OFFER,
                     components,
                     fulfillmentDetails,
-                    useFulfillerProxy
+                    fulfillerConduit
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -1242,7 +1242,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     Side.CONSIDERATION,
                     components,
                     fulfillmentDetails,
-                    useFulfillerProxy
+                    fulfillerConduit
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -1369,7 +1369,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
 
             // Transfer the item specified by the execution.
-            _transfer(item, execution.offerer, execution.useProxy);
+            _transfer(item, execution.offerer, execution.conduit);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -1402,13 +1402,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *
      * @param item     The item to transfer, including an amount and recipient.
      * @param offerer  The account offering the item, i.e. the from address.
-     * @param useProxy A boolean indicating whether to source approvals for the
+     * @param conduit A boolean indicating whether to source approvals for the
      *                 fulfilled token from the offer's proxy.
      */
     function _transfer(
         ReceivedItem memory item,
         address offerer,
-        bool useProxy
+        address conduit
     ) internal {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
@@ -1420,10 +1420,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
             _transferERC20(item.token, offerer, item.recipient, item.amount);
             // Otherwise, transfer the item based on item type and proxy preference.
         } else {
-            // Equivalent to useProxy ? offerer : address(0)
+            // Equivalent to conduit ? offerer : address(0)
             address proxyOwner;
             assembly {
-                proxyOwner := mul(offerer, useProxy)
+                if gt(conduit, 0) { proxyOwner := offerer }
             }
 
             if (item.itemType == ItemType.ERC721) {
@@ -1605,7 +1605,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         internal
     {
         // Place elements of the batch execution in memory onto the stack.
-        bool useProxy = batchExecution.useProxy;
+        address conduit = batchExecution.conduit;
         address token = batchExecution.token;
         address from = batchExecution.from;
         address to = batchExecution.to;
@@ -1614,10 +1614,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        // Equivalent to useProxy ? from : address(0)
+        // Equivalent to conduit ? from : address(0)
         address proxyOwner;
         assembly {
-            proxyOwner := mul(from, useProxy)
+            if gt(conduit, 0) { proxyOwner := from }
         }
 
         // Perform transfer, either directly or via proxy.

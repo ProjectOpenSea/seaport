@@ -105,7 +105,7 @@ struct BasicOrderParameters {
     uint256 endTime; // 0x164
     bytes32 zoneHash; // 0x184
     uint256 salt; // 0x1a4
-    bool useFulfillerProxy; // 0x1c4
+    address fulfillerConduit; // 0x1c4
     uint256 totalOriginalAdditionalRecipients; // 0x1e4
     AdditionalRecipient[] additionalRecipients; // 0x204
     bytes signature; // 0x224
@@ -230,7 +230,7 @@ struct FulfillmentComponent {
 struct Execution {
     ReceivedItem item;
     address offerer;
-    bool useProxy;
+    address conduit;
 }
 
 /**
@@ -244,7 +244,7 @@ struct BatchExecution {
     address to;
     uint256[] tokenIds;
     uint256[] amounts;
-    bool useProxy;
+    address conduit;
 }
 
 /**
@@ -263,5 +263,5 @@ struct Batch {
  */
 struct FulfillmentDetail {
     bool fulfillOrder;
-    bool useOffererProxy;
+    address offererConduit;
 }

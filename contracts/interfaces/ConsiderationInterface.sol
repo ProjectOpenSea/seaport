@@ -48,12 +48,12 @@ interface ConsiderationInterface {
      *                          behalf and that contracts must implement
      *                          `onERC1155Received` in order to receive ERC1155
      *                          tokens as consideration.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
+     * @param fulfillerConduit A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function fulfillOrder(Order calldata order, bool useFulfillerProxy)
+    function fulfillOrder(Order calldata order, address fulfillerConduit)
         external
         payable
         returns (bool);
@@ -84,7 +84,7 @@ interface ConsiderationInterface {
      *                          (transferrable) token identifier on the token in
      *                          question is valid and that no associated proof
      *                          needs to be supplied.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
+     * @param fulfillerConduit A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      *
      * @return A boolean indicating whether the order has been fulfilled.
@@ -92,7 +92,7 @@ interface ConsiderationInterface {
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
-        bool useFulfillerProxy
+        address fulfillerConduit
     ) external payable returns (bool);
 
     /**
@@ -142,7 +142,7 @@ interface ConsiderationInterface {
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
-     * @param useFulfillerProxy         A flag indicating whether to source
+     * @param fulfillerConduit         A flag indicating whether to source
      *                                  approvals for fulfilled tokens from an
      *                                  associated proxy.
      *
@@ -161,7 +161,7 @@ interface ConsiderationInterface {
         CriteriaResolver[] calldata criteriaResolvers,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
-        bool useFulfillerProxy
+        address fulfillerConduit
     )
         external
         payable
