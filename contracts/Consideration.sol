@@ -634,6 +634,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                         order.endTime,
                         order.zoneHash,
                         order.salt,
+                        order.conduit,
                         order.consideration.length
                     ),
                     order.nonce
@@ -776,6 +777,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                     order.endTime,
                     order.zoneHash,
                     order.salt,
+                    order.conduit,
                     order.consideration.length
                 ),
                 order.nonce

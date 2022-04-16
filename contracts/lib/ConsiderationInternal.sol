@@ -306,7 +306,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
              *   - 0x160:  orderParameters.endTime
              *   - 0x180:  orderParameters.zoneHash
              *   - 0x1a0:  orderParameters.salt
-             *   - 0x1c0:  _nonces[orderParameters.offerer] (from storage)
+             *   - 0x1c0:  orderParameters.conduit
+             *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
              */
 
             // Read the offerer from calldata and place on the stack.
@@ -334,14 +335,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Set supplied order type in memory.
                 mstore(0x120, orderType)
 
-                // Copy startTime, endTime, zoneHash, & salt and set in memory.
-                calldatacopy(0x140, 0x144, 0x80)
+                // Copy startTime, endTime, zoneHash, salt & conduit and set in memory.
+                calldatacopy(0x140, 0x144, 0xa0)
 
                 // Take offerer's nonce retrieved from storage & set in memory.
-                mstore(0x1c0, nonce)
+                mstore(0x1e0, nonce)
 
                 // Compute the order hash.
-                orderHash := keccak256(0x80, 0x160)
+                orderHash := keccak256(0x80, 0x180)
             }
         }
 

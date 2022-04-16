@@ -23,6 +23,7 @@ struct OrderComponents {
     uint256 endTime;
     bytes32 zoneHash;
     uint256 salt;
+    address conduit;
     uint256 nonce;
 }
 
@@ -138,6 +139,7 @@ struct OrderParameters {
     uint256 endTime;
     bytes32 zoneHash;
     uint256 salt;
+    address conduit;
     uint256 totalOriginalConsiderationItems;
 }
 

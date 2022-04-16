@@ -93,7 +93,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
             "uint256 endTime,",
             "bytes32 zoneHash,",
             "uint256 salt,",
-            "address fulfillerConduit,",
+            "address conduit,",
             "uint256 nonce",
             ")"
         );

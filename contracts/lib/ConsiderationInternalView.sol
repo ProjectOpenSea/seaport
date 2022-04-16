@@ -442,10 +442,10 @@ contract ConsiderationInternalView is ConsiderationPure {
             let considerationDataPtr := mload(considerationHeadPtr)
             mstore(considerationHeadPtr, considerationHash)
 
-            let noncePtr := add(orderParameters, 0x120)
+            let noncePtr := add(orderParameters, 0x140)
             mstore(noncePtr, nonce)
 
-            orderHash := keccak256(typeHashPtr, 0x160)
+            orderHash := keccak256(typeHashPtr, 0x180)
             mstore(typeHashPtr, previousValue)
             mstore(offerHeadPtr, offerDataPtr)
             mstore(considerationHeadPtr, considerationDataPtr)

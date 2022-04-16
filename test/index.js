@@ -93,7 +93,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     const considerationItemTypeString =
       "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)";
     const orderComponentsPartialTypeString =
-      "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,uint256 nonce)";
+      "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,address conduit,uint256 nonce)";
     const orderTypeString = `${orderComponentsPartialTypeString}${considerationItemTypeString}${offerItemTypeString}`;
 
     const offerItemTypeHash = ethers.utils.keccak256(
@@ -188,13 +188,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .padStart(64, "0"),
           orderComponents.zoneHash.slice(2),
           orderComponents.salt.slice(2).padStart(64, "0"),
+          orderComponents.conduit.slice(2).padStart(64, "0"),
           ethers.BigNumber.from(orderComponents.nonce)
             .toHexString()
             .slice(2)
             .padStart(64, "0"),
         ].join("")
     );
-
     expect(orderHash).to.equal(derivedOrderHash);
 
     return orderHash;
@@ -252,6 +252,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType,
       zoneHash,
       salt,
+      conduit:
+        orderType > 3
+          ? await legacyProxyRegistry.proxies(offerer.address)
+          : constants.AddressZero,
       startTime,
       endTime,
     };
@@ -402,6 +406,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType: 0, // FULL_OPEN
       zoneHash: "0x".padEnd(66, "0"),
       salt,
+      conduit: orderType > 3
+        ? await legacyProxyRegistry.proxies(offerer.address)
+        : constants.AddressZero,
       startTime,
       endTime,
     };
@@ -503,6 +510,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType: conduit ? 4 : 0, // FULL_OPEN_VIA_PROXY or FULL_OPEN
       zoneHash: "0x".padEnd(66, "0"),
       salt,
+      conduit,
       startTime,
       endTime,
     };
@@ -4019,9 +4027,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             {
@@ -4086,9 +4092,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, sellerProxy, true);
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             {
@@ -4155,9 +4159,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             {
@@ -4227,9 +4229,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, sellerProxy, true);
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             {
@@ -4301,9 +4301,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             {
@@ -4397,9 +4395,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, sellerProxy, true);
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             {
@@ -4514,9 +4510,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             getTestItem20(
@@ -4583,9 +4577,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             getTestItem20(
@@ -4654,9 +4646,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             getTestItem20(
@@ -4728,9 +4718,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             getTestItem20(
@@ -4804,9 +4792,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             getTestItem20(
@@ -4902,9 +4888,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            getTestItem1155(nftId, amount, amount),
-          ];
+          const offer = [getTestItem1155(nftId, amount, amount)];
 
           const consideration = [
             getTestItem20(
@@ -7639,9 +7623,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const considerationOne = [
-          getItemETH(10, 10, seller.address),
-        ];
+        const considerationOne = [getItemETH(10, 10, seller.address)];
 
         const {
           order: orderOne,
@@ -13391,7 +13373,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const offer = [
           getTestItem1155(nftId, amount, amount, marketplaceContract.address),
-          getTestItem1155(secondNftId, secondAmount, secondAmount, marketplaceContract.address)
+          getTestItem1155(
+            secondNftId,
+            secondAmount,
+            secondAmount,
+            marketplaceContract.address
+          ),
         ];
 
         const consideration = [
@@ -13574,9 +13561,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const offer = [getTestItem721(nftId)];
 
-        const consideration = [
-          getItemETH(10, 10, seller.address),
-        ];
+        const consideration = [getItemETH(10, 10, seller.address)];
         let order;
         ({ order, value } = await createOrder(
           seller,
