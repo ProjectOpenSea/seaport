@@ -885,7 +885,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 ) = _validateOrderAndUpdateStatus(
                         advancedOrder,
                         revertOnInvalid
-                    );
+                );
+                // Place the start time for the order on the stack.
+                uint256 startTime = advancedOrder.parameters.startTime;
+                uint256 duration = advancedOrder.parameters.endTime - startTime;
+                uint256 elapsed = block.timestamp - startTime;
+                uint256 remaining = duration - elapsed;
 
                 // Determine if order should be fulfilled based on numerator.
                 bool shouldBeFulfilled = numerator != 0;
@@ -913,73 +918,82 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < offer.length; ++j) {
                     // Retrieve the offer item.
-                    OfferItem memory item = offer[j];
-
+                    OfferItem memory offerItem = offer[j];
+                    // Apply order fill fraction to offer item end amount.
+                    uint256 endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        offerItem.endAmount
+                    );
                     // Reuse same fraction if start and end amounts are equal.
-                    if (item.startAmount == item.endAmount) {
-                        // Derive the fractional amount based on the end amount.
-                        uint256 amount = _getFraction(
-                            numerator,
-                            denominator,
-                            item.endAmount
-                        );
-
+                    if (offerItem.startAmount == offerItem.endAmount) {
                         // Apply derived amount to both start and end amount.
-                        item.startAmount = amount;
-                        item.endAmount = amount;
+                        offerItem.startAmount = endAmount;
                     } else {
                         // Apply order fill fraction to offer item start amount.
-                        item.startAmount = _getFraction(
+                        offerItem.startAmount = _getFraction(
                             numerator,
                             denominator,
-                            item.startAmount
-                        );
-
-                        // Apply order fill fraction to offer item end amount.
-                        item.endAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            item.endAmount
+                            offerItem.startAmount
                         );
                     }
+                    offerItem.endAmount = endAmount;
+                    // Adjust offer amounts based on current time (round down).
+                    offerItem.startAmount = _locateCurrentAmount(
+                        offerItem.startAmount,
+                        offerItem.endAmount,
+                        elapsed,
+                        remaining,
+                        duration,
+                        false // round down
+                    );
                 }
 
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < consideration.length; ++j) {
                     // Retrieve the consideration item.
-                    ConsiderationItem memory item = consideration[j];
+                    ConsiderationItem memory considerationItem = consideration[j];
+
+                    // Apply fraction to consideration item end amount.
+                    uint256 endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        considerationItem.endAmount
+                    );
 
                     // Reuse same fraction if start and end amounts are equal.
-                    if (item.startAmount == item.endAmount) {
-                        // Derive the fractional amount based on the end amount.
-                        uint256 amount = _getFraction(
-                            numerator,
-                            denominator,
-                            item.endAmount
-                        );
-
+                    if (considerationItem.startAmount == considerationItem.endAmount) {
                         // Apply derived amount to both start and end amount.
-                        item.startAmount = amount;
-                        item.endAmount = amount;
+                        considerationItem.startAmount = endAmount;
                     } else {
                         // Apply fraction to consideration item start amount.
-                        item.startAmount = _getFraction(
+                        considerationItem.startAmount = _getFraction(
                             numerator,
                             denominator,
-                            item.startAmount
-                        );
-
-                        // Apply fraction to consideration item end amount.
-                        item.endAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            item.endAmount
+                            considerationItem.startAmount
                         );
                     }
-                }
+                    considerationItem.endAmount = endAmount;
 
-                // Adjust prices based on time, start amount, and end amount.
-                _adjustAdvancedOrderPrice(advancedOrder);
+                    // Adjust consideration amount based on current time (round up).
+                    considerationItem.startAmount = (
+                        _locateCurrentAmount(
+                            considerationItem.startAmount,
+                            considerationItem.endAmount,
+                            elapsed,
+                            remaining,
+                            duration,
+                            true // round up
+                        )
+                    );
+                    assembly {
+                      // Write recipient to endAmount - endAmount is never used after this function
+                      mstore(
+                        add(considerationItem, 0x80),
+                        mload(add(considerationItem, 0xa0))
+                      )
+                    }
+                }
             }
         }
 
@@ -1289,7 +1303,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Iterate over each consideration item to ensure it is met.
                 for (uint256 j = 0; j < consideration.length; ++j) {
                     // Retrieve remaining amount on the consideration item.
-                    uint256 unmetAmount = consideration[j].endAmount;
+                    uint256 unmetAmount = consideration[j].startAmount;
 
                     // Revert if the remaining amount is not zero.
                     if (unmetAmount != 0) {
