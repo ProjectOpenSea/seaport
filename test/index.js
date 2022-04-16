@@ -3,11 +3,22 @@ const { JsonRpcProvider } = require("@ethersproject/providers");
 const { Wallet } = require("@ethersproject/wallet");
 const { expect } = require("chai");
 const { time } = require("console");
-const { constants } = require("ethers");
+const { constants, BigNumber } = require("ethers");
 const { ethers } = require("hardhat");
 const { TypedData, TypedDataUtils } = require("ethers-eip712");
 const { faucet, whileImpersonating } = require("./utils/impersonate");
+const { deployContract } = require("./utils/contracts");
 const { merkleTree } = require("./utils/criteria");
+const {
+  randomHex,
+  randomLarge,
+  toAddress,
+  convertSignatureToEIP2098,
+  getBasicOrderParameters,
+  getItem721,
+  getOfferOrConsiderationItem,
+  getItemETH,
+} = require("./utils/encoding");
 const { eip712DomainType } = require("../eip-712-types/domain");
 const { orderType } = require("../eip-712-types/order");
 
@@ -33,89 +44,46 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   let reenterer;
   let stubZone;
 
-  const randomHex = () =>
-    `0x${[...Array(64)]
-      .map(() => Math.floor(Math.random() * 16).toString(16))
-      .join("")}`;
-
-  const randomLarge = () =>
-    `0x${[...Array(60)]
-      .map(() => Math.floor(Math.random() * 16).toString(16))
-      .join("")}`;
-
-  const getBasicOrderParameters = (
-    basicOrderRouteType,
-    order,
-    useFulfillerProxy = false,
-    tips = []
-  ) => ({
-    offerer: order.parameters.offerer,
-    zone: order.parameters.zone,
-    basicOrderType: order.parameters.orderType + 8 * basicOrderRouteType,
-    offerToken: order.parameters.offer[0].token,
-    offerIdentifier: order.parameters.offer[0].identifierOrCriteria,
-    offerAmount: order.parameters.offer[0].endAmount,
-    considerationToken: order.parameters.consideration[0].token,
-    considerationIdentifier:
-      order.parameters.consideration[0].identifierOrCriteria,
-    considerationAmount: order.parameters.consideration[0].endAmount,
-    startTime: order.parameters.startTime,
-    endTime: order.parameters.endTime,
-    zoneHash: order.parameters.zoneHash,
-    salt: order.parameters.salt,
-    totalOriginalAdditionalRecipients:
-      order.parameters.consideration.length - 1,
-    signature: order.signature,
-    useFulfillerProxy,
-    additionalRecipients: [
-      ...order.parameters.consideration
-        .slice(1)
-        .map(({ endAmount, recipient }) => ({ amount: endAmount, recipient })),
-      ...tips,
-    ],
-  });
-
-  const convertSignatureToEIP2098 = (signature) => {
-    if (signature.length === 130) {
-      return signature;
-    }
-
-    if (signature.length !== 132) {
-      throw error("invalid signature length (must be 64 or 65 bytes)");
-    }
-
-    signature = signature.toLowerCase();
-
-    // flip signature if malleable
-    const secp256k1n = ethers.BigNumber.from(
-      "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
+  const getTestItem721 = (
+    identifierOrCriteria,
+    startAmount = 1,
+    endAmount = 1,
+    recipient
+  ) =>
+    getOfferOrConsiderationItem(
+      2,
+      testERC721.address,
+      identifierOrCriteria,
+      startAmount,
+      endAmount,
+      recipient
     );
-    const maxS = ethers.BigNumber.from(
-      "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0"
+
+  const getTestItem20 = (startAmount = 50, endAmount = 50, recipient) =>
+    getOfferOrConsiderationItem(
+      1,
+      testERC20.address,
+      0,
+      startAmount,
+      endAmount,
+      recipient
     );
-    let s = ethers.BigNumber.from("0x" + signature.slice(66, 130));
-    let v = signature.slice(130);
 
-    if (v !== "1b" && v !== "1c") {
-      throw error("invalid v value (must be 27 or 28)");
-    }
-
-    if (s.gt(maxS)) {
-      s = secp256k1n.sub(s);
-      v = v === "1c" ? "1b" : "1c";
-    }
-
-    const nonMalleableSig = `${signature.slice(0, 66)}${s
-      .toHexString()
-      .slice(2)}${v}`;
-
-    // Convert the signature by adding a higher bit
-    return nonMalleableSig.slice(-2) === "1b"
-      ? nonMalleableSig.slice(0, -2)
-      : `${nonMalleableSig.slice(0, 66)}${(
-          parseInt("0x" + nonMalleableSig[66]) + 8
-        ).toString(16)}${nonMalleableSig.slice(67, -2)}`;
-  };
+  const getTestItem1155 = (
+    identifierOrCriteria,
+    startAmount,
+    endAmount,
+    token = testERC1155.address,
+    recipient
+  ) =>
+    getOfferOrConsiderationItem(
+      3,
+      token,
+      identifierOrCriteria,
+      startAmount,
+      endAmount,
+      recipient
+    );
 
   const getAndVerifyOrderHash = async (orderComponents) => {
     const orderHash = await marketplaceContract.getOrderHash(orderComponents);
@@ -307,7 +275,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       totalSize,
     };
 
-    const flatSig = await signOrder(orderComponents, signer ? signer : offerer);
+    const flatSig = await signOrder(orderComponents, signer || offerer);
 
     const order = {
       parameters: orderParameters,
@@ -474,7 +442,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     zone,
     order,
     criteriaResolvers,
-    useProxy = false
+    conduit = false
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
@@ -532,7 +500,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ),
       })),
       totalOriginalConsiderationItems: order.parameters.offer.length,
-      orderType: useProxy ? 4 : 0, // FULL_OPEN_VIA_PROXY or FULL_OPEN
+      orderType: conduit ? 4 : 0, // FULL_OPEN_VIA_PROXY or FULL_OPEN
       zoneHash: "0x".padEnd(66, "0"),
       salt,
       startTime,
@@ -581,7 +549,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   ) => {
     if (standardExecutions && standardExecutions.length > 0) {
       for (standardExecution of standardExecutions) {
-        const { item, offerer, useProxy } = standardExecution;
+        const { item, offerer, conduit } = standardExecution;
 
         const { itemType, token, identifier, amount, recipient } = item;
 
@@ -1124,63 +1092,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     await Promise.all(
       [owner].map((wallet) => faucet(wallet.address, provider))
     );
-
-    const considerationFactory = await ethers.getContractFactory(
-      "Consideration"
-    );
-    const TestERC20Factory = await ethers.getContractFactory(
-      "TestERC20",
-      owner
-    );
-    const TestERC721Factory = await ethers.getContractFactory(
-      "TestERC721",
-      owner
-    );
-    const TestERC1155Factory = await ethers.getContractFactory(
-      "TestERC1155",
-      owner
-    );
-    const legacyProxyRegistryFactory = await ethers.getContractFactory(
-      "WyvernProxyRegistry"
-    );
-
     ownedUpgradeabilityProxy = await ethers.getContractFactory(
       "OwnedUpgradeabilityProxy"
     );
 
-    const reentererFactory = await ethers.getContractFactory("Reenterer");
-
     EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
 
-    reenterer = await reentererFactory.deploy();
-
-    await whileImpersonating(owner.address, provider, async () => {
-      legacyProxyRegistry = await legacyProxyRegistryFactory
-        .connect(owner)
-        .deploy();
-    });
-
+    reenterer = await deployContract("Reenterer", owner);
+    legacyProxyRegistry = await deployContract("WyvernProxyRegistry", owner);
     legacyProxyImplementation =
       await legacyProxyRegistry.delegateProxyImplementation();
-
-    marketplaceContract = await considerationFactory.deploy(
+    marketplaceContract = await deployContract(
+      "Consideration",
+      owner,
       legacyProxyRegistry.address,
       legacyProxyImplementation
     );
+    await legacyProxyRegistry.grantInitialAuthentication(
+      marketplaceContract.address
+    );
+    testERC20 = await deployContract("TestERC20", owner);
+    testERC721 = await deployContract("TestERC721", owner);
+    testERC1155 = await deployContract("TestERC1155", owner);
 
-    await whileImpersonating(owner.address, provider, async () => {
-      await legacyProxyRegistry.grantInitialAuthentication(
-        marketplaceContract.address
-      );
-    });
-
-    testERC20 = await TestERC20Factory.deploy();
-    testERC721 = await TestERC721Factory.deploy();
-    testERC1155 = await TestERC1155Factory.deploy();
-
-    const StubZoneFactory = await ethers.getContractFactory("TestZone");
-
-    stubZone = await StubZoneFactory.deploy();
+    stubZone = await deployContract("TestZone", owner);
 
     tokenByType = [
       { address: constants.AddressZero }, // ETH
@@ -1654,15 +1589,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -1703,7 +1630,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false, { value });
+                .fulfillOrder(order, toAddress(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -1726,15 +1653,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, sellerProxy, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -1775,7 +1694,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false, { value });
+                .fulfillOrder(order, toAddress(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -1800,15 +1719,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -1851,7 +1762,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false, {
+                .fulfillOrder(order, toAddress(false), {
                   value: value.add(ethers.utils.parseEther("1")),
                 });
               const receipt = await tx.wait();
@@ -1878,15 +1789,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -1927,7 +1830,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false, { value });
+                .fulfillOrder(order, toAddress(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -1952,15 +1855,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2003,7 +1898,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(order, [], false, { value });
+                .fulfillAdvancedOrder(order, [], toAddress(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2028,15 +1923,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2107,15 +1994,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2202,15 +2081,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, sellerProxy, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2281,15 +2152,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2360,15 +2223,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2446,15 +2301,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2530,15 +2377,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2611,15 +2450,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2712,15 +2543,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, sellerProxy, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2815,15 +2638,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .withArgs(seller.address, marketplaceContract.address, true);
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -2950,41 +2765,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -2999,7 +2789,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false);
+                .fulfillOrder(order, toAddress(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -3052,41 +2842,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -3101,7 +2866,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false);
+                .fulfillOrder(order, toAddress(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -3156,41 +2921,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -3263,41 +3003,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -3365,15 +3080,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -3384,22 +3091,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               endAmount: tokenAmount.sub(100),
               recipient: sellerContract.address,
             },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -3470,15 +3163,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
             {
@@ -3489,22 +3174,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               endAmount: tokenAmount.sub(100),
               recipient: sellerContract.address,
             },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -3606,41 +3277,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -3737,41 +3383,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          const offer = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-            },
-          ];
+          const offer = [getTestItem721(nftId)];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -3888,30 +3509,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ];
 
           const consideration = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -3926,7 +3526,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false);
+                .fulfillOrder(order, toAddress(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -3994,30 +3594,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ];
 
           const consideration = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -4032,7 +3611,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, true);
+                .fulfillOrder(order, toAddress(true));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4089,30 +3668,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ];
 
           const consideration = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -4192,30 +3750,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ];
 
           const consideration = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -4298,30 +3835,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ];
 
           const consideration = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -4420,30 +3936,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ];
 
           const consideration = [
-            {
-              itemType: 2, // ERC721
-              token: testERC721.address,
-              identifierOrCriteria: nftId,
-              startAmount: ethers.BigNumber.from(1),
-              endAmount: ethers.BigNumber.from(1),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -4525,13 +4020,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
@@ -4573,7 +4062,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false, { value });
+                .fulfillOrder(order, toAddress(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4598,13 +4087,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
@@ -4646,7 +4129,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false, { value });
+                .fulfillOrder(order, toAddress(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4673,13 +4156,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
@@ -4751,13 +4228,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
@@ -4831,13 +4302,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
@@ -4933,13 +4398,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
@@ -5056,40 +4515,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -5104,7 +4540,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false);
+                .fulfillOrder(order, toAddress(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5148,40 +4584,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -5196,7 +4609,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false);
+                .fulfillOrder(order, toAddress(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5242,40 +4655,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -5339,40 +4729,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -5438,40 +4805,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -5559,40 +4903,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           const offer = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount,
-              endAmount: amount,
-            },
+            getTestItem1155(nftId, amount, amount),
           ];
 
           const consideration = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount.sub(100),
-              endAmount: tokenAmount.sub(100),
-              recipient: seller.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -5718,22 +5039,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               endAmount: amount,
               recipient: seller.address,
             },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -5748,7 +5055,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false);
+                .fulfillOrder(order, toAddress(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5825,22 +5132,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               endAmount: amount,
               recipient: seller.address,
             },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -5855,7 +5148,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, true);
+                .fulfillOrder(order, toAddress(true));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5921,22 +5214,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               endAmount: amount,
               recipient: seller.address,
             },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -6025,22 +5304,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               endAmount: amount,
               recipient: seller.address,
             },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -6132,22 +5397,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               endAmount: amount,
               recipient: seller.address,
             },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -6255,22 +5506,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               endAmount: amount,
               recipient: seller.address,
             },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: zone.address,
-            },
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: ethers.BigNumber.from(50),
-              endAmount: ethers.BigNumber.from(50),
-              recipient: owner.address,
-            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -6364,41 +5601,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -6423,7 +5631,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -6453,7 +5661,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value });
+              .fulfillOrder(order, toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6484,41 +5692,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -6542,7 +5721,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -6571,7 +5750,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value });
+              .fulfillOrder(order, toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6590,41 +5769,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         // Seller mints an nft
         const nftId = ethers.BigNumber.from(randomHex());
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value, orderComponents } = await createOrder(
@@ -6650,7 +5800,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -6707,41 +5857,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value, orderComponents } = await createOrder(
@@ -6781,7 +5902,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -6807,41 +5928,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value, orderComponents } = await createOrder(
@@ -6894,7 +5986,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -6920,41 +6012,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value, orderComponents } = await createOrder(
@@ -6994,7 +6057,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -7020,41 +6083,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value, orderComponents } = await createOrder(
@@ -7107,7 +6141,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -7137,41 +6171,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         let { order, orderHash, value, orderComponents } = await createOrder(
@@ -7201,7 +6206,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -7225,7 +6230,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value });
+              .fulfillOrder(order, toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -7250,41 +6255,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         let { order, orderHash, value, orderComponents } = await createOrder(
@@ -7320,7 +6296,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -7344,7 +6320,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value });
+              .fulfillOrder(order, toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -7369,41 +6345,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         let { order, orderHash, value, orderComponents } = await createOrder(
@@ -7439,7 +6386,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -7463,7 +6410,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value });
+              .fulfillOrder(order, toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -7567,7 +6514,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7594,7 +6541,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7647,7 +6594,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks(ordersClone, 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7743,7 +6690,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7770,7 +6717,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7823,7 +6770,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks(ordersClone, 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7883,30 +6830,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const criteriaResolvers = [
@@ -7932,7 +6858,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, criteriaResolvers, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, criteriaResolvers, false, { value });
+              .fulfillAdvancedOrder(
+                order,
+                criteriaResolvers,
+                toAddress(false),
+                { value }
+              );
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7981,30 +6912,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const criteriaResolvers = [
@@ -8210,9 +7120,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(order, criteriaResolvers, false, {
-                  value,
-                });
+                .fulfillAdvancedOrder(
+                  order,
+                  criteriaResolvers,
+                  toAddress(false),
+                  {
+                    value,
+                  }
+                );
               const receipt = await tx.wait();
               await checkExpectedEvents(
                 receipt,
@@ -8259,30 +7174,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -8304,7 +7198,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -8424,7 +7318,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -8746,14 +7640,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const considerationOne = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
+          getItemETH(10, 10, seller.address),
         ];
 
         const {
@@ -9494,30 +8381,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -9702,30 +8568,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -9868,41 +8713,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -9952,7 +8768,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                false,
+                toAddress(false),
                 { value }
               );
             const receipt = await tx.wait();
@@ -9991,30 +8807,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const {
@@ -10096,7 +8891,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   [],
                   offerComponents,
                   considerationComponents,
-                  false,
+                  toAddress(false),
                   { value: value.mul(2) }
                 );
               const receipt = await tx.wait();
@@ -10164,30 +8959,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const {
@@ -10250,7 +9024,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([orderFour], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(orderFour, false, { value });
+              .fulfillOrder(orderFour, toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               {
@@ -10350,7 +9124,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                false,
+                toAddress(false),
                 { value: value.mul(4) }
               );
             const receipt = await tx.wait();
@@ -10408,30 +9182,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const {
@@ -10514,7 +9267,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                false,
+                toAddress(false),
                 { value: value.mul(2) }
               );
             const receipt = await tx.wait();
@@ -10631,7 +9384,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -10649,7 +9402,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -10667,7 +9420,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -10685,7 +9438,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10781,7 +9534,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -10799,7 +9552,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10895,7 +9648,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -10913,7 +9666,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -11009,7 +9762,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -11118,7 +9871,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -11142,7 +9895,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
       });
@@ -11211,7 +9964,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         // Remove a consideration item
         order.parameters.consideration.pop();
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect(orderStatus.isCancelled).to.equal(false);
         expect(orderStatus.isValidated).to.equal(false);
@@ -11222,7 +9975,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
       });
@@ -11242,41 +9995,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -11353,41 +10077,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -11418,7 +10113,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.reverted;
         });
 
-        //construct an invalid signature
+        // construct an invalid signature
         basicOrderParameters.signature = "0x".padEnd(130, "f") + "1c";
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -11479,15 +10174,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
           {
@@ -11582,15 +10269,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
           {
@@ -11659,41 +10338,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -11712,7 +10362,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
       });
@@ -11732,41 +10382,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -11890,41 +10511,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -12039,30 +10631,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -12076,7 +10647,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const { mirrorOrder, mirrorOrderHash, mirrorValue } =
           await createMirrorBuyNowOrder(buyer, zone, order);
 
-        let fulfillments = [
+        const fulfillments = [
           {
             offerComponents: [
               {
@@ -12184,14 +10755,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
+          getItemETH(10, 10, seller.address),
           {
             itemType: 1, // ERC20
             token: testERC20.address,
@@ -12200,14 +10764,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             endAmount: ethers.utils.parseEther("1"),
             recipient: zone.address,
           },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -12221,7 +10778,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const { mirrorOrder, mirrorOrderHash, mirrorValue } =
           await createMirrorBuyNowOrder(buyer, zone, order);
 
-        let fulfillments = [
+        const fulfillments = [
           {
             offerComponents: [
               {
@@ -12308,41 +10865,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -12356,7 +10884,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const { mirrorOrder, mirrorOrderHash, mirrorValue } =
           await createMirrorBuyNowOrder(buyer, zone, order);
 
-        let fulfillments = [
+        const fulfillments = [
           {
             offerComponents: [
               {
@@ -12443,41 +10971,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -12491,7 +10990,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const { mirrorOrder, mirrorOrderHash, mirrorValue } =
           await createMirrorBuyNowOrder(buyer, zone, order);
 
-        let fulfillments = [
+        const fulfillments = [
           {
             offerComponents: [
               {
@@ -12574,41 +11073,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -12622,7 +11092,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const { mirrorOrder, mirrorOrderHash, mirrorValue } =
           await createMirrorBuyNowOrder(buyer, zone, order);
 
-        let fulfillments = [
+        const fulfillments = [
           {
             offerComponents: [
               {
@@ -12705,41 +11175,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -12782,7 +11223,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                false,
+                toAddress(false),
                 { value }
               )
           ).to.be.reverted;
@@ -12823,30 +11264,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -12900,7 +11320,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                false,
+                toAddress(false),
                 { value }
               )
           ).to.be.reverted;
@@ -12940,30 +11360,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -13017,7 +11416,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                false,
+                toAddress(false),
                 { value }
               )
           ).to.be.reverted;
@@ -13039,41 +11438,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -13121,7 +11491,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                false,
+                toAddress(false),
                 { value }
               )
           ).to.be.reverted;
@@ -13143,25 +11513,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
+          getItemETH(10, 10, seller.address),
           {
             itemType: 2, // ERC721
             token: testERC721.address,
@@ -13211,7 +11566,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                false,
+                toAddress(false),
                 { value }
               )
           ).to.be.reverted;
@@ -13245,30 +11600,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         // first order is expired
@@ -13323,7 +11657,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([orderThree], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(orderThree, false, { value });
+              .fulfillOrder(orderThree, toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               {
@@ -13407,7 +11741,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                false,
+                toAddress(false),
                 { value: value.mul(3) }
               )
           ).to.be.reverted;
@@ -13449,30 +11783,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const criteriaResolvers = [
@@ -13501,7 +11814,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, criteriaResolvers, false, { value })
+              .fulfillAdvancedOrder(
+                order,
+                criteriaResolvers,
+                toAddress(false),
+                { value }
+              )
           ).to.be.reverted;
         });
 
@@ -13512,7 +11830,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, criteriaResolvers, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, criteriaResolvers, false, { value });
+              .fulfillAdvancedOrder(
+                order,
+                criteriaResolvers,
+                toAddress(false),
+                { value }
+              );
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -13581,41 +11904,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, sellerProxy, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -13698,30 +11992,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -13736,7 +12009,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
       });
@@ -13759,41 +12032,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -13810,7 +12054,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
       });
@@ -13830,41 +12074,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -13881,7 +12096,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
       });
@@ -13901,41 +12116,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -13977,41 +12163,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -14053,41 +12210,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -14129,41 +12257,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -14208,41 +12307,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -14297,41 +12367,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -14415,22 +12456,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             endAmount: ethers.BigNumber.from(1),
             recipient: seller.address,
           },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -14445,15 +12472,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value: ethers.BigNumber.from(1) })
+              .fulfillOrder(order, toAddress(false), {
+                value: ethers.BigNumber.from(1),
+              })
           ).to.be.reverted;
         });
 
         await whileImpersonating(buyer.address, provider, async () => {
           await expect(
-            marketplaceContract.connect(buyer).fulfillOrder(order, false, {
-              value: ethers.utils.parseEther("9.999999"),
-            })
+            marketplaceContract
+              .connect(buyer)
+              .fulfillOrder(order, toAddress(false), {
+                value: ethers.utils.parseEther("9.999999"),
+              })
           ).to.be.reverted;
         });
 
@@ -14465,7 +12496,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, false, {
+                .fulfillOrder(order, toAddress(false), {
                   value: ethers.utils.parseEther("12"),
                 });
               const receipt = await tx.wait();
@@ -14550,7 +12581,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, {
+              .fulfillAdvancedOrder(order, [], toAddress(false), {
                 value: ethers.BigNumber.from(1),
               })
           ).to.be.reverted;
@@ -14567,7 +12598,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value: value.sub(1) })
+              .fulfillAdvancedOrder(order, [], toAddress(false), {
+                value: value.sub(1),
+              })
           ).to.be.reverted;
         });
 
@@ -14583,7 +12616,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value: value.add(1) });
+              .fulfillAdvancedOrder(order, [], toAddress(false), {
+                value: value.add(1),
+              });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -14619,41 +12654,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -14769,15 +12775,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
           {
@@ -14913,7 +12911,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -14939,7 +12937,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -15043,7 +13041,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
 
@@ -15060,7 +13058,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value });
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -15109,30 +13107,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -15227,7 +13204,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.reverted;
         });
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect(orderStatus.isCancelled).to.equal(false);
         expect(orderStatus.isValidated).to.equal(false);
@@ -15332,7 +13309,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
       });
@@ -15386,7 +13363,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], false, { value })
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
         });
       });
@@ -15413,47 +13390,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
 
         const offer = [
-          {
-            itemType: 3, // ERC1155
-            token: marketplaceContract.address,
-            identifierOrCriteria: nftId,
-            startAmount: amount,
-            endAmount: amount,
-          },
-          {
-            itemType: 3, // ERC1155
-            token: marketplaceContract.address,
-            identifierOrCriteria: secondNftId,
-            startAmount: secondAmount,
-            endAmount: secondAmount,
-          },
+          getTestItem1155(nftId, amount, amount, marketplaceContract.address),
+          getTestItem1155(secondNftId, secondAmount, secondAmount, marketplaceContract.address)
         ];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: zone.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -15548,7 +13492,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.reverted;
         });
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect(orderStatus.isCancelled).to.equal(false);
         expect(orderStatus.isValidated).to.equal(false);
@@ -15571,25 +13515,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
+          getItemETH(10, 10, seller.address),
           {
             itemType: 0, // ETH
             token: constants.AddressZero,
@@ -15598,14 +13527,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             endAmount: ethers.utils.parseEther("1"),
             recipient: marketplaceContract.address,
           },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: owner.address,
-          },
+          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -15650,25 +13572,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
+          getItemETH(10, 10, seller.address),
         ];
         let order;
         ({ order, value } = await createOrder(
@@ -15761,33 +13668,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: ethers.BigNumber.from(1),
-            endAmount: ethers.BigNumber.from(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("10"),
-            endAmount: ethers.utils.parseEther("10"),
-            recipient: seller.address,
-          },
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: ethers.utils.parseEther("1"),
-            endAmount: ethers.utils.parseEther("1"),
-            recipient: reenterer.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, reenterer.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -15801,7 +13686,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         // prepare the reentrant call on the reenterer
         const callData = marketplaceContract.interface.encodeFunctionData(
           "fulfillOrder",
-          [order, false]
+          [order, toAddress(false)]
         );
         const tx = await reenterer.prepare(
           marketplaceContract.address,
@@ -15814,7 +13699,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, false, { value })
+              .fulfillOrder(order, toAddress(false), { value })
           ).to.be.reverted;
         });
       });
