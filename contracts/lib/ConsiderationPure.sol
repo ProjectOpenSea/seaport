@@ -914,7 +914,7 @@ contract ConsiderationPure is ConsiderationBase {
             offerItem.itemType,
             offerItem.token,
             offerItem.identifierOrCriteria,
-            offerItem.endAmount
+            offerItem.startAmount
         );
 
         // Clear offer amount to indicate offer item has been spent.
@@ -970,7 +970,7 @@ contract ConsiderationPure is ConsiderationBase {
             considerationItem.itemType,
             considerationItem.token,
             considerationItem.identifierOrCriteria,
-            considerationItem.endAmount,
+            considerationItem.startAmount,
             considerationItem.recipient
         );
 
@@ -996,9 +996,10 @@ contract ConsiderationPure is ConsiderationBase {
         uint256 itemIndex,
         uint256 amount
     ) internal pure {
-        advancedOrders[orderIndex].parameters.offer[itemIndex].endAmount = (
-            amount
-        );
+        advancedOrders[orderIndex]
+          .parameters
+          .offer[itemIndex]
+          .startAmount = amount;
     }
 
     /**
@@ -1020,7 +1021,7 @@ contract ConsiderationPure is ConsiderationBase {
         advancedOrders[orderIndex]
             .parameters
             .consideration[itemIndex]
-            .endAmount = amount;
+            .startAmount = amount;
     }
 
     /**
