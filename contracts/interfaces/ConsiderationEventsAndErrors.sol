@@ -362,7 +362,14 @@ interface ConsiderationEventsAndErrors {
     error NoReentrantCalls();
 
     /**
-     * @dev Revert with an error when the implementation of the respectie proxy
+     * @dev Revert with an error when a caller attempts to supply callvalue to a
+     *      non-payable basic order route or does not supply any callvalue to a
+     *      payable basic order route.
+     */
+    error InvalidMsgValue(uint256 value);
+
+    /**
+     * @dev Revert with an error when the implementation of the respective proxy
      *      does not match the expected proxy implementation.
      */
     error InvalidProxyImplementation();
