@@ -719,6 +719,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         bool useOffererProxy,
         bool useFulfillerProxy
     ) internal {
+        // @todo - add better comments
         // Derive order duration, time elapsed, and time remaining.
         uint256 duration = orderParameters.endTime - orderParameters.startTime;
         uint256 elapsed = block.timestamp - orderParameters.startTime;
@@ -726,86 +727,124 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
-
-        // Iterate over each offer on the order.
-        for (uint256 i = 0; i < orderParameters.offer.length; ) {
-            // Retrieve the offer item.
-            OfferItem memory offerItem = orderParameters.offer[i];
-
-            // Derive amount to transfer of offer item and return received item.
-            ReceivedItem memory item = _applyFractionToOfferItem(
-                offerItem,
-                numerator,
-                denominator,
-                elapsed,
-                remaining,
-                duration
-            );
-
-            // If offer expects ETH or a native token, reduce value available.
-            if (offerItem.itemType == ItemType.NATIVE) {
-                // Ensure that sufficient native tokens are still available.
-                if (item.amount > etherRemaining) {
-                    revert InsufficientEtherSupplied();
-                }
-
-                // Skip underflow check as amount is less than ether remaining.
-                unchecked {
-                    etherRemaining -= item.amount;
-                }
+        {
+            function(OfferItem memory, address, bool)
+                internal _transferOfferItem;
+            function(ReceivedItem memory, address, bool)
+                internal _transferReceivedItem = _transfer;
+            assembly {
+                _transferOfferItem := _transferReceivedItem
             }
 
-            // Transfer the item from the offerer to the caller.
-            _transfer(item, orderParameters.offerer, useOffererProxy);
+            // Iterate over each offer on the order.
+            for (uint256 i = 0; i < orderParameters.offer.length; ) {
+                // Retrieve the offer item.
+                OfferItem memory offerItem = orderParameters.offer[i];
 
-            // Update offer amount so that an accurate event can be emitted.
-            offerItem.endAmount = item.amount;
+                // // Derive amount to transfer of offer item and return received item.
+                uint256 amount = _applyFraction(
+                    offerItem.startAmount,
+                    offerItem.endAmount,
+                    numerator,
+                    denominator,
+                    elapsed,
+                    remaining,
+                    duration,
+                    false
+                );
+                assembly {
+                    // Write fractional amount to startAmount as amount
+                    mstore(add(offerItem, 0x60), amount)
+                    // Write caller to endAmount as recipient
+                    mstore(add(offerItem, 0x80), caller())
+                }
 
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
+                // If offer expects ETH or a native token, reduce value available.
+                if (offerItem.itemType == ItemType.NATIVE) {
+                    // Ensure that sufficient native tokens are still available.
+                    if (amount > etherRemaining) {
+                        revert InsufficientEtherSupplied();
+                    }
+
+                    // Skip underflow check as amount is less than ether remaining.
+                    unchecked {
+                        etherRemaining -= amount;
+                    }
+                }
+
+                // Transfer the item from the offerer to the caller.
+                _transferOfferItem(
+                    offerItem,
+                    orderParameters.offerer,
+                    useOffererProxy
+                );
+
+                // Skip overflow check as for loop is indexed starting at zero.
+                unchecked {
+                    ++i;
+                }
             }
         }
-
-        // Iterate over each consideration on the order.
-        for (uint256 i = 0; i < orderParameters.consideration.length; ) {
-            // Retrieve the consideration item.
-            ConsiderationItem memory considerationItem = (
-                orderParameters.consideration[i]
-            );
-
-            // Get consideration item transfer amount and return received item.
-            ReceivedItem memory item = _applyFractionToConsiderationItem(
-                considerationItem,
-                numerator,
-                denominator,
-                elapsed,
-                remaining,
-                duration
-            );
-
-            // If item expects ETH or a native token, reduce value available.
-            if (considerationItem.itemType == ItemType.NATIVE) {
-                // Ensure that sufficient native tokens are still available.
-                if (item.amount > etherRemaining) {
-                    revert InsufficientEtherSupplied();
-                }
-
-                // Skip underflow check as amount is less than ether remaining.
-                unchecked {
-                    etherRemaining -= item.amount;
-                }
+        {
+            function(ConsiderationItem memory, address, bool)
+                internal _transferConsiderationItem;
+            function(ReceivedItem memory, address, bool)
+                internal _transferReceivedItem = _transfer;
+            assembly {
+                _transferConsiderationItem := _transferReceivedItem
             }
 
-            // Transfer the item from the caller to the consideration recipient.
-            _transfer(item, msg.sender, useFulfillerProxy);
+            // Iterate over each consideration on the order.
+            for (uint256 i = 0; i < orderParameters.consideration.length; ) {
+                // Retrieve the consideration item.
+                ConsiderationItem memory considerationItem = (
+                    orderParameters.consideration[i]
+                );
 
-            // Update consideration item amount for use in the emitted event.
-            considerationItem.endAmount = item.amount;
+                // Get consideration item transfer amount and return received item.
+                uint256 amount = _applyFraction(
+                    considerationItem.startAmount,
+                    considerationItem.endAmount,
+                    numerator,
+                    denominator,
+                    elapsed,
+                    remaining,
+                    duration,
+                    true
+                );
+                assembly {
+                    // Write fractional amount to startAmount
+                    mstore(add(considerationItem, 0x60), amount)
+                    // Write recipient to endAmount
+                    mstore(
+                        add(considerationItem, 0x80),
+                        mload(add(considerationItem, 0xa0))
+                    )
+                }
 
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
+                // If item expects ETH or a native token, reduce value available.
+                if (considerationItem.itemType == ItemType.NATIVE) {
+                    // Ensure that sufficient native tokens are still available.
+                    if (amount > etherRemaining) {
+                        revert InsufficientEtherSupplied();
+                    }
+
+                    // Skip underflow check as amount is less than ether remaining.
+                    unchecked {
+                        etherRemaining -= amount;
+                    }
+                }
+                // Transfer the item from the caller to the consideration recipient.
+                _transferConsiderationItem(
+                    considerationItem,
+                    msg.sender,
+                    useFulfillerProxy
+                );
+
+                // Skip overflow check as for loop is indexed starting at zero.
+                unchecked {
+                    ++i;
+                }
             }
         }
 
@@ -872,6 +911,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         advancedOrder,
                         revertOnInvalid
                     );
+                // Place the start time for the order on the stack.
+                uint256 startTime = advancedOrder.parameters.startTime;
+                uint256 duration = advancedOrder.parameters.endTime - startTime;
+                uint256 elapsed = block.timestamp - startTime;
+                uint256 remaining = duration - elapsed;
 
                 // Determine if order should be fulfilled based on numerator.
                 bool shouldBeFulfilled = numerator != 0;
@@ -899,73 +943,87 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < offer.length; ++j) {
                     // Retrieve the offer item.
-                    OfferItem memory item = offer[j];
-
+                    OfferItem memory offerItem = offer[j];
+                    // Apply order fill fraction to offer item end amount.
+                    uint256 endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        offerItem.endAmount
+                    );
                     // Reuse same fraction if start and end amounts are equal.
-                    if (item.startAmount == item.endAmount) {
-                        // Derive the fractional amount based on the end amount.
-                        uint256 amount = _getFraction(
-                            numerator,
-                            denominator,
-                            item.endAmount
-                        );
-
+                    if (offerItem.startAmount == offerItem.endAmount) {
                         // Apply derived amount to both start and end amount.
-                        item.startAmount = amount;
-                        item.endAmount = amount;
+                        offerItem.startAmount = endAmount;
                     } else {
                         // Apply order fill fraction to offer item start amount.
-                        item.startAmount = _getFraction(
+                        offerItem.startAmount = _getFraction(
                             numerator,
                             denominator,
-                            item.startAmount
-                        );
-
-                        // Apply order fill fraction to offer item end amount.
-                        item.endAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            item.endAmount
+                            offerItem.startAmount
                         );
                     }
+                    offerItem.endAmount = endAmount;
+                    // Adjust offer amounts based on current time (round down).
+                    offerItem.startAmount = _locateCurrentAmount(
+                        offerItem.startAmount,
+                        offerItem.endAmount,
+                        elapsed,
+                        remaining,
+                        duration,
+                        false // round down
+                    );
                 }
 
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < consideration.length; ++j) {
                     // Retrieve the consideration item.
-                    ConsiderationItem memory item = consideration[j];
+                    ConsiderationItem memory considerationItem = consideration[
+                        j
+                    ];
+
+                    // Apply fraction to consideration item end amount.
+                    uint256 endAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        considerationItem.endAmount
+                    );
 
                     // Reuse same fraction if start and end amounts are equal.
-                    if (item.startAmount == item.endAmount) {
-                        // Derive the fractional amount based on the end amount.
-                        uint256 amount = _getFraction(
-                            numerator,
-                            denominator,
-                            item.endAmount
-                        );
-
+                    if (
+                        considerationItem.startAmount ==
+                        considerationItem.endAmount
+                    ) {
                         // Apply derived amount to both start and end amount.
-                        item.startAmount = amount;
-                        item.endAmount = amount;
+                        considerationItem.startAmount = endAmount;
                     } else {
                         // Apply fraction to consideration item start amount.
-                        item.startAmount = _getFraction(
+                        considerationItem.startAmount = _getFraction(
                             numerator,
                             denominator,
-                            item.startAmount
-                        );
-
-                        // Apply fraction to consideration item end amount.
-                        item.endAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            item.endAmount
+                            considerationItem.startAmount
                         );
                     }
-                }
+                    considerationItem.endAmount = endAmount;
 
-                // Adjust prices based on time, start amount, and end amount.
-                _adjustAdvancedOrderPrice(advancedOrder);
+                    // Adjust consideration amount based on current time (round up).
+                    considerationItem.startAmount = (
+                        _locateCurrentAmount(
+                            considerationItem.startAmount,
+                            considerationItem.endAmount,
+                            elapsed,
+                            remaining,
+                            duration,
+                            true // round up
+                        )
+                    );
+                    assembly {
+                        // Write recipient to endAmount - endAmount is never used after this function
+                        mstore(
+                            add(considerationItem, 0x80),
+                            mload(add(considerationItem, 0xa0))
+                        )
+                    }
+                }
             }
         }
 
@@ -1275,7 +1333,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Iterate over each consideration item to ensure it is met.
                 for (uint256 j = 0; j < consideration.length; ++j) {
                     // Retrieve remaining amount on the consideration item.
-                    uint256 unmetAmount = consideration[j].endAmount;
+                    uint256 unmetAmount = consideration[j].startAmount;
 
                     // Revert if the remaining amount is not zero.
                     if (unmetAmount != 0) {
@@ -1841,42 +1899,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
         OfferItem[] memory offer,
         ConsiderationItem[] memory consideration
     ) internal {
+        // @todo use custom loading of calldata into memory to guarantee
+        // memory layout is compatible with event
         // Designate memory regions for spent items as well as received items.
-        SpentItem[] memory spentItems = new SpentItem[](offer.length);
-        ReceivedItem[] memory receivedItems = new ReceivedItem[](
-            consideration.length
-        );
-
-        // Skip overflow checks as for loop increments from zero.
-        unchecked {
-            // Iterate over each offer item.
-            for (uint256 i = 0; i < offer.length; ++i) {
-                // Retrieve the offer item in question.
-                OfferItem memory offerItem = offer[i];
-
-                // Convert to a spent item and store in spent items array.
-                spentItems[i] = SpentItem(
-                    offerItem.itemType,
-                    offerItem.token,
-                    offerItem.identifierOrCriteria,
-                    offerItem.endAmount
-                );
-            }
-
-            // Iterate over each consideration item.
-            for (uint256 i = 0; i < consideration.length; ++i) {
-                // Retrieve the consideration item in question.
-                ConsiderationItem memory considerationItem = consideration[i];
-
-                // Convert to a received item and store in received items array.
-                receivedItems[i] = ReceivedItem(
-                    considerationItem.itemType,
-                    considerationItem.token,
-                    considerationItem.identifierOrCriteria,
-                    considerationItem.endAmount,
-                    considerationItem.recipient
-                );
-            }
+        SpentItem[] memory spentItems;
+        assembly {
+            spentItems := offer
+        }
+        ReceivedItem[] memory receivedItems;
+        assembly {
+            receivedItems := consideration
         }
 
         // Emit an event signifying that the order has been fulfilled.
