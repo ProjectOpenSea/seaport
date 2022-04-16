@@ -106,11 +106,12 @@ struct BasicOrderParameters {
     uint256 endTime; // 0x164
     bytes32 zoneHash; // 0x184
     uint256 salt; // 0x1a4
-    address fulfillerConduit; // 0x1c4
-    uint256 totalOriginalAdditionalRecipients; // 0x1e4
-    AdditionalRecipient[] additionalRecipients; // 0x204
-    bytes signature; // 0x224
-    // Total length, excluding dynamic array data: 0x244 (580)
+    address offererConduit; // 0x1c4
+    address fulfillerConduit; // 0x1e4
+    uint256 totalOriginalAdditionalRecipients; // 0x204
+    AdditionalRecipient[] additionalRecipients; // 0x224
+    bytes signature; // 0x244
+    // Total length, excluding dynamic array data: 0x264 (580)
 }
 
 /**

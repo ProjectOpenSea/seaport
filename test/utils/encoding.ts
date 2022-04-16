@@ -75,7 +75,8 @@ export const getBasicOrderParameters = (
   basicOrderRouteType: number,
   order: Order,
   fulfillerConduit = false,
-  tips = []
+  tips = [],
+  offererConduit = false,
 ): BasicOrderParameters => ({
   offerer: order.parameters.offerer,
   zone: order.parameters.zone,
@@ -95,6 +96,7 @@ export const getBasicOrderParameters = (
     order.parameters.consideration.length - 1
   ),
   signature: order.signature,
+  offererConduit: toAddress(offererConduit),
   fulfillerConduit: toAddress(fulfillerConduit),
   additionalRecipients: [
     ...order.parameters.consideration

@@ -159,7 +159,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // route < 4 else = fulfillerConduit ? msg.sender : address(0)
             proxyOwner := add(
                 mul(and(lt(route, 4), offererConduit), offerer),
-                mul(and(gt(route, 3), calldataload(0x1c4)), caller())
+                mul(and(gt(route, 3), calldataload(0x1e4)), caller())
             )
         }
 

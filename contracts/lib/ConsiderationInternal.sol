@@ -138,11 +138,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                 // 2. Write first ReceivedItem to OrderFulfilled data.
                 // Get the length of the additional recipients array.
-                let len := calldataload(0x244)
+                let len := calldataload(0x264)
 
                 // END_ARR + 0x120 = 0x2a0 + len*0x20
                 let eventArrPtr := add(0x2a0, mul(0x20, len))
-                mstore(eventArrPtr, add(calldataload(0x244), 1)) // length
+                mstore(eventArrPtr, add(calldataload(0x264), 1)) // length
 
                 // Set pointer to data portion of the initial ReceivedItem.
                 eventArrPtr := add(eventArrPtr, 0x20)
@@ -163,7 +163,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(0xe0, 0)
 
                 // Read length of the additionalRecipients array and iterate.
-                len := calldataload(0x1e4)
+                len := calldataload(0x204)
                 let i := 0
                 for {
 
@@ -171,7 +171,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     i := add(i, 1)
                 } {
                     // Retrieve pointer for additional recipient in question.
-                    let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
+                    let additionalRecipientCdPtr := add(0x284, mul(0x40, i))
 
                     // a. Write ConsiderationItem hash to consideration array
                     // Copy startAmount
@@ -211,14 +211,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // keccak256(abi.encodePacked(receivedItemHashes))
                 mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
 
-                /* 5. Write tips to event data */
-                len := calldataload(0x244)
+                // 5. Write tips to event data.
+                len := calldataload(0x264)
                 for {
 
                 } lt(i, len) {
                     i := add(i, 1)
                 } {
-                    let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
+                    let additionalRecipientCdPtr := add(0x284, mul(0x40, i))
 
                     // b. Write ReceivedItem to OrderFulfilled data
                     // At this point, eventArrPtr points to the beginning of the
@@ -281,7 +281,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // 3. Write SpentItem array to event data
                 // 0x180 + len*32 = event data ptr
                 // offers array length is stored at 0x80 into the event data
-                let eventArrPtr := add(0x200, mul(0x20, calldataload(0x244)))
+                let eventArrPtr := add(0x200, mul(0x20, calldataload(0x264)))
 
                 mstore(eventArrPtr, 1)
                 mstore(add(eventArrPtr, 0x20), offeredItemType)
@@ -306,7 +306,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
              *   - 0x160:  orderParameters.endTime
              *   - 0x180:  orderParameters.zoneHash
              *   - 0x1a0:  orderParameters.salt
-             *   - 0x1c0:  orderParameters.conduit
+             *   - 0x1c0:  orderParameters.offererConduit
              *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
              */
 
@@ -377,7 +377,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
              */
 
             // Derive pointer from calldata via length of additional recipients.
-            let eventDataPtr := add(0x180, mul(0x20, calldataload(0x244)))
+            let eventDataPtr := add(0x180, mul(0x20, calldataload(0x264)))
 
             // Write the order hash to the head of the event's data region.
             mstore(eventDataPtr, orderHash)
@@ -390,7 +390,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             mstore(add(eventDataPtr, 0x60), 0x120) // ReceivedItem array pointer
 
             // Derive total data size including SpentItem and ReceivedItem data.
-            let dataSize := add(0x1e0, mul(calldataload(0x244), 0xa0))
+            let dataSize := add(0x1e0, mul(calldataload(0x264), 0xa0))
 
             // Emit OrderFulfilled log with three topics (the event signature
             // as well as the two indexed arguments, the offerer and the zone).
