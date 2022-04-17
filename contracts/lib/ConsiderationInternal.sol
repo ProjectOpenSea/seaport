@@ -525,7 +525,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
-        _assertRestrictedBasicOrderValidity(
+        _assertRestrictedAdvancedOrderValidity(
+            advancedOrder,
             orderHash,
             orderParameters.zoneHash,
             orderParameters.orderType,

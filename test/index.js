@@ -9335,6 +9335,94 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
+  describe("Conduit tests", async () => {
+    let seller;
+    let buyer;
+    let sellerContract;
+    let buyerContract;
+
+    beforeEach(async () => {
+      // Setup basic buyer/seller wallets with ETH
+      seller = ethers.Wallet.createRandom().connect(provider);
+      buyer = ethers.Wallet.createRandom().connect(provider);
+      zone = ethers.Wallet.createRandom().connect(provider);
+
+      sellerContract = await EIP1271WalletFactory.deploy(seller.address);
+      buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
+
+      await Promise.all(
+        [seller, buyer, zone, sellerContract, buyerContract].map((wallet) =>
+          faucet(wallet.address, provider)
+        )
+      );
+    });
+
+    it("Reverts as it hasn't been implemeted yet", async () => {
+      // Seller mints nft
+      const nftId = ethers.BigNumber.from(randomHex());
+      await testERC721.mint(seller.address, nftId);
+
+      // Seller approves their proxy contract to transfer NFT
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC721.connect(seller).setApprovalForAll(sellerProxy, true)
+        )
+          .to.emit(testERC721, "ApprovalForAll")
+          .withArgs(seller.address, sellerProxy, true);
+      });
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        {
+          itemType: 0, // ETH
+          token: constants.AddressZero,
+          identifierOrCriteria: 0, // ignored for ETH
+          startAmount: ethers.utils.parseEther("10"),
+          endAmount: ethers.utils.parseEther("10"),
+          recipient: seller.address,
+        },
+        {
+          itemType: 0, // ETH
+          token: constants.AddressZero,
+          identifierOrCriteria: 0, // ignored for ETH
+          startAmount: ethers.utils.parseEther("1"),
+          endAmount: ethers.utils.parseEther("1"),
+          recipient: zone.address,
+        },
+        {
+          itemType: 0, // ETH
+          token: constants.AddressZero,
+          identifierOrCriteria: 0, // ignored for ETH
+          startAmount: ethers.utils.parseEther("1"),
+          endAmount: ethers.utils.parseEther("1"),
+          recipient: owner.address,
+        },
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0, // FULL_OPEN
+        [],
+        null,
+        seller,
+        constants.HashZero,
+        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
+      );
+
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+        ).to.be.reverted;
+      });
+    });
+  });
+
   describe("Reverts", async () => {
     let seller;
     let buyer;
