@@ -66,6 +66,7 @@ export type OrderParameters = {
   endTime: BigNumber;
   zoneHash: string;
   salt: BigNumber;
+  conduit: string;
   totalOriginalConsiderationItems: BigNumber;
 };
 
