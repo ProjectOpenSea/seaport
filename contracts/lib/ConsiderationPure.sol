@@ -1170,16 +1170,19 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @param itemType The item type in question.
      *
-     * @return A boolean indicating that the item type in question represents a
-     *         criteria-based item.
+     * @return withCriteria A boolean indicating that the item type in question
+     *                      represents a criteria-based item.
      */
     function _isItemWithCriteria(ItemType itemType)
         internal
         pure
-        returns (bool)
+        returns (bool withCriteria)
     {
-        // ERC721WithCriteria is item type 4. ERC115WithCriteria is item type 5.
-        return uint256(itemType) > 3;
+        // ERC721WithCriteria is item type 4. ERC1155WithCriteria is item type
+        // 5.
+        assembly {
+            withCriteria := gt(itemType, 3)
+        }
     }
 
     /**
@@ -1189,17 +1192,20 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @param orderType The order type in question.
      *
-     * @return A boolean indicating whether the order type only supports full
-     *         fills.
+     * @return isFullOrder A boolean indicating whether the order type only
+     *                     supports full fills.
      */
     function _doesNotSupportPartialFills(OrderType orderType)
         internal
         pure
-        returns (bool)
+        returns (bool isFullOrder)
     {
         // The "full" order types are even, while "partial" order types are odd.
         // Bitwise and by 1 is equivalent to modulo by 2, but 2 gas cheaper.
-        return uint256(orderType) & 1 == 0;
+        assembly {
+            // Same thing as uint256(orderType) & 1 == 0
+            isFullOrder := iszero(and(orderType, 1))
+        }
     }
 
     /**
