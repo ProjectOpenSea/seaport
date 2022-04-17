@@ -661,7 +661,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderParameters,
             fillNumerator,
             fillDenominator,
-            advancedOrder.conduit,
+            orderParameters.conduit,
             fulfillerConduit
         );
 
