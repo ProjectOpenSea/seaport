@@ -24,7 +24,7 @@ const { orderType } = require("../eip-712-types/order");
 
 const VERSION = "rc.1";
 
-const LEGACY_PROXY_CONDUIT = constants.AddressZero.slice(0, -1) + '1';
+const LEGACY_PROXY_CONDUIT = constants.AddressZero.slice(0, -1) + "1";
 
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
@@ -233,7 +233,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     timeFlag,
     signer,
     zoneHash = constants.HashZero,
-    conduit = constants.AddressZero,
+    conduit = constants.AddressZero
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
@@ -314,7 +314,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     return { order, orderHash, value, orderStatus, orderComponents };
   };
 
-  const createMirrorBuyNowOrder = async (offerer, zone, order, conduit = constants.AddressZero) => {
+  const createMirrorBuyNowOrder = async (
+    offerer,
+    zone,
+    order,
+    conduit = constants.AddressZero
+  ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
     const startTime = 0;
@@ -5566,7 +5571,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               zone,
               order,
               [],
-              LEGACY_PROXY_CONDUIT,
+              LEGACY_PROXY_CONDUIT
             );
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
