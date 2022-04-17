@@ -24,6 +24,8 @@ const { orderType } = require("../eip-712-types/order");
 
 const VERSION = "rc.1";
 
+const LEGACY_PROXY_CONDUIT = constants.AddressZero.slice(0, -1) + '1';
+
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
   let chainId;
@@ -230,7 +232,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     criteriaResolvers,
     timeFlag,
     signer,
-    zoneHash = "0x".padEnd(66, "0")
+    zoneHash = constants.HashZero,
+    conduit = constants.AddressZero,
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
@@ -252,10 +255,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType,
       zoneHash,
       salt,
-      conduit:
-        orderType > 3
-          ? await legacyProxyRegistry.proxies(offerer.address)
-          : constants.AddressZero,
+      conduit,
       startTime,
       endTime,
     };
@@ -314,7 +314,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     return { order, orderHash, value, orderStatus, orderComponents };
   };
 
-  const createMirrorBuyNowOrder = async (offerer, zone, order) => {
+  const createMirrorBuyNowOrder = async (offerer, zone, order, conduit = constants.AddressZero) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
     const startTime = 0;
@@ -406,9 +406,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType: 0, // FULL_OPEN
       zoneHash: "0x".padEnd(66, "0"),
       salt,
-      conduit: orderType > 3
-        ? await legacyProxyRegistry.proxies(offerer.address)
-        : constants.AddressZero,
+      conduit,
       startTime,
       endTime,
     };
@@ -449,7 +447,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     zone,
     order,
     criteriaResolvers,
-    conduit = false
+    conduit = constants.AddressZero
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
@@ -507,8 +505,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ),
       })),
       totalOriginalConsiderationItems: order.parameters.offer.length,
-      orderType: conduit ? 4 : 0, // FULL_OPEN_VIA_PROXY or FULL_OPEN
-      zoneHash: "0x".padEnd(66, "0"),
+      orderType: 0, // FULL_OPEN
+      zoneHash: constants.HashZero,
       salt,
       conduit,
       startTime,
@@ -1695,7 +1693,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
@@ -2123,7 +2126,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -2585,7 +2593,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           const { mirrorOrder, mirrorOrderHash, mirrorValue } =
@@ -2867,7 +2880,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
@@ -3028,7 +3046,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -3408,7 +3431,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           const { mirrorOrder, mirrorOrderHash, mirrorValue } =
@@ -3963,7 +3991,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               zone,
               order,
               [],
-              true // use proxy
+              LEGACY_PROXY_CONDUIT
             );
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
@@ -4126,7 +4154,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
@@ -4263,7 +4296,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -4429,7 +4467,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           const { mirrorOrder, mirrorOrderHash, mirrorValue } =
@@ -4594,7 +4637,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
@@ -4735,7 +4783,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -4905,7 +4958,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            4 // FULL_OPEN_VIA_PROXY
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
           );
 
           const { mirrorOrder, mirrorOrderHash, mirrorValue } =
@@ -5508,7 +5566,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               zone,
               order,
               [],
-              true // use proxy
+              LEGACY_PROXY_CONDUIT,
             );
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
@@ -8560,7 +8618,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           zone,
           offer,
           consideration,
-          4 // FULL_OPEN_VIA_PROXY
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          LEGACY_PROXY_CONDUIT
         );
 
         const { mirrorOrder, mirrorOrderHash, mirrorValue } =
@@ -11899,7 +11962,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           zone,
           offer,
           consideration,
-          4 // FULL_OPEN_VIA_PROXY
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          LEGACY_PROXY_CONDUIT
         );
 
         const basicOrderParameters = getBasicOrderParameters(
