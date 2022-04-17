@@ -473,7 +473,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @return newNumerator   A value indicating the portion of the order that
      *                        will be filled.
      * @return newDenominator A value indicating the total size of the order.
-     * @return offererConduit The offerer's chosen conduit.
      */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
@@ -499,7 +498,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
         ) {
             // Assuming an invalid time and no revert, return zeroed out values.
-            return (bytes32(0), 0, 0, address(0));
+            return (bytes32(0), 0, 0);
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -547,7 +546,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
         ) {
             // Assuming an invalid order status and no revert, return zero fill.
-            return (orderHash, 0, 0, orderParameters.conduit);
+            return (orderHash, 0, 0);
         }
 
         // If the order is not already validated, verify the supplied signature.
@@ -609,7 +608,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Return order hash, new numerator and denominator, and proxy boolean.
-        return (orderHash, numerator, denominator, orderParameters.conduit);
+        return (orderHash, numerator, denominator);
     }
 
     /**
@@ -645,8 +644,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         (
             bytes32 orderHash,
             uint256 fillNumerator,
-            uint256 fillDenominator,
-            address offererConduit
+            uint256 fillDenominator
         ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Create an array with length 1 containing the order.
@@ -664,7 +662,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderParameters,
             fillNumerator,
             fillDenominator,
-            offererConduit,
+            advancedOrder.conduit,
             fulfillerConduit
         );
 
@@ -879,8 +877,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 (
                     bytes32 orderHash,
                     uint256 numerator,
-                    uint256 denominator,
-
+                    uint256 denominator
                 ) = _validateOrderAndUpdateStatus(
                         advancedOrder,
                         revertOnInvalid
@@ -893,6 +890,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                 // Do not track hash or adjust prices if order is not fulfilled.
                 if (numerator == 0) {
+                    advancedOrder.numerator = 0;
                     continue;
                 }
 
