@@ -13669,9 +13669,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       it("Reverts if additionalRecipients has non-default offset", async () => {
         const badData = [
-          calldata.slice(0, 1097),
+          calldata.slice(0, 1161),
           "1",
-          calldata.slice(1098),
+          calldata.slice(1162),
         ].join("");
 
         await whileImpersonating(owner.address, provider, async () => {
