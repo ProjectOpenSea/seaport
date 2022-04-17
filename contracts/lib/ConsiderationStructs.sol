@@ -7,7 +7,7 @@ import { OrderType, BasicOrderType, ItemType, Side } from "./ConsiderationEnums.
  * @dev An order contains ten components: an offerer, a zone (or account that
  *      can cancel the order or restrict who can fulfill the order depending on
  *      the type), the order type (specifying partial fill support, restricted
- *      order status, and the offerer's proxy usage preference), the start and
+ *      order status, and the offerer's conduit usage preference), the start and
  *      end time, a hash that will be provided to the zone when validating
  *      restricted orders, a salt, a nonce, and an arbitrary number of offer
  *      items that can be spent along with consideration items that must be
@@ -106,11 +106,12 @@ struct BasicOrderParameters {
     uint256 endTime; // 0x164
     bytes32 zoneHash; // 0x184
     uint256 salt; // 0x1a4
-    address fulfillerConduit; // 0x1c4
-    uint256 totalOriginalAdditionalRecipients; // 0x1e4
-    AdditionalRecipient[] additionalRecipients; // 0x204
-    bytes signature; // 0x224
-    // Total length, excluding dynamic array data: 0x244 (580)
+    address offererConduit; // 0x1c4
+    address fulfillerConduit; // 0x1e4
+    uint256 totalOriginalAdditionalRecipients; // 0x204
+    AdditionalRecipient[] additionalRecipients; // 0x224
+    bytes signature; // 0x244
+    // Total length, excluding dynamic array data: 0x264 (580)
 }
 
 /**
@@ -202,7 +203,7 @@ struct CriteriaResolver {
  *      consideration items as desired, but must contain at least one offer and
  *      at least one consideration that match. The fulfillment must also remain
  *      consistent on all key parameters across all offer items (same offerer,
- *      token, type, tokenId, and proxy preference) as well as across all
+ *      token, type, tokenId, and conduit preference) as well as across all
  *      consideration items (token, type, tokenId, and recipient).
  */
 struct Fulfillment {
@@ -223,7 +224,7 @@ struct FulfillmentComponent {
  * @dev An execution is triggered once all consideration items have been zeroed
  *      out. It sends the item in question from the offerer to the item's
  *      recipient, optionally sourcing approvals from either this contract
- *      directly or from the offerer's proxy contract if one is available. An
+ *      directly or from the offerer's chosen conduit if one is specified. An
  *      execution is not provided as an argument, but rather is derived via
  *      orders, criteria resolvers, and fulfillments (where the total number of
  *      executions will be less than or equal to the total number of indicated
@@ -260,8 +261,8 @@ struct Batch {
 /**
  * @dev An fulfillment detail will be returned for each supplied order when
  *      attempting to fulfill any available orders from a given group, and
- *      indicates whether the order in question was fulfilled as well as whether
- *      a proxy was utilized when fulfilling the order.
+ *      indicates whether the order in question was fulfilled as well as what
+ *      conduit, if any, to use when fulfilling the order.
  */
 struct FulfillmentDetail {
     bool fulfillOrder;

@@ -21,6 +21,7 @@ export type BasicOrderParameters = {
   endTime: BigNumber;
   zoneHash: string;
   salt: BigNumber;
+  offererConduit: string;
   fulfillerConduit: string;
   totalOriginalAdditionalRecipients: BigNumber;
   additionalRecipients: AdditionalRecipient[];
@@ -65,6 +66,7 @@ export type OrderParameters = {
   endTime: BigNumber;
   zoneHash: string;
   salt: BigNumber;
+  conduit: string;
   totalOriginalConsiderationItems: BigNumber;
 };
 

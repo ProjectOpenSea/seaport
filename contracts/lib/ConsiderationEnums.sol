@@ -9,15 +9,7 @@ enum OrderType {
     // 2: no partial fills, only offerer or zone can execute
     FULL_RESTRICTED,
     // 3: partial fills supported, only offerer or zone can execute
-    PARTIAL_RESTRICTED,
-    // 4: no partial fills, anyone can execute, routed through proxy
-    FULL_OPEN_VIA_PROXY,
-    // 5: partial fills supported, anyone can execute, routed through proxy
-    PARTIAL_OPEN_VIA_PROXY,
-    // 6: no partial fills, only offerer zone executes, routed through proxy
-    FULL_RESTRICTED_VIA_PROXY,
-    // 7: partial fills ok, only offerer or zone executes, routed through proxy
-    PARTIAL_RESTRICTED_VIA_PROXY
+    PARTIAL_RESTRICTED
 }
 
 enum BasicOrderType {
@@ -29,94 +21,46 @@ enum BasicOrderType {
     ETH_TO_ERC721_FULL_RESTRICTED,
     // 3: partial fills supported, only offerer or zone can execute
     ETH_TO_ERC721_PARTIAL_RESTRICTED,
-    // 4: no partial fills, anyone can execute, routed through proxy
-    ETH_TO_ERC721_FULL_OPEN_VIA_PROXY,
-    // 5: partial fills supported, anyone can execute, routed through proxy
-    ETH_TO_ERC721_PARTIAL_OPEN_VIA_PROXY,
-    // 6: no partial fills, only offerer zone executes, routed through proxy
-    ETH_TO_ERC721_FULL_RESTRICTED_VIA_PROXY,
-    // 7: partial fills ok, only offerer or zone executes, routed through proxy
-    ETH_TO_ERC721_PARTIAL_RESTRICTED_VIA_PROXY,
-    // 8: no partial fills, anyone can execute
+    // 4: no partial fills, anyone can execute
     ETH_TO_ERC1155_FULL_OPEN,
-    // 9: partial fills supported, anyone can execute
+    // 5: partial fills supported, anyone can execute
     ETH_TO_ERC1155_PARTIAL_OPEN,
-    // 10: no partial fills, only offerer or zone can execute
+    // 6: no partial fills, only offerer or zone can execute
     ETH_TO_ERC1155_FULL_RESTRICTED,
-    // 11: partial fills supported, only offerer or zone can execute
+    // 7: partial fills supported, only offerer or zone can execute
     ETH_TO_ERC1155_PARTIAL_RESTRICTED,
-    // 12: no partial fills, anyone can execute, routed through proxy
-    ETH_TO_ERC1155_FULL_OPEN_VIA_PROXY,
-    // 13: partial fills supported, anyone can execute, routed through proxy
-    ETH_TO_ERC1155_PARTIAL_OPEN_VIA_PROXY,
-    // 14: no partial fills, only offerer zone executes, routed through proxy
-    ETH_TO_ERC1155_FULL_RESTRICTED_VIA_PROXY,
-    // 15: partial fills ok, only offerer or zone executes, routed through proxy
-    ETH_TO_ERC1155_PARTIAL_RESTRICTED_VIA_PROXY,
-    // 16: no partial fills, anyone can execute
+    // 8: no partial fills, anyone can execute
     ERC20_TO_ERC721_FULL_OPEN,
-    // 17: partial fills supported, anyone can execute
+    // 9: partial fills supported, anyone can execute
     ERC20_TO_ERC721_PARTIAL_OPEN,
-    // 18: no partial fills, only offerer or zone can execute
+    // 10: no partial fills, only offerer or zone can execute
     ERC20_TO_ERC721_FULL_RESTRICTED,
-    // 19: partial fills supported, only offerer or zone can execute
+    // 11: partial fills supported, only offerer or zone can execute
     ERC20_TO_ERC721_PARTIAL_RESTRICTED,
-    // 20: no partial fills, anyone can execute, routed through proxy
-    ERC20_TO_ERC721_FULL_OPEN_VIA_PROXY,
-    // 21: partial fills supported, anyone can execute, routed through proxy
-    ERC20_TO_ERC721_PARTIAL_OPEN_VIA_PROXY,
-    // 22: no partial fills, only offerer zone executes, routed through proxy
-    ERC20_TO_ERC721_FULL_RESTRICTED_VIA_PROXY,
-    // 23: partial fills ok, only offerer or zone executes, routed through proxy
-    ERC20_TO_ERC721_PARTIAL_RESTRICTED_VIA_PROXY,
-    // 24: no partial fills, anyone can execute
+    // 12: no partial fills, anyone can execute
     ERC20_TO_ERC1155_FULL_OPEN,
-    // 25: partial fills supported, anyone can execute
+    // 13: partial fills supported, anyone can execute
     ERC20_TO_ERC1155_PARTIAL_OPEN,
-    // 26: no partial fills, only offerer or zone can execute
+    // 14: no partial fills, only offerer or zone can execute
     ERC20_TO_ERC1155_FULL_RESTRICTED,
-    // 27: partial fills supported, only offerer or zone can execute
+    // 15: partial fills supported, only offerer or zone can execute
     ERC20_TO_ERC1155_PARTIAL_RESTRICTED,
-    // 28: no partial fills, anyone can execute, routed through proxy
-    ERC20_TO_ERC1155_FULL_OPEN_VIA_PROXY,
-    // 29: partial fills supported, anyone can execute, routed through proxy
-    ERC20_TO_ERC1155_PARTIAL_OPEN_VIA_PROXY,
-    // 30: no partial fills, only offerer zone executes, routed through proxy
-    ERC20_TO_ERC1155_FULL_RESTRICTED_VIA_PROXY,
-    // 31: partial fills ok, only offerer or zone executes, routed through proxy
-    ERC20_TO_ERC1155_PARTIAL_RESTRICTED_VIA_PROXY,
-    // 32: no partial fills, anyone can execute
+    // 16: no partial fills, anyone can execute
     ERC721_TO_ERC20_FULL_OPEN,
-    // 33: partial fills supported, anyone can execute
+    // 17: partial fills supported, anyone can execute
     ERC721_TO_ERC20_PARTIAL_OPEN,
-    // 34: no partial fills, only offerer or zone can execute
+    // 18: no partial fills, only offerer or zone can execute
     ERC721_TO_ERC20_FULL_RESTRICTED0,
-    // 35: partial fills supported, only offerer or zone can execute
+    // 19: partial fills supported, only offerer or zone can execute
     ERC721_TO_ERC20_PARTIAL_RESTRICTED,
-    // 36: no partial fills, anyone can execute, routed through proxy
-    ERC721_TO_ERC20_ULL_OPEN_VIA_PROXY,
-    // 37: partial fills supported, anyone can execute, routed through proxy
-    ERC721_TO_ERC20_PARTIAL_OPEN_VIA_PROXY,
-    // 38: no partial fills, only offerer zone executes, routed through proxy
-    ERC721_TO_ERC20_FULL_RESTRICTED_VIA_PROXY,
-    // 39: partial fills ok, only offerer or zone executes, routed through proxy
-    ERC721_TO_ERC20_PARTIAL_RESTRICTED_VIA_PROXY,
-    // 40: no partial fills, anyone can execute
+    // 20: no partial fills, anyone can execute
     ERC1155_TO_ERC20_FULL_OPEN,
-    // 41: partial fills supported, anyone can execute
+    // 21: partial fills supported, anyone can execute
     ERC1155_TO_ERC20_PARTIAL_OPEN,
-    // 42: no partial fills, only offerer or zone can execute
+    // 22: no partial fills, only offerer or zone can execute
     ERC1155_TO_ERC20_FULL_RESTRICTED,
-    // 43: partial fills supported, only offerer or zone can execute
-    ERC1155_TO_ERC20_PARTIAL_RESTRICTED,
-    // 44: no partial fills, anyone can execute, routed through proxy
-    ERC1155_TO_ERC20_FULL_OPEN_VIA_PROXY,
-    // 45: partial fills supported, anyone can execute, routed through proxy
-    ERC1155_TO_ERC20_PARTIAL_OPEN_VIA_PROXY,
-    // 46: no partial fills, only offerer zone executes, routed through proxy
-    ERC1155_TO_ERC20_FULL_RESTRICTED_VIA_PROXY,
-    // 47: partial fills ok, only offerer or zone executes, routed through proxy
-    ERC1155_TO_ERC20_PARTIAL_RESTRICTED_VIA_PROXY
+    // 23: partial fills supported, only offerer or zone can execute
+    ERC1155_TO_ERC20_PARTIAL_RESTRICTED
 }
 
 enum BasicOrderRouteType {

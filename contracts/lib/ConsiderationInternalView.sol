@@ -478,35 +478,27 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to determine if a proxy should be utilized
-     *      for a given order and to ensure that the submitter is allowed by the
-     *      order type.
+     * @dev Internal view function to determine if an order has a restricted
+     *      order type and, if so, to ensure that either the offerer or the zone
+     *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
+     *      returns a magic value indicating that the order is currently valid.
      *
      * @param orderHash The hash of the order.
      * @param zoneHash  The hash to provide upon calling the zone.
      * @param orderType The type of the order.
      * @param offerer   The offerer in question.
      * @param zone      The zone in question.
-     *
-     * @return offererConduit A boolean indicating whether a proxy should be
-     *                         utilized for the order.
      */
-    function _determineProxyUtilizationAndEnsureValidBasicOrder(
+    function _assertRestrictedBasicOrderValidity(
         bytes32 orderHash,
         bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
-    ) internal view returns (address offererConduit) {
-        // Convert the order type from enum to uint256.
-        uint256 orderTypeAsUint256 = uint256(orderType);
-
-        // Order type 0-3 are executed directly while 4-7 are executed by proxy.
-        offererConduit = orderTypeAsUint256 > 3 ? address(1) : address(0);
-
-        // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
+    ) internal view {
+        // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
-            orderTypeAsUint256 > (offererConduit == address(0) ? 1 : 5) &&
+            uint256(orderType) > 1 &&
             msg.sender != zone &&
             msg.sender != offerer
         ) {
@@ -538,27 +530,19 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param orderType     The type of the order.
      * @param offerer       The offerer in question.
      * @param zone          The zone in question.
-     *
-     * @return offererConduit A boolean indicating whether a proxy should be
-     *                         utilized for the order.
+
      */
-    function _determineProxyUtilizationAndEnsureValidAdvancedOrder(
+    function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
         bytes32 orderHash,
         bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
-    ) internal view returns (address offererConduit) {
-        // Convert the order type from enum to uint256.
-        uint256 orderTypeAsUint256 = uint256(orderType);
-
-        // Order type 0-3 are executed directly while 4-7 are executed by proxy.
-        offererConduit = orderTypeAsUint256 > 3 ? address(1) : address(0);
-
-        // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
+    ) internal view {
+        // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
-            orderTypeAsUint256 > (offererConduit == address(0) ? 1 : 5) &&
+            uint256(orderType) > 1 &&
             msg.sender != zone &&
             msg.sender != offerer
         ) {

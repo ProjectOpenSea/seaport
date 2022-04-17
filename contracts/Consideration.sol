@@ -51,8 +51,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @param parameters Additional information on the fulfilled order. Note
      *                   that the offerer and the fulfiller must first approve
-     *                   this contract (or their proxy if indicated) in order
-     *                   for any tokens to be transferred. Also note that any
+     *                   this contract (or their chosen conduit if indicated)
+     *                   before any tokens can be transferred. Also note that
      *                   contract recipients of ERC1155 consideration items must
      *                   implement `onERC1155Received` in order to receive those
      *                   items.
@@ -74,11 +74,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Utilize assembly to extract the order type and the basic order route.
         assembly {
-            // Mask all but 8 least-significant bits to derive the order type.
-            orderType := and(calldataload(0x124), 7)
+            // Mask all but 4 least-significant bits to derive the order type.
+            orderType := and(calldataload(0x124), 3)
 
-            // Divide basicOrderType by eight to derive the route.
-            route := div(calldataload(0x124), 8)
+            // Divide basicOrderType by four to derive the route.
+            route := div(calldataload(0x124), 4)
 
             // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
             additionalRecipientsItemType := gt(route, 1)
@@ -138,7 +138,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         }
 
         // Derive & validate order using parameters and update order status.
-        address offererConduit = _prepareBasicFulfillmentFromCalldata(
+        _prepareBasicFulfillmentFromCalldata(
             parameters,
             orderType,
             receivedItemType,
@@ -150,55 +150,51 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Read offerer from calldata and place on the stack.
         address payable offerer = parameters.offerer;
 
-        // Declare proxy owner argument used by transfer functions.
-        address proxyOwner;
+        // Declare conduit argument used by transfer functions.
+        address conduit;
 
-        // Utilize assembly to derive proxy owner (if relevant) based on route.
+        // Utilize assembly to derive conduit (if relevant) based on route.
         assembly {
-            // Set proxyOwner = offererConduit ? offerer : address(0) for
-            // route < 4 else = fulfillerConduit ? msg.sender : address(0)
-            proxyOwner := add(
-                mul(and(lt(route, 4), offererConduit), offerer),
-                mul(and(gt(route, 3), calldataload(0x1c4)), caller())
-            )
+            // use offerer conduit for routes 0-3, fulfiller conduit otherwise.
+            conduit := calldataload(add(0x1c4, mul(gt(route, 3), 0x20)))
         }
 
         // Transfer tokens based on the route.
         if (route == BasicOrderRouteType.ETH_TO_ERC721) {
-            // Transfer ERC721 to caller, using offerer's proxy if applicable.
+            // Transfer ERC721 to caller using offerer's conduit if applicable.
             _transferERC721(
                 parameters.offerToken,
                 offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                proxyOwner
+                conduit
             );
 
-            // Transfer native to recipients, return excess to caller, and wrap up.
+            // Transfer native to recipients, return excess to caller & wrap up.
             _transferEthAndFinalize(parameters.considerationAmount, parameters);
         } else if (route == BasicOrderRouteType.ETH_TO_ERC1155) {
-            // Transfer ERC1155 to caller, using offerer's proxy if applicable.
+            // Transfer ERC1155 to caller using offerer's conduit if applicable.
             _transferERC1155(
                 parameters.offerToken,
                 offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                proxyOwner
+                conduit
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
             _transferEthAndFinalize(parameters.considerationAmount, parameters);
         } else if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
-            // Transfer ERC721 to caller, using offerer's proxy if applicable.
+            // Transfer ERC721 to caller using offerer's conduit if applicable.
             _transferERC721(
                 parameters.offerToken,
                 offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                proxyOwner
+                conduit
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -211,14 +207,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 false // Send full amount indicated by all consideration items.
             );
         } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
-            // Transfer ERC1155 to caller, using offerer's proxy if applicable.
+            // Transfer ERC1155 to caller using offerer's conduit if applicable.
             _transferERC1155(
                 parameters.offerToken,
                 offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                proxyOwner
+                conduit
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -231,14 +227,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 false // Send full amount indicated by all consideration items.
             );
         } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
-            // Transfer ERC721 to offerer, using caller's proxy if applicable.
+            // Transfer ERC721 to offerer using caller's conduit if applicable.
             _transferERC721(
                 parameters.considerationToken,
                 msg.sender,
                 offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
-                proxyOwner
+                conduit
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -253,14 +249,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         } else {
             // route == BasicOrderRouteType.ERC1155_TO_ERC20
 
-            // Transfer ERC1155 to offerer, using caller's proxy if applicable.
+            // Transfer ERC1155 to offerer using caller's conduit if applicable.
             _transferERC1155(
                 parameters.considerationToken,
                 msg.sender,
                 offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
-                proxyOwner
+                conduit
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -283,15 +279,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         criteria-based orders or partial filling of orders (though
      *         filling the remainder of a partially-filled order is supported).
      *
-     * @param order             The order to fulfill. Note that both the offerer
-     *                          and the fulfiller must first approve this
-     *                          contract (or their proxy if indicated by the
-     *                          order) to transfer any relevant tokens on their
-     *                          behalf and that contracts must implement
-     *                          `onERC1155Received` in order to receive ERC1155
-     *                          tokens as consideration.
-     * @param fulfillerConduit A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
+     * @param order            The order to fulfill. Note that both the offerer
+     *                         and the fulfiller must first approve this
+     *                         contract (or the supplied conduit if indicated)
+     *                         to transfer any relevant tokens on their behalf
+     *                         and that contracts must implement
+     *                         `onERC1155Received` in order to receive ERC1155
+     *                         tokens as consideration.
+     * @param fulfillerConduit ...
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -336,8 +331,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          (transferrable) token identifier on the token in
      *                          question is valid and that no associated proof
      *                          needs to be supplied.
-     * @param fulfillerConduit A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
+     * @param fulfillerConduit  ...
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -402,13 +396,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
-     * @param fulfillerConduit         A flag indicating whether to source
-     *                                  approvals for fulfilled tokens from an
-     *                                  associated proxy.
+     * @param fulfillerConduit          ...
      *
      * @return fulfillmentDetails A array of FulfillmentDetail structs, each
      *                            indicating whether the associated order has
-     *                            been fulfilled and whether a proxy was used.
+     *                            been fulfilled and whether a conduit was used.
      * @return standardExecutions An array of elements indicating the sequence
      *                            of non-batch transfers performed as part of
      *                            matching the given orders.
