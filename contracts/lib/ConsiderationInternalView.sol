@@ -7,7 +7,7 @@ import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
 
-import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Order, AdvancedOrder, OrderStatus, Execution, FulfillmentComponent, FulfillmentDetail } from "./ConsiderationStructs.sol";
+import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Order, AdvancedOrder, OrderStatus, Execution, FulfillmentComponent } from "./ConsiderationStructs.sol";
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
 
@@ -591,9 +591,6 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param side                  The side (i.e. offer or consideration).
      * @param fulfillmentComponents An array designating item components to
      *                              aggregate if part of an available order.
-     * @param fulfillmentDetails    An array of FulfillmentDetail structs, each
-     *                              indicating whether to fulfill the order and
-     *                              whether to use a proxy for it.
      * @param fulfillerConduit     A flag indicating whether to source
      *                              approvals for fulfilled tokens from the
      *                              fulfiller's respective proxy.
@@ -604,7 +601,6 @@ contract ConsiderationInternalView is ConsiderationPure {
         AdvancedOrder[] memory advancedOrders,
         Side side,
         FulfillmentComponent[] memory fulfillmentComponents,
-        FulfillmentDetail[] memory fulfillmentDetails,
         address fulfillerConduit
     ) internal view returns (Execution memory execution) {
         // Ensure at least one fulfillment component has been supplied.
@@ -628,7 +624,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 }
 
                 // If order is being fulfilled (i.e. it is still available)...
-                if (fulfillmentDetails[orderIndex].fulfillOrder) {
+                if (advancedOrders[orderIndex].numerator != 0) {
                     // Update the next potential component index.
                     nextComponentIndex = i + 1;
 
@@ -672,8 +668,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                     advancedOrders,
                     fulfillmentComponents,
                     firstAvailableComponent,
-                    nextComponentIndex,
-                    fulfillmentDetails
+                    nextComponentIndex
                 );
             // Otherwise, fulfillment components are consideration components.
         } else {
@@ -684,7 +679,6 @@ contract ConsiderationInternalView is ConsiderationPure {
                     fulfillmentComponents,
                     firstAvailableComponent,
                     nextComponentIndex,
-                    fulfillmentDetails,
                     fulfillerConduit
                 );
         }
@@ -702,9 +696,6 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param firstAvailableComponent The first available offer component.
      * @param nextComponentIndex      The index of the next potential offer
      *                                component.
-     * @param fulfillmentDetails      An array of FulfillmentDetail structs,
-     *                                each indicating whether to fulfill the
-     *                                order and whether to use a proxy for it.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -712,8 +703,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
         FulfillmentComponent memory firstAvailableComponent,
-        uint256 nextComponentIndex,
-        FulfillmentDetail[] memory fulfillmentDetails
+        uint256 nextComponentIndex
     ) internal view returns (Execution memory execution) {
         // Get offerer and consume offer component, returning a spent item.
         (
@@ -723,8 +713,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         ) = _consumeOfferComponent(
                 advancedOrders,
                 firstAvailableComponent.orderIndex,
-                firstAvailableComponent.itemIndex,
-                fulfillmentDetails
+                firstAvailableComponent.itemIndex
             );
 
         // Iterate over each remaining component on the fulfillment.
@@ -741,7 +730,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             }
 
             // If order is not being fulfilled (i.e. it is unavailable)...
-            if (!fulfillmentDetails[orderIndex].fulfillOrder) {
+            if (advancedOrders[orderIndex].numerator == 0) {
                 // Skip overflow check as for loop is indexed starting at one.
                 unchecked {
                     ++i;
@@ -759,8 +748,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             ) = _consumeOfferComponent(
                     advancedOrders,
                     orderIndex,
-                    offerComponent.itemIndex,
-                    fulfillmentDetails
+                    offerComponent.itemIndex
                 );
 
             // Ensure all relevant parameters are consistent with initial offer.
@@ -810,9 +798,6 @@ contract ConsiderationInternalView is ConsiderationPure {
      *                                component.
      * @param nextComponentIndex      The index of the next potential
      *                                consideration component.
-     * @param fulfillmentDetails      An array of FulfillmentDetail structs,
-     *                                each indicating whether to fulfill the
-     *                                order and whether to use a proxy for it.
      * @param fulfillerConduit       A flag indicating whether to source
      *                                approvals for fulfilled tokens from the
      *                                fulfiller's respective proxy.
@@ -824,7 +809,6 @@ contract ConsiderationInternalView is ConsiderationPure {
         FulfillmentComponent[] memory considerationComponents,
         FulfillmentComponent memory firstAvailableComponent,
         uint256 nextComponentIndex,
-        FulfillmentDetail[] memory fulfillmentDetails,
         address fulfillerConduit
     ) internal view returns (Execution memory execution) {
         // Consume consideration component, returning a received item.
@@ -856,7 +840,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             }
 
             // If order is not being fulfilled (i.e. it is unavailable)...
-            if (!fulfillmentDetails[orderIndex].fulfillOrder) {
+            if (advancedOrders[orderIndex].numerator == 0) {
                 // Skip overflow check as for loop is indexed starting at one.
                 unchecked {
                     ++i;

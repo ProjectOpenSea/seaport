@@ -5,7 +5,7 @@ import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol"
 
 import { OrderType, ItemType, BasicOrderRouteType } from "./lib/ConsiderationEnums.sol";
 
-import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution, FulfillmentDetail } from "./lib/ConsiderationStructs.sol";
+import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution } from "./lib/ConsiderationStructs.sol";
 
 import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
 
@@ -398,9 +398,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  executions.
      * @param fulfillerConduit          ...
      *
-     * @return fulfillmentDetails A array of FulfillmentDetail structs, each
-     *                            indicating whether the associated order has
-     *                            been fulfilled and whether a conduit was used.
+     * @return availableOrders    An array of booleans indicating if each order
+     *                            with an index corresponding to the index of
+     *                            the returned boolean was fulfillable or not.
      * @return standardExecutions An array of elements indicating the sequence
      *                            of non-batch transfers performed as part of
      *                            matching the given orders.
@@ -419,29 +419,32 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         payable
         override
         returns (
-            FulfillmentDetail[] memory fulfillmentDetails,
+            bool[] memory availableOrders,
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
         )
     {
-        // Validate orders, apply amounts, & determine if they utilize proxies.
-        fulfillmentDetails = _validateOrdersAndPrepareToFulfill(
+        // Validate orders, apply amounts, & determine if they utilize conduits.
+        _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             criteriaResolvers,
             false // Signifies that invalid orders should NOT revert.
         );
 
         // Aggregate used offer and consideration items and execute transfers.
-        (standardExecutions, batchExecutions) = _fulfillAvailableOrders(
+        (
+            availableOrders,
+            standardExecutions,
+            batchExecutions
+        ) = _fulfillAvailableOrders(
             advancedOrders,
             offerFulfillments,
             considerationFulfillments,
-            fulfillmentDetails,
             fulfillerConduit
         );
 
         // Return order fulfillment details and executions.
-        return (fulfillmentDetails, standardExecutions, batchExecutions);
+        return (availableOrders, standardExecutions, batchExecutions);
     }
 
     /**
@@ -489,21 +492,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         );
 
         // Validate orders, apply amounts, & determine if they utilize proxies.
-        FulfillmentDetail[] memory fulfillmentDetails = (
-            _validateOrdersAndPrepareToFulfill(
-                advancedOrders,
-                new CriteriaResolver[](0), // No criteria resolvers supplied.
-                true // Signifies that invalid orders should revert.
-            )
+        _validateOrdersAndPrepareToFulfill(
+            advancedOrders,
+            new CriteriaResolver[](0), // No criteria resolvers supplied.
+            true // Signifies that invalid orders should revert.
         );
 
         // Fulfill the orders using the supplied fulfillments.
-        return
-            _fulfillAdvancedOrders(
-                advancedOrders,
-                fulfillments,
-                fulfillmentDetails
-            );
+        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
     }
 
     /**
@@ -558,22 +554,15 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             BatchExecution[] memory batchExecutions
         )
     {
-        // Validate orders, apply amounts, & determine if they utilize proxies.
-        FulfillmentDetail[] memory fulfillmentDetails = (
-            _validateOrdersAndPrepareToFulfill(
-                advancedOrders,
-                criteriaResolvers,
-                true // Signifies that invalid orders should revert.
-            )
+        // Validate orders, apply amounts, & determine if they utilize conduits.
+        _validateOrdersAndPrepareToFulfill(
+            advancedOrders,
+            criteriaResolvers,
+            true // Signifies that invalid orders should revert.
         );
 
         // Fulfill the orders using the supplied fulfillments.
-        return
-            _fulfillAdvancedOrders(
-                advancedOrders,
-                fulfillments,
-                fulfillmentDetails
-            );
+        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
     }
 
     /**

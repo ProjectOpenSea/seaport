@@ -3,7 +3,7 @@ pragma solidity 0.8.13;
 
 import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
 
-import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution, FulfillmentDetail } from "./ConsiderationStructs.sol";
+import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution } from "./ConsiderationStructs.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
@@ -43,14 +43,10 @@ contract ConsiderationPure is ConsiderationBase {
      *                           root. Note that a root of zero indicates that
      *                           any transferrable token identifier is valid and
      *                           that no proof needs to be supplied.
-     * @param fulfillmentDetails An array of FulfillmentDetail structs, each
-     *                           indicating whether to fulfill the order and
-     *                           whether to use a proxy for it.
      */
     function _applyCriteriaResolvers(
         AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers,
-        FulfillmentDetail[] memory fulfillmentDetails
+        CriteriaResolver[] memory criteriaResolvers
     ) internal pure {
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
@@ -68,7 +64,7 @@ contract ConsiderationPure is ConsiderationBase {
                 }
 
                 // Skip criteria resolution for order if not fulfilled.
-                if (!fulfillmentDetails[orderIndex].fulfillOrder) {
+                if (advancedOrders[orderIndex].numerator == 0) {
                     continue;
                 }
 
@@ -158,13 +154,13 @@ contract ConsiderationPure is ConsiderationBase {
 
             // Iterate over each order.
             for (uint256 i = 0; i < advancedOrders.length; ++i) {
-                // Skip criteria resolution for order if not fulfilled.
-                if (!fulfillmentDetails[i].fulfillOrder) {
-                    continue;
-                }
-
                 // Retrieve the order.
                 AdvancedOrder memory advancedOrder = advancedOrders[i];
+
+                // Skip criteria resolution for order if not fulfilled.
+                if (advancedOrder.numerator == 0) {
+                    continue;
+                }
 
                 // Read consideration length from memory and place on stack.
                 uint256 totalItems = (
@@ -595,17 +591,13 @@ contract ConsiderationPure is ConsiderationBase {
      *                                Note that each consideration amount must
      *                                be zero in order for the match operation
      *                                to be valid.
-     * @param fulfillmentDetails      An array of FulfillmentDetail structs,
-     *                                each indicating whether to fulfill the
-     *                                order and whether to use a proxy for it.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
     function _applyFulfillment(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
-        FulfillmentComponent[] memory considerationComponents,
-        FulfillmentDetail[] memory fulfillmentDetails
+        FulfillmentComponent[] memory considerationComponents
     ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
@@ -622,8 +614,7 @@ contract ConsiderationPure is ConsiderationBase {
         ) = _consumeOfferComponent(
                 advancedOrders,
                 offerComponents[0].orderIndex,
-                offerComponents[0].itemIndex,
-                fulfillmentDetails
+                offerComponents[0].itemIndex
             );
 
         // Consume consideration component, returning a received item.
@@ -657,8 +648,7 @@ contract ConsiderationPure is ConsiderationBase {
             ) = _consumeOfferComponent(
                     advancedOrders,
                     offerComponent.orderIndex,
-                    offerComponent.itemIndex,
-                    fulfillmentDetails
+                    offerComponent.itemIndex
                 );
 
             // Ensure all relevant parameters are consistent with initial offer.
@@ -869,9 +859,6 @@ contract ConsiderationPure is ConsiderationBase {
      *                           component.
      * @param itemIndex          The item index specified by the fulfillment
      *                           component.
-     * @param fulfillmentDetails An array of FulfillmentDetail structs, each
-     *                           indicating whether to fulfill the order and
-     *                           whether to use a proxy for it.
      *
      * @return offerer   The offerer for the given order.
      * @return spentItem The spent item corresponding to the offer item at the
@@ -882,8 +869,7 @@ contract ConsiderationPure is ConsiderationBase {
     function _consumeOfferComponent(
         AdvancedOrder[] memory advancedOrders,
         uint256 orderIndex,
-        uint256 itemIndex,
-        FulfillmentDetail[] memory fulfillmentDetails
+        uint256 itemIndex
     )
         internal
         pure
@@ -920,11 +906,11 @@ contract ConsiderationPure is ConsiderationBase {
         // Clear offer amount to indicate offer item has been spent.
         _setOfferAmount(advancedOrders, orderIndex, itemIndex, 0);
 
-        // Return the offerer and the spent offer item at the given index.
+        // Return offerer, spent offer item, and conduit at the given index.
         return (
             orderParameters.offerer,
             spentItemConvertedFromOfferItem,
-            fulfillmentDetails[orderIndex].offererConduit
+            orderParameters.conduit
         );
     }
 

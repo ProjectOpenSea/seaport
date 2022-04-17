@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { BasicOrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, BatchExecution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, FulfillmentDetail } from "../lib/ConsiderationStructs.sol";
+import { BasicOrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, BatchExecution, Order, AdvancedOrder, OrderStatus, CriteriaResolver } from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationInterface
@@ -146,9 +146,9 @@ interface ConsiderationInterface {
      *                                  approvals for fulfilled tokens from an
      *                                  associated proxy.
      *
-     * @return fulfillmentDetails A array of FulfillmentDetail structs, each
-     *                            indicating whether the associated order has
-     *                            been fulfilled and whether a proxy was used.
+     * @return availableOrders    An array of booleans indicating if each order
+     *                            with an index corresponding to the index of
+     *                            the returned boolean was fulfillable or not.
      * @return standardExecutions An array of elements indicating the sequence
      *                            of non-batch transfers performed as part of
      *                            matching the given orders.
@@ -166,7 +166,7 @@ interface ConsiderationInterface {
         external
         payable
         returns (
-            FulfillmentDetail[] memory fulfillmentDetails,
+            bool[] memory availableOrders,
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
         );
