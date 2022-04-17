@@ -557,7 +557,7 @@ contract ConsiderationPure is ConsiderationBase {
                             execution.item.recipient, // to
                             new uint256[](totalElements), // tokenIds
                             new uint256[](totalElements), // amounts
-                            execution.useProxy // useProxy
+                            execution.conduit // conduit
                         );
                     }
 
@@ -618,7 +618,7 @@ contract ConsiderationPure is ConsiderationBase {
         (
             address offerer,
             SpentItem memory offerItem,
-            bool useProxy
+            address conduit
         ) = _consumeOfferComponent(
                 advancedOrders,
                 offerComponents[0].orderIndex,
@@ -653,7 +653,7 @@ contract ConsiderationPure is ConsiderationBase {
             (
                 address subsequentOfferer,
                 SpentItem memory nextOfferItem,
-                bool subsequentUseProxy
+                address subsequentConduit
             ) = _consumeOfferComponent(
                     advancedOrders,
                     offerComponent.orderIndex,
@@ -667,7 +667,7 @@ contract ConsiderationPure is ConsiderationBase {
                 offerItem.itemType != nextOfferItem.itemType ||
                 offerItem.token != nextOfferItem.token ||
                 offerItem.identifier != nextOfferItem.identifier ||
-                useProxy != subsequentUseProxy
+                conduit != subsequentConduit
             ) {
                 revert MismatchedFulfillmentOfferComponents();
             }
@@ -751,7 +751,7 @@ contract ConsiderationPure is ConsiderationBase {
         }
 
         // Return the final execution that will be triggered for relevant items.
-        return Execution(requiredConsideration, offerer, useProxy);
+        return Execution(requiredConsideration, offerer, conduit);
     }
 
     /**
@@ -876,7 +876,7 @@ contract ConsiderationPure is ConsiderationBase {
      * @return offerer   The offerer for the given order.
      * @return spentItem The spent item corresponding to the offer item at the
      *                   given index.
-     * @return useProxy  A boolean indicating whether to source approvals for
+     * @return conduit  A boolean indicating whether to source approvals for
      *                   offered tokens from the order's respective proxy.
      */
     function _consumeOfferComponent(
@@ -890,7 +890,7 @@ contract ConsiderationPure is ConsiderationBase {
         returns (
             address offerer,
             SpentItem memory spentItem,
-            bool useProxy
+            address conduit
         )
     {
         // Retrieve the order parameters using the supplied order index.
@@ -924,7 +924,7 @@ contract ConsiderationPure is ConsiderationBase {
         return (
             orderParameters.offerer,
             spentItemConvertedFromOfferItem,
-            fulfillmentDetails[orderIndex].useOffererProxy
+            fulfillmentDetails[orderIndex].offererConduit
         );
     }
 
@@ -1104,7 +1104,7 @@ contract ConsiderationPure is ConsiderationBase {
                 item.token,
                 execution.offerer,
                 item.recipient,
-                execution.useProxy
+                execution.conduit
             );
     }
 
@@ -1115,7 +1115,7 @@ contract ConsiderationPure is ConsiderationBase {
      * @param token    The token to transfer.
      * @param from     The originator of the transfer.
      * @param to       The recipient of the transfer.
-     * @param useProxy A boolean indicating whether to utilize a proxy when
+     * @param conduit A boolean indicating whether to utilize a proxy when
      *                 performing the transfer.
      *
      * @return value The hash.
@@ -1124,11 +1124,11 @@ contract ConsiderationPure is ConsiderationBase {
         address token,
         address from,
         address to,
-        bool useProxy
+        address conduit
     ) internal pure returns (bytes32 value) {
         // Leverage scratch space to perform an efficient hash.
         assembly {
-            mstore(0x20, useProxy) // Place proxy bool at end of scratch space.
+            mstore(0x20, conduit) // Place proxy bool at end of scratch space.
             mstore(0x1c, to) // Place to address just before bool.
             mstore(0x08, from) // Place from address just before to.
 
@@ -1396,15 +1396,15 @@ contract ConsiderationPure is ConsiderationBase {
                 // Order parameters have offset of 0x20
                 eq(calldataload(0x04), 0x20),
                 // Additional recipients have offset of 0x200
-                eq(calldataload(0x204), 0x220)
+                eq(calldataload(0x224), 0x240)
             )
             validOffsets := and(
                 validOffsets,
                 eq(
                     // Load signature offset from calldata
-                    calldataload(0x224),
+                    calldataload(0x244),
                     // Calculate expected offset (start of recipients + len * 64)
-                    add(0x240, mul(calldataload(0x244), 0x40))
+                    add(0x260, mul(calldataload(0x264), 0x40))
                 )
             )
         }

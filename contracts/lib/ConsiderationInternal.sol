@@ -65,10 +65,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                                     consideration item on the order.
      * @param offeredItemType              The item type of the offered item on
      *                                     the order.
-     *
-     * @return useOffererProxy A boolean indicating whether the offerer has
-     *                         elected to utilize their proxy when transferring
-     *                         ERC721 or ERC1155 offer items.
      */
     function _prepareBasicFulfillmentFromCalldata(
         BasicOrderParameters calldata parameters,
@@ -77,7 +73,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         ItemType additionalRecipientsItemType,
         address additionalRecipientsToken,
         ItemType offeredItemType
-    ) internal returns (bool useOffererProxy) {
+    ) internal {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
@@ -138,11 +134,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                 // 2. Write first ReceivedItem to OrderFulfilled data.
                 // Get the length of the additional recipients array.
-                let len := calldataload(0x244)
+                let len := calldataload(0x264)
 
                 // END_ARR + 0x120 = 0x2a0 + len*0x20
                 let eventArrPtr := add(0x2a0, mul(0x20, len))
-                mstore(eventArrPtr, add(calldataload(0x244), 1)) // length
+                mstore(eventArrPtr, add(calldataload(0x264), 1)) // length
 
                 // Set pointer to data portion of the initial ReceivedItem.
                 eventArrPtr := add(eventArrPtr, 0x20)
@@ -163,7 +159,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(0xe0, 0)
 
                 // Read length of the additionalRecipients array and iterate.
-                len := calldataload(0x1e4)
+                len := calldataload(0x204)
                 let i := 0
                 for {
 
@@ -171,7 +167,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     i := add(i, 1)
                 } {
                     // Retrieve pointer for additional recipient in question.
-                    let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
+                    let additionalRecipientCdPtr := add(0x284, mul(0x40, i))
 
                     // a. Write ConsiderationItem hash to consideration array
                     // Copy startAmount
@@ -211,14 +207,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // keccak256(abi.encodePacked(receivedItemHashes))
                 mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
 
-                /* 5. Write tips to event data */
-                len := calldataload(0x244)
+                // 5. Write tips to event data.
+                len := calldataload(0x264)
                 for {
 
                 } lt(i, len) {
                     i := add(i, 1)
                 } {
-                    let additionalRecipientCdPtr := add(0x264, mul(0x40, i))
+                    let additionalRecipientCdPtr := add(0x284, mul(0x40, i))
 
                     // b. Write ReceivedItem to OrderFulfilled data
                     // At this point, eventArrPtr points to the beginning of the
@@ -281,7 +277,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // 3. Write SpentItem array to event data
                 // 0x180 + len*32 = event data ptr
                 // offers array length is stored at 0x80 into the event data
-                let eventArrPtr := add(0x200, mul(0x20, calldataload(0x244)))
+                let eventArrPtr := add(0x200, mul(0x20, calldataload(0x264)))
 
                 mstore(eventArrPtr, 1)
                 mstore(add(eventArrPtr, 0x20), offeredItemType)
@@ -301,12 +297,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
              *   - 0xc0:   orderParameters.zone
              *   - 0xe0:   keccak256(abi.encodePacked(offerHashes))
              *   - 0x100:  keccak256(abi.encodePacked(considerationHashes))
-             *   - 0x120:  orderParameters.basicOrderType (% 8 = orderType)
+             *   - 0x120:  orderParameters.basicOrderType (% 4 = orderType)
              *   - 0x140:  orderParameters.startTime
              *   - 0x160:  orderParameters.endTime
              *   - 0x180:  orderParameters.zoneHash
              *   - 0x1a0:  orderParameters.salt
-             *   - 0x1c0:  _nonces[orderParameters.offerer] (from storage)
+             *   - 0x1c0:  orderParameters.conduit
+             *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
              */
 
             // Read the offerer from calldata and place on the stack.
@@ -334,14 +331,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Set supplied order type in memory.
                 mstore(0x120, orderType)
 
-                // Copy startTime, endTime, zoneHash, & salt and set in memory.
-                calldatacopy(0x140, 0x144, 0x80)
+                // Copy startTime, endTime, zoneHash, salt & conduit to memory.
+                calldatacopy(0x140, 0x144, 0xa0)
 
                 // Take offerer's nonce retrieved from storage & set in memory.
-                mstore(0x1c0, nonce)
+                mstore(0x1e0, nonce)
 
                 // Compute the order hash.
-                orderHash := keccak256(0x80, 0x160)
+                orderHash := keccak256(0x80, 0x180)
             }
         }
 
@@ -376,7 +373,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
              */
 
             // Derive pointer from calldata via length of additional recipients.
-            let eventDataPtr := add(0x180, mul(0x20, calldataload(0x244)))
+            let eventDataPtr := add(0x180, mul(0x20, calldataload(0x264)))
 
             // Write the order hash to the head of the event's data region.
             mstore(eventDataPtr, orderHash)
@@ -389,7 +386,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             mstore(add(eventDataPtr, 0x60), 0x120) // ReceivedItem array pointer
 
             // Derive total data size including SpentItem and ReceivedItem data.
-            let dataSize := add(0x1e0, mul(calldataload(0x244), 0xa0))
+            let dataSize := add(0x1e0, mul(calldataload(0x264), 0xa0))
 
             // Emit OrderFulfilled log with three topics (the event signature
             // as well as the two indexed arguments, the offerer and the zone).
@@ -407,8 +404,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             mstore(0x60, 0)
         }
 
-        // Determine if a proxy should be used and that restricted orders are valid.
-        useOffererProxy = _determineProxyUtilizationAndEnsureValidBasicOrder(
+        // Determine whether order is restricted and, if so, that it is valid.
+        _assertRestrictedBasicOrderValidity(
             orderHash,
             parameters.zoneHash,
             orderType,
@@ -472,12 +469,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param revertOnInvalid A boolean indicating whether to revert if the
      *                        order is invalid due to the time or order status.
      *
-     * @return orderHash       The order hash.
-     * @return newNumerator    A value indicating the portion of the order that
-     *                         will be filled.
-     * @return newDenominator  A value indicating the total size of the order.
-     * @return useOffererProxy A boolean indicating whether to utilize the
-     *                         offerer's proxy.
+     * @return orderHash      The order hash.
+     * @return newNumerator   A value indicating the portion of the order that
+     *                        will be filled.
+     * @return newDenominator A value indicating the total size of the order.
+     * @return offererConduit The offerer's chosen conduit.
      */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
@@ -488,7 +484,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             bytes32 orderHash,
             uint256 newNumerator,
             uint256 newDenominator,
-            bool useOffererProxy
+            address offererConduit
         )
     {
         // Retrieve the parameters for the order.
@@ -503,7 +499,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
         ) {
             // Assuming an invalid time and no revert, return zeroed out values.
-            return (bytes32(0), 0, 0, false);
+            return (bytes32(0), 0, 0, address(0));
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -529,7 +525,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         );
 
         // Determine if a proxy should be utilized and ensure a valid submitter.
-        useOffererProxy = _determineProxyUtilizationAndEnsureValidAdvancedOrder(
+        _assertRestrictedAdvancedOrderValidity(
             advancedOrder,
             orderHash,
             orderParameters.zoneHash,
@@ -551,7 +547,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
         ) {
             // Assuming an invalid order status and no revert, return zero fill.
-            return (orderHash, 0, 0, useOffererProxy);
+            return (orderHash, 0, 0, orderParameters.conduit);
         }
 
         // If the order is not already validated, verify the supplied signature.
@@ -613,7 +609,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Return order hash, new numerator and denominator, and proxy boolean.
-        return (orderHash, numerator, denominator, useOffererProxy);
+        return (orderHash, numerator, denominator, orderParameters.conduit);
     }
 
     /**
@@ -632,7 +628,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          root. Note that a criteria of zero indicates
      *                          that any (transferrable) token identifier is
      *                          valid and that no proof needs to be supplied.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
+     * @param fulfillerConduit A flag indicating whether to source approvals
      *                          for fulfilled tokens from an associated proxy.
      *
      * @return A boolean indicating whether the order has been fulfilled.
@@ -640,7 +636,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     function _validateAndFulfillAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
-        bool useFulfillerProxy
+        address fulfillerConduit
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -650,7 +646,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             bytes32 orderHash,
             uint256 fillNumerator,
             uint256 fillDenominator,
-            bool useOffererProxy
+            address offererConduit
         ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Create an array with length 1 containing the order.
@@ -661,7 +657,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         FulfillmentDetail[] memory fulfillmentDetails = (
             new FulfillmentDetail[](1)
         );
-        fulfillmentDetails[0] = FulfillmentDetail(true, useOffererProxy);
+        fulfillmentDetails[0] = FulfillmentDetail(true, offererConduit);
 
         // Apply criteria resolvers using generated orders and details arrays.
         _applyCriteriaResolvers(
@@ -678,8 +674,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderParameters,
             fillNumerator,
             fillDenominator,
-            useOffererProxy,
-            useFulfillerProxy
+            offererConduit,
+            fulfillerConduit
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -703,21 +699,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      order fulfillment after applying a respective fraction to the amount
      *      being transferred.
      *
-     * @param orderParameters   The parameters for the fulfilled order.
-     * @param numerator         A value indicating the portion of the order that
-     *                          should be filled.
-     * @param denominator       A value indicating the total size of the order.
-     * @param useOffererProxy   A flag indicating whether to source approvals
-     *                          for offered tokens from an associated proxy.
-     * @param useFulfillerProxy A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
+     * @param orderParameters  The parameters for the fulfilled order.
+     * @param numerator        A value indicating the portion of the order that
+     *                         should be filled.
+     * @param denominator      A value indicating the total size of the order.
+     * @param offererConduit   ...
+     * @param fulfillerConduit ...
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
-        bool useOffererProxy,
-        bool useFulfillerProxy
+        address offererConduit,
+        address fulfillerConduit
     ) internal {
         // @todo - add better comments
         // Derive order duration, time elapsed, and time remaining.
@@ -728,9 +722,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
         {
-            function(OfferItem memory, address, bool)
+            function(OfferItem memory, address, address)
                 internal _transferOfferItem;
-            function(ReceivedItem memory, address, bool)
+            function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
             assembly {
                 _transferOfferItem := _transferReceivedItem
@@ -776,7 +770,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferOfferItem(
                     offerItem,
                     orderParameters.offerer,
-                    useOffererProxy
+                    offererConduit
                 );
 
                 // Skip overflow check as for loop is indexed starting at zero.
@@ -786,9 +780,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
         {
-            function(ConsiderationItem memory, address, bool)
+            function(ConsiderationItem memory, address, address)
                 internal _transferConsiderationItem;
-            function(ReceivedItem memory, address, bool)
+            function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
             assembly {
                 _transferConsiderationItem := _transferReceivedItem
@@ -838,7 +832,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferConsiderationItem(
                     considerationItem,
                     msg.sender,
-                    useFulfillerProxy
+                    fulfillerConduit
                 );
 
                 // Skip overflow check as for loop is indexed starting at zero.
@@ -875,7 +869,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *
      * @return fulfillmentDetails An array of FulfillmentDetail structs, each
      *                            indicating whether to fulfill the order and
-     *                            whether to use a proxy for it.
+     *                            whether to use a conduit for it.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
@@ -906,7 +900,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     bytes32 orderHash,
                     uint256 numerator,
                     uint256 denominator,
-                    bool useOffererProxy
+                    address offererConduit
                 ) = _validateOrderAndUpdateStatus(
                         advancedOrder,
                         revertOnInvalid
@@ -920,10 +914,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Determine if order should be fulfilled based on numerator.
                 bool shouldBeFulfilled = numerator != 0;
 
-                // Mark whether to fulfill the order and to use offerer's proxy.
+                // Mark whether to fulfill order and to use offerer's conduit.
                 fulfillmentDetails[i] = FulfillmentDetail(
                     shouldBeFulfilled,
-                    useOffererProxy
+                    offererConduit
                 );
 
                 // Do not track hash or adjust prices if order is not fulfilled.
@@ -1077,7 +1071,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                           be considered valid.
      * @param fulfillmentDetails An array of FulfillmentDetail structs, each
      *                           indicating whether to fulfill the order and
-     *                           whether to use a proxy for it. Note that all
+     *                           whether to use a conduit for it. Note that all
      *                           orders will fulfill on calling this function.
      *
      * @return An array of elements indicating the sequence of non-batch
@@ -1158,7 +1152,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                                  fraction of those orders to attempt to
      *                                  fill. Note that both the offerer and the
      *                                  fulfiller must first approve this
-     *                                  contract (or their proxy if indicated by
+     *                                  contract (or the conduit if indicated by
      *                                  the order) to transfer any relevant
      *                                  tokens on their behalf and that
      *                                  contracts must implement
@@ -1179,7 +1173,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                                  executions.
      * @param fulfillmentDetails        An array of FulfillmentDetail structs,
      *                                  each indicating whether to fulfill the
-     *                                  order and whether to use a proxy for it.
+     *                                  order and whether to use a conduit.
      *
      * @return standardExecutions An array of elements indicating the sequence
      *                            of non-batch transfers performed as part of
@@ -1193,7 +1187,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         FulfillmentDetail[] memory fulfillmentDetails,
-        bool useFulfillerProxy
+        address fulfillerConduit
     ) internal returns (Execution[] memory, BatchExecution[] memory) {
         // Allocate an execution for each offer and consideration fulfillment.
         Execution[] memory executions = new Execution[](
@@ -1216,7 +1210,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     Side.OFFER,
                     components,
                     fulfillmentDetails,
-                    useFulfillerProxy
+                    fulfillerConduit
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -1242,7 +1236,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     Side.CONSIDERATION,
                     components,
                     fulfillmentDetails,
-                    useFulfillerProxy
+                    fulfillerConduit
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -1295,7 +1289,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                           fulfilling the given orders.
      * @param fulfillmentDetails An array of FulfillmentDetail structs, each
      *                           indicating whether to fulfill the order and
-     *                           whether to use a proxy for it. Note that all
+     *                           whether to use a conduit for it. Note that all
      *                           orders will fulfill on calling this function.
      *
      * @return standardExecutions An array of elements indicating the sequence
@@ -1369,7 +1363,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
 
             // Transfer the item specified by the execution.
-            _transfer(item, execution.offerer, execution.useProxy);
+            _transfer(item, execution.offerer, execution.conduit);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -1400,15 +1394,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /**
      * @dev Internal function to transfer a given item.
      *
-     * @param item     The item to transfer, including an amount and recipient.
-     * @param offerer  The account offering the item, i.e. the from address.
-     * @param useProxy A boolean indicating whether to source approvals for the
-     *                 fulfilled token from the offer's proxy.
+     * @param item    The item to transfer, including an amount and recipient.
+     * @param offerer The account offering the item, i.e. the from address.
+     * @param conduit ...
      */
     function _transfer(
         ReceivedItem memory item,
         address offerer,
-        bool useProxy
+        address conduit
     ) internal {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
@@ -1418,14 +1411,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         } else if (item.itemType == ItemType.ERC20) {
             // Transfer ERC20 token from the offerer to the recipient.
             _transferERC20(item.token, offerer, item.recipient, item.amount);
-            // Otherwise, transfer the item based on item type and proxy preference.
+            // Otherwise, transfer item based on item type & conduit preference.
         } else {
-            // Equivalent to useProxy ? offerer : address(0)
-            address proxyOwner;
-            assembly {
-                proxyOwner := mul(offerer, useProxy)
-            }
-
             if (item.itemType == ItemType.ERC721) {
                 // Transfer ERC721 token from the offerer to the recipient.
                 _transferERC721(
@@ -1434,7 +1421,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     item.recipient,
                     item.identifier,
                     item.amount,
-                    proxyOwner
+                    conduit
                 );
             } else {
                 // Transfer ERC1155 token from the offerer to the recipient.
@@ -1444,7 +1431,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     item.recipient,
                     item.identifier,
                     item.amount,
-                    proxyOwner
+                    conduit
                 );
             }
         }
@@ -1519,16 +1506,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /**
      * @dev Internal function to transfer a single ERC721 token from a given
      *      originator to a given recipient. Sufficient approvals must be set,
-     *      either on the respective proxy or on this contract itself.
+     *      either on the respective conduit or on this contract itself.
      *
      * @param token      The ERC721 token to transfer.
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param identifier The tokenId to transfer.
      * @param amount     The "amount" (this value must be equal to one).
-     * @param proxyOwner An address indicating the owner of the proxy to utilize
-     *                   when performing the transfer, or the null address if no
-     *                   proxy should be utilized.
+     * @param conduit    ...
      */
     function _transferERC721(
         address token,
@@ -1536,7 +1521,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address to,
         uint256 identifier,
         uint256 amount,
-        address proxyOwner
+        address conduit
     ) internal {
         // Ensure that exactly one 721 item is being transferred.
         if (amount != 1) {
@@ -1545,8 +1530,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Perform transfer, either directly or via proxy.
         bool success = _callDirectlyOrViaProxy(
+            from,
             token,
-            proxyOwner,
+            conduit,
             abi.encodeCall(ERC721Interface.transferFrom, (from, to, identifier))
         );
 
@@ -1557,16 +1543,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /**
      * @dev Internal function to transfer ERC1155 tokens from a given originator
      *      to a given recipient. Sufficient approvals must be set, either on
-     *      the respective proxy or on this contract itself.
+     *      the respective conduit or on this contract itself.
      *
      * @param token      The ERC1155 token to transfer.
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param identifier The tokenId to transfer.
      * @param amount     The amount to transfer.
-     * @param proxyOwner An address indicating the owner of the proxy to utilize
-     *                   when performing the transfer, or the null address if no
-     *                   proxy should be utilized.
+     * @param conduit    ...
      */
     function _transferERC1155(
         address token,
@@ -1574,12 +1558,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address to,
         uint256 identifier,
         uint256 amount,
-        address proxyOwner
+        address conduit
     ) internal {
         // Perform transfer, either directly or via proxy.
         bool success = _callDirectlyOrViaProxy(
+            from,
             token,
-            proxyOwner,
+            conduit,
             abi.encodeWithSelector(
                 ERC1155Interface.safeTransferFrom.selector,
                 from,
@@ -1597,7 +1582,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /**
      * @dev Internal function to transfer a batch of ERC1155 tokens from a given
      *      originator to a given recipient. Sufficient approvals must be set,
-     *      either on the respective proxy or on this contract itself.
+     *      either on the respective conduit or on this contract itself.
      *
      * @param batchExecution The batch of 1155 tokens to be transferred.
      */
@@ -1605,7 +1590,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         internal
     {
         // Place elements of the batch execution in memory onto the stack.
-        bool useProxy = batchExecution.useProxy;
+        address conduit = batchExecution.conduit;
         address token = batchExecution.token;
         address from = batchExecution.from;
         address to = batchExecution.to;
@@ -1614,16 +1599,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        // Equivalent to useProxy ? from : address(0)
-        address proxyOwner;
-        assembly {
-            proxyOwner := mul(from, useProxy)
-        }
-
         // Perform transfer, either directly or via proxy.
         bool success = _callDirectlyOrViaProxy(
+            from,
             token,
-            proxyOwner,
+            conduit,
             abi.encodeWithSelector(
                 ERC1155Interface.safeBatchTransferFrom.selector,
                 from,
@@ -1660,25 +1640,28 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      and must declare that its implementation matches the required proxy
      *      implementation in accordance with EIP-897.
      *
-     * @param token      The token contract to call.
-     * @param proxyOwner The original owner of the proxy in question, or the
-     *                   null address if no proxy contract should be used.
-     * @param callData   The calldata to supply when calling the token contract.
+     * @param from     The account providing the tokens.
+     * @param token    The token contract to call.
+     * @param conduit  ...
+     * @param callData The calldata to supply when calling the token contract.
      *
      * @return success The status of the call to the token contract.
      */
     function _callDirectlyOrViaProxy(
+        address from,
         address token,
-        address proxyOwner,
+        address conduit,
         bytes memory callData
     ) internal returns (bool success) {
-        // If a proxy owner has been specified...
-        if (proxyOwner != address(0)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(proxyOwner, token, callData);
-        } else {
-            // Otherwise, perform transfer via the token contract directly.
+        // If no conduit has been specified...
+        if (conduit == address(0)) {
+            // Perform transfer via the token contract directly.
             success = _call(token, callData);
+        } else if (conduit == address(1)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(from, token, callData);
+        } else {
+            revert("Not yet implemented");
         }
     }
 

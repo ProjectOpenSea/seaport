@@ -442,10 +442,10 @@ contract ConsiderationInternalView is ConsiderationPure {
             let considerationDataPtr := mload(considerationHeadPtr)
             mstore(considerationHeadPtr, considerationHash)
 
-            let noncePtr := add(orderParameters, 0x120)
+            let noncePtr := add(orderParameters, 0x140)
             mstore(noncePtr, nonce)
 
-            orderHash := keccak256(typeHashPtr, 0x160)
+            orderHash := keccak256(typeHashPtr, 0x180)
             mstore(typeHashPtr, previousValue)
             mstore(offerHeadPtr, offerDataPtr)
             mstore(considerationHeadPtr, considerationDataPtr)
@@ -478,35 +478,27 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to determine if a proxy should be utilized
-     *      for a given order and to ensure that the submitter is allowed by the
-     *      order type.
+     * @dev Internal view function to determine if an order has a restricted
+     *      order type and, if so, to ensure that either the offerer or the zone
+     *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
+     *      returns a magic value indicating that the order is currently valid.
      *
      * @param orderHash The hash of the order.
      * @param zoneHash  The hash to provide upon calling the zone.
      * @param orderType The type of the order.
      * @param offerer   The offerer in question.
      * @param zone      The zone in question.
-     *
-     * @return useOffererProxy A boolean indicating whether a proxy should be
-     *                         utilized for the order.
      */
-    function _determineProxyUtilizationAndEnsureValidBasicOrder(
+    function _assertRestrictedBasicOrderValidity(
         bytes32 orderHash,
         bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
-    ) internal view returns (bool useOffererProxy) {
-        // Convert the order type from enum to uint256.
-        uint256 orderTypeAsUint256 = uint256(orderType);
-
-        // Order type 0-3 are executed directly while 4-7 are executed by proxy.
-        useOffererProxy = orderTypeAsUint256 > 3;
-
-        // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
+    ) internal view {
+        // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
-            orderTypeAsUint256 > (useOffererProxy ? 5 : 1) &&
+            uint256(orderType) > 1 &&
             msg.sender != zone &&
             msg.sender != offerer
         ) {
@@ -538,27 +530,19 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param orderType     The type of the order.
      * @param offerer       The offerer in question.
      * @param zone          The zone in question.
-     *
-     * @return useOffererProxy A boolean indicating whether a proxy should be
-     *                         utilized for the order.
+
      */
-    function _determineProxyUtilizationAndEnsureValidAdvancedOrder(
+    function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
         bytes32 orderHash,
         bytes32 zoneHash,
         OrderType orderType,
         address offerer,
         address zone
-    ) internal view returns (bool useOffererProxy) {
-        // Convert the order type from enum to uint256.
-        uint256 orderTypeAsUint256 = uint256(orderType);
-
-        // Order type 0-3 are executed directly while 4-7 are executed by proxy.
-        useOffererProxy = orderTypeAsUint256 > 3;
-
-        // Order type 2-3 and 6-7 require the zone or the offerer be the caller.
+    ) internal view {
+        // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
-            orderTypeAsUint256 > (useOffererProxy ? 5 : 1) &&
+            uint256(orderType) > 1 &&
             msg.sender != zone &&
             msg.sender != offerer
         ) {
@@ -610,7 +594,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param fulfillmentDetails    An array of FulfillmentDetail structs, each
      *                              indicating whether to fulfill the order and
      *                              whether to use a proxy for it.
-     * @param useFulfillerProxy     A flag indicating whether to source
+     * @param fulfillerConduit     A flag indicating whether to source
      *                              approvals for fulfilled tokens from the
      *                              fulfiller's respective proxy.
      *
@@ -621,7 +605,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         Side side,
         FulfillmentComponent[] memory fulfillmentComponents,
         FulfillmentDetail[] memory fulfillmentDetails,
-        bool useFulfillerProxy
+        address fulfillerConduit
     ) internal view returns (Execution memory execution) {
         // Ensure at least one fulfillment component has been supplied.
         if (fulfillmentComponents.length == 0) {
@@ -667,7 +651,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                         payable(address(0))
                     ),
                     address(0),
-                    false
+                    address(0)
                 );
         }
 
@@ -701,7 +685,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                     firstAvailableComponent,
                     nextComponentIndex,
                     fulfillmentDetails,
-                    useFulfillerProxy
+                    fulfillerConduit
                 );
         }
     }
@@ -735,7 +719,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         (
             address offerer,
             SpentItem memory offerItem,
-            bool useProxy
+            address conduit
         ) = _consumeOfferComponent(
                 advancedOrders,
                 firstAvailableComponent.orderIndex,
@@ -771,7 +755,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             (
                 address subsequentOfferer,
                 SpentItem memory nextOfferItem,
-                bool subsequentUseProxy
+                address subsequentConduit
             ) = _consumeOfferComponent(
                     advancedOrders,
                     orderIndex,
@@ -785,7 +769,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 offerItem.itemType != nextOfferItem.itemType ||
                 offerItem.token != nextOfferItem.token ||
                 offerItem.identifier != nextOfferItem.identifier ||
-                useProxy != subsequentUseProxy
+                conduit != subsequentConduit
             ) {
                 revert MismatchedFulfillmentOfferComponents();
             }
@@ -809,7 +793,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         );
 
         // Return execution for aggregated items provided by the offerer.
-        execution = Execution(receivedOfferItem, offerer, useProxy);
+        execution = Execution(receivedOfferItem, offerer, conduit);
     }
 
     /**
@@ -829,7 +813,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param fulfillmentDetails      An array of FulfillmentDetail structs,
      *                                each indicating whether to fulfill the
      *                                order and whether to use a proxy for it.
-     * @param useFulfillerProxy       A flag indicating whether to source
+     * @param fulfillerConduit       A flag indicating whether to source
      *                                approvals for fulfilled tokens from the
      *                                fulfiller's respective proxy.
      *
@@ -841,7 +825,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         FulfillmentComponent memory firstAvailableComponent,
         uint256 nextComponentIndex,
         FulfillmentDetail[] memory fulfillmentDetails,
-        bool useFulfillerProxy
+        address fulfillerConduit
     ) internal view returns (Execution memory execution) {
         // Consume consideration component, returning a received item.
         ReceivedItem memory requiredConsideration = (
@@ -915,6 +899,6 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
 
         // Return execution for aggregated items provided by the fulfiller.
-        return Execution(requiredConsideration, msg.sender, useFulfillerProxy);
+        return Execution(requiredConsideration, msg.sender, fulfillerConduit);
     }
 }
