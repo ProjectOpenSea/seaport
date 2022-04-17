@@ -76,11 +76,10 @@ export const getBasicOrderParameters = (
   order: Order,
   fulfillerConduit = false,
   tips = [],
-  offererConduit = false,
 ): BasicOrderParameters => ({
   offerer: order.parameters.offerer,
   zone: order.parameters.zone,
-  basicOrderType: order.parameters.orderType + 8 * basicOrderRouteType,
+  basicOrderType: order.parameters.orderType + 4 * basicOrderRouteType,
   offerToken: order.parameters.offer[0].token,
   offerIdentifier: order.parameters.offer[0].identifierOrCriteria,
   offerAmount: order.parameters.offer[0].endAmount,
@@ -96,7 +95,7 @@ export const getBasicOrderParameters = (
     order.parameters.consideration.length - 1
   ),
   signature: order.signature,
-  offererConduit: toAddress(offererConduit),
+  offererConduit: order.parameters.conduit,
   fulfillerConduit: toAddress(fulfillerConduit),
   additionalRecipients: [
     ...order.parameters.consideration
