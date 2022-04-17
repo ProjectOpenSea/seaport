@@ -482,8 +482,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         returns (
             bytes32 orderHash,
             uint256 newNumerator,
-            uint256 newDenominator,
-            address offererConduit
+            uint256 newDenominator
         )
     {
         // Retrieve the parameters for the order.
