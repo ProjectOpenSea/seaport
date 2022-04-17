@@ -278,14 +278,14 @@ contract ConsiderationPure is ConsiderationBase {
         uint256 valueTimesNumerator = value * numerator;
 
         // Divide (Note: denominator must not be zero!) and check for remainder.
-        bool inexact;
+        bool exact;
         assembly {
             newValue := div(valueTimesNumerator, denominator)
-            inexact := iszero(iszero(mulmod(value, numerator, denominator)))
+            exact := iszero(mulmod(value, numerator, denominator))
         }
 
         // Ensure that division gave a final result with no remainder.
-        if (inexact) {
+        if (!exact) {
             revert InexactFraction();
         }
     }
@@ -317,7 +317,7 @@ contract ConsiderationPure is ConsiderationBase {
             uint256 totalExecutions = executions.length;
 
             // Return early if less than two executions are provided.
-            if (totalExecutions < 2) {
+            if (totalExecutions <= 1) {
                 return (executions, new BatchExecution[](0));
             }
 
@@ -337,7 +337,7 @@ contract ConsiderationPure is ConsiderationBase {
             }
 
             // Return early if less than two ERC1155 executions are located.
-            if (total1155Executions < 2) {
+            if (total1155Executions <= 1) {
                 return (executions, new BatchExecution[](0));
             }
 
@@ -448,7 +448,7 @@ contract ConsiderationPure is ConsiderationBase {
                 uint256 indicesLength = indices.length;
 
                 // if more than one execution applies to a potential batch...
-                if (indicesLength > 1) {
+                if (indicesLength >= 2) {
                     // Increment the total number of batches.
                     ++totals[1];
 
