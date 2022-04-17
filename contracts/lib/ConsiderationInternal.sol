@@ -9,7 +9,7 @@ import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
 
 import { OrderType, ItemType } from "./ConsiderationEnums.sol";
 
-import { AdditionalRecipient, BasicOrderParameters, OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution, FulfillmentDetail } from "./ConsiderationStructs.sol";
+import { AdditionalRecipient, BasicOrderParameters, OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution } from "./ConsiderationStructs.sol";
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
 
@@ -473,7 +473,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @return newNumerator   A value indicating the portion of the order that
      *                        will be filled.
      * @return newDenominator A value indicating the total size of the order.
-     * @return offererConduit The offerer's chosen conduit.
      */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
@@ -483,8 +482,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         returns (
             bytes32 orderHash,
             uint256 newNumerator,
-            uint256 newDenominator,
-            address offererConduit
+            uint256 newDenominator
         )
     {
         // Retrieve the parameters for the order.
@@ -499,7 +497,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
         ) {
             // Assuming an invalid time and no revert, return zeroed out values.
-            return (bytes32(0), 0, 0, address(0));
+            return (bytes32(0), 0, 0);
         }
 
         // Read numerator and denominator from memory and place on the stack.
@@ -547,7 +545,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
         ) {
             // Assuming an invalid order status and no revert, return zero fill.
-            return (orderHash, 0, 0, orderParameters.conduit);
+            return (orderHash, 0, 0);
         }
 
         // If the order is not already validated, verify the supplied signature.
@@ -609,7 +607,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Return order hash, new numerator and denominator, and proxy boolean.
-        return (orderHash, numerator, denominator, orderParameters.conduit);
+        return (orderHash, numerator, denominator);
     }
 
     /**
@@ -628,8 +626,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          root. Note that a criteria of zero indicates
      *                          that any (transferrable) token identifier is
      *                          valid and that no proof needs to be supplied.
-     * @param fulfillerConduit A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
+     * @param fulfillerConduit  An address indicating what conduit, if any, to
+     *                          source the fulfiller's token approvals from.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -645,28 +643,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
         (
             bytes32 orderHash,
             uint256 fillNumerator,
-            uint256 fillDenominator,
-            address offererConduit
+            uint256 fillDenominator
         ) = _validateOrderAndUpdateStatus(advancedOrder, true);
 
         // Create an array with length 1 containing the order.
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
         advancedOrders[0] = advancedOrder;
 
-        // Create an array with length 1 containing order fulfillment details.
-        FulfillmentDetail[] memory fulfillmentDetails = (
-            new FulfillmentDetail[](1)
-        );
-        fulfillmentDetails[0] = FulfillmentDetail(true, offererConduit);
-
         // Apply criteria resolvers using generated orders and details arrays.
-        _applyCriteriaResolvers(
-            advancedOrders,
-            criteriaResolvers,
-            fulfillmentDetails
-        );
+        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
-        // Retrieve the parameters of the order.
+        // Retrieve the order parameters after applying criteria resolvers.
         OrderParameters memory orderParameters = advancedOrders[0].parameters;
 
         // Perform each item transfer with the appropriate fractional amount.
@@ -674,7 +661,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderParameters,
             fillNumerator,
             fillDenominator,
-            offererConduit,
+            orderParameters.conduit,
             fulfillerConduit
         );
 
@@ -863,27 +850,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          a root of zero indicates that any transferrable
      *                          token identifier is valid and that no proof
      *                          needs to be supplied.
-     * @param revertOnInvalid   A boolean indicating whether to revert if the
-     *                          order is invalid due to the time or order
-     *                          status.
-     *
-     * @return fulfillmentDetails An array of FulfillmentDetail structs, each
-     *                            indicating whether to fulfill the order and
-     *                            whether to use a conduit for it.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid
-    ) internal returns (FulfillmentDetail[] memory fulfillmentDetails) {
+    ) internal {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
         // Read length of orders array and place on the stack.
         uint256 totalOrders = advancedOrders.length;
-
-        // Use total orders to declare memory region for order fulfillment info.
-        fulfillmentDetails = new FulfillmentDetail[](totalOrders);
 
         // Track the order hash for each order being fulfilled.
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
@@ -899,8 +876,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 (
                     bytes32 orderHash,
                     uint256 numerator,
-                    uint256 denominator,
-                    address offererConduit
+                    uint256 denominator
                 ) = _validateOrderAndUpdateStatus(
                         advancedOrder,
                         revertOnInvalid
@@ -911,17 +887,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 uint256 elapsed = block.timestamp - startTime;
                 uint256 remaining = duration - elapsed;
 
-                // Determine if order should be fulfilled based on numerator.
-                bool shouldBeFulfilled = numerator != 0;
-
-                // Mark whether to fulfill order and to use offerer's conduit.
-                fulfillmentDetails[i] = FulfillmentDetail(
-                    shouldBeFulfilled,
-                    offererConduit
-                );
-
                 // Do not track hash or adjust prices if order is not fulfilled.
-                if (!shouldBeFulfilled) {
+                if (numerator == 0) {
+                    advancedOrder.numerator = 0;
                     continue;
                 }
 
@@ -1022,11 +990,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Apply criteria resolvers to each order as applicable.
-        _applyCriteriaResolvers(
-            advancedOrders,
-            criteriaResolvers,
-            fulfillmentDetails
-        );
+        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
         // Emit an event for each order signifying that it has been fulfilled.
         unchecked {
@@ -1052,9 +1016,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 );
             }
         }
-
-        // Return memory region tracking orders to fulfill and use proxies for.
-        return fulfillmentDetails;
     }
 
     /**
@@ -1069,21 +1030,24 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                           that the final amount of each consideration
      *                           component must be zero for a match operation to
      *                           be considered valid.
-     * @param fulfillmentDetails An array of FulfillmentDetail structs, each
-     *                           indicating whether to fulfill the order and
-     *                           whether to use a conduit for it. Note that all
-     *                           orders will fulfill on calling this function.
      *
-     * @return An array of elements indicating the sequence of non-batch
-     *         transfers performed as part of matching the given orders.
-     * @return An array of elements indicating the sequence of batch transfers
-     *         performed as part of matching the given orders.
+     * @return standardExecutions An array of elements indicating the sequence
+     *                            of non-batch transfers performed as part of
+     *                            matching the given orders.
+     * @return batchExecutions    An array of elements indicating the sequence
+     *                            of batch transfers performed as part of
+     *                            matching the given orders.
      */
     function _fulfillAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
-        Fulfillment[] calldata fulfillments,
-        FulfillmentDetail[] memory fulfillmentDetails
-    ) internal returns (Execution[] memory, BatchExecution[] memory) {
+        Fulfillment[] calldata fulfillments
+    )
+        internal
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        )
+    {
         // Allocate executions by fulfillment and apply them to each execution.
         Execution[] memory executions = new Execution[](fulfillments.length);
 
@@ -1101,8 +1065,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 Execution memory execution = _applyFulfillment(
                     advancedOrders,
                     fulfillment.offerComponents,
-                    fulfillment.considerationComponents,
-                    fulfillmentDetails
+                    fulfillment.considerationComponents
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -1128,12 +1091,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Perform final checks, compress executions, and return.
-        return
-            _performFinalChecksAndExecuteOrders(
-                advancedOrders,
-                executions,
-                fulfillmentDetails
-            );
+        (
+            ,
+            standardExecutions,
+            batchExecutions
+        ) = _performFinalChecksAndExecuteOrders(advancedOrders, executions);
+
+        return (standardExecutions, batchExecutions);
     }
 
     /**
@@ -1171,10 +1135,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
-     * @param fulfillmentDetails        An array of FulfillmentDetail structs,
-     *                                  each indicating whether to fulfill the
-     *                                  order and whether to use a conduit.
      *
+     * @return availableOrders    An array of booleans indicating if each order
+     *                            with an index corresponding to the index of
+     *                            the returned boolean was fulfillable or not.
      * @return standardExecutions An array of elements indicating the sequence
      *                            of non-batch transfers performed as part of
      *                            matching the given orders.
@@ -1186,9 +1150,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        FulfillmentDetail[] memory fulfillmentDetails,
         address fulfillerConduit
-    ) internal returns (Execution[] memory, BatchExecution[] memory) {
+    )
+        internal
+        returns (
+            bool[] memory,
+            Execution[] memory,
+            BatchExecution[] memory
+        )
+    {
         // Allocate an execution for each offer and consideration fulfillment.
         Execution[] memory executions = new Execution[](
             offerFulfillments.length + considerationFulfillments.length
@@ -1209,7 +1179,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     advancedOrders,
                     Side.OFFER,
                     components,
-                    fulfillmentDetails,
                     fulfillerConduit
                 );
 
@@ -1235,7 +1204,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     advancedOrders,
                     Side.CONSIDERATION,
                     components,
-                    fulfillmentDetails,
                     fulfillerConduit
                 );
 
@@ -1269,12 +1237,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Perform final checks, compress executions, and return.
-        return
-            _performFinalChecksAndExecuteOrders(
-                advancedOrders,
-                executions,
-                fulfillmentDetails
-            );
+        return _performFinalChecksAndExecuteOrders(advancedOrders, executions);
     }
 
     /**
@@ -1287,11 +1250,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param executions         An array of uncompressed elements indicating
      *                           the sequence of transfers to perform when
      *                           fulfilling the given orders.
-     * @param fulfillmentDetails An array of FulfillmentDetail structs, each
-     *                           indicating whether to fulfill the order and
-     *                           whether to use a conduit for it. Note that all
-     *                           orders will fulfill on calling this function.
      *
+     * @return availableOrders    An array of booleans indicating if each order
+     *                            with an index corresponding to the index of
+     *                            the returned boolean was fulfillable or not.
      * @return standardExecutions An array of elements indicating the sequence
      *                            of non-batch transfers performed as part of
      *                            fulfilling the given orders.
@@ -1301,27 +1263,42 @@ contract ConsiderationInternal is ConsiderationInternalView {
      */
     function _performFinalChecksAndExecuteOrders(
         AdvancedOrder[] memory advancedOrders,
-        Execution[] memory executions,
-        FulfillmentDetail[] memory fulfillmentDetails
+        Execution[] memory executions
     )
         internal
         returns (
+            bool[] memory availableOrders,
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
         )
     {
+        // Retrieve the length of the advanced orders array and place on stack.
+        uint256 totalOrders = advancedOrders.length;
+
+        // Initialize array for tracking available orders.
+        availableOrders = new bool[](totalOrders);
+
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over orders to ensure all considerations are met.
-            for (uint256 i = 0; i < advancedOrders.length; ++i) {
+            for (uint256 i = 0; i < totalOrders; ++i) {
+                // Retrieve the order in question.
+                AdvancedOrder memory advancedOrder = advancedOrders[i];
+
                 // Skip consideration item checks for order if not fulfilled.
-                if (!fulfillmentDetails[i].fulfillOrder) {
+                if (advancedOrder.numerator == 0) {
+                    // Note: orders do not need to be marked as unavailable as a
+                    // new memory region has been allocated. Review carefully if
+                    // altering compiler version or managing memory manually.
                     continue;
                 }
 
+                // Mark the order as available.
+                availableOrders[i] = true;
+
                 // Retrieve consideration items to ensure they are fulfilled.
                 ConsiderationItem[] memory consideration = (
-                    advancedOrders[i].parameters.consideration
+                    advancedOrder.parameters.consideration
                 );
 
                 // Iterate over each consideration item to ensure it is met.
@@ -1387,8 +1364,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;
 
-        // Return the arrays of executions that were triggered.
-        return (standardExecutions, batchExecutions);
+        // Return arrays with available orders and triggered executions.
+        return (availableOrders, standardExecutions, batchExecutions);
     }
 
     /**
