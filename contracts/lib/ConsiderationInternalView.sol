@@ -609,7 +609,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
 
         // Determine component index after first available (zero implies none).
-        uint256 nextComponentIndex = 0;
+        uint256 firstComponentIndex = 0;
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
@@ -626,7 +626,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 // If order is being fulfilled (i.e. it is still available)...
                 if (advancedOrders[orderIndex].numerator != 0) {
                     // Update the next potential component index.
-                    nextComponentIndex = i + 1;
+                    firstComponentIndex = i;
 
                     // Exit the loop.
                     break;
@@ -635,7 +635,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
 
         // If no available order was located...
-        if (nextComponentIndex == 0) {
+        if (firstComponentIndex == 0) {
             // Return early with a null execution element that will be filtered.
             return
                 Execution(
@@ -651,15 +651,6 @@ contract ConsiderationInternalView is ConsiderationPure {
                 );
         }
 
-        // Otherwise, get first available fulfillment component.
-        FulfillmentComponent memory firstAvailableComponent;
-        unchecked {
-            // Skip check decrementing next potential index as it is not zero.
-            firstAvailableComponent = (
-                fulfillmentComponents[nextComponentIndex - 1]
-            );
-        }
-
         // If the fulfillment components are offer components...
         if (side == Side.OFFER) {
             // Return execution for aggregated items provided by the offerer.
@@ -667,7 +658,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 _aggregateOfferItems(
                     advancedOrders,
                     fulfillmentComponents,
-                    nextComponentIndex - 1
+                    firstComponentIndex
                 );
             // Otherwise, fulfillment components are consideration components.
         } else {
@@ -676,8 +667,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 _aggregateConsiderationItems(
                     advancedOrders,
                     fulfillmentComponents,
-                    firstAvailableComponent,
-                    nextComponentIndex,
+                    firstComponentIndex,
                     fulfillerConduit
                 );
         }
@@ -692,8 +682,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param advancedOrders          The orders to aggregate.
      * @param offerComponents         An array designating offer components to
      *                                aggregate if part of an available order.
-     * @param firstAvailableComponent The first available offer component.
-     * @param nextComponentIndex      The index of the next potential offer
+     * @param firstComponentIndex      The index of the next potential offer
      *                                component.
      *
      * @return execution The transfer performed as a result of the fulfillment.
@@ -701,7 +690,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _aggregateOfferItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
-        uint256 nextComponentIndex
+        uint256 firstComponentIndex
     ) internal view returns (Execution memory execution) {
 (
       ItemType itemType,
@@ -713,7 +702,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     ) = _aggegateValidFulfillmentOfferItems(
         advancedOrders,
         offerComponents,
-        nextComponentIndex-1
+        firstComponentIndex
     );
         // Convert offer item into received item with fulfiller as receiver.
         ReceivedItem memory receivedOfferItem = ReceivedItem(
@@ -738,9 +727,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param considerationComponents An array designating consideration
      *                                components to aggregate if part of an
      *                                available order.
-     * @param firstAvailableComponent The first available consideration
-     *                                component.
-     * @param nextComponentIndex      The index of the next potential
+     * @param firstComponentIndex      The index of the next potential
      *                                consideration component.
      * @param fulfillerConduit       A flag indicating whether to source
      *                                approvals for fulfilled tokens from the
@@ -751,82 +738,29 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _aggregateConsiderationItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory considerationComponents,
-        FulfillmentComponent memory firstAvailableComponent,
-        uint256 nextComponentIndex,
+        uint256 firstComponentIndex,
         address fulfillerConduit
     ) internal view returns (Execution memory execution) {
-        // Consume consideration component, returning a received item.
-        ReceivedItem memory requiredConsideration = (
-            _consumeConsiderationComponent(
-                advancedOrders,
-                firstAvailableComponent.orderIndex,
-                firstAvailableComponent.itemIndex
-            )
+        (
+          ItemType considerationItemType,
+          address considerationToken,
+          uint256 considerationIdentifier,
+          uint256 considerationAmount,
+          address payable considerationRecipient
+        ) = _aggegateValidFulfillmentConsiderationItems(
+              advancedOrders,
+              considerationComponents,
+              firstComponentIndex
+        );
+        ReceivedItem memory receiveConsiderationItem = ReceivedItem(
+            considerationItemType,
+            considerationToken,
+            considerationIdentifier,
+            considerationAmount,
+            considerationRecipient
         );
 
-        // Iterate over each remaining component on the fulfillment.
-        for (
-            uint256 i = nextComponentIndex;
-            i < considerationComponents.length;
-
-        ) {
-            // Retrieve the consideration component from the fulfillment array.
-            FulfillmentComponent memory considerationComponent = (
-                considerationComponents[i]
-            );
-
-            // Read order index from consideration component and place on stack.
-            uint256 orderIndex = considerationComponent.orderIndex;
-
-            // Ensure that the order index is in range.
-            if (orderIndex >= advancedOrders.length) {
-                revert FulfilledOrderIndexOutOfRange();
-            }
-
-            // If order is not being fulfilled (i.e. it is unavailable)...
-            if (advancedOrders[orderIndex].numerator == 0) {
-                // Skip overflow check as for loop is indexed starting at one.
-                unchecked {
-                    ++i;
-                }
-
-                // Do not consume the consideration item & continue search.
-                continue;
-            }
-
-            // Consume consideration component, returning a received item.
-            ReceivedItem memory nextRequiredConsideration = (
-                _consumeConsiderationComponent(
-                    advancedOrders,
-                    orderIndex,
-                    considerationComponent.itemIndex
-                )
-            );
-
-            // Ensure parameters are consistent with initial consideration.
-            if (
-                requiredConsideration.recipient !=
-                (nextRequiredConsideration.recipient) ||
-                requiredConsideration.itemType !=
-                (nextRequiredConsideration.itemType) ||
-                requiredConsideration.token !=
-                (nextRequiredConsideration.token) ||
-                requiredConsideration.identifier !=
-                (nextRequiredConsideration.identifier)
-            ) {
-                revert MismatchedFulfillmentConsiderationComponents();
-            }
-
-            // Increase total consideration amount by the current amount.
-            requiredConsideration.amount += (nextRequiredConsideration.amount);
-
-            // Skip overflow check as for loop is indexed starting at one.
-            unchecked {
-                ++i;
-            }
-        }
-
         // Return execution for aggregated items provided by the fulfiller.
-        return Execution(requiredConsideration, msg.sender, fulfillerConduit);
+        return Execution(receiveConsiderationItem, msg.sender, fulfillerConduit);
     }
 }
