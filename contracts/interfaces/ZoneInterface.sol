@@ -17,6 +17,6 @@ interface ZoneInterface {
         bytes32 orderHash,
         address caller,
         AdvancedOrder calldata order,
-        bytes32[] calldata previousOrderHashes
+        bytes32[] calldata priorOrderHashes
     ) external view returns (bytes4 validOrderMagicValue);
 }

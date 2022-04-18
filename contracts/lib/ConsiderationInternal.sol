@@ -653,7 +653,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
             bytes32 orderHash,
             uint256 fillNumerator,
             uint256 fillDenominator
-        ) = _validateOrderAndUpdateStatus(advancedOrder, true, priorOrderHashes);
+        ) = _validateOrderAndUpdateStatus(
+                advancedOrder,
+                true,
+                priorOrderHashes
+            );
 
         // Create an array with length 1 containing the order.
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
