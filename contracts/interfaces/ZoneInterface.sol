@@ -16,6 +16,7 @@ interface ZoneInterface {
     function isValidOrderIncludingExtraData(
         bytes32 orderHash,
         address caller,
-        AdvancedOrder calldata order
+        AdvancedOrder calldata order,
+        bytes32[] calldata priorOrderHashes
     ) external view returns (bytes4 validOrderMagicValue);
 }

@@ -524,16 +524,21 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      for a given order and to ensure that the submitter is allowed by the
      *      order type.
      *
-     * @param advancedOrder The order in question.
-     * @param orderHash     The hash of the order.
-     * @param zoneHash      The hash to provide upon calling the zone.
-     * @param orderType     The type of the order.
-     * @param offerer       The offerer in question.
-     * @param zone          The zone in question.
+     * @param advancedOrder    The order in question.
+     * @param priorOrderHashes The order hashes of each order supplied prior to
+     *                         the current order as part of a "match" variety of
+     *                         order fulfillment (e.g. this array will be empty
+     *                         for single or "fulfill available").
+     * @param orderHash        The hash of the order.
+     * @param zoneHash         The hash to provide upon calling the zone.
+     * @param orderType        The type of the order.
+     * @param offerer          The offerer in question.
+     * @param zone             The zone in question.
 
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
+        bytes32[] memory priorOrderHashes,
         bytes32 orderHash,
         bytes32 zoneHash,
         OrderType orderType,
@@ -571,7 +576,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                         ZoneInterface.isValidOrderIncludingExtraData.selector,
                         orderHash,
                         msg.sender,
-                        advancedOrder
+                        advancedOrder,
+                        priorOrderHashes
                     )
                 );
             }

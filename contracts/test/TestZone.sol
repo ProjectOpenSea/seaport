@@ -30,7 +30,8 @@ contract TestZone is ZoneInterface {
     function isValidOrderIncludingExtraData(
         bytes32 orderHash,
         address caller,
-        AdvancedOrder calldata order
+        AdvancedOrder calldata order,
+        bytes32[] calldata priorOrderHashes
     ) external pure override returns (bytes4 validOrderMagicValue) {
         orderHash;
         caller;
