@@ -654,12 +654,11 @@ contract ConsiderationInternalView is ConsiderationPure {
         // If the fulfillment components are offer components...
         if (side == Side.OFFER) {
             // Return execution for aggregated items provided by the offerer.
-            return
-                _aggregateOfferItems(
-                    advancedOrders,
-                    fulfillmentComponents,
-                    nextComponentIndex - 1
-                );
+            return _aggegateValidFulfillmentOfferItems(
+              advancedOrders,
+              fulfillmentComponents,
+              nextComponentIndex - 1
+            );
             // Otherwise, fulfillment components are consideration components.
         } else {
             // Return execution for aggregated items provided by the fulfiller.
@@ -671,50 +670,6 @@ contract ConsiderationInternalView is ConsiderationPure {
                     fulfillerConduit
                 );
         }
-    }
-
-    /**
-     * @dev Internal view function to aggregate offer items from a group of
-     *      orders into a single execution via a supplied array of components.
-     *      Offer items that are not available to aggregate will not be included
-     *      in the aggregated execution.
-     *
-     * @param advancedOrders          The orders to aggregate.
-     * @param offerComponents         An array designating offer components to
-     *                                aggregate if part of an available order.
-     * @param nextComponentIndex      The index of the next potential offer
-     *                                component.
-     *
-     * @return execution The transfer performed as a result of the fulfillment.
-     */
-    function _aggregateOfferItems(
-        AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] memory offerComponents,
-        uint256 nextComponentIndex
-    ) internal view returns (Execution memory execution) {
-(
-      ItemType itemType,
-      address token,
-      uint256 identifier,
-      address offerer,
-      address conduit,
-      uint256 amount
-    ) = _aggegateValidFulfillmentOfferItems(
-        advancedOrders,
-        offerComponents,
-        nextComponentIndex
-    );
-        // Convert offer item into received item with fulfiller as receiver.
-        ReceivedItem memory receivedOfferItem = ReceivedItem(
-            itemType,
-            token,
-            identifier,
-            amount,
-            payable(msg.sender)
-        );
-
-        // Return execution for aggregated items provided by the offerer.
-        execution = Execution(receivedOfferItem, offerer, conduit);
     }
 
     /**
@@ -746,15 +701,8 @@ contract ConsiderationInternalView is ConsiderationPure {
               considerationComponents,
               nextComponentIndex
         );
-        // ReceivedItem memory receiveConsiderationItem = ReceivedItem(
-        //     considerationItemType,
-        //     considerationToken,
-        //     considerationIdentifier,
-        //     considerationAmount,
-        //     considerationRecipient
-        // );
 
         // Return execution for aggregated items provided by the fulfiller.
-        return Execution(receiveConsiderationItem, msg.sender, fulfillerConduit);
+        execution = Execution(receiveConsiderationItem, msg.sender, fulfillerConduit);
     }
 }

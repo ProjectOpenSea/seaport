@@ -598,7 +598,7 @@ contract ConsiderationPure is ConsiderationBase {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
         FulfillmentComponent[] memory considerationComponents
-    ) internal pure returns (Execution memory execution) {
+    ) internal view returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
             offerComponents.length == 0 || considerationComponents.length == 0
@@ -610,29 +610,29 @@ contract ConsiderationPure is ConsiderationBase {
               considerationComponents,
               0
         );
-        (
-            ItemType itemType,
+        (Execution memory execution
+          /*   ItemType itemType,
             address token,
             uint256 identifier,
             address offerer,
             address conduit,
             uint256 offerAmount
-          ) = _aggegateValidFulfillmentOfferItems(
+           */) = _aggegateValidFulfillmentOfferItems(
               advancedOrders,
               offerComponents,
               0
           );
         // Ensure offer and consideration share types, tokens and identifiers.
         if (
-            itemType != considerationItem.itemType ||
-            token != considerationItem.token ||
-            identifier != considerationItem.identifier
+            execution.item.itemType != considerationItem.itemType ||
+            execution.item.token != considerationItem.token ||
+            execution.item.identifier != considerationItem.identifier
         ) {
             revert MismatchedFulfillmentOfferAndConsiderationComponents();
         }
 
         // If total consideration amount exceeds the offer amount...
-        if (considerationItem.amount > offerAmount) {
+        if (considerationItem.amount > execution.item.amount) {
             // Retrieve the first consideration component from the fulfillment.
             FulfillmentComponent memory targetComponent = (
                 considerationComponents[0]
@@ -640,18 +640,21 @@ contract ConsiderationPure is ConsiderationBase {
             // Add excess consideration amount to the original orders array.
             advancedOrders[targetComponent.orderIndex]
                 .parameters.consideration[targetComponent.itemIndex]
-                .startAmount = considerationItem.amount - offerAmount;
+                .startAmount = considerationItem.amount - execution.item.amount;
             // Reduce total consideration amount to equal the offer amount.
-            considerationItem.amount = offerAmount;
+            considerationItem.amount = execution.item.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = (offerComponents[0]);
             advancedOrders[targetComponent.orderIndex]
               .parameters.offer[targetComponent.itemIndex]
-              .startAmount = offerAmount - considerationItem.amount;
+              .startAmount = execution.item.amount - considerationItem.amount;
         }
+        // Reuse execution struct with consideration amount and recipient
+        execution.item.amount = considerationItem.amount;
+        execution.item.recipient = considerationItem.recipient;
         // Return the final execution that will be triggered for relevant items.
-        return Execution(considerationItem, offerer, conduit);
+        return execution;//Execution(considerationItem, offerer, conduit);
     }
 
     /**
@@ -728,15 +731,12 @@ contract ConsiderationPure is ConsiderationBase {
     returns (
       ReceivedItem memory considerationItem
     ) {
-        uint256 ordersLen = advancedOrders.length;
-        
         bool orderOOR;
-        bool itemOOR;
-        bool isMatch = true;
 
         assembly {
+          let ordersLen := mload(advancedOrders)
             let i := startIndex
-            let fulfillmentLen := mload(considerationComponents)
+            // let fulfillmentLen := mload(considerationComponents)
             let fulfillmentPtr := mload(add(
               add(considerationComponents, 0x20),
               mul(i, 32)
@@ -759,8 +759,8 @@ contract ConsiderationPure is ConsiderationBase {
             // Load consideration array pointer
             let considerationArrPtr := mload(add(orderPtr, 0x60))
             // Check if itemIndex is within the range of the array
-            itemOOR := iszero(lt(itemIndex, mload(considerationArrPtr)))
-            if iszero(itemOOR) {
+            orderOOR := iszero(lt(itemIndex, mload(considerationArrPtr)))
+            if iszero(orderOOR) {
               let itemPtr := mload(add(
                 // Get pointer to beginning of considerationItem
                 add(considerationArrPtr, 0x20),
@@ -781,7 +781,7 @@ contract ConsiderationPure is ConsiderationBase {
               // recipient
               mstore(add(considerationItem, 0x80), mload(add(itemPtr, 0xa0)))
               i := add(i, 1)
-              for {} lt(i, fulfillmentLen) {i := add(i,1)} {
+              for {} lt(i, mload(considerationComponents)) {i := add(i,1)} {
               fulfillmentPtr := mload(add(
                 add(considerationComponents, 0x20),
                 mul(i, 32)
@@ -803,8 +803,8 @@ contract ConsiderationPure is ConsiderationBase {
               // Load consideration array pointer
               considerationArrPtr := mload(add(orderPtr, 0x60))
               // Check if itemIndex is within the range of the array
-              itemOOR := iszero(lt(itemIndex, mload(considerationArrPtr)))
-              if itemOOR {break}
+              orderOOR := iszero(lt(itemIndex, mload(considerationArrPtr)))
+              if orderOOR {break}
               itemPtr := mload(add(
                 // Get pointer to beginning of considerationItem
                 add(considerationArrPtr, 0x20),
@@ -819,12 +819,9 @@ contract ConsiderationPure is ConsiderationBase {
               )
               
               mstore(amountPtr, 0)
-              isMatch := and(
-                and(
-                  isMatch,
+              orderOOR := iszero(and(
                   // recipient
-                  eq(mload(add(itemPtr, 0xa0)), mload(add(considerationItem, 0x80)))
-                ),
+                  eq(mload(add(itemPtr, 0xa0)), mload(add(considerationItem, 0x80))),
                 and(
                   // item type
                   eq(mload(itemPtr), mload(considerationItem)),
@@ -835,21 +832,14 @@ contract ConsiderationPure is ConsiderationBase {
                     eq(mload(add(itemPtr, 0x40)), mload(add(considerationItem, 0x40)))
                   )
                 )
-              )
+              ))
+              if orderOOR {break}
             }
             }
             }
         }
         if (orderOOR) {
             revert FulfilledOrderIndexOutOfRange();
-        }
-        // Ensure that the consideration index is in range.
-        if (itemOOR) {
-            revert FulfilledOrderConsiderationIndexOutOfRange();
-        }
-
-        if (!isMatch) {
-            revert MismatchedFulfillmentConsiderationComponents();
         }
     }
 
@@ -859,76 +849,67 @@ contract ConsiderationPure is ConsiderationBase {
         uint256 startIndex
     )
     internal
-    pure
+    view
     returns (
-      ItemType itemType,
-      address token,
-      uint256 identifier,
-      address offerer,
-      address conduit,
-      uint256 amount
+      Execution memory execution
     ) {
-        uint256 ordersLen = advancedOrders.length;
-        
+        uint256 amount;
         bool orderOOR;
-        bool itemOOR;
-        bool isMatch = true;
+        assembly {
+          let fulfillmentPtr := mload(add(
+            add(offerComponents, 0x20),
+            mul(startIndex, 32)
+          ))
+          let orderIndex := mload(fulfillmentPtr)
+          let itemIndex := mload(add(fulfillmentPtr, 0x20))
+          orderOOR := iszero(lt(orderIndex, mload(advancedOrders)))
+          let orderPtr := mload(mload(
+            add(
+              // Calculate pointer to beginning of advancedOrders head
+              add(advancedOrders, 32),
+              // Calculate offset to pointer for desired order
+              mul(orderIndex, 32)
+            )
+          ))
+          // Load offer array pointer
+          let offerArrPtr := mload(add(orderPtr, 0x40))
+          orderOOR := or(iszero(lt(itemIndex, mload(offerArrPtr))), orderOOR)
+          let itemPtr := mload(add(
+            // Get pointer to beginning of OfferItem
+            add(offerArrPtr, 0x20),
+            // Calculate offset to pointer for desired order
+            mul(itemIndex, 32)
+          ))
+          let offerItem := mload(execution)
+          // itemType
+          mstore(offerItem, mload(itemPtr))
+          // token
+          mstore(add(offerItem, 0x20), mload(add(itemPtr, 0x20)))
+          // identifier
+          mstore(add(offerItem, 0x40), mload(add(itemPtr, 0x40)))
+          let amountPtr := add(itemPtr, 0x60)
+          amount := mload(amountPtr)
+          // recipient
+          mstore(add(offerItem, 0x80), caller())
+          mstore(amountPtr, 0)
+          // 
+          mstore(add(execution, 0x20), mload(orderPtr))
+          //conduit
+          mstore(add(execution, 0x40), mload(add(orderPtr, 0x120))) 
+        }
 
         assembly {
-            let i := startIndex
-            let fulfillmentLen := mload(offerComponents)
-            let fulfillmentPtr := mload(add(
-              add(offerComponents, 0x20),
-              mul(i, 32)
-            ))
-            let orderIndex := mload(fulfillmentPtr)
-            let itemIndex := mload(add(fulfillmentPtr, 0x20))
-            orderOOR := iszero(lt(orderIndex, ordersLen))
-            if iszero(orderOOR) {
-            
-            // Get pointer to AdvancedOrder element then get pointer to OrderParameters
-            // OrderParameters pointer is first word of AdvancedOrder struct, so we mload twice
-            let orderPtr := mload(mload(
-              add(
-                // Calculate pointer to beginning of advancedOrders head
-                add(advancedOrders, 32),
-                // Calculate offset to pointer for desired order
-                mul(orderIndex, 32)
-              )
-            ))
-            // Load offer array pointer
-            let offerArrPtr := mload(add(orderPtr, 0x40))
-            // Check if itemIndex is within the range of the array
-            itemOOR := iszero(lt(itemIndex, mload(offerArrPtr)))
-            if iszero(itemOOR) {
-              let itemPtr := mload(add(
-                // Get pointer to beginning of OfferItem
-                add(offerArrPtr, 0x20),
-                // Calculate offset to pointer for desired order
-                mul(itemIndex, 32)
-              ))
-
-              itemType := mload(itemPtr)
-              token := mload(add(itemPtr, 0x20))
-              identifier := mload(add(itemPtr, 0x40))
-              let amountPtr := add(itemPtr, 0x60)
-              amount := mload(amountPtr)
-              mstore(amountPtr, 0)
-              offerer := mload(orderPtr)
-              conduit := mload(add(orderPtr, 0x120))
-              i := add(i, 1)
-              for {} lt(i, fulfillmentLen) {i := add(i,1)} {
-              fulfillmentPtr := mload(add(
+          let offerItem := mload(execution)
+          if iszero(orderOOR) {
+            for {let i := add(startIndex, 1)} lt(i, mload(offerComponents)) {i := add(i,1)} {
+              let fulfillmentPtr := mload(add(
                 add(offerComponents, 0x20),
                 mul(i, 32)
               ))
-              orderIndex := mload(fulfillmentPtr)
-              itemIndex := mload(add(fulfillmentPtr, 0x20))
-              orderOOR := iszero(lt(orderIndex, ordersLen))
-              if orderOOR {break}
-              // Get pointer to AdvancedOrder element then get pointer to OrderParameters
-              // OrderParameters pointer is first word of AdvancedOrder struct, so we mload twice
-              orderPtr := mload(
+              let orderIndex := mload(fulfillmentPtr)
+              let itemIndex := mload(add(fulfillmentPtr, 0x20))
+              orderOOR := iszero(lt(orderIndex, mload(advancedOrders)))
+              let orderPtr := mload(
                 add(
                   add(advancedOrders, 32),
                   mul(orderIndex, 32)
@@ -937,54 +918,44 @@ contract ConsiderationPure is ConsiderationBase {
               if iszero(mload(add(orderPtr, 0x20))) { continue }
               orderPtr := mload(orderPtr)
               // Load offer array pointer
-              offerArrPtr := mload(add(orderPtr, 0x40))
-              // Check if itemIndex is within the range of the array
-              itemOOR := iszero(lt(itemIndex, mload(offerArrPtr)))
-              if itemOOR {break}
-              itemPtr := mload(add(
+              let offerArrPtr := mload(add(orderPtr, 0x40))
+              orderOOR := or(iszero(lt(itemIndex, mload(offerArrPtr))), orderOOR)
+              let itemPtr := mload(add(
                 // Get pointer to beginning of OfferItem
                 add(offerArrPtr, 0x20),
                 // Calculate offset to pointer for desired order
                 mul(itemIndex, 32)
               ))
-              amountPtr := add(itemPtr, 0x60)
+              
+              let amountPtr := add(itemPtr, 0x60)
               amount := add(amount, mload(amountPtr))
               mstore(amountPtr, 0)
-              isMatch := and(
-                and(
-                  isMatch,
-                  // identifier
-                  eq(mload(add(itemPtr, 0x40)), identifier)
-                ),
+              orderOOR := iszero(and(
+                // identifier
+                eq(mload(add(itemPtr, 0x40)), mload(add(offerItem, 0x40))),
                 and(
                   and(
                     // offerer
-                    eq(mload(orderPtr), offerer),
+                    eq(mload(orderPtr), mload(add(execution, 0x20))),
                     // conduit
-                    eq(mload(add(orderPtr, 0x120)), conduit)
+                    eq(mload(add(orderPtr, 0x120)), mload(add(execution, 0x40)))
                   ),
                   and(
                     // item type
-                    eq(mload(itemPtr), itemType),
+                    eq(mload(itemPtr), mload(offerItem)),
                     // token
-                    eq(mload(add(itemPtr, 0x20)), token)
+                    eq(mload(add(itemPtr, 0x20)), mload(add(offerItem, 0x20)))
                   )
                 )
-              )
+              ))
+              if orderOOR { break }
             }
-            }
-            }
-        }
-        if (orderOOR) {
-            revert FulfilledOrderIndexOutOfRange();
-        }
-        // Ensure that the offer index is in range.
-        if (itemOOR) {
-            revert FulfilledOrderOfferIndexOutOfRange();
+          }
+          mstore(add(offerItem, 0x60), amount)
         }
 
-        if (!isMatch) {
-            revert MismatchedFulfillmentOfferComponents();
+        if (orderOOR) {
+            revert FulfilledOrderIndexOutOfRange();
         }
     }
 
@@ -1027,28 +998,6 @@ contract ConsiderationPure is ConsiderationBase {
         if (result != ZoneInterface.isValidOrder.selector) {
             revert InvalidRestrictedOrder(orderHash);
         }
-    }
-
-    /**
-     * @dev Internal pure function to update the consideration amount for an
-     *      order.
-     *
-     * @param advancedOrders An array of orders.
-     * @param orderIndex     The order index specified by fulfillment component.
-     * @param itemIndex      The consideration item index specified by the
-     *                       fulfillment component.
-     * @param amount         The new consideration item amount.
-     */
-    function _setConsiderationAmount(
-        AdvancedOrder[] memory advancedOrders,
-        uint256 orderIndex,
-        uint256 itemIndex,
-        uint256 amount
-    ) internal pure {
-        advancedOrders[orderIndex]
-            .parameters
-            .consideration[itemIndex]
-            .startAmount = amount;
     }
 
     /**
