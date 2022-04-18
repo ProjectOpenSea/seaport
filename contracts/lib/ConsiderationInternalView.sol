@@ -654,11 +654,12 @@ contract ConsiderationInternalView is ConsiderationPure {
         // If the fulfillment components are offer components...
         if (side == Side.OFFER) {
             // Return execution for aggregated items provided by the offerer.
-            return _aggegateValidFulfillmentOfferItems(
-              advancedOrders,
-              fulfillmentComponents,
-              nextComponentIndex - 1
-            );
+            return
+                _aggegateValidFulfillmentOfferItems(
+                    advancedOrders,
+                    fulfillmentComponents,
+                    nextComponentIndex - 1
+                );
             // Otherwise, fulfillment components are consideration components.
         } else {
             // Return execution for aggregated items provided by the fulfiller.
@@ -696,13 +697,18 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 nextComponentIndex,
         address fulfillerConduit
     ) internal view returns (Execution memory execution) {
-        (ReceivedItem memory receiveConsiderationItem) = _aggegateValidFulfillmentConsiderationItems(
-              advancedOrders,
-              considerationComponents,
-              nextComponentIndex
-        );
+        ReceivedItem
+            memory receiveConsiderationItem = _aggegateValidFulfillmentConsiderationItems(
+                advancedOrders,
+                considerationComponents,
+                nextComponentIndex
+            );
 
         // Return execution for aggregated items provided by the fulfiller.
-        execution = Execution(receiveConsiderationItem, msg.sender, fulfillerConduit);
+        execution = Execution(
+            receiveConsiderationItem,
+            msg.sender,
+            fulfillerConduit
+        );
     }
 }
