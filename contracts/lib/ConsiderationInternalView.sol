@@ -667,8 +667,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 _aggregateOfferItems(
                     advancedOrders,
                     fulfillmentComponents,
-                    firstAvailableComponent,
-                    nextComponentIndex
+                    nextComponentIndex - 1
                 );
             // Otherwise, fulfillment components are consideration components.
         } else {
@@ -702,81 +701,26 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _aggregateOfferItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
-        FulfillmentComponent memory firstAvailableComponent,
         uint256 nextComponentIndex
     ) internal view returns (Execution memory execution) {
-        // Get offerer and consume offer component, returning a spent item.
-        (
-            address offerer,
-            SpentItem memory offerItem,
-            address conduit
-        ) = _consumeOfferComponent(
-                advancedOrders,
-                firstAvailableComponent.orderIndex,
-                firstAvailableComponent.itemIndex
-            );
-
-        // Iterate over each remaining component on the fulfillment.
-        for (uint256 i = nextComponentIndex; i < offerComponents.length; ) {
-            // Retrieve the offer component from the fulfillment array.
-            FulfillmentComponent memory offerComponent = offerComponents[i];
-
-            // Read order index from offer component and place on the stack.
-            uint256 orderIndex = offerComponent.orderIndex;
-
-            // Ensure that the order index is in range.
-            if (orderIndex >= advancedOrders.length) {
-                revert FulfilledOrderIndexOutOfRange();
-            }
-
-            // If order is not being fulfilled (i.e. it is unavailable)...
-            if (advancedOrders[orderIndex].numerator == 0) {
-                // Skip overflow check as for loop is indexed starting at one.
-                unchecked {
-                    ++i;
-                }
-
-                // Do not consume associated offer item but continue search.
-                continue;
-            }
-
-            // Get offerer & consume offer component, returning spent item.
-            (
-                address subsequentOfferer,
-                SpentItem memory nextOfferItem,
-                address subsequentConduit
-            ) = _consumeOfferComponent(
-                    advancedOrders,
-                    orderIndex,
-                    offerComponent.itemIndex
-                );
-
-            // Ensure all relevant parameters are consistent with initial offer.
-            if (
-                offerer != subsequentOfferer ||
-                offerItem.itemType != nextOfferItem.itemType ||
-                offerItem.token != nextOfferItem.token ||
-                offerItem.identifier != nextOfferItem.identifier ||
-                conduit != subsequentConduit
-            ) {
-                revert MismatchedFulfillmentOfferComponents();
-            }
-
-            // Increase the total offer amount by the current amount.
-            offerItem.amount += nextOfferItem.amount;
-
-            // Skip overflow check as for loop is indexed starting at one.
-            unchecked {
-                ++i;
-            }
-        }
-
+(
+      ItemType itemType,
+      address token,
+      uint256 identifier,
+      address offerer,
+      address conduit,
+      uint256 amount
+    ) = _aggegateValidFulfillmentOfferItems(
+        advancedOrders,
+        offerComponents,
+        nextComponentIndex-1
+    );
         // Convert offer item into received item with fulfiller as receiver.
         ReceivedItem memory receivedOfferItem = ReceivedItem(
-            offerItem.itemType,
-            offerItem.token,
-            offerItem.identifier,
-            offerItem.amount,
+            itemType,
+            token,
+            identifier,
+            amount,
             payable(msg.sender)
         );
 
