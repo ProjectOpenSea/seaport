@@ -462,12 +462,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      fill, and update its status. The desired fill amount is supplied as
      *      a fraction, as is the returned amount to fill.
      *
-     * @param advancedOrder   The order to fulfill as well as the fraction to
-     *                        fill. Note that all offer and consideration
-     *                        amounts must divide with no remainder in order for
-     *                        a partial fill to be valid.
-     * @param revertOnInvalid A boolean indicating whether to revert if the
-     *                        order is invalid due to the time or order status.
+     * @param advancedOrder    The order to fulfill as well as the fraction to
+     *                         fill. Note that all offer and consideration
+     *                         amounts must divide with no remainder in order
+     *                         for a partial fill to be valid.
+     * @param revertOnInvalid  A boolean indicating whether to revert if the
+     *                         order is invalid due to the time or order status.
+     * @param priorOrderHashes The order hashes of each order supplied prior to
+     *                         the current order as part of a "match" variety of
+     *                         order fulfillment (e.g. this array will be empty
+     *                         for single or "fulfill available").
      *
      * @return orderHash      The order hash.
      * @return newNumerator   A value indicating the portion of the order that
@@ -476,7 +480,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
      */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
-        bool revertOnInvalid
+        bool revertOnInvalid,
+        bytes32[] memory priorOrderHashes
     )
         internal
         returns (
@@ -525,6 +530,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Determine if a proxy should be utilized and ensure a valid submitter.
         _assertRestrictedAdvancedOrderValidity(
             advancedOrder,
+            priorOrderHashes,
             orderHash,
             orderParameters.zoneHash,
             orderParameters.orderType,
@@ -639,12 +645,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
 
+        // Declare empty bytes32 array (unused, will remain empty).
+        bytes32[] memory priorOrderHashes;
+
         // Validate order, update status, and determine fraction to fill.
         (
             bytes32 orderHash,
             uint256 fillNumerator,
             uint256 fillDenominator
-        ) = _validateOrderAndUpdateStatus(advancedOrder, true);
+        ) = _validateOrderAndUpdateStatus(advancedOrder, true, priorOrderHashes);
 
         // Create an array with length 1 containing the order.
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
@@ -865,6 +874,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Track the order hash for each order being fulfilled.
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
 
+        // Override orderHashes length to zero after memory has been allocated.
+        assembly {
+            mstore(orderHashes, 0)
+        }
+
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each order.
@@ -879,17 +893,33 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     uint256 denominator
                 ) = _validateOrderAndUpdateStatus(
                         advancedOrder,
-                        revertOnInvalid
+                        revertOnInvalid,
+                        orderHashes
                     );
+
+                // Update the length of the orderHashes array.
+                assembly {
+                    mstore(orderHashes, add(i, 1))
+                }
+
                 // Place the start time for the order on the stack.
                 uint256 startTime = advancedOrder.parameters.startTime;
+
+                // Derive the duration for the order and place it on the stack.
                 uint256 duration = advancedOrder.parameters.endTime - startTime;
+
+                // Derive time elapsed since the order started & place on stack.
                 uint256 elapsed = block.timestamp - startTime;
+
+                // Derive time remaining until order expires and place on stack.
                 uint256 remaining = duration - elapsed;
 
                 // Do not track hash or adjust prices if order is not fulfilled.
                 if (numerator == 0) {
+                    // Mark fill fraction as zero if the order is not fulfilled.
                     advancedOrder.numerator = 0;
+
+                    // Continue iterating through the remaining orders.
                     continue;
                 }
 
