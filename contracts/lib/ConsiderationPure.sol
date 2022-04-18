@@ -598,150 +598,68 @@ contract ConsiderationPure is ConsiderationBase {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
         FulfillmentComponent[] memory considerationComponents
-    ) internal pure returns (Execution memory execution) {
+    ) internal view returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
             offerComponents.length == 0 || considerationComponents.length == 0
         ) {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
-
-        // Get offerer and consume offer component, returning a spent item.
-        (
-            address offerer,
-            SpentItem memory offerItem,
-            address conduit
-        ) = _consumeOfferComponent(
+        ReceivedItem
+            memory considerationItem = _aggegateValidFulfillmentConsiderationItems(
                 advancedOrders,
-                offerComponents[0].orderIndex,
-                offerComponents[0].itemIndex
+                considerationComponents,
+                0
             );
-
-        // Consume consideration component, returning a received item.
-        ReceivedItem memory requiredConsideration = (
-            _consumeConsiderationComponent(
-                advancedOrders,
-                considerationComponents[0].orderIndex,
-                considerationComponents[0].itemIndex
-            )
+        (
+            execution
+            /* ItemType itemType,
+             address token,
+             uint256 identifier,
+             address offerer,
+             address conduit,
+             uint256 offerAmount
+           */
+        ) = _aggegateValidFulfillmentOfferItems(
+            advancedOrders,
+            offerComponents,
+            0
         );
-
         // Ensure offer and consideration share types, tokens and identifiers.
         if (
-            offerItem.itemType != requiredConsideration.itemType ||
-            offerItem.token != requiredConsideration.token ||
-            offerItem.identifier != requiredConsideration.identifier
+            execution.item.itemType != considerationItem.itemType ||
+            execution.item.token != considerationItem.token ||
+            execution.item.identifier != considerationItem.identifier
         ) {
             revert MismatchedFulfillmentOfferAndConsiderationComponents();
         }
 
-        // Iterate over each offer component on the fulfillment.
-        for (uint256 i = 1; i < offerComponents.length; ) {
-            // Retrieve the offer component from the fulfillment.
-            FulfillmentComponent memory offerComponent = (offerComponents[i]);
-
-            // Get offerer & consume next offer component, returning spent item.
-            (
-                address subsequentOfferer,
-                SpentItem memory nextOfferItem,
-                address subsequentConduit
-            ) = _consumeOfferComponent(
-                    advancedOrders,
-                    offerComponent.orderIndex,
-                    offerComponent.itemIndex
-                );
-
-            // Ensure all relevant parameters are consistent with initial offer.
-            if (
-                offerer != subsequentOfferer ||
-                offerItem.itemType != nextOfferItem.itemType ||
-                offerItem.token != nextOfferItem.token ||
-                offerItem.identifier != nextOfferItem.identifier ||
-                conduit != subsequentConduit
-            ) {
-                revert MismatchedFulfillmentOfferComponents();
-            }
-
-            // Increase the total offer amount by the current amount.
-            offerItem.amount += nextOfferItem.amount;
-
-            // Skip overflow check as for loop is indexed starting at one.
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Iterate over each consideration component on the fulfillment.
-        for (uint256 i = 1; i < considerationComponents.length; ) {
-            // Retrieve the consideration component from the fulfillment.
-            FulfillmentComponent memory considerationComponent = (
-                considerationComponents[i]
-            );
-
-            // Consume next consideration component, returning a received item.
-            ReceivedItem memory nextRequiredConsideration = (
-                _consumeConsiderationComponent(
-                    advancedOrders,
-                    considerationComponent.orderIndex,
-                    considerationComponent.itemIndex
-                )
-            );
-
-            // Ensure key parameters are consistent with initial consideration.
-            if (
-                requiredConsideration.recipient !=
-                (nextRequiredConsideration.recipient) ||
-                requiredConsideration.itemType !=
-                (nextRequiredConsideration.itemType) ||
-                requiredConsideration.token !=
-                (nextRequiredConsideration.token) ||
-                requiredConsideration.identifier !=
-                (nextRequiredConsideration.identifier)
-            ) {
-                revert MismatchedFulfillmentConsiderationComponents();
-            }
-
-            // Increase the total consideration amount by the current amount.
-            requiredConsideration.amount += (nextRequiredConsideration.amount);
-
-            // Skip overflow check as for loop is indexed starting at one.
-            unchecked {
-                ++i;
-            }
-        }
-
         // If total consideration amount exceeds the offer amount...
-        if (requiredConsideration.amount > offerItem.amount) {
+        if (considerationItem.amount > execution.item.amount) {
             // Retrieve the first consideration component from the fulfillment.
             FulfillmentComponent memory targetComponent = (
                 considerationComponents[0]
             );
-
             // Add excess consideration amount to the original orders array.
-            _setConsiderationAmount(
-                advancedOrders,
-                targetComponent.orderIndex,
-                targetComponent.itemIndex,
-                requiredConsideration.amount - offerItem.amount
-            );
-
+            advancedOrders[targetComponent.orderIndex]
+                .parameters
+                .consideration[targetComponent.itemIndex]
+                .startAmount = considerationItem.amount - execution.item.amount;
             // Reduce total consideration amount to equal the offer amount.
-            requiredConsideration.amount = offerItem.amount;
+            considerationItem.amount = execution.item.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = (offerComponents[0]);
-
-            // Add excess offer amount to the original orders array.
-            _setOfferAmount(
-                advancedOrders,
-                targetComponent.orderIndex,
-                targetComponent.itemIndex,
-                offerItem.amount - requiredConsideration.amount
-            );
+            advancedOrders[targetComponent.orderIndex]
+                .parameters
+                .offer[targetComponent.itemIndex]
+                .startAmount = execution.item.amount - considerationItem.amount;
         }
-
+        // Reuse execution struct with consideration amount and recipient
+        execution.item.amount = considerationItem.amount;
+        execution.item.recipient = considerationItem.recipient;
         // Return the final execution that will be triggered for relevant items.
-        return Execution(requiredConsideration, offerer, conduit);
+        return execution; //Execution(considerationItem, offerer, conduit);
     }
 
     /**
@@ -785,27 +703,306 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    /**
-     * @dev Internal pure function to ensure that an order index is in range
-     *      and, if so, to return the parameters of the associated order.
-     *
-     * @param advancedOrders An array of orders.
-     * @param orderIndex     The order index specified by the fulfillment
-     *                       component.
-     *
-     * @return The parameters of the order at the given index.
-     */
-    function _getOrderParametersByFulfillmentIndexIfInRange(
+    function _aggegateValidFulfillmentConsiderationItems(
         AdvancedOrder[] memory advancedOrders,
-        uint256 orderIndex
-    ) internal pure returns (OrderParameters memory) {
-        // Ensure that the order index is in range.
-        if (orderIndex >= advancedOrders.length) {
+        FulfillmentComponent[] memory considerationComponents,
+        uint256 startIndex
+    ) internal pure returns (ReceivedItem memory considerationItem) {
+        bool orderOOR;
+
+        assembly {
+            let ordersLen := mload(advancedOrders)
+            let i := startIndex
+            // let fulfillmentLen := mload(considerationComponents)
+            let fulfillmentPtr := mload(
+                add(add(considerationComponents, 0x20), mul(i, 32))
+            )
+            let orderIndex := mload(fulfillmentPtr)
+            let itemIndex := mload(add(fulfillmentPtr, 0x20))
+            orderOOR := iszero(lt(orderIndex, ordersLen))
+            if iszero(orderOOR) {
+                // Get pointer to AdvancedOrder element then get pointer to OrderParameters
+                // OrderParameters pointer is first word of AdvancedOrder struct, so we mload twice
+                let orderPtr := mload(
+                    mload(
+                        add(
+                            // Calculate pointer to beginning of advancedOrders head
+                            add(advancedOrders, 32),
+                            // Calculate offset to pointer for desired order
+                            mul(orderIndex, 32)
+                        )
+                    )
+                )
+                // Load consideration array pointer
+                let considerationArrPtr := mload(add(orderPtr, 0x60))
+                // Check if itemIndex is within the range of the array
+                orderOOR := iszero(lt(itemIndex, mload(considerationArrPtr)))
+                if iszero(orderOOR) {
+                    let itemPtr := mload(
+                        add(
+                            // Get pointer to beginning of considerationItem
+                            add(considerationArrPtr, 0x20),
+                            // Calculate offset to pointer for desired order
+                            mul(itemIndex, 32)
+                        )
+                    )
+
+                    // itemType
+                    mstore(considerationItem, mload(itemPtr))
+                    // token
+                    mstore(
+                        add(considerationItem, 0x20),
+                        mload(add(itemPtr, 0x20))
+                    )
+                    // identifier
+                    mstore(
+                        add(considerationItem, 0x40),
+                        mload(add(itemPtr, 0x40))
+                    )
+                    let amountPtr := add(itemPtr, 0x60)
+                    // amount
+                    mstore(add(considerationItem, 0x60), mload(amountPtr))
+                    mstore(amountPtr, 0)
+                    // recipient
+                    mstore(
+                        add(considerationItem, 0x80),
+                        mload(add(itemPtr, 0xa0))
+                    )
+                    i := add(i, 1)
+                    for {
+
+                    } lt(i, mload(considerationComponents)) {
+                        i := add(i, 1)
+                    } {
+                        fulfillmentPtr := mload(
+                            add(add(considerationComponents, 0x20), mul(i, 32))
+                        )
+                        orderIndex := mload(fulfillmentPtr)
+                        itemIndex := mload(add(fulfillmentPtr, 0x20))
+                        orderOOR := iszero(lt(orderIndex, ordersLen))
+                        if orderOOR {
+                            break
+                        }
+                        // Get pointer to AdvancedOrder element then get pointer to OrderParameters
+                        // OrderParameters pointer is first word of AdvancedOrder struct, so we mload twice
+                        orderPtr := mload(
+                            add(add(advancedOrders, 32), mul(orderIndex, 32))
+                        )
+
+                        if mload(add(orderPtr, 0x20)) {
+                            orderPtr := mload(orderPtr)
+                            // Load consideration array pointer
+                            considerationArrPtr := mload(add(orderPtr, 0x60))
+                            // Check if itemIndex is within the range of the array
+                            orderOOR := iszero(
+                                lt(itemIndex, mload(considerationArrPtr))
+                            )
+                            if orderOOR {
+                                break
+                            }
+                            itemPtr := mload(
+                                add(
+                                    // Get pointer to beginning of considerationItem
+                                    add(considerationArrPtr, 0x20),
+                                    // Calculate offset to pointer for desired order
+                                    mul(itemIndex, 32)
+                                )
+                            )
+                            amountPtr := add(itemPtr, 0x60)
+
+                            mstore(
+                                add(considerationItem, 0x60),
+                                add(
+                                    mload(add(considerationItem, 0x60)),
+                                    mload(amountPtr)
+                                )
+                            )
+
+                            mstore(amountPtr, 0)
+                            orderOOR := iszero(
+                                and(
+                                    // recipient
+                                    eq(
+                                        mload(add(itemPtr, 0xa0)),
+                                        mload(add(considerationItem, 0x80))
+                                    ),
+                                    and(
+                                        // item type
+                                        eq(
+                                            mload(itemPtr),
+                                            mload(considerationItem)
+                                        ),
+                                        and(
+                                            // token
+                                            eq(
+                                                mload(add(itemPtr, 0x20)),
+                                                mload(
+                                                    add(considerationItem, 0x20)
+                                                )
+                                            ),
+                                            // identifier
+                                            eq(
+                                                mload(add(itemPtr, 0x40)),
+                                                mload(
+                                                    add(considerationItem, 0x40)
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                            if orderOOR {
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (orderOOR) {
             revert FulfilledOrderIndexOutOfRange();
         }
+    }
 
-        // Return the parameters of the order at the given order index.
-        return advancedOrders[orderIndex].parameters;
+    function _aggegateValidFulfillmentOfferItems(
+        AdvancedOrder[] memory advancedOrders,
+        FulfillmentComponent[] memory offerComponents,
+        uint256 startIndex
+    ) internal view returns (Execution memory execution) {
+        uint256 amount;
+        bool orderOOR;
+        assembly {
+            let fulfillmentPtr := mload(
+                add(add(offerComponents, 0x20), mul(startIndex, 32))
+            )
+            let orderIndex := mload(fulfillmentPtr)
+            let itemIndex := mload(add(fulfillmentPtr, 0x20))
+            orderOOR := iszero(lt(orderIndex, mload(advancedOrders)))
+            let orderPtr := mload(
+                mload(
+                    add(
+                        // Calculate pointer to beginning of advancedOrders head
+                        add(advancedOrders, 32),
+                        // Calculate offset to pointer for desired order
+                        mul(orderIndex, 32)
+                    )
+                )
+            )
+            // Load offer array pointer
+            let offerArrPtr := mload(add(orderPtr, 0x40))
+            orderOOR := or(iszero(lt(itemIndex, mload(offerArrPtr))), orderOOR)
+            let itemPtr := mload(
+                add(
+                    // Get pointer to beginning of OfferItem
+                    add(offerArrPtr, 0x20),
+                    // Calculate offset to pointer for desired order
+                    mul(itemIndex, 32)
+                )
+            )
+            let offerItem := mload(execution)
+            // itemType
+            mstore(offerItem, mload(itemPtr))
+            // token
+            mstore(add(offerItem, 0x20), mload(add(itemPtr, 0x20)))
+            // identifier
+            mstore(add(offerItem, 0x40), mload(add(itemPtr, 0x40)))
+            let amountPtr := add(itemPtr, 0x60)
+            amount := mload(amountPtr)
+            // recipient
+            mstore(add(offerItem, 0x80), caller())
+            mstore(amountPtr, 0)
+            //
+            mstore(add(execution, 0x20), mload(orderPtr))
+            //conduit
+            mstore(add(execution, 0x40), mload(add(orderPtr, 0x120)))
+        }
+
+        assembly {
+            let offerItem := mload(execution)
+            for {
+                let i := add(startIndex, 1)
+            } and(iszero(orderOOR), lt(i, mload(offerComponents))) {
+                i := add(i, 1)
+            } {
+                let fulfillmentPtr := mload(
+                    add(add(offerComponents, 0x20), mul(i, 32))
+                )
+                let orderIndex := mload(fulfillmentPtr)
+                let itemIndex := mload(add(fulfillmentPtr, 0x20))
+
+                orderOOR := iszero(lt(orderIndex, mload(advancedOrders)))
+
+                if orderOOR {
+                    break
+                }
+
+                let orderPtr := mload(
+                    add(add(advancedOrders, 32), mul(orderIndex, 32))
+                )
+
+                if mload(add(orderPtr, 0x20)) {
+                    orderPtr := mload(orderPtr)
+                    // Load offer array pointer
+                    let offerArrPtr := mload(add(orderPtr, 0x40))
+                    orderOOR := iszero(lt(itemIndex, mload(offerArrPtr)))
+
+                    if orderOOR {
+                        break
+                    }
+
+                    let itemPtr := mload(
+                        add(
+                            // Get pointer to beginning of OfferItem
+                            add(offerArrPtr, 0x20),
+                            // Calculate offset to pointer for desired order
+                            mul(itemIndex, 32)
+                        )
+                    )
+
+                    let amountPtr := add(itemPtr, 0x60)
+                    amount := add(amount, mload(amountPtr))
+                    mstore(amountPtr, 0)
+
+                    orderOOR := iszero(
+                        and(
+                            // identifier
+                            eq(
+                                mload(add(itemPtr, 0x40)),
+                                mload(add(offerItem, 0x40))
+                            ),
+                            and(
+                                and(
+                                    // offerer
+                                    eq(
+                                        mload(orderPtr),
+                                        mload(add(execution, 0x20))
+                                    ),
+                                    // conduit
+                                    eq(
+                                        mload(add(orderPtr, 0x120)),
+                                        mload(add(execution, 0x40))
+                                    )
+                                ),
+                                and(
+                                    // item type
+                                    eq(mload(itemPtr), mload(offerItem)),
+                                    // token
+                                    eq(
+                                        mload(add(itemPtr, 0x20)),
+                                        mload(add(offerItem, 0x20))
+                                    )
+                                )
+                            )
+                        )
+                    )
+                }
+            }
+            mstore(add(offerItem, 0x60), amount)
+        }
+
+        if (orderOOR) {
+            revert FulfilledOrderIndexOutOfRange();
+        }
     }
 
     /**
@@ -847,167 +1044,6 @@ contract ConsiderationPure is ConsiderationBase {
         if (result != ZoneInterface.isValidOrder.selector) {
             revert InvalidRestrictedOrder(orderHash);
         }
-    }
-
-    /**
-     * @dev Internal pure function to ensure that an offer component index is in
-     *      range and, if so, to zero out the offer amount and return the
-     *      associated spent item.
-     *
-     * @param advancedOrders     An array of orders.
-     * @param orderIndex         The order index specified by the fulfillment
-     *                           component.
-     * @param itemIndex          The item index specified by the fulfillment
-     *                           component.
-     *
-     * @return offerer   The offerer for the given order.
-     * @return spentItem The spent item corresponding to the offer item at the
-     *                   given index.
-     * @return conduit  A boolean indicating whether to source approvals for
-     *                   offered tokens from the order's respective proxy.
-     */
-    function _consumeOfferComponent(
-        AdvancedOrder[] memory advancedOrders,
-        uint256 orderIndex,
-        uint256 itemIndex
-    )
-        internal
-        pure
-        returns (
-            address offerer,
-            SpentItem memory spentItem,
-            address conduit
-        )
-    {
-        // Retrieve the order parameters using the supplied order index.
-        OrderParameters memory orderParameters = (
-            _getOrderParametersByFulfillmentIndexIfInRange(
-                advancedOrders,
-                orderIndex
-            )
-        );
-
-        // Ensure that the offer index is in range.
-        if (itemIndex >= orderParameters.offer.length) {
-            revert FulfilledOrderOfferIndexOutOfRange();
-        }
-
-        // Retrieve the offer item.
-        OfferItem memory offerItem = orderParameters.offer[itemIndex];
-
-        // Convert the offer item to a spent item.
-        SpentItem memory spentItemConvertedFromOfferItem = SpentItem(
-            offerItem.itemType,
-            offerItem.token,
-            offerItem.identifierOrCriteria,
-            offerItem.startAmount
-        );
-
-        // Clear offer amount to indicate offer item has been spent.
-        _setOfferAmount(advancedOrders, orderIndex, itemIndex, 0);
-
-        // Return offerer, spent offer item, and conduit at the given index.
-        return (
-            orderParameters.offerer,
-            spentItemConvertedFromOfferItem,
-            orderParameters.conduit
-        );
-    }
-
-    /**
-     * @dev Internal pure function to ensure that a consideration component
-     *      index is in range and, if so, to zero out the amount and return the
-     *      associated received item.
-     *
-     * @param advancedOrders An array of orders.
-     * @param orderIndex     The order index specified by the fulfillment
-     *                       component.
-     * @param itemIndex      The item index specified by the fulfillment
-     *                       component.
-     *
-     * @return The received item corresponding to the consideration item at the
-     *         given index.
-     */
-    function _consumeConsiderationComponent(
-        AdvancedOrder[] memory advancedOrders,
-        uint256 orderIndex,
-        uint256 itemIndex
-    ) internal pure returns (ReceivedItem memory) {
-        // Retrieve the order parameters using the supplied order index.
-        OrderParameters memory orderParameters = (
-            _getOrderParametersByFulfillmentIndexIfInRange(
-                advancedOrders,
-                orderIndex
-            )
-        );
-
-        // Ensure that the consideration index is in range.
-        if (itemIndex >= orderParameters.consideration.length) {
-            revert FulfilledOrderConsiderationIndexOutOfRange();
-        }
-
-        // Retrieve the consideration item.
-        ConsiderationItem memory considerationItem = (
-            orderParameters.consideration[itemIndex]
-        );
-
-        // Convert to a received item.
-        ReceivedItem memory receivedItem = ReceivedItem(
-            considerationItem.itemType,
-            considerationItem.token,
-            considerationItem.identifierOrCriteria,
-            considerationItem.startAmount,
-            considerationItem.recipient
-        );
-
-        // Clear consideration amount to indicate item will be received.
-        _setConsiderationAmount(advancedOrders, orderIndex, itemIndex, 0);
-
-        // Return the received item at the given index.
-        return receivedItem;
-    }
-
-    /**
-     * @dev Internal pure function to update the offer amount for an order.
-     *
-     * @param advancedOrders An array of orders.
-     * @param orderIndex     The order index specified by fulfillment component.
-     * @param itemIndex      The offer item index specified by the fulfillment
-     *                       component.
-     * @param amount         The new offer item amount.
-     */
-    function _setOfferAmount(
-        AdvancedOrder[] memory advancedOrders,
-        uint256 orderIndex,
-        uint256 itemIndex,
-        uint256 amount
-    ) internal pure {
-        advancedOrders[orderIndex]
-            .parameters
-            .offer[itemIndex]
-            .startAmount = amount;
-    }
-
-    /**
-     * @dev Internal pure function to update the consideration amount for an
-     *      order.
-     *
-     * @param advancedOrders An array of orders.
-     * @param orderIndex     The order index specified by fulfillment component.
-     * @param itemIndex      The consideration item index specified by the
-     *                       fulfillment component.
-     * @param amount         The new consideration item amount.
-     */
-    function _setConsiderationAmount(
-        AdvancedOrder[] memory advancedOrders,
-        uint256 orderIndex,
-        uint256 itemIndex,
-        uint256 amount
-    ) internal pure {
-        advancedOrders[orderIndex]
-            .parameters
-            .consideration[itemIndex]
-            .startAmount = amount;
     }
 
     /**

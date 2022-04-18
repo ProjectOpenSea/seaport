@@ -114,22 +114,10 @@ interface ConsiderationEventsAndErrors {
     error OfferAndConsiderationRequiredOnFulfillment();
 
     /**
-     * @dev Revert with an error when a fulfillment is provided that references
-     *      an order that has not been supplied.
+     * @dev Revert with an error when a fulfillment is provided with an index
+     *      that references an order or item that has not been supplied.
      */
     error FulfilledOrderIndexOutOfRange();
-
-    /**
-     * @dev Revert with an error when a fulfillment is provided that references
-     *      an order with an offer item that has not been supplied.
-     */
-    error FulfilledOrderOfferIndexOutOfRange();
-
-    /**
-     * @dev Revert with an error when a fulfillment is provided that references
-     *      an order with a consideration item that has not been supplied.
-     */
-    error FulfilledOrderConsiderationIndexOutOfRange();
 
     /**
      * @dev Revert with an error when a signature that does not contain a v
