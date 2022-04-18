@@ -609,7 +609,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
 
         // Determine component index after first available (zero implies none).
-        uint256 firstComponentIndex = 0;
+        uint256 nextComponentIndex = 0;
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
@@ -626,7 +626,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 // If order is being fulfilled (i.e. it is still available)...
                 if (advancedOrders[orderIndex].numerator != 0) {
                     // Update the next potential component index.
-                    firstComponentIndex = i;
+                    nextComponentIndex = i + 1;
 
                     // Exit the loop.
                     break;
@@ -635,7 +635,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
 
         // If no available order was located...
-        if (firstComponentIndex == 0) {
+        if (nextComponentIndex == 0) {
             // Return early with a null execution element that will be filtered.
             return
                 Execution(
@@ -658,7 +658,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 _aggregateOfferItems(
                     advancedOrders,
                     fulfillmentComponents,
-                    firstComponentIndex
+                    nextComponentIndex - 1
                 );
             // Otherwise, fulfillment components are consideration components.
         } else {
@@ -667,7 +667,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 _aggregateConsiderationItems(
                     advancedOrders,
                     fulfillmentComponents,
-                    firstComponentIndex,
+                    nextComponentIndex - 1,
                     fulfillerConduit
                 );
         }
@@ -682,7 +682,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param advancedOrders          The orders to aggregate.
      * @param offerComponents         An array designating offer components to
      *                                aggregate if part of an available order.
-     * @param firstComponentIndex      The index of the next potential offer
+     * @param nextComponentIndex      The index of the next potential offer
      *                                component.
      *
      * @return execution The transfer performed as a result of the fulfillment.
@@ -690,7 +690,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _aggregateOfferItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
-        uint256 firstComponentIndex
+        uint256 nextComponentIndex
     ) internal view returns (Execution memory execution) {
 (
       ItemType itemType,
@@ -702,7 +702,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     ) = _aggegateValidFulfillmentOfferItems(
         advancedOrders,
         offerComponents,
-        firstComponentIndex
+        nextComponentIndex
     );
         // Convert offer item into received item with fulfiller as receiver.
         ReceivedItem memory receivedOfferItem = ReceivedItem(
@@ -727,7 +727,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param considerationComponents An array designating consideration
      *                                components to aggregate if part of an
      *                                available order.
-     * @param firstComponentIndex      The index of the next potential
+     * @param nextComponentIndex      The index of the next potential
      *                                consideration component.
      * @param fulfillerConduit       A flag indicating whether to source
      *                                approvals for fulfilled tokens from the
@@ -738,7 +738,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _aggregateConsiderationItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory considerationComponents,
-        uint256 firstComponentIndex,
+        uint256 nextComponentIndex,
         address fulfillerConduit
     ) internal view returns (Execution memory execution) {
         (
@@ -750,7 +750,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         ) = _aggegateValidFulfillmentConsiderationItems(
               advancedOrders,
               considerationComponents,
-              firstComponentIndex
+              nextComponentIndex
         );
         ReceivedItem memory receiveConsiderationItem = ReceivedItem(
             considerationItemType,
