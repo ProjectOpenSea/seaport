@@ -32,7 +32,7 @@ Each order contains eleven key components:
 
 Orders are fulfilled via one of four methods:
 - Calling one of two "standard" functions, `fulfillOrder` and `fulfillAdvancedOrder`, where a second implied order will be constructed with the caller as the offerer, the consideration of the fulfilled order as the offer, and the offer of the fulfilled order as the consideration (with "advanced" orders containing the fraction that should be filled alongside a set of "criteria resolvers" that designate an identifier and a corresponding inclusion proof for each criteria-based item on the fulfilled order). All offer items will be transferred from the offerer of the order to the fulfiller, then all consideration items will be transferred from the fulfiller to the named recipient.
-- Calling one of six "basic" functions, `fulfillBasicEthForERC721Order`, `fulfillBasicEthForERC1155Order`, `fulfillBasicERC20ForERC721Order`, `fulfillBasicERC20ForERC1155Order`, `fulfillBasicERC721ForERC20Order`, and `fulfillBasicERC1155ForERC20Order`, that derive the order to fulfill from a subset of components, assuming the order in question adheres to the following:
+- Calling the "basic" function, `fulfillBasicOrder`, with one of six "routes" (`ETH_TO_ERC721`, `ETH_TO_ERC1155`, `ERC20_TO_ERC721`, `ERC20_TO_ERC1155`, `ERC721_TO_ERC20`, and `ERC1155_TO_ERC20`, will derive the order to fulfill from a subset of components, assuming the order in question adheres to the following:
    - The order only contains a single offer item and contains at least one consideration item.
    - The order contains exactly one ERC721 or ERC1155 item and that item is not criteria-based.
    - The offerer of the order is the recipient of the first consideration item.
