@@ -18,7 +18,7 @@ Each order contains eleven key components:
    - The `startAmount` represents the amount of the item in question that will be required should the order be fulfilled at the moment the order becomes active.
    - The `endAmount` represents the amount of the item in question that will be required should the order be fulfilled at the moment the order expires. If this value differs from the item's `startAmount`, the realized amount is calculated linearly based on the time elapsed since the order became active.
 - The `consideration` contains an array of items that must be received in order to fulfill the order. It contains all of the same components as an offered item, and additionally includes a `recipient` that will receive each item. This array may be extended by the fulfiller on order fulfillment so as to support "tipping" (e.g. relayer or referral payments).
-- The `orderType` designates one of four types for the order depending on three distinct preferences:
+- The `orderType` designates one of four types for the order depending on two distinct preferences:
    - `FULL` indicates that the order does not support partial fills, whereas `PARTIAL` enables filling some fraction of the order, with the important caveat that each item must be cleanly divisible by the supplied fraction (i.e. no remainder after division).
    - `OPEN` indicates that the call to execute the order can be submitted by any account, whereas `RESTRICTED` requires that the order either be executed by the offerer or the zone of the order, or that a magic value indicating that the order is approved is returned upon calling an `isValidOrder` or `isValidOrderIncludingExtraData` view function on the zone.
 - The `startTime` indicates the block timestamp at which the order becomes active.
