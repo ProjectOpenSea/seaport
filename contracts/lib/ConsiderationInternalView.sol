@@ -591,7 +591,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param side                  The side (i.e. offer or consideration).
      * @param fulfillmentComponents An array designating item components to
      *                              aggregate if part of an available order.
-     * @param fulfillerConduit     A flag indicating whether to source
+     * @param fulfillerConduit      A flag indicating whether to source
      *                              approvals for fulfilled tokens from the
      *                              fulfiller's respective proxy.
      *
