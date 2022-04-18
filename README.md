@@ -54,8 +54,8 @@ While the standard method can technically be used for fulfilling any order, it s
 
 When creating an offer, the following requirements should be checked to ensure that the order will be fulfillable:
 - The offerer should have sufficient balance of all offered items.
-- If the order does not indicate proxy utilization, the offerer should have sufficient approvals set for the Consideration contract for all offered ERC20, ERC721, and ERC1155 items.
-- If the order _does_ indicate proxy utilization, the offerer should have sufficient approvals set for their respective proxy contract for all offered ERC20, ERC721, and ERC1155 items.
+- If the order does not indicate to use a conduit, the offerer should have sufficient approvals set for the Consideration contract for all offered ERC20, ERC721, and ERC1155 items.
+- If the order _does_ indicate to use a conduit or a legacy user proxy, the offerer should have sufficient approvals set for the respective conduit contract for all offered ERC721 and ERC1155 items (ERC20 items are still currently approved directly on the Consideration contract).
 
 When fulfilling a _basic_ order, the following requirements need to be checked to ensure that the order will be fulfillable:
 - The above checks need to be performed to ensure that the offerer still has sufficient balance and approvals.
@@ -156,7 +156,7 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
 
 ## Feature Wishlist
 
-- Conduits other than `address(0)` (i.e. no conduit) and `address(1)` (the legacy user proxy) are not currently supported. This feature still needs to be built out in an efficient and safe manner.
+- Conduits other than `address(0)` (i.e. no conduit) and `address(1)` (the legacy user proxy) are not currently supported. This feature still needs to be built out in an efficient and safe manner, including extending ERC20 approval sourcing to the conduit.
 - Orders and fulfillments that leverage legacy user proxies do not currently take advantage of the legacy "token transfer proxy" for sourcing ERC20 approvals. Furthermore, each transferred item performs a distinct internal call to the respective proxy.
 
 ## Usage
