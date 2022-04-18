@@ -741,24 +741,18 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 nextComponentIndex,
         address fulfillerConduit
     ) internal view returns (Execution memory execution) {
-        (
-          ItemType considerationItemType,
-          address considerationToken,
-          uint256 considerationIdentifier,
-          uint256 considerationAmount,
-          address payable considerationRecipient
-        ) = _aggegateValidFulfillmentConsiderationItems(
+        (ReceivedItem memory receiveConsiderationItem) = _aggegateValidFulfillmentConsiderationItems(
               advancedOrders,
               considerationComponents,
               nextComponentIndex
         );
-        ReceivedItem memory receiveConsiderationItem = ReceivedItem(
-            considerationItemType,
-            considerationToken,
-            considerationIdentifier,
-            considerationAmount,
-            considerationRecipient
-        );
+        // ReceivedItem memory receiveConsiderationItem = ReceivedItem(
+        //     considerationItemType,
+        //     considerationToken,
+        //     considerationIdentifier,
+        //     considerationAmount,
+        //     considerationRecipient
+        // );
 
         // Return execution for aggregated items provided by the fulfiller.
         return Execution(receiveConsiderationItem, msg.sender, fulfillerConduit);

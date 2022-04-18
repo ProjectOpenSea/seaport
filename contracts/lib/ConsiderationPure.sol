@@ -605,13 +605,7 @@ contract ConsiderationPure is ConsiderationBase {
         ) {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
-        (
-          ItemType considerationItemType,
-          address considerationToken,
-          uint256 considerationIdentifier,
-          uint256 considerationAmount,
-          address payable considerationRecipient
-        ) = _aggegateValidFulfillmentConsiderationItems(
+        (ReceivedItem memory considerationItem) = _aggegateValidFulfillmentConsiderationItems(
               advancedOrders,
               considerationComponents,
               0
@@ -630,15 +624,15 @@ contract ConsiderationPure is ConsiderationBase {
           );
         // Ensure offer and consideration share types, tokens and identifiers.
         if (
-            itemType != considerationItemType ||
-            token != considerationToken ||
-            identifier != considerationIdentifier
+            itemType != considerationItem.itemType ||
+            token != considerationItem.token ||
+            identifier != considerationItem.identifier
         ) {
             revert MismatchedFulfillmentOfferAndConsiderationComponents();
         }
 
         // If total consideration amount exceeds the offer amount...
-        if (considerationAmount > offerAmount) {
+        if (considerationItem.amount > offerAmount) {
             // Retrieve the first consideration component from the fulfillment.
             FulfillmentComponent memory targetComponent = (
                 considerationComponents[0]
@@ -646,25 +640,18 @@ contract ConsiderationPure is ConsiderationBase {
             // Add excess consideration amount to the original orders array.
             advancedOrders[targetComponent.orderIndex]
                 .parameters.consideration[targetComponent.itemIndex]
-                .startAmount = considerationAmount - offerAmount;
+                .startAmount = considerationItem.amount - offerAmount;
             // Reduce total consideration amount to equal the offer amount.
-            considerationAmount = offerAmount;
+            considerationItem.amount = offerAmount;
         } else {
             // Retrieve the first offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = (offerComponents[0]);
             advancedOrders[targetComponent.orderIndex]
               .parameters.offer[targetComponent.itemIndex]
-              .startAmount = offerAmount - considerationAmount;
+              .startAmount = offerAmount - considerationItem.amount;
         }
-        ReceivedItem memory receiveConsiderationItem = ReceivedItem(
-            itemType,
-            token,
-            identifier,
-            considerationAmount,
-            considerationRecipient
-        );
         // Return the final execution that will be triggered for relevant items.
-        return Execution(receiveConsiderationItem, offerer, conduit);
+        return Execution(considerationItem, offerer, conduit);
     }
 
     /**
@@ -739,11 +726,7 @@ contract ConsiderationPure is ConsiderationBase {
     internal
     pure
     returns (
-      ItemType itemType,
-      address token,
-      uint256 identifier,
-      uint256 amount,
-      address payable recipient
+      ReceivedItem memory considerationItem
     ) {
         uint256 ordersLen = advancedOrders.length;
         
@@ -785,13 +768,18 @@ contract ConsiderationPure is ConsiderationBase {
                 mul(itemIndex, 32)
               ))
 
-              itemType := mload(itemPtr)
-              token := mload(add(itemPtr, 0x20))
-              identifier := mload(add(itemPtr, 0x40))
+              // itemType
+              mstore(considerationItem, mload(itemPtr))
+              // token
+              mstore(add(considerationItem, 0x20), mload(add(itemPtr, 0x20)))
+              // identifier
+              mstore(add(considerationItem, 0x40), mload(add(itemPtr, 0x40)))
               let amountPtr := add(itemPtr, 0x60)
-              amount := mload(amountPtr)
+              // amount
+              mstore(add(considerationItem, 0x60), mload(amountPtr))
               mstore(amountPtr, 0)
-              recipient := mload(add(itemPtr, 0xa0))
+              // recipient
+              mstore(add(considerationItem, 0x80), mload(add(itemPtr, 0xa0)))
               i := add(i, 1)
               for {} lt(i, fulfillmentLen) {i := add(i,1)} {
               fulfillmentPtr := mload(add(
@@ -824,22 +812,27 @@ contract ConsiderationPure is ConsiderationBase {
                 mul(itemIndex, 32)
               ))
               amountPtr := add(itemPtr, 0x60)
-              amount := add(amount, mload(amountPtr))
+              
+              mstore(
+                add(considerationItem, 0x60),
+                add(mload(add(considerationItem, 0x60)), mload(amountPtr))
+              )
+              
               mstore(amountPtr, 0)
               isMatch := and(
                 and(
                   isMatch,
                   // recipient
-                  eq(mload(add(itemPtr, 0xa0)), recipient)
+                  eq(mload(add(itemPtr, 0xa0)), mload(add(considerationItem, 0x80)))
                 ),
                 and(
                   // item type
-                  eq(mload(itemPtr), itemType),
+                  eq(mload(itemPtr), mload(considerationItem)),
                   and(
                     // token
-                    eq(mload(add(itemPtr, 0x20)), token),
+                    eq(mload(add(itemPtr, 0x20)), mload(add(considerationItem, 0x20))),
                     // identifier
-                    eq(mload(add(itemPtr, 0x40)), identifier)
+                    eq(mload(add(itemPtr, 0x40)), mload(add(considerationItem, 0x40)))
                   )
                 )
               )
