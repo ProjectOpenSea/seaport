@@ -836,12 +836,16 @@ contract ConsiderationPure is ConsiderationBase {
                                             // token
                                             eq(
                                                 mload(add(itemPtr, 0x20)),
-                                                mload(add(considerationItem, 0x20))
+                                                mload(
+                                                    add(considerationItem, 0x20)
+                                                )
                                             ),
                                             // identifier
                                             eq(
                                                 mload(add(itemPtr, 0x40)),
-                                                mload(add(considerationItem, 0x40))
+                                                mload(
+                                                    add(considerationItem, 0x40)
+                                                )
                                             )
                                         )
                                     )
@@ -937,7 +941,6 @@ contract ConsiderationPure is ConsiderationBase {
                 )
 
                 if mload(add(orderPtr, 0x20)) {
-
                     orderPtr := mload(orderPtr)
                     // Load offer array pointer
                     let offerArrPtr := mload(add(orderPtr, 0x40))
