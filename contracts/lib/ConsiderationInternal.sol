@@ -1654,19 +1654,18 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         revert(0, returndatasize())
                     }
 
-                    // Otherwise revert with a generic error message.
+                    // Otherwise revert with a message about the token returning false.
                     mstore(
                         0,
-                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                        0xf486bc8700000000000000000000000000000000000000000000000000000000
+                        // abi.encodeWithSignature("BadReturnValueFromERC20OnTransfer(address,address,address,uint256)")
+                        0x9889192300000000000000000000000000000000000000000000000000000000
                     )
                     mstore(4, token)
                     mstore(36, from)
                     mstore(68, to)
-                    mstore(100, 0)
-                    mstore(132, amount)
+                    mstore(100, amount)
 
-                    revert(0, 164) // We use 164 because its the result of 4 + 32 * 5.
+                    revert(0, 132) // We use 132 because its the result of 4 + 32 * 4.
                 }
 
                 // Otherwise the token just returned nothing but otherwise succeeded.
