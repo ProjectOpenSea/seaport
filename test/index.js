@@ -13132,6 +13132,45 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.reverted;
         });
       });
+      it("Reverts when 1155 token transfer reverts (via proxy)", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount.mul(10000));
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+          },
+        ];
+
+        const consideration = [getItemETH(10, 10, seller.address)];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          LEGACY_PROXY_CONDUIT
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+          ).to.be.reverted;
+        });
+      });
       it("Reverts when ERC20 tokens return falsey values", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
@@ -13509,6 +13548,42 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           offer,
           consideration,
           0 // FULL_OPEN
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+          ).to.be.revertedWith("NoContract");
+        });
+      });
+      it("Reverts when 1155 account with no code is supplied (via proxy)", async () => {
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: ethers.constants.AddressZero,
+            identifierOrCriteria: 0,
+            startAmount: amount,
+            endAmount: amount,
+          },
+        ];
+
+        const consideration = [getItemETH(10, 10, seller.address)];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          LEGACY_PROXY_CONDUIT
         );
 
         await whileImpersonating(buyer.address, provider, async () => {
