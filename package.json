@@ -52,7 +52,9 @@
     "yargs-parser": ">=5.0.1"
   },
   "scripts": {
-    "build": "hardhat compile",
+    "build": "hardhat clean && hardhat compile",
+    "echidna": " echidna-test contracts/Echidna.sol --contract Echidna --config ops/echidna.conf.yaml",
+    "deploy": "hardhat clean && hardhat compile && bash ops/deploy.sh",
     "test": "hardhat test",
     "profile": "REPORT_GAS=true hardhat test",
     "coverage": "hardhat coverage --config hardhat-coverage.config.ts",

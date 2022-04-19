@@ -17,3 +17,9 @@ out
 
 # VScode
 .vscode
+
+# Added by Bo
+*.flat.*
+*.ir.*
+corpus
+crytic-export
