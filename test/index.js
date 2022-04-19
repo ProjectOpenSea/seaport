@@ -9428,6 +9428,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     let buyer;
     let sellerContract;
     let buyerContract;
+    let sellerProxy;
+    let buyerProxy;
 
     beforeEach(async () => {
       // Setup basic buyer/seller wallets with ETH
@@ -9443,6 +9445,52 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           faucet(wallet.address, provider)
         )
       );
+
+      // Seller deploys legacy proxy
+      await whileImpersonating(seller.address, provider, async () => {
+        const tx = await legacyProxyRegistry.connect(seller).registerProxy();
+        const receipt = await tx.wait();
+
+        sellerProxy = receipt.events[0].address;
+
+        const userProxy = ownedUpgradeabilityProxy.attach(sellerProxy);
+        const proxyDeploymentEvent = userProxy.interface.parseLog(
+          receipt.events[0]
+        );
+        expect(proxyDeploymentEvent.name).to.equal("Upgraded");
+        expect(proxyDeploymentEvent.args.implementation).to.equal(
+          legacyProxyImplementation
+        );
+        const proxyOwner = await userProxy.proxyOwner();
+        expect(proxyOwner).to.equal(seller.address);
+        const registeredProxy = await legacyProxyRegistry.proxies(
+          seller.address
+        );
+        expect(registeredProxy).to.equal(sellerProxy);
+      });
+
+      // Buyer deploys legacy proxy
+      await whileImpersonating(buyer.address, provider, async () => {
+        const tx = await legacyProxyRegistry.connect(buyer).registerProxy();
+        const receipt = await tx.wait();
+
+        buyerProxy = receipt.events[0].address;
+
+        const userProxy = ownedUpgradeabilityProxy.attach(buyerProxy);
+        const proxyDeploymentEvent = userProxy.interface.parseLog(
+          receipt.events[0]
+        );
+        expect(proxyDeploymentEvent.name).to.equal("Upgraded");
+        expect(proxyDeploymentEvent.args.implementation).to.equal(
+          legacyProxyImplementation
+        );
+        const proxyOwner = await userProxy.proxyOwner();
+        expect(proxyOwner).to.equal(buyer.address);
+        const registeredProxy = await legacyProxyRegistry.proxies(
+          buyer.address
+        );
+        expect(registeredProxy).to.equal(buyerProxy);
+      });
     });
 
     describe("Misconfigured orders", async () => {
@@ -13591,7 +13639,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith("NoContract");
+          ).to.be.revertedWith("NoContract", ethers.constants.AddressZero);
         });
       });
       it("Reverts when non-token account is supplied as the token", async () => {
