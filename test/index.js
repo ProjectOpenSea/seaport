@@ -9357,7 +9357,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
-    it("Reverts as it hasn't been implemeted yet", async () => {
+    it("Reverts on 721 as it hasn't been implemeted yet", async () => {
       // Seller mints nft
       const nftId = ethers.BigNumber.from(randomHex());
       await testERC721.mint(seller.address, nftId);
@@ -9418,6 +9418,202 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           marketplaceContract
             .connect(buyer)
             .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+        ).to.be.reverted;
+      });
+    });
+    it("Reverts on 1155 as it hasn't been implemeted yet", async () => {
+      // Seller mints nft
+      const nftId = ethers.BigNumber.from(randomHex());
+      const amount = ethers.BigNumber.from(randomHex());
+      await testERC1155.mint(seller.address, nftId, amount);
+
+      // Seller approves proxy contract to transfer NFT
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC1155.connect(seller).setApprovalForAll(sellerProxy, true)
+        )
+          .to.emit(testERC1155, "ApprovalForAll")
+          .withArgs(seller.address, sellerProxy, true);
+      });
+
+      const offer = [getTestItem1155(nftId, amount, amount)];
+
+      const consideration = [
+        {
+          itemType: 0, // ETH
+          token: constants.AddressZero,
+          identifierOrCriteria: 0, // ignored for ETH
+          startAmount: ethers.utils.parseEther("10"),
+          endAmount: ethers.utils.parseEther("10"),
+          recipient: seller.address,
+        },
+        {
+          itemType: 0, // ETH
+          token: constants.AddressZero,
+          identifierOrCriteria: 0, // ignored for ETH
+          startAmount: ethers.utils.parseEther("1"),
+          endAmount: ethers.utils.parseEther("1"),
+          recipient: zone.address,
+        },
+        {
+          itemType: 0, // ETH
+          token: constants.AddressZero,
+          identifierOrCriteria: 0, // ignored for ETH
+          startAmount: ethers.utils.parseEther("1"),
+          endAmount: ethers.utils.parseEther("1"),
+          recipient: owner.address,
+        },
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0, // FULL_OPEN
+        [],
+        null,
+        seller,
+        constants.HashZero,
+        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
+      );
+
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+        ).to.be.reverted;
+      });
+    });
+    it("Reverts on 1155 batch as it hasn't been implemeted yet", async () => {
+      // Seller mints first nft
+      const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+      await testERC1155.mint(seller.address, nftId, amount);
+
+      // Seller mints second nft
+      const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+      await testERC1155.mint(seller.address, secondNftId, secondAmount);
+
+      const offer = [
+        {
+          itemType: 3, // ERC1155
+          token: testERC1155.address,
+          identifierOrCriteria: nftId,
+          startAmount: amount,
+          endAmount: amount,
+        },
+        {
+          itemType: 3, // ERC1155
+          token: testERC1155.address,
+          identifierOrCriteria: secondNftId,
+          startAmount: secondAmount,
+          endAmount: secondAmount,
+        },
+      ];
+
+      const consideration = [
+        getItemETH(10, 10, seller.address),
+        getItemETH(1, 1, zone.address),
+        getItemETH(1, 1, owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0, // FULL_OPEN
+        [],
+        null,
+        seller,
+        constants.HashZero,
+        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
+      );
+
+      const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+        await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [
+        {
+          offerComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 1,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 2,
+            },
+          ],
+        },
+      ];
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchOrders([order, mirrorOrder], fulfillments, { value })
         ).to.be.reverted;
       });
     });
