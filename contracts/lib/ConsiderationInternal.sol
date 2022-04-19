@@ -1748,11 +1748,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(4, from) // Append the "from" argument.
                 mstore(36, to) // Append the "to" argument.
                 mstore(68, identifier) // Append the "identifier" argument.
-                mstore(100, amount) // Append the "amount" argument.
 
-                // We use 132 because the length of our calldata totals up like so: 4 + 32 * 4.
+                // We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.
                 // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
-                let success := call(gas(), token, 0, 0, 132, 0, 32)
+                let success := call(gas(), token, 0, 0, 100, 0, 0)
 
                 mstore(0x60, 0) // Restore the zero slot to zero.
                 mstore(0x40, memPointer) // Restore the memPointer.
@@ -1860,10 +1859,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(36, to) // Append the "to" argument.
                 mstore(68, identifier) // Append the "identifier" argument.
                 mstore(100, amount) // Append the "amount" argument.
+                mstore(132, "") // Append the "data" argument.
 
-                // We use 132 because the length of our calldata totals up like so: 4 + 32 * 4.
-                // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
-                let success := call(gas(), token, 0, 0, 132, 0, 32)
+                // We use 132 because the length of our calldata totals up like so: 4 + 32 * 5.
+                let success := call(gas(), token, 0, 0, 164, 0, 0)
 
                 mstore(0x60, 0) // Restore the zero slot to zero.
                 mstore(0x40, memPointer) // Restore the memPointer.
