@@ -44,6 +44,8 @@ const config: HardhatUserConfig = {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
   },
+  // specify separate cache for hardhat, since it could possibly conflict with foundry's
+  paths: { cache: "hh-cache" },
 };
 
 export default config;

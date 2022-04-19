@@ -1,0 +1,15 @@
+[default]
+# this gets dependencies with older versions of solc to play nice - TODO: investigate vm.getCode cheatcode
+auto_detect_solc = true
+optimizer = true
+optimizer_runs = 1000000
+src = 'contracts'
+out = 'out'
+libs = ['node_modules']
+remappings = [
+    'ds-test=lib/ds-test/src/',
+    'forge-std=lib/forge-std/src/',
+]
+
+
+# See more config options https://github.com/gakonst/foundry/tree/master/config
