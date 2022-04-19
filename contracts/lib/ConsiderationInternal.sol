@@ -1600,28 +1600,29 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount
     ) internal {
         assembly {
-            // We'll write our calldata to this slot below, but restore it later.
+            // Write our calldata to this slot below, but restore it later.
             let memPointer := mload(0x40)
 
-            // Write the abi-encoded calldata into memory, beginning with the function selector.
+            // Write calldata into memory, starting with function selector.
             mstore(
                 0,
                 0x23b872dd00000000000000000000000000000000000000000000000000000000
             )
-            mstore(4, from) // Append the "from" argument.
-            mstore(36, to) // Append the "to" argument.
-            mstore(68, amount) // Append the "amount" argument.
+            mstore(0x04, from) // Append the "from" argument.
+            mstore(0x24, to) // Append the "to" argument.
+            mstore(0x44, amount) // Append the "amount" argument.
 
-            // We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.
-            // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
-            let callStatus := call(gas(), token, 0, 0, 100, 0, 32)
+            // Use 100 as the length of our calldata equals 4 + 32 * 3. Use
+            // 0 and 32 to copy up to 32 bytes of return data to scratch space.
+            let callStatus := call(gas(), token, 0, 0, 0x64, 0, 0x20)
 
             mstore(0x60, 0) // Restore the zero slot to zero.
             mstore(0x40, memPointer) // Restore the memPointer.
 
             let success := and(
-                // Set success to whether the call reverted, if not we check it either
-                // returned exactly 1 (can't just be non-zero data), or had no return data.
+                // Set success to whether the call reverted, if not check it
+                // either returned exactly 1 (can't just be non-zero data), or
+                // had no return data.
                 or(
                     and(eq(mload(0), 1), gt(returndatasize(), 31)),
                     iszero(returndatasize())
@@ -1630,53 +1631,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
 
             // If the transfer failed or it returned nothing:
-            // We group these because they should be uncommon.
+            // Group these because they should be uncommon.
             if iszero(and(success, iszero(iszero(returndatasize())))) {
-                // If the token has no code or the transfer failed:
-                if iszero(and(iszero(iszero(extcodesize(token))), success)) {
-                    // If the transfer failed:
-                    if iszero(success) {
-                        // If it was due to a revert:
-                        if iszero(callStatus) {
-                            // If it returned a message, bubble it up:
-                            if returndatasize() {
-                                // Copy returndata to memory, overwriting existing memory.
-                                returndatacopy(0, 0, returndatasize())
-
-                                // Revert, specifying memory region with copied returndata.
-                                revert(0, returndatasize())
-                            }
-
-                            // Otherwise revert with a generic error message.
-                            mstore(
-                                0,
-                                // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                                0xf486bc8700000000000000000000000000000000000000000000000000000000
-                            )
-                            mstore(4, token)
-                            mstore(36, from)
-                            mstore(68, to)
-                            mstore(100, 0)
-                            mstore(132, amount)
-
-                            revert(0, 164) // We use 164 because its the result of 4 + 32 * 5.
-                        }
-
-                        // Otherwise revert with a message about the token returning false.
-                        mstore(
-                            0,
-                            // abi.encodeWithSignature("BadReturnValueFromERC20OnTransfer(address,address,address,uint256)")
-                            0x9889192300000000000000000000000000000000000000000000000000000000
-                        )
-                        mstore(4, token)
-                        mstore(36, from)
-                        mstore(68, to)
-                        mstore(100, amount)
-
-                        revert(0, 132) // We use 132 because its the result of 4 + 32 * 4.
-                    }
-
-                    // Otherwise revert with a message about the token not being a contract.
+                // If the token has no code, revert.
+                if iszero(extcodesize(token)) {
                     mstore(
                         0,
                         // abi.encodeWithSignature("NoContract(address)")
@@ -1684,10 +1642,38 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                     mstore(4, token)
 
-                    revert(0, 36) // We use 36 because its the result of 4 + 32.
+                    revert(0, 0x24) // Use 36 because its the result of 4 + 32.
                 }
 
-                // Otherwise the token just returned nothing but succeeded all other regards.
+                // If the transfer failed:
+                if iszero(success) {
+                    // If it was due to a revert with a message, bubble it up:
+                    if and(iszero(callStatus), returndatasize()) {
+                        // Copy returndata to memory; overwrite existing memory.
+                        returndatacopy(0, 0, returndatasize())
+
+                        // Revert, specifying memory with copied returndata.
+                        revert(0, returndatasize())
+                    }
+
+                    // Otherwise revert with a generic error message.
+                    mstore(
+                        0,
+                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
+                        0xf486bc8700000000000000000000000000000000000000000000000000000000
+                    )
+                    mstore(4, token)
+                    mstore(0x24, from)
+                    mstore(0x44, to)
+                    mstore(0x64, 0)
+                    mstore(0x84, amount)
+
+                    revert(0, 0xa4) // Use 164 as its the result of 4 + 32 * 5.
+                }
+
+                // Otherwise the token just returned nothing but otherwise
+                // succeeded — no need to optimize for this as it's not
+                // technically ERC20 compliant.
             }
         }
     }
@@ -1721,90 +1707,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
             revert InvalidERC721TransferAmount();
         }
 
-        // If no conduit has been specified...
-        if (conduit == address(0)) {
-            // Perform transfer via the token contract directly.
-            assembly {
-                // If the token has no code, revert.
-                if iszero(extcodesize(token)) {
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("NoContract(address)")
-                        0x5f15d67200000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(4, token)
+        // Perform transfer, either directly or via proxy.
+        bool success = _callDirectlyOrViaProxy(
+            from,
+            token,
+            conduit,
+            abi.encodeCall(ERC721Interface.transferFrom, (from, to, identifier))
+        );
 
-                    revert(0, 36) // We use 36 because its the result of 4 + 32.
-                }
-
-                // We'll write our calldata to this slot below, but restore it later.
-                let memPointer := mload(0x40)
-
-                // Write the abi-encoded calldata into memory, beginning with the function selector.
-                mstore(
-                    0,
-                    0x23b872dd00000000000000000000000000000000000000000000000000000000
-                )
-                mstore(4, from) // Append the "from" argument.
-                mstore(36, to) // Append the "to" argument.
-                mstore(68, identifier) // Append the "identifier" argument.
-
-                // We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.
-                // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
-                let success := call(gas(), token, 0, 0, 100, 0, 0)
-
-                mstore(0x60, 0) // Restore the zero slot to zero.
-                mstore(0x40, memPointer) // Restore the memPointer.
-
-                // If the transfer reverted:
-                if iszero(success) {
-                    // If it returned a message, bubble it up:
-                    if returndatasize() {
-                        // Copy returndata to memory, overwriting existing memory.
-                        returndatacopy(0, 0, returndatasize())
-
-                        // Revert, specifying memory region with copied returndata.
-                        revert(0, returndatasize())
-                    }
-
-                    // Otherwise revert with a generic error message.
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                        0xf486bc8700000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(4, token)
-                    mstore(36, from)
-                    mstore(68, to)
-                    mstore(100, identifier)
-                    mstore(132, amount)
-
-                    revert(0, 164) // We use 164 because its the result of 4 + 32 * 5.
-                }
-            }
-        } else if (conduit == address(1)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            bool success = _callProxy(
-                from,
-                token,
-                abi.encodeCall(
-                    ERC721Interface.transferFrom,
-                    (from, to, identifier)
-                )
-            );
-
-            // Ensure that the transfer succeeded.
-            _assertValidTokenTransfer(
-                success,
-                token,
-                from,
-                to,
-                identifier,
-                amount
-            );
-        } else {
-            revert("Not yet implemented");
-        }
+        // Ensure that the transfer succeeded.
+        _assertValidTokenTransfer(success, token, from, to, identifier, 1);
     }
 
     /**
@@ -1831,95 +1743,23 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount,
         address conduit
     ) internal {
-        // If no conduit has been specified...
-        if (conduit == address(0)) {
-            // Perform transfer via the token contract directly.
-            assembly {
-                // If the token has no code, revert.
-                if iszero(extcodesize(token)) {
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("NoContract(address)")
-                        0x5f15d67200000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(4, token)
-
-                    revert(0, 36) // We use 36 because its the result of 4 + 32.
-                }
-
-                // We'll write our calldata to this slot below, but restore it later.
-                let memPointer := mload(0x40)
-
-                // Write the abi-encoded calldata into memory, beginning with the function selector.
-                mstore(
-                    0,
-                    0xf242432a00000000000000000000000000000000000000000000000000000000
-                )
-                mstore(4, from) // Append the "from" argument.
-                mstore(36, to) // Append the "to" argument.
-                mstore(68, identifier) // Append the "identifier" argument.
-                mstore(100, amount) // Append the "amount" argument.
-                mstore(132, "") // Append the "data" argument.
-
-                // We use 132 because the length of our calldata totals up like so: 4 + 32 * 5.
-                let success := call(gas(), token, 0, 0, 164, 0, 0)
-
-                mstore(0x60, 0) // Restore the zero slot to zero.
-                mstore(0x40, memPointer) // Restore the memPointer.
-
-                // If the transfer reverted:
-                if iszero(success) {
-                    // If it returned a message, bubble it up:
-                    if returndatasize() {
-                        // Copy returndata to memory, overwriting existing memory.
-                        returndatacopy(0, 0, returndatasize())
-
-                        // Revert, specifying memory region with copied returndata.
-                        revert(0, returndatasize())
-                    }
-
-                    // Otherwise revert with a generic error message.
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                        0xf486bc8700000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(4, token)
-                    mstore(36, from)
-                    mstore(68, to)
-                    mstore(100, identifier)
-                    mstore(132, amount)
-
-                    revert(0, 164) // We use 164 because its the result of 4 + 32 * 5.
-                }
-            }
-        } else if (conduit == address(1)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            bool success = _callProxy(
-                from,
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeTransferFrom.selector,
-                    from,
-                    to,
-                    identifier,
-                    amount,
-                    ""
-                )
-            );
-
-            // Ensure that the transfer succeeded.
-            _assertValidTokenTransfer(
-                success,
-                token,
+        // Perform transfer, either directly or via proxy.
+        bool success = _callDirectlyOrViaProxy(
+            from,
+            token,
+            conduit,
+            abi.encodeWithSelector(
+                ERC1155Interface.safeTransferFrom.selector,
                 from,
                 to,
                 identifier,
-                amount
-            );
-        } else {
-            revert("Not yet implemented");
-        }
+                amount,
+                ""
+            )
+        );
+
+        // Ensure that the transfer succeeded.
+        _assertValidTokenTransfer(success, token, from, to, identifier, amount);
     }
 
     /**
@@ -1942,38 +1782,20 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        bool success;
-
-        // If no conduit has been specified...
-        if (conduit == address(0)) {
-            // Perform transfer via the token contract directly.
-            (success, ) = token.call(
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeBatchTransferFrom.selector,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts,
-                    ""
-                )
-            );
-        } else if (conduit == address(1)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(
+        // Perform transfer, either directly or via proxy.
+        bool success = _callDirectlyOrViaProxy(
+            from,
+            token,
+            conduit,
+            abi.encodeWithSelector(
+                ERC1155Interface.safeBatchTransferFrom.selector,
                 from,
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeBatchTransferFrom.selector,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts,
-                    ""
-                )
-            );
-        } else {
-            revert("Not yet implemented");
-        }
+                to,
+                tokenIds,
+                amounts,
+                ""
+            )
+        );
 
         // If the call fails...
         if (!success) {
@@ -1992,6 +1814,42 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Ensure that a contract is deployed to the token address.
         _assertContractIsDeployed(token);
+    }
+
+    /**
+     * @dev Internal function to trigger a call to a given token, either
+     *      directly or via a proxy contract. The proxy contract must be
+     *      registered on the legacy proxy registry for the given proxy owner
+     *      and must declare that its implementation matches the required proxy
+     *      implementation in accordance with EIP-897.
+     *
+     * @param from     The account providing the tokens.
+     * @param token    The token contract to call.
+     * @param conduit  An address indicating what conduit, if any, to source
+     *                 token approvals from. The null address signifies that no
+     *                 conduit should be used (and direct approvals set on
+     *                 Consideration) and `address(1)` signifies to utilize the
+     *                 legacy user proxy for the transfer.
+     * @param callData The calldata to supply when calling the token contract.
+     *
+     * @return success The status of the call to the token contract.
+     */
+    function _callDirectlyOrViaProxy(
+        address from,
+        address token,
+        address conduit,
+        bytes memory callData
+    ) internal returns (bool success) {
+        // If no conduit has been specified...
+        if (conduit == address(0)) {
+            // Perform transfer via the token contract directly.
+            success = _call(token, callData);
+        } else if (conduit == address(1)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(from, token, callData);
+        } else {
+            revert("Not yet implemented");
+        }
     }
 
     /**
@@ -2026,7 +1884,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // perform call to proxy via proxyAssert and HowToCall = CALL (value 0).
-        (success, ) = proxy.call(
+        success = _call(
+            proxy,
             abi.encodeWithSelector(
                 ProxyInterface.proxyAssert.selector,
                 target,
@@ -2034,6 +1893,23 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 callData
             )
         );
+    }
+
+    /**
+     * @dev Internal function to call an arbitrary target with given calldata.
+     *      Note that no data is written to memory and no contract size check is
+     *      performed.
+     *
+     * @param target   The account to call.
+     * @param callData The calldata to supply when calling the target.
+     *
+     * @return success The status of the call to the target.
+     */
+    function _call(address target, bytes memory callData)
+        internal
+        returns (bool success)
+    {
+        (success, ) = target.call(callData);
     }
 
     /**

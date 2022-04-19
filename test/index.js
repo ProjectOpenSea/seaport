@@ -12875,7 +12875,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-
       it("Reverts when ether is supplied to a non-payable route (basic)", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
@@ -12983,7 +12982,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         });
       });
-
       it("Reverts when tokens are not approved", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
@@ -13099,6 +13097,40 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.isValidated).to.equal(true);
         expect(orderStatus.totalFilled).to.equal(1);
         expect(orderStatus.totalSize).to.equal(1);
+      });
+      it("Reverts when 1155 token transfer reverts", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount.mul(10000));
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+          },
+        ];
+
+        const consideration = [getItemETH(10, 10, seller.address)];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+          ).to.be.reverted;
+        });
       });
       it("Reverts when ERC20 tokens return falsey values", async () => {
         // Seller mints nft
@@ -13456,6 +13488,37 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.reverted;
         });
       });
+      it("Reverts when 1155 account with no code is supplied", async () => {
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: ethers.constants.AddressZero,
+            identifierOrCriteria: 0,
+            startAmount: amount,
+            endAmount: amount,
+          },
+        ];
+
+        const consideration = [getItemETH(10, 10, seller.address)];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+          ).to.be.revertedWith("NoContract");
+        });
+      });
       it("Reverts when non-token account is supplied as the token", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
@@ -13508,6 +13571,37 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
           ).to.be.reverted;
+        });
+      });
+      it("Reverts when non-1155 account is supplied as the token", async () => {
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: marketplaceContract.address,
+            identifierOrCriteria: 0,
+            startAmount: amount,
+            endAmount: amount,
+          },
+        ];
+
+        const consideration = [getItemETH(10, 10, seller.address)];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+          ).to.be.revertedWith("TokenTransferGenericFailure");
         });
       });
       it("Reverts when 1155 batch non-token account is supplied as the token", async () => {
