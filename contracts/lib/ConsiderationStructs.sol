@@ -89,7 +89,7 @@ struct ReceivedItem {
  *      subset of the usual order arguments. Note the use of a "basicOrderType"
  *      enum; this represents both the usual order type as well as the "route"
  *      of the basic order (a simple derivation function for the basic order
- *      type is `basicOrderType = orderType + (8 * basicOrderRoute)`.)
+ *      type is `basicOrderType = orderType + (4 * basicOrderRoute)`.)
  */
 struct BasicOrderParameters {
     // calldata offset
