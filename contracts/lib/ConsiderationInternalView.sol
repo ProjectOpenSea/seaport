@@ -588,6 +588,89 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
+     * @dev Internal view function to match offer items to consideration items
+     *      on a group of orders via a supplied fulfillment.
+     *
+     * @param advancedOrders          The orders to match.
+     * @param offerComponents         An array designating offer components to
+     *                                match to consideration components.
+     * @param considerationComponents An array designating consideration
+     *                                components to match to offer components.
+     *                                Note that each consideration amount must
+     *                                be zero in order for the match operation
+     *                                to be valid.
+     *
+     * @return execution The transfer performed as a result of the fulfillment.
+     */
+    function _applyFulfillment(
+        AdvancedOrder[] memory advancedOrders,
+        FulfillmentComponent[] memory offerComponents,
+        FulfillmentComponent[] memory considerationComponents
+    ) internal view returns (Execution memory execution) {
+        // Ensure 1+ of both offer and consideration components are supplied.
+        if (
+            offerComponents.length == 0 || considerationComponents.length == 0
+        ) {
+            revert OfferAndConsiderationRequiredOnFulfillment();
+        }
+        ReceivedItem
+            memory considerationItem = _aggegateValidFulfillmentConsiderationItems(
+                advancedOrders,
+                considerationComponents,
+                0
+            );
+        (
+            execution
+            /* ItemType itemType,
+             address token,
+             uint256 identifier,
+             address offerer,
+             address conduit,
+             uint256 offerAmount
+           */
+        ) = _aggegateValidFulfillmentOfferItems(
+            advancedOrders,
+            offerComponents,
+            0
+        );
+        // Ensure offer and consideration share types, tokens and identifiers.
+        if (
+            execution.item.itemType != considerationItem.itemType ||
+            execution.item.token != considerationItem.token ||
+            execution.item.identifier != considerationItem.identifier
+        ) {
+            revert MismatchedFulfillmentOfferAndConsiderationComponents();
+        }
+
+        // If total consideration amount exceeds the offer amount...
+        if (considerationItem.amount > execution.item.amount) {
+            // Retrieve the first consideration component from the fulfillment.
+            FulfillmentComponent memory targetComponent = (
+                considerationComponents[0]
+            );
+            // Add excess consideration amount to the original orders array.
+            advancedOrders[targetComponent.orderIndex]
+                .parameters
+                .consideration[targetComponent.itemIndex]
+                .startAmount = considerationItem.amount - execution.item.amount;
+            // Reduce total consideration amount to equal the offer amount.
+            considerationItem.amount = execution.item.amount;
+        } else {
+            // Retrieve the first offer component from the fulfillment.
+            FulfillmentComponent memory targetComponent = (offerComponents[0]);
+            advancedOrders[targetComponent.orderIndex]
+                .parameters
+                .offer[targetComponent.itemIndex]
+                .startAmount = execution.item.amount - considerationItem.amount;
+        }
+        // Reuse execution struct with consideration amount and recipient
+        execution.item.amount = considerationItem.amount;
+        execution.item.recipient = considerationItem.recipient;
+        // Return the final execution that will be triggered for relevant items.
+        return execution; //Execution(considerationItem, offerer, conduit);
+    }
+
+    /**
      * @dev Internal view function to aggregate offer or consideration items
      *      from a group of orders into a single execution via a supplied array
      *      of fulfillment components. Items that are not available to aggregate
@@ -676,6 +759,148 @@ contract ConsiderationInternalView is ConsiderationPure {
                     nextComponentIndex - 1,
                     fulfillerConduit
                 );
+        }
+    }
+
+    // TODO: natspec
+    function _aggegateValidFulfillmentOfferItems(
+        AdvancedOrder[] memory advancedOrders,
+        FulfillmentComponent[] memory offerComponents,
+        uint256 startIndex
+    ) internal view returns (Execution memory execution) {
+        uint256 amount;
+        bool orderOOR;
+        assembly {
+            let fulfillmentPtr := mload(
+                add(add(offerComponents, 0x20), mul(startIndex, 32))
+            )
+            let orderIndex := mload(fulfillmentPtr)
+            let itemIndex := mload(add(fulfillmentPtr, 0x20))
+            orderOOR := iszero(lt(orderIndex, mload(advancedOrders)))
+            let orderPtr := mload(
+                mload(
+                    add(
+                        // Calculate pointer to beginning of advancedOrders head
+                        add(advancedOrders, 32),
+                        // Calculate offset to pointer for desired order
+                        mul(orderIndex, 32)
+                    )
+                )
+            )
+            // Load offer array pointer
+            let offerArrPtr := mload(add(orderPtr, 0x40))
+            orderOOR := or(iszero(lt(itemIndex, mload(offerArrPtr))), orderOOR)
+            let itemPtr := mload(
+                add(
+                    // Get pointer to beginning of OfferItem
+                    add(offerArrPtr, 0x20),
+                    // Calculate offset to pointer for desired order
+                    mul(itemIndex, 32)
+                )
+            )
+            let offerItem := mload(execution)
+            // itemType
+            mstore(offerItem, mload(itemPtr))
+            // token
+            mstore(add(offerItem, 0x20), mload(add(itemPtr, 0x20)))
+            // identifier
+            mstore(add(offerItem, 0x40), mload(add(itemPtr, 0x40)))
+            let amountPtr := add(itemPtr, 0x60)
+            amount := mload(amountPtr)
+            // recipient
+            mstore(add(offerItem, 0x80), caller())
+            mstore(amountPtr, 0)
+            //
+            mstore(add(execution, 0x20), mload(orderPtr))
+            //conduit
+            mstore(add(execution, 0x40), mload(add(orderPtr, 0x120)))
+        }
+
+        assembly {
+            let offerItem := mload(execution)
+            for {
+                let i := add(startIndex, 1)
+            } and(iszero(orderOOR), lt(i, mload(offerComponents))) {
+                i := add(i, 1)
+            } {
+                let fulfillmentPtr := mload(
+                    add(add(offerComponents, 0x20), mul(i, 32))
+                )
+                let orderIndex := mload(fulfillmentPtr)
+                let itemIndex := mload(add(fulfillmentPtr, 0x20))
+
+                orderOOR := iszero(lt(orderIndex, mload(advancedOrders)))
+
+                if orderOOR {
+                    break
+                }
+
+                let orderPtr := mload(
+                    add(add(advancedOrders, 32), mul(orderIndex, 32))
+                )
+
+                if mload(add(orderPtr, 0x20)) {
+                    orderPtr := mload(orderPtr)
+                    // Load offer array pointer
+                    let offerArrPtr := mload(add(orderPtr, 0x40))
+                    orderOOR := iszero(lt(itemIndex, mload(offerArrPtr)))
+
+                    if orderOOR {
+                        break
+                    }
+
+                    let itemPtr := mload(
+                        add(
+                            // Get pointer to beginning of OfferItem
+                            add(offerArrPtr, 0x20),
+                            // Calculate offset to pointer for desired order
+                            mul(itemIndex, 32)
+                        )
+                    )
+
+                    let amountPtr := add(itemPtr, 0x60)
+                    amount := add(amount, mload(amountPtr))
+                    mstore(amountPtr, 0)
+
+                    orderOOR := iszero(
+                        and(
+                            // identifier
+                            eq(
+                                mload(add(itemPtr, 0x40)),
+                                mload(add(offerItem, 0x40))
+                            ),
+                            and(
+                                and(
+                                    // offerer
+                                    eq(
+                                        mload(orderPtr),
+                                        mload(add(execution, 0x20))
+                                    ),
+                                    // conduit
+                                    eq(
+                                        mload(add(orderPtr, 0x120)),
+                                        mload(add(execution, 0x40))
+                                    )
+                                ),
+                                and(
+                                    // item type
+                                    eq(mload(itemPtr), mload(offerItem)),
+                                    // token
+                                    eq(
+                                        mload(add(itemPtr, 0x20)),
+                                        mload(add(offerItem, 0x20))
+                                    )
+                                )
+                            )
+                        )
+                    )
+                }
+            }
+            mstore(add(offerItem, 0x60), amount)
+        }
+
+        if (orderOOR) {
+            revert FulfilledOrderIndexOutOfRange();
         }
     }
 

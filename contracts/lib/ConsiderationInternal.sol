@@ -40,19 +40,20 @@ contract ConsiderationInternal is ConsiderationInternalView {
     {}
 
     /**
-     * @dev Internal function to prepare fulfillment of a basic order with manual
-     *      calldata and memory access. This calculates the order hash, emits an
-     *      OrderFulfilled event, and asserts basic order validity. Note that
-     *      calldata offsets must be validated as this function accesses constant
-     *      calldata pointers for dynamic types that match default ABI encoding,
-     *      but valid ABI encoding can use arbitrary offsets. Checking that the
-     *      offsets were produced by default encoding will ensure that other
-     *      functions using Solidity's calldata accessors (which calculate
-     *      pointers from the stored offsets) are reading the same data as the
-     *      order hash is derived from. Also note that This function accesses
-     *      memory directly. It does not clear the expanded memory regions used,
-     *      nor does it update the free memory pointer, so other direct memory
-     *      access must not assume that unused memory is empty.
+     * @dev Internal function to prepare fulfillment of a basic order with
+     *      manual calldata and memory access. This calculates the order hash,
+     *      emits an OrderFulfilled event, and asserts basic order validity.
+     *      Note that calldata offsets must be validated as this function
+     *      accesses constant calldata pointers for dynamic types that match
+     *      default ABI encoding, but valid ABI encoding can use arbitrary
+     *      offsets. Checking that the offsets were produced by default encoding
+     *      will ensure that other functions using Solidity's calldata accessors
+     *      (which calculate pointers from the stored offsets) are reading the
+     *      same data as the order hash is derived from. Also note that This
+     *      function accesses memory directly. It does not clear the expanded
+     *      memory regions used, nor does it update the free memory pointer, so
+     *      other direct memory access must not assume that unused memory is
+     *      empty.
      *
      * @param parameters                   The parameters of the basic order.
      * @param orderType                    The order type.
@@ -143,15 +144,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Set pointer to data portion of the initial ReceivedItem.
                 eventArrPtr := add(eventArrPtr, 0x20)
 
-                // Write the item type to memory.
+                // Set item type at start of the ReceivedItem memory region.
                 mstore(eventArrPtr, receivedItemType)
 
                 // Copy calldata region (token, identifier, amount & recipient).
                 calldatacopy(add(eventArrPtr, 0x20), 0x24, 0x80)
 
-                // 3. Handle additional recipients
-                // ptr to current place in receivedItemHashes
+                // 3. Handle additional recipients.
+                // Set pointer to current location in receivedItemHashes.
                 let considerationHashesPtr := 0x160
+
                 // Write item type, token, & identifier for additional recipient
                 // to memory; these values will be reused for each recipient.
                 mstore(0xa0, additionalRecipientsItemType)
@@ -169,32 +171,32 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     // Retrieve pointer for additional recipient in question.
                     let additionalRecipientCdPtr := add(0x284, mul(0x40, i))
 
-                    // a. Write ConsiderationItem hash to consideration array
-                    // Copy startAmount
+                    // a. Write ConsiderationItem hash to consideration array.
+                    // Copy startAmount from calldata.
                     calldatacopy(0x100, additionalRecipientCdPtr, 0x20)
 
-                    // Copy endAmount, recipient
+                    // Copy endAmount and recipient from calldata.
                     calldatacopy(0x120, additionalRecipientCdPtr, 0x40)
 
-                    // note: Add 1 word to the pointer each loop to reduce ops
-                    // needed to get local offset into the array
+                    // Add 1 word to the pointer as part of each loop to reduce
+                    // operations needed to get local offset into the array.
                     considerationHashesPtr := add(considerationHashesPtr, 0x20)
 
                     // Set keccak256(abi.encode(receivedItem)) as next hash.
                     mstore(considerationHashesPtr, keccak256(0x80, 0xe0))
 
-                    // b. Write ReceivedItem to OrderFulfilled data
+                    // b. Write ReceivedItem to OrderFulfilled data.
                     // At this point, eventArrPtr points to the beginning of the
                     // ReceivedItem struct of the previous element in the array.
                     eventArrPtr := add(eventArrPtr, 0xa0)
 
-                    // Write item type
+                    // Set item type at start of the ReceivedItem memory region.
                     mstore(eventArrPtr, additionalRecipientsItemType)
 
-                    // Write token
+                    // Set token at next word in the ReceivedItem memory region.
                     mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
 
-                    // Copy endAmount, recipient
+                    // Copy endAmount and recipient to remaining memory region.
                     calldatacopy(
                         add(eventArrPtr, 0x60),
                         additionalRecipientCdPtr,
@@ -202,9 +204,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                 }
 
-                // 4. Hash packed array of ConsiderationItem EIP712 hashes
-                // note: Store at 0x60 - all other memory begins at 0x80
-                // keccak256(abi.encodePacked(receivedItemHashes))
+                // 4. Hash packed array of ConsiderationItem EIP712 hashes:
+                //   `keccak256(abi.encodePacked(receivedItemHashes))`
+                // Note that it is set at 0x60 — all other memory begins at
+                // 0x80. 0x60 is the "zero slot" and will be restored at the end
+                // of the assembly section and before required by the compiler.
                 mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
 
                 // 5. Write tips to event data.
@@ -214,6 +218,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 } lt(i, len) {
                     i := add(i, 1)
                 } {
+                    // Retrieve pointer for additional recipient in question.
                     let additionalRecipientCdPtr := add(0x284, mul(0x40, i))
 
                     // b. Write ReceivedItem to OrderFulfilled data
@@ -221,13 +226,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     // ReceivedItem struct of the previous element in the array.
                     eventArrPtr := add(eventArrPtr, 0xa0)
 
-                    // Write item type
+                    // Set item type at start of the ReceivedItem memory region.
                     mstore(eventArrPtr, additionalRecipientsItemType)
 
-                    // Write token
+                    // Set token at next word in the ReceivedItem memory region.
                     mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
 
-                    // Copy endAmount, recipient
+                    // Copy endAmount and recipient to remaining memory region.
                     calldatacopy(
                         add(eventArrPtr, 0x60),
                         additionalRecipientCdPtr,
@@ -265,24 +270,27 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Copy endAmount from calldata; reuses last word of prior copy.
                 calldatacopy(0x120, 0x104, 0x20)
 
-                // note: Write offered item hash to scratch space
-                // keccak256(abi.encode(offeredItem))
+                // Compute offer item hash and write result to scratch space:
+                //   `keccak256(abi.encode(offeredItem))`
                 mstore(0x00, keccak256(0x80, 0xc0))
 
-                // 2. Calculate hash of array of EIP712 hashes
-                // note: Write offeredItemsHash to offer struct
-                // keccak256(abi.encodePacked(offeredItemHashes))
+                // 2. Calculate hash of array of EIP712 hashes and write the
+                // result to the corresponding offer struct memory region:
+                //   `keccak256(abi.encodePacked(offeredItemHashes))`
                 mstore(0xe0, keccak256(0x00, 0x20))
 
-                // 3. Write SpentItem array to event data
-                // 0x180 + len*32 = event data ptr
-                // offers array length is stored at 0x80 into the event data
+                // 3. Write SpentItem array to event data.
+                // 0x180 + len*32 = event data pointer, where the offer array
+                // length is stored at 0x80 into the event data.
                 let eventArrPtr := add(0x200, mul(0x20, calldataload(0x264)))
 
+                // Set a length of 1 for the offer array.
                 mstore(eventArrPtr, 1)
+
+                // Set offer item type at start of the SpentItem memory region.
                 mstore(add(eventArrPtr, 0x20), offeredItemType)
 
-                // Copy token, identifier, startAmount to SpentItem
+                // Copy token, identifier, and startAmount to SpentItem region.
                 calldatacopy(add(eventArrPtr, 0x40), 0xc4, 0x60)
             }
         }
@@ -319,7 +327,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             bytes32 typeHash = _ORDER_TYPEHASH;
 
             assembly {
-                // Set the typehash in memory.
+                // Set the offer typehash in memory.
                 mstore(0x80, typeHash)
 
                 // Copy offerer and zone from calldata and set them in memory.
@@ -328,7 +336,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Copy receivedItemsHash from zero slot to the required region.
                 mstore(0x100, mload(0x60))
 
-                // Set supplied order type in memory.
+                // Set the supplied order type in memory.
                 mstore(0x120, orderType)
 
                 // Copy startTime, endTime, zoneHash, salt & conduit to memory.
@@ -391,15 +399,18 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Emit OrderFulfilled log with three topics (the event signature
             // as well as the two indexed arguments, the offerer and the zone).
             log3(
+                // Supply the pointer for event data in memory.
                 eventDataPtr,
+                // Supply the size of event data in memory.
                 dataSize,
-                // OrderFulfilled event signature
+                // Supply the OrderFulfilled event signature.
                 0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31,
-                // topic1 - offerer
+                // Supply the first topic (the offerer).
                 calldataload(0x84),
-                // topic2 - zone
+                // Supply the first topic (the zone).
                 calldataload(0xa4)
             )
+
             // Restore the zero slot.
             mstore(0x60, 0)
         }
@@ -519,6 +530,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             numerator < denominator &&
             _doesNotSupportPartialFills(orderParameters.orderType)
         ) {
+            // Revert if partial fill was attempted on an unsupported order.
             revert PartialFillsNotEnabledForOrder();
         }
 
@@ -633,7 +645,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                          that any (transferrable) token identifier is
      *                          valid and that no proof needs to be supplied.
      * @param fulfillerConduit  An address indicating what conduit, if any, to
-     *                          source the fulfiller's token approvals from.
+     *                          source the fulfiller's token approvals from. The
+     *                          null address signifies that no conduit should be
+     *                          used (and direct approvals set on Consideration)
+     *                          and `address(1)` signifies to utilize the legacy
+     *                          user proxy for the fulfiller.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -703,8 +719,18 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param numerator        A value indicating the portion of the order that
      *                         should be filled.
      * @param denominator      A value indicating the total size of the order.
-     * @param offererConduit   ...
-     * @param fulfillerConduit ...
+     * @param offererConduit   An address indicating what conduit, if any, to
+     *                         source the offerer's token approvals from. The
+     *                         null address signifies that no conduit should be
+     *                         used (and direct approvals set on Consideration)
+     *                         and `address(1)` signifies to utilize the legacy
+     *                         user proxy for the offerer.
+     * @param fulfillerConduit An address indicating what conduit, if any, to
+     *                         source the fulfiller's token approvals from. The
+     *                         null address signifies that no conduit should be
+     *                         used (and direct approvals set on Consideration)
+     *                         and `address(1)` signifies to utilize the legacy
+     *                         user proxy for the fulfiller.
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
@@ -721,12 +747,35 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
+
+        /**
+         * Repurpose existing OfferItem memory regions on the offer array for
+         * the order by overriding the _transfer function pointer to accept a
+         * modified OfferItem argument in place of the usual ReceivedItem:
+         *
+         *   ========= OfferItem ==========   ====== ReceivedItem ======
+         *   ItemType itemType; ------------> ItemType itemType;
+         *   address token; ----------------> address token;
+         *   uint256 identifierOrCriteria; -> uint256 identifier;
+         *   uint256 startAmount; ----------> uint256 amount;
+         *   uint256 endAmount; ------------> address recipient;
+         */
+
+        // Declare a nested scope to access function pointers directly (required
+        // as of solidity 0.6.x) in order to override _transfer argument types.
         {
+            // Declare a virtual function pointer taking an OfferItem argument.
             function(OfferItem memory, address, address)
                 internal _transferOfferItem;
+
+            // Assign _transfer function to a new function pointer (it takes a
+            /// ReceivedItem as its initial argument), allocating memory.
             function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
+
+            // Utilize assembly to override the virtual function pointer.
             assembly {
+                // Cast initial ReceivedItem argument type to an OfferItem type.
                 _transferOfferItem := _transferReceivedItem
             }
 
@@ -735,7 +784,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
 
-                // // Derive amount to transfer of offer item and return received item.
+                // Apply fill fraction to derive offer item amount to transfer.
                 uint256 amount = _applyFraction(
                     offerItem.startAmount,
                     offerItem.endAmount,
@@ -746,21 +795,23 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     duration,
                     false
                 );
+
+                // Utilize assembly to set overloaded offerItem arguments.
                 assembly {
-                    // Write fractional amount to startAmount as amount
+                    // Write derived fractional amount to startAmount as amount.
                     mstore(add(offerItem, 0x60), amount)
-                    // Write caller to endAmount as recipient
+                    // Write fulfiller (i.e. caller) to endAmount as recipient.
                     mstore(add(offerItem, 0x80), caller())
                 }
 
-                // If offer expects ETH or a native token, reduce value available.
+                // Reduce available value if offer spent ETH or a native token.
                 if (offerItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
                     }
 
-                    // Skip underflow check as amount is less than ether remaining.
+                    // Skip underflow check as a comparison has just been made.
                     unchecked {
                         etherRemaining -= amount;
                     }
@@ -779,12 +830,37 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 }
             }
         }
+
+        /**
+         * Repurpose existing ConsiderationItem memory regions on the
+         * consideration array for the order by overriding the _transfer
+         * function pointer to accept a modified ConsiderationItem argument in
+         * place of the usual ReceivedItem:
+         *
+         *   ====== ConsiderationItem =====   ====== ReceivedItem ======
+         *   ItemType itemType; ------------> ItemType itemType;
+         *   address token; ----------------> address token;
+         *   uint256 identifierOrCriteria;--> uint256 identifier;
+         *   uint256 startAmount; ----------> uint256 amount;
+         *   uint256 endAmount;        /----> address recipient;
+         *   address recipient; ------/
+         */
+
+        // Declare a new nested scope to perform a type cast via function
+        // pointer assignment in order to override _transfer argument types.
         {
+            // Declare virtual function pointer with ConsiderationItem argument.
             function(ConsiderationItem memory, address, address)
                 internal _transferConsiderationItem;
+
+            // Reassign _transfer function to a new function pointer (it takes a
+            /// ReceivedItem as its initial argument), allocating memory.
             function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
+
+            // Utilize assembly to override the virtual function pointer.
             assembly {
+                // Cast ReceivedItem argument type to ConsiderationItem type.
                 _transferConsiderationItem := _transferReceivedItem
             }
 
@@ -795,7 +871,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     orderParameters.consideration[i]
                 );
 
-                // Get consideration item transfer amount and return received item.
+                // Apply fraction & derive considerationItem amount to transfer.
                 uint256 amount = _applyFraction(
                     considerationItem.startAmount,
                     considerationItem.endAmount,
@@ -806,29 +882,33 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     duration,
                     true
                 );
+
+                // Use assembly to set overloaded considerationItem arguments.
                 assembly {
-                    // Write fractional amount to startAmount
+                    // Write derived fractional amount to startAmount as amount.
                     mstore(add(considerationItem, 0x60), amount)
-                    // Write recipient to endAmount
+
+                    // Write original recipient to endAmount as recipient.
                     mstore(
                         add(considerationItem, 0x80),
                         mload(add(considerationItem, 0xa0))
                     )
                 }
 
-                // If item expects ETH or a native token, reduce value available.
+                // Reduce available value if offer spent ETH or a native token.
                 if (considerationItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
                     }
 
-                    // Skip underflow check as amount is less than ether remaining.
+                    // Skip underflow check as a comparison has just been made.
                     unchecked {
                         etherRemaining -= amount;
                     }
                 }
-                // Transfer the item from the caller to the consideration recipient.
+
+                // Transfer item from caller to recipient specified by the item.
                 _transferConsiderationItem(
                     considerationItem,
                     msg.sender,
@@ -842,8 +922,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // If any ether remains after fulfillments, return it to the caller.
+        // If any ether remains after fulfillments...
         if (etherRemaining != 0) {
+            // return it to the caller.
             _transferEth(payable(msg.sender), etherRemaining);
         }
     }
@@ -930,22 +1011,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Otherwise, track the order hash in question.
                 orderHashes[i] = orderHash;
 
-                // Retrieve offer items and consideration items on the order.
+                // Retrieve array of offer items for the order in question.
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
-                ConsiderationItem[] memory consideration = (
-                    advancedOrder.parameters.consideration
-                );
 
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < offer.length; ++j) {
                     // Retrieve the offer item.
                     OfferItem memory offerItem = offer[j];
+
                     // Apply order fill fraction to offer item end amount.
                     uint256 endAmount = _getFraction(
                         numerator,
                         denominator,
                         offerItem.endAmount
                     );
+
                     // Reuse same fraction if start and end amounts are equal.
                     if (offerItem.startAmount == offerItem.endAmount) {
                         // Apply derived amount to both start and end amount.
@@ -958,8 +1038,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
                             offerItem.startAmount
                         );
                     }
+
+                    // Update end amount in memory to match the derived amount.
                     offerItem.endAmount = endAmount;
-                    // Adjust offer amounts based on current time (round down).
+
+                    // Adjust offer amount using current time; round down.
                     offerItem.startAmount = _locateCurrentAmount(
                         offerItem.startAmount,
                         offerItem.endAmount,
@@ -970,12 +1053,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     );
                 }
 
+                // Retrieve array of consideration items for order in question.
+                ConsiderationItem[] memory consideration = (
+                    advancedOrder.parameters.consideration
+                );
+
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < consideration.length; ++j) {
                     // Retrieve the consideration item.
-                    ConsiderationItem memory considerationItem = consideration[
-                        j
-                    ];
+                    ConsiderationItem memory considerationItem = (
+                        consideration[j]
+                    );
 
                     // Apply fraction to consideration item end amount.
                     uint256 endAmount = _getFraction(
@@ -999,9 +1087,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
                             considerationItem.startAmount
                         );
                     }
+
+                    // Update end amount in memory to match the derived amount.
                     considerationItem.endAmount = endAmount;
 
-                    // Adjust consideration amount based on current time (round up).
+                    // Adjust consideration amount using current time; round up.
                     considerationItem.startAmount = (
                         _locateCurrentAmount(
                             considerationItem.startAmount,
@@ -1012,11 +1102,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
                             true // round up
                         )
                     );
+
+                    // Utilize assembly to manually "shift" the recipient value.
                     assembly {
-                        // Write recipient to endAmount - endAmount is never used after this function
+                        // Write recipient to endAmount, as endAmount is not
+                        // used from this point on and can be repurposed to fit
+                        // the layout of a ReceivedItem.
                         mstore(
-                            add(considerationItem, 0x80),
-                            mload(add(considerationItem, 0xa0))
+                            add(considerationItem, 0x80), // endAmount
+                            mload(add(considerationItem, 0xa0)) // recipient
                         )
                     }
                 }
@@ -1026,8 +1120,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Apply criteria resolvers to each order as applicable.
         _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
+        // Determine the fulfiller (revertOnInvalid ? address(0) : msg.sender).
+        address fulfiller;
+
+        // Utilize assembly to operate on revertOnInvalid boolean as an integer.
+        assembly {
+            // Set the fulfiller to the caller if revertOnValid is false.
+            fulfiller := mul(iszero(revertOnInvalid), caller())
+        }
+
         // Emit an event for each order signifying that it has been fulfilled.
+        // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ++i) {
                 // Do not emit an event if no order hash is present.
                 if (orderHashes[i] == bytes32(0)) {
@@ -1039,12 +1144,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     advancedOrders[i].parameters
                 );
 
-                // Emit an OrderFulfilled event (supply fulfiller on no revert).
+                // Emit an OrderFulfilled event.
                 _emitOrderFulfilledEvent(
                     orderHashes[i],
                     orderParameters.offerer,
                     orderParameters.zone,
-                    revertOnInvalid ? address(0) : msg.sender,
+                    fulfiller,
                     orderParameters.offer,
                     orderParameters.consideration
                 );
@@ -1124,13 +1229,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // Perform final checks, compress executions, and return.
+        // Perform final checks and compress executions into standard and batch.
         (
             ,
             standardExecutions,
             batchExecutions
         ) = _performFinalChecksAndExecuteOrders(advancedOrders, executions);
 
+        // Return both standard and batch ERC1155 executions.
         return (standardExecutions, batchExecutions);
     }
 
@@ -1188,9 +1294,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
     )
         internal
         returns (
-            bool[] memory,
-            Execution[] memory,
-            BatchExecution[] memory
+            bool[] memory availableOrders,
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
         )
     {
         // Allocate an execution for each offer and consideration fulfillment.
@@ -1407,7 +1513,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *
      * @param item    The item to transfer, including an amount and recipient.
      * @param offerer The account offering the item, i.e. the from address.
-     * @param conduit ...
+     * @param conduit An address indicating what conduit, if any, to source
+     *                token approvals from. The null address signifies that no
+     *                conduit should be used (and direct approvals set on
+     *                Consideration) and `address(1)` signifies to utilize the
+     *                legacy user proxy for the transfer.
      */
     function _transfer(
         ReceivedItem memory item,
@@ -1418,12 +1528,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         if (item.itemType == ItemType.NATIVE) {
             // transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
-            // If the item type indicates an ERC20 item...
         } else if (item.itemType == ItemType.ERC20) {
+            // For an ERC20 item...
             // Transfer ERC20 token from the offerer to the recipient.
             _transferERC20(item.token, offerer, item.recipient, item.amount);
-            // Otherwise, transfer item based on item type & conduit preference.
         } else {
+            // Otherwise, transfer item based on item type & conduit preference.
             if (item.itemType == ItemType.ERC721) {
                 // Transfer ERC721 token from the offerer to the recipient.
                 _transferERC721(
@@ -1575,7 +1685,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param to         The recipient of the transfer.
      * @param identifier The tokenId to transfer.
      * @param amount     The "amount" (this value must be equal to one).
-     * @param conduit    ...
+     * @param conduit    An address indicating what conduit, if any, to source
+     *                   token approvals from. The null address signifies that
+     *                   no conduit should be used (and direct approvals set on
+     *                   Consideration) and `address(1)` signifies to utilize
+     *                   the legacy user proxy for the transfer.
      */
     function _transferERC721(
         address token,
@@ -1612,7 +1726,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param to         The recipient of the transfer.
      * @param identifier The tokenId to transfer.
      * @param amount     The amount to transfer.
-     * @param conduit    ...
+     * @param conduit    An address indicating what conduit, if any, to source
+     *                   token approvals from. The null address signifies that
+     *                   no conduit should be used (and direct approvals set on
+     *                   Consideration) and `address(1)` signifies to utilize
+     *                   the legacy user proxy for the transfer.
      */
     function _transferERC1155(
         address token,
@@ -1704,7 +1822,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *
      * @param from     The account providing the tokens.
      * @param token    The token contract to call.
-     * @param conduit  ...
+     * @param conduit  An address indicating what conduit, if any, to source
+     *                 token approvals from. The null address signifies that no
+     *                 conduit should be used (and direct approvals set on
+     *                 Consideration) and `address(1)` signifies to utilize the
+     *                 legacy user proxy for the transfer.
      * @param callData The calldata to supply when calling the token contract.
      *
      * @return success The status of the call to the token contract.
@@ -1944,13 +2066,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         OfferItem[] memory offer,
         ConsiderationItem[] memory consideration
     ) internal {
-        // @todo use custom loading of calldata into memory to guarantee
-        // memory layout is compatible with event
-        // Designate memory regions for spent items as well as received items.
+        // Cast already-modified offer memory region as spent items.
         SpentItem[] memory spentItems;
         assembly {
             spentItems := offer
         }
+
+        // Cast already-modified consideration memory region as received items.
         ReceivedItem[] memory receivedItems;
         assembly {
             receivedItems := consideration
