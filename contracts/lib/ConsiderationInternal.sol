@@ -738,14 +738,34 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
-        // Declare a nested scope; this is required by solidity 0.8.x in order
-        // to cast types via overriding function arguments using assembly.
+        /**
+         * Repurpose existing OfferItem memory regions on the offer array for
+         * the order by overriding the _transfer function pointer to accept a
+         * modified OfferItem argument in place of the usual ReceivedItem:
+         *
+         *   ========= OfferItem ==========   ====== ReceivedItem ======
+         *   ItemType itemType; ------------> ItemType itemType;
+         *   address token; ----------------> address token;
+         *   uint256 identifierOrCriteria; -> uint256 identifier;
+         *   uint256 startAmount; ----------> uint256 amount;
+         *   uint256 endAmount; ------------> address recipient;
+         */
+
+        // Declare a nested scope to access function pointers directly (required
+        // as of solidity 0.6.x) in order to override _transfer argument types.
         {
+            // Declare a virtual function pointer taking an OfferItem argument.
             function(OfferItem memory, address, address)
                 internal _transferOfferItem;
+
+            // Assign _transfer function to a new function pointer (it takes a
+            /// ReceivedItem as its initial argument), allocating memory.
             function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
+
+            // Utilize assembly to override the virtual function pointer.
             assembly {
+                // Cast initial ReceivedItem argument type to an OfferItem type.
                 _transferOfferItem := _transferReceivedItem
             }
 
@@ -754,7 +774,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
 
-                // // Derive amount to transfer of offer item and return received item.
+                // Apply fill fraction to derive offer item amount to transfer.
                 uint256 amount = _applyFraction(
                     offerItem.startAmount,
                     offerItem.endAmount,
@@ -765,21 +785,23 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     duration,
                     false
                 );
+
+                // Utilize assembly to set overloaded offerItem arguments.
                 assembly {
-                    // Write fractional amount to startAmount as amount
+                    // Write derived fractional amount to startAmount as amount.
                     mstore(add(offerItem, 0x60), amount)
-                    // Write caller to endAmount as recipient
+                    // Write fulfiller (i.e. caller) to endAmount as recipient.
                     mstore(add(offerItem, 0x80), caller())
                 }
 
-                // If offer expects ETH or a native token, reduce value available.
+                // Reduce available value if offer spent ETH or a native token.
                 if (offerItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
                     }
 
-                    // Skip underflow check as amount is less than ether remaining.
+                    // Skip underflow check as a comparison has just been made.
                     unchecked {
                         etherRemaining -= amount;
                     }
@@ -798,12 +820,37 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 }
             }
         }
+
+        /**
+         * Repurpose existing ConsiderationItem memory regions on the
+         * consideration array for the order by overriding the _transfer
+         * function pointer to accept a modified ConsiderationItem argument in
+         * place of the usual ReceivedItem:
+         *
+         *   ====== ConsiderationItem =====   ====== ReceivedItem ======
+         *   ItemType itemType; ------------> ItemType itemType;
+         *   address token; ----------------> address token;
+         *   uint256 identifierOrCriteria;--> uint256 identifier;
+         *   uint256 startAmount; ----------> uint256 amount;
+         *   uint256 endAmount;        /----> address recipient;
+         *   address recipient; ------/
+         */
+
+        // Declare a new nested scope to perform a type cast via function
+        // pointer assignment in order to override _transfer argument types.
         {
+            // Declare virtual function pointer with ConsiderationItem argument.
             function(ConsiderationItem memory, address, address)
                 internal _transferConsiderationItem;
+
+            // Reassign _transfer function to a new function pointer (it takes a
+            /// ReceivedItem as its initial argument), allocating memory.
             function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
+
+            // Utilize assembly to override the virtual function pointer.
             assembly {
+                // Cast ReceivedItem argument type to ConsiderationItem type.
                 _transferConsiderationItem := _transferReceivedItem
             }
 
@@ -814,7 +861,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     orderParameters.consideration[i]
                 );
 
-                // Get consideration item transfer amount and return received item.
+                // Apply fraction & derive considerationItem amount to transfer.
                 uint256 amount = _applyFraction(
                     considerationItem.startAmount,
                     considerationItem.endAmount,
@@ -825,29 +872,33 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     duration,
                     true
                 );
+
+                // Use assembly to set overloaded considerationItem arguments.
                 assembly {
-                    // Write fractional amount to startAmount
+                    // Write derived fractional amount to startAmount as amount.
                     mstore(add(considerationItem, 0x60), amount)
-                    // Write recipient to endAmount
+
+                    // Write original recipient to endAmount as recipient.
                     mstore(
                         add(considerationItem, 0x80),
                         mload(add(considerationItem, 0xa0))
                     )
                 }
 
-                // If item expects ETH or a native token, reduce value available.
+                // Reduce available value if offer spent ETH or a native token.
                 if (considerationItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
                     }
 
-                    // Skip underflow check as amount is less than ether remaining.
+                    // Skip underflow check as a comparison has just been made.
                     unchecked {
                         etherRemaining -= amount;
                     }
                 }
-                // Transfer the item from the caller to the consideration recipient.
+
+                // Transfer item from caller to recipient specified by the item.
                 _transferConsiderationItem(
                     considerationItem,
                     msg.sender,
@@ -861,8 +912,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
         }
 
-        // If any ether remains after fulfillments, return it to the caller.
+        // If any ether remains after fulfillments...
         if (etherRemaining != 0) {
+            // return it to the caller.
             _transferEth(payable(msg.sender), etherRemaining);
         }
     }
