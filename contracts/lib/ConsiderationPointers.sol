@@ -30,8 +30,52 @@ uint256 constant receivedItemsHash_ptr = 0x60;
 
 uint256 constant ReceivedItem_amount_offset = 0x60;
 
-// OrderFulfilled
+/*
+ *  Memory layout in _prepareBasicFulfillmentFromCalldata of
+ *  data for OrderFulfilled
+ *
+ *   event OrderFulfilled(
+ *     bytes32 orderHash,
+ *     address indexed offerer,
+ *     address indexed zone,
+ *     address fulfiller,
+ *     SpentItem[] offer,
+ *       > (itemType, token, id, amount)
+ *     ReceivedItem[] consideration
+ *       > (itemType, token, id, amount, recipient)
+ *   )
+ *
+ *  - 0x00: orderHash
+ *  - 0x20: fulfiller
+ *  - 0x40: offer offset (0x80)
+ *  - 0x60: consideration offset (0x120)
+ *  - 0x80: offer.length (1)
+ *  - 0xa0: offerItemType
+ *  - 0xc0: offerToken
+ *  - 0xe0: offerIdentifier
+ *  - 0x100: offerAmount
+ *  - 0x120: consideration.length (1 + additionalRecipients.length)
+ *  - 0x140: considerationItemType
+ *  - 0x160: considerationToken
+ *  - 0x180: considerationIdentifier
+ *  - 0x1a0: considerationAmount
+ *  - 0x1c0: considerationRecipient
+ *  - ...
+ */
 uint256 constant OrderFulfilled_baseSize = 0x1e0;
+// Offset in memory to OrderFulfilled before adding the size
+// of the received items for additionalRecipients
+uint256 constant OrderFulfilled_baseOffset = 0x180;
+uint256 constant OrderFulfilled_consideration_length_baseOffset = 0x2a0;
+uint256 constant OrderFulfilled_offer_length_baseOffset = 0x200;
+
+uint256 constant OrderFulfilled_orderHash_offset = 0x00;
+uint256 constant OrderFulfilled_fulfiller_offset = 0x20;
+uint256 constant OrderFulfilled_offer_head_offset = 0x40;
+uint256 constant OrderFulfilled_offer_body_offset = 0x80;
+uint256 constant OrderFulfilled_consideration_head_offset = 0x60;
+uint256 constant OrderFulfilled_consideration_body_offset = 0x120;
+
 
 // BasicOrderParameters
 uint256 constant BasicOrder_considerationToken_cdPtr = 0x24;
@@ -76,7 +120,7 @@ uint256 constant BasicOrder_considerationItem_recipient_ptr = 0x140;
 
 /*
  *  Memory layout in _prepareBasicFulfillmentFromCalldata of
- * EIP712 data for OfferItem
+ *  EIP712 data for OfferItem
  *   - 0x80:  OfferItem EIP-712 typehash (constant)
  *   - 0xa0:  itemType
  *   - 0xc0:  token
