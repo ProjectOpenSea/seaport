@@ -1723,24 +1723,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     revert(0, 0x24) // We use 36 because its the result of 4 + 32.
                 }
 
-                // We'll write our calldata to this slot below, but restore it later.
+                // We'll write our calldata to this slot.
                 let memPointer := mload(0x40)
 
                 // Write the abi-encoded calldata into memory, beginning with the function selector.
                 mstore(
-                    0,
+                    memPointer,
                     0x23b872dd00000000000000000000000000000000000000000000000000000000
                 )
-                mstore(0x04, from) // Append the "from" argument.
-                mstore(0x24, to) // Append the "to" argument.
-                mstore(0x44, identifier) // Append the "identifier" argument.
+                mstore(add(memPointer, 0x04), from) // Append the "from" argument.
+                mstore(add(memPointer, 0x24), to) // Append the "to" argument.
+                mstore(add(memPointer, 0x44), identifier) // Append the "identifier" argument.
 
                 // We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.
                 // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
-                let success := call(gas(), token, 0, 0, 0x64, 0, 0)
-
-                mstore(0x60, 0) // Restore the zero slot to zero.
-                mstore(0x40, memPointer) // Restore the memPointer.
+                let success := call(gas(), token, 0, memPointer, 0x64, 0, 0)
 
                 // If the transfer reverted:
                 if iszero(success) {
@@ -1833,25 +1830,22 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     revert(0, 36) // We use 36 because its the result of 4 + 32.
                 }
 
-                // We'll write our calldata to this slot below, but restore it later.
+                // We'll write our calldata to this slot.
                 let memPointer := mload(0x40)
 
                 // Write the abi-encoded calldata into memory, beginning with the function selector.
                 mstore(
-                    0,
+                    memPointer,
                     0xf242432a00000000000000000000000000000000000000000000000000000000
                 )
-                mstore(0x04, from) // Append the "from" argument.
-                mstore(0x24, to) // Append the "to" argument.
-                mstore(0x44, identifier) // Append the "identifier" argument.
-                mstore(0x64, amount) // Append the "amount" argument.
-                mstore(0x84, "") // Append the "data" argument.
+                mstore(add(memPointer, 0x04), from) // Append the "from" argument.
+                mstore(add(memPointer, 0x24), to) // Append the "to" argument.
+                mstore(add(memPointer, 0x44), identifier) // Append the "identifier" argument.
+                mstore(add(memPointer, 0x64), amount) // Append the "amount" argument.
+                mstore(add(memPointer, 0x84), 0) // Append the "data" argument.
 
                 // We use 164 because the length of our calldata totals up like so: 4 + 32 * 5.
-                let success := call(gas(), token, 0, 0, 0xa4, 0, 0)
-
-                mstore(0x60, 0) // Restore the zero slot to zero.
-                mstore(0x40, memPointer) // Restore the memPointer.
+                let success := call(gas(), token, 0, memPointer, 0xa4, 0, 0)
 
                 // If the transfer reverted:
                 if iszero(success) {
