@@ -1654,13 +1654,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
                                 // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
                                 0xf486bc8700000000000000000000000000000000000000000000000000000000
                             )
-                            mstore(4, token)
-                            mstore(36, from)
-                            mstore(68, to)
-                            mstore(100, 0)
-                            mstore(132, amount)
+                            mstore(0x04, token)
+                            mstore(0x24, from)
+                            mstore(0x44, to)
+                            mstore(0x64, 0)
+                            mstore(0x84, amount)
 
-                            revert(0, 164) // Use 164 because its the result of 4 + 32 * 5.
+                            revert(0, 0xA4) // Use 164 because its the result of 4 + 32 * 5.
                         }
 
                         // Otherwise revert with a message about the token returning false.
@@ -1669,12 +1669,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
                             // abi.encodeWithSignature("BadReturnValueFromERC20OnTransfer(address,address,address,uint256)")
                             0x9889192300000000000000000000000000000000000000000000000000000000
                         )
-                        mstore(4, token)
-                        mstore(36, from)
-                        mstore(68, to)
-                        mstore(100, amount)
+                        mstore(0x04, token)
+                        mstore(0x24, from)
+                        mstore(0x44, to)
+                        mstore(0x64, amount)
 
-                        revert(0, 132) // Use 132 because its the result of 4 + 32 * 4.
+                        revert(0, 0x84) // Use 132 because its the result of 4 + 32 * 4.
                     }
 
                     // Otherwise revert with a message about the token not being a contract.
@@ -1683,9 +1683,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         // abi.encodeWithSignature("NoContract(address)")
                         0x5f15d67200000000000000000000000000000000000000000000000000000000
                     )
-                    mstore(4, token)
+                    mstore(0x04, token)
 
-                    revert(0, 36) // Use 36 because its the result of 4 + 32.
+                    revert(0, 0x24) // Use 36 because its the result of 4 + 32.
                 }
 
                 // Otherwise the token just returned nothing but succeeded all other regards.
