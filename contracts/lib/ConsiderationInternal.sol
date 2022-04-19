@@ -1600,7 +1600,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount
     ) internal {
         assembly {
-            // Write our calldata to this slot below, but restore it later.
+            // Write calldata to this slot below, but restore it later.
             let memPointer := mload(0x40)
 
             // Write calldata into memory, starting with function selector.
@@ -1612,8 +1612,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             mstore(0x24, to) // Append the "to" argument.
             mstore(0x44, amount) // Append the "amount" argument.
 
-            // Use 100 as the length of our calldata equals 4 + 32 * 3. Use
-            // 0 and 32 to copy up to 32 bytes of return data to scratch space.
+            // Use 100 as the length of calldata equals 4 + 32 * 3. Use 0 and 32
+            // to copy up to 32 bytes of return data to scratch space.
             let callStatus := call(gas(), token, 0, 0, 0x64, 0, 0x20)
 
             mstore(0x60, 0) // Restore the zero slot to zero.
@@ -1720,33 +1720,33 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                     mstore(4, token)
 
-                    revert(0, 0x24) // We use 36 because its the result of 4 + 32.
+                    revert(0, 0x24) // Use 36 because it equals 4 + 32.
                 }
 
-                // We'll write our calldata to this slot.
+                // We'll write calldata to this slot.
                 let memPointer := mload(0x40)
 
-                // Write the abi-encoded calldata into memory, beginning with the function selector.
+                // Write calldata into memory starting with function selector.
                 mstore(
                     memPointer,
                     0x23b872dd00000000000000000000000000000000000000000000000000000000
                 )
-                mstore(add(memPointer, 0x04), from) // Append the "from" argument.
+                mstore(add(memPointer, 0x04), from) // Append "from" argument.
                 mstore(add(memPointer, 0x24), to) // Append the "to" argument.
-                mstore(add(memPointer, 0x44), identifier) // Append the "identifier" argument.
+                mstore(add(memPointer, 0x44), identifier) // Append identifier.
 
-                // We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.
-                // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
+                // Use 100 as length of calldata equals 4 + 32 * 3. Use 0 and 32
+                // to copy up to 32 bytes of return data into scratch space.
                 let success := call(gas(), token, 0, memPointer, 0x64, 0, 0)
 
                 // If the transfer reverted:
                 if iszero(success) {
                     // If it returned a message, bubble it up:
                     if returndatasize() {
-                        // Copy returndata to memory, overwriting existing memory.
+                        // Copy returndata to memory; overwrite existing memory.
                         returndatacopy(0, 0, returndatasize())
 
-                        // Revert, specifying memory region with copied returndata.
+                        // Revert, specifying memory region with returndata.
                         revert(0, returndatasize())
                     }
 
@@ -1762,7 +1762,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     mstore(0x64, identifier)
                     mstore(0x84, amount)
 
-                    revert(0, 0xa4) // We use 164 because its the result of 4 + 32 * 5.
+                    revert(0, 0xa4) // Use 164 as it equals 4 + 32 * 5.
                 }
             }
         } else if (conduit == address(1)) {
@@ -1827,13 +1827,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                     mstore(4, token)
 
-                    revert(0, 36) // We use 36 because its the result of 4 + 32.
+                    revert(0, 36) // Use 36 as it equals 4 + 32.
                 }
 
-                // We'll write our calldata to this slot.
+                // We'll write calldata to this slot.
                 let memPointer := mload(0x40)
 
-                // Write the abi-encoded calldata into memory, beginning with the function selector.
+                // Write calldata into memory, beginning with function selector.
                 mstore(
                     memPointer,
                     0xf242432a00000000000000000000000000000000000000000000000000000000
@@ -1842,10 +1842,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(add(memPointer, 0x24), to) // Append the "to" argument.
                 mstore(add(memPointer, 0x44), identifier) // Append the "identifier" argument.
                 mstore(add(memPointer, 0x64), amount) // Append the "amount" argument.
-                mstore(add(memPointer, 0x84), 0) // Append the "data" argument.
+                mstore(add(memPointer, 0x84), 0xa0) // Append "data" argument offset.
+                mstore(add(memPointer, 0xa4), 0) // Append "data" argument length.
 
-                // We use 164 because the length of our calldata totals up like so: 4 + 32 * 5.
-                let success := call(gas(), token, 0, memPointer, 0xa4, 0, 0)
+                // Use 164 because length of calldata equals 4 + 32 * 6.
+                let success := call(gas(), token, 0, memPointer, 0xc4, 0, 0)
 
                 // If the transfer reverted:
                 if iszero(success) {
@@ -1870,7 +1871,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     mstore(0x64, identifier)
                     mstore(0x84, amount)
 
-                    revert(0, 0xa4) // We use 164 because its the result of 4 + 32 * 5.
+                    revert(0, 0xa4) // Use 164 as it equals 4 + 32 * 5.
                 }
             }
         } else if (conduit == address(1)) {
