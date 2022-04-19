@@ -123,33 +123,44 @@ contract ConsiderationInternal is ConsiderationInternalView {
             assembly {
                 // 1. Write first ReceivedItem hash to the consideration array.
                 // Write ConsiderationItem type hash and item type to memory.
-                mstore(BasicOrder_considerationItem_typeHash_memoryPointer, typeHash)
-                mstore(BasicOrder_considerationItem_itemType_memoryPointer, receivedItemType)
+                mstore(BasicOrder_considerationItem_typeHash_ptr, typeHash)
+                mstore(BasicOrder_considerationItem_itemType_ptr, receivedItemType)
 
                 // Copy calldata region with token, identifier, and startAmount.
                 calldatacopy(
-                  BasicOrder_considerationItem_token_memoryPointer,
-                  BasicOrder_considerationToken_calldataPointer,
+                  BasicOrder_considerationItem_token_ptr,
+                  BasicOrder_considerationToken_cdPtr,
                   ThreeWords
                 )
 
                 // Copy calldata region with endAmount (reused) and recipient.
                 calldatacopy(
-                  BasicOrder_considerationItem_endAmount_memoryPointer,
-                  BasicOrder_considerationAmount_calldataPointer,
+                  BasicOrder_considerationItem_endAmount_ptr,
+                  BasicOrder_considerationAmount_cdPtr,
                   TwoWords
                 )
 
                 // Set keccak256(abi.encode(receivedItem)) as first item hash.
-                mstore(BasicOrder_considerationHashesArray_memoryPointer, keccak256(0x80, 0xe0))
+                mstore(
+                  BasicOrder_considerationHashesArray_ptr,
+                  keccak256(
+                    BasicOrder_considerationItem_typeHash_ptr,
+                    EIP712_ConsiderationItem_size
+                  )
+                )
 
                 // 2. Write first ReceivedItem to OrderFulfilled data.
                 // Get the length of the additional recipients array.
-                let len := calldataload(BasicOrder_additionalRecipients_length_calldataPointer)
+                let len := calldataload(BasicOrder_additionalRecipients_length_cdPtr)
 
                 // END_ARR + 0x120 = 0x2a0 + len*0x20
                 let eventArrPtr := add(0x2a0, mul(0x20, len))
-                mstore(eventArrPtr, add(calldataload(BasicOrder_additionalRecipients_length_calldataPointer), 1)) // length
+                mstore(eventArrPtr,
+                  add(
+                    calldataload(BasicOrder_additionalRecipients_length_cdPtr),
+                    1
+                  )
+                ) // length
 
                 // Set pointer to data portion of the initial ReceivedItem.
                 eventArrPtr := add(eventArrPtr, 0x20)
@@ -158,20 +169,24 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(eventArrPtr, receivedItemType)
 
                 // Copy calldata region (token, identifier, amount & recipient).
-                calldatacopy(add(eventArrPtr, 0x20), BasicOrder_considerationToken_calldataPointer, 0x80)
+                calldatacopy(
+                  add(eventArrPtr, 0x20),
+                  BasicOrder_considerationToken_cdPtr,
+                  0x80
+                )
 
                 // 3. Handle additional recipients.
                 // Set pointer to current location in receivedItemHashes.
-                let considerationHashesPtr := BasicOrder_considerationHashesArray_memoryPointer
+                let considerationHashesPtr := BasicOrder_considerationHashesArray_ptr
 
                 // Write item type, token, & identifier for additional recipient
                 // to memory; these values will be reused for each recipient.
-                mstore(BasicOrder_considerationItem_itemType_memoryPointer, additionalRecipientsItemType)
-                mstore(BasicOrder_considerationItem_token_memoryPointer, additionalRecipientsToken)
-                mstore(BasicOrder_considerationItem_identifier_memoryPointer, 0)
+                mstore(BasicOrder_considerationItem_itemType_ptr, additionalRecipientsItemType)
+                mstore(BasicOrder_considerationItem_token_ptr, additionalRecipientsToken)
+                mstore(BasicOrder_considerationItem_identifier_ptr, 0)
 
                 // Read length of the additionalRecipients array and iterate.
-                len := calldataload(BasicOrder_totalOriginalAdditionalRecipients_calldataPointer)
+                len := calldataload(BasicOrder_totalOriginalAdditionalRecipients_cdPtr)
                 let i := 0
                 for {
 
@@ -179,21 +194,24 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     i := add(i, 1)
                 } {
                     // Retrieve pointer for additional recipient in question.
-                    let additionalRecipientCdPtr := add(BasicOrder_additionalRecipients_data_calldataPointer, mul(0x40, i))
+                    let additionalRecipientCdPtr := add(
+                      BasicOrder_additionalRecipients_data_cdPtr,
+                      mul(AdditionalRecipients_size, i)
+                    )
 
                     // a. Write ConsiderationItem hash to consideration array.
                     // Copy startAmount from calldata.
                     calldatacopy(
-                      BasicOrder_considerationItem_startAmount_memoryPointer,
+                      BasicOrder_considerationItem_startAmount_ptr,
                       additionalRecipientCdPtr,
                       0x20
                     )
 
                     // Copy endAmount and recipient from calldata.
                     calldatacopy(
-                      BasicOrder_considerationItem_endAmount_memoryPointer,
+                      BasicOrder_considerationItem_endAmount_ptr,
                       additionalRecipientCdPtr,
-                      0x40
+                      AdditionalRecipients_size
                     )
 
                     // Add 1 word to the pointer as part of each loop to reduce
@@ -201,12 +219,18 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     considerationHashesPtr := add(considerationHashesPtr, 0x20)
 
                     // Set keccak256(abi.encode(receivedItem)) as next hash.
-                    mstore(considerationHashesPtr, keccak256(0x80, 0xe0))
+                    mstore(
+                      considerationHashesPtr,
+                      keccak256(
+                        BasicOrder_considerationItem_typeHash_ptr,
+                        EIP712_ConsiderationItem_size
+                      )
+                    )
 
                     // b. Write ReceivedItem to OrderFulfilled data.
                     // At this point, eventArrPtr points to the beginning of the
                     // ReceivedItem struct of the previous element in the array.
-                    eventArrPtr := add(eventArrPtr, 0xa0)
+                    eventArrPtr := add(eventArrPtr, ReceivedItem_size)
 
                     // Set item type at start of the ReceivedItem memory region.
                     mstore(eventArrPtr, additionalRecipientsItemType)
@@ -216,7 +240,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                     // Copy endAmount and recipient to remaining memory region.
                     calldatacopy(
-                        add(eventArrPtr, 0x60),
+                        add(eventArrPtr, ReceivedItem_amount_offset),
                         additionalRecipientCdPtr,
                         0x40
                     )
@@ -227,22 +251,29 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Note that it is set at 0x60 — all other memory begins at
                 // 0x80. 0x60 is the "zero slot" and will be restored at the end
                 // of the assembly section and before required by the compiler.
-                mstore(0x60, keccak256(BasicOrder_considerationHashesArray_memoryPointer, mul(add(len, 1), 32)))
+                mstore(
+                  receivedItemsHash_ptr,
+                  keccak256(BasicOrder_considerationHashesArray_ptr,
+                  mul(add(len, 1), 32))
+                )
 
                 // 5. Write tips to event data.
-                len := calldataload(BasicOrder_additionalRecipients_length_calldataPointer)
+                len := calldataload(BasicOrder_additionalRecipients_length_cdPtr)
                 for {
 
                 } lt(i, len) {
                     i := add(i, 1)
                 } {
                     // Retrieve pointer for additional recipient in question.
-                    let additionalRecipientCdPtr := add(0x284, mul(0x40, i))
+                    let additionalRecipientCdPtr := add(
+                      BasicOrder_additionalRecipients_data_cdPtr,
+                      mul(AdditionalRecipients_size, i)
+                    )
 
                     // b. Write ReceivedItem to OrderFulfilled data
                     // At this point, eventArrPtr points to the beginning of the
                     // ReceivedItem struct of the previous element in the array.
-                    eventArrPtr := add(eventArrPtr, 0xa0)
+                    eventArrPtr := add(eventArrPtr, ReceivedItem_size)
 
                     // Set item type at start of the ReceivedItem memory region.
                     mstore(eventArrPtr, additionalRecipientsItemType)
@@ -252,7 +283,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                     // Copy endAmount and recipient to remaining memory region.
                     calldatacopy(
-                        add(eventArrPtr, 0x60),
+                        add(eventArrPtr, ReceivedItem_amount_offset),
                         additionalRecipientCdPtr,
                         0x40
                     )
@@ -283,14 +314,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(0xa0, offeredItemType) // itemType
 
                 // Copy calldata region with token, identifier, and startAmount.
-                calldatacopy(0xc0, BasicOrder_offerToken_calldataPointer, 0x60)
+                calldatacopy(0xc0, BasicOrder_offerToken_cdPtr, 0x60)
 
                 // Copy endAmount from calldata; reuses last word of prior copy.
-                calldatacopy(0x120, BasicOrder_endAmount_calldataPointer, 0x20)
+                calldatacopy(0x120, BasicOrder_offerAmount_cdPtr, 0x20)
 
                 // Compute offer item hash and write result to scratch space:
                 //   `keccak256(abi.encode(offeredItem))`
-                mstore(0x00, keccak256(0x80, 0xc0))
+                mstore(0x00, keccak256(0x80, EIP712_OfferItem_size))
 
                 // 2. Calculate hash of array of EIP712 hashes and write the
                 // result to the corresponding offer struct memory region:
@@ -300,7 +331,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // 3. Write SpentItem array to event data.
                 // 0x180 + len*32 = event data pointer, where the offer array
                 // length is stored at 0x80 into the event data.
-                let eventArrPtr := add(0x200, mul(0x20, calldataload(BasicOrder_additionalRecipients_length_calldataPointer)))
+                let eventArrPtr := add(0x200, mul(0x20, calldataload(BasicOrder_additionalRecipients_length_cdPtr)))
 
                 // Set a length of 1 for the offer array.
                 mstore(eventArrPtr, 1)
@@ -309,7 +340,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(add(eventArrPtr, 0x20), offeredItemType)
 
                 // Copy token, identifier, and startAmount to SpentItem region.
-                calldatacopy(add(eventArrPtr, 0x40), BasicOrder_offerToken_calldataPointer, 0x60)
+                calldatacopy(
+                  add(eventArrPtr, AdditionalRecipients_size),
+                  BasicOrder_offerToken_cdPtr,
+                  0x60
+                )
             }
         }
 
@@ -335,7 +370,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Read the offerer from calldata and place on the stack.
             address offerer;
             assembly {
-                offerer := calldataload(0x84)
+                offerer := calldataload(BasicOrder_offerer_cdPtr)
             }
 
             // Read offerer's current nonce from storage and place on the stack.
@@ -349,10 +384,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(0x80, typeHash)
 
                 // Copy offerer and zone from calldata and set them in memory.
-                calldatacopy(0xa0, 0x84, 0x40)
+                calldatacopy(0xa0, BasicOrder_offerer_cdPtr, 0x40)
 
                 // Copy receivedItemsHash from zero slot to the required region.
-                mstore(0x100, mload(0x60))
+                mstore(0x100, mload(receivedItemsHash_ptr))
 
                 // Set the supplied order type in memory.
                 mstore(0x120, orderType)
@@ -424,9 +459,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Supply the OrderFulfilled event signature.
                 0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31,
                 // Supply the first topic (the offerer).
-                calldataload(0x84),
+                BasicOrder_offerer_cdPtr,
                 // Supply the first topic (the zone).
-                calldataload(0xa4)
+                BasicOrder_zone_cdPtr
             )
 
             // Restore the zero slot.
