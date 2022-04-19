@@ -1633,8 +1633,51 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // If the transfer failed or it returned nothing:
             // Group these because they should be uncommon.
             if iszero(and(success, iszero(iszero(returndatasize())))) {
-                // If the token has no code, revert.
-                if iszero(extcodesize(token)) {
+                // If the token has no code or the transfer failed:
+                if iszero(and(iszero(iszero(extcodesize(token))), success)) {
+                    // If the transfer failed:
+                    if iszero(success) {
+                        // If it was due to a revert:
+                        if iszero(callStatus) {
+                            // If it returned a message, bubble it up:
+                            if returndatasize() {
+                                // Copy returndata to memory; overwrite existing memory.
+                                returndatacopy(0, 0, returndatasize())
+
+                                // Revert, specifying memory region with copied returndata.
+                                revert(0, returndatasize())
+                            }
+
+                            // Otherwise revert with a generic error message.
+                            mstore(
+                                0,
+                                // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
+                                0xf486bc8700000000000000000000000000000000000000000000000000000000
+                            )
+                            mstore(4, token)
+                            mstore(36, from)
+                            mstore(68, to)
+                            mstore(100, 0)
+                            mstore(132, amount)
+
+                            revert(0, 164) // Use 164 because its the result of 4 + 32 * 5.
+                        }
+
+                        // Otherwise revert with a message about the token returning false.
+                        mstore(
+                            0,
+                            // abi.encodeWithSignature("BadReturnValueFromERC20OnTransfer(address,address,address,uint256)")
+                            0x9889192300000000000000000000000000000000000000000000000000000000
+                        )
+                        mstore(4, token)
+                        mstore(36, from)
+                        mstore(68, to)
+                        mstore(100, amount)
+
+                        revert(0, 132) // Use 132 because its the result of 4 + 32 * 4.
+                    }
+
+                    // Otherwise revert with a message about the token not being a contract.
                     mstore(
                         0,
                         // abi.encodeWithSignature("NoContract(address)")
@@ -1642,38 +1685,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                     mstore(4, token)
 
-                    revert(0, 0x24) // Use 36 because its the result of 4 + 32.
+                    revert(0, 36) // Use 36 because its the result of 4 + 32.
                 }
 
-                // If the transfer failed:
-                if iszero(success) {
-                    // If it was due to a revert with a message, bubble it up:
-                    if and(iszero(callStatus), returndatasize()) {
-                        // Copy returndata to memory; overwrite existing memory.
-                        returndatacopy(0, 0, returndatasize())
-
-                        // Revert, specifying memory with copied returndata.
-                        revert(0, returndatasize())
-                    }
-
-                    // Otherwise revert with a generic error message.
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                        0xf486bc8700000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(4, token)
-                    mstore(0x24, from)
-                    mstore(0x44, to)
-                    mstore(0x64, 0)
-                    mstore(0x84, amount)
-
-                    revert(0, 0xa4) // Use 164 as its the result of 4 + 32 * 5.
-                }
-
-                // Otherwise the token just returned nothing but otherwise
-                // succeeded — no need to optimize for this as it's not
-                // technically ERC20 compliant.
+                // Otherwise the token just returned nothing but succeeded all other regards.
             }
         }
     }
