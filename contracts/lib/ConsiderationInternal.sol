@@ -1600,27 +1600,29 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount
     ) internal {
         assembly {
-            // We'll write our calldata to this slot below, but restore it later.
+            // Write our calldata to this slot below, but restore it later.
             let memPointer := mload(0x40)
 
-            // Write the abi-encoded calldata into memory, beginning with the function selector.
+            // Write calldata into memory, starting with function selector.
             mstore(
                 0,
-                0xa9059cbb00000000000000000000000000000000000000000000000000000000
+                0x23b872dd00000000000000000000000000000000000000000000000000000000
             )
-            mstore(4, to) // Append the "to" argument.
-            mstore(36, amount) // Append the "amount" argument.
+            mstore(0x04, from) // Append the "from" argument.
+            mstore(0x24, to) // Append the "to" argument.
+            mstore(0x44, amount) // Append the "amount" argument.
 
-            // We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.
-            // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
-            let callStatus := call(gas(), token, 0, 0, 100, 0, 32)
+            // Use 100 as the length of our calldata equals 4 + 32 * 3. Use
+            // 0 and 32 to copy up to 32 bytes of return data to scratch space.
+            let callStatus := call(gas(), token, 0, 0, 0x64, 0, 0x20)
 
             mstore(0x60, 0) // Restore the zero slot to zero.
             mstore(0x40, memPointer) // Restore the memPointer.
 
             let success := and(
-                // Set success to whether the call reverted, if not we check it either
-                // returned exactly 1 (can't just be non-zero data), or had no return data.
+                // Set success to whether the call reverted, if not check it
+                // either returned exactly 1 (can't just be non-zero data), or
+                // had no return data.
                 or(
                     and(eq(mload(0), 1), gt(returndatasize(), 31)),
                     iszero(returndatasize())
@@ -1629,7 +1631,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             )
 
             // If the transfer failed or it returned nothing:
-            // We group these because they should be uncommon.
+            // Group these because they should be uncommon.
             if iszero(and(success, iszero(iszero(returndatasize())))) {
                 // If the token has no code, revert.
                 if iszero(extcodesize(token)) {
@@ -1640,17 +1642,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                     mstore(4, token)
 
-                    revert(0, 36) // We use 36 because its the result of 4 + 32.
+                    revert(0, 0x24) // Use 36 because its the result of 4 + 32.
                 }
 
-                // If we're in this block because the transfer failed:
+                // If the transfer failed:
                 if iszero(success) {
                     // If it was due to a revert with a message, bubble it up:
                     if and(iszero(callStatus), returndatasize()) {
-                        // Copy returndata to memory, overwriting existing memory.
+                        // Copy returndata to memory; overwrite existing memory.
                         returndatacopy(0, 0, returndatasize())
 
-                        // Revert, specifying memory region with copied returndata.
+                        // Revert, specifying memory with copied returndata.
                         revert(0, returndatasize())
                     }
 
@@ -1661,16 +1663,17 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         0xf486bc8700000000000000000000000000000000000000000000000000000000
                     )
                     mstore(4, token)
-                    mstore(36, from)
-                    mstore(68, to)
-                    mstore(100, 0)
-                    mstore(132, amount)
+                    mstore(0x24, from)
+                    mstore(0x44, to)
+                    mstore(0x64, 0)
+                    mstore(0x84, amount)
 
-                    revert(0, 164) // We use 164 because its the result of 4 + 32 * 5.
+                    revert(0, 0xa4) // Use 164 as its the result of 4 + 32 * 5.
                 }
 
-                // Otherwise the token just returned nothing but otherwise succeeded.
-                // We aren't optimizing for this as it's not technically ERC20 compliant.
+                // Otherwise the token just returned nothing but otherwise
+                // succeeded — no need to optimize for this as it's not
+                // technically ERC20 compliant.
             }
         }
     }
