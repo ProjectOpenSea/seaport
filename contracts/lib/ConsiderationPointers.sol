@@ -104,15 +104,15 @@ uint256 constant BasicOrder_offerItem_endAmount_ptr = 0x120;
  *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
  */
 
-uint256 constant BasicOrder_order_typeHash = 0x80;
-uint256 constant BasicOrder_order_offerer = 0xa0;
-uint256 constant BasicOrder_order_zone = 0xc0;
-uint256 constant BasicOrder_order_offerHashes = 0xe0;
-uint256 constant BasicOrder_order_considerationHashes = 0x100;
-uint256 constant BasicOrder_order_basicOrderType = 0x120;
-uint256 constant BasicOrder_order_startTime = 0x140;
-uint256 constant BasicOrder_order_endTime = 0x160;
-uint256 constant BasicOrder_order_zoneHash = 0x180;
-uint256 constant BasicOrder_order_salt = 0x1a0;
-uint256 constant BasicOrder_order_conduit = 0x1c0;
-uint256 constant BasicOrder_order_nonce = 0x1e0;
+uint256 constant BasicOrder_order_typeHash_ptr = 0x80;
+uint256 constant BasicOrder_order_offerer_ptr = 0xa0;
+uint256 constant BasicOrder_order_zone_ptr = 0xc0;
+uint256 constant BasicOrder_order_offerHashes_ptr = 0xe0;
+uint256 constant BasicOrder_order_considerationHashes_ptr = 0x100;
+uint256 constant BasicOrder_order_basicOrderType_ptr = 0x120;
+uint256 constant BasicOrder_order_startTime_ptr = 0x140;
+uint256 constant BasicOrder_order_endTime_ptr = 0x160;
+uint256 constant BasicOrder_order_zoneHash_ptr = 0x180;
+uint256 constant BasicOrder_order_salt_ptr = 0x1a0;
+uint256 constant BasicOrder_order_conduit_ptr = 0x1c0;
+uint256 constant BasicOrder_order_nonce_ptr = 0x1e0;
