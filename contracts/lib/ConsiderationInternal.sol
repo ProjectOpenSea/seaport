@@ -1656,11 +1656,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         revert(0, returndatasize())
                     }
 
-                    // Otherwise revert with a message about the token not being a contract.
+                    // Otherwise revert with a generic error message.
                     mstore(
                         0,
-                        // abi.encodeWithSignature("NoContract(address)")
-                        0x5f15d67200000000000000000000000000000000000000000000000000000000
+                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
+                        0xf486bc8700000000000000000000000000000000000000000000000000000000
                     )
                     mstore(4, token)
                     mstore(0x24, from)
