@@ -20,6 +20,7 @@ uint256 constant BasicOrder_endAmount_cdPtr = 0x104;
 
 uint256 constant BasicOrder_considerationHashesArray_ptr = 0x160;
 
+uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
 uint256 constant AdditionalRecipients_size = 0x40;
@@ -28,6 +29,9 @@ uint256 constant ReceivedItem_size = 0xa0;
 uint256 constant receivedItemsHash_ptr = 0x60;
 
 uint256 constant ReceivedItem_amount_offset = 0x60;
+
+// OrderFulfilled
+uint256 constant OrderFulfilled_baseSize = 0x1e0;
 
 // BasicOrderParameters
 uint256 constant BasicOrder_considerationToken_cdPtr = 0x24;
@@ -95,21 +99,20 @@ uint256 constant BasicOrder_offerItem_endAmount_ptr = 0x120;
  *   - 0xc0:   orderParameters.zone
  *   - 0xe0:   keccak256(abi.encodePacked(offerHashes))
  *   - 0x100:  keccak256(abi.encodePacked(considerationHashes))
- *   - 0x120:  orderParameters.basicOrderType (% 4 = orderType)
- *   - 0x140:  orderParameters.startTime
- *   - 0x160:  orderParameters.endTime
- *   - 0x180:  orderParameters.zoneHash
- *   - 0x1a0:  orderParameters.salt
- *   - 0x1c0:  orderParameters.conduit
+ *   - 0x120:  orderType
+ *   - 0x140:  startTime
+ *   - 0x160:  endTime
+ *   - 0x180:  zoneHash
+ *   - 0x1a0:  salt
+ *   - 0x1c0:  conduit
  *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
  */
-
 uint256 constant BasicOrder_order_typeHash_ptr = 0x80;
 uint256 constant BasicOrder_order_offerer_ptr = 0xa0;
 uint256 constant BasicOrder_order_zone_ptr = 0xc0;
 uint256 constant BasicOrder_order_offerHashes_ptr = 0xe0;
 uint256 constant BasicOrder_order_considerationHashes_ptr = 0x100;
-uint256 constant BasicOrder_order_basicOrderType_ptr = 0x120;
+uint256 constant BasicOrder_order_orderType_ptr = 0x120;
 uint256 constant BasicOrder_order_startTime_ptr = 0x140;
 uint256 constant BasicOrder_order_endTime_ptr = 0x160;
 uint256 constant BasicOrder_order_zoneHash_ptr = 0x180;
