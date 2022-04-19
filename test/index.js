@@ -12035,18 +12035,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
       it("Reverts on invalid proxy implementation", async () => {
-        // Seller mints nft
+        // Owner mints nft
         const nftId = ethers.BigNumber.from(randomHex());
-        await testERC721.mint(seller.address, nftId);
+        await testERC721.mint(owner.address, nftId);
+
+        let ownerProxy;
 
         // Seller deploys legacy proxy
-        await whileImpersonating(seller.address, provider, async () => {
-          const tx = await legacyProxyRegistry.connect(seller).registerProxy();
+        await whileImpersonating(owner.address, provider, async () => {
+          const tx = await legacyProxyRegistry.connect(owner).registerProxy();
           const receipt = await tx.wait();
 
-          sellerProxy = receipt.events[0].address;
+          ownerProxy = receipt.events[0].address;
 
-          const userProxy = ownedUpgradeabilityProxy.attach(sellerProxy);
+          const userProxy = ownedUpgradeabilityProxy.attach(ownerProxy);
           const proxyDeploymentEvent = userProxy.interface.parseLog(
             receipt.events[0]
           );
@@ -12055,18 +12057,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             legacyProxyImplementation
           );
           const proxyOwner = await userProxy.proxyOwner();
-          expect(proxyOwner).to.equal(seller.address);
+          expect(proxyOwner).to.equal(owner.address);
           const registeredProxy = await legacyProxyRegistry.proxies(
-            seller.address
+            owner.address
           );
-          expect(registeredProxy).to.equal(sellerProxy);
+          expect(registeredProxy).to.equal(ownerProxy);
         });
 
-        // Seller modifies their proxy implementation
-        await whileImpersonating(seller.address, provider, async () => {
-          const userProxy = ownedUpgradeabilityProxy.attach(sellerProxy);
+        // Owner modifies their proxy implementation
+        await whileImpersonating(owner.address, provider, async () => {
+          const userProxy = ownedUpgradeabilityProxy.attach(ownerProxy);
           const tx = await userProxy
-            .connect(seller)
+            .connect(owner)
             .upgradeTo(marketplaceContract.address);
           const receipt = await tx.wait();
 
@@ -12081,32 +12083,31 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           expect(proxyImplementation).to.equal(marketplaceContract.address);
         });
 
-        // Seller approves their proxy contract to transfer NFT
-        await whileImpersonating(seller.address, provider, async () => {
+        // Owner approves their proxy contract to transfer NFT
+        await whileImpersonating(owner.address, provider, async () => {
           await expect(
-            testERC721.connect(seller).setApprovalForAll(sellerProxy, true)
+            testERC721.connect(owner).setApprovalForAll(ownerProxy, true)
           )
             .to.emit(testERC721, "ApprovalForAll")
-            .withArgs(seller.address, sellerProxy, true);
+            .withArgs(owner.address, ownerProxy, true);
         });
 
         const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          getItemETH(10, 10, seller.address),
+          getItemETH(10, 10, owner.address),
           getItemETH(1, 1, zone.address),
-          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
-          seller,
+          owner,
           zone,
           offer,
           consideration,
           0, // FULL_OPEN
           [],
           null,
-          seller,
+          owner,
           constants.HashZero,
           LEGACY_PROXY_CONDUIT
         );
@@ -12125,10 +12126,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
 
         // upgrade back
-        await whileImpersonating(seller.address, provider, async () => {
-          const userProxy = ownedUpgradeabilityProxy.attach(sellerProxy);
+        await whileImpersonating(owner.address, provider, async () => {
+          const userProxy = ownedUpgradeabilityProxy.attach(ownerProxy);
           const tx = await userProxy
-            .connect(seller)
+            .connect(owner)
             .upgradeTo(legacyProxyImplementation);
           const receipt = await tx.wait();
 
