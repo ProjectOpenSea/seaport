@@ -1606,10 +1606,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Write the abi-encoded calldata into memory, beginning with the function selector.
             mstore(
                 0,
-                0xa9059cbb00000000000000000000000000000000000000000000000000000000
+                0x23b872dd00000000000000000000000000000000000000000000000000000000
             )
-            mstore(4, to) // Append the "to" argument.
-            mstore(36, amount) // Append the "amount" argument.
+            mstore(4, from) // Append the "from" argument.
+            mstore(36, to) // Append the "to" argument.
+            mstore(68, amount) // Append the "amount" argument.
 
             // We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.
             // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
@@ -1630,7 +1631,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
             // If the transfer failed or it returned nothing:
             // We group these because they should be uncommon.
-            if iszero(and(success, iszero(iszero(returndatasize())))) {
+            if or(iszero(success), iszero(returndatasize())) {
                 // If the token has no code, revert.
                 if iszero(extcodesize(token)) {
                     mstore(
