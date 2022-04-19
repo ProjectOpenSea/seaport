@@ -286,7 +286,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                         and that contracts must implement
      *                         `onERC1155Received` in order to receive ERC1155
      *                         tokens as consideration.
-     * @param fulfillerConduit ...
+     * @param fulfillerConduit An address indicating what conduit, if any, to
+     *                         source the fulfiller's token approvals from. The
+     *                         null address signifies that no conduit should be
+     *                         used (and direct approvals set on Consideration)
+     *                         and `address(1)` signifies to utilize the legacy
+     *                         user proxy for the fulfiller.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -300,7 +305,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         return
             _validateAndFulfillAdvancedOrder(
                 _convertOrderToAdvanced(order),
-                new CriteriaResolver[](0), // No criteria resolvers are supplied.
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
                 fulfillerConduit
             );
     }
@@ -331,7 +336,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          (transferrable) token identifier on the token in
      *                          question is valid and that no associated proof
      *                          needs to be supplied.
-     * @param fulfillerConduit  ...
+     * @param fulfillerConduit  An address indicating what conduit, if any, to
+     *                          source the fulfiller's token approvals from. The
+     *                          null address signifies that no conduit should be
+     *                          used (and direct approvals set on Consideration)
+     *                          and `address(1)` signifies to utilize the legacy
+     *                          user proxy for the fulfiller.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -396,7 +406,14 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
-     * @param fulfillerConduit          ...
+     * @param fulfillerConduit          An address indicating what conduit, if
+     *                                  any, to source the fulfiller's token
+     *                                  approvals from. The null address
+     *                                  signifies that no conduit should be used
+     *                                  (with direct token approvals set on
+     *                                  Consideration) and `address(1)`
+     *                                  signifies to utilize the legacy user
+     *                                  proxy for the fulfiller.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of

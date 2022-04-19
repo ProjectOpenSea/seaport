@@ -169,7 +169,7 @@ yarn build
 
 Next, run linters and tests:
 ```bash
-yarn lint
+yarn lint:check
 yarn test
 yarn coverage
 ```

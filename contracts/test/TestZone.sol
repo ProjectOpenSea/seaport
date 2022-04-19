@@ -24,7 +24,7 @@ contract TestZone is ZoneInterface {
             }
         }
 
-        return ZoneInterface.isValidOrder.selector;
+        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 
     function isValidOrderIncludingExtraData(
@@ -36,6 +36,7 @@ contract TestZone is ZoneInterface {
         orderHash;
         caller;
         order;
+        priorOrderHashes;
 
         if (order.extraData.length == 4) {
             revert("Revert on extraData length 4");
@@ -45,6 +46,6 @@ contract TestZone is ZoneInterface {
             }
         }
 
-        return ZoneInterface.isValidOrder.selector;
+        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 }
