@@ -1081,15 +1081,9 @@ contract ConsiderationPure is ConsiderationBase {
      *      data was returned by the last call.
      */
     function _revertWithReasonIfOneIsReturned() internal pure {
-        // Find out whether data was returned by inspecting returndata buffer.
-        uint256 returnDataSize;
         assembly {
-            returnDataSize := returndatasize()
-        }
-
-        // If no data was returned...
-        if (returnDataSize != 0) {
-            assembly {
+            // If data was returned...
+            if returndatasize() {
                 // Copy returndata to memory, overwriting existing memory.
                 returndatacopy(0, 0, returndatasize())
 

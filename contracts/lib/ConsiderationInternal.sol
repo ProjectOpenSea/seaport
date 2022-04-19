@@ -1566,8 +1566,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param amount The amount to transfer.
      */
     function _transferEth(address payable to, uint256 amount) internal {
-        // Attempt to transfer the native tokens to the recipient.
-        (bool success, ) = to.call{ value: amount }("");
+        bool success;
+
+        assembly {
+            // Transfer the ETH and store if it succeeded or not.
+            success := call(gas(), to, amount, 0, 0, 0, 0)
+        }
 
         // If the call fails...
         if (!success) {
@@ -1595,32 +1599,82 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address to,
         uint256 amount
     ) internal {
-        // Perform ERC20 transfer via the token contract directly.
-        bool success = _call(
-            token,
-            abi.encodeCall(ERC20Interface.transferFrom, (from, to, amount))
-        );
-
-        // Ensure that the transfer succeeded.
-        _assertValidTokenTransfer(success, token, from, to, 0, amount);
-
-        // Extract result directly from returndata buffer if one is returned.
-        bool result = true;
         assembly {
-            // Only put result on the stack if return data is at least 32 bytes.
-            if gt(returndatasize(), 0x19) {
-                // Copy directly from return data into memory in scratch space.
-                returndatacopy(0, 0, 0x20)
+            // Write our calldata to this slot below, but restore it later.
+            let memPointer := mload(0x40)
 
-                // Take the value from scratch space and place it on the stack.
-                result := mload(0)
+            // Write calldata into memory, starting with function selector.
+            mstore(
+                0,
+                0x23b872dd00000000000000000000000000000000000000000000000000000000
+            )
+            mstore(0x04, from) // Append the "from" argument.
+            mstore(0x24, to) // Append the "to" argument.
+            mstore(0x44, amount) // Append the "amount" argument.
+
+            // Use 100 as the length of our calldata equals 4 + 32 * 3. Use
+            // 0 and 32 to copy up to 32 bytes of return data to scratch space.
+            let callStatus := call(gas(), token, 0, 0, 0x64, 0, 0x20)
+
+            mstore(0x60, 0) // Restore the zero slot to zero.
+            mstore(0x40, memPointer) // Restore the memPointer.
+
+            let success := and(
+                // Set success to whether the call reverted, if not check it
+                // either returned exactly 1 (can't just be non-zero data), or
+                // had no return data.
+                or(
+                    and(eq(mload(0), 1), gt(returndatasize(), 31)),
+                    iszero(returndatasize())
+                ),
+                callStatus
+            )
+
+            // If the transfer failed or it returned nothing:
+            // Group these because they should be uncommon.
+            if iszero(and(success, iszero(iszero(returndatasize())))) {
+                // If the token has no code, revert.
+                if iszero(extcodesize(token)) {
+                    mstore(
+                        0,
+                        // abi.encodeWithSignature("NoContract(address)")
+                        0x5f15d67200000000000000000000000000000000000000000000000000000000
+                    )
+                    mstore(4, token)
+
+                    revert(0, 0x24) // Use 36 because its the result of 4 + 32.
+                }
+
+                // If the transfer failed:
+                if iszero(success) {
+                    // If it was due to a revert with a message, bubble it up:
+                    if and(iszero(callStatus), returndatasize()) {
+                        // Copy returndata to memory; overwrite existing memory.
+                        returndatacopy(0, 0, returndatasize())
+
+                        // Revert, specifying memory with copied returndata.
+                        revert(0, returndatasize())
+                    }
+
+                    // Otherwise revert with a generic error message.
+                    mstore(
+                        0,
+                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
+                        0xf486bc8700000000000000000000000000000000000000000000000000000000
+                    )
+                    mstore(4, token)
+                    mstore(0x24, from)
+                    mstore(0x44, to)
+                    mstore(0x64, 0)
+                    mstore(0x84, amount)
+
+                    revert(0, 0xa4) // Use 164 as its the result of 4 + 32 * 5.
+                }
+
+                // Otherwise the token just returned nothing but otherwise
+                // succeeded — no need to optimize for this as it's not
+                // technically ERC20 compliant.
             }
-        }
-
-        // If a falsey result is extracted...
-        if (!result) {
-            // Revert with a "Bad Return Value" error.
-            revert BadReturnValueFromERC20OnTransfer(token, from, to, amount);
         }
     }
 
