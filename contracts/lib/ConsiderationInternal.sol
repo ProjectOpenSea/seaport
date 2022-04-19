@@ -1720,7 +1720,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                     mstore(4, token)
 
-                    revert(0, 36) // We use 36 because its the result of 4 + 32.
+                    revert(0, 0x24) // We use 36 because its the result of 4 + 32.
                 }
 
                 // We'll write our calldata to this slot below, but restore it later.
@@ -1731,13 +1731,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     0,
                     0x23b872dd00000000000000000000000000000000000000000000000000000000
                 )
-                mstore(4, from) // Append the "from" argument.
-                mstore(36, to) // Append the "to" argument.
-                mstore(68, identifier) // Append the "identifier" argument.
+                mstore(0x04, from) // Append the "from" argument.
+                mstore(0x24, to) // Append the "to" argument.
+                mstore(0x44, identifier) // Append the "identifier" argument.
 
                 // We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.
                 // We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.
-                let success := call(gas(), token, 0, 0, 100, 0, 0)
+                let success := call(gas(), token, 0, 0, 0x64, 0, 0)
 
                 mstore(0x60, 0) // Restore the zero slot to zero.
                 mstore(0x40, memPointer) // Restore the memPointer.
@@ -1759,13 +1759,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
                         0xf486bc8700000000000000000000000000000000000000000000000000000000
                     )
-                    mstore(4, token)
-                    mstore(36, from)
-                    mstore(68, to)
-                    mstore(100, identifier)
-                    mstore(132, amount)
+                    mstore(0x04, token)
+                    mstore(0x24, from)
+                    mstore(0x44, to)
+                    mstore(0x64, identifier)
+                    mstore(0x84, amount)
 
-                    revert(0, 164) // We use 164 because its the result of 4 + 32 * 5.
+                    revert(0, 0xa4) // We use 164 because its the result of 4 + 32 * 5.
                 }
             }
         } else if (conduit == address(1)) {
@@ -1841,14 +1841,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     0,
                     0xf242432a00000000000000000000000000000000000000000000000000000000
                 )
-                mstore(4, from) // Append the "from" argument.
-                mstore(36, to) // Append the "to" argument.
-                mstore(68, identifier) // Append the "identifier" argument.
-                mstore(100, amount) // Append the "amount" argument.
-                mstore(132, "") // Append the "data" argument.
+                mstore(0x04, from) // Append the "from" argument.
+                mstore(0x24, to) // Append the "to" argument.
+                mstore(0x44, identifier) // Append the "identifier" argument.
+                mstore(0x64, amount) // Append the "amount" argument.
+                mstore(0x84, "") // Append the "data" argument.
 
-                // We use 132 because the length of our calldata totals up like so: 4 + 32 * 5.
-                let success := call(gas(), token, 0, 0, 164, 0, 0)
+                // We use 164 because the length of our calldata totals up like so: 4 + 32 * 5.
+                let success := call(gas(), token, 0, 0, 0xa4, 0, 0)
 
                 mstore(0x60, 0) // Restore the zero slot to zero.
                 mstore(0x40, memPointer) // Restore the memPointer.
@@ -1870,13 +1870,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
                         0xf486bc8700000000000000000000000000000000000000000000000000000000
                     )
-                    mstore(4, token)
-                    mstore(36, from)
-                    mstore(68, to)
-                    mstore(100, identifier)
-                    mstore(132, amount)
+                    mstore(0x04, token)
+                    mstore(0x24, from)
+                    mstore(0x44, to)
+                    mstore(0x64, identifier)
+                    mstore(0x84, amount)
 
-                    revert(0, 164) // We use 164 because its the result of 4 + 32 * 5.
+                    revert(0, 0xa4) // We use 164 because its the result of 4 + 32 * 5.
                 }
             }
         } else if (conduit == address(1)) {
