@@ -13940,7 +13940,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("NoReentrantCalls");
         });
       });
       it.skip("Reverts on reentrancy (test all the other permutations)", async () => {});
