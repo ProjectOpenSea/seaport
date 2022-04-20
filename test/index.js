@@ -9523,7 +9523,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("BadFraction");
         });
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -9541,7 +9541,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("BadFraction");
         });
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -9559,7 +9559,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("BadFraction");
         });
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -9673,7 +9673,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InexactFraction");
         });
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
