@@ -35,6 +35,8 @@ import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
 /**
  * @title Consideration
  * @author 0age
+ * @custom:coauthor d1ll0n
+ * @custom:coauthor transmissions11
  * @custom:version rc-1
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
