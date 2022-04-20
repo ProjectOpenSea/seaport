@@ -192,7 +192,7 @@ uint256 constant ERC1155_safeTransferFrom_id_ptr = 0x44;
 uint256 constant ERC1155_safeTransferFrom_amount_ptr = 0x64;
 uint256 constant ERC1155_safeTransferFrom_data_offset_ptr = 0x84;
 uint256 constant ERC1155_safeTransferFrom_data_length_ptr = 0xa4;
-uint256 constant ERC1155_safeTransferFrom_data_length_ptr_minus_sig = 0x84;
+uint256 constant ERC1155_safeTransferFrom_data_length_ptr_minus_sig = 0xa0;
 uint256 constant ERC1155_safeTransferFrom_length = 0xc4; // 4 + 32 * 6 == 164
 
 uint256 constant ERC721_transferFrom_signature = ERC20_transferFrom_signature;
