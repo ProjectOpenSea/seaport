@@ -1,5 +1,3 @@
-### --- COMMIT HASH for audit ---
-
 ![Consideration](img/consideration-banner.png)
 
 # Consideration
