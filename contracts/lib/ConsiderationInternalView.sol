@@ -192,7 +192,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 // Extract yParity from highest bit of vs and add 27 to get v.
                 v := add(shr(255, vs), 27)
             }
-            // If signature is 65 bytes, parse as standard signature. (r+s+v)
+            // If signature is 65 bytes, parse as a standard signature. (r+s+v)
         } else if (signature.length == 65) {
             // Read each parameter directly from the signature's memory region.
             assembly {
