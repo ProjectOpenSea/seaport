@@ -999,7 +999,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address offererConduit,
         address fulfillerConduit
     ) internal {
-        // @todo - add better comments
         // Derive order duration, time elapsed, and time remaining.
         uint256 duration = orderParameters.endTime - orderParameters.startTime;
         uint256 elapsed = block.timestamp - orderParameters.startTime;
@@ -1007,6 +1006,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
+
+        // As of solidity 0.6.0, inline assembly can not directly access function
+        // definitions, but can still access locally scoped function variables.
+        // This means that in order to recast the type of a function, we need to
+        // create a local variable to reference the internal function definition
+        // (using the same type) and a local variable with the desired type,
+        // and then cast the original function pointer to the desired type.
 
         /**
          * Repurpose existing OfferItem memory regions on the offer array for
@@ -1021,15 +1027,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
          *   uint256 endAmount; ------------> address recipient;
          */
 
-        // Declare a nested scope to access function pointers directly (required
-        // as of solidity 0.6.x) in order to override _transfer argument types.
+        // Declare a nested scope to minimize stack depth.
         {
             // Declare a virtual function pointer taking an OfferItem argument.
             function(OfferItem memory, address, address)
                 internal _transferOfferItem;
 
             // Assign _transfer function to a new function pointer (it takes a
-            /// ReceivedItem as its initial argument), allocating memory.
+            // ReceivedItem as its initial argument)
             function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
 
@@ -1106,15 +1111,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
          *   address recipient; ------/
          */
 
-        // Declare a new nested scope to perform a type cast via function
-        // pointer assignment in order to override _transfer argument types.
+        // Declare a nested scope to minimize stack depth.
         {
             // Declare virtual function pointer with ConsiderationItem argument.
             function(ConsiderationItem memory, address, address)
                 internal _transferConsiderationItem;
 
             // Reassign _transfer function to a new function pointer (it takes a
-            /// ReceivedItem as its initial argument), allocating memory.
+            /// ReceivedItem as its initial argument).
             function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
 
