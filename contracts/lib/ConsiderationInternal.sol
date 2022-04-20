@@ -1118,7 +1118,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 internal _transferConsiderationItem;
 
             // Reassign _transfer function to a new function pointer (it takes a
-            /// ReceivedItem as its initial argument), allocating memory.
+            /// ReceivedItem as its initial argument).
             function(ReceivedItem memory, address, address)
                 internal _transferReceivedItem = _transfer;
 
