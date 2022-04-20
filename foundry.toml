@@ -3,7 +3,8 @@
 # TODO: investigate vm.getCode cheatcode for loading code compiled by different versions
 auto_detect_solc = true
 optimizer = true
-optimizer_runs = 1000000
+optimizer_runs = 200
+via_ir = true
 fuzz_runs = 256
 src = 'contracts'
 out = 'out'
