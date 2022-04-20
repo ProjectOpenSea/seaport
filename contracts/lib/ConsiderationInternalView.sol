@@ -639,8 +639,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
 
-        // Validate and aggregate consideration items for available orders and
-        // store the result as a ReceivedItem.
+        // Validate and aggregate consideration items and store the result as a
+        // ReceivedItem.
         ReceivedItem memory considerationItem = (
             _aggregateValidFulfillmentConsiderationItems(
                 advancedOrders,
@@ -649,8 +649,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             )
         );
 
-        // Validate & aggregate offer items for available orders and store the
-        // result as an Execution.
+        // Validate & aggregate offer items and store result as an Execution.
         (
             execution
             /**
@@ -773,7 +772,13 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Return early with a null execution element that will be filtered.
             // prettier-ignore
             return Execution(
-                ReceivedItem(ItemType.NATIVE, address(0), 0, 0, payable(address(0))),
+                ReceivedItem(
+                    ItemType.NATIVE,
+                    address(0),
+                    0,
+                    0,
+                    payable(address(0))
+                ),
                 address(0),
                 address(0)
             );
@@ -801,7 +806,20 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
     }
 
-    // TODO: natspec
+    /**
+     * @dev Internal pure function to aggregate a group of offer items using
+     *      supplied directives on which component items are candidates for
+     *      aggregation, skipping items on orders that are not available.
+     *
+     * @param advancedOrders  The orders to aggregate offer items from.
+     * @param offerComponents An array of FulfillmentComponent structs
+     *                        indicating the order index and item index of each
+     *                        candidate offer item for aggregation.
+     * @param startIndex      The initial order index to begin iteration on when
+     *                        searching for offer items to aggregate.
+     *
+     * @return execution The aggregated offer items.
+     */
     function _aggregateValidFulfillmentOfferItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
@@ -1014,6 +1032,8 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 nextComponentIndex,
         address fulfillerConduit
     ) internal view returns (Execution memory execution) {
+        // Validate and aggregate consideration items on available orders and
+        // store result as a ReceivedItem.
         ReceivedItem
             memory receiveConsiderationItem = _aggregateValidFulfillmentConsiderationItems(
                 advancedOrders,

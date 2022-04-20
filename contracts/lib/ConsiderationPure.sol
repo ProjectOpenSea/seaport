@@ -632,7 +632,23 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    // TODO: natspec
+    /**
+     * @dev Internal pure function to aggregate a group of consideration items
+     *      using supplied directives on which component items are candidates
+     *      for aggregation, skipping items on orders that are not available.
+     *
+     * @param advancedOrders          The orders to aggregate consideration
+     *                                items from.
+     * @param considerationComponents An array of FulfillmentComponent structs
+     *                                indicating the order index and item index
+     *                                of each candidate consideration item for
+     *                                aggregation.
+     * @param startIndex              The initial order index to begin iteration
+     *                                on when searching for consideration items
+     *                                to aggregate.
+     *
+     * @return receivedItem The aggregated consideration items.
+     */
     function _aggregateValidFulfillmentConsiderationItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory considerationComponents,
