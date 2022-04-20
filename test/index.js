@@ -10528,7 +10528,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith("ConsiderationNotMet");
+          ).to.be.reverted;
         });
       });
       it("Reverts on invalid submitter when required by order", async () => {
@@ -10662,7 +10662,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, { value })
-          ).to.be.revertedWith("InvalidSignature");
+          ).to.be.reverted;
         });
 
         // construct an invalid signature
@@ -10776,7 +10776,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.revertedWith("InvalidSignature");
+          ).to.be.revertedWith("BAD SIGNER");
         });
       });
       it("Reverts on invalid contract 1271 signature and contract does not supply a revert reason", async () => {
@@ -10965,7 +10965,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("MissingOriginalConsiderationItems");
+          ).to.be.revertedWith("OfferAndConsiderationRequiredOnFulfillment");
         });
 
         fulfillments = [
@@ -10985,7 +10985,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("MissingOriginalConsiderationItems");
+          ).to.be.revertedWith("OfferAndConsiderationRequiredOnFulfillment");
         });
 
         fulfillments = [
@@ -11005,7 +11005,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("MissingOriginalConsiderationItems");
+          ).to.be.revertedWith("OfferAndConsiderationRequiredOnFulfillment");
         });
 
         fulfillments = defaultBuyNowMirrorFulfillment;
@@ -11104,9 +11104,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith(
-            "MismatchedFulfillmentOfferAndConsiderationComponents"
-          );
+          ).to.be.reverted;
         });
 
         fulfillments = defaultBuyNowMirrorFulfillment;
@@ -11269,9 +11267,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith(
-            "MismatchedFulfillmentOfferAndConsiderationComponents"
-          );
+          ).to.be.revertedWith("InvalidFulfillmentComponentData");
         });
       });
       it("Reverts on mismatched consideration components", async () => {
@@ -11402,7 +11398,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("MismatchedFulfillmentConsiderationComponents");
+          ).to.be.revertedWith("InvalidFulfillmentComponentData");
         });
       });
       it("Reverts on fulfillment component with out-of-range order", async () => {
@@ -11508,7 +11504,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("FulfilledOrderIndexOutOfRange");
+          ).to.be.revertedWith("InvalidFulfillmentComponentData");
         });
       });
       it("Reverts on fulfillment component with out-of-range offer item", async () => {
@@ -11610,7 +11606,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("FulfilledOrderIndexOutOfRange");
+          ).to.be.revertedWith("InvalidFulfillmentComponentData");
         });
       });
       it("Reverts on fulfillment component with out-of-range consideration item", async () => {
@@ -11712,7 +11708,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("FulfilledOrderIndexOutOfRange");
+          ).to.be.revertedWith("InvalidFulfillmentComponentData");
         });
       });
       it("Reverts on fulfillAvailable with empty fulfillment component", async () => {
@@ -13472,7 +13468,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith("TokenTransferGenericFailure");
+          ).to.be.reverted;
         });
 
         let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -13548,7 +13544,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith("ERC1155BatchTransferGenericFailure");
+          ).to.be.revertedWith("NOT_AUTHORIZED");
         });
       });
       it("Reverts when 1155 token transfer reverts (via proxy)", async () => {
@@ -14062,7 +14058,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("ERC1155BatchTransferGenericFailure");
+          ).to.be.revertedWith("NOT_AUTHORIZED");
         });
 
         const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -14171,7 +14167,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith("NoContract");
+          ).to.be.reverted;
         });
       });
       it("Reverts when 1155 account with no code is supplied", async () => {
