@@ -54,6 +54,7 @@ uint256 constant Execution_conduit_offset = 0x40;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
 uint256 constant OrderParameters_conduit_offset = 0x120;
+uint256 constant Order_nonce_offset = 0x140;
 
 uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
