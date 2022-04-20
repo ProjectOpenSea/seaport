@@ -10366,7 +10366,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.revertedWith("InvalidSignature");
         });
       });
-      it("Reverts on invalid 1271 signature and contract does not supply a revert reason", async () => {
+      it("Reverts on invalid contract 1271 signature and contract does not supply a revert reason", async () => {
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await sellerContract
             .connect(owner)
@@ -10458,7 +10458,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.revertedWith("InvalidSignature");
+          ).to.be.revertedWith("BadContractSignature");
         });
       });
       it("Reverts on restricted order where isValidOrder reverts with no data", async () => {
@@ -10502,7 +10502,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toAddress(false), { value })
-          ).to.be.revertedWith("InvalidSignature");
+          ).to.be.revertedWith("InvalidRestrictedOrder"); //returns orderHash
         });
       });
       it("Reverts on missing offer or consideration components", async () => {
@@ -11369,7 +11369,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 toAddress(false),
                 { value }
               )
-          ).to.be.reverted;
+          ).to.be.revertedWith("MissingFulfillmentComponentOnAggregation");
         });
       });
       it("Reverts on fulfillAvailable with out-of-range offer order", async () => {
@@ -13575,7 +13575,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith("NoContract");
+          ).to.be.revertedWith();
         });
       });
       it("Reverts when non-1155 account is supplied as the token", async () => {
