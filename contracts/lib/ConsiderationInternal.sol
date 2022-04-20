@@ -1738,17 +1738,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
             let memPointer := mload(0x40)
 
             // Write calldata into memory, starting with function selector.
-            mstore(
-                0,
-                0x23b872dd00000000000000000000000000000000000000000000000000000000
-            )
-            mstore(0x04, from) // Append the "from" argument.
-            mstore(0x24, to) // Append the "to" argument.
-            mstore(0x44, amount) // Append the "amount" argument.
+            mstore(ERC20_transferFrom_sig_ptr, ERC20_transferFrom_signature)
+            mstore(ERC20_transferFrom_from_ptr, from)
+            mstore(ERC20_transferFrom_to_ptr, to)
+            mstore(ERC20_transferFrom_amount_ptr, amount)
 
-            // Use 100 as the length of calldata equals 4 + 32 * 3. Use 0 and 32
             // to copy up to 32 bytes of return data to scratch space.
-            let callStatus := call(gas(), token, 0, 0, 0x64, 0, 0x20)
+            let callStatus := call(
+                gas(),
+                token,
+                0,
+                ERC20_transferFrom_sig_ptr,
+                ERC20_transferFrom_length,
+                0,
+                0x20
+            )
 
             mstore(0x60, 0) // Restore the zero slot to zero.
             mstore(0x40, memPointer) // Restore the memPointer.
@@ -1784,47 +1788,64 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                             // Otherwise revert with a generic error message.
                             mstore(
-                                0,
-                                // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                                0xf486bc8700000000000000000000000000000000000000000000000000000000
+                                TokenTransferGenericFailure_error_sig_ptr,
+                                TokenTransferGenericFailure_error_signature
                             )
-                            mstore(0x04, token)
-                            mstore(0x24, from)
-                            mstore(0x44, to)
-                            mstore(0x64, 0)
-                            mstore(0x84, amount)
-
-                            revert(0, 0xA4) // Use 164 because its the result of 4 + 32 * 5.
+                            mstore(
+                                TokenTransferGenericFailure_error_token_ptr,
+                                token
+                            )
+                            mstore(
+                                TokenTransferGenericFailure_error_from_ptr,
+                                from
+                            )
+                            mstore(TokenTransferGenericFailure_error_to_ptr, to)
+                            mstore(TokenTransferGenericFailure_error_id_ptr, 0)
+                            mstore(
+                                TokenTransferGenericFailure_error_amount_ptr,
+                                amount
+                            )
+                            revert(
+                                TokenTransferGenericFailure_error_sig_ptr,
+                                TokenTransferGenericFailure_error_length
+                            )
                         }
 
                         // Otherwise revert with a message about the token returning false.
                         mstore(
-                            0,
-                            // abi.encodeWithSignature("BadReturnValueFromERC20OnTransfer(address,address,address,uint256)")
-                            0x9889192300000000000000000000000000000000000000000000000000000000
+                            BadReturnValueFromERC20OnTransfer_error_sig_ptr,
+                            BadReturnValueFromERC20OnTransfer_error_signature
                         )
-                        mstore(0x04, token)
-                        mstore(0x24, from)
-                        mstore(0x44, to)
-                        mstore(0x64, amount)
-
-                        revert(0, 0x84) // Use 132 because its the result of 4 + 32 * 4.
+                        mstore(
+                            BadReturnValueFromERC20OnTransfer_error_token_ptr,
+                            token
+                        )
+                        mstore(
+                            BadReturnValueFromERC20OnTransfer_error_from_ptr,
+                            from
+                        )
+                        mstore(
+                            BadReturnValueFromERC20OnTransfer_error_to_ptr,
+                            to
+                        )
+                        mstore(
+                            BadReturnValueFromERC20OnTransfer_error_amount_ptr,
+                            amount
+                        )
+                        revert(
+                            BadReturnValueFromERC20OnTransfer_error_sig_ptr,
+                            TokenTransferGenericFailure_error_length
+                        )
                     }
 
-                    // Otherwise revert with a generic error message.
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                        0xf486bc8700000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(0x04, token)
-
-                    revert(0, 0x24) // Use 36 because its the result of 4 + 32.
+                    // Otherwise revert with an error about the token not having code:
+                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
+                    mstore(NoContract_error_token_ptr, token)
+                    revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
-                // Otherwise the token just returned nothing but otherwise
-                // succeeded — no need to optimize for this as it's not
-                // technically ERC20 compliant.
+                // Otherwise the token just returned nothing but otherwise succeeded,
+                // no need to optimize for this as it's not technically ERC20 compliant.
             }
         }
     }
@@ -1864,31 +1885,35 @@ contract ConsiderationInternal is ConsiderationInternalView {
             assembly {
                 // If the token has no code, revert.
                 if iszero(extcodesize(token)) {
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("NoContract(address)")
-                        0x5f15d67200000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(4, token)
-
-                    revert(0, 0x24) // Use 36 because it equals 4 + 32.
+                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
+                    mstore(NoContract_error_token_ptr, token)
+                    revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
-                // We'll write calldata to this slot.
+                // Write calldata to this slot below, but restore it later.
                 let memPointer := mload(0x40)
 
                 // Write calldata into memory starting with function selector.
                 mstore(
-                    memPointer,
-                    0x23b872dd00000000000000000000000000000000000000000000000000000000
+                    ERC721_transferFrom_sig_ptr,
+                    ERC721_transferFrom_signature
                 )
-                mstore(add(memPointer, 0x04), from) // Append "from" argument.
-                mstore(add(memPointer, 0x24), to) // Append the "to" argument.
-                mstore(add(memPointer, 0x44), identifier) // Append identifier.
+                mstore(ERC721_transferFrom_from_ptr, from)
+                mstore(ERC721_transferFrom_to_ptr, to)
+                mstore(ERC721_transferFrom_id_ptr, identifier)
 
-                // Use 100 as length of calldata equals 4 + 32 * 3. Use 0 and 32
-                // to copy up to 32 bytes of return data into scratch space.
-                let success := call(gas(), token, 0, memPointer, 0x64, 0, 0)
+                let success := call(
+                    gas(),
+                    token,
+                    0,
+                    ERC721_transferFrom_sig_ptr,
+                    ERC721_transferFrom_length,
+                    0,
+                    0
+                )
+
+                mstore(0x60, 0) // Restore the zero slot to zero.
+                mstore(0x40, memPointer) // Restore the memPointer.
 
                 // If the transfer reverted:
                 if iszero(success) {
@@ -1903,17 +1928,18 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                     // Otherwise revert with a generic error message.
                     mstore(
-                        0,
-                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                        0xf486bc8700000000000000000000000000000000000000000000000000000000
+                        TokenTransferGenericFailure_error_sig_ptr,
+                        TokenTransferGenericFailure_error_signature
                     )
-                    mstore(0x04, token)
-                    mstore(0x24, from)
-                    mstore(0x44, to)
-                    mstore(0x64, identifier)
-                    mstore(0x84, amount)
-
-                    revert(0, 0xa4) // Use 164 as it equals 4 + 32 * 5.
+                    mstore(TokenTransferGenericFailure_error_token_ptr, token)
+                    mstore(TokenTransferGenericFailure_error_from_ptr, from)
+                    mstore(TokenTransferGenericFailure_error_to_ptr, to)
+                    mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
+                    mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
+                    revert(
+                        TokenTransferGenericFailure_error_sig_ptr,
+                        TokenTransferGenericFailure_error_length
+                    )
                 }
             }
         } else if (conduit == address(1)) {
@@ -1971,33 +1997,45 @@ contract ConsiderationInternal is ConsiderationInternalView {
             assembly {
                 // If the token has no code, revert.
                 if iszero(extcodesize(token)) {
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("NoContract(address)")
-                        0x5f15d67200000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(4, token)
-
-                    revert(0, 36) // Use 36 as it equals 4 + 32.
+                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
+                    mstore(NoContract_error_token_ptr, token)
+                    revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
-                // We'll write calldata to this slot.
+                // Write calldata to these slots below, but restore them later.
                 let memPointer := mload(0x40)
+                let slot0x80 := mload(0x80)
+                let slot0xA0 := mload(0xA0)
 
                 // Write calldata into memory, beginning with function selector.
                 mstore(
-                    memPointer,
-                    0xf242432a00000000000000000000000000000000000000000000000000000000
+                    ERC1155_safeTransferFrom_sig_ptr,
+                    ERC1155_safeTransferFrom_signature
                 )
-                mstore(add(memPointer, 0x04), from) // Append the "from" argument.
-                mstore(add(memPointer, 0x24), to) // Append the "to" argument.
-                mstore(add(memPointer, 0x44), identifier) // Append the "identifier" argument.
-                mstore(add(memPointer, 0x64), amount) // Append the "amount" argument.
-                mstore(add(memPointer, 0x84), 0xa0) // Append "data" argument offset.
-                mstore(add(memPointer, 0xa4), 0) // Append "data" argument length.
+                mstore(ERC1155_safeTransferFrom_from_ptr, from)
+                mstore(ERC1155_safeTransferFrom_to_ptr, to)
+                mstore(ERC1155_safeTransferFrom_id_ptr, identifier)
+                mstore(ERC1155_safeTransferFrom_amount_ptr, amount)
+                mstore(
+                    ERC1155_safeTransferFrom_data_offset_ptr,
+                    ERC1155_safeTransferFrom_data_length_ptr_minus_sig
+                )
+                mstore(ERC1155_safeTransferFrom_data_length_ptr, 0)
 
-                // Use 164 because length of calldata equals 4 + 32 * 6.
-                let success := call(gas(), token, 0, memPointer, 0xc4, 0, 0)
+                let success := call(
+                    gas(),
+                    token,
+                    0,
+                    ERC1155_safeTransferFrom_sig_ptr,
+                    ERC1155_safeTransferFrom_length,
+                    0,
+                    0
+                )
+
+                mstore(0x80, slot0x80) // Restore slot 0x80.
+                mstore(0xA0, slot0xA0) // Restore slot 0xA0.
+                mstore(0x40, memPointer) // Restore the memPointer.
+                mstore(0x60, 0) // Restore the zero slot to zero.
 
                 // If the transfer reverted:
                 if iszero(success) {
@@ -2012,17 +2050,18 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                     // Otherwise revert with a generic error message.
                     mstore(
-                        0,
-                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                        0xf486bc8700000000000000000000000000000000000000000000000000000000
+                        TokenTransferGenericFailure_error_sig_ptr,
+                        TokenTransferGenericFailure_error_signature
                     )
-                    mstore(0x04, token)
-                    mstore(0x24, from)
-                    mstore(0x44, to)
-                    mstore(0x64, identifier)
-                    mstore(0x84, amount)
-
-                    revert(0, 0xa4) // Use 164 as it equals 4 + 32 * 5.
+                    mstore(TokenTransferGenericFailure_error_token_ptr, token)
+                    mstore(TokenTransferGenericFailure_error_from_ptr, from)
+                    mstore(TokenTransferGenericFailure_error_to_ptr, to)
+                    mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
+                    mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
+                    revert(
+                        TokenTransferGenericFailure_error_sig_ptr,
+                        TokenTransferGenericFailure_error_length
+                    )
                 }
             }
         } else if (conduit == address(1)) {
