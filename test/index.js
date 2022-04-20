@@ -12883,6 +12883,40 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       it("Reverts when ether is supplied to a non-payable route (basic)", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
+        const offer = [getTestItem721(nftId)];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, marketplaceContract.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          2, // ERC20_TO_ERC721
+          order
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, {
+                value: 1,
+              })
+          ).to.be.revertedWith("InvalidMsgValue(1)");
+        });
+      });
+      it("Reverts when ether transfer fails (basic)", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
         await testERC721.mint(seller.address, nftId);
 
         // Seller approves marketplace contract to transfer NFT
