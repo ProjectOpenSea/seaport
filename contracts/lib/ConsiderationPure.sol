@@ -466,8 +466,8 @@ contract ConsiderationPure is ConsiderationBase {
             }
 
             // Split executions into standard and batched executions and return.
-            return
-                _splitExecution(
+            // prettier-ignore
+            return _splitExecution(
                     executions,
                     batches,
                     usedInBatch,
@@ -958,13 +958,13 @@ contract ConsiderationPure is ConsiderationBase {
         ReceivedItem memory item = execution.item;
 
         // Derive hash based on token, offerer, recipient, and proxy usage.
-        return
-            _hashBatchableItemIdentifier(
-                item.token,
-                execution.offerer,
-                item.recipient,
-                execution.conduit
-            );
+        // prettier-ignore
+        return _hashBatchableItemIdentifier(
+            item.token,
+            execution.offerer,
+            item.recipient,
+            execution.conduit
+        );
     }
 
     /**
