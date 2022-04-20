@@ -654,9 +654,13 @@ contract ConsiderationPure is ConsiderationBase {
                     )
                 )
                 // Load consideration array pointer
-                let considerationArrPtr := mload(add(orderPtr, Order_consideration_head_offset))
+                let considerationArrPtr := mload(
+                    add(orderPtr, Order_consideration_head_offset)
+                )
                 // Check if itemIndex is within the range of the array
-                invalidFulfillment := iszero(lt(itemIndex, mload(considerationArrPtr)))
+                invalidFulfillment := iszero(
+                    lt(itemIndex, mload(considerationArrPtr))
+                )
                 if iszero(invalidFulfillment) {
                     let considerationItemPtr := mload(
                         add(
@@ -679,14 +683,25 @@ contract ConsiderationPure is ConsiderationBase {
                         add(receivedItem, CommonIdentifierOffset),
                         mload(add(considerationItemPtr, CommonIdentifierOffset))
                     )
-                    let amountPtr := add(considerationItemPtr, CommonAmountOffset)
+                    let amountPtr := add(
+                        considerationItemPtr,
+                        CommonAmountOffset
+                    )
                     // amount
-                    mstore(add(receivedItem, CommonAmountOffset), mload(amountPtr))
+                    mstore(
+                        add(receivedItem, CommonAmountOffset),
+                        mload(amountPtr)
+                    )
                     mstore(amountPtr, 0)
                     // recipient
                     mstore(
                         add(receivedItem, ReceivedItem_recipient_offset),
-                        mload(add(considerationItemPtr, ConsiderationItem_recipient_offset))
+                        mload(
+                            add(
+                                considerationItemPtr,
+                                ConsiderationItem_recipient_offset
+                            )
+                        )
                     )
                     i := add(i, 1)
                     for {
@@ -695,7 +710,10 @@ contract ConsiderationPure is ConsiderationBase {
                         i := add(i, 1)
                     } {
                         fulfillmentPtr := mload(
-                            add(add(considerationComponents, 0x20), mul(i, 0x20))
+                            add(
+                                add(considerationComponents, 0x20),
+                                mul(i, 0x20)
+                            )
                         )
                         orderIndex := mload(fulfillmentPtr)
                         itemIndex := mload(add(fulfillmentPtr, 0x20))
@@ -707,17 +725,21 @@ contract ConsiderationPure is ConsiderationBase {
                         // orderPtr will be reused as the pointer to OrderParameters
                         orderPtr := mload(
                             add(
-                              add(advancedOrders, 0x20),
-                              mul(orderIndex, 0x20)
+                                add(advancedOrders, 0x20),
+                                mul(orderIndex, 0x20)
                             )
                         )
 
                         // Only continue if numerator is >0
-                        if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
+                        if mload(
+                            add(orderPtr, AdvancedOrder_numerator_offset)
+                        ) {
                             // First word of AdvancedOrder is pointer to OrderParameters
                             orderPtr := mload(orderPtr)
                             // Load consideration array pointer
-                            considerationArrPtr := mload(add(orderPtr, Order_consideration_head_offset))
+                            considerationArrPtr := mload(
+                                add(orderPtr, Order_consideration_head_offset)
+                            )
                             // Check if itemIndex is within the range of the array
                             invalidFulfillment := iszero(
                                 lt(itemIndex, mload(considerationArrPtr))
@@ -733,12 +755,17 @@ contract ConsiderationPure is ConsiderationBase {
                                     mul(itemIndex, 0x20)
                                 )
                             )
-                            amountPtr := add(considerationItemPtr, CommonAmountOffset)
+                            amountPtr := add(
+                                considerationItemPtr,
+                                CommonAmountOffset
+                            )
 
                             mstore(
                                 add(receivedItem, CommonAmountOffset),
                                 add(
-                                    mload(add(receivedItem, CommonAmountOffset)),
+                                    mload(
+                                        add(receivedItem, CommonAmountOffset)
+                                    ),
                                     mload(amountPtr)
                                 )
                             )
@@ -748,8 +775,18 @@ contract ConsiderationPure is ConsiderationBase {
                                 and(
                                     // recipient
                                     eq(
-                                        mload(add(considerationItemPtr, ConsiderationItem_recipient_offset)),
-                                        mload(add(receivedItem, ReceivedItem_recipient_offset))
+                                        mload(
+                                            add(
+                                                considerationItemPtr,
+                                                ConsiderationItem_recipient_offset
+                                            )
+                                        ),
+                                        mload(
+                                            add(
+                                                receivedItem,
+                                                ReceivedItem_recipient_offset
+                                            )
+                                        )
                                     ),
                                     and(
                                         // item type
@@ -760,16 +797,32 @@ contract ConsiderationPure is ConsiderationBase {
                                         and(
                                             // token
                                             eq(
-                                                mload(add(considerationItemPtr, CommonTokenOffset)),
                                                 mload(
-                                                    add(receivedItem, CommonTokenOffset)
+                                                    add(
+                                                        considerationItemPtr,
+                                                        CommonTokenOffset
+                                                    )
+                                                ),
+                                                mload(
+                                                    add(
+                                                        receivedItem,
+                                                        CommonTokenOffset
+                                                    )
                                                 )
                                             ),
                                             // identifier
                                             eq(
-                                                mload(add(considerationItemPtr, CommonIdentifierOffset)),
                                                 mload(
-                                                    add(receivedItem, CommonIdentifierOffset)
+                                                    add(
+                                                        considerationItemPtr,
+                                                        CommonIdentifierOffset
+                                                    )
+                                                ),
+                                                mload(
+                                                    add(
+                                                        receivedItem,
+                                                        CommonIdentifierOffset
+                                                    )
                                                 )
                                             )
                                         )

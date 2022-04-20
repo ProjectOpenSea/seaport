@@ -777,7 +777,9 @@ contract ConsiderationInternalView is ConsiderationPure {
                 add(add(offerComponents, 0x20), mul(startIndex, 0x20))
             )
             let orderIndex := mload(fulfillmentPtr)
-            let itemIndex := mload(add(fulfillmentPtr, Fulfillment_itemIndex_offset))
+            let itemIndex := mload(
+                add(fulfillmentPtr, Fulfillment_itemIndex_offset)
+            )
             invalidFulfillment := iszero(lt(orderIndex, mload(advancedOrders)))
             let orderPtr := mload(
                 mload(
@@ -791,7 +793,10 @@ contract ConsiderationInternalView is ConsiderationPure {
             )
             // Load offer array pointer
             let offerArrPtr := mload(add(orderPtr, Order_offer_head_offset))
-            invalidFulfillment := or(iszero(lt(itemIndex, mload(offerArrPtr))), invalidFulfillment)
+            invalidFulfillment := or(
+                iszero(lt(itemIndex, mload(offerArrPtr))),
+                invalidFulfillment
+            )
             let offerItemPtr := mload(
                 add(
                     // Get pointer to beginning of OfferItem
@@ -804,18 +809,30 @@ contract ConsiderationInternalView is ConsiderationPure {
             // itemType
             mstore(receivedItemPtr, mload(offerItemPtr))
             // token
-            mstore(add(receivedItemPtr, CommonTokenOffset), mload(add(offerItemPtr, CommonTokenOffset)))
+            mstore(
+                add(receivedItemPtr, CommonTokenOffset),
+                mload(add(offerItemPtr, CommonTokenOffset))
+            )
             // identifier
-            mstore(add(receivedItemPtr, 0x40), mload(add(offerItemPtr, CommonIdentifierOffset)))
+            mstore(
+                add(receivedItemPtr, 0x40),
+                mload(add(offerItemPtr, CommonIdentifierOffset))
+            )
             let amountPtr := add(offerItemPtr, CommonAmountOffset)
             amount := mload(amountPtr)
             // recipient
-            mstore(add(receivedItemPtr, ReceivedItem_recipient_offset), caller())
+            mstore(
+                add(receivedItemPtr, ReceivedItem_recipient_offset),
+                caller()
+            )
             mstore(amountPtr, 0)
             // offerer
             mstore(add(execution, Execution_offerer_offset), mload(orderPtr))
             // conduit
-            mstore(add(execution, Execution_conduit_offset), mload(add(orderPtr, Order_conduit_offset)))
+            mstore(
+                add(execution, Execution_conduit_offset),
+                mload(add(orderPtr, Order_conduit_offset))
+            )
         }
 
         assembly {
@@ -829,9 +846,13 @@ contract ConsiderationInternalView is ConsiderationPure {
                     add(add(offerComponents, 0x20), mul(i, 0x20))
                 )
                 let orderIndex := mload(fulfillmentPtr)
-                let itemIndex := mload(add(fulfillmentPtr, Fulfillment_itemIndex_offset))
+                let itemIndex := mload(
+                    add(fulfillmentPtr, Fulfillment_itemIndex_offset)
+                )
 
-                invalidFulfillment := iszero(lt(orderIndex, mload(advancedOrders)))
+                invalidFulfillment := iszero(
+                    lt(orderIndex, mload(advancedOrders))
+                )
 
                 if invalidFulfillment {
                     break
@@ -844,8 +865,12 @@ contract ConsiderationInternalView is ConsiderationPure {
                 if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
                     orderPtr := mload(orderPtr)
                     // Load offer array pointer
-                    let offerArrPtr := mload(add(orderPtr, Order_offer_head_offset))
-                    invalidFulfillment := iszero(lt(itemIndex, mload(offerArrPtr)))
+                    let offerArrPtr := mload(
+                        add(orderPtr, Order_offer_head_offset)
+                    )
+                    invalidFulfillment := iszero(
+                        lt(itemIndex, mload(offerArrPtr))
+                    )
 
                     if invalidFulfillment {
                         break
@@ -868,8 +893,12 @@ contract ConsiderationInternalView is ConsiderationPure {
                         and(
                             // identifier
                             eq(
-                                mload(add(offerItemPtr, CommonIdentifierOffset)),
-                                mload(add(receivedItemPtr, CommonIdentifierOffset))
+                                mload(
+                                    add(offerItemPtr, CommonIdentifierOffset)
+                                ),
+                                mload(
+                                    add(receivedItemPtr, CommonIdentifierOffset)
+                                )
                             ),
                             and(
                                 and(
@@ -880,17 +909,34 @@ contract ConsiderationInternalView is ConsiderationPure {
                                     ),
                                     // conduit
                                     eq(
-                                        mload(add(orderPtr, Order_conduit_offset)),
-                                        mload(add(execution, Execution_conduit_offset))
+                                        mload(
+                                            add(orderPtr, Order_conduit_offset)
+                                        ),
+                                        mload(
+                                            add(
+                                                execution,
+                                                Execution_conduit_offset
+                                            )
+                                        )
                                     )
                                 ),
                                 and(
                                     // item type
-                                    eq(mload(offerItemPtr), mload(receivedItemPtr)),
+                                    eq(
+                                        mload(offerItemPtr),
+                                        mload(receivedItemPtr)
+                                    ),
                                     // token
                                     eq(
-                                        mload(add(offerItemPtr, CommonTokenOffset)),
-                                        mload(add(receivedItemPtr, CommonTokenOffset))
+                                        mload(
+                                            add(offerItemPtr, CommonTokenOffset)
+                                        ),
+                                        mload(
+                                            add(
+                                                receivedItemPtr,
+                                                CommonTokenOffset
+                                            )
+                                        )
                                     )
                                 )
                             )

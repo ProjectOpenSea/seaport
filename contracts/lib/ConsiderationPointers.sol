@@ -28,7 +28,6 @@ uint256 constant ThreeWords = 0x60;
 
 uint256 constant DefaultFreeMemoryPointer = 0x80;
 
-
 uint256 constant BasicOrder_endAmount_cdPtr = 0x104;
 
 uint256 constant BasicOrder_considerationHashesArray_ptr = 0x160;
@@ -88,7 +87,6 @@ uint256 constant OrderFulfilled_offer_head_offset = 0x40;
 uint256 constant OrderFulfilled_offer_body_offset = 0x80;
 uint256 constant OrderFulfilled_consideration_head_offset = 0x60;
 uint256 constant OrderFulfilled_consideration_body_offset = 0x120;
-
 
 // BasicOrderParameters
 uint256 constant BasicOrder_considerationToken_cdPtr = 0x24;
