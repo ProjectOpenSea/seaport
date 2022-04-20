@@ -623,7 +623,7 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     // TODO: natspec
-    function _aggegateValidFulfillmentConsiderationItems(
+    function _aggregateValidFulfillmentConsiderationItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory considerationComponents,
         uint256 startIndex

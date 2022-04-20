@@ -632,7 +632,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Validate and aggregate consideration items for available orders and
         // store the result as a ReceivedItem.
         ReceivedItem memory considerationItem = (
-            _aggegateValidFulfillmentConsiderationItems(
+            _aggregateValidFulfillmentConsiderationItems(
                 advancedOrders,
                 considerationComponents,
                 0
@@ -651,7 +651,7 @@ contract ConsiderationInternalView is ConsiderationPure {
              * address conduit,
              * uint256 offerAmount
              */
-        ) = _aggegateValidFulfillmentOfferItems(
+        ) = _aggregateValidFulfillmentOfferItems(
             advancedOrders,
             offerComponents,
             0
@@ -768,7 +768,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         if (side == Side.OFFER) {
             // Return execution for aggregated items provided by the offerer.
             // prettier-ignore
-            return _aggegateValidFulfillmentOfferItems(
+            return _aggregateValidFulfillmentOfferItems(
                 advancedOrders,
                 fulfillmentComponents,
                 nextComponentIndex - 1
@@ -787,7 +787,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     // TODO: natspec
-    function _aggegateValidFulfillmentOfferItems(
+    function _aggregateValidFulfillmentOfferItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
         uint256 startIndex
@@ -998,7 +998,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         address fulfillerConduit
     ) internal view returns (Execution memory execution) {
         ReceivedItem
-            memory receiveConsiderationItem = _aggegateValidFulfillmentConsiderationItems(
+            memory receiveConsiderationItem = _aggregateValidFulfillmentConsiderationItems(
                 advancedOrders,
                 considerationComponents,
                 nextComponentIndex
