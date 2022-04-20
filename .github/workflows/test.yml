@@ -54,6 +54,31 @@ jobs:
       - run: yarn install
       - run: yarn test
 
+  forge:
+    name: Run Forge Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install npm lib dependencies
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: yarn install
+
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Run tests
+        run: forge test -vvv
+
   coverage:
     name: Run Coverage Tests
     runs-on: ubuntu-latest

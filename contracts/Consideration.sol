@@ -110,7 +110,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
 
         // Utilize assembly to extract the order type and the basic order route.
         assembly {
-            // Mask all but 4 least-significant bits to derive the order type.
+            // Mask all but 2 least-significant bits to derive the order type.
             orderType := and(calldataload(0x124), 3)
 
             // Divide basicOrderType by four to derive the route.

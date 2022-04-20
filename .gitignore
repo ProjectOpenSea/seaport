@@ -3,13 +3,15 @@ node_modules
 coverage
 coverage.json
 typechain-types
+yarn-error.log
 
 #Hardhat files
-cache
+hh-cache
 artifacts
 
 #foundry test compilation files
-out/
+cache
+out
 
 .DS_Store
 
