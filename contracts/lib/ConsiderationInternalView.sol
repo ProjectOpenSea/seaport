@@ -358,9 +358,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             offerArrPtr := add(offerArrPtr, 0x20)
 
             // Iterate over the offer items.
-            for {
-                let i := 0
-            } lt(i, offerLength) {
+            // prettier-ignore
+            for { let i := 0 } lt(i, offerLength) {
                 i := add(i, 1)
             } {
                 // Read the pointer to the offer data and subtract 32
@@ -409,9 +408,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             )
 
             // Iterate over the offer items.
-            for {
-                let i := 0
-            } lt(i, originalConsiderationLength) {
+            // prettier-ignore
+            for { let i := 0 } lt(i, originalConsiderationLength) {
                 i := add(i, 1)
             } {
                 // Read the pointer to the consideration data and subtract 32
@@ -861,9 +859,8 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         assembly {
             let receivedItemPtr := mload(execution)
-            for {
-                let i := add(startIndex, 1)
-            } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
+            // prettier-ignore
+            for { let i := add(startIndex, 1) } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
                 i := add(i, 1)
             } {
                 let fulfillmentPtr := mload(

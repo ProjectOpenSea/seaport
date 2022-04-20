@@ -704,9 +704,8 @@ contract ConsiderationPure is ConsiderationBase {
                         )
                     )
                     i := add(i, 1)
-                    for {
-
-                    } lt(i, mload(considerationComponents)) {
+                    // prettier-ignore
+                    for {} lt(i, mload(considerationComponents)) {
                         i := add(i, 1)
                     } {
                         fulfillmentPtr := mload(
