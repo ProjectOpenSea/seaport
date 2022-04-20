@@ -346,8 +346,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillAdvancedOrder(
-        AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
+        AdvancedOrder calldata advancedOrder,
+        CriteriaResolver[] calldata criteriaResolvers,
         address fulfillerConduit
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
@@ -591,7 +591,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the supplied orders were
      *         successfully cancelled.
      */
-    function cancel(OrderComponents[] memory orders)
+    function cancel(OrderComponents[] calldata orders)
         external
         override
         returns (bool)
@@ -610,7 +610,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
-                OrderComponents memory order = orders[i];
+                OrderComponents calldata order = orders[i];
 
                 offerer = order.offerer;
                 zone = order.zone;
@@ -664,7 +664,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function validate(Order[] memory orders) external override returns (bool) {
+    function validate(Order[] calldata orders)
+        external
+        override
+        returns (bool)
+    {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
@@ -680,10 +684,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
-                Order memory order = orders[i];
+                Order calldata order = orders[i];
 
                 // Retrieve the order parameters.
-                OrderParameters memory orderParameters = order.parameters;
+                OrderParameters calldata orderParameters = order.parameters;
 
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
