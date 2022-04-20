@@ -1066,11 +1066,11 @@ contract ConsiderationInternalView is ConsiderationPure {
                 }
             }
 
-            // update the final amount on the returned received item.
+            // Update the final amount on the returned received item.
             mstore(add(receivedItemPtr, Common_amount_offset), amount)
         }
 
-        // Revert if an order or item was out of range or was not aggregatable.
+        // Revert if an order/item was out of range or was not aggregatable.
         if (invalidFulfillment) {
             revert InvalidFulfillmentComponentData();
         }

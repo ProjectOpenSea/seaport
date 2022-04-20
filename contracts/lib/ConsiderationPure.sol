@@ -925,7 +925,7 @@ contract ConsiderationPure is ConsiderationBase {
             }
         }
 
-        // Revert if an order or item was out of range or was not aggregatable.
+        // Revert if an order/item was out of range or was not aggregatable.
         if (invalidFulfillment) {
             revert InvalidFulfillmentComponentData();
         }
