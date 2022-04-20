@@ -11095,7 +11095,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("MismatchedFulfillmentConsiderationComponents");
+          ).to.be.revertedWith("FulfilledOrderIndexOutOfRange");
         });
       });
       it("Reverts on fulfillment component with out-of-range offer item", async () => {
@@ -11299,7 +11299,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("ConsiderationCriteriaResolverOutOfRange");
+          ).to.be.revertedWith("FulfilledOrderIndexOutOfRange");
         });
       });
       it("Reverts on fulfillAvailable with empty fulfillment component", async () => {
@@ -13575,7 +13575,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith();
+          ).to.be.revertedWith("TokenTransferGenericFailure");
         });
       });
       it("Reverts when non-1155 account is supplied as the token", async () => {
