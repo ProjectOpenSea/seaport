@@ -36,7 +36,7 @@ import {
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
 
-import "./ConsiderationPointers.sol";
+import "./ConsiderationConstants.sol";
 
 /**
  * @title ConsiderationInternal
