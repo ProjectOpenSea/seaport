@@ -4,10 +4,23 @@ pragma solidity 0.8.13;
 // Common Offsets
 // Offsets to fields within -Item structs
 
-uint256 constant CommonItemTypeOffset = 0x20;
+// uint256 constant CommonItemTypeOffset = 0x0;
 uint256 constant CommonTokenOffset = 0x20;
-uint256 constant CommonIdentifierOffset = 0x20;
-uint256 constant CommonAmountOffset = 0x20;
+uint256 constant CommonIdentifierOffset = 0x40;
+uint256 constant CommonAmountOffset = 0x60;
+
+uint256 constant ReceivedItem_recipient_offset = 0x80;
+uint256 constant ConsiderationItem_recipient_offset = 0xa0;
+uint256 constant Execution_offerer_offset = 0x20;
+uint256 constant Execution_conduit_offset = 0x40;
+
+uint256 constant Order_offer_head_offset = 0x40;
+uint256 constant Order_consideration_head_offset = 0x60;
+uint256 constant Order_conduit_offset = 0x120;
+
+uint256 constant Fulfillment_itemIndex_offset = 0x20;
+
+uint256 constant AdvancedOrder_numerator_offset = 0x20;
 
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
