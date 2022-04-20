@@ -10652,9 +10652,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const offer = [getTestItem721(nftId)];
 
-        const consideration = [
-          getItemETH(10, 10, seller.address),
-        ];
+        const consideration = [getItemETH(10, 10, seller.address)];
 
         const { order, orderHash, value } = await createOrder(
           seller,
