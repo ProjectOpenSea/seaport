@@ -8,7 +8,7 @@ import { AdditionalRecipient } from "contracts/lib/ConsiderationStructs.sol";
 import "contracts/Consideration.sol";
 
 import { DSTestPlusPlus } from "./utils/DSTestPlusPlus.sol";
-import {TestERC721} from "contracts/test/TestERC721.sol";
+import { TestERC721 } from "contracts/test/TestERC721.sol";
 
 contract ConsiderationTest is DSTestPlusPlus {
     Consideration consider;
@@ -22,7 +22,9 @@ contract ConsiderationTest is DSTestPlusPlus {
     TestERC721 test721;
 
     function setUp() public {
-        considerAddress = address(new Consideration(address(0), address(0), address(0)));
+        considerAddress = address(
+            new Consideration(address(0), address(0), address(0))
+        );
         consider = Consideration(considerAddress);
 
         //deploy a test 721
@@ -44,7 +46,6 @@ contract ConsiderationTest is DSTestPlusPlus {
         vm.label(accountA, "Account A");
     }
 
-
     //basic Order
 
     //eth to 721
@@ -63,7 +64,7 @@ contract ConsiderationTest is DSTestPlusPlus {
         emit log("Account A airdropped an NFT.");
 
         // default caller ether amount is 2**96
-        vm.deal(address(this), 2 ** 256 - 1);
+        vm.deal(address(this), 2**256 - 1);
         emit log("Caller airdropped ETH.");
 
         emit log("Basic Order");
@@ -141,5 +142,4 @@ contract ConsiderationTest is DSTestPlusPlus {
 
         emit log("Fulfilled Consideration basic order signed by AccountA");
     }
-
 }
