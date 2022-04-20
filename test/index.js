@@ -13585,7 +13585,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.reverted;
         });
       });
-      it.only("Reverts when transferred item amount is zero", async () => {
+      it("Reverts when transferred item amount is zero", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
         const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
