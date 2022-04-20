@@ -1763,6 +1763,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // If the call to the token transfer proxy does not return true...
             if (!success) {
                 // Revert with an error indicating that return value is falsey.
+                // Note that the legacy token transfer proxy does not support
+                // non-compliant ERC20 tokens that do not return any data on a
+                // successful transfer.
                 revert BadReturnValueFromERC20OnTransfer(
                     token,
                     from,
