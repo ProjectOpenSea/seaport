@@ -1734,7 +1734,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount
     ) internal {
         assembly {
-            // Write calldata to free memory pointer, but restore it later.
+            // Write calldata to the free memory pointer, but restore it later.
             let memPointer := mload(FreeMemoryPointerSlot)
 
             // Write calldata into memory, starting with function selector.
