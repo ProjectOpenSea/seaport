@@ -9787,7 +9787,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("PartialFillsNotEnabledForOrder");
         });
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -9930,7 +9930,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("OrderPartiallyFilled"); //returns bytes orderHash
         });
       });
       it("Reverts on fully filled order", async () => {
@@ -10034,7 +10034,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("OrderAlreadyFilled");
         });
       });
       it("Reverts on inadequate consideration items", async () => {
@@ -10114,7 +10114,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("ConsiderationNotMet");
         });
       });
       it("Reverts on invalid submitter when required by order", async () => {
@@ -10170,7 +10170,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidRestrictedOrder");
         });
 
         await whileImpersonating(zone.address, provider, async () => {
