@@ -23,14 +23,24 @@ contract ConsiderationPure is ConsiderationBase {
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
-     *                                    transfer approved tokens.
+     *                                    transfer approved ERC721+1155 tokens.
+     * @param legacyTokenTransferProxy    A shared proxy contract that may
+     *                                    optionally be used to transfer
+     *                                    approved ERC20 tokens.
      * @param requiredProxyImplementation The implementation that must be set on
      *                                    each proxy in order to utilize it.
      */
     constructor(
         address legacyProxyRegistry,
+        address legacyTokenTransferProxy,
         address requiredProxyImplementation
-    ) ConsiderationBase(legacyProxyRegistry, requiredProxyImplementation) {}
+    )
+        ConsiderationBase(
+            legacyProxyRegistry,
+            legacyTokenTransferProxy,
+            requiredProxyImplementation
+        )
+    {}
 
     /**
      * @dev Internal pure function to apply criteria resolvers containing

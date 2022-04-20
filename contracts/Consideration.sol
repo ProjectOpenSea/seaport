@@ -16,7 +16,10 @@ import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
  *         provides lightweight methods for common routes as well as more
- *         flexible methods for composing advanced orders.
+ *         flexible methods for composing advanced orders or groups of orders.
+ *         Each order contains an arbitrary number of items that may be spent
+ *         (the "offer") along with an arbitrary number of items that must be
+ *         received back by the indicated recipients (the "consideration").
  */
 contract Consideration is ConsiderationInterface, ConsiderationInternal {
     /**
@@ -25,14 +28,24 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
-     *                                    transfer approved tokens.
+     *                                    transfer approved ERC721+1155 tokens.
+     * @param legacyTokenTransferProxy    A shared proxy contract that may
+     *                                    optionally be used to transfer
+     *                                    approved ERC20 tokens.
      * @param requiredProxyImplementation The implementation that must be set on
      *                                    each proxy in order to utilize it.
      */
     constructor(
         address legacyProxyRegistry,
+        address legacyTokenTransferProxy,
         address requiredProxyImplementation
-    ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {}
+    )
+        ConsiderationInternal(
+            legacyProxyRegistry,
+            legacyTokenTransferProxy,
+            requiredProxyImplementation
+        )
+    {}
 
     /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
