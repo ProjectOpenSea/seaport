@@ -10690,7 +10690,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("MismatchedFulfillmentOfferAndConsiderationComponents");
+          ).to.be.revertedWith(
+            "MismatchedFulfillmentOfferAndConsiderationComponents"
+          );
         });
 
         fulfillments = defaultBuyNowMirrorFulfillment;
@@ -10853,7 +10855,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("MismatchedFulfillmentOfferAndConsiderationComponents");
+          ).to.be.revertedWith(
+            "MismatchedFulfillmentOfferAndConsiderationComponents"
+          );
         });
       });
       it("Reverts on mismatched consideration components", async () => {
