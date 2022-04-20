@@ -11294,7 +11294,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("ConsiderationCriteriaResolverOutOfRange");
         });
       });
       it("Reverts on fulfillAvailable with empty fulfillment component", async () => {
@@ -12198,7 +12198,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidTime");
         });
       });
       it("Reverts on orders that have expired (standard)", async () => {
@@ -12240,7 +12240,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidTime");
         });
       });
       it("Reverts on orders that have not started (basic)", async () => {
@@ -12287,7 +12287,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidTime");
         });
       });
       it("Reverts on orders that have expired (basic)", async () => {
@@ -12334,7 +12334,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidTime");
         });
       });
       it("Reverts on orders that have not started (match)", async () => {
@@ -12381,7 +12381,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidTime");
         });
       });
       it("Reverts on orders that have expired (match)", async () => {
@@ -12428,7 +12428,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidTime");
         });
       });
     });
@@ -12478,7 +12478,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .fulfillBasicOrder(basicOrderParameters, {
                 value: ethers.BigNumber.from(0),
               })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InsufficientEtherSupplied");
         });
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -12538,7 +12538,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .fulfillBasicOrder(basicOrderParameters, {
                 value: ethers.BigNumber.from(1),
               })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InsufficientEtherSupplied");
         });
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -12628,7 +12628,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .fulfillOrder(order, toAddress(false), {
                 value: ethers.utils.parseEther("9.999999"),
               })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InsufficientEtherSupplied");
         });
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -12727,7 +12727,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .fulfillAdvancedOrder(order, [], toAddress(false), {
                 value: ethers.BigNumber.from(1),
               })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InsufficientEtherSupplied");
         });
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -12836,7 +12836,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .matchOrders([order, mirrorOrder], fulfillments, {
                 value: ethers.BigNumber.from(1),
               })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InsufficientEtherSupplied");
         });
 
         await whileImpersonating(owner.address, provider, async () => {
@@ -12846,7 +12846,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .matchOrders([order, mirrorOrder], fulfillments, {
                 value: value.sub(1),
               })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InsufficientEtherSupplied");
         });
 
         await whileImpersonating(owner.address, provider, async () => {
@@ -12966,7 +12966,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .fulfillBasicOrder(basicOrderParameters, {
                 value: ethers.BigNumber.from(1),
               })
-          ).to.be.reverted;
+          ).to.be.revertedWith("EtherTransferGenericFailure");
         });
 
         await whileImpersonating(buyer.address, provider, async () => {
@@ -13053,7 +13053,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("TokenTransferGenericFailure");
         });
 
         let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
