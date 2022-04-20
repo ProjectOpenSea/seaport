@@ -2022,7 +2022,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 mstore(ERC1155_safeTransferFrom_amount_ptr, amount)
                 mstore(
                     ERC1155_safeTransferFrom_data_offset_ptr,
-                    ERC1155_safeTransferFrom_data_length_ptr_minus_sig
+                    ERC1155_safeTransferFrom_data_length_offset
                 )
                 mstore(ERC1155_safeTransferFrom_data_length_ptr, 0)
 
