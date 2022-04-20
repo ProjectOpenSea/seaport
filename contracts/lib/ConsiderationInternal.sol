@@ -319,7 +319,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                  * The tips are all the considerations that were not signed by the offerer and were provided by
                  * the fulfiller.
                  */
-                
+
                 // Overwrite length to the length of the additionalRecipients array
                 len := calldataload(
                     BasicOrder_additionalRecipients_length_cdPtr
@@ -415,7 +415,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                  */
                 mstore(BasicOrder_order_offerHashes_ptr, keccak256(0x00, 0x20))
 
-                
                 /*
                  * 3. Write SpentItem to offer array in OrderFulfilled event.
                  */
