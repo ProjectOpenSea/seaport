@@ -26,6 +26,8 @@ uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
 
+uint256 constant FreeMemoryPointerSlot = 0x40;
+uint256 constant ZeroSlot = 0x60;
 uint256 constant DefaultFreeMemoryPointer = 0x80;
 
 uint256 constant BasicOrder_endAmount_cdPtr = 0x104;
@@ -174,6 +176,11 @@ uint256 constant BasicOrder_order_zoneHash_ptr = 0x180;
 uint256 constant BasicOrder_order_salt_ptr = 0x1a0;
 uint256 constant BasicOrder_order_conduit_ptr = 0x1c0;
 uint256 constant BasicOrder_order_nonce_ptr = 0x1e0;
+
+// Signature-related
+bytes32 constant EIP2098_allButHighestBitMask = (
+    0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+);
 
 // abi.encodeWithSignature("transferFrom(address,address,uint256)")
 uint256 constant ERC20_transferFrom_signature = 0x23b872dd00000000000000000000000000000000000000000000000000000000;

@@ -1734,8 +1734,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount
     ) internal {
         assembly {
-            // Write calldata to this slot below, but restore it later.
-            let memPointer := mload(0x40)
+            // Write calldata to the free memory pointer, but restore it later.
+            let memPointer := mload(FreeMemoryPointerSlot)
 
             // Write calldata into memory, starting with function selector.
             mstore(ERC20_transferFrom_sig_ptr, ERC20_transferFrom_signature)
@@ -1753,9 +1753,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 0,
                 0x20
             )
-
-            mstore(0x60, 0) // Restore the zero slot to zero.
-            mstore(0x40, memPointer) // Restore the memPointer.
 
             let success := and(
                 // Set success to whether the call reverted, if not check it
@@ -1847,6 +1844,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Otherwise the token just returned nothing but otherwise succeeded,
                 // no need to optimize for this as it's not technically ERC20 compliant.
             }
+
+            // Restore the original free memory pointer.
+            mstore(FreeMemoryPointerSlot, memPointer)
+
+            // Restore the zero slot to zero.
+            mstore(ZeroSlot, 0)
         }
     }
 
@@ -1890,8 +1893,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
-                // Write calldata to this slot below, but restore it later.
-                let memPointer := mload(0x40)
+                // Write calldata to the free memory pointer, but restore it later.
+                let memPointer := mload(FreeMemoryPointerSlot)
 
                 // Write calldata into memory starting with function selector.
                 mstore(
@@ -1911,9 +1914,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     0,
                     0
                 )
-
-                mstore(0x60, 0) // Restore the zero slot to zero.
-                mstore(0x40, memPointer) // Restore the memPointer.
 
                 // If the transfer reverted:
                 if iszero(success) {
@@ -1941,6 +1941,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         TokenTransferGenericFailure_error_length
                     )
                 }
+
+                // Restore the original free memory pointer.
+                mstore(FreeMemoryPointerSlot, memPointer)
+
+                // Restore the zero slot to zero.
+                mstore(ZeroSlot, 0)
             }
         } else if (conduit == address(1)) {
             // Perform transfer via a call to the proxy for the supplied owner.
@@ -2003,7 +2009,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 }
 
                 // Write calldata to these slots below, but restore them later.
-                let memPointer := mload(0x40)
+                let memPointer := mload(FreeMemoryPointerSlot)
                 let slot0x80 := mload(0x80)
                 let slot0xA0 := mload(0xA0)
 
@@ -2032,11 +2038,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     0
                 )
 
-                mstore(0x80, slot0x80) // Restore slot 0x80.
-                mstore(0xA0, slot0xA0) // Restore slot 0xA0.
-                mstore(0x40, memPointer) // Restore the memPointer.
-                mstore(0x60, 0) // Restore the zero slot to zero.
-
                 // If the transfer reverted:
                 if iszero(success) {
                     // If it returned a message, bubble it up:
@@ -2063,6 +2064,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         TokenTransferGenericFailure_error_length
                     )
                 }
+
+                mstore(0x80, slot0x80) // Restore slot 0x80.
+                mstore(0xA0, slot0xA0) // Restore slot 0xA0.
+
+                // Restore the original free memory pointer.
+                mstore(FreeMemoryPointerSlot, memPointer)
+
+                // Restore the zero slot to zero.
+                mstore(ZeroSlot, 0)
             }
         } else if (conduit == address(1)) {
             // Perform transfer via a call to the proxy for the supplied owner.

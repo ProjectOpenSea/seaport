@@ -187,15 +187,12 @@ contract ConsiderationInternalView is ConsiderationPure {
                 vs := mload(add(signature, 0x40))
 
                 // Extract canonical s from vs (all but the highest bit).
-                s := and(
-                    vs,
-                    0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff // solhint-disable-line max-line-length
-                )
+                s := and(vs, EIP2098_allButHighestBitMask)
 
                 // Extract yParity from highest bit of vs and add 27 to get v.
                 v := add(shr(255, vs), 27)
             }
-            // If signature contains 65 bytes, parse as standard signature. (r+s+v)
+            // If signature is 65 bytes, parse as a standard signature. (r+s+v)
         } else if (signature.length == 65) {
             // Read each parameter directly from the signature's memory region.
             assembly {
@@ -208,7 +205,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             if (v != 27 && v != 28) {
                 revert BadSignatureV(v);
             }
-            // For all other signature lengths, attempt verification using EIP-1271.
+            // For all other signature lengths, try verification via EIP-1271.
         } else {
             // Attempt EIP-1271 static call to offerer in case it's a contract.
             _verifySignatureViaERC1271(offerer, digest, signature);
@@ -339,12 +336,17 @@ contract ConsiderationInternalView is ConsiderationPure {
          * a data segment. The main difference is that the head of an element
          * is a memory pointer rather than an offset.
          */
-        bytes32 offersHash;
+
+        // Declare a variable for the derived hash of the offer array.
+        bytes32 offerHash;
+
+        // Read offer item EIP-712 typehash from runtime code & place on stack.
         bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
 
+        // Utilize assembly so that memory regions can be reused across hashes.
         assembly {
-            // Pointer to free memory.
-            let hashArrPtr := mload(0x40)
+            // Retrieve the free memory pointer and place on the stack.
+            let hashArrPtr := mload(FreeMemoryPointerSlot)
 
             // Get the pointer to the offers array.
             let offerArrPtr := mload(add(orderParameters, 0x40))
@@ -382,14 +384,23 @@ contract ConsiderationInternalView is ConsiderationPure {
                 hashArrPtr := add(hashArrPtr, 0x20)
             }
 
-            offersHash := keccak256(mload(0x40), mul(offerLength, 0x20))
+            // Derive the offer hash.
+            offerHash := keccak256(
+                mload(FreeMemoryPointerSlot),
+                mul(offerLength, 0x20)
+            )
         }
 
+        // Declare a variable for the derived hash of the consideration array.
         bytes32 considerationHash;
+
+        // Read consideration item typehash from runtime code & place on stack.
         typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
+        // Utilize assembly so that memory regions can be reused across hashes.
         assembly {
-            let hashArrPtr := mload(0x40)
+            // Retrieve the free memory pointer and place on the stack.
+            let hashArrPtr := mload(FreeMemoryPointerSlot)
 
             // Get the pointer to the consideration array.
             let considerationArrPtr := add(
@@ -397,6 +408,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 0x20
             )
 
+            // Iterate over the offer items.
             for {
                 let i := 0
             } lt(i, originalConsiderationLength) {
@@ -423,14 +435,17 @@ contract ConsiderationInternalView is ConsiderationPure {
                 hashArrPtr := add(hashArrPtr, 0x20)
             }
 
+            // Derive the offer hash.
             considerationHash := keccak256(
-                mload(0x40),
+                mload(FreeMemoryPointerSlot),
                 mul(originalConsiderationLength, 0x20)
             )
         }
 
+        // Read order item EIP-712 typehash from runtime code & place on stack.
         typeHash = _ORDER_TYPEHASH;
 
+        // Utilize assembly to access derived hashes & other arguments directly.
         assembly {
             let typeHashPtr := sub(orderParameters, 0x20)
             let previousValue := mload(typeHashPtr)
@@ -438,7 +453,7 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             let offerHeadPtr := add(orderParameters, 0x40)
             let offerDataPtr := mload(offerHeadPtr)
-            mstore(offerHeadPtr, offersHash)
+            mstore(offerHeadPtr, offerHash)
 
             let considerationHeadPtr := add(orderParameters, 0x60)
             let considerationDataPtr := mload(considerationHeadPtr)
@@ -569,9 +584,9 @@ contract ConsiderationInternalView is ConsiderationPure {
                         zoneHash
                     )
                 );
-                // Otherwise, extraData has been supplied.
             } else {
-                // Perform verbose staticcall to zone.
+                // Otherwise, extraData was supplied; in that event, perform a
+                // more verbose staticcall to the zone.
                 success = _staticcall(
                     zone,
                     abi.encodeWithSelector(
@@ -615,26 +630,35 @@ contract ConsiderationInternalView is ConsiderationPure {
         ) {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
-        ReceivedItem
-            memory considerationItem = _aggegateValidFulfillmentConsiderationItems(
+
+        // Validate and aggregate consideration items for available orders and
+        // store the result as a ReceivedItem.
+        ReceivedItem memory considerationItem = (
+            _aggegateValidFulfillmentConsiderationItems(
                 advancedOrders,
                 considerationComponents,
                 0
-            );
+            )
+        );
+
+        // Validate & aggregate offer items for available orders and store the
+        // result as an Execution.
         (
             execution
-            /* ItemType itemType,
-             address token,
-             uint256 identifier,
-             address offerer,
-             address conduit,
-             uint256 offerAmount
-           */
+            /**
+             * ItemType itemType,
+             * address token,
+             * uint256 identifier,
+             * address offerer,
+             * address conduit,
+             * uint256 offerAmount
+             */
         ) = _aggegateValidFulfillmentOfferItems(
             advancedOrders,
             offerComponents,
             0
         );
+
         // Ensure offer and consideration share types, tokens and identifiers.
         if (
             execution.item.itemType != considerationItem.itemType ||
@@ -650,26 +674,32 @@ contract ConsiderationInternalView is ConsiderationPure {
             FulfillmentComponent memory targetComponent = (
                 considerationComponents[0]
             );
-            // Add excess consideration amount to the original orders array.
+
+            // Add excess consideration item amount to original array of orders.
             advancedOrders[targetComponent.orderIndex]
                 .parameters
                 .consideration[targetComponent.itemIndex]
                 .startAmount = considerationItem.amount - execution.item.amount;
+
             // Reduce total consideration amount to equal the offer amount.
             considerationItem.amount = execution.item.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = (offerComponents[0]);
+
+            // Add excess offer item amount to the original array of orders.
             advancedOrders[targetComponent.orderIndex]
                 .parameters
                 .offer[targetComponent.itemIndex]
                 .startAmount = execution.item.amount - considerationItem.amount;
         }
-        // Reuse execution struct with consideration amount and recipient
+
+        // Reuse execution struct with consideration amount and recipient.
         execution.item.amount = considerationItem.amount;
         execution.item.recipient = considerationItem.recipient;
+
         // Return the final execution that will be triggered for relevant items.
-        return execution; //Execution(considerationItem, offerer, conduit);
+        return execution; // Execution(considerationItem, offerer, conduit);
     }
 
     /**
@@ -751,8 +781,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                     fulfillmentComponents,
                     nextComponentIndex - 1
                 );
-            // Otherwise, fulfillment components are consideration components.
         } else {
+            // Otherwise, fulfillment components are consideration components.
             // Return execution for aggregated items provided by the fulfiller.
             return
                 _aggregateConsiderationItems(
