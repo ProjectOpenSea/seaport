@@ -13129,7 +13129,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("ERC1155BatchTransferGenericFailure");
         });
       });
       it("Reverts when ERC20 tokens return falsey values", async () => {
@@ -13217,7 +13217,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("BadReturnValueFromERC20OnTransfer");
         });
 
         let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -13376,7 +13376,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("ERC1155BatchTransferGenericFailure");
         });
 
         const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -13485,7 +13485,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("NoContract");
         });
       });
       it("Reverts when 1155 account with no code is supplied", async () => {
@@ -13570,7 +13570,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("NoContract");
         });
       });
       it("Reverts when non-1155 account is supplied as the token", async () => {
