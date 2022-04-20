@@ -302,12 +302,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         returns (bool)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
-        return
-            _validateAndFulfillAdvancedOrder(
-                _convertOrderToAdvanced(order),
-                new CriteriaResolver[](0), // No criteria resolvers supplied.
-                fulfillerConduit
-            );
+        // prettier-ignore
+        return _validateAndFulfillAdvancedOrder(
+            _convertOrderToAdvanced(order),
+            new CriteriaResolver[](0), // No criteria resolvers supplied.
+            fulfillerConduit
+        );
     }
 
     /**
@@ -767,23 +767,23 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         returns (bytes32)
     {
         // Derive order hash by supplying order parameters along with the nonce.
-        return
-            _getOrderHash(
-                OrderParameters(
-                    order.offerer,
-                    order.zone,
-                    order.offer,
-                    order.consideration,
-                    order.orderType,
-                    order.startTime,
-                    order.endTime,
-                    order.zoneHash,
-                    order.salt,
-                    order.conduit,
-                    order.consideration.length
-                ),
-                order.nonce
-            );
+        // prettier-ignore
+        return _getOrderHash(
+            OrderParameters(
+                order.offerer,
+                order.zone,
+                order.offer,
+                order.consideration,
+                order.orderType,
+                order.startTime,
+                order.endTime,
+                order.zoneHash,
+                order.salt,
+                order.conduit,
+                order.consideration.length
+            ),
+            order.nonce
+        );
     }
 
     /**

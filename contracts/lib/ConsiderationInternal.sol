@@ -209,9 +209,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     BasicOrder_totalOriginalAdditionalRecipients_cdPtr
                 )
                 let i := 0
-                for {
-
-                } lt(i, len) {
+                // prettier-ignore
+                for {} lt(i, len) {
                     i := add(i, 1)
                 } {
                     // Retrieve pointer for additional recipient in question.
@@ -284,9 +283,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 len := calldataload(
                     BasicOrder_additionalRecipients_length_cdPtr
                 )
-                for {
-
-                } lt(i, len) {
+                // prettier-ignore
+                for {} lt(i, len) {
                     i := add(i, 1)
                 } {
                     // Retrieve pointer for additional recipient in question.

@@ -304,10 +304,10 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      scratch.
      */
     function _domainSeparator() internal view returns (bytes32) {
-        return
-            block.chainid == _CHAIN_ID
-                ? _DOMAIN_SEPARATOR
-                : _deriveDomainSeparator();
+        // prettier-ignore
+        return block.chainid == _CHAIN_ID
+            ? _DOMAIN_SEPARATOR
+            : _deriveDomainSeparator();
     }
 
     /**
@@ -358,9 +358,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             offerArrPtr := add(offerArrPtr, 0x20)
 
             // Iterate over the offer items.
-            for {
-                let i := 0
-            } lt(i, offerLength) {
+            // prettier-ignore
+            for { let i := 0 } lt(i, offerLength) {
                 i := add(i, 1)
             } {
                 // Read the pointer to the offer data and subtract 32
@@ -409,9 +408,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             )
 
             // Iterate over the offer items.
-            for {
-                let i := 0
-            } lt(i, originalConsiderationLength) {
+            // prettier-ignore
+            for { let i := 0 } lt(i, originalConsiderationLength) {
                 i := add(i, 1)
             } {
                 // Read the pointer to the consideration data and subtract 32
@@ -758,39 +756,33 @@ contract ConsiderationInternalView is ConsiderationPure {
         // If no available order was located...
         if (nextComponentIndex == 0) {
             // Return early with a null execution element that will be filtered.
-            return
-                Execution(
-                    ReceivedItem(
-                        ItemType.NATIVE,
-                        address(0),
-                        0,
-                        0,
-                        payable(address(0))
-                    ),
-                    address(0),
-                    address(0)
-                );
+            // prettier-ignore
+            return Execution(
+                ReceivedItem(ItemType.NATIVE, address(0), 0, 0, payable(address(0))),
+                address(0),
+                address(0)
+            );
         }
 
         // If the fulfillment components are offer components...
         if (side == Side.OFFER) {
             // Return execution for aggregated items provided by the offerer.
-            return
-                _aggregateValidFulfillmentOfferItems(
-                    advancedOrders,
-                    fulfillmentComponents,
-                    nextComponentIndex - 1
-                );
+            // prettier-ignore
+            return _aggegateValidFulfillmentOfferItems(
+                advancedOrders,
+                fulfillmentComponents,
+                nextComponentIndex - 1
+            );
         } else {
             // Otherwise, fulfillment components are consideration components.
             // Return execution for aggregated items provided by the fulfiller.
-            return
-                _aggregateConsiderationItems(
-                    advancedOrders,
-                    fulfillmentComponents,
-                    nextComponentIndex - 1,
-                    fulfillerConduit
-                );
+            // prettier-ignore
+            return _aggregateConsiderationItems(
+                advancedOrders,
+                fulfillmentComponents,
+                nextComponentIndex - 1,
+                fulfillerConduit
+            );
         }
     }
 
@@ -867,9 +859,8 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         assembly {
             let receivedItemPtr := mload(execution)
-            for {
-                let i := add(startIndex, 1)
-            } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
+            // prettier-ignore
+            for { let i := add(startIndex, 1) } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
                 i := add(i, 1)
             } {
                 let fulfillmentPtr := mload(

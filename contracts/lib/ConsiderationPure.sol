@@ -466,8 +466,8 @@ contract ConsiderationPure is ConsiderationBase {
             }
 
             // Split executions into standard and batched executions and return.
-            return
-                _splitExecution(
+            // prettier-ignore
+            return _splitExecution(
                     executions,
                     batches,
                     usedInBatch,
@@ -704,9 +704,8 @@ contract ConsiderationPure is ConsiderationBase {
                         )
                     )
                     i := add(i, 1)
-                    for {
-
-                    } lt(i, mload(considerationComponents)) {
+                    // prettier-ignore
+                    for {} lt(i, mload(considerationComponents)) {
                         i := add(i, 1)
                     } {
                         fulfillmentPtr := mload(
@@ -958,13 +957,13 @@ contract ConsiderationPure is ConsiderationBase {
         ReceivedItem memory item = execution.item;
 
         // Derive hash based on token, offerer, recipient, and proxy usage.
-        return
-            _hashBatchableItemIdentifier(
-                item.token,
-                execution.offerer,
-                item.recipient,
-                execution.conduit
-            );
+        // prettier-ignore
+        return _hashBatchableItemIdentifier(
+            item.token,
+            execution.offerer,
+            item.recipient,
+            execution.conduit
+        );
     }
 
     /**
