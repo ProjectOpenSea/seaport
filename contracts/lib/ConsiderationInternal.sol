@@ -2008,7 +2008,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
-
                 // Write calldata to these slots below, but restore them later.
                 let memPointer := mload(FreeMemoryPointerSlot)
                 let slot0x80 := mload(0x80)
@@ -2065,7 +2064,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         TokenTransferGenericFailure_error_length
                     )
                 }
-                
+
                 mstore(0x80, slot0x80) // Restore slot 0x80.
                 mstore(0xA0, slot0xA0) // Restore slot 0xA0.
 
