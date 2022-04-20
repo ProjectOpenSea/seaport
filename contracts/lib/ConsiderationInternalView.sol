@@ -814,7 +814,9 @@ contract ConsiderationInternalView is ConsiderationPure {
                 )
             )
             // Load offer array pointer
-            let offerArrPtr := mload(add(orderPtr, OrderParameters_offer_head_offset))
+            let offerArrPtr := mload(
+                add(orderPtr, OrderParameters_offer_head_offset)
+            )
             invalidFulfillment := or(
                 iszero(lt(itemIndex, mload(offerArrPtr))),
                 invalidFulfillment

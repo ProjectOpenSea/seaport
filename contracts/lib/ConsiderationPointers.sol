@@ -7,8 +7,8 @@ pragma solidity 0.8.13;
  *      but only in reference to dynamic types, i.e. it always refers to the offset
  *      or pointer to the body of a dynamic type. In calldata, the head is always
  *      an offset (relative to the parent object), while in memory, the head is always
- *      the pointer to the body 
- *        
+ *      the pointer to the body
+ *
  *        - https://docs.soliditylang.org/en/v0.8.13/abi-spec.html#argument-encoding
  *        - Note that the length of an array is separate from and precedes the head of
  *          the array.
@@ -78,7 +78,6 @@ uint256 constant AdditionalRecipients_size = 0x40;
 
 uint256 constant receivedItemsHash_ptr = 0x60;
 
-
 /*
  *  Memory layout in _prepareBasicFulfillmentFromCalldata of
  *  data for OrderFulfilled
@@ -111,7 +110,6 @@ uint256 constant receivedItemsHash_ptr = 0x60;
  *  - 0x1c0: considerationRecipient
  *  - ...
  */
-
 
 // Minimum length of the OrderFulfilled event data.
 // Must be added to the size of the ReceivedItem array for additionalRecipients
@@ -274,4 +272,3 @@ uint256 constant BadReturnValueFromERC20OnTransfer_error_from_ptr = 0x24;
 uint256 constant BadReturnValueFromERC20OnTransfer_error_to_ptr = 0x44;
 uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x64;
 uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84; // 4 + 32 * 4 == 132
-

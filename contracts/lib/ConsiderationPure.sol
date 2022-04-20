@@ -646,10 +646,7 @@ contract ConsiderationPure is ConsiderationBase {
                     // Read the pointer to advancedOrders[orderIndex] from its head in the array
                     mload(
                         // Calculate the position of the head for advancedOrders[orderIndex]
-                        add(
-                            add(advancedOrders, 0x20),
-                            mul(orderIndex, 0x20)
-                        )
+                        add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
                     )
                 )
                 // Load consideration array pointer
@@ -680,7 +677,9 @@ contract ConsiderationPure is ConsiderationBase {
                     // identifier
                     mstore(
                         add(receivedItem, Common_identifier_offset),
-                        mload(add(considerationItemPtr, Common_identifier_offset))
+                        mload(
+                            add(considerationItemPtr, Common_identifier_offset)
+                        )
                     )
                     let amountPtr := add(
                         considerationItemPtr,

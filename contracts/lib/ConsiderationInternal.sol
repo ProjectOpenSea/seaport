@@ -131,10 +131,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                 // Write ConsiderationItem type hash and item type to memory.
                 mstore(BasicOrder_considerationItem_typeHash_ptr, typeHash)
-                mstore(BasicOrder_considerationItem_itemType_ptr, receivedItemType)
+                mstore(
+                    BasicOrder_considerationItem_itemType_ptr,
+                    receivedItemType
+                )
 
-                // Copy calldata region with considerationToken, considerationIdentifier, and considerationAmount
-                // from BasicOrderParameters to token, identifier, startAmount in ConsiderationItem.
+                // Copy calldata region with (token, identifier, amount) from BasicOrderParameters to ConsiderationItem.
                 // considerationAmount is written to startAmount and endAmount as basic orders do not have dynamic amounts.
                 calldatacopy(
                     BasicOrder_considerationItem_token_ptr,
@@ -202,18 +204,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 )
 
                 /*
-                 * 3. Calculate EIP712 hashes for original additional recipients and add a ReceivedItem for
-                 * each to the consideration array in the OrderFulfilled event.
+                 * 3. Calculate EIP712 ConsiderationItem hashes for original additional recipients and add
+                 * a ReceivedItem for each to the consideration array in the OrderFulfilled event.
                  * The original additional recipients are all the considerations signed by the offerer aside
                  * from the primary consideration of the order.
+                 * Uses memory region from 0x80-0x160 as a buffer for calculating EIP712 ConsiderationItem hashes.
                  */
-                // Set pointer to current location in receivedItemHashes.
+
+                // Put pointer to consideration hashes array on the stack.
+                // This will be updated as each additional recipient is hashed
                 let
                     considerationHashesPtr
                 := BasicOrder_considerationHashesArray_ptr
 
-                // Write item type, token, & identifier for additional recipient
-                // to memory; these values will be reused for each recipient.
+                // Write item type, token, & identifier for additional recipient to memory region for
+                // hashing EIP712 ConsiderationItem; these values will be reused for each recipient.
                 mstore(
                     BasicOrder_considerationItem_itemType_ptr,
                     additionalRecipientsItemType
@@ -224,7 +229,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 )
                 mstore(BasicOrder_considerationItem_identifier_ptr, 0)
 
-                // Read length of the additionalRecipients array and iterate.
+                // Read length of the additionalRecipients array from calldata and iterate.
                 len := calldataload(
                     BasicOrder_totalOriginalAdditionalRecipients_cdPtr
                 )
@@ -233,14 +238,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 for {} lt(i, len) {
                     i := add(i, 1)
                 } {
-                    // Retrieve pointer for additional recipient in question.
+                    // Retrieve calldata pointer for additional recipient in question.
                     let additionalRecipientCdPtr := add(
                         BasicOrder_additionalRecipients_data_cdPtr,
                         mul(AdditionalRecipients_size, i)
                     )
 
-                    // a. Write ConsiderationItem hash to consideration array.
-                    // Copy startAmount from calldata.
+                    // Copy startAmount from calldata to the ReceivedItem buffer.
                     calldatacopy(
                         BasicOrder_considerationItem_startAmount_ptr,
                         additionalRecipientCdPtr,
