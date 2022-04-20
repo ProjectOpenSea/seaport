@@ -10654,8 +10654,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const consideration = [
           getItemETH(10, 10, seller.address),
-          getItemETH(1, 1, zone.address),
-          getItemETH(1, 1, owner.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -10674,6 +10672,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             offerComponents: [
               {
                 orderIndex: 0,
+                itemIndex: 0,
+              },
+              {
+                orderIndex: 1,
                 itemIndex: 0,
               },
             ],
@@ -12481,7 +12483,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, {
-                value: ethers.BigNumber.from(0),
+                value: ethers.BigNumber.from(1),
               })
           ).to.be.revertedWith("InsufficientEtherSupplied");
         });
