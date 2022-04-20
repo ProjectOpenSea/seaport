@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { ProxyRegistryInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
+import { ProxyRegistryInterface, TokenTransferProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
 
 import { ConsiderationEventsAndErrors } from "../interfaces/ConsiderationEventsAndErrors.sol";
 
@@ -33,6 +33,9 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Allow for interaction with user proxies on the legacy proxy registry.
     ProxyRegistryInterface internal immutable _LEGACY_PROXY_REGISTRY;
 
+    // Allow for interaction with the legacy token transfer proxy.
+    TokenTransferProxyInterface internal immutable _LEGACY_TOKEN_TRANSFER_PROXY;
+
     // Ensure that user proxies adhere to the required proxy implementation.
     address internal immutable _REQUIRED_PROXY_IMPLEMENTATION;
 
@@ -51,12 +54,16 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
-     *                                    transfer approved tokens.
+     *                                    transfer approved ERC721+1155 tokens.
+     * @param legacyTokenTransferProxy    A shared proxy contract that may
+     *                                    optionally be used to transfer
+     *                                    approved ERC20 tokens.
      * @param requiredProxyImplementation The implementation that must be set on
      *                                    each proxy in order to utilize it.
      */
     constructor(
         address legacyProxyRegistry,
+        address legacyTokenTransferProxy,
         address requiredProxyImplementation
     ) {
         // Derive hashes, reference chainId, and associated domain separator.
@@ -126,6 +133,9 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
 
         // TODO: validate each of these based on expected codehash
         _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
+        _LEGACY_TOKEN_TRANSFER_PROXY = TokenTransferProxyInterface(
+            legacyTokenTransferProxy
+        );
         _REQUIRED_PROXY_IMPLEMENTATION = requiredProxyImplementation;
 
         // Initialize the reentrancy guard in a cleared state.

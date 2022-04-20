@@ -27,16 +27,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
-     *                                    transfer approved tokens.
+     *                                    transfer approved ERC721+1155 tokens.
+     * @param legacyTokenTransferProxy    A shared proxy contract that may
+     *                                    optionally be used to transfer
+     *                                    approved ERC20 tokens.
      * @param requiredProxyImplementation The implementation that must be set on
      *                                    each proxy in order to utilize it.
      */
     constructor(
         address legacyProxyRegistry,
+        address legacyTokenTransferProxy,
         address requiredProxyImplementation
     )
         ConsiderationInternalView(
             legacyProxyRegistry,
+            legacyTokenTransferProxy,
             requiredProxyImplementation
         )
     {}
@@ -1715,32 +1720,34 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
         } else if (item.itemType == ItemType.ERC20) {
-            // For an ERC20 item...
-            // Transfer ERC20 token from the offerer to the recipient.
-            _transferERC20(item.token, offerer, item.recipient, item.amount);
+            // Transfer ERC20 tokens from the offerer to the recipient.
+            _transferERC20(
+                item.token,
+                offerer,
+                item.recipient,
+                item.amount,
+                conduit
+            );
+        } else if (item.itemType == ItemType.ERC721) {
+            // Transfer ERC721 token from the offerer to the recipient.
+            _transferERC721(
+                item.token,
+                offerer,
+                item.recipient,
+                item.identifier,
+                item.amount,
+                conduit
+            );
         } else {
-            // Otherwise, transfer item based on item type & conduit preference.
-            if (item.itemType == ItemType.ERC721) {
-                // Transfer ERC721 token from the offerer to the recipient.
-                _transferERC721(
-                    item.token,
-                    offerer,
-                    item.recipient,
-                    item.identifier,
-                    item.amount,
-                    conduit
-                );
-            } else {
-                // Transfer ERC1155 token from the offerer to the recipient.
-                _transferERC1155(
-                    item.token,
-                    offerer,
-                    item.recipient,
-                    item.identifier,
-                    item.amount,
-                    conduit
-                );
-            }
+            // Transfer ERC1155 token from the offerer to the recipient.
+            _transferERC1155(
+                item.token,
+                offerer,
+                item.recipient,
+                item.identifier,
+                item.amount,
+                conduit
+            );
         }
     }
 
@@ -1771,20 +1778,75 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
     /**
      * @dev Internal function to transfer ERC20 tokens from a given originator
+     *      to a given recipient using a given conduit if applicable. Sufficient
+     *      approvals must be set on this contract, the conduit, or the token
+     *      transfer proxy in cases where the conduit is set to `address(1)`.
+     *
+     * @param token      The ERC20 token to transfer.
+     * @param from       The originator of the transfer.
+     * @param to         The recipient of the transfer.
+     * @param amount     The amount to transfer.
+     * @param conduit    An address indicating what conduit, if any, to source
+     *                   token approvals from. The null address signifies that
+     *                   no conduit should be used (and direct approvals set on
+     *                   Consideration) and `address(1)` signifies to utilize
+     *                   the legacy token transfer proxy for the transfer.
+     */
+    function _transferERC20(
+        address token,
+        address from,
+        address to,
+        uint256 amount,
+        address conduit
+    ) internal {
+        // If no conduit has been specified...
+        if (conduit == address(0)) {
+            // Perform the token transfer directly.
+            _performDirectERC20Transfer(token, from, to, amount);
+        } else if (conduit == address(1)) {
+            // Perform transfer via a call to the legacy token transfer proxy.
+            bool success = _LEGACY_TOKEN_TRANSFER_PROXY.transferFrom(
+                token,
+                from,
+                to,
+                amount
+            );
+
+            // If the call to the token transfer proxy does not return true...
+            if (!success) {
+                // Revert with an error indicating that return value is falsey.
+                // Note that the legacy token transfer proxy does not support
+                // non-compliant ERC20 tokens that do not return any data on a
+                // successful transfer.
+                revert BadReturnValueFromERC20OnTransfer(
+                    token,
+                    from,
+                    to,
+                    amount
+                );
+            }
+        } else {
+            revert("Not yet implemented");
+        }
+    }
+
+    /**
+     * @dev Internal function to transfer ERC20 tokens from a given originator
      *      to a given recipient. Sufficient approvals must be set on this
-     *      contract (note that proxies are not utilized for ERC20 items).
+     *      contract.
      *
      * @param token      The ERC20 token to transfer.
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param amount     The amount to transfer.
      */
-    function _transferERC20(
+    function _performDirectERC20Transfer(
         address token,
         address from,
         address to,
         uint256 amount
     ) internal {
+        // Utilize assembly to perform an optimized ERC20 token transfer.
         assembly {
             // Write calldata to the free memory pointer, but restore it later.
             let memPointer := mload(FreeMemoryPointerSlot)
@@ -2359,6 +2421,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         BasicOrderParameters calldata parameters,
         bool fromOfferer
     ) internal {
+        // Determine the appropriate conduit to utilize.
+        address conduit = fromOfferer
+            ? parameters.offererConduit
+            : parameters.fulfillerConduit;
+
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length; ) {
             // Retrieve the additional recipient.
@@ -2376,7 +2443,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 erc20Token,
                 from,
                 additionalRecipient.recipient,
-                additionalRecipient.amount
+                additionalRecipient.amount,
+                conduit
             );
 
             // Skip overflow check as for loop is indexed starting at zero.
@@ -2386,7 +2454,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(erc20Token, from, to, amount);
+        _transferERC20(erc20Token, from, to, amount, conduit);
 
         // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;

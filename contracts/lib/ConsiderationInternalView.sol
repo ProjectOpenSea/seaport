@@ -25,14 +25,24 @@ contract ConsiderationInternalView is ConsiderationPure {
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
-     *                                    transfer approved tokens.
+     *                                    transfer approved ERC721+1155 tokens.
+     * @param legacyTokenTransferProxy    A shared proxy contract that may
+     *                                    optionally be used to transfer
+     *                                    approved ERC20 tokens.
      * @param requiredProxyImplementation The implementation that must be set on
      *                                    each proxy in order to utilize it.
      */
     constructor(
         address legacyProxyRegistry,
+        address legacyTokenTransferProxy,
         address requiredProxyImplementation
-    ) ConsiderationPure(legacyProxyRegistry, requiredProxyImplementation) {}
+    )
+        ConsiderationPure(
+            legacyProxyRegistry,
+            legacyTokenTransferProxy,
+            requiredProxyImplementation
+        )
+    {}
 
     /**
      * @dev Internal view function to ensure that the sentinel value for the
@@ -699,6 +709,11 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Return the final execution that will be triggered for relevant items.
         return execution; // Execution(considerationItem, offerer, conduit);
     }
+
+    /**
+     * 2. Here's the summary of this section
+     * blah blah blah
+     */
 
     /**
      * @dev Internal view function to aggregate offer or consideration items
