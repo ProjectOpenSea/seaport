@@ -7,7 +7,19 @@ import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
 
-import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Order, AdvancedOrder, OrderStatus, Execution, FulfillmentComponent } from "./ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
+    ReceivedItem,
+    OrderParameters,
+    Order,
+    AdvancedOrder,
+    OrderStatus,
+    Execution,
+    FulfillmentComponent
+} from "./ConsiderationStructs.sol";
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
 
@@ -1012,7 +1024,10 @@ contract ConsiderationInternalView is ConsiderationPure {
                                     add(offerItemPtr, Common_identifier_offset)
                                 ),
                                 mload(
-                                    add(receivedItemPtr, Common_identifier_offset)
+                                    add(
+                                        receivedItemPtr,
+                                        Common_identifier_offset
+                                    )
                                 )
                             ),
                             and(
@@ -1020,7 +1035,9 @@ contract ConsiderationInternalView is ConsiderationPure {
                                     // The offerer must match on both items.
                                     eq(
                                         mload(orderPtr),
-                                        mload(add(execution, Common_token_offset))
+                                        mload(
+                                            add(execution, Common_token_offset)
+                                        )
                                     ),
                                     // The conduit must match on both items.
                                     eq(
@@ -1102,12 +1119,13 @@ contract ConsiderationInternalView is ConsiderationPure {
     ) internal view returns (Execution memory execution) {
         // Validate and aggregate consideration items on available orders and
         // store result as a ReceivedItem.
-        ReceivedItem
-            memory receiveConsiderationItem = _aggregateValidFulfillmentConsiderationItems(
+        ReceivedItem memory receiveConsiderationItem = (
+            _aggregateValidFulfillmentConsiderationItems(
                 advancedOrders,
                 considerationComponents,
                 nextComponentIndex
-            );
+            )
+        );
 
         // Return execution for aggregated items provided by the fulfiller.
         execution = Execution(

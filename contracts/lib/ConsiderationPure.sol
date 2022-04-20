@@ -3,7 +3,23 @@ pragma solidity 0.8.13;
 
 import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
 
-import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution } from "./ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
+    ReceivedItem,
+    OrderParameters,
+    Fulfillment,
+    FulfillmentComponent,
+    Execution,
+    Order,
+    AdvancedOrder,
+    OrderStatus,
+    CriteriaResolver,
+    Batch,
+    BatchExecution
+} from "./ConsiderationStructs.sol";
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
@@ -117,8 +133,8 @@ contract ConsiderationPure is ConsiderationBase {
 
                     // Optimistically update identifier w/ supplied identifier.
                     offer.identifierOrCriteria = criteriaResolver.identifier;
-                    // Otherwise, criteria resolver refers to a consideration item.
                 } else {
+                    // Otherwise, the resolver refers to a consideration item.
                     // Ensure that the component index is in range.
                     if (
                         componentIndex >= orderParameters.consideration.length
@@ -869,7 +885,7 @@ contract ConsiderationPure is ConsiderationBase {
                                         mload(
                                             add(
                                                 considerationItemPtr,
-                                                ConsiderationItem_recipient_offset
+                                                ConsiderItem_recipient_offset
                                             )
                                         ),
                                         mload(
@@ -1369,7 +1385,7 @@ contract ConsiderationPure is ConsiderationBase {
                 eq(
                     // Load signature offset from calldata
                     calldataload(0x244),
-                    // Calculate expected offset (start of recipients + len * 64)
+                    // Calculate expected offset: start of recipients + len * 64
                     add(0x260, mul(calldataload(0x264), 0x40))
                 )
             )

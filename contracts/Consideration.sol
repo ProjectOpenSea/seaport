@@ -1,11 +1,34 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol";
+// prettier-ignore
+import {
+    ConsiderationInterface
+} from "./interfaces/ConsiderationInterface.sol";
 
-import { OrderType, ItemType, BasicOrderRouteType } from "./lib/ConsiderationEnums.sol";
+// prettier-ignore
+import {
+    OrderType,
+    ItemType,
+    BasicOrderRouteType
+} from "./lib/ConsiderationEnums.sol";
 
-import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution } from "./lib/ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    BasicOrderParameters,
+    OfferItem,
+    ConsiderationItem,
+    OrderParameters,
+    OrderComponents,
+    Fulfillment,
+    FulfillmentComponent,
+    Execution,
+    Order,
+    AdvancedOrder,
+    OrderStatus,
+    CriteriaResolver,
+    BatchExecution
+} from "./lib/ConsiderationStructs.sol";
 
 import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
 

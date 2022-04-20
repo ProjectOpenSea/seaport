@@ -3,13 +3,36 @@ pragma solidity 0.8.13;
 
 import { Side } from "./ConsiderationEnums.sol";
 
-import { ERC20Interface, ERC721Interface, ERC1155Interface } from "../interfaces/AbridgedTokenInterfaces.sol";
+// prettier-ignore
+import {
+    ERC20Interface,
+    ERC721Interface,
+    ERC1155Interface
+} from "../interfaces/AbridgedTokenInterfaces.sol";
 
 import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
 
 import { OrderType, ItemType } from "./ConsiderationEnums.sol";
 
-import { AdditionalRecipient, BasicOrderParameters, OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution } from "./ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    AdditionalRecipient,
+    BasicOrderParameters,
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
+    ReceivedItem,
+    OrderParameters,
+    Fulfillment,
+    FulfillmentComponent,
+    Execution,
+    Order,
+    AdvancedOrder,
+    OrderStatus,
+    CriteriaResolver,
+    Batch,
+    BatchExecution
+} from "./ConsiderationStructs.sol";
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
 
@@ -88,9 +111,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure current timestamp falls between order start time and end time.
         _verifyTime(parameters.startTime, parameters.endTime, true);
 
-        // Verify that calldata offsets for all dynamic types were produced by default encoding.
-        // This ensures that the constants we use for calldata pointers to dynamic types
-        // are the same as those calculated by Solidity using their offsets.
+        // Verify that calldata offsets for all dynamic types were produced by
+        // default encoding. This ensures that the constants we use for calldata
+        // pointers to dynamic types are the same as those calculated by
+        // Solidity using their offsets.
         _assertValidBasicOrderParameterOffsets();
 
         // Ensure supplied consideration array length is not less than original.
@@ -126,12 +150,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Load consideration item typehash from runtime and place on stack.
             bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
-            // Utilize assembly to enable reuse of memory regions and use constant
-            // pointers when possible.
+            // Utilize assembly to enable reuse of memory regions and use
+            // constant pointers when possible.
             assembly {
                 /*
-                 * 1. Calculate the EIP712 ConsiderationItem hash for the primary consideration
-                 * item of the basic order.
+                 * 1. Calculate the EIP712 ConsiderationItem hash for the
+                 * primary consideration item of the basic order.
                  */
 
                 // Write ConsiderationItem type hash and item type to memory.
