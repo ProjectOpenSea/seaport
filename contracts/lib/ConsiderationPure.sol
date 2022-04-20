@@ -629,33 +629,32 @@ contract ConsiderationPure is ConsiderationBase {
         uint256 startIndex
     ) internal pure returns (ReceivedItem memory receivedItem) {
         bool invalidFulfillment;
-
         assembly {
             let ordersLen := mload(advancedOrders)
             let i := startIndex
-            // let fulfillmentLen := mload(considerationComponents)
             let fulfillmentPtr := mload(
                 add(add(considerationComponents, 0x20), mul(i, 0x20))
             )
+
             let orderIndex := mload(fulfillmentPtr)
             let itemIndex := mload(add(fulfillmentPtr, 0x20))
             invalidFulfillment := iszero(lt(orderIndex, ordersLen))
             if iszero(invalidFulfillment) {
-                // Get pointer to AdvancedOrder element then get pointer to OrderParameters
+                // Calculate pointer to AdvancedOrder element at advancedOrders[orderIndex]
                 // OrderParameters pointer is first word of AdvancedOrder struct, so we mload twice
                 let orderPtr := mload(
+                    // Read the pointer to advancedOrders[orderIndex] from its head in the array
                     mload(
+                        // Calculate the position of the head for advancedOrders[orderIndex]
                         add(
-                            // Calculate pointer to beginning of advancedOrders head
                             add(advancedOrders, 0x20),
-                            // Calculate offset to pointer for desired order
                             mul(orderIndex, 0x20)
                         )
                     )
                 )
                 // Load consideration array pointer
                 let considerationArrPtr := mload(
-                    add(orderPtr, Order_consideration_head_offset)
+                    add(orderPtr, OrderParameters_consideration_head_offset)
                 )
                 // Check if itemIndex is within the range of the array
                 invalidFulfillment := iszero(
@@ -675,21 +674,21 @@ contract ConsiderationPure is ConsiderationBase {
                     mstore(receivedItem, mload(considerationItemPtr))
                     // token
                     mstore(
-                        add(receivedItem, CommonTokenOffset),
-                        mload(add(considerationItemPtr, CommonTokenOffset))
+                        add(receivedItem, Common_token_offset),
+                        mload(add(considerationItemPtr, Common_token_offset))
                     )
                     // identifier
                     mstore(
-                        add(receivedItem, CommonIdentifierOffset),
-                        mload(add(considerationItemPtr, CommonIdentifierOffset))
+                        add(receivedItem, Common_identifier_offset),
+                        mload(add(considerationItemPtr, Common_identifier_offset))
                     )
                     let amountPtr := add(
                         considerationItemPtr,
-                        CommonAmountOffset
+                        Common_amount_offset
                     )
                     // amount
                     mstore(
-                        add(receivedItem, CommonAmountOffset),
+                        add(receivedItem, Common_amount_offset),
                         mload(amountPtr)
                     )
                     mstore(amountPtr, 0)
@@ -738,7 +737,7 @@ contract ConsiderationPure is ConsiderationBase {
                             orderPtr := mload(orderPtr)
                             // Load consideration array pointer
                             considerationArrPtr := mload(
-                                add(orderPtr, Order_consideration_head_offset)
+                                add(orderPtr, OrderParameters_consideration_head_offset)
                             )
                             // Check if itemIndex is within the range of the array
                             invalidFulfillment := iszero(
@@ -757,14 +756,14 @@ contract ConsiderationPure is ConsiderationBase {
                             )
                             amountPtr := add(
                                 considerationItemPtr,
-                                CommonAmountOffset
+                                Common_amount_offset
                             )
 
                             mstore(
-                                add(receivedItem, CommonAmountOffset),
+                                add(receivedItem, Common_amount_offset),
                                 add(
                                     mload(
-                                        add(receivedItem, CommonAmountOffset)
+                                        add(receivedItem, Common_amount_offset)
                                     ),
                                     mload(amountPtr)
                                 )
@@ -800,13 +799,13 @@ contract ConsiderationPure is ConsiderationBase {
                                                 mload(
                                                     add(
                                                         considerationItemPtr,
-                                                        CommonTokenOffset
+                                                        Common_token_offset
                                                     )
                                                 ),
                                                 mload(
                                                     add(
                                                         receivedItem,
-                                                        CommonTokenOffset
+                                                        Common_token_offset
                                                     )
                                                 )
                                             ),
@@ -815,13 +814,13 @@ contract ConsiderationPure is ConsiderationBase {
                                                 mload(
                                                     add(
                                                         considerationItemPtr,
-                                                        CommonIdentifierOffset
+                                                        Common_identifier_offset
                                                     )
                                                 ),
                                                 mload(
                                                     add(
                                                         receivedItem,
-                                                        CommonIdentifierOffset
+                                                        Common_identifier_offset
                                                     )
                                                 )
                                             )
