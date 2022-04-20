@@ -12925,30 +12925,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          {
-            itemType: 1, // ERC20
-            token: testERC20.address,
-            identifierOrCriteria: 0, // ignored for ERC20
-            startAmount: tokenAmount.sub(100),
-            endAmount: tokenAmount.sub(100),
-            recipient: seller.address,
-          },
-          {
-            itemType: 1, // ERC20
-            token: testERC20.address,
-            identifierOrCriteria: 0, // ignored for ERC20
-            startAmount: ethers.BigNumber.from(50),
-            endAmount: ethers.BigNumber.from(50),
-            recipient: zone.address,
-          },
-          {
-            itemType: 1, // ERC20
-            token: testERC20.address,
-            identifierOrCriteria: 0, // ignored for ERC20
-            startAmount: ethers.BigNumber.from(50),
-            endAmount: ethers.BigNumber.from(50),
-            recipient: owner.address,
-          },
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, marketplaceContract.address),
         ];
 
         const { order, orderHash, value } = await createOrder(
@@ -12960,7 +12939,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
 
         const basicOrderParameters = getBasicOrderParameters(
-          2, // ERC20ForERC721
+          0, // EthForERC721
           order
         );
 
@@ -12969,22 +12948,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, {
-                value: ethers.BigNumber.from(1),
+                value: ethers.utils.parseEther("12"),
               })
           ).to.be.revertedWith("EtherTransferGenericFailure");
-        });
-
-        await whileImpersonating(buyer.address, provider, async () => {
-          await withBalanceChecks([order], 0, null, async () => {
-            const tx = await marketplaceContract
-              .connect(buyer)
-              .fulfillBasicOrder(basicOrderParameters);
-            const receipt = await tx.wait();
-            await checkExpectedEvents(receipt, [
-              { order, orderHash, fulfiller: buyer.address },
-            ]);
-            return receipt;
-          });
         });
       });
       it("Reverts when tokens are not approved", async () => {
