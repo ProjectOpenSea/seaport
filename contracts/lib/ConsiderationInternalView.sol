@@ -792,7 +792,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 )
             )
             // Load offer array pointer
-            let offerArrPtr := mload(add(orderPtr, Order_offer_head_offset))
+            let offerArrPtr := mload(add(orderPtr, OrderParameters_offer_head_offset))
             invalidFulfillment := or(
                 iszero(lt(itemIndex, mload(offerArrPtr))),
                 invalidFulfillment
@@ -810,15 +810,15 @@ contract ConsiderationInternalView is ConsiderationPure {
             mstore(receivedItemPtr, mload(offerItemPtr))
             // token
             mstore(
-                add(receivedItemPtr, CommonTokenOffset),
-                mload(add(offerItemPtr, CommonTokenOffset))
+                add(receivedItemPtr, Common_token_offset),
+                mload(add(offerItemPtr, Common_token_offset))
             )
             // identifier
             mstore(
                 add(receivedItemPtr, 0x40),
-                mload(add(offerItemPtr, CommonIdentifierOffset))
+                mload(add(offerItemPtr, Common_identifier_offset))
             )
-            let amountPtr := add(offerItemPtr, CommonAmountOffset)
+            let amountPtr := add(offerItemPtr, Common_amount_offset)
             amount := mload(amountPtr)
             // recipient
             mstore(
@@ -831,7 +831,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             // conduit
             mstore(
                 add(execution, Execution_conduit_offset),
-                mload(add(orderPtr, Order_conduit_offset))
+                mload(add(orderPtr, OrderParameters_conduit_offset))
             )
         }
 
@@ -866,7 +866,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                     orderPtr := mload(orderPtr)
                     // Load offer array pointer
                     let offerArrPtr := mload(
-                        add(orderPtr, Order_offer_head_offset)
+                        add(orderPtr, OrderParameters_offer_head_offset)
                     )
                     invalidFulfillment := iszero(
                         lt(itemIndex, mload(offerArrPtr))
@@ -885,7 +885,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                         )
                     )
 
-                    let amountPtr := add(offerItemPtr, CommonAmountOffset)
+                    let amountPtr := add(offerItemPtr, Common_amount_offset)
                     amount := add(amount, mload(amountPtr))
                     mstore(amountPtr, 0)
 
@@ -894,10 +894,10 @@ contract ConsiderationInternalView is ConsiderationPure {
                             // identifier
                             eq(
                                 mload(
-                                    add(offerItemPtr, CommonIdentifierOffset)
+                                    add(offerItemPtr, Common_identifier_offset)
                                 ),
                                 mload(
-                                    add(receivedItemPtr, CommonIdentifierOffset)
+                                    add(receivedItemPtr, Common_identifier_offset)
                                 )
                             ),
                             and(
@@ -905,12 +905,12 @@ contract ConsiderationInternalView is ConsiderationPure {
                                     // offerer
                                     eq(
                                         mload(orderPtr),
-                                        mload(add(execution, CommonTokenOffset))
+                                        mload(add(execution, Common_token_offset))
                                     ),
                                     // conduit
                                     eq(
                                         mload(
-                                            add(orderPtr, Order_conduit_offset)
+                                            add(orderPtr, OrderParameters_conduit_offset)
                                         ),
                                         mload(
                                             add(
@@ -929,12 +929,12 @@ contract ConsiderationInternalView is ConsiderationPure {
                                     // token
                                     eq(
                                         mload(
-                                            add(offerItemPtr, CommonTokenOffset)
+                                            add(offerItemPtr, Common_token_offset)
                                         ),
                                         mload(
                                             add(
                                                 receivedItemPtr,
-                                                CommonTokenOffset
+                                                Common_token_offset
                                             )
                                         )
                                     )
@@ -944,7 +944,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                     )
                 }
             }
-            mstore(add(receivedItemPtr, CommonAmountOffset), amount)
+            mstore(add(receivedItemPtr, Common_amount_offset), amount)
         }
 
         if (invalidFulfillment) {
