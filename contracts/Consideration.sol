@@ -684,10 +684,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
-                Order memory order = orders[i];
+                Order calldata order = orders[i];
 
                 // Retrieve the order parameters.
-                OrderParameters memory orderParameters = order.parameters;
+                OrderParameters calldata orderParameters = order.parameters;
 
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
