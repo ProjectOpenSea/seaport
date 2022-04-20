@@ -3,15 +3,40 @@ pragma solidity 0.8.13;
 
 import { Side } from "./ConsiderationEnums.sol";
 
-import { ERC20Interface, ERC721Interface, ERC1155Interface } from "../interfaces/AbridgedTokenInterfaces.sol";
+// prettier-ignore
+import {
+    ERC20Interface,
+    ERC721Interface,
+    ERC1155Interface
+} from "../interfaces/AbridgedTokenInterfaces.sol";
 
 import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
 
 import { OrderType, ItemType } from "./ConsiderationEnums.sol";
 
-import { AdditionalRecipient, BasicOrderParameters, OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, Batch, BatchExecution } from "./ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    AdditionalRecipient,
+    BasicOrderParameters,
+    OfferItem,
+    ConsiderationItem,
+    SpentItem,
+    ReceivedItem,
+    OrderParameters,
+    Fulfillment,
+    FulfillmentComponent,
+    Execution,
+    Order,
+    AdvancedOrder,
+    OrderStatus,
+    CriteriaResolver,
+    Batch,
+    BatchExecution
+} from "./ConsiderationStructs.sol";
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
+
+import "./ConsiderationPointers.sol";
 
 /**
  * @title ConsiderationInternal
@@ -25,16 +50,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
-     *                                    transfer approved tokens.
+     *                                    transfer approved ERC721+1155 tokens.
+     * @param legacyTokenTransferProxy    A shared proxy contract that may
+     *                                    optionally be used to transfer
+     *                                    approved ERC20 tokens.
      * @param requiredProxyImplementation The implementation that must be set on
      *                                    each proxy in order to utilize it.
      */
     constructor(
         address legacyProxyRegistry,
+        address legacyTokenTransferProxy,
         address requiredProxyImplementation
     )
         ConsiderationInternalView(
             legacyProxyRegistry,
+            legacyTokenTransferProxy,
             requiredProxyImplementation
         )
     {}
@@ -81,7 +111,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure current timestamp falls between order start time and end time.
         _verifyTime(parameters.startTime, parameters.endTime, true);
 
-        // Ensure calldata offsets were produced by default encoding.
+        // Verify that calldata offsets for all dynamic types were produced by
+        // default encoding. This ensures that the constants we use for calldata
+        // pointers to dynamic types are the same as those calculated by
+        // Solidity using their offsets.
         _assertValidBasicOrderParameterOffsets();
 
         // Ensure supplied consideration array length is not less than original.
@@ -117,124 +150,273 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Load consideration item typehash from runtime and place on stack.
             bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
-            // Utilize assembly to enable reuse of memory regions when possible.
+            // Utilize assembly to enable reuse of memory regions and use
+            // constant pointers when possible.
             assembly {
-                // 1. Write first ReceivedItem hash to the consideration array.
+                /*
+                 * 1. Calculate the EIP712 ConsiderationItem hash for the
+                 * primary consideration item of the basic order.
+                 */
+
                 // Write ConsiderationItem type hash and item type to memory.
-                mstore(0x80, typeHash)
-                mstore(0xa0, receivedItemType)
+                mstore(BasicOrder_considerationItem_typeHash_ptr, typeHash)
+                mstore(
+                    BasicOrder_considerationItem_itemType_ptr,
+                    receivedItemType
+                )
 
-                // Copy calldata region with token, identifier, and startAmount.
-                calldatacopy(0xc0, 0x24, 0x60)
+                // Copy calldata region with (token, identifier, amount) from
+                // BasicOrderParameters to ConsiderationItem. The
+                // considerationAmount is written to startAmount and endAmount
+                // as basic orders do not have dynamic amounts.
+                calldatacopy(
+                    BasicOrder_considerationItem_token_ptr,
+                    BasicOrder_considerationToken_cdPtr,
+                    ThreeWords
+                )
 
-                // Copy calldata region with endAmount (reused) and recipient.
-                calldatacopy(0x120, 0x64, 0x40)
+                // Copy calldata region with considerationAmount and offerer
+                // from BasicOrderParameters to endAmount and recipient in
+                // ConsiderationItem.
+                calldatacopy(
+                    BasicOrder_considerationItem_endAmount_ptr,
+                    BasicOrder_considerationAmount_cdPtr,
+                    TwoWords
+                )
 
-                // Set keccak256(abi.encode(receivedItem)) as first item hash.
-                mstore(0x160, keccak256(0x80, 0xe0))
+                // Calculate EIP712 ConsiderationItem hash and store it in the
+                // array of EIP712 consideration hashes.
+                mstore(
+                    BasicOrder_considerationHashesArray_ptr,
+                    keccak256(
+                        BasicOrder_considerationItem_typeHash_ptr,
+                        EIP712_ConsiderationItem_size
+                    )
+                )
 
-                // 2. Write first ReceivedItem to OrderFulfilled data.
+                /*
+                 * 2. Write a ReceivedItem struct for the primary consideration
+                 * item to the consideration array in OrderFulfilled.
+                 */
+
                 // Get the length of the additional recipients array.
-                let len := calldataload(0x264)
+                let len := calldataload(
+                    BasicOrder_additionalRecipients_length_cdPtr
+                )
 
-                // END_ARR + 0x120 = 0x2a0 + len*0x20
-                let eventArrPtr := add(0x2a0, mul(0x20, len))
-                mstore(eventArrPtr, add(calldataload(0x264), 1)) // length
+                // Calculate pointer to length of OrderFulfilled consideration
+                // array.
+                let eventConsiderationArrPtr := add(
+                    OrderFulfilled_consideration_length_baseOffset,
+                    mul(0x20, len)
+                )
 
-                // Set pointer to data portion of the initial ReceivedItem.
-                eventArrPtr := add(eventArrPtr, 0x20)
+                // Set the length of the consideration array to the number of
+                // additional recipients, plus one for the primary consideration
+                // item.
+                mstore(
+                    eventConsiderationArrPtr,
+                    add(
+                        calldataload(
+                            BasicOrder_additionalRecipients_length_cdPtr
+                        ),
+                        1
+                    )
+                )
 
-                // Set item type at start of the ReceivedItem memory region.
-                mstore(eventArrPtr, receivedItemType)
+                // Overwrite the consideration array pointer so it points to the
+                // body of the first element
+                eventConsiderationArrPtr := add(eventConsiderationArrPtr, 0x20)
 
-                // Copy calldata region (token, identifier, amount & recipient).
-                calldatacopy(add(eventArrPtr, 0x20), 0x24, 0x80)
+                // Set itemType at start of the ReceivedItem memory region.
+                mstore(eventConsiderationArrPtr, receivedItemType)
 
-                // 3. Handle additional recipients.
-                // Set pointer to current location in receivedItemHashes.
-                let considerationHashesPtr := 0x160
+                // Copy calldata region (token, identifier, amount & recipient)
+                // from BasicOrderParameters to ReceivedItem memory.
+                calldatacopy(
+                    add(eventConsiderationArrPtr, Common_token_offset),
+                    BasicOrder_considerationToken_cdPtr,
+                    0x80
+                )
+
+                /*
+                 * 3. Calculate EIP712 ConsiderationItem hashes for original
+                 * additional recipients and add a ReceivedItem for each to the
+                 * consideration array in the OrderFulfilled event. The original
+                 * additional recipients are all the considerations signed by
+                 * the offerer aside from the primary consideration of the
+                 * order. Uses memory region from 0x80-0x160 as a buffer for
+                 * calculating EIP712 ConsiderationItem hashes.
+                 */
+
+                // Put pointer to consideration hashes array on the stack.
+                // This will be updated as each additional recipient is hashed
+                let
+                    considerationHashesPtr
+                := BasicOrder_considerationHashesArray_ptr
 
                 // Write item type, token, & identifier for additional recipient
-                // to memory; these values will be reused for each recipient.
-                mstore(0xa0, additionalRecipientsItemType)
-                mstore(0xc0, additionalRecipientsToken)
-                mstore(0xe0, 0)
+                // to memory region for hashing EIP712 ConsiderationItem; these
+                // values will be reused for each recipient.
+                mstore(
+                    BasicOrder_considerationItem_itemType_ptr,
+                    additionalRecipientsItemType
+                )
+                mstore(
+                    BasicOrder_considerationItem_token_ptr,
+                    additionalRecipientsToken
+                )
+                mstore(BasicOrder_considerationItem_identifier_ptr, 0)
 
-                // Read length of the additionalRecipients array and iterate.
-                len := calldataload(0x204)
+                // Read length of the additionalRecipients array from calldata
+                // and iterate.
+                len := calldataload(
+                    BasicOrder_totalOriginalAdditionalRecipients_cdPtr
+                )
                 let i := 0
-                for {
-
-                } lt(i, len) {
+                // prettier-ignore
+                for {} lt(i, len) {
                     i := add(i, 1)
                 } {
-                    // Retrieve pointer for additional recipient in question.
-                    let additionalRecipientCdPtr := add(0x284, mul(0x40, i))
+                    /*
+                     * Calculate EIP712 ConsiderationItem hash for recipient.
+                     */
 
-                    // a. Write ConsiderationItem hash to consideration array.
-                    // Copy startAmount from calldata.
-                    calldatacopy(0x100, additionalRecipientCdPtr, 0x20)
+                    // Retrieve calldata pointer for additional recipient.
+                    let additionalRecipientCdPtr := add(
+                        BasicOrder_additionalRecipients_data_cdPtr,
+                        mul(AdditionalRecipients_size, i)
+                    )
 
-                    // Copy endAmount and recipient from calldata.
-                    calldatacopy(0x120, additionalRecipientCdPtr, 0x40)
+                    // Copy startAmount from calldata to the ConsiderationItem
+                    // struct.
+                    calldatacopy(
+                        BasicOrder_considerationItem_startAmount_ptr,
+                        additionalRecipientCdPtr,
+                        0x20
+                    )
+
+                    // Copy endAmount and recipient from calldata to the
+                    // ConsiderationItem struct.
+                    calldatacopy(
+                        BasicOrder_considerationItem_endAmount_ptr,
+                        additionalRecipientCdPtr,
+                        AdditionalRecipients_size
+                    )
 
                     // Add 1 word to the pointer as part of each loop to reduce
                     // operations needed to get local offset into the array.
                     considerationHashesPtr := add(considerationHashesPtr, 0x20)
 
-                    // Set keccak256(abi.encode(receivedItem)) as next hash.
-                    mstore(considerationHashesPtr, keccak256(0x80, 0xe0))
+                    // Calculate EIP712 ConsiderationItem hash and store it in
+                    // the array of consideration hashes.
+                    mstore(
+                        considerationHashesPtr,
+                        keccak256(
+                            BasicOrder_considerationItem_typeHash_ptr,
+                            EIP712_ConsiderationItem_size
+                        )
+                    )
 
-                    // b. Write ReceivedItem to OrderFulfilled data.
-                    // At this point, eventArrPtr points to the beginning of the
-                    // ReceivedItem struct of the previous element in the array.
-                    eventArrPtr := add(eventArrPtr, 0xa0)
+                    /*
+                     * Write ReceivedItem to OrderFulfilled data.
+                     */
 
-                    // Set item type at start of the ReceivedItem memory region.
-                    mstore(eventArrPtr, additionalRecipientsItemType)
+                    // At this point, eventConsiderationArrPtr points to the
+                    // beginning of the ReceivedItem struct of the previous
+                    // element in the array. Increase it by the size of the
+                    // struct to arrive at the pointer for the current element.
+                    eventConsiderationArrPtr := add(
+                        eventConsiderationArrPtr,
+                        ReceivedItem_size
+                    )
 
-                    // Set token at next word in the ReceivedItem memory region.
-                    mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+                    // Write itemType to the ReceivedItem struct.
+                    mstore(
+                        eventConsiderationArrPtr,
+                        additionalRecipientsItemType
+                    )
 
-                    // Copy endAmount and recipient to remaining memory region.
+                    // Write token to the ReceivedItem struct.
+                    mstore(
+                        add(eventConsiderationArrPtr, 0x20),
+                        additionalRecipientsToken
+                    )
+
+                    // Copy endAmount and recipient to the ReceivedItem struct.
                     calldatacopy(
-                        add(eventArrPtr, 0x60),
+                        add(
+                            eventConsiderationArrPtr,
+                            ReceivedItem_amount_offset
+                        ),
                         additionalRecipientCdPtr,
                         0x40
                     )
                 }
 
-                // 4. Hash packed array of ConsiderationItem EIP712 hashes:
-                //   `keccak256(abi.encodePacked(receivedItemHashes))`
-                // Note that it is set at 0x60 — all other memory begins at
-                // 0x80. 0x60 is the "zero slot" and will be restored at the end
-                // of the assembly section and before required by the compiler.
-                mstore(0x60, keccak256(0x160, mul(add(len, 1), 32)))
+                /*
+                 * 4. Hash packed array of ConsiderationItem EIP712 hashes:
+                 *   `keccak256(abi.encodePacked(receivedItemHashes))`
+                 * Note that it is set at 0x60 — all other memory begins at
+                 * 0x80. 0x60 is the "zero slot" and will be restored at the end
+                 * of the assembly section and before required by the compiler.
+                 */
+                mstore(
+                    receivedItemsHash_ptr,
+                    keccak256(
+                        BasicOrder_considerationHashesArray_ptr,
+                        mul(add(len, 1), 32)
+                    )
+                )
 
-                // 5. Write tips to event data.
-                len := calldataload(0x264)
-                for {
+                /*
+                 * 5. Add a ReceivedItem for each tip to the consideration array
+                 * in the OrderFulfilled event. The tips are all the
+                 * consideration items that were not signed by the offerer and
+                 * were provided by the fulfiller.
+                 */
 
-                } lt(i, len) {
+                // Overwrite length to length of the additionalRecipients array.
+                len := calldataload(
+                    BasicOrder_additionalRecipients_length_cdPtr
+                )
+                // prettier-ignore
+                for {} lt(i, len) {
                     i := add(i, 1)
                 } {
-                    // Retrieve pointer for additional recipient in question.
-                    let additionalRecipientCdPtr := add(0x284, mul(0x40, i))
+                    // Retrieve calldata pointer for additional recipient.
+                    let additionalRecipientCdPtr := add(
+                        BasicOrder_additionalRecipients_data_cdPtr,
+                        mul(AdditionalRecipients_size, i)
+                    )
 
-                    // b. Write ReceivedItem to OrderFulfilled data
-                    // At this point, eventArrPtr points to the beginning of the
-                    // ReceivedItem struct of the previous element in the array.
-                    eventArrPtr := add(eventArrPtr, 0xa0)
+                    // At this point, eventConsiderationArrPtr points to the
+                    // beginning of the ReceivedItem struct of the previous
+                    // element in the array. Increase it by the size of the
+                    // struct to arrive at the pointer for the current element.
+                    eventConsiderationArrPtr := add(
+                        eventConsiderationArrPtr,
+                        ReceivedItem_size
+                    )
 
-                    // Set item type at start of the ReceivedItem memory region.
-                    mstore(eventArrPtr, additionalRecipientsItemType)
+                    // Write itemType to the ReceivedItem struct.
+                    mstore(
+                        eventConsiderationArrPtr,
+                        additionalRecipientsItemType
+                    )
 
-                    // Set token at next word in the ReceivedItem memory region.
-                    mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+                    // Write token to the ReceivedItem struct.
+                    mstore(
+                        add(eventConsiderationArrPtr, 0x20),
+                        additionalRecipientsToken
+                    )
 
-                    // Copy endAmount and recipient to remaining memory region.
+                    // Copy endAmount and recipient to the ReceivedItem struct.
                     calldatacopy(
-                        add(eventArrPtr, 0x60),
+                        add(
+                            eventConsiderationArrPtr,
+                            ReceivedItem_amount_offset
+                        ),
                         additionalRecipientCdPtr,
                         0x40
                     )
@@ -254,44 +436,84 @@ contract ConsiderationInternal is ConsiderationInternalView {
              *   - 0x120: endAmount
              */
 
-            // Load offer item typehash from runtime code and place on stack.
+            // Place offer item typehash on the stack.
             bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
 
             // Utilize assembly to enable reuse of memory regions when possible.
             assembly {
-                // 1. Calculate OfferItem EIP712 hash
-                // Write OfferItem type hash and item type to memory.
-                mstore(0x80, typeHash) // _OFFERED_ITEM_TYPEHASH
-                mstore(0xa0, offeredItemType) // itemType
+                /*
+                 * 1. Calculate OfferItem EIP712 hash
+                 */
 
-                // Copy calldata region with token, identifier, and startAmount.
-                calldatacopy(0xc0, 0xc4, 0x60)
+                // Write the OfferItem typeHash to memory.
+                mstore(BasicOrder_offerItem_typeHash_ptr, typeHash)
 
-                // Copy endAmount from calldata; reuses last word of prior copy.
-                calldatacopy(0x120, 0x104, 0x20)
+                // Write the OfferItem item type to memory.
+                mstore(BasicOrder_offerItem_itemType_ptr, offeredItemType)
 
-                // Compute offer item hash and write result to scratch space:
+                // Copy calldata region with (offerToken, offerIdentifier,
+                // offerAmount) from OrderParameters to (token, identifier,
+                // startAmount) in OfferItem struct. The offerAmount is written
+                // to startAmount and endAmount as basic orders do not have
+                // dynamic amounts.
+                calldatacopy(
+                    BasicOrder_offerItem_token_ptr,
+                    BasicOrder_offerToken_cdPtr,
+                    0x60
+                )
+
+                // Copy offerAmount from calldata to endAmount in OfferItem
+                // struct.
+                calldatacopy(
+                    BasicOrder_offerItem_endAmount_ptr,
+                    BasicOrder_offerAmount_cdPtr,
+                    0x20
+                )
+
+                // Compute EIP712 OfferItem hash, write result to scratch space:
                 //   `keccak256(abi.encode(offeredItem))`
-                mstore(0x00, keccak256(0x80, 0xc0))
+                mstore(
+                    0x00,
+                    keccak256(
+                        BasicOrder_offerItem_typeHash_ptr,
+                        EIP712_OfferItem_size
+                    )
+                )
 
-                // 2. Calculate hash of array of EIP712 hashes and write the
-                // result to the corresponding offer struct memory region:
-                //   `keccak256(abi.encodePacked(offeredItemHashes))`
-                mstore(0xe0, keccak256(0x00, 0x20))
+                /*
+                 * 2. Calculate hash of array of EIP712 hashes and write the
+                 * result to the corresponding OfferItem struct:
+                 *   `keccak256(abi.encodePacked(offerItemHashes))`
+                 */
+                mstore(BasicOrder_order_offerHashes_ptr, keccak256(0x00, 0x20))
 
-                // 3. Write SpentItem array to event data.
-                // 0x180 + len*32 = event data pointer, where the offer array
-                // length is stored at 0x80 into the event data.
-                let eventArrPtr := add(0x200, mul(0x20, calldataload(0x264)))
+                /*
+                 * 3. Write SpentItem to offer array in OrderFulfilled event.
+                 */
+                let eventConsiderationArrPtr := add(
+                    OrderFulfilled_offer_length_baseOffset,
+                    mul(
+                        0x20,
+                        calldataload(
+                            BasicOrder_additionalRecipients_length_cdPtr
+                        )
+                    )
+                )
 
                 // Set a length of 1 for the offer array.
-                mstore(eventArrPtr, 1)
+                mstore(eventConsiderationArrPtr, 1)
 
-                // Set offer item type at start of the SpentItem memory region.
-                mstore(add(eventArrPtr, 0x20), offeredItemType)
+                // Write itemType to the SpentItem struct.
+                mstore(add(eventConsiderationArrPtr, 0x20), offeredItemType)
 
-                // Copy token, identifier, and startAmount to SpentItem region.
-                calldatacopy(add(eventArrPtr, 0x40), 0xc4, 0x60)
+                // Copy calldata region with (offerToken, offerIdentifier,
+                // offerAmount) from OrderParameters to (token, identifier,
+                // amount) in SpentItem struct.
+                calldatacopy(
+                    add(eventConsiderationArrPtr, AdditionalRecipients_size),
+                    BasicOrder_offerToken_cdPtr,
+                    ThreeWords
+                )
             }
         }
 
@@ -317,7 +539,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Read the offerer from calldata and place on the stack.
             address offerer;
             assembly {
-                offerer := calldataload(0x84)
+                offerer := calldataload(BasicOrder_offerer_cdPtr)
             }
 
             // Read offerer's current nonce from storage and place on the stack.
@@ -327,26 +549,42 @@ contract ConsiderationInternal is ConsiderationInternalView {
             bytes32 typeHash = _ORDER_TYPEHASH;
 
             assembly {
-                // Set the offer typehash in memory.
-                mstore(0x80, typeHash)
+                // Set the OrderItem typeHash in memory.
+                mstore(BasicOrder_order_typeHash_ptr, typeHash)
 
-                // Copy offerer and zone from calldata and set them in memory.
-                calldatacopy(0xa0, 0x84, 0x40)
+                // Copy offerer and zone from OrderParameters in calldata to the
+                // Order struct.
+                calldatacopy(
+                    BasicOrder_order_offerer_ptr,
+                    BasicOrder_offerer_cdPtr,
+                    TwoWords
+                )
 
-                // Copy receivedItemsHash from zero slot to the required region.
-                mstore(0x100, mload(0x60))
+                // Copy receivedItemsHash from zero slot to the Order struct.
+                mstore(
+                    BasicOrder_order_considerationHashes_ptr,
+                    mload(receivedItemsHash_ptr)
+                )
 
-                // Set the supplied order type in memory.
-                mstore(0x120, orderType)
+                // Write the supplied orderType to the Order struct.
+                mstore(BasicOrder_order_orderType_ptr, orderType)
 
-                // Copy startTime, endTime, zoneHash, salt & conduit to memory.
-                calldatacopy(0x140, 0x144, 0xa0)
+                // Copy startTime, endTime, zoneHash, salt & conduit from
+                // calldata to the Order struct.
+                calldatacopy(
+                    BasicOrder_order_startTime_ptr,
+                    BasicOrder_startTime_cdPtr,
+                    0xa0
+                )
 
-                // Take offerer's nonce retrieved from storage & set in memory.
-                mstore(0x1e0, nonce)
+                // Take offerer's nonce retrieved from storage, write to struct.
+                mstore(BasicOrder_order_nonce_ptr, nonce)
 
-                // Compute the order hash.
-                orderHash := keccak256(0x80, 0x180)
+                // Compute the EIP712 Order hash.
+                orderHash := keccak256(
+                    BasicOrder_order_typeHash_ptr,
+                    EIP712_Order_size
+                )
             }
         }
 
@@ -380,21 +618,43 @@ contract ConsiderationInternal is ConsiderationInternalView {
              *  - 0x140: recipient 0
              */
 
-            // Derive pointer from calldata via length of additional recipients.
-            let eventDataPtr := add(0x180, mul(0x20, calldataload(0x264)))
+            // Derive pointer to start of OrderFulfilled event data
+            let eventDataPtr := add(
+                OrderFulfilled_baseOffset,
+                mul(
+                    0x20,
+                    calldataload(BasicOrder_additionalRecipients_length_cdPtr)
+                )
+            )
 
             // Write the order hash to the head of the event's data region.
             mstore(eventDataPtr, orderHash)
 
             // Write the fulfiller (i.e. the caller) next.
-            mstore(add(eventDataPtr, 0x20), caller())
+            mstore(add(eventDataPtr, OrderFulfilled_fulfiller_offset), caller())
 
-            // Write the SpentItem and ReceivedItem array pointers (constants).
-            mstore(add(eventDataPtr, 0x40), 0x80) // SpentItem array pointer
-            mstore(add(eventDataPtr, 0x60), 0x120) // ReceivedItem array pointer
+            // Write the SpentItem and ReceivedItem array offsets (constants).
+            mstore(
+                // SpentItem array offset
+                add(eventDataPtr, OrderFulfilled_offer_head_offset),
+                OrderFulfilled_offer_body_offset
+            )
+            mstore(
+                // ReceivedItem array offset
+                add(eventDataPtr, OrderFulfilled_consideration_head_offset),
+                OrderFulfilled_consideration_body_offset
+            )
 
             // Derive total data size including SpentItem and ReceivedItem data.
-            let dataSize := add(0x1e0, mul(calldataload(0x264), 0xa0))
+            // SpentItem portion is already included in the baseSize constant,
+            // as there can only be one element in the array.
+            let dataSize := add(
+                OrderFulfilled_baseSize,
+                mul(
+                    calldataload(BasicOrder_additionalRecipients_length_cdPtr),
+                    ReceivedItem_size
+                )
+            )
 
             // Emit OrderFulfilled log with three topics (the event signature
             // as well as the two indexed arguments, the offerer and the zone).
@@ -404,11 +664,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Supply the size of event data in memory.
                 dataSize,
                 // Supply the OrderFulfilled event signature.
-                0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31,
+                OrderFulfilled_selector,
                 // Supply the first topic (the offerer).
-                calldataload(0x84),
-                // Supply the first topic (the zone).
-                calldataload(0xa4)
+                calldataload(BasicOrder_offerer_cdPtr),
+                // Supply the second topic (the zone).
+                calldataload(BasicOrder_zone_cdPtr)
             )
 
             // Restore the zero slot.
@@ -1529,32 +1789,34 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
         } else if (item.itemType == ItemType.ERC20) {
-            // For an ERC20 item...
-            // Transfer ERC20 token from the offerer to the recipient.
-            _transferERC20(item.token, offerer, item.recipient, item.amount);
+            // Transfer ERC20 tokens from the offerer to the recipient.
+            _transferERC20(
+                item.token,
+                offerer,
+                item.recipient,
+                item.amount,
+                conduit
+            );
+        } else if (item.itemType == ItemType.ERC721) {
+            // Transfer ERC721 token from the offerer to the recipient.
+            _transferERC721(
+                item.token,
+                offerer,
+                item.recipient,
+                item.identifier,
+                item.amount,
+                conduit
+            );
         } else {
-            // Otherwise, transfer item based on item type & conduit preference.
-            if (item.itemType == ItemType.ERC721) {
-                // Transfer ERC721 token from the offerer to the recipient.
-                _transferERC721(
-                    item.token,
-                    offerer,
-                    item.recipient,
-                    item.identifier,
-                    item.amount,
-                    conduit
-                );
-            } else {
-                // Transfer ERC1155 token from the offerer to the recipient.
-                _transferERC1155(
-                    item.token,
-                    offerer,
-                    item.recipient,
-                    item.identifier,
-                    item.amount,
-                    conduit
-                );
-            }
+            // Transfer ERC1155 token from the offerer to the recipient.
+            _transferERC1155(
+                item.token,
+                offerer,
+                item.recipient,
+                item.identifier,
+                item.amount,
+                conduit
+            );
         }
     }
 
@@ -1566,6 +1828,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param amount The amount to transfer.
      */
     function _transferEth(address payable to, uint256 amount) internal {
+        // Ensure that the supplied amount is non-zero.
+        _assertNonZeroAmount(amount);
+
+        // Declare a variable indicating whether the call was successful or not.
         bool success;
 
         assembly {
@@ -1585,39 +1851,98 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
     /**
      * @dev Internal function to transfer ERC20 tokens from a given originator
+     *      to a given recipient using a given conduit if applicable. Sufficient
+     *      approvals must be set on this contract, the conduit, or the token
+     *      transfer proxy in cases where the conduit is set to `address(1)`.
+     *
+     * @param token      The ERC20 token to transfer.
+     * @param from       The originator of the transfer.
+     * @param to         The recipient of the transfer.
+     * @param amount     The amount to transfer.
+     * @param conduit    An address indicating what conduit, if any, to source
+     *                   token approvals from. The null address signifies that
+     *                   no conduit should be used (and direct approvals set on
+     *                   Consideration) and `address(1)` signifies to utilize
+     *                   the legacy token transfer proxy for the transfer.
+     */
+    function _transferERC20(
+        address token,
+        address from,
+        address to,
+        uint256 amount,
+        address conduit
+    ) internal {
+        // Ensure that the supplied amount is non-zero.
+        _assertNonZeroAmount(amount);
+
+        // If no conduit has been specified...
+        if (conduit == address(0)) {
+            // Perform the token transfer directly.
+            _performDirectERC20Transfer(token, from, to, amount);
+        } else if (conduit == address(1)) {
+            // Perform transfer via a call to the legacy token transfer proxy.
+            bool success = _LEGACY_TOKEN_TRANSFER_PROXY.transferFrom(
+                token,
+                from,
+                to,
+                amount
+            );
+
+            // If the call to the token transfer proxy does not return true...
+            if (!success) {
+                // Revert with an error indicating that return value is falsey.
+                // Note that the legacy token transfer proxy does not support
+                // non-compliant ERC20 tokens that do not return any data on a
+                // successful transfer.
+                revert BadReturnValueFromERC20OnTransfer(
+                    token,
+                    from,
+                    to,
+                    amount
+                );
+            }
+        } else {
+            revert("Not yet implemented");
+        }
+    }
+
+    /**
+     * @dev Internal function to transfer ERC20 tokens from a given originator
      *      to a given recipient. Sufficient approvals must be set on this
-     *      contract (note that proxies are not utilized for ERC20 items).
+     *      contract.
      *
      * @param token      The ERC20 token to transfer.
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param amount     The amount to transfer.
      */
-    function _transferERC20(
+    function _performDirectERC20Transfer(
         address token,
         address from,
         address to,
         uint256 amount
     ) internal {
+        // Utilize assembly to perform an optimized ERC20 token transfer.
         assembly {
-            // Write our calldata to this slot below, but restore it later.
-            let memPointer := mload(0x40)
+            // Write calldata to the free memory pointer, but restore it later.
+            let memPointer := mload(FreeMemoryPointerSlot)
 
             // Write calldata into memory, starting with function selector.
-            mstore(
+            mstore(ERC20_transferFrom_sig_ptr, ERC20_transferFrom_signature)
+            mstore(ERC20_transferFrom_from_ptr, from)
+            mstore(ERC20_transferFrom_to_ptr, to)
+            mstore(ERC20_transferFrom_amount_ptr, amount)
+
+            // to copy up to 32 bytes of return data to scratch space.
+            let callStatus := call(
+                gas(),
+                token,
                 0,
-                0x23b872dd00000000000000000000000000000000000000000000000000000000
+                ERC20_transferFrom_sig_ptr,
+                ERC20_transferFrom_length,
+                0,
+                0x20
             )
-            mstore(0x04, from) // Append the "from" argument.
-            mstore(0x24, to) // Append the "to" argument.
-            mstore(0x44, amount) // Append the "amount" argument.
-
-            // Use 100 as the length of our calldata equals 4 + 32 * 3. Use
-            // 0 and 32 to copy up to 32 bytes of return data to scratch space.
-            let callStatus := call(gas(), token, 0, 0, 0x64, 0, 0x20)
-
-            mstore(0x60, 0) // Restore the zero slot to zero.
-            mstore(0x40, memPointer) // Restore the memPointer.
 
             let success := and(
                 // Set success to whether the call reverted, if not check it
@@ -1633,48 +1958,92 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // If the transfer failed or it returned nothing:
             // Group these because they should be uncommon.
             if iszero(and(success, iszero(iszero(returndatasize())))) {
-                // If the token has no code, revert.
-                if iszero(extcodesize(token)) {
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("NoContract(address)")
-                        0x5f15d67200000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(4, token)
+                // If the token has no code or the transfer failed:
+                if iszero(and(iszero(iszero(extcodesize(token))), success)) {
+                    // If the transfer failed:
+                    if iszero(success) {
+                        // If it was due to a revert:
+                        if iszero(callStatus) {
+                            // If it returned a message, bubble it up:
+                            if returndatasize() {
+                                // Copy returndata to memory; overwrite existing
+                                // memory.
+                                returndatacopy(0, 0, returndatasize())
 
-                    revert(0, 0x24) // Use 36 because its the result of 4 + 32.
-                }
+                                // Revert, specifying memory region with copied
+                                // returndata.
+                                revert(0, returndatasize())
+                            }
 
-                // If the transfer failed:
-                if iszero(success) {
-                    // If it was due to a revert with a message, bubble it up:
-                    if and(iszero(callStatus), returndatasize()) {
-                        // Copy returndata to memory; overwrite existing memory.
-                        returndatacopy(0, 0, returndatasize())
+                            // Otherwise revert with a generic error message.
+                            mstore(
+                                TokenTransferGenericFailure_error_sig_ptr,
+                                TokenTransferGenericFailure_error_signature
+                            )
+                            mstore(
+                                TokenTransferGenericFailure_error_token_ptr,
+                                token
+                            )
+                            mstore(
+                                TokenTransferGenericFailure_error_from_ptr,
+                                from
+                            )
+                            mstore(TokenTransferGenericFailure_error_to_ptr, to)
+                            mstore(TokenTransferGenericFailure_error_id_ptr, 0)
+                            mstore(
+                                TokenTransferGenericFailure_error_amount_ptr,
+                                amount
+                            )
+                            revert(
+                                TokenTransferGenericFailure_error_sig_ptr,
+                                TokenTransferGenericFailure_error_length
+                            )
+                        }
 
-                        // Revert, specifying memory with copied returndata.
-                        revert(0, returndatasize())
+                        // Otherwise revert with a message about the token
+                        // returning false.
+                        mstore(
+                            BadReturnValueFromERC20OnTransfer_error_sig_ptr,
+                            BadReturnValueFromERC20OnTransfer_error_signature
+                        )
+                        mstore(
+                            BadReturnValueFromERC20OnTransfer_error_token_ptr,
+                            token
+                        )
+                        mstore(
+                            BadReturnValueFromERC20OnTransfer_error_from_ptr,
+                            from
+                        )
+                        mstore(
+                            BadReturnValueFromERC20OnTransfer_error_to_ptr,
+                            to
+                        )
+                        mstore(
+                            BadReturnValueFromERC20OnTransfer_error_amount_ptr,
+                            amount
+                        )
+                        revert(
+                            BadReturnValueFromERC20OnTransfer_error_sig_ptr,
+                            TokenTransferGenericFailure_error_length
+                        )
                     }
 
-                    // Otherwise revert with a generic error message.
-                    mstore(
-                        0,
-                        // abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-                        0xf486bc8700000000000000000000000000000000000000000000000000000000
-                    )
-                    mstore(4, token)
-                    mstore(0x24, from)
-                    mstore(0x44, to)
-                    mstore(0x64, 0)
-                    mstore(0x84, amount)
-
-                    revert(0, 0xa4) // Use 164 as its the result of 4 + 32 * 5.
+                    // Otherwise revert with error about token not having code:
+                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
+                    mstore(NoContract_error_token_ptr, token)
+                    revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
                 // Otherwise the token just returned nothing but otherwise
-                // succeeded — no need to optimize for this as it's not
+                // succeeded; no need to optimize for this as it's not
                 // technically ERC20 compliant.
             }
+
+            // Restore the original free memory pointer.
+            mstore(FreeMemoryPointerSlot, memPointer)
+
+            // Restore the zero slot to zero.
+            mstore(ZeroSlot, 0)
         }
     }
 
@@ -1707,16 +2076,95 @@ contract ConsiderationInternal is ConsiderationInternalView {
             revert InvalidERC721TransferAmount();
         }
 
-        // Perform transfer, either directly or via proxy.
-        bool success = _callDirectlyOrViaProxy(
-            from,
-            token,
-            conduit,
-            abi.encodeCall(ERC721Interface.transferFrom, (from, to, identifier))
-        );
+        // If no conduit has been specified...
+        if (conduit == address(0)) {
+            // Perform transfer via the token contract directly.
+            assembly {
+                // If the token has no code, revert.
+                if iszero(extcodesize(token)) {
+                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
+                    mstore(NoContract_error_token_ptr, token)
+                    revert(NoContract_error_sig_ptr, NoContract_error_length)
+                }
 
-        // Ensure that the transfer succeeded.
-        _assertValidTokenTransfer(success, token, from, to, identifier, 1);
+                // Write calldata to the free memory pointer (restore it later).
+                let memPointer := mload(FreeMemoryPointerSlot)
+
+                // Write calldata into memory starting with function selector.
+                mstore(
+                    ERC721_transferFrom_sig_ptr,
+                    ERC721_transferFrom_signature
+                )
+                mstore(ERC721_transferFrom_from_ptr, from)
+                mstore(ERC721_transferFrom_to_ptr, to)
+                mstore(ERC721_transferFrom_id_ptr, identifier)
+
+                let success := call(
+                    gas(),
+                    token,
+                    0,
+                    ERC721_transferFrom_sig_ptr,
+                    ERC721_transferFrom_length,
+                    0,
+                    0
+                )
+
+                // If the transfer reverted:
+                if iszero(success) {
+                    // If it returned a message, bubble it up:
+                    if returndatasize() {
+                        // Copy returndata to memory; overwrite existing memory.
+                        returndatacopy(0, 0, returndatasize())
+
+                        // Revert, specifying memory region with returndata.
+                        revert(0, returndatasize())
+                    }
+
+                    // Otherwise revert with a generic error message.
+                    mstore(
+                        TokenTransferGenericFailure_error_sig_ptr,
+                        TokenTransferGenericFailure_error_signature
+                    )
+                    mstore(TokenTransferGenericFailure_error_token_ptr, token)
+                    mstore(TokenTransferGenericFailure_error_from_ptr, from)
+                    mstore(TokenTransferGenericFailure_error_to_ptr, to)
+                    mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
+                    mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
+                    revert(
+                        TokenTransferGenericFailure_error_sig_ptr,
+                        TokenTransferGenericFailure_error_length
+                    )
+                }
+
+                // Restore the original free memory pointer.
+                mstore(FreeMemoryPointerSlot, memPointer)
+
+                // Restore the zero slot to zero.
+                mstore(ZeroSlot, 0)
+            }
+        } else if (conduit == address(1)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            bool success = _callProxy(
+                from,
+                token,
+                abi.encodeCall(
+                    ERC721Interface.transferFrom,
+                    (from, to, identifier)
+                )
+            );
+
+            // Ensure that the transfer succeeded.
+            _assertValidTokenTransfer(
+                success,
+                token,
+                from,
+                to,
+                identifier,
+                amount
+            );
+        } else {
+            revert("Not yet implemented");
+        }
     }
 
     /**
@@ -1743,23 +2191,113 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount,
         address conduit
     ) internal {
-        // Perform transfer, either directly or via proxy.
-        bool success = _callDirectlyOrViaProxy(
-            from,
-            token,
-            conduit,
-            abi.encodeWithSelector(
-                ERC1155Interface.safeTransferFrom.selector,
+        // Ensure that the supplied amount is non-zero.
+        _assertNonZeroAmount(amount);
+
+        // If no conduit has been specified...
+        if (conduit == address(0)) {
+            // Perform transfer via the token contract directly.
+            assembly {
+                // If the token has no code, revert.
+                if iszero(extcodesize(token)) {
+                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
+                    mstore(NoContract_error_token_ptr, token)
+                    revert(NoContract_error_sig_ptr, NoContract_error_length)
+                }
+
+                // Write calldata to these slots below, but restore them later.
+                let memPointer := mload(FreeMemoryPointerSlot)
+                let slot0x80 := mload(0x80)
+                let slot0xA0 := mload(0xA0)
+
+                // Write calldata into memory, beginning with function selector.
+                mstore(
+                    ERC1155_safeTransferFrom_sig_ptr,
+                    ERC1155_safeTransferFrom_signature
+                )
+                mstore(ERC1155_safeTransferFrom_from_ptr, from)
+                mstore(ERC1155_safeTransferFrom_to_ptr, to)
+                mstore(ERC1155_safeTransferFrom_id_ptr, identifier)
+                mstore(ERC1155_safeTransferFrom_amount_ptr, amount)
+                mstore(
+                    ERC1155_safeTransferFrom_data_offset_ptr,
+                    ERC1155_safeTransferFrom_data_length_offset
+                )
+                mstore(ERC1155_safeTransferFrom_data_length_ptr, 0)
+
+                let success := call(
+                    gas(),
+                    token,
+                    0,
+                    ERC1155_safeTransferFrom_sig_ptr,
+                    ERC1155_safeTransferFrom_length,
+                    0,
+                    0
+                )
+
+                // If the transfer reverted:
+                if iszero(success) {
+                    // If it returned a message, bubble it up:
+                    if returndatasize() {
+                        // Copy returndata to memory; overwrite existing memory.
+                        returndatacopy(0, 0, returndatasize())
+
+                        // Revert; specify memory region with copied returndata.
+                        revert(0, returndatasize())
+                    }
+
+                    // Otherwise revert with a generic error message.
+                    mstore(
+                        TokenTransferGenericFailure_error_sig_ptr,
+                        TokenTransferGenericFailure_error_signature
+                    )
+                    mstore(TokenTransferGenericFailure_error_token_ptr, token)
+                    mstore(TokenTransferGenericFailure_error_from_ptr, from)
+                    mstore(TokenTransferGenericFailure_error_to_ptr, to)
+                    mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
+                    mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
+                    revert(
+                        TokenTransferGenericFailure_error_sig_ptr,
+                        TokenTransferGenericFailure_error_length
+                    )
+                }
+
+                mstore(0x80, slot0x80) // Restore slot 0x80.
+                mstore(0xA0, slot0xA0) // Restore slot 0xA0.
+
+                // Restore the original free memory pointer.
+                mstore(FreeMemoryPointerSlot, memPointer)
+
+                // Restore the zero slot to zero.
+                mstore(ZeroSlot, 0)
+            }
+        } else if (conduit == address(1)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            bool success = _callProxy(
+                from,
+                token,
+                abi.encodeWithSelector(
+                    ERC1155Interface.safeTransferFrom.selector,
+                    from,
+                    to,
+                    identifier,
+                    amount,
+                    ""
+                )
+            );
+
+            // Ensure that the transfer succeeded.
+            _assertValidTokenTransfer(
+                success,
+                token,
                 from,
                 to,
                 identifier,
-                amount,
-                ""
-            )
-        );
-
-        // Ensure that the transfer succeeded.
-        _assertValidTokenTransfer(success, token, from, to, identifier, amount);
+                amount
+            );
+        } else {
+            revert("Not yet implemented");
+        }
     }
 
     /**
@@ -1782,20 +2320,38 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        // Perform transfer, either directly or via proxy.
-        bool success = _callDirectlyOrViaProxy(
-            from,
-            token,
-            conduit,
-            abi.encodeWithSelector(
-                ERC1155Interface.safeBatchTransferFrom.selector,
+        bool success;
+
+        // If no conduit has been specified...
+        if (conduit == address(0)) {
+            // Perform transfer via the token contract directly.
+            (success, ) = token.call(
+                abi.encodeWithSelector(
+                    ERC1155Interface.safeBatchTransferFrom.selector,
+                    from,
+                    to,
+                    tokenIds,
+                    amounts,
+                    ""
+                )
+            );
+        } else if (conduit == address(1)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(
                 from,
-                to,
-                tokenIds,
-                amounts,
-                ""
-            )
-        );
+                token,
+                abi.encodeWithSelector(
+                    ERC1155Interface.safeBatchTransferFrom.selector,
+                    from,
+                    to,
+                    tokenIds,
+                    amounts,
+                    ""
+                )
+            );
+        } else {
+            revert("Not yet implemented");
+        }
 
         // If the call fails...
         if (!success) {
@@ -1814,42 +2370,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Ensure that a contract is deployed to the token address.
         _assertContractIsDeployed(token);
-    }
-
-    /**
-     * @dev Internal function to trigger a call to a given token, either
-     *      directly or via a proxy contract. The proxy contract must be
-     *      registered on the legacy proxy registry for the given proxy owner
-     *      and must declare that its implementation matches the required proxy
-     *      implementation in accordance with EIP-897.
-     *
-     * @param from     The account providing the tokens.
-     * @param token    The token contract to call.
-     * @param conduit  An address indicating what conduit, if any, to source
-     *                 token approvals from. The null address signifies that no
-     *                 conduit should be used (and direct approvals set on
-     *                 Consideration) and `address(1)` signifies to utilize the
-     *                 legacy user proxy for the transfer.
-     * @param callData The calldata to supply when calling the token contract.
-     *
-     * @return success The status of the call to the token contract.
-     */
-    function _callDirectlyOrViaProxy(
-        address from,
-        address token,
-        address conduit,
-        bytes memory callData
-    ) internal returns (bool success) {
-        // If no conduit has been specified...
-        if (conduit == address(0)) {
-            // Perform transfer via the token contract directly.
-            success = _call(token, callData);
-        } else if (conduit == address(1)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(from, token, callData);
-        } else {
-            revert("Not yet implemented");
-        }
     }
 
     /**
@@ -1884,8 +2404,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // perform call to proxy via proxyAssert and HowToCall = CALL (value 0).
-        success = _call(
-            proxy,
+        (success, ) = proxy.call(
             abi.encodeWithSelector(
                 ProxyInterface.proxyAssert.selector,
                 target,
@@ -1893,23 +2412,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 callData
             )
         );
-    }
-
-    /**
-     * @dev Internal function to call an arbitrary target with given calldata.
-     *      Note that no data is written to memory and no contract size check is
-     *      performed.
-     *
-     * @param target   The account to call.
-     * @param callData The calldata to supply when calling the target.
-     *
-     * @return success The status of the call to the target.
-     */
-    function _call(address target, bytes memory callData)
-        internal
-        returns (bool success)
-    {
-        (success, ) = target.call(callData);
     }
 
     /**
@@ -2002,6 +2504,11 @@ contract ConsiderationInternal is ConsiderationInternalView {
         BasicOrderParameters calldata parameters,
         bool fromOfferer
     ) internal {
+        // Determine the appropriate conduit to utilize.
+        address conduit = fromOfferer
+            ? parameters.offererConduit
+            : parameters.fulfillerConduit;
+
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length; ) {
             // Retrieve the additional recipient.
@@ -2019,7 +2526,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 erc20Token,
                 from,
                 additionalRecipient.recipient,
-                additionalRecipient.amount
+                additionalRecipient.amount,
+                conduit
             );
 
             // Skip overflow check as for loop is indexed starting at zero.
@@ -2029,7 +2537,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(erc20Token, from, to, amount);
+        _transferERC20(erc20Token, from, to, amount, conduit);
 
         // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;

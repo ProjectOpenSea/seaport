@@ -148,23 +148,16 @@ interface ConsiderationEventsAndErrors {
     /**
      * @dev Revert with an error when the initial offer item named by a
      *      fulfillment component does not match the type, token, identifier,
-     *      or proxy utilization status of the initial consideration item.
+     *      or conduit preference of the initial consideration item.
      */
     error MismatchedFulfillmentOfferAndConsiderationComponents();
 
     /**
-     * @dev Revert with an error when the initial offer item named by a
-     *      fulfillment component does not match the type, token, identifier,
-     *      or proxy utilization status of a subsequent offer item.
+     * @dev Revert with an error when an order or item index are out of range
+     *      or a fulfillment component does not match the type, token,
+     *      identifier, or conduit preference of the initial consideration item.
      */
-    error MismatchedFulfillmentOfferComponents();
-
-    /**
-     * @dev Revert with an error when the initial consideration item named by a
-     *      fulfillment component does not match the type, token, identifier,
-     *      or proxy utilization status of a subsequent consideration item.
-     */
-    error MismatchedFulfillmentConsiderationComponents();
+    error InvalidFulfillmentComponentData();
 
     /**
      * @dev Revert with an error if a consideration amount has not been fully
@@ -357,8 +350,8 @@ interface ConsiderationEventsAndErrors {
     error InvalidMsgValue(uint256 value);
 
     /**
-     * @dev Revert with an error when the implementation of the respective proxy
-     *      does not match the expected proxy implementation.
+     * @dev Revert with an error when the implementation of the respective
+     *      legacy user proxy does not match the expected proxy implementation.
      */
     error InvalidProxyImplementation();
 
@@ -373,4 +366,10 @@ interface ConsiderationEventsAndErrors {
      *      available orders when none are fulfillable.
      */
     error NoSpecifiedOrdersAvailable();
+
+    /**
+     * @dev Revert with an error when attempting to fulfill an order where an
+     *      item has an amount of zero.
+     */
+    error MissingItemAmount();
 }

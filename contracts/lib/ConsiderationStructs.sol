@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "./ConsiderationEnums.sol";
+// prettier-ignore
+import {
+    OrderType,
+    BasicOrderType,
+    ItemType,
+    Side
+} from "./ConsiderationEnums.sol";
 
 /**
  * @dev An order contains ten components: an offerer, a zone (or account that
@@ -89,7 +95,7 @@ struct ReceivedItem {
  *      subset of the usual order arguments. Note the use of a "basicOrderType"
  *      enum; this represents both the usual order type as well as the "route"
  *      of the basic order (a simple derivation function for the basic order
- *      type is `basicOrderType = orderType + (8 * basicOrderRoute)`.)
+ *      type is `basicOrderType = orderType + (4 * basicOrderRoute)`.)
  */
 struct BasicOrderParameters {
     // calldata offset

@@ -5,6 +5,7 @@ module.exports = {
     "interfaces/ConsiderationEventsAndErrors.sol",
     "interfaces/ConsiderationInterface.sol",
     "interfaces/EIP1271Interface.sol",
+    "interfaces/ZoneInterface.sol",
     "lib/ConsiderationEnums.sol",
     "lib/ConsiderationStructs.sol",
     "test/EIP1271Wallet.sol",
@@ -23,6 +24,8 @@ module.exports = {
     "test/wyvern/Proxy.sol",
     "test/wyvern/ProxyRegistry.sol",
     "test/wyvern/TokenRecipient.sol",
+    "test/wyvern/TokenTransferProxy.sol",
     "test/wyvern/WyvernProxyRegistry.sol",
+    "test/wyvern/WyvernTokenTransferProxy.sol",
   ],
 };

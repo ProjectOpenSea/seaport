@@ -25,14 +25,14 @@ Each order contains eleven key components:
 - The `endTime` indicates the block timestamp at which the order expires. This value and the `startTime` are used in conjunction with the `startAmount` and `endAmount` of each item to derive their current amount.
 - The `zoneHash` represents an arbitrary 32-byte value that will be supplied to the zone when fulfilling restricted orders that the zone can utilize when making a determination on whether to authorize the order.
 - The `salt` represents an arbitrary source of entropy for the order.
-- The `conduit` represents an optional source for token approvals when performing transfers. By default (i.e. when `conduit` is set to the null address), the offerer will grant ERC20, ERC721, and ERC1155 token approvals to Consideration directly so that it can perform any transfers specified by the order during fulfillment. In contrast, a offerer that elects to utilize a conduit will grant token approvals to the supplied conduit, and Consideration will then instruct that conduit to transfer the respective tokens. Finally, the offerer's legacy user proxy will be utilized when `conduit` is set to `address(1)`.
+- The `conduit` represents an optional source for token approvals when performing transfers. By default (i.e. when `conduit` is set to the null address), the offerer will grant ERC20, ERC721, and ERC1155 token approvals to Consideration directly so that it can perform any transfers specified by the order during fulfillment. In contrast, a offerer that elects to utilize a conduit will grant token approvals to the supplied conduit, and Consideration will then instruct that conduit to transfer the respective tokens. Finally, the offerer's legacy user proxy (for ERC721 and ERC1155 items) or the legacy token transfer proxy (for ERC20 items) will be utilized when `conduit` is set to `address(1)`.
 - The `nonce` indicates a value that must match the current nonce for the given offerer.
 
 ## Order Fulfillment
 
 Orders are fulfilled via one of four methods:
 - Calling one of two "standard" functions, `fulfillOrder` and `fulfillAdvancedOrder`, where a second implied order will be constructed with the caller as the offerer, the consideration of the fulfilled order as the offer, and the offer of the fulfilled order as the consideration (with "advanced" orders containing the fraction that should be filled alongside a set of "criteria resolvers" that designate an identifier and a corresponding inclusion proof for each criteria-based item on the fulfilled order). All offer items will be transferred from the offerer of the order to the fulfiller, then all consideration items will be transferred from the fulfiller to the named recipient.
-- Calling the "basic" function, `fulfillBasicOrder`, with one of six "routes" (`ETH_TO_ERC721`, `ETH_TO_ERC1155`, `ERC20_TO_ERC721`, `ERC20_TO_ERC1155`, `ERC721_TO_ERC20`, and `ERC1155_TO_ERC20`) will derive the order to fulfill from a subset of components, assuming the order in question adheres to the following:
+- Calling the "basic" function, `fulfillBasicOrder` with one of six basic route types supplied (`ETH_TO_ERC721`, `ETH_TO_ERC1155`, `ERC20_TO_ERC721`, `ERC20_TO_ERC1155`, `ERC721_TO_ERC20`, and `ERC1155_TO_ERC20`) will derive the order to fulfill from a subset of components, assuming the order in question adheres to the following:
    - The order only contains a single offer item and contains at least one consideration item.
    - The order contains exactly one ERC721 or ERC1155 item and that item is not criteria-based.
    - The offerer of the order is the recipient of the first consideration item.
@@ -55,24 +55,24 @@ While the standard method can technically be used for fulfilling any order, it s
 When creating an offer, the following requirements should be checked to ensure that the order will be fulfillable:
 - The offerer should have sufficient balance of all offered items.
 - If the order does not indicate to use a conduit, the offerer should have sufficient approvals set for the Consideration contract for all offered ERC20, ERC721, and ERC1155 items.
-- If the order _does_ indicate to use a conduit or a legacy user proxy, the offerer should have sufficient approvals set for the respective conduit contract for all offered ERC721 and ERC1155 items (ERC20 items are still currently approved directly on the Consideration contract).
+- If the order _does_ indicate to use a conduit or a legacy user proxy, the offerer should have sufficient approvals set for the respective conduit contract for all offered ERC20, ERC721 and ERC1155 items. For a conduit of `address(1)`, the offerer should have sufficient approvals set for their legacy user proxy, and on the legacy token transfer proxy for ERC20 items.
 
 When fulfilling a _basic_ order, the following requirements need to be checked to ensure that the order will be fulfillable:
 - The above checks need to be performed to ensure that the offerer still has sufficient balance and approvals.
 - The fulfiller should have sufficient balance of all consideration items _except for those with an item type that matches the order's offered item type_ — by way of example, if the fulfilled order offers an ERC20 item and requires an ERC721 item to the offerer and the same ERC20 item to another recipient, the fulfiller needs to own the ERC721 item but does not need to own the ERC20 item as it will be sourced from the offerer.
-- If the fulfiller does not elect to utilize a proxy, they need to have sufficient approvals set for the Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order _except for ERC20 items with an item type that matches the order's offered item type_.
-- If the fulfiller _does_ elect to utilize a proxy, they need to have sufficient approvals set for their respective proxy contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order _except for ERC20 items with an item type that matches the order's offered item type_.
+- If the fulfiller does not elect to utilize a conduit, they need to have sufficient approvals set for the Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order _except for ERC20 items with an item type that matches the order's offered item type_.
+- If the fulfiller _does_ elect to utilize a conduit, they need to have sufficient approvals set for their respective conduit, legacy user proxy, and/or legacy token transfer proxy for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order _except for ERC20 items with an item type that matches the order's offered item type_.
 - If the fulfilled order specifies Ether (or other native tokens) as consideration items, the fulfiller must be able to supply the sum total of those items as `msg.value`.
 
 When fulfilling a _standard_ order, the following requirements need to be checked to ensure that the order will be fulfillable:
 - The above checks need to be performed to ensure that the offerer still has sufficient balance and approvals.
 - The fulfiller should have sufficient balance of all consideration items _after receiving all offered items_ — by way of example, if the fulfilled order offers an ERC20 item and requires an ERC721 item to the offerer and the same ERC20 item to another recipient with an amount less than or equal to the offered amount, the fulfiller does not need to own the ERC20 item as it will first be received from the offerer.
-- If the fulfiller does not elect to utilize a proxy, they need to have sufficient approvals set for the Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
-- If the fulfiller _does_ elect to utilize a proxy, they need to have sufficient approvals set for their respective proxy contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
+- If the fulfiller does not elect to utilize a conduit, they need to have sufficient approvals set for the Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
+- If the fulfiller _does_ elect to utilize a conduit, they need to have sufficient approvals set for their respective conduit, legacy user proxy, and/or legacy token transfer proxy for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
 - If the fulfilled order specifies Ether (or other native tokens) as consideration items, the fulfiller must be able to supply the sum total of those items as `msg.value`.
 
 When fulfilling a set of _match_ orders, the following requirements need to be checked to ensure that the order will be fulfillable:
-- Each account that sources the ERC20, ERC721, or ERC1155 item for an execution that will be performed as part of the fulfillment must have sufficient balance and approval on the relevant operator (depending on the order's proxy utilization preference) at the time the execution is triggered. Note that prior executions may supply the necessary balance for subsequent executions.
+- Each account that sources the ERC20, ERC721, or ERC1155 item for an execution that will be performed as part of the fulfillment must have sufficient balance and approval on Consideration, the respective conduit, or the respective legacy user proxy and/or legacy token transfer proxy at the time the execution is triggered. Note that prior executions may supply the necessary balance for subsequent executions.
 - The sum total of all executions involving Ether (or other native tokens) must be supplied as `msg.value`. Note that executions where the offerer and the recipient are the same account will be filtered out of the final execution set.
 
 ### Partial Fills
@@ -116,9 +116,9 @@ When fulfilling an order via `fulfillOrder` or `fulfillAdvancedOrder`:
   6. Emit OrderFulfilled event
      - Include updated items (i.e. after amount adjustment and criteria resolution)
   7. Transfer offer items from offerer to caller
-     - Use either proxy or Consideration directly to source approvals, depending on order type
+     - Use either conduit, legacy proxy, or Consideration directly to source approvals, depending on order type
   8. Transfer consideration items from caller to respective recipients
-     - Use either proxy or Consideration directly to source approvals, depending on the fulfiller's stated preference
+     - Use either conduit, legacy proxy, or Consideration directly to source approvals, depending on the fulfiller's stated preference
 
 > Note: `fulfillBasicOrder` works in a similar fashion, with a few exceptions: it reconstructs the order from a subset of order elements, skips linear fit amount adjustment and criteria resolution, requires that the full order amount be fillable, and performs a more minimal set of transfers by default when the offer item shares the same type and token as additional consideration items.
 
@@ -137,7 +137,7 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
       - Compare ERC1155 items to determine if they can be batched
       - Condense any matching ERC1155 items into batch executions
   10. Perform transfers as part of each execution
-      - Use either proxy or Consideration directly to source approvals, depending on the original order type
+      - Use either conduit, legacy proxy, or Consideration directly to source approvals, depending on the original order type
       - Ignore each execution where `to == from` or `amount == 0` *(NOTE: the current implementation does not perform this last optimization)*
 
 ## Known Limitations and Workarounds
@@ -154,10 +154,9 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
 - As orders filled by the "fulfill available" method will only be skipped if those orders have been cancelled, fully filled, or are inactive, fulfillments may still be attempted on unfulfillable orders (examples include revoked approvals or insufficient balances). This scenario (as well as issues with order formatting) will result in the full batch failing. One remediation to this failure condition is to perform additional checks from an executing zone or wrapper contract when constructing the call and filtering orders based on those checks.
 
 
-## Feature Wishlist
+## Planned Future Development
 
-- Conduits other than `address(0)` (i.e. no conduit) and `address(1)` (the legacy user proxy) are not currently supported. This feature still needs to be built out in an efficient and safe manner, including extending ERC20 approval sourcing to the conduit.
-- Orders and fulfillments that leverage legacy user proxies do not currently take advantage of the legacy "token transfer proxy" for sourcing ERC20 approvals. Furthermore, each transferred item performs a distinct internal call to the respective proxy.
+Conduits other than `address(0)` (i.e. no conduit) and `address(1)` (the legacy user proxy and legacy token transfer proxy) are not currently supported. This feature still needs to be built out in an efficient and safe manner, including working out an effective methodology for submitting token transfer instructions in batches to cut down on per-conduit calls. This same technique, combined with `HowToCall.delegatecall`, could also be applied to user proxies for ERC721/1155 transfers, as currently each transferred item performs a distinct internal call to the respective user proxy (note that the legacy token transfer proxy does not support call batching).
 
 ## Usage
 

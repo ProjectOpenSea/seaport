@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { ProxyRegistryInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
+// prettier-ignore
+import {
+    ProxyRegistryInterface,
+    TokenTransferProxyInterface
+} from "../interfaces/AbridgedProxyInterfaces.sol";
 
-import { ConsiderationEventsAndErrors } from "../interfaces/ConsiderationEventsAndErrors.sol";
+// prettier-ignore
+import {
+    ConsiderationEventsAndErrors
+} from "../interfaces/ConsiderationEventsAndErrors.sol";
 
 import { OrderStatus } from "./ConsiderationStructs.sol";
 
@@ -33,6 +40,9 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Allow for interaction with user proxies on the legacy proxy registry.
     ProxyRegistryInterface internal immutable _LEGACY_PROXY_REGISTRY;
 
+    // Allow for interaction with the legacy token transfer proxy.
+    TokenTransferProxyInterface internal immutable _LEGACY_TOKEN_TRANSFER_PROXY;
+
     // Ensure that user proxies adhere to the required proxy implementation.
     address internal immutable _REQUIRED_PROXY_IMPLEMENTATION;
 
@@ -51,60 +61,68 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
-     *                                    transfer approved tokens.
+     *                                    transfer approved ERC721+1155 tokens.
+     * @param legacyTokenTransferProxy    A shared proxy contract that may
+     *                                    optionally be used to transfer
+     *                                    approved ERC20 tokens.
      * @param requiredProxyImplementation The implementation that must be set on
      *                                    each proxy in order to utilize it.
      */
     constructor(
         address legacyProxyRegistry,
+        address legacyTokenTransferProxy,
         address requiredProxyImplementation
     ) {
         // Derive hashes, reference chainId, and associated domain separator.
         _NAME_HASH = keccak256(bytes(_NAME));
         _VERSION_HASH = keccak256(bytes(_VERSION));
 
+        // prettier-ignore
         bytes memory offerItemTypeString = abi.encodePacked(
             "OfferItem(",
-            "uint8 itemType,",
-            "address token,",
-            "uint256 identifierOrCriteria,",
-            "uint256 startAmount,",
-            "uint256 endAmount",
+                "uint8 itemType,",
+                "address token,",
+                "uint256 identifierOrCriteria,",
+                "uint256 startAmount,",
+                "uint256 endAmount",
             ")"
         );
+        // prettier-ignore
         bytes memory considerationItemTypeString = abi.encodePacked(
             "ConsiderationItem(",
-            "uint8 itemType,",
-            "address token,",
-            "uint256 identifierOrCriteria,",
-            "uint256 startAmount,",
-            "uint256 endAmount,",
-            "address recipient",
+                "uint8 itemType,",
+                "address token,",
+                "uint256 identifierOrCriteria,",
+                "uint256 startAmount,",
+                "uint256 endAmount,",
+                "address recipient",
             ")"
         );
+        // prettier-ignore
         bytes memory orderComponentsPartialTypeString = abi.encodePacked(
             "OrderComponents(",
-            "address offerer,",
-            "address zone,",
-            "OfferItem[] offer,",
-            "ConsiderationItem[] consideration,",
-            "uint8 orderType,",
-            "uint256 startTime,",
-            "uint256 endTime,",
-            "bytes32 zoneHash,",
-            "uint256 salt,",
-            "address conduit,",
-            "uint256 nonce",
+                "address offerer,",
+                "address zone,",
+                "OfferItem[] offer,",
+                "ConsiderationItem[] consideration,",
+                "uint8 orderType,",
+                "uint256 startTime,",
+                "uint256 endTime,",
+                "bytes32 zoneHash,",
+                "uint256 salt,",
+                "address conduit,",
+                "uint256 nonce",
             ")"
         );
 
+        // prettier-ignore
         _EIP_712_DOMAIN_TYPEHASH = keccak256(
             abi.encodePacked(
                 "EIP712Domain(",
-                "string name,",
-                "string version,",
-                "uint256 chainId,",
-                "address verifyingContract",
+                    "string name,",
+                    "string version,",
+                    "uint256 chainId,",
+                    "address verifyingContract",
                 ")"
             )
         );
@@ -122,6 +140,9 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
 
         // TODO: validate each of these based on expected codehash
         _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
+        _LEGACY_TOKEN_TRANSFER_PROXY = TokenTransferProxyInterface(
+            legacyTokenTransferProxy
+        );
         _REQUIRED_PROXY_IMPLEMENTATION = requiredProxyImplementation;
 
         // Initialize the reentrancy guard in a cleared state.
@@ -149,15 +170,15 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      * @return The derived domain separator.
      */
     function _deriveDomainSeparator() internal view virtual returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    _EIP_712_DOMAIN_TYPEHASH,
-                    _NAME_HASH,
-                    _VERSION_HASH,
-                    block.chainid,
-                    address(this)
-                )
-            );
+        // prettier-ignore
+        return keccak256(
+            abi.encode(
+                _EIP_712_DOMAIN_TYPEHASH,
+                _NAME_HASH,
+                _VERSION_HASH,
+                block.chainid,
+                address(this)
+            )
+        );
     }
 }

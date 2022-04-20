@@ -1,11 +1,34 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { ConsiderationInterface } from "./interfaces/ConsiderationInterface.sol";
+// prettier-ignore
+import {
+    ConsiderationInterface
+} from "./interfaces/ConsiderationInterface.sol";
 
-import { OrderType, ItemType, BasicOrderRouteType } from "./lib/ConsiderationEnums.sol";
+// prettier-ignore
+import {
+    OrderType,
+    ItemType,
+    BasicOrderRouteType
+} from "./lib/ConsiderationEnums.sol";
 
-import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution } from "./lib/ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    BasicOrderParameters,
+    OfferItem,
+    ConsiderationItem,
+    OrderParameters,
+    OrderComponents,
+    Fulfillment,
+    FulfillmentComponent,
+    Execution,
+    Order,
+    AdvancedOrder,
+    OrderStatus,
+    CriteriaResolver,
+    BatchExecution
+} from "./lib/ConsiderationStructs.sol";
 
 import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
 
@@ -16,7 +39,10 @@ import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
  *         provides lightweight methods for common routes as well as more
- *         flexible methods for composing advanced orders.
+ *         flexible methods for composing advanced orders or groups of orders.
+ *         Each order contains an arbitrary number of items that may be spent
+ *         (the "offer") along with an arbitrary number of items that must be
+ *         received back by the indicated recipients (the "consideration").
  */
 contract Consideration is ConsiderationInterface, ConsiderationInternal {
     /**
@@ -25,14 +51,24 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
-     *                                    transfer approved tokens.
+     *                                    transfer approved ERC721+1155 tokens.
+     * @param legacyTokenTransferProxy    A shared proxy contract that may
+     *                                    optionally be used to transfer
+     *                                    approved ERC20 tokens.
      * @param requiredProxyImplementation The implementation that must be set on
      *                                    each proxy in order to utilize it.
      */
     constructor(
         address legacyProxyRegistry,
+        address legacyTokenTransferProxy,
         address requiredProxyImplementation
-    ) ConsiderationInternal(legacyProxyRegistry, requiredProxyImplementation) {}
+    )
+        ConsiderationInternal(
+            legacyProxyRegistry,
+            legacyTokenTransferProxy,
+            requiredProxyImplementation
+        )
+    {}
 
     /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
@@ -302,12 +338,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         returns (bool)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
-        return
-            _validateAndFulfillAdvancedOrder(
-                _convertOrderToAdvanced(order),
-                new CriteriaResolver[](0), // No criteria resolvers supplied.
-                fulfillerConduit
-            );
+        // prettier-ignore
+        return _validateAndFulfillAdvancedOrder(
+            _convertOrderToAdvanced(order),
+            new CriteriaResolver[](0), // No criteria resolvers supplied.
+            fulfillerConduit
+        );
     }
 
     /**
@@ -346,8 +382,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillAdvancedOrder(
-        AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
+        AdvancedOrder calldata advancedOrder,
+        CriteriaResolver[] calldata criteriaResolvers,
         address fulfillerConduit
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
@@ -591,7 +627,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the supplied orders were
      *         successfully cancelled.
      */
-    function cancel(OrderComponents[] memory orders)
+    function cancel(OrderComponents[] calldata orders)
         external
         override
         returns (bool)
@@ -610,7 +646,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
-                OrderComponents memory order = orders[i];
+                OrderComponents calldata order = orders[i];
 
                 offerer = order.offerer;
                 zone = order.zone;
@@ -664,7 +700,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function validate(Order[] memory orders) external override returns (bool) {
+    function validate(Order[] calldata orders)
+        external
+        override
+        returns (bool)
+    {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
@@ -680,10 +720,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
-                Order memory order = orders[i];
+                Order calldata order = orders[i];
 
                 // Retrieve the order parameters.
-                OrderParameters memory orderParameters = order.parameters;
+                OrderParameters calldata orderParameters = order.parameters;
 
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
@@ -763,23 +803,23 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         returns (bytes32)
     {
         // Derive order hash by supplying order parameters along with the nonce.
-        return
-            _getOrderHash(
-                OrderParameters(
-                    order.offerer,
-                    order.zone,
-                    order.offer,
-                    order.consideration,
-                    order.orderType,
-                    order.startTime,
-                    order.endTime,
-                    order.zoneHash,
-                    order.salt,
-                    order.conduit,
-                    order.consideration.length
-                ),
-                order.nonce
-            );
+        // prettier-ignore
+        return _getOrderHash(
+            OrderParameters(
+                order.offerer,
+                order.zone,
+                order.offer,
+                order.consideration,
+                order.orderType,
+                order.startTime,
+                order.endTime,
+                order.zoneHash,
+                order.salt,
+                order.conduit,
+                order.consideration.length
+            ),
+            order.nonce
+        );
     }
 
     /**

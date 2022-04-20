@@ -14,3 +14,12 @@ interface ProxyInterface {
 
     function implementation() external view returns (address);
 }
+
+interface TokenTransferProxyInterface {
+    function transferFrom(
+        address token,
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+}
