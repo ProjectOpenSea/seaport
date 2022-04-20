@@ -1828,9 +1828,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Group these because they should be uncommon.
             if iszero(and(success, iszero(iszero(returndatasize())))) {
                 // If the token has no code or the transfer failed:
-                if iszero(
-                    and(iszero(iszero(extcodesize(token))), success)
-                ) {
+                if iszero(and(iszero(iszero(extcodesize(token))), success)) {
                     // If the transfer failed:
                     if iszero(success) {
                         // If it was due to a revert:
@@ -1857,14 +1855,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                                 TokenTransferGenericFailure_error_from_ptr,
                                 from
                             )
-                            mstore(
-                                TokenTransferGenericFailure_error_to_ptr,
-                                to
-                            )
-                            mstore(
-                                TokenTransferGenericFailure_error_id_ptr,
-                                0
-                            )
+                            mstore(TokenTransferGenericFailure_error_to_ptr, to)
+                            mstore(TokenTransferGenericFailure_error_id_ptr, 0)
                             mstore(
                                 TokenTransferGenericFailure_error_amount_ptr,
                                 amount
@@ -1903,15 +1895,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     }
 
                     // Otherwise revert with an error about the token not having code:
-                    mstore(
-                        NoContract_error_sig_ptr,
-                        NoContract_error_signature
-                    )
+                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
                     mstore(NoContract_error_token_ptr, token)
-                    revert(
-                        NoContract_error_sig_ptr,
-                        NoContract_error_length
-                    )
+                    revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
                 // Otherwise the token just returned nothing but otherwise succeeded,

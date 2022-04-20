@@ -5264,17 +5264,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          // Buyer approves marketplace contract to transfer ERC20 tokens too
+          // Buyer approves legacy Token Transfer Proxy to transfer ERC20 tokens
           await whileImpersonating(buyer.address, provider, async () => {
             await expect(
               testERC20
                 .connect(buyer)
-                .approve(marketplaceContract.address, tokenAmount)
+                .approve(legacyTokenTransferProxy.address, tokenAmount)
             )
               .to.emit(testERC20, "Approval")
               .withArgs(
                 buyer.address,
-                marketplaceContract.address,
+                legacyTokenTransferProxy.address,
                 tokenAmount
               );
           });
