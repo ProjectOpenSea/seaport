@@ -957,14 +957,16 @@ contract ConsiderationInternalView is ConsiderationPure {
                     break
                 }
 
-                // Retrieve the order pointer using the order index.
+                // Retrieve the order pointer using the order index. Note that
+                // advancedOrders[orderIndex].OrderParameters pointer is first
+                // word of AdvancedOrder struct, so mload again in a moment.
                 let orderPtr := mload(
                     add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
                 )
 
                 // If the order is available (i.e. has a numerator != 0)...
                 if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
-                    // Retrieve the *value* held by the order pointer.
+                    // Retrieve the order pointer (i.e. the second mload).
                     orderPtr := mload(orderPtr)
 
                     // Load offer item array pointer.
