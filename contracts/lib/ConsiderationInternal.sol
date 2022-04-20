@@ -1893,7 +1893,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
-                // Write calldata to free memory pointer, but restore it later.
+                // Write calldata to the free memory pointer, but restore it later.
                 let memPointer := mload(FreeMemoryPointerSlot)
 
                 // Write calldata into memory starting with function selector.
