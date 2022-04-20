@@ -115,6 +115,7 @@ uint256 constant receivedItemsHash_ptr = 0x60;
 // Must be added to the size of the ReceivedItem array for additionalRecipients
 // (0xa0 * additionalRecipients.length) to calculate the full size of the buffer.
 uint256 constant OrderFulfilled_baseSize = 0x1e0;
+uint256 constant OrderFulfilled_selector = 0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31;
 // Minimum offset in memory to OrderFulfilled event data.
 // Must be added to the size of the EIP712 hash array for additionalRecipients
 // (32 * additionalRecipients.length) to calculate the pointer to the event data.
