@@ -12,7 +12,7 @@
   "dependencies": {
     "ethers": "^5.5.3",
     "ethers-eip712": "^0.2.0",
-    "hardhat": "^2.8.2"
+    "hardhat": "https://github.com/jflatow/hardhat/releases/download/viaIR/hardhat-v2.8.4.tgz"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.4",
@@ -47,7 +47,7 @@
   "resolutions": {
     "async": ">=2.6.4",
     "lodash": ">=4.17.21",
-    "node-fetch": ">=2.6.7",
+    "node-fetch": "2.6.1",
     "underscore": ">=1.12.1",
     "yargs-parser": ">=5.0.1"
   },
