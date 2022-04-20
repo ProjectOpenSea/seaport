@@ -507,7 +507,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             mstore(eventDataPtr, orderHash)
 
             // Write the fulfiller (i.e. the caller) next.
-            mstore(add(eventDataPtr, 0x20), caller())
+            mstore(add(eventDataPtr, OrderFulfilled_fulfiller_offset), caller())
 
             // Write the SpentItem and ReceivedItem array offsets (constants).
             mstore(
