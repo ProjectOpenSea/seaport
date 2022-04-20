@@ -591,7 +591,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the supplied orders were
      *         successfully cancelled.
      */
-    function cancel(OrderComponents[] memory orders)
+    function cancel(OrderComponents[] calldata orders)
         external
         override
         returns (bool)
@@ -610,7 +610,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             // Iterate over each order.
             for (uint256 i = 0; i < totalOrders; ) {
                 // Retrieve the order.
-                OrderComponents memory order = orders[i];
+                OrderComponents calldata order = orders[i];
 
                 offerer = order.offerer;
                 zone = order.zone;
