@@ -83,7 +83,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure current timestamp falls between order start time and end time.
         _verifyTime(parameters.startTime, parameters.endTime, true);
 
-        // Ensure calldata offsets were produced by default encoding.
+        // Verify that calldata offsets for all dynamic types were produced by default encoding.
+        // This ensures that the constants we use for calldata pointers to dynamic types
+        // are the same as those calculated by Solidity using their offsets.
         _assertValidBasicOrderParameterOffsets();
 
         // Ensure supplied consideration array length is not less than original.
@@ -119,31 +121,36 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Load consideration item typehash from runtime and place on stack.
             bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
-            // Utilize assembly to enable reuse of memory regions when possible.
+            // Utilize assembly to enable reuse of memory regions and use constant
+            // pointers when possible.
             assembly {
-                // 1. Write first ReceivedItem hash to the consideration array.
+                /*
+                 * 1. Calculate the EIP712 ConsiderationItem hash for the primary consideration
+                 * item of the basic order.
+                 */
+
                 // Write ConsiderationItem type hash and item type to memory.
                 mstore(BasicOrder_considerationItem_typeHash_ptr, typeHash)
-                mstore(
-                    BasicOrder_considerationItem_itemType_ptr,
-                    receivedItemType
-                )
+                mstore(BasicOrder_considerationItem_itemType_ptr, receivedItemType)
 
-                // Copy calldata region with token, identifier, and startAmount.
+                // Copy calldata region with considerationToken, considerationIdentifier, and considerationAmount
+                // from BasicOrderParameters to token, identifier, startAmount in ConsiderationItem.
+                // considerationAmount is written to startAmount and endAmount as basic orders do not have dynamic amounts.
                 calldatacopy(
                     BasicOrder_considerationItem_token_ptr,
                     BasicOrder_considerationToken_cdPtr,
                     ThreeWords
                 )
 
-                // Copy calldata region with endAmount (reused) and recipient.
+                // Copy calldata region with considerationAmount and offerer from BasicOrderParameters to endAmount
+                // and recipient in ConsiderationItem.
                 calldatacopy(
                     BasicOrder_considerationItem_endAmount_ptr,
                     BasicOrder_considerationAmount_cdPtr,
                     TwoWords
                 )
 
-                // Set keccak256(abi.encode(receivedItem)) as first item hash.
+                // Calculate EIP712 ConsiderationItem hash and store it in the array of EIP712 consideration hashes.
                 mstore(
                     BasicOrder_considerationHashesArray_ptr,
                     keccak256(
@@ -152,41 +159,54 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
                 )
 
-                // 2. Write first ReceivedItem to OrderFulfilled data.
+                /*
+                 * 2. Write a ReceivedItem struct for the primary consideration item to the consideration array
+                 * in OrderFulfilled.
+                 */
+
                 // Get the length of the additional recipients array.
                 let len := calldataload(
                     BasicOrder_additionalRecipients_length_cdPtr
                 )
 
-                // END_ARR + 0x120 = 0x2a0 + len*0x20
-                let eventArrPtr := add(
+                // Calculate pointer to length of OrderFulfilled consideration array.
+                let eventConsiderationArrPtr := add(
                     OrderFulfilled_consideration_length_baseOffset,
                     mul(0x20, len)
                 )
+
+                // Set the length of the consideration array to the number of additional recipients, plus one
+                // for the primary consideration item.
                 mstore(
-                    eventArrPtr,
+                    eventConsiderationArrPtr,
                     add(
                         calldataload(
                             BasicOrder_additionalRecipients_length_cdPtr
                         ),
                         1
                     )
-                ) // length
+                )
 
-                // Set pointer to data portion of the initial ReceivedItem.
-                eventArrPtr := add(eventArrPtr, 0x20)
+                // Overwrite the consideration array pointer so it points to the body of the first element
+                eventConsiderationArrPtr := add(eventConsiderationArrPtr, 0x20)
 
-                // Set item type at start of the ReceivedItem memory region.
-                mstore(eventArrPtr, receivedItemType)
+                // Set itemType at start of the ReceivedItem memory region.
+                mstore(eventConsiderationArrPtr, receivedItemType)
 
-                // Copy calldata region (token, identifier, amount & recipient).
+                // Copy calldata region (token, identifier, amount & recipient) from
+                // BasicOrderParameters to ReceivedItem memory.
                 calldatacopy(
-                    add(eventArrPtr, 0x20),
+                    add(eventConsiderationArrPtr, Common_token_offset),
                     BasicOrder_considerationToken_cdPtr,
                     0x80
                 )
 
-                // 3. Handle additional recipients.
+                /*
+                 * 3. Calculate EIP712 hashes for original additional recipients and add a ReceivedItem for
+                 * each to the consideration array in the OrderFulfilled event.
+                 * The original additional recipients are all the considerations signed by the offerer aside
+                 * from the primary consideration of the order.
+                 */
                 // Set pointer to current location in receivedItemHashes.
                 let
                     considerationHashesPtr
@@ -249,19 +269,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
 
                     // b. Write ReceivedItem to OrderFulfilled data.
-                    // At this point, eventArrPtr points to the beginning of the
+                    // At this point, eventConsiderationArrPtr points to the beginning of the
                     // ReceivedItem struct of the previous element in the array.
-                    eventArrPtr := add(eventArrPtr, ReceivedItem_size)
+                    eventConsiderationArrPtr := add(eventConsiderationArrPtr, ReceivedItem_size)
 
                     // Set item type at start of the ReceivedItem memory region.
-                    mstore(eventArrPtr, additionalRecipientsItemType)
+                    mstore(eventConsiderationArrPtr, additionalRecipientsItemType)
 
                     // Set token at next word in the ReceivedItem memory region.
-                    mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+                    mstore(add(eventConsiderationArrPtr, 0x20), additionalRecipientsToken)
 
                     // Copy endAmount and recipient to remaining memory region.
                     calldatacopy(
-                        add(eventArrPtr, ReceivedItem_amount_offset),
+                        add(eventConsiderationArrPtr, ReceivedItem_amount_offset),
                         additionalRecipientCdPtr,
                         0x40
                     )
@@ -296,19 +316,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     )
 
                     // b. Write ReceivedItem to OrderFulfilled data
-                    // At this point, eventArrPtr points to the beginning of the
+                    // At this point, eventConsiderationArrPtr points to the beginning of the
                     // ReceivedItem struct of the previous element in the array.
-                    eventArrPtr := add(eventArrPtr, ReceivedItem_size)
+                    eventConsiderationArrPtr := add(eventConsiderationArrPtr, ReceivedItem_size)
 
                     // Set item type at start of the ReceivedItem memory region.
-                    mstore(eventArrPtr, additionalRecipientsItemType)
+                    mstore(eventConsiderationArrPtr, additionalRecipientsItemType)
 
                     // Set token at next word in the ReceivedItem memory region.
-                    mstore(add(eventArrPtr, 0x20), additionalRecipientsToken)
+                    mstore(add(eventConsiderationArrPtr, 0x20), additionalRecipientsToken)
 
                     // Copy endAmount and recipient to remaining memory region.
                     calldatacopy(
-                        add(eventArrPtr, ReceivedItem_amount_offset),
+                        add(eventConsiderationArrPtr, ReceivedItem_amount_offset),
                         additionalRecipientCdPtr,
                         0x40
                     )
@@ -370,7 +390,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // 3. Write SpentItem array to event data.
                 // 0x180 + len*32 = event data pointer, where the offer array
                 // length is stored at 0x80 into the event data.
-                let eventArrPtr := add(
+                let eventConsiderationArrPtr := add(
                     OrderFulfilled_offer_length_baseOffset,
                     mul(
                         0x20,
@@ -381,14 +401,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 )
 
                 // Set a length of 1 for the offer array.
-                mstore(eventArrPtr, 1)
+                mstore(eventConsiderationArrPtr, 1)
 
                 // Set offer item type at start of the SpentItem memory region.
-                mstore(add(eventArrPtr, 0x20), offeredItemType)
+                mstore(add(eventConsiderationArrPtr, 0x20), offeredItemType)
 
                 // Copy token, identifier, and startAmount to SpentItem region.
                 calldatacopy(
-                    add(eventArrPtr, AdditionalRecipients_size),
+                    add(eventConsiderationArrPtr, AdditionalRecipients_size),
                     BasicOrder_offerToken_cdPtr,
                     ThreeWords
                 )
