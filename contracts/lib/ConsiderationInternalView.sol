@@ -849,7 +849,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Ensure that the order index is not out of range.
             invalidFulfillment := iszero(lt(orderIndex, mload(advancedOrders)))
 
-            // Retrieve the order pointer from the order index.
+            // Retrieve the initial order pointer from the order index.
             let orderPtr := mload(
                 mload(
                     add(
@@ -922,46 +922,67 @@ contract ConsiderationInternalView is ConsiderationPure {
             )
         }
 
+        // Declare new assembly scope to avoid stack too deep errors.
         assembly {
+            // Retrieve the received item pointer using the execution.
             let receivedItemPtr := mload(execution)
+
+            // Iterate over offer components as long as fulfillment is valid.
             // prettier-ignore
-            for { let i := add(startIndex, 1) } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
+            for {
+                let i := add(startIndex, 1)
+            } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
                 i := add(i, 1)
             } {
+                // Retrieve fulfillment pointer for the current offer component.
                 let fulfillmentPtr := mload(
                     add(add(offerComponents, 0x20), mul(i, 0x20))
                 )
+
+                // Retrieve the order index using the fulfillment pointer.
                 let orderIndex := mload(fulfillmentPtr)
+
+                // Retrieve the item index using offset of fulfillment pointer.
                 let itemIndex := mload(
                     add(fulfillmentPtr, Fulfillment_itemIndex_offset)
                 )
 
+                // Ensure that the order index is in range.
                 invalidFulfillment := iszero(
                     lt(orderIndex, mload(advancedOrders))
                 )
 
+                // Exit iteration if it is out of range.
                 if invalidFulfillment {
                     break
                 }
 
+                // Retrieve the order pointer using the order index.
                 let orderPtr := mload(
                     add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
                 )
 
+                // If the order is available (i.e. has a numerator != 0)...
                 if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
+                    // Retrieve the *value* held by the order pointer.
                     orderPtr := mload(orderPtr)
-                    // Load offer array pointer
+
+                    // Load offer item array pointer.
                     let offerArrPtr := mload(
                         add(orderPtr, OrderParameters_offer_head_offset)
                     )
+
+                    // Ensure that the offer item index is in range.
                     invalidFulfillment := iszero(
                         lt(itemIndex, mload(offerArrPtr))
                     )
 
+                    // Exit iteration if it is out of range.
                     if invalidFulfillment {
                         break
                     }
 
+                    // Retrieve the offer item pointer using the item index.
                     let offerItemPtr := mload(
                         add(
                             // Get pointer to beginning of OfferItem
@@ -971,13 +992,19 @@ contract ConsiderationInternalView is ConsiderationPure {
                         )
                     )
 
+                    // Retrieve the amount using the offer item pointer.
                     let amountPtr := add(offerItemPtr, Common_amount_offset)
+
+                    // Increment the amount.
                     amount := add(amount, mload(amountPtr))
+
+                    // Zero out amount on original item to indicate it is spent.
                     mstore(amountPtr, 0)
 
+                    // Ensure the indicated offer item matches original item.
                     invalidFulfillment := iszero(
                         and(
-                            // identifier
+                            // The identifier must match on both items.
                             eq(
                                 mload(
                                     add(offerItemPtr, Common_identifier_offset)
@@ -988,15 +1015,18 @@ contract ConsiderationInternalView is ConsiderationPure {
                             ),
                             and(
                                 and(
-                                    // offerer
+                                    // The offerer must match on both items.
                                     eq(
                                         mload(orderPtr),
                                         mload(add(execution, Common_token_offset))
                                     ),
-                                    // conduit
+                                    // The conduit must match on both items.
                                     eq(
                                         mload(
-                                            add(orderPtr, OrderParameters_conduit_offset)
+                                            add(
+                                                orderPtr,
+                                                OrderParameters_conduit_offset
+                                            )
                                         ),
                                         mload(
                                             add(
@@ -1007,15 +1037,18 @@ contract ConsiderationInternalView is ConsiderationPure {
                                     )
                                 ),
                                 and(
-                                    // item type
+                                    // The item type must match on both items.
                                     eq(
                                         mload(offerItemPtr),
                                         mload(receivedItemPtr)
                                     ),
-                                    // token
+                                    // The token must match on both items.
                                     eq(
                                         mload(
-                                            add(offerItemPtr, Common_token_offset)
+                                            add(
+                                                offerItemPtr,
+                                                Common_token_offset
+                                            )
                                         ),
                                         mload(
                                             add(
@@ -1030,9 +1063,12 @@ contract ConsiderationInternalView is ConsiderationPure {
                     )
                 }
             }
+
+            // update the final amount on the returned received item.
             mstore(add(receivedItemPtr, Common_amount_offset), amount)
         }
 
+        // Revert if an order or item was out of range or was not aggregatable.
         if (invalidFulfillment) {
             revert InvalidFulfillmentComponentData();
         }
