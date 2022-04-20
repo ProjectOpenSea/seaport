@@ -9,6 +9,8 @@ import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
 
+import "./ConsiderationPointers.sol";
+
 /**
  * @title ConsiderationPure
  * @author 0age
@@ -625,66 +627,81 @@ contract ConsiderationPure is ConsiderationBase {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory considerationComponents,
         uint256 startIndex
-    ) internal pure returns (ReceivedItem memory considerationItem) {
-        bool orderOOR;
+    ) internal pure returns (ReceivedItem memory receivedItem) {
+        bool invalidFulfillment;
 
         assembly {
             let ordersLen := mload(advancedOrders)
             let i := startIndex
             // let fulfillmentLen := mload(considerationComponents)
             let fulfillmentPtr := mload(
-                add(add(considerationComponents, 0x20), mul(i, 32))
+                add(add(considerationComponents, 0x20), mul(i, 0x20))
             )
             let orderIndex := mload(fulfillmentPtr)
             let itemIndex := mload(add(fulfillmentPtr, 0x20))
-            orderOOR := iszero(lt(orderIndex, ordersLen))
-            if iszero(orderOOR) {
+            invalidFulfillment := iszero(lt(orderIndex, ordersLen))
+            if iszero(invalidFulfillment) {
                 // Get pointer to AdvancedOrder element then get pointer to OrderParameters
                 // OrderParameters pointer is first word of AdvancedOrder struct, so we mload twice
                 let orderPtr := mload(
                     mload(
                         add(
                             // Calculate pointer to beginning of advancedOrders head
-                            add(advancedOrders, 32),
+                            add(advancedOrders, 0x20),
                             // Calculate offset to pointer for desired order
-                            mul(orderIndex, 32)
+                            mul(orderIndex, 0x20)
                         )
                     )
                 )
                 // Load consideration array pointer
-                let considerationArrPtr := mload(add(orderPtr, 0x60))
+                let considerationArrPtr := mload(
+                    add(orderPtr, Order_consideration_head_offset)
+                )
                 // Check if itemIndex is within the range of the array
-                orderOOR := iszero(lt(itemIndex, mload(considerationArrPtr)))
-                if iszero(orderOOR) {
-                    let itemPtr := mload(
+                invalidFulfillment := iszero(
+                    lt(itemIndex, mload(considerationArrPtr))
+                )
+                if iszero(invalidFulfillment) {
+                    let considerationItemPtr := mload(
                         add(
-                            // Get pointer to beginning of considerationItem
+                            // Get pointer to beginning of receivedItem
                             add(considerationArrPtr, 0x20),
                             // Calculate offset to pointer for desired order
-                            mul(itemIndex, 32)
+                            mul(itemIndex, 0x20)
                         )
                     )
 
                     // itemType
-                    mstore(considerationItem, mload(itemPtr))
+                    mstore(receivedItem, mload(considerationItemPtr))
                     // token
                     mstore(
-                        add(considerationItem, 0x20),
-                        mload(add(itemPtr, 0x20))
+                        add(receivedItem, CommonTokenOffset),
+                        mload(add(considerationItemPtr, CommonTokenOffset))
                     )
                     // identifier
                     mstore(
-                        add(considerationItem, 0x40),
-                        mload(add(itemPtr, 0x40))
+                        add(receivedItem, CommonIdentifierOffset),
+                        mload(add(considerationItemPtr, CommonIdentifierOffset))
                     )
-                    let amountPtr := add(itemPtr, 0x60)
+                    let amountPtr := add(
+                        considerationItemPtr,
+                        CommonAmountOffset
+                    )
                     // amount
-                    mstore(add(considerationItem, 0x60), mload(amountPtr))
+                    mstore(
+                        add(receivedItem, CommonAmountOffset),
+                        mload(amountPtr)
+                    )
                     mstore(amountPtr, 0)
                     // recipient
                     mstore(
-                        add(considerationItem, 0x80),
-                        mload(add(itemPtr, 0xa0))
+                        add(receivedItem, ReceivedItem_recipient_offset),
+                        mload(
+                            add(
+                                considerationItemPtr,
+                                ConsiderationItem_recipient_offset
+                            )
+                        )
                     )
                     i := add(i, 1)
                     for {
@@ -693,83 +710,126 @@ contract ConsiderationPure is ConsiderationBase {
                         i := add(i, 1)
                     } {
                         fulfillmentPtr := mload(
-                            add(add(considerationComponents, 0x20), mul(i, 32))
+                            add(
+                                add(considerationComponents, 0x20),
+                                mul(i, 0x20)
+                            )
                         )
                         orderIndex := mload(fulfillmentPtr)
                         itemIndex := mload(add(fulfillmentPtr, 0x20))
-                        orderOOR := iszero(lt(orderIndex, ordersLen))
-                        if orderOOR {
+                        invalidFulfillment := iszero(lt(orderIndex, ordersLen))
+                        if invalidFulfillment {
                             break
                         }
-                        // Get pointer to AdvancedOrder element then get pointer to OrderParameters
-                        // OrderParameters pointer is first word of AdvancedOrder struct, so we mload twice
+                        // Get pointer to AdvancedOrder element
+                        // orderPtr will be reused as the pointer to OrderParameters
                         orderPtr := mload(
-                            add(add(advancedOrders, 32), mul(orderIndex, 32))
+                            add(
+                                add(advancedOrders, 0x20),
+                                mul(orderIndex, 0x20)
+                            )
                         )
 
-                        if mload(add(orderPtr, 0x20)) {
+                        // Only continue if numerator is >0
+                        if mload(
+                            add(orderPtr, AdvancedOrder_numerator_offset)
+                        ) {
+                            // First word of AdvancedOrder is pointer to OrderParameters
                             orderPtr := mload(orderPtr)
                             // Load consideration array pointer
-                            considerationArrPtr := mload(add(orderPtr, 0x60))
+                            considerationArrPtr := mload(
+                                add(orderPtr, Order_consideration_head_offset)
+                            )
                             // Check if itemIndex is within the range of the array
-                            orderOOR := iszero(
+                            invalidFulfillment := iszero(
                                 lt(itemIndex, mload(considerationArrPtr))
                             )
-                            if orderOOR {
+                            if invalidFulfillment {
                                 break
                             }
-                            itemPtr := mload(
+                            considerationItemPtr := mload(
                                 add(
-                                    // Get pointer to beginning of considerationItem
+                                    // Get pointer to beginning of receivedItem
                                     add(considerationArrPtr, 0x20),
                                     // Calculate offset to pointer for desired order
-                                    mul(itemIndex, 32)
+                                    mul(itemIndex, 0x20)
                                 )
                             )
-                            amountPtr := add(itemPtr, 0x60)
+                            amountPtr := add(
+                                considerationItemPtr,
+                                CommonAmountOffset
+                            )
 
                             mstore(
-                                add(considerationItem, 0x60),
+                                add(receivedItem, CommonAmountOffset),
                                 add(
-                                    mload(add(considerationItem, 0x60)),
+                                    mload(
+                                        add(receivedItem, CommonAmountOffset)
+                                    ),
                                     mload(amountPtr)
                                 )
                             )
 
                             mstore(amountPtr, 0)
-                            orderOOR := iszero(
+                            invalidFulfillment := iszero(
                                 and(
                                     // recipient
                                     eq(
-                                        mload(add(itemPtr, 0xa0)),
-                                        mload(add(considerationItem, 0x80))
+                                        mload(
+                                            add(
+                                                considerationItemPtr,
+                                                ConsiderationItem_recipient_offset
+                                            )
+                                        ),
+                                        mload(
+                                            add(
+                                                receivedItem,
+                                                ReceivedItem_recipient_offset
+                                            )
+                                        )
                                     ),
                                     and(
                                         // item type
                                         eq(
-                                            mload(itemPtr),
-                                            mload(considerationItem)
+                                            mload(considerationItemPtr),
+                                            mload(receivedItem)
                                         ),
                                         and(
                                             // token
                                             eq(
-                                                mload(add(itemPtr, 0x20)),
                                                 mload(
-                                                    add(considerationItem, 0x20)
+                                                    add(
+                                                        considerationItemPtr,
+                                                        CommonTokenOffset
+                                                    )
+                                                ),
+                                                mload(
+                                                    add(
+                                                        receivedItem,
+                                                        CommonTokenOffset
+                                                    )
                                                 )
                                             ),
                                             // identifier
                                             eq(
-                                                mload(add(itemPtr, 0x40)),
                                                 mload(
-                                                    add(considerationItem, 0x40)
+                                                    add(
+                                                        considerationItemPtr,
+                                                        CommonIdentifierOffset
+                                                    )
+                                                ),
+                                                mload(
+                                                    add(
+                                                        receivedItem,
+                                                        CommonIdentifierOffset
+                                                    )
                                                 )
                                             )
                                         )
                                     )
                                 )
                             )
-                            if orderOOR {
+                            if invalidFulfillment {
                                 break
                             }
                         }
@@ -777,8 +837,8 @@ contract ConsiderationPure is ConsiderationBase {
                 }
             }
         }
-        if (orderOOR) {
-            revert FulfilledOrderIndexOutOfRange();
+        if (invalidFulfillment) {
+            revert InvalidFulfillmentComponentData();
         }
     }
 

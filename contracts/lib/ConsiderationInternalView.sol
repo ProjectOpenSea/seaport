@@ -11,6 +11,8 @@ import { OfferItem, ConsiderationItem, SpentItem, ReceivedItem, OrderParameters,
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
 
+import "./ConsiderationPointers.sol";
+
 /**
  * @title ConsiderationInternalView
  * @author 0age
@@ -769,126 +771,172 @@ contract ConsiderationInternalView is ConsiderationPure {
         uint256 startIndex
     ) internal view returns (Execution memory execution) {
         uint256 amount;
-        bool orderOOR;
+        bool invalidFulfillment;
         assembly {
             let fulfillmentPtr := mload(
-                add(add(offerComponents, 0x20), mul(startIndex, 32))
+                add(add(offerComponents, 0x20), mul(startIndex, 0x20))
             )
             let orderIndex := mload(fulfillmentPtr)
-            let itemIndex := mload(add(fulfillmentPtr, 0x20))
-            orderOOR := iszero(lt(orderIndex, mload(advancedOrders)))
+            let itemIndex := mload(
+                add(fulfillmentPtr, Fulfillment_itemIndex_offset)
+            )
+            invalidFulfillment := iszero(lt(orderIndex, mload(advancedOrders)))
             let orderPtr := mload(
                 mload(
                     add(
                         // Calculate pointer to beginning of advancedOrders head
-                        add(advancedOrders, 32),
+                        add(advancedOrders, 0x20),
                         // Calculate offset to pointer for desired order
-                        mul(orderIndex, 32)
+                        mul(orderIndex, 0x20)
                     )
                 )
             )
             // Load offer array pointer
-            let offerArrPtr := mload(add(orderPtr, 0x40))
-            orderOOR := or(iszero(lt(itemIndex, mload(offerArrPtr))), orderOOR)
-            let itemPtr := mload(
+            let offerArrPtr := mload(add(orderPtr, Order_offer_head_offset))
+            invalidFulfillment := or(
+                iszero(lt(itemIndex, mload(offerArrPtr))),
+                invalidFulfillment
+            )
+            let offerItemPtr := mload(
                 add(
                     // Get pointer to beginning of OfferItem
                     add(offerArrPtr, 0x20),
                     // Calculate offset to pointer for desired order
-                    mul(itemIndex, 32)
+                    mul(itemIndex, 0x20)
                 )
             )
-            let offerItem := mload(execution)
+            let receivedItemPtr := mload(execution)
             // itemType
-            mstore(offerItem, mload(itemPtr))
+            mstore(receivedItemPtr, mload(offerItemPtr))
             // token
-            mstore(add(offerItem, 0x20), mload(add(itemPtr, 0x20)))
+            mstore(
+                add(receivedItemPtr, CommonTokenOffset),
+                mload(add(offerItemPtr, CommonTokenOffset))
+            )
             // identifier
-            mstore(add(offerItem, 0x40), mload(add(itemPtr, 0x40)))
-            let amountPtr := add(itemPtr, 0x60)
+            mstore(
+                add(receivedItemPtr, 0x40),
+                mload(add(offerItemPtr, CommonIdentifierOffset))
+            )
+            let amountPtr := add(offerItemPtr, CommonAmountOffset)
             amount := mload(amountPtr)
             // recipient
-            mstore(add(offerItem, 0x80), caller())
+            mstore(
+                add(receivedItemPtr, ReceivedItem_recipient_offset),
+                caller()
+            )
             mstore(amountPtr, 0)
-            //
-            mstore(add(execution, 0x20), mload(orderPtr))
-            //conduit
-            mstore(add(execution, 0x40), mload(add(orderPtr, 0x120)))
+            // offerer
+            mstore(add(execution, Execution_offerer_offset), mload(orderPtr))
+            // conduit
+            mstore(
+                add(execution, Execution_conduit_offset),
+                mload(add(orderPtr, Order_conduit_offset))
+            )
         }
 
         assembly {
-            let offerItem := mload(execution)
+            let receivedItemPtr := mload(execution)
             for {
                 let i := add(startIndex, 1)
-            } and(iszero(orderOOR), lt(i, mload(offerComponents))) {
+            } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
                 i := add(i, 1)
             } {
                 let fulfillmentPtr := mload(
-                    add(add(offerComponents, 0x20), mul(i, 32))
+                    add(add(offerComponents, 0x20), mul(i, 0x20))
                 )
                 let orderIndex := mload(fulfillmentPtr)
-                let itemIndex := mload(add(fulfillmentPtr, 0x20))
+                let itemIndex := mload(
+                    add(fulfillmentPtr, Fulfillment_itemIndex_offset)
+                )
 
-                orderOOR := iszero(lt(orderIndex, mload(advancedOrders)))
+                invalidFulfillment := iszero(
+                    lt(orderIndex, mload(advancedOrders))
+                )
 
-                if orderOOR {
+                if invalidFulfillment {
                     break
                 }
 
                 let orderPtr := mload(
-                    add(add(advancedOrders, 32), mul(orderIndex, 32))
+                    add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
                 )
 
-                if mload(add(orderPtr, 0x20)) {
+                if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
                     orderPtr := mload(orderPtr)
                     // Load offer array pointer
-                    let offerArrPtr := mload(add(orderPtr, 0x40))
-                    orderOOR := iszero(lt(itemIndex, mload(offerArrPtr)))
+                    let offerArrPtr := mload(
+                        add(orderPtr, Order_offer_head_offset)
+                    )
+                    invalidFulfillment := iszero(
+                        lt(itemIndex, mload(offerArrPtr))
+                    )
 
-                    if orderOOR {
+                    if invalidFulfillment {
                         break
                     }
 
-                    let itemPtr := mload(
+                    let offerItemPtr := mload(
                         add(
                             // Get pointer to beginning of OfferItem
                             add(offerArrPtr, 0x20),
                             // Calculate offset to pointer for desired order
-                            mul(itemIndex, 32)
+                            mul(itemIndex, 0x20)
                         )
                     )
 
-                    let amountPtr := add(itemPtr, 0x60)
+                    let amountPtr := add(offerItemPtr, CommonAmountOffset)
                     amount := add(amount, mload(amountPtr))
                     mstore(amountPtr, 0)
 
-                    orderOOR := iszero(
+                    invalidFulfillment := iszero(
                         and(
                             // identifier
                             eq(
-                                mload(add(itemPtr, 0x40)),
-                                mload(add(offerItem, 0x40))
+                                mload(
+                                    add(offerItemPtr, CommonIdentifierOffset)
+                                ),
+                                mload(
+                                    add(receivedItemPtr, CommonIdentifierOffset)
+                                )
                             ),
                             and(
                                 and(
                                     // offerer
                                     eq(
                                         mload(orderPtr),
-                                        mload(add(execution, 0x20))
+                                        mload(add(execution, CommonTokenOffset))
                                     ),
                                     // conduit
                                     eq(
-                                        mload(add(orderPtr, 0x120)),
-                                        mload(add(execution, 0x40))
+                                        mload(
+                                            add(orderPtr, Order_conduit_offset)
+                                        ),
+                                        mload(
+                                            add(
+                                                execution,
+                                                Execution_conduit_offset
+                                            )
+                                        )
                                     )
                                 ),
                                 and(
                                     // item type
-                                    eq(mload(itemPtr), mload(offerItem)),
+                                    eq(
+                                        mload(offerItemPtr),
+                                        mload(receivedItemPtr)
+                                    ),
                                     // token
                                     eq(
-                                        mload(add(itemPtr, 0x20)),
-                                        mload(add(offerItem, 0x20))
+                                        mload(
+                                            add(offerItemPtr, CommonTokenOffset)
+                                        ),
+                                        mload(
+                                            add(
+                                                receivedItemPtr,
+                                                CommonTokenOffset
+                                            )
+                                        )
                                     )
                                 )
                             )
@@ -896,11 +944,11 @@ contract ConsiderationInternalView is ConsiderationPure {
                     )
                 }
             }
-            mstore(add(offerItem, 0x60), amount)
+            mstore(add(receivedItemPtr, CommonAmountOffset), amount)
         }
 
-        if (orderOOR) {
-            revert FulfilledOrderIndexOutOfRange();
+        if (invalidFulfillment) {
+            revert InvalidFulfillmentComponentData();
         }
     }
 

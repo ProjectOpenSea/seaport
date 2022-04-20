@@ -167,6 +167,13 @@ interface ConsiderationEventsAndErrors {
     error MismatchedFulfillmentConsiderationComponents();
 
     /**
+     * @dev Revert with an error when an order or item index are out of range
+     *      or a fulfillment component does not match the type, token, identifier,
+     *      or proxy utilization status of the initial consideration item.
+     */
+    error InvalidFulfillmentComponentData();
+
+    /**
      * @dev Revert with an error if a consideration amount has not been fully
      *      zeroed out after applying all fulfillments.
      *
