@@ -346,8 +346,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillAdvancedOrder(
-        AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
+        AdvancedOrder calldata advancedOrder,
+        CriteriaResolver[] calldata criteriaResolvers,
         address fulfillerConduit
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
