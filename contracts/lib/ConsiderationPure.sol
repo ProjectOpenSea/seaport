@@ -579,9 +579,15 @@ contract ConsiderationPure is ConsiderationBase {
                         execution.item.identifier
                     );
 
+                    // Retrieve execution item amount and place on the stack.
+                    uint256 amount = execution.item.amount;
+
+                    // Ensure that the amount is non-zero.
+                    _assertNonZeroAmount(amount);
+
                     // Update current element's batch with respective amount.
                     batchExecutions[batchIndex].amounts[batchElementIndex] = (
-                        execution.item.amount
+                        amount
                     );
                 }
             }
@@ -1318,6 +1324,18 @@ contract ConsiderationPure is ConsiderationBase {
         // Ensure supplied consideration array length is not less than original.
         if (suppliedConsiderationItemTotal < originalConsiderationItemTotal) {
             revert MissingOriginalConsiderationItems();
+        }
+    }
+
+    /**
+     * @dev Internal pure function to ensure that a given item amount in not
+     *      zero.
+     *
+     * @param amount The amount to check.
+     */
+    function _assertNonZeroAmount(uint256 amount) internal pure {
+        if (amount == 0) {
+            revert MissingItemAmount();
         }
     }
 

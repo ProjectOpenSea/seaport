@@ -1759,6 +1759,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param amount The amount to transfer.
      */
     function _transferEth(address payable to, uint256 amount) internal {
+        // Ensure that the supplied amount is non-zero.
+        _assertNonZeroAmount(amount);
+
+        // Declare a variable indicating whether the call was successful or not.
         bool success;
 
         assembly {
@@ -1799,6 +1803,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount,
         address conduit
     ) internal {
+        // Ensure that the supplied amount is non-zero.
+        _assertNonZeroAmount(amount);
+
         // If no conduit has been specified...
         if (conduit == address(0)) {
             // Perform the token transfer directly.
@@ -2111,6 +2118,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount,
         address conduit
     ) internal {
+        // Ensure that the supplied amount is non-zero.
+        _assertNonZeroAmount(amount);
+
         // If no conduit has been specified...
         if (conduit == address(0)) {
             // Perform transfer via the token contract directly.
