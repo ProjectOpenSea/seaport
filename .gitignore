@@ -7,6 +7,7 @@ typechain-types
 #Hardhat files
 cache
 artifacts
+hh-cache/
 
 #foundry test compilation files
 out/

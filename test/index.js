@@ -11065,7 +11065,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const offer = [getTestItem721(nftId)];
 
-        const consideration = [getItemETH(10, 10, seller.address)];
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
 
         const { order, orderHash, value } = await createOrder(
           seller,
@@ -11083,10 +11087,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             offerComponents: [
               {
                 orderIndex: 0,
-                itemIndex: 0,
-              },
-              {
-                orderIndex: 1,
                 itemIndex: 0,
               },
             ],
