@@ -10101,6 +10101,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         // Remove a consideration item
         order.parameters.consideration.pop();
+        order.parameters.totalOriginalConsiderationItems--;
 
         const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
