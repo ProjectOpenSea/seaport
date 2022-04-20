@@ -825,67 +825,97 @@ contract ConsiderationInternalView is ConsiderationPure {
         FulfillmentComponent[] memory offerComponents,
         uint256 startIndex
     ) internal view returns (Execution memory execution) {
+        // Declare a variable for the final aggregated item amount.
         uint256 amount;
+
+        // Declare a variable indicating whether the aggregation is invalid.
         bool invalidFulfillment;
+
+        // Utilize assembly in order to efficiently aggregate the items.
         assembly {
+            // Retrieve fulfillment pointer from offer component & start index.
             let fulfillmentPtr := mload(
                 add(add(offerComponents, 0x20), mul(startIndex, 0x20))
             )
+
+            // Retrieve the order index using the fulfillment pointer.
             let orderIndex := mload(fulfillmentPtr)
+
+            // Retrieve item index using an offset of the fulfillment pointer.
             let itemIndex := mload(
                 add(fulfillmentPtr, Fulfillment_itemIndex_offset)
             )
+
+            // Ensure that the order index is not out of range.
             invalidFulfillment := iszero(lt(orderIndex, mload(advancedOrders)))
+
+            // Retrieve the order pointer from the order index.
             let orderPtr := mload(
                 mload(
                     add(
-                        // Calculate pointer to beginning of advancedOrders head
+                        // Calculate pointer to start of advancedOrders head.
                         add(advancedOrders, 0x20),
-                        // Calculate offset to pointer for desired order
+                        // Calculate offset to pointer for desired order.
                         mul(orderIndex, 0x20)
                     )
                 )
             )
-            // Load offer array pointer
+            // Retrieve offer array pointer using offset of the order pointer.
             let offerArrPtr := mload(
                 add(orderPtr, OrderParameters_offer_head_offset)
             )
+
+            // Ensure that the item index is not out of range.
             invalidFulfillment := or(
                 iszero(lt(itemIndex, mload(offerArrPtr))),
                 invalidFulfillment
             )
+
+            // Retrieve the offer item pointer using offset of the item index.
             let offerItemPtr := mload(
                 add(
-                    // Get pointer to beginning of OfferItem
+                    // Get pointer to beginning of OfferItem.
                     add(offerArrPtr, 0x20),
-                    // Calculate offset to pointer for desired order
+                    // Calculate offset to pointer for desired order.
                     mul(itemIndex, 0x20)
                 )
             )
+
+            // Retrieve the received item pointer.
             let receivedItemPtr := mload(execution)
-            // itemType
+
+            // Set itemType located at the offerItem pointer on receivedItem.
             mstore(receivedItemPtr, mload(offerItemPtr))
-            // token
+
+            // Set token located at offset of offerItem pointer on receivedItem.
             mstore(
                 add(receivedItemPtr, Common_token_offset),
                 mload(add(offerItemPtr, Common_token_offset))
             )
-            // identifier
+
+            // Set identifier located at offset of offerItem pointer as well.
             mstore(
                 add(receivedItemPtr, 0x40),
                 mload(add(offerItemPtr, Common_identifier_offset))
             )
+
+            // Set amount on received item and additionaly place on the stack.
             let amountPtr := add(offerItemPtr, Common_amount_offset)
             amount := mload(amountPtr)
-            // recipient
+
+            // Set the caller as the recipient on the received item.
             mstore(
                 add(receivedItemPtr, ReceivedItem_recipient_offset),
                 caller()
             )
+
+            // Zero out amount on original offerItem to indicate it is spent.
             mstore(amountPtr, 0)
-            // offerer
+
+            // Set the offerer on returned execution using order pointer.
             mstore(add(execution, Execution_offerer_offset), mload(orderPtr))
-            // conduit
+
+            // Set conduit on returned execution using offset of order pointer.
             mstore(
                 add(execution, Execution_conduit_offset),
                 mload(add(orderPtr, OrderParameters_conduit_offset))
