@@ -768,7 +768,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         if (side == Side.OFFER) {
             // Return execution for aggregated items provided by the offerer.
             // prettier-ignore
-            return _aggegateValidFulfillmentOfferItems(
+            return _aggregateValidFulfillmentOfferItems(
                 advancedOrders,
                 fulfillmentComponents,
                 nextComponentIndex - 1
