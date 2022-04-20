@@ -1734,8 +1734,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount
     ) internal {
         assembly {
-            // Write calldata to this slot below, but restore it later.
-            let memPointer := mload(0x40)
+            // Write calldata to free memory pointer, but restore it later.
+            let memPointer := mload(FreeMemoryPointerSlot)
 
             // Write calldata into memory, starting with function selector.
             mstore(
@@ -1749,9 +1749,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Use 100 as the length of calldata equals 4 + 32 * 3. Use 0 and 32
             // to copy up to 32 bytes of return data to scratch space.
             let callStatus := call(gas(), token, 0, 0, 0x64, 0, 0x20)
-
-            mstore(0x60, 0) // Restore the zero slot to zero.
-            mstore(0x40, memPointer) // Restore the memPointer.
 
             let success := and(
                 // Set success to whether the call reverted, if not check it
@@ -1826,6 +1823,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // succeeded — no need to optimize for this as it's not
                 // technically ERC20 compliant.
             }
+
+            // Restore the original free memory pointer.
+            mstore(FreeMemoryPointerSlot, memPointer)
+
+            // Restore the zero slot to zero.
+            mstore(ZeroSlot, 0)
         }
     }
 
@@ -1874,21 +1877,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     revert(0, 0x24) // Use 36 because it equals 4 + 32.
                 }
 
-                // We'll write calldata to this slot.
-                let memPointer := mload(0x40)
+                // Write calldata to free memory pointer, but restore it later.
+                let memPointer := mload(FreeMemoryPointerSlot)
 
                 // Write calldata into memory starting with function selector.
                 mstore(
-                    memPointer,
+                    0,
                     0x23b872dd00000000000000000000000000000000000000000000000000000000
                 )
-                mstore(add(memPointer, 0x04), from) // Append "from" argument.
-                mstore(add(memPointer, 0x24), to) // Append the "to" argument.
-                mstore(add(memPointer, 0x44), identifier) // Append identifier.
+                mstore(0x04, from) // Append "from" argument.
+                mstore(0x24, to) // Append the "to" argument.
+                mstore(0x44, identifier) // Append identifier.
 
                 // Use 100 as length of calldata equals 4 + 32 * 3. Use 0 and 32
                 // to copy up to 32 bytes of return data into scratch space.
-                let success := call(gas(), token, 0, memPointer, 0x64, 0, 0)
+                let success := call(gas(), token, 0, 0, 0x64, 0, 0)
 
                 // If the transfer reverted:
                 if iszero(success) {
@@ -1915,6 +1918,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
                     revert(0, 0xa4) // Use 164 as it equals 4 + 32 * 5.
                 }
+
+                // Restore the original free memory pointer.
+                mstore(FreeMemoryPointerSlot, memPointer)
+
+                // Restore the zero slot to zero.
+                mstore(ZeroSlot, 0)
             }
         } else if (conduit == address(1)) {
             // Perform transfer via a call to the proxy for the supplied owner.
@@ -1981,8 +1990,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     revert(0, 36) // Use 36 as it equals 4 + 32.
                 }
 
-                // We'll write calldata to this slot.
-                let memPointer := mload(0x40)
+                // Retrieve the free memory pointer and place on the stack.
+                let memPointer := mload(FreeMemoryPointerSlot)
 
                 // Write calldata into memory, beginning with function selector.
                 mstore(
