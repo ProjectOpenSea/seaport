@@ -53,7 +53,7 @@
   },
   "scripts": {
     "build": "hardhat clean && hardhat compile",
-    "echidna": " echidna-test contracts/Echidna.sol --contract Echidna --config ops/echidna.conf.yaml",
+    "echidna": " echidna-test contracts/Echidna.sol --contract Echidna --crytic-args=\"--solc-remap @rari-capital/=node_modules/@rari-capital/\" --config ops/echidna.conf.yaml",
     "deploy": "hardhat clean && hardhat compile && bash ops/deploy.sh",
     "test": "hardhat test",
     "profile": "REPORT_GAS=true hardhat test",

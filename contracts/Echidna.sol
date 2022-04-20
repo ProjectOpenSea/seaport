@@ -2,6 +2,9 @@
 pragma solidity 0.8.13;
 
 import "./Consideration.sol";
+import "./test/TestERC20.sol";
+import "./test/TestERC721.sol";
+import "./test/TestERC1155.sol";
 
 enum HowToCall {
     Call,
@@ -31,18 +34,28 @@ interface ProxyRegistry {
     function grantInitialAuthentication(address) external;
 }
 
-contract Echidna {
+interface FuzzyTests {
+    function test() external;
+}
 
-    AuthenticatedProxy public proxy = AuthenticatedProxy(0x1D7022f5B17d2F8B695918FB48fa1089C9f85401);
-    ProxyRegistry public registry = ProxyRegistry(0x1dC4c1cEFEF38a777b15aA20260a54E584b16C48);
-    Consideration public opensea;
+contract Echidna is FuzzyTests {
+
+    AuthenticatedProxy private _proxy = AuthenticatedProxy(0x1D7022f5B17d2F8B695918FB48fa1089C9f85401);
+    ProxyRegistry private _registry = ProxyRegistry(0x1dC4c1cEFEF38a777b15aA20260a54E584b16C48);
+    Consideration private _opensea;
+    TestERC20 private _erc20;
+    TestERC721 private _erc721;
+    TestERC1155 private _erc1155;
 
     constructor() {
-        opensea = new Consideration(address(registry), address(proxy));
+        _opensea = new Consideration(address(_registry), address(_proxy));
+        _erc20 = new TestERC20();
+        _erc721 = new TestERC721();
+        _erc1155 = new TestERC1155();
     }
 
-    function test() public {
-        uint nonce = opensea.getNonce(address(0));
+    function test() public override {
+        uint nonce = _opensea.getNonce(address(0));
         assert(nonce == 0);
     }
 

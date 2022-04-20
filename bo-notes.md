@@ -3,6 +3,10 @@
 - Why isn't nonce in order params? Would save an arg in ConsiderationInternalView._getOrderHash
 - checking the proxy implementation doesn't actually ensure anything, save gas by skipping that step?
 
+# Craziest Assembly
+1. ConsiderationInternal._prepareBasicFulfillmentFromCalldata
+2. ConsiderationInternalView._getOrderHash
+
 # Inheritance
 
 Consideration
