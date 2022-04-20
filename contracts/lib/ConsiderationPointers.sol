@@ -174,3 +174,55 @@ uint256 constant BasicOrder_order_zoneHash_ptr = 0x180;
 uint256 constant BasicOrder_order_salt_ptr = 0x1a0;
 uint256 constant BasicOrder_order_conduit_ptr = 0x1c0;
 uint256 constant BasicOrder_order_nonce_ptr = 0x1e0;
+
+// abi.encodeWithSignature("transferFrom(address,address,uint256)")
+uint256 constant ERC20_transferFrom_signature = 0x23b872dd00000000000000000000000000000000000000000000000000000000;
+uint256 constant ERC20_transferFrom_sig_ptr = 0x0;
+uint256 constant ERC20_transferFrom_from_ptr = 0x04;
+uint256 constant ERC20_transferFrom_to_ptr = 0x24;
+uint256 constant ERC20_transferFrom_amount_ptr = 0x44;
+uint256 constant ERC20_transferFrom_length = 0x64; // 4 + 32 * 3 == 100
+
+// abi.encodeWithSignature("safeTransferFrom(address,address,uint256,uint256,bytes")
+uint256 constant ERC1155_safeTransferFrom_signature = 0xf242432a00000000000000000000000000000000000000000000000000000000;
+uint256 constant ERC1155_safeTransferFrom_sig_ptr = 0x0;
+uint256 constant ERC1155_safeTransferFrom_from_ptr = 0x04;
+uint256 constant ERC1155_safeTransferFrom_to_ptr = 0x24;
+uint256 constant ERC1155_safeTransferFrom_id_ptr = 0x44;
+uint256 constant ERC1155_safeTransferFrom_amount_ptr = 0x64;
+uint256 constant ERC1155_safeTransferFrom_data_offset_ptr = 0x84;
+uint256 constant ERC1155_safeTransferFrom_data_length_ptr = 0xa4;
+uint256 constant ERC1155_safeTransferFrom_data_length_ptr_minus_sig = 0x84;
+uint256 constant ERC1155_safeTransferFrom_length = 0xc4; // 4 + 32 * 6 == 164
+
+uint256 constant ERC721_transferFrom_signature = ERC20_transferFrom_signature;
+uint256 constant ERC721_transferFrom_sig_ptr = 0x0;
+uint256 constant ERC721_transferFrom_from_ptr = 0x04;
+uint256 constant ERC721_transferFrom_to_ptr = 0x24;
+uint256 constant ERC721_transferFrom_id_ptr = 0x44;
+uint256 constant ERC721_transferFrom_length = 0x64; // 4 + 32 * 3 == 100
+
+// abi.encodeWithSignature("NoContract(address)")
+uint256 constant NoContract_error_signature = 0x5f15d67200000000000000000000000000000000000000000000000000000000;
+uint256 constant NoContract_error_sig_ptr = 0x0;
+uint256 constant NoContract_error_token_ptr = 0x4;
+uint256 constant NoContract_error_length = 0x24; // 4 + 32 == 36
+
+// abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
+uint256 constant TokenTransferGenericFailure_error_signature = 0xf486bc8700000000000000000000000000000000000000000000000000000000;
+uint256 constant TokenTransferGenericFailure_error_sig_ptr = 0x0;
+uint256 constant TokenTransferGenericFailure_error_token_ptr = 0x4;
+uint256 constant TokenTransferGenericFailure_error_from_ptr = 0x24;
+uint256 constant TokenTransferGenericFailure_error_to_ptr = 0x44;
+uint256 constant TokenTransferGenericFailure_error_id_ptr = 0x64;
+uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0x84;
+uint256 constant TokenTransferGenericFailure_error_length = 0xA4; // 4 + 32 * 5 == 164
+
+// abi.encodeWithSignature("BadReturnValueFromERC20OnTransfer(address,address,address,uint256)")
+uint256 constant BadReturnValueFromERC20OnTransfer_error_signature = 0x9889192300000000000000000000000000000000000000000000000000000000;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_sig_ptr = 0x0;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_token_ptr = 0x4;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_from_ptr = 0x24;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_to_ptr = 0x44;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x64;
+uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84; // 4 + 32 * 4 == 132
