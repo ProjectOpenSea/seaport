@@ -6,6 +6,7 @@ module.exports = {
     "interfaces/ConsiderationInterface.sol",
     "interfaces/EIP1271Interface.sol",
     "interfaces/ZoneInterface.sol",
+    "lib/ConsiderationConstants.sol",
     "lib/ConsiderationEnums.sol",
     "lib/ConsiderationStructs.sol",
     "test/EIP1271Wallet.sol",

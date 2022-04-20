@@ -25,7 +25,7 @@ import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
 import { ConsiderationBase } from "./ConsiderationBase.sol";
 
-import "./ConsiderationPointers.sol";
+import "./ConsiderationConstants.sol";
 
 /**
  * @title ConsiderationPure
