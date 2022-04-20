@@ -138,7 +138,6 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator();
 
-        // TODO: validate each of these based on expected codehash
         _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
         _LEGACY_TOKEN_TRANSFER_PROXY = TokenTransferProxyInterface(
             legacyTokenTransferProxy
