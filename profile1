@@ -1,0 +1,261 @@
+yarn run v1.22.18
+$ REPORT_GAS=true hardhat test
+Generating typings for: 15 artifacts in dir: typechain-types for target: ethers-v5
+Successfully generated 62 typings!
+Compiled 14 Solidity files successfully
+
+  Consideration (version: rc.1) — initial test suite
+    Getter tests
+      ✓ gets correct name
+      ✓ gets correct version
+      ✓ gets correct domain separator
+    Basic buy now or accept offer flows
+      A single ERC721 is to be transferred
+        [Buy now] User fullfills a sell order for a single ERC721
+          ✓ ERC721 <=> ETH (standard)
+          ✓ ERC721 <=> ETH (standard via proxy)
+          ✓ ERC721 <=> ETH (standard with tip)
+          ✓ ERC721 <=> ETH (standard with restricted order)
+          ✓ ERC721 <=> ETH (standard with restricted order and extra data)
+          ✓ ERC721 <=> ETH (basic)
+          ✓ ERC721 <=> ETH (basic with tips)
+          ✓ ERC721 <=> ETH (basic via proxy)
+          ✓ ERC721 <=> ETH (basic with restricted order)
+          ✓ ERC721 <=> ETH (basic, already validated)
+          ✓ ERC721 <=> ETH (basic, EIP-2098 signature)
+          ✓ ERC721 <=> ETH (basic, extra ether supplied and returned to caller)
+          ✓ ERC721 <=> ETH (match)
+          ✓ ERC721 <=> ETH (match via proxy)
+          ✓ ERC721 <=> ETH (match, extra eth supplied and returned to caller)
+          ✓ ERC721 <=> ERC20 (standard)
+          ✓ ERC721 <=> ERC20 (standard via proxy)
+          ✓ ERC721 <=> ERC20 (basic)
+          ✓ ERC721 <=> ERC20 (basic via proxy)
+          ✓ ERC721 <=> ERC20 (basic, EIP-1271 signature)
+          ✓ ERC721 <=> ERC20 (basic, EIP-1271 signature w/ non-standard length)
+          ✓ ERC721 <=> ERC20 (match)
+          ✓ ERC721 <=> ERC20 (match via proxy)
+        [Accept offer] User accepts a buy offer on a single ERC721
+          ✓ ERC721 <=> ERC20 (standard)
+          ✓ ERC721 <=> ERC20 (standard, fulfilled via proxy)
+          ✓ ERC721 <=> ERC20 (basic)
+          ✓ ERC721 <=> ERC20 (basic, fulfilled via proxy)
+          ✓ ERC721 <=> ERC20 (match)
+          ✓ ERC721 <=> ERC20 (match via proxy)
+      A single ERC1155 is to be transferred
+        [Buy now] User fullfills a sell order for a single ERC1155
+          ✓ ERC1155 <=> ETH (standard)
+          ✓ ERC1155 <=> ETH (standard via proxy)
+          ✓ ERC1155 <=> ETH (basic)
+          ✓ ERC1155 <=> ETH (basic via proxy)
+          ✓ ERC1155 <=> ETH (match)
+          ✓ ERC1155 <=> ETH (match via proxy)
+          ✓ ERC1155 <=> ERC20 (standard)
+          ✓ ERC1155 <=> ERC20 (standard via proxy)
+          ✓ ERC1155 <=> ERC20 (basic)
+          ✓ ERC1155 <=> ERC20 (basic via proxy)
+          ✓ ERC1155 <=> ERC20 (match)
+          ✓ ERC1155 <=> ERC20 (match via proxy)
+        [Accept offer] User accepts a buy offer on a single ERC1155
+          ✓ ERC1155 <=> ERC20 (standard)
+          ✓ ERC1155 <=> ERC20 (standard, fulfilled via proxy)
+          ✓ ERC1155 <=> ERC20 (basic)
+          ✓ ERC1155 <=> ERC20 (basic, fulfilled via proxy)
+          ✓ ERC1155 <=> ERC20 (match)
+          ✓ ERC1155 <=> ERC20 (match via proxy)
+    Validate, cancel, and increment nonce flows
+      Validate
+        ✓ Validate signed order and fill it with no signature
+        ✓ Validate unsigned order from offerer and fill it with no signature
+        ✓ Cannot validate a cancelled order
+      Cancel
+        ✓ Can cancel an order
+        ✓ Can cancel a validated order
+        ✓ Can cancel an order from the zone
+        ✓ Can cancel a validated order from a zone
+        - Can cancel an order signed with a nonce ahead of the current nonce
+      Increment Nonce
+        ✓ Can increment the nonce
+        ✓ Can increment the nonce and implicitly cancel a validated order
+        ✓ Can increment the nonce as the zone and implicitly cancel a validated order
+        - Can increment nonce and activate an order signed with a nonce ahead of the current nonce
+    Advanced orders
+      Partial fills
+        ✓ Partial fills (standard)
+        ✓ Partial fills (standard, additional permutations)
+        - Partial fills (match)
+      Criteria-based orders
+        ✓ Criteria-based offer item (standard)
+        ✓ Criteria-based offer item (match)
+        ✓ Criteria-based consideration item (standard)
+        - Criteria-based consideration item (match)
+      Ascending / Descending amounts
+        ✓ Ascending offer amount (standard)
+        ✓ Ascending consideration amount (standard)
+        - Ascending offer amount (match)
+        - Ascending consideration amount (match)
+        - Ascending amount + partial fill (standard)
+        - Ascending amount + partial fill (match)
+        - Descending offer amount (standard)
+        - Descending consideration amount (standard)
+        - Descending offer amount (match)
+        - Descending consideration amount (match)
+        - Descending amount + partial fill (standard)
+        - Descending amount + partial fill (match)
+      Sequenced Orders
+        ✓ Match A => B => C => A
+        ✓ Match with fewer executions when one party has multiple orders that coincide
+      Order groups
+        ✓ Multiple offer components at once
+        ✓ Multiple consideration components at once
+      ERC1155 batch transfers
+        ✓ ERC1155 <=> ETH (match)
+        ✓ ERC1155 <=> ETH (match via proxy)
+      Fulfill Available Orders
+        ✓ Can fulfill a single order via fulfillAvailableOrders
+        ✓ Can fulfill and aggregate multiple orders via fulfillAvailableOrders
+        ✓ Can fulfill and aggregate multiple orders via fulfillAvailableOrders with failing orders
+        ✓ Can fulfill and aggregate multiple orders via fulfillAvailableOrders with failing components
+    Conduit tests
+      ✓ Reverts on 721 as it hasn't been implemeted yet
+      ✓ Reverts on 1155 as it hasn't been implemeted yet
+      ✓ Reverts on 1155 batch as it hasn't been implemeted yet
+    Reverts
+      Misconfigured orders
+        ✓ Reverts on bad fraction amounts
+        ✓ Reverts on inexact fraction amounts
+        ✓ Reverts on partial fill attempt when not supported by order
+        ✓ Reverts on partially filled order via basic fulfillment
+        ✓ Reverts on fully filled order
+        ✓ Reverts on inadequate consideration items
+        ✓ Reverts on invalid submitter when required by order
+        ✓ Reverts on invalid signatures
+        ✓ Reverts on invalid 1271 signature
+        ✓ Reverts on invalid 1271 signature and contract does not supply a revert reason
+        ✓ Reverts on restricted order where isValidOrder reverts with no data
+        ✓ Reverts on missing offer or consideration components
+        ✓ Reverts on mismatched offer and consideration components
+        ✓ Reverts on mismatched offer components
+        ✓ Reverts on mismatched consideration components
+        ✓ Reverts on fulfillment component with out-of-range order
+        ✓ Reverts on fulfillment component with out-of-range offer item
+        ✓ Reverts on fulfillment component with out-of-range consideration item
+        ✓ Reverts on fulfillAvailable with empty fulfillment component
+        ✓ Reverts on fulfillAvailable with out-of-range offer order
+        ✓ Reverts on fulfillAvailable with mismatched offer components
+        ✓ Reverts on fulfillAvailable with out-of-range consideration order
+        ✓ Reverts on fulfillAvailable with mismatched consideration components
+        ✓ Reverts on fulfillAvailable no available components
+        ✓ Reverts on invalid criteria proof
+        ✓ Reverts on invalid proxy implementation
+        ✓ Reverts on attempts to transfer >1 ERC721 in single transfer
+      Out of timespan
+        ✓ Reverts on orders that have not started (standard)
+        ✓ Reverts on orders that have expired (standard)
+        ✓ Reverts on orders that have not started (basic)
+        ✓ Reverts on orders that have expired (basic)
+        ✓ Reverts on orders that have not started (match)
+        ✓ Reverts on orders that have expired (match)
+      Insufficient amounts and bad items
+        ✓ Reverts when no enough ether is supplied (basic)
+        ✓ Reverts when not enough ether is supplied (basic)
+        ✓ Reverts when not enough ether is supplied as offer item (standard)
+        ✓ Reverts when not enough ether is supplied (standard + advanced)
+        ✓ Reverts when not enough ether is supplied (match)
+        ✓ Reverts when ether is supplied to a non-payable route (basic)
+        ✓ Reverts when tokens are not approved
+        ✓ Reverts when 1155 token transfer reverts
+        ✓ Reverts when 1155 token transfer reverts (via proxy)
+        ✓ Reverts when ERC20 tokens return falsey values
+        ✓ Reverts when 1155 batch tokens are not approved
+        ✓ Reverts when token account with no code is supplied
+        ✓ Reverts when 1155 account with no code is supplied
+        ✓ Reverts when 1155 account with no code is supplied (via proxy)
+        ✓ Reverts when non-token account is supplied as the token
+        ✓ Reverts when non-1155 account is supplied as the token
+        ✓ Reverts when 1155 batch non-token account is supplied as the token
+        ✓ Reverts when non-payable ether recipient is supplied
+      Basic Order Calldata
+        ✓ Reverts if BasicOrderParameters has non-default offset
+        ✓ Reverts if additionalRecipients has non-default offset
+        ✓ Reverts if signature has non-default offset
+      Reentrancy
+        ✓ Reverts on a reentrant call
+        - Reverts on reentrancy (test all the other permutations)
+
+·-----------------------------------------------------------|---------------------------|-------------|-----------------------------·
+|                   [90mSolc version: 0.8.13[39m                    ·  [90mOptimizer enabled: true[39m  ·  [90mRuns: 200[39m  ·  [90mBlock limit: 30000000 gas[39m  │
+····························································|···························|·············|······························
+|  [32m[1mMethods[22m[39m                                                                                                                          │
+·························|··································|·············|·············|·············|···············|··············
+|  [1mContract[22m              ·  [1mMethod[22m                          ·  [32mMin[39m        ·  [32mMax[39m        ·  [32mAvg[39m        ·  [1m# calls[22m      ·  [1musd (avg)[22m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mConsideration[39m         ·  cancel                          ·      [36m45015[39m  ·      [31m62146[39m  ·      57159  ·           [90m14[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mConsideration[39m         ·  fulfillAdvancedOrder            ·     [36m121471[39m  ·     [31m199517[39m  ·     155829  ·           [90m40[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mConsideration[39m         ·  fulfillAvailableAdvancedOrders  ·     [36m180142[39m  ·     [31m236652[39m  ·     211840  ·            [90m8[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mConsideration[39m         ·  fulfillBasicOrder               ·     [36m119183[39m  ·     [31m202390[39m  ·     164485  ·           [90m48[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mConsideration[39m         ·  fulfillOrder                    ·     [36m130441[39m  ·     [31m230007[39m  ·     173215  ·           [90m44[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mConsideration[39m         ·  incrementNonce                  ·          -  ·          -  ·      47095  ·            [90m6[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mConsideration[39m         ·  matchAdvancedOrders             ·     [36m243091[39m  ·     [31m275162[39m  ·     261119  ·           [90m10[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mConsideration[39m         ·  matchOrders                     ·     [36m237057[39m  ·     [31m316140[39m  ·     274083  ·           [90m40[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mConsideration[39m         ·  validate                        ·      [36m65343[39m  ·      [31m70209[39m  ·      69487  ·           [90m14[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mEIP1271Wallet[39m         ·  approveNFT                      ·          -  ·          -  ·      49758  ·            [90m8[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mEIP1271Wallet[39m         ·  registerDigest                  ·          -  ·          -  ·      44160  ·            [90m1[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mEIP1271Wallet[39m         ·  revertWithMessage               ·          -  ·          -  ·      21686  ·            [90m2[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mOwnableDelegateProxy[39m  ·  upgradeTo                       ·          -  ·          -  ·      30569  ·            [90m4[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mReenterer[39m             ·  prepare                         ·          -  ·          -  ·     763665  ·            [90m2[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mTestERC1155[39m           ·  mint                            ·      [36m49708[39m  ·      [31m50380[39m  ·      50045  ·           [90m54[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mTestERC1155[39m           ·  setApprovalForAll               ·      [36m46057[39m  ·      [31m46069[39m  ·      46068  ·           [90m90[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mTestERC20[39m             ·  approve                         ·      [36m46254[39m  ·      [31m46278[39m  ·      46264  ·           [90m78[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mTestERC20[39m             ·  blockTransfer                   ·      [36m21932[39m  ·      [31m43844[39m  ·      32888  ·            [90m2[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mTestERC20[39m             ·  mint                            ·      [36m51349[39m  ·      [31m68461[39m  ·      51861  ·           [90m34[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mTestERC721[39m            ·  mint                            ·      [36m51817[39m  ·      [31m68917[39m  ·      66660  ·           [90m91[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mTestERC721[39m            ·  setApprovalForAll               ·      [36m26244[39m  ·      [31m46144[39m  ·      44959  ·          [90m168[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mWyvernProxyRegistry[39m   ·  grantInitialAuthentication      ·          -  ·          -  ·      68671  ·            [90m1[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [90mWyvernProxyRegistry[39m   ·  registerProxy                   ·          -  ·          -  ·     397602  ·          [90m412[39m  ·          [32m[90m-[32m[39m  │
+·························|··································|·············|·············|·············|···············|··············
+|  [32m[1mDeployments[22m[39m                                              ·                                         ·  [1m% of limit[22m   ·             │
+····························································|·············|·············|·············|···············|··············
+|  Consideration                                            ·          -  ·          -  ·    5209793  ·       [90m17.4 %[39m  ·          [32m[90m-[32m[39m  │
+····························································|·············|·············|·············|···············|··············
+|  EIP1271Wallet                                            ·     [36m436889[39m  ·     [31m436901[39m  ·     436900  ·        [90m1.5 %[39m  ·          [32m[90m-[32m[39m  │
+····························································|·············|·············|·············|···············|··············
+|  Reenterer                                                ·          -  ·          -  ·     386432  ·        [90m1.3 %[39m  ·          [32m[90m-[32m[39m  │
+····························································|·············|·············|·············|···············|··············
+|  TestERC1155                                              ·          -  ·          -  ·     805383  ·        [90m2.7 %[39m  ·          [32m[90m-[32m[39m  │
+····························································|·············|·············|·············|···············|··············
+|  TestERC20                                                ·          -  ·          -  ·     852768  ·        [90m2.8 %[39m  ·          [32m[90m-[32m[39m  │
+····························································|·············|·············|·············|···············|··············
+|  TestERC721                                               ·          -  ·          -  ·     863748  ·        [90m2.9 %[39m  ·          [32m[90m-[32m[39m  │
+····························································|·············|·············|·············|···············|··············
+|  TestZone                                                 ·          -  ·          -  ·     187042  ·        [90m0.6 %[39m  ·          [32m[90m-[32m[39m  │
+····························································|·············|·············|·············|···············|··············
+|  WyvernProxyRegistry                                      ·          -  ·          -  ·    1406200  ·        [90m4.7 %[39m  ·          [32m[90m-[32m[39m  │
+·-----------------------------------------------------------|-------------|-------------|-------------|---------------|-------------·
+
+  135 passing (57s)
+  15 pending
+
+Done in 81.43s.
