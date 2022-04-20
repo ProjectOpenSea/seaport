@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { ProxyRegistryInterface, TokenTransferProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
+// prettier-ignore
+import {
+    ProxyRegistryInterface,
+    TokenTransferProxyInterface
+} from "../interfaces/AbridgedProxyInterfaces.sol";
 
-import { ConsiderationEventsAndErrors } from "../interfaces/ConsiderationEventsAndErrors.sol";
+// prettier-ignore
+import {
+    ConsiderationEventsAndErrors
+} from "../interfaces/ConsiderationEventsAndErrors.sol";
 
 import { OrderStatus } from "./ConsiderationStructs.sol";
 

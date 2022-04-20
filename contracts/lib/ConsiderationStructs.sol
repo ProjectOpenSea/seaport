@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "./ConsiderationEnums.sol";
+// prettier-ignore
+import {
+    OrderType,
+    BasicOrderType,
+    ItemType,
+    Side
+} from "./ConsiderationEnums.sol";
 
 /**
  * @dev An order contains ten components: an offerer, a zone (or account that

@@ -1,7 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { BasicOrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, BatchExecution, Order, AdvancedOrder, OrderStatus, CriteriaResolver } from "../lib/ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    BasicOrderParameters,
+    OrderComponents,
+    Fulfillment,
+    FulfillmentComponent,
+    Execution,
+    BatchExecution,
+    Order,
+    AdvancedOrder,
+    OrderStatus,
+    CriteriaResolver
+} from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationInterface

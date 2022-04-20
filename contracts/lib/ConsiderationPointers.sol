@@ -2,36 +2,35 @@
 pragma solidity 0.8.13;
 
 /*
- * -------------------------- Disambiguation & Other Notes --------------------------
+ * -------------------------- Disambiguation & Other Notes ---------------------
  *    - The term "head" is used as it is in the documentation for ABI encoding,
- *      but only in reference to dynamic types, i.e. it always refers to the offset
- *      or pointer to the body of a dynamic type. In calldata, the head is always
- *      an offset (relative to the parent object), while in memory, the head is always
- *      the pointer to the body
+ *      but only in reference to dynamic types, i.e. it always refers to the
+ *      offset or pointer to the body of a dynamic type. In calldata, the head
+ *      is always an offset (relative to the parent object), while in memory,
+ *      the head is always the pointer to the body. More information found here:
+ *      https://docs.soliditylang.org/en/v0.8.13/abi-spec.html#argument-encoding
+ *        - Note that the length of an array is separate from and precedes the
+ *          head of the array.
  *
- *        - https://docs.soliditylang.org/en/v0.8.13/abi-spec.html#argument-encoding
- *        - Note that the length of an array is separate from and precedes the head of
- *          the array.
+ *    - The term "body" is used in place of the term "head" used in the ABI
+ *      documentation. It refers to the start of the data for a dynamic type,
+ *      e.g. the first word of a struct or the first word of the first element
+ *      in an array.
  *
- *    - The term "body" is used in place of the term "head" used in the ABI documentation.
- *      It refers to the start of the data for a dynamic type, e.g. the first word of a
- *       struct or the first word of the first element in an array.
- *
- *    - "pointer" is used to describe the absolute position of a value and never an offset
- *      relative to another value.
- *
+ *    - The term "pointer" is used to describe the absolute position of a value
+ *      and never an offset relative to another value.
  *        - The suffix "_ptr" refers to a memory pointer.
  *        - The suffix "_cdPtr" refers to a calldata pointer.
  *
- *    - "offset" is used to describe the position of a value relative to some parent value.
- *      For example, OrderParameters_conduit_offset is the offset to the "conduit" value in the
- *      OrderParameters struct relative to the start of the body.
- *
+ *    - The term "offset" is used to describe the position of a value relative
+ *      to some parent value. For example, OrderParameters_conduit_offset is the
+ *      offset to the "conduit" value in the OrderParameters struct relative to
+ *      the start of the body.
  *        - Note: Offsets are used to derive pointers.
  *
  *    - Some structs have pointers defined for all of their fields in this file.
- *      Lines which are commented out are fields that are not used in the codebase but
- *      have been left in for readability.
+ *      Lines which are commented out are fields that are not used in the
+ *      codebase but have been left in for readability.
  */
 
 // Common Offsets
@@ -47,6 +46,8 @@ uint256 constant ReceivedItem_amount_offset = 0x60;
 uint256 constant ReceivedItem_recipient_offset = 0x80;
 
 uint256 constant ConsiderationItem_recipient_offset = 0xa0;
+// Store the same constant in an abbreviated format for a line length fix.
+uint256 constant ConsiderItem_recipient_offset = 0xa0;
 
 uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
@@ -113,12 +114,15 @@ uint256 constant receivedItemsHash_ptr = 0x60;
 
 // Minimum length of the OrderFulfilled event data.
 // Must be added to the size of the ReceivedItem array for additionalRecipients
-// (0xa0 * additionalRecipients.length) to calculate the full size of the buffer.
+// (0xa0 * additionalRecipients.length) to calculate full size of the buffer.
 uint256 constant OrderFulfilled_baseSize = 0x1e0;
-uint256 constant OrderFulfilled_selector = 0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31;
+uint256 constant OrderFulfilled_selector = (
+    0x9d9af8e38d66c62e2c12f0225249fd9d721c54b83f48d9352c97c6cacdcb6f31
+);
+
 // Minimum offset in memory to OrderFulfilled event data.
 // Must be added to the size of the EIP712 hash array for additionalRecipients
-// (32 * additionalRecipients.length) to calculate the pointer to the event data.
+// (32 * additionalRecipients.length) to calculate the pointer to event data.
 uint256 constant OrderFulfilled_baseOffset = 0x180;
 uint256 constant OrderFulfilled_consideration_length_baseOffset = 0x2a0;
 uint256 constant OrderFulfilled_offer_length_baseOffset = 0x200;
@@ -163,7 +167,7 @@ uint256 constant BasicOrder_additionalRecipients_data_cdPtr = 0x284;
  *   - 0x120: endAmount
  *   - 0x140: recipient
  */
-uint256 constant BasicOrder_considerationItem_typeHash_ptr = DefaultFreeMemoryPointer;
+uint256 constant BasicOrder_considerationItem_typeHash_ptr = 0x80; // memoryPtr
 uint256 constant BasicOrder_considerationItem_itemType_ptr = 0xa0;
 uint256 constant BasicOrder_considerationItem_token_ptr = 0xc0;
 uint256 constant BasicOrder_considerationItem_identifier_ptr = 0xe0;
@@ -223,15 +227,21 @@ bytes32 constant EIP2098_allButHighestBitMask = (
 );
 
 // abi.encodeWithSignature("transferFrom(address,address,uint256)")
-uint256 constant ERC20_transferFrom_signature = 0x23b872dd00000000000000000000000000000000000000000000000000000000;
+uint256 constant ERC20_transferFrom_signature = (
+    0x23b872dd00000000000000000000000000000000000000000000000000000000
+);
 uint256 constant ERC20_transferFrom_sig_ptr = 0x0;
 uint256 constant ERC20_transferFrom_from_ptr = 0x04;
 uint256 constant ERC20_transferFrom_to_ptr = 0x24;
 uint256 constant ERC20_transferFrom_amount_ptr = 0x44;
 uint256 constant ERC20_transferFrom_length = 0x64; // 4 + 32 * 3 == 100
 
-// abi.encodeWithSignature("safeTransferFrom(address,address,uint256,uint256,bytes")
-uint256 constant ERC1155_safeTransferFrom_signature = 0xf242432a00000000000000000000000000000000000000000000000000000000;
+// abi.encodeWithSignature(
+//     "safeTransferFrom(address,address,uint256,uint256,bytes"
+// )
+uint256 constant ERC1155_safeTransferFrom_signature = (
+    0xf242432a00000000000000000000000000000000000000000000000000000000
+);
 uint256 constant ERC1155_safeTransferFrom_sig_ptr = 0x0;
 uint256 constant ERC1155_safeTransferFrom_from_ptr = 0x04;
 uint256 constant ERC1155_safeTransferFrom_to_ptr = 0x24;
@@ -250,26 +260,40 @@ uint256 constant ERC721_transferFrom_id_ptr = 0x44;
 uint256 constant ERC721_transferFrom_length = 0x64; // 4 + 32 * 3 == 100
 
 // abi.encodeWithSignature("NoContract(address)")
-uint256 constant NoContract_error_signature = 0x5f15d67200000000000000000000000000000000000000000000000000000000;
+uint256 constant NoContract_error_signature = (
+    0x5f15d67200000000000000000000000000000000000000000000000000000000
+);
 uint256 constant NoContract_error_sig_ptr = 0x0;
 uint256 constant NoContract_error_token_ptr = 0x4;
 uint256 constant NoContract_error_length = 0x24; // 4 + 32 == 36
 
-// abi.encodeWithSignature("TokenTransferGenericFailure(address,address,address,uint256,uint256)")
-uint256 constant TokenTransferGenericFailure_error_signature = 0xf486bc8700000000000000000000000000000000000000000000000000000000;
+// abi.encodeWithSignature(
+//     "TokenTransferGenericFailure(address,address,address,uint256,uint256)"
+// )
+uint256 constant TokenTransferGenericFailure_error_signature = (
+    0xf486bc8700000000000000000000000000000000000000000000000000000000
+);
 uint256 constant TokenTransferGenericFailure_error_sig_ptr = 0x0;
 uint256 constant TokenTransferGenericFailure_error_token_ptr = 0x4;
 uint256 constant TokenTransferGenericFailure_error_from_ptr = 0x24;
 uint256 constant TokenTransferGenericFailure_error_to_ptr = 0x44;
 uint256 constant TokenTransferGenericFailure_error_id_ptr = 0x64;
 uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0x84;
-uint256 constant TokenTransferGenericFailure_error_length = 0xA4; // 4 + 32 * 5 == 164
 
-// abi.encodeWithSignature("BadReturnValueFromERC20OnTransfer(address,address,address,uint256)")
-uint256 constant BadReturnValueFromERC20OnTransfer_error_signature = 0x9889192300000000000000000000000000000000000000000000000000000000;
+// 4 + 32 * 5 == 164
+uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
+
+// abi.encodeWithSignature(
+//     "BadReturnValueFromERC20OnTransfer(address,address,address,uint256)"
+// )
+uint256 constant BadReturnValueFromERC20OnTransfer_error_signature = (
+    0x9889192300000000000000000000000000000000000000000000000000000000
+);
 uint256 constant BadReturnValueFromERC20OnTransfer_error_sig_ptr = 0x0;
 uint256 constant BadReturnValueFromERC20OnTransfer_error_token_ptr = 0x4;
 uint256 constant BadReturnValueFromERC20OnTransfer_error_from_ptr = 0x24;
 uint256 constant BadReturnValueFromERC20OnTransfer_error_to_ptr = 0x44;
 uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x64;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84; // 4 + 32 * 4 == 132
+
+// 4 + 32 * 4 == 132
+uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84;
