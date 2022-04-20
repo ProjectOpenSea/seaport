@@ -10248,7 +10248,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidSignature");
         });
 
         // construct an invalid signature
@@ -10259,7 +10259,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidSignature");
         });
 
         basicOrderParameters.signature = originalSignature;
@@ -10362,7 +10362,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidSignature");
         });
       });
       it("Reverts on invalid 1271 signature and contract does not supply a revert reason", async () => {
@@ -10457,7 +10457,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidSignature");
         });
       });
       it("Reverts on restricted order where isValidOrder reverts with no data", async () => {
@@ -10501,7 +10501,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("InvalidSignature");
         });
       });
       it("Reverts on missing offer or consideration components", async () => {
@@ -10551,7 +10551,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("MissingOriginalConsiderationItems");
         });
 
         fulfillments = [
@@ -10571,7 +10571,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("MissingOriginalConsiderationItems");
         });
 
         fulfillments = [
@@ -10591,7 +10591,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("MissingOriginalConsiderationItems");
         });
 
         fulfillments = defaultBuyNowMirrorFulfillment;
@@ -10690,7 +10690,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("MismatchedFulfillmentOfferAndConsiderationComponents");
         });
 
         fulfillments = defaultBuyNowMirrorFulfillment;
@@ -10853,7 +10853,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("MismatchedFulfillmentOfferAndConsiderationComponents");
         });
       });
       it("Reverts on mismatched consideration components", async () => {
@@ -10984,7 +10984,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("MismatchedFulfillmentConsiderationComponents");
         });
       });
       it("Reverts on fulfillment component with out-of-range order", async () => {
@@ -11090,7 +11090,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("MismatchedFulfillmentConsiderationComponents");
         });
       });
       it("Reverts on fulfillment component with out-of-range offer item", async () => {
@@ -11192,7 +11192,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("FulfilledOrderIndexOutOfRange");
         });
       });
       it("Reverts on fulfillment component with out-of-range consideration item", async () => {
