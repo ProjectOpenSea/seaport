@@ -235,7 +235,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     signer,
     zoneHash = constants.HashZero,
     conduit = constants.AddressZero,
-    extraCheap = false,
+    extraCheap = false
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
 
@@ -2039,7 +2039,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               startAmount: ethers.BigNumber.from(1),
               endAmount: ethers.BigNumber.from(1),
               recipient: seller.address,
-            }
+            },
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -2053,7 +2053,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             constants.AddressZero,
-            true, // extraCheap
+            true // extraCheap
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -2100,7 +2100,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               startAmount: ethers.BigNumber.from(1),
               endAmount: ethers.BigNumber.from(1),
               recipient: seller.address,
-            }
+            },
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -2114,7 +2114,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             constants.AddressZero,
-            true, // extraCheap
+            true // extraCheap
           );
 
           // Validate the order from any account
@@ -2168,7 +2168,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               startAmount: ethers.BigNumber.from(1),
               endAmount: ethers.BigNumber.from(1),
               recipient: seller.address,
-            }
+            },
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -2182,7 +2182,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             constants.AddressZero,
-            true, // extraCheap
+            true // extraCheap
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
@@ -2224,7 +2224,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               startAmount: ethers.BigNumber.from(1),
               endAmount: ethers.BigNumber.from(1),
               recipient: seller.address,
-            }
+            },
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -2238,7 +2238,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             constants.AddressZero,
-            true, // extraCheap
+            true // extraCheap
           );
 
           // Validate the order from any account
@@ -2287,7 +2287,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               startAmount: ethers.BigNumber.from(1),
               endAmount: ethers.BigNumber.from(1),
               recipient: seller.address,
-            }
+            },
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -2301,7 +2301,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             constants.AddressZero,
-            true, // extraCheap
+            true // extraCheap
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
@@ -2343,7 +2343,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               startAmount: ethers.BigNumber.from(1),
               endAmount: ethers.BigNumber.from(1),
               recipient: seller.address,
-            }
+            },
           ];
 
           const { order, orderHash, value } = await createOrder(
@@ -2357,7 +2357,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             constants.AddressZero,
-            true, // extraCheap
+            true // extraCheap
           );
 
           // Validate the order from any account
