@@ -1,6 +1,7 @@
 const eth = require("ethers");
 const registryArtifacts = require("../artifacts/contracts/test/wyvern/WyvernProxyRegistry.sol/WyvernProxyRegistry.json");
-const proxyArtifacts = require("../artifacts/contracts/test/wyvern/AuthenticatedProxy.sol/AuthenticatedProxy.json");
+const proxyImplementationArtifacts = require("../artifacts/contracts/test/wyvern/AuthenticatedProxy.sol/AuthenticatedProxy.json");
+const transferProxyArtifacts = require("../artifacts/contracts/test/wyvern/TokenTransferProxy.sol/TokenTransferProxy.json");
 console.log(`Deps loaded, time to deploy!`);
 
 const pk = "0xf2f48ee19680706196e2e339e5da3491186e0c4c5030670656b0e0164837257d";
@@ -23,17 +24,41 @@ console.log(`Got wallet with address: ${wallet.address}`);
   await registry.deployTransaction.wait();
   console.log(`Successfully deployed registry to address: ${registry.address}`);
 
-  // Deploy a proxy
-  const proxyArgs = [];
-  const proxyFactory = new eth.ContractFactory(
-    proxyArtifacts.abi,
-    proxyArtifacts.bytecode,
+  // Deploy a proxyImplementation implementation
+  const proxyImplementationArgs = [];
+  const proxyImplementationFactory = new eth.ContractFactory(
+    proxyImplementationArtifacts.abi,
+    proxyImplementationArtifacts.bytecode,
     wallet
   );
-  const proxy = await proxyFactory.deploy(...proxyArgs, {});
-  console.log(
-    `Sent transaction to deploy proxy, txHash: ${proxy.deployTransaction.hash}`
+  const proxyImplementation = await proxyImplementationFactory.deploy(
+    ...proxyImplementationArgs,
+    {}
   );
-  await proxy.deployTransaction.wait();
-  console.log(`Successfully deployed proxy to address: ${proxy.address}`);
+  console.log(
+    `Sent transaction to deploy proxyImplementation, txHash: ${proxyImplementation.deployTransaction.hash}`
+  );
+  await proxyImplementation.deployTransaction.wait();
+  console.log(
+    `Successfully deployed proxyImplementation to address: ${proxyImplementation.address}`
+  );
+
+  // Deploy a token transfer transferProxy
+  const transferProxyArgs = [];
+  const transferProxyFactory = new eth.ContractFactory(
+    transferProxyArtifacts.abi,
+    transferProxyArtifacts.bytecode,
+    wallet
+  );
+  const transferProxy = await transferProxyFactory.deploy(
+    ...transferProxyArgs,
+    {}
+  );
+  console.log(
+    `Sent transaction to deploy transferProxy, txHash: ${transferProxy.deployTransaction.hash}`
+  );
+  await transferProxy.deployTransaction.wait();
+  console.log(
+    `Successfully deployed transferProxy to address: ${transferProxy.address}`
+  );
 })();

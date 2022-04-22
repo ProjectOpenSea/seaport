@@ -2,6 +2,8 @@
 # Observations
 - Why isn't nonce in order params? Would save an arg in ConsiderationInternalView._getOrderHash
 - checking the proxy implementation doesn't actually ensure anything, save gas by skipping that step?
+- re ConsiderationInternal#2119: if zero space in memory is allocated for return data during an assembly call, then how will subsequent returndatasize and returndatacopy opcodes behave?
+- Can stale orders be invalidated by the user?
 
 # Craziest Assembly
 1. ConsiderationInternal._prepareBasicFulfillmentFromCalldata
