@@ -8,6 +8,7 @@ yarn-error.log
 #Hardhat files
 hh-cache
 artifacts
+hh-cache/
 
 #foundry test compilation files
 cache
