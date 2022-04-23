@@ -10512,9 +10512,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           1 // PARTIAL_OPEN
         );
 
-        // Remove a consideration item
+        // Remove a consideration item, but do not reduce
+        // totalOriginalConsiderationItems as MissingOriginalConsiderationItems
+        // is being tested for
         order.parameters.consideration.pop();
-        order.parameters.totalOriginalConsiderationItems--;
 
         const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -10528,7 +10529,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.reverted;
+          ).to.be.revertedWith("MissingOriginalConsiderationItems");
         });
       });
       it("Reverts on invalid submitter when required by order", async () => {
