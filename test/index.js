@@ -5804,8 +5804,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         // cannot validate it with no signature from a random account
         await whileImpersonating(owner.address, provider, async () => {
-          await expect(marketplaceContract.connect(owner).validate([order])).to
-            .be.revertedWith("InvalidSigner");
+          await expect(
+            marketplaceContract.connect(owner).validate([order])
+          ).to.be.revertedWith("InvalidSigner");
         });
 
         // can validate it once you add the signature back
@@ -5894,8 +5895,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         // cannot validate it with no signature from a random account
         await whileImpersonating(owner.address, provider, async () => {
-          await expect(marketplaceContract.connect(owner).validate([order])).to
-            .be.revertedWith("InvalidSigner");
+          await expect(
+            marketplaceContract.connect(owner).validate([order])
+          ).to.be.revertedWith("InvalidSigner");
         });
 
         // can validate it from the seller
@@ -5973,8 +5975,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         // cannot validate it with no signature from a random account
         await whileImpersonating(owner.address, provider, async () => {
-          await expect(marketplaceContract.connect(owner).validate([order])).to
-            .be.revertedWith("InvalidSigner");
+          await expect(
+            marketplaceContract.connect(owner).validate([order])
+          ).to.be.revertedWith("InvalidSigner");
         });
 
         // can cancel it
@@ -5988,15 +5991,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         // cannot validate it from the seller
         await whileImpersonating(seller.address, provider, async () => {
-          await expect(marketplaceContract.connect(seller).validate([order])).to
-            .be.revertedWith(`OrderIsCancelled("${orderHash}")`);
+          await expect(
+            marketplaceContract.connect(seller).validate([order])
+          ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
         // cannot validate it with a signature either
         order.signature = signature;
         await whileImpersonating(owner.address, provider, async () => {
-          await expect(marketplaceContract.connect(owner).validate([order])).to
-            .be.revertedWith(`OrderIsCancelled("${orderHash}")`);
+          await expect(
+            marketplaceContract.connect(owner).validate([order])
+          ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
         const newStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -11106,7 +11111,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith("MismatchedFulfillmentOfferAndConsiderationComponents");
+          ).to.be.revertedWith(
+            "MismatchedFulfillmentOfferAndConsiderationComponents"
+          );
         });
 
         fulfillments = defaultBuyNowMirrorFulfillment;
@@ -13396,7 +13403,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .fulfillBasicOrder(basicOrderParameters, {
                 value: ethers.utils.parseEther("12"),
               })
-          ).to.be.revertedWith(`EtherTransferGenericFailure("${marketplaceContract.address}", ${ethers.utils.parseEther("1").toString()})`);
+          ).to.be.revertedWith(
+            `EtherTransferGenericFailure("${
+              marketplaceContract.address
+            }", ${ethers.utils.parseEther("1").toString()})`
+          );
         });
       });
       it("Reverts when tokens are not approved", async () => {
@@ -13585,7 +13596,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith(`TokenTransferGenericFailure("${testERC1155.address}", "${seller.address}", "${buyer.address}", ${nftId.toString()}, ${amount.mul(10).toString()})`);
+          ).to.be.revertedWith(
+            `TokenTransferGenericFailure("${testERC1155.address}", "${
+              seller.address
+            }", "${buyer.address}", ${nftId.toString()}, ${amount
+              .mul(10)
+              .toString()})`
+          );
         });
       });
       it("Reverts when transferred item amount is zero", async () => {
@@ -13758,7 +13775,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith(`BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${buyer.address}", "${seller.address}", ${amount.mul(1000).toString()})`);
+          ).to.be.revertedWith(
+            `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
+              buyer.address
+            }", "${seller.address}", ${amount.mul(1000).toString()})`
+          );
         });
 
         let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -13901,7 +13922,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(true), { value })
-          ).to.be.revertedWith(`BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${buyer.address}", "${seller.address}", ${amount.mul(1000).toString()})`);
+          ).to.be.revertedWith(
+            `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
+              buyer.address
+            }", "${seller.address}", ${amount.mul(1000).toString()})`
+          );
         });
 
         let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -14291,7 +14316,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith(`TokenTransferGenericFailure("${marketplaceContract.address}", "${buyer.address}", "${seller.address}", 0, ${amount.toString()})`);
+          ).to.be.revertedWith(
+            `TokenTransferGenericFailure("${marketplaceContract.address}", "${
+              buyer.address
+            }", "${seller.address}", 0, ${amount.toString()})`
+          );
         });
       });
       it("Reverts when non-1155 account is supplied as the token", async () => {
@@ -14322,7 +14351,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-          ).to.be.revertedWith(`TokenTransferGenericFailure("${marketplaceContract.address}", "${seller.address}", "${buyer.address}", 0, ${amount.toString()})`);
+          ).to.be.revertedWith(
+            `TokenTransferGenericFailure("${marketplaceContract.address}", "${
+              seller.address
+            }", "${buyer.address}", 0, ${amount.toString()})`
+          );
         });
       });
       it("Reverts when 1155 batch non-token account is supplied as the token", async () => {
@@ -14452,7 +14485,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(owner)
               .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith(`ERC1155BatchTransferGenericFailure("${marketplaceContract.address}", "${seller.address}", "${buyer.address}", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`);
+          ).to.be.revertedWith(
+            `ERC1155BatchTransferGenericFailure("${
+              marketplaceContract.address
+            }", "${seller.address}", "${
+              buyer.address
+            }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
+          );
         });
 
         const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -14511,7 +14550,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, { value })
-          ).to.be.revertedWith(`EtherTransferGenericFailure("${marketplaceContract.address}", ${ethers.utils.parseEther("1").toString()})`);
+          ).to.be.revertedWith(
+            `EtherTransferGenericFailure("${
+              marketplaceContract.address
+            }", ${ethers.utils.parseEther("1").toString()})`
+          );
         });
       });
     });
