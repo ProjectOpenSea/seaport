@@ -464,24 +464,23 @@ contract ConsiderationTest is DSTestPlusPlus {
     }
 
     function genConsiderationItem(
-      ItemType _itemType,
-      address _token,
-      uint _identifierOrCriteria,
-      uint _startAmount,
-      uint _endAmount,
-      address payable _recipient)
-      external returns( ConsiderationItem[] ){
+        ItemType _itemType,
+        address _token,
+        uint256 _identifierOrCriteria,
+        uint256 _startAmount,
+        uint256 _endAmount,
+        address payable _recipient
+    ) external returns (ConsiderationItem[]) {
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
+        consideration[0] = ConsiderationItem(
+            _itemType,
+            _token,
+            _identifierOrCriteria,
+            _startAmount,
+            _endAmount,
+            _recipient
+        );
 
-      ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-      consideration[0] = ConsiderationItem(
-          _itemType,
-          _token,
-          _identifierOrCriteria,
-          _startAmount,
-          _endAmount,
-          _recipient
-      );
-
-      return ConsiderationItem[]
+        return ConsiderationItem[];
     }
 }
