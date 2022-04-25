@@ -26,3 +26,4 @@ crytic-export
 .cache
 .flags
 .local
+deployments
