@@ -9,6 +9,8 @@ import "contracts/Consideration.sol";
 
 import { DSTestPlusPlus } from "./utils/DSTestPlusPlus.sol";
 import { TestERC721 } from "contracts/test/TestERC721.sol";
+import { TestERC1155 } from "contracts/test/TestERC1155.sol";
+import { TestERC20 } from "contracts/test/TestERC20.sol";
 
 contract ConsiderationTest is DSTestPlusPlus {
     Consideration consider;
@@ -21,6 +23,12 @@ contract ConsiderationTest is DSTestPlusPlus {
     address test721Address;
     TestERC721 test721;
 
+    address test1155Address;
+    TestERC1155 test1155;
+
+    address test20Address;
+    TestERC20 test20;
+
     function setUp() public {
         considerAddress = address(
             new Consideration(address(0), address(0), address(0))
@@ -30,6 +38,14 @@ contract ConsiderationTest is DSTestPlusPlus {
         //deploy a test 721
         test721Address = address(new TestERC721());
         test721 = TestERC721(test721Address);
+
+        //deploy a test 1155
+        test1155Address = address(new TestERC1155());
+        test1155 = TestERC1155(test1155Address);
+
+        //deploy a test erc20
+        test20Address = address(new TestERC20());
+        test20 = TestERC20(test20Address);
 
         accountA = vm.addr(1);
         accountB = vm.addr(2);
@@ -142,4 +158,10 @@ contract ConsiderationTest is DSTestPlusPlus {
 
         emit log("Fulfilled Consideration basic order signed by AccountA");
     }
+
+    function testListBasicETHto1155() external {}
+
+    function testListBasic20to721() external {}
+
+    function testListBasic20to1155() external {}
 }
