@@ -62,6 +62,9 @@ contract ConsiderationTest is DSTestPlusPlus {
         vm.prank(accountA);
         test1155.setApprovalForAll(considerAddress, true);
 
+        vm.prank(accountA);
+        test20.approve(considerAddress, 100);
+
         vm.label(accountA, "Account A");
     }
 
@@ -172,6 +175,7 @@ contract ConsiderationTest is DSTestPlusPlus {
     ) external {
         // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
         vm.assume(_ethAmount > 0);
+        vm.assume(_id > 0);
 
         test1155.mint(accountA, _id, 1);
         emit log("Account A airdropped an 1155 NFT.");
@@ -257,6 +261,7 @@ contract ConsiderationTest is DSTestPlusPlus {
         );
 
         emit log(">>>>");
+        emit log_uint(test1155.balanceOf(accountA, _id)); // tokens owned by accountA
 
         // simple
         consider.fulfillBasicOrder{ value: _ethAmount }(order);
@@ -266,7 +271,107 @@ contract ConsiderationTest is DSTestPlusPlus {
         );
     }
 
-    function testListBasic20to721() external {}
+    function testListBasic20to721(
+        address _zone,
+        uint256 _id,
+        uint256 _erc20Amount,
+        bytes32 _zoneHash,
+        uint256 _salt
+    ) external {
+        // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
+        vm.assume(_erc20Amount > 0);
+        vm.assume(_erc20Amount < 100); //TODO change this so we can test big numbers.
 
-    function testListBasic20to1155() external {}
+        test721.mint(accountA, _id);
+        emit log("Account A airdropped an NFT.");
+
+        // default caller ether amount is 2**96
+        vm.deal(address(this), 2**256 - 1);
+        emit log("Caller airdropped ETH.");
+
+        test20.mint(address(this), 2**256 - 1);
+
+        emit log("Basic erc20 to 721 Order");
+
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0] = OfferItem(ItemType.ERC721, test721Address, _id, 1, 1);
+
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
+        consideration[0] = ConsiderationItem(
+            ItemType.ERC20,
+            test20Address,
+            0,
+            _erc20Amount,
+            _erc20Amount,
+            payable(accountA)
+        );
+
+        // getNonce
+        uint256 nonce = consider.getNonce(accountA);
+
+        // getOrderHash
+        OrderComponents memory orderComponents = OrderComponents(
+            accountA,
+            _zone,
+            offer,
+            consideration,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 5000,
+            _zoneHash,
+            _salt,
+            address(0), // no conduit
+            nonce
+        );
+        bytes32 orderHash = consider.getOrderHash(orderComponents);
+
+        //accountA is pk 1.
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            1,
+            keccak256(
+                abi.encodePacked(
+                    bytes2(0x1901),
+                    consider.DOMAIN_SEPARATOR(),
+                    orderHash
+                )
+            )
+        );
+
+        // fulfill
+        BasicOrderParameters memory order = BasicOrderParameters(
+            test20Address,
+            0,
+            _erc20Amount,
+            payable(accountA),
+            _zone,
+            test721Address,
+            _id,
+            1,
+            BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 5000,
+            _zoneHash,
+            _salt,
+            address(0), // no conduit
+            address(0), // no conduit
+            0,
+            new AdditionalRecipient[](0),
+            abi.encodePacked(r, s, v)
+        );
+
+        emit log(">>>>");
+
+        // simple
+        consider.fulfillBasicOrder{ value: _erc20Amount }(order);
+
+        emit log("Fulfilled Consideration basic order signed by AccountA");
+    }
+
+    function testListBasic20to1155(
+        address _zone,
+        uint256 _id,
+        uint256 _erc20Amount,
+        bytes32 _zoneHash,
+        uint256 _salt
+    ) external {}
 }
