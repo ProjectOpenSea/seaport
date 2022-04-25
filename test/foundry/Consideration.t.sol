@@ -59,6 +59,9 @@ contract ConsiderationTest is DSTestPlusPlus {
         test721.setApprovalForAll(considerAddress, true);
         emit log("Accounts A B C have approved consideration.");
 
+        vm.prank(accountA);
+        test1155.setApprovalForAll(considerAddress, true);
+
         vm.label(accountA, "Account A");
     }
 
@@ -83,7 +86,7 @@ contract ConsiderationTest is DSTestPlusPlus {
         vm.deal(address(this), 2**256 - 1);
         emit log("Caller airdropped ETH.");
 
-        emit log("Basic Order");
+        emit log("Basic eth to 721 Order");
 
         OfferItem[] memory offer = new OfferItem[](1);
         offer[0] = OfferItem(ItemType.ERC721, test721Address, _id, 1, 1);
@@ -159,7 +162,109 @@ contract ConsiderationTest is DSTestPlusPlus {
         emit log("Fulfilled Consideration basic order signed by AccountA");
     }
 
-    function testListBasicETHto1155() external {}
+    //TODO: add _amount param and test with varying number of 1155s
+    function testListBasicETHto1155(
+        address _zone,
+        uint256 _id,
+        uint256 _ethAmount,
+        bytes32 _zoneHash,
+        uint256 _salt
+    ) external {
+        // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
+        vm.assume(_ethAmount > 0);
+
+        test1155.mint(accountA, _id, 1);
+        emit log("Account A airdropped an 1155 NFT.");
+
+        // default caller ether amount is 2**96
+        vm.deal(address(this), 2**256 - 1);
+        emit log("Caller airdropped ETH.");
+
+        emit log("Basic eth to 1155 Order");
+
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0] = OfferItem(ItemType.ERC1155, test1155Address, _id, 1, 1);
+
+        emit log("Offer item 1155 created.");
+
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
+        consideration[0] = ConsiderationItem(
+            ItemType.NATIVE,
+            address(0), // eth order, should be 0
+            0,
+            _ethAmount,
+            _ethAmount,
+            payable(accountA)
+        );
+
+        emit log("consideration item native created");
+
+        // getNonce
+        uint256 nonce = consider.getNonce(accountA);
+
+        // getOrderHash
+        OrderComponents memory orderComponents = OrderComponents(
+            accountA,
+            _zone,
+            offer,
+            consideration,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 5000,
+            _zoneHash,
+            _salt,
+            address(0), // no conduit
+            nonce
+        );
+        bytes32 orderHash = consider.getOrderHash(orderComponents);
+
+        emit log("order components made and hashed.");
+
+        //accountA is pk 1.
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            1,
+            keccak256(
+                abi.encodePacked(
+                    bytes2(0x1901),
+                    consider.DOMAIN_SEPARATOR(),
+                    orderHash
+                )
+            )
+        );
+
+        emit log("order signed by account A");
+
+        // fulfill
+        BasicOrderParameters memory order = BasicOrderParameters(
+            address(0),
+            0,
+            _ethAmount,
+            payable(accountA),
+            _zone,
+            test1155Address,
+            _id,
+            1,
+            BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 5000,
+            _zoneHash,
+            _salt,
+            address(0), // no conduit
+            address(0), // no conduit
+            0,
+            new AdditionalRecipient[](0),
+            abi.encodePacked(r, s, v)
+        );
+
+        emit log(">>>>");
+
+        // simple
+        consider.fulfillBasicOrder{ value: _ethAmount }(order);
+
+        emit log(
+            "Fulfilled Consideration basic order eth to 1155 signed by AccountA"
+        );
+    }
 
     function testListBasic20to721() external {}
 
