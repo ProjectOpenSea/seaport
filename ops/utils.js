@@ -37,10 +37,17 @@ const wallets = Array(10)
     return wallet;
   });
 
+const traceStorage = (txHash) => {
+  provider.send("debug_traceTransaction", [txHash]).then((res) => {
+    log(res.structLogs[res.structLogs.length - 1].storage);
+  });
+};
+
 exports.module = {
   BN: eth.BigNumber.from,
   eth: eth,
   log: log,
   provider: provider,
   wallets: wallets,
+  traceStorage: traceStorage,
 };
