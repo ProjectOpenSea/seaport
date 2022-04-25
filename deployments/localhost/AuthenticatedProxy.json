@@ -1,0 +1,349 @@
+{
+  "address": "0x9FBDa871d559710256a2502A2517b794B482Db40",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "dest",
+          "type": "address"
+        },
+        {
+          "name": "howToCall",
+          "type": "uint8"
+        },
+        {
+          "name": "calldata",
+          "type": "bytes"
+        }
+      ],
+      "name": "proxy",
+      "outputs": [
+        {
+          "name": "result",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "dest",
+          "type": "address"
+        },
+        {
+          "name": "howToCall",
+          "type": "uint8"
+        },
+        {
+          "name": "calldata",
+          "type": "bytes"
+        }
+      ],
+      "name": "proxyAssert",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "proxyType",
+      "outputs": [
+        {
+          "name": "proxyTypeId",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "addrUser",
+          "type": "address"
+        },
+        {
+          "name": "addrRegistry",
+          "type": "address"
+        }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "revoke",
+          "type": "bool"
+        }
+      ],
+      "name": "setRevoke",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "user",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "implementation",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "revoked",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "upgradeabilityOwner",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "registry",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "name": "value",
+          "type": "uint256"
+        },
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "extraData",
+          "type": "bytes"
+        }
+      ],
+      "name": "receiveApproval",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "fallback"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "revoked",
+          "type": "bool"
+        }
+      ],
+      "name": "Revoked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ReceivedEther",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "value",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "extraData",
+          "type": "bytes"
+        }
+      ],
+      "name": "ReceivedTokens",
+      "type": "event"
+    }
+  ],
+  "transactionHash": "0x5ad2afefcbd99d90c05bbcb0ece111477174fe04263defb781b02cdd917a3840",
+  "receipt": {
+    "to": null,
+    "from": "0x627306090abaB3A6e1400e9345bC60c78a8BEf57",
+    "contractAddress": "0x9FBDa871d559710256a2502A2517b794B482Db40",
+    "transactionIndex": 0,
+    "gasUsed": "504112",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xcd5263ec034c07afed274f21e0a5c3b12467c36f7004ec9921a7a384e283ae14",
+    "transactionHash": "0x5ad2afefcbd99d90c05bbcb0ece111477174fe04263defb781b02cdd917a3840",
+    "logs": [],
+    "blockNumber": 6,
+    "cumulativeGasUsed": "504112",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [],
+  "numDeployments": 1,
+  "solcInputHash": "e5c58a2be93e75349f78cce9b73da7b3",
+  "metadata": "{\"compiler\":{\"version\":\"0.4.23+commit.124ca40d\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"constant\":false,\"inputs\":[{\"name\":\"dest\",\"type\":\"address\"},{\"name\":\"howToCall\",\"type\":\"uint8\"},{\"name\":\"calldata\",\"type\":\"bytes\"}],\"name\":\"proxy\",\"outputs\":[{\"name\":\"result\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"dest\",\"type\":\"address\"},{\"name\":\"howToCall\",\"type\":\"uint8\"},{\"name\":\"calldata\",\"type\":\"bytes\"}],\"name\":\"proxyAssert\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"proxyType\",\"outputs\":[{\"name\":\"proxyTypeId\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"pure\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"addrUser\",\"type\":\"address\"},{\"name\":\"addrRegistry\",\"type\":\"address\"}],\"name\":\"initialize\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"revoke\",\"type\":\"bool\"}],\"name\":\"setRevoke\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"user\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"revoked\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"upgradeabilityOwner\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"registry\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"from\",\"type\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\"},{\"name\":\"token\",\"type\":\"address\"},{\"name\":\"extraData\",\"type\":\"bytes\"}],\"name\":\"receiveApproval\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"revoked\",\"type\":\"bool\"}],\"name\":\"Revoked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"ReceivedEther\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"from\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"value\",\"type\":\"uint256\"},{\"indexed\":true,\"name\":\"token\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"extraData\",\"type\":\"bytes\"}],\"name\":\"ReceivedTokens\",\"type\":\"event\"}],\"devdoc\":{\"methods\":{\"implementation()\":{\"details\":\"Tells the address of the current implementation\",\"return\":\"address of the current implementation\"},\"initialize(address,address)\":{\"params\":{\"addrRegistry\":\"Address of ProxyRegistry contract which will manage this proxy\",\"addrUser\":\"Address of user on whose behalf this proxy will act\"}},\"proxy(address,uint8,bytes)\":{\"details\":\"Can be called by the user, or by a contract authorized by the registry as long as the user has not revoked access\",\"params\":{\"calldata\":\"Calldata to send\",\"dest\":\"Address to which the call will be sent\",\"howToCall\":\"Which kind of call to make\"},\"return\":\"Result of the call (success or failure)\"},\"proxyAssert(address,uint8,bytes)\":{\"details\":\"Same functionality as `proxy`, just asserts the return value\",\"params\":{\"calldata\":\"Calldata to send\",\"dest\":\"Address to which the call will be sent\",\"howToCall\":\"What kind of call to make\"}},\"proxyType()\":{\"details\":\"Tells the proxy type (EIP 897)\",\"return\":\"Proxy type, 2 for forwarding proxy\"},\"receiveApproval(address,uint256,address,bytes)\":{\"details\":\"Receive tokens and generate a log event\",\"params\":{\"extraData\":\"Additional data to log\",\"from\":\"Address from which to transfer tokens\",\"token\":\"Address of token\",\"value\":\"Amount of tokens to transfer\"}},\"setRevoke(bool)\":{\"details\":\"Can be called by the user only\",\"params\":{\"revoke\":\"Whether or not to revoke access\"}},\"upgradeabilityOwner()\":{\"details\":\"Tells the address of the owner\",\"return\":\"the address of the owner\"}}},\"userdoc\":{\"methods\":{\"initialize(address,address)\":{\"notice\":\"Initialize an AuthenticatedProxy\"},\"proxy(address,uint8,bytes)\":{\"notice\":\"Execute a message call from the proxy contract\"},\"proxyAssert(address,uint8,bytes)\":{\"notice\":\"Execute a message call and assert success\"},\"setRevoke(bool)\":{\"notice\":\"Set the revoked flag (allows a user to revoke ProxyRegistry access)\"}}}},\"settings\":{\"compilationTarget\":{\"contracts/test/wyvern/AuthenticatedProxy.sol\":\"AuthenticatedProxy\"},\"evmVersion\":\"byzantium\",\"libraries\":{},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/test/wyvern/AuthenticatedProxy.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\nimport \\\"./ProxyRegistry.sol\\\";\\nimport \\\"./TokenRecipient.sol\\\";\\nimport \\\"./OwnedUpgradeabilityStorage.sol\\\";\\n\\ncontract AuthenticatedProxy is TokenRecipient, OwnedUpgradeabilityStorage {\\n    /* Whether initialized. */\\n    bool initialized = false;\\n\\n    /* Address which owns this proxy. */\\n    address public user;\\n\\n    /* Associated registry with contract authentication information. */\\n    ProxyRegistry public registry;\\n\\n    /* Whether access has been revoked. */\\n    bool public revoked;\\n\\n    /* Delegate call could be used to atomically transfer multiple assets owned by the proxy contract with one order. */\\n    enum HowToCall {\\n        Call,\\n        DelegateCall\\n    }\\n\\n    /* Event fired when the proxy access is revoked or unrevoked. */\\n    event Revoked(bool revoked);\\n\\n    /**\\n     * Initialize an AuthenticatedProxy\\n     *\\n     * @param addrUser Address of user on whose behalf this proxy will act\\n     * @param addrRegistry Address of ProxyRegistry contract which will manage this proxy\\n     */\\n    function initialize(address addrUser, ProxyRegistry addrRegistry) public {\\n        require(!initialized);\\n        initialized = true;\\n        user = addrUser;\\n        registry = addrRegistry;\\n    }\\n\\n    /**\\n     * Set the revoked flag (allows a user to revoke ProxyRegistry access)\\n     *\\n     * @dev Can be called by the user only\\n     * @param revoke Whether or not to revoke access\\n     */\\n    function setRevoke(bool revoke) public {\\n        require(msg.sender == user);\\n        revoked = revoke;\\n        emit Revoked(revoke);\\n    }\\n\\n    /**\\n     * Execute a message call from the proxy contract\\n     *\\n     * @dev Can be called by the user, or by a contract authorized by the registry as long as the user has not revoked access\\n     * @param dest Address to which the call will be sent\\n     * @param howToCall Which kind of call to make\\n     * @param calldata Calldata to send\\n     * @return Result of the call (success or failure)\\n     */\\n    function proxy(\\n        address dest,\\n        HowToCall howToCall,\\n        bytes calldata\\n    ) public returns (bool result) {\\n        require(\\n            msg.sender == user || (!revoked && registry.contracts(msg.sender))\\n        );\\n        if (howToCall == HowToCall.Call) {\\n            result = dest.call(calldata);\\n        } else if (howToCall == HowToCall.DelegateCall) {\\n            result = dest.delegatecall(calldata);\\n        }\\n        return result;\\n    }\\n\\n    /**\\n     * Execute a message call and assert success\\n     *\\n     * @dev Same functionality as `proxy`, just asserts the return value\\n     * @param dest Address to which the call will be sent\\n     * @param howToCall What kind of call to make\\n     * @param calldata Calldata to send\\n     */\\n    function proxyAssert(\\n        address dest,\\n        HowToCall howToCall,\\n        bytes calldata\\n    ) public {\\n        require(proxy(dest, howToCall, calldata));\\n    }\\n}\\n\",\"keccak256\":\"0xf1f1e9505f5bd851dd8c8c2a18be8805a3b48656a93f81b9dd8b599aa71c2d4d\"},\"contracts/test/wyvern/ERC20.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\nimport \\\"./ERC20Basic.sol\\\";\\n\\ncontract ERC20 is ERC20Basic {\\n    function allowance(address owner, address spender)\\n        public\\n        view\\n        returns (uint256);\\n\\n    function transferFrom(\\n        address from,\\n        address to,\\n        uint256 value\\n    ) public returns (bool);\\n\\n    function approve(address spender, uint256 value) public returns (bool);\\n\\n    event Approval(\\n        address indexed owner,\\n        address indexed spender,\\n        uint256 value\\n    );\\n}\\n\",\"keccak256\":\"0x4168516ed4575d9f039135e500d7802fdc4af5dcc623c084395971a1ba765b9d\"},\"contracts/test/wyvern/ERC20Basic.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\ncontract ERC20Basic {\\n    function totalSupply() public view returns (uint256);\\n\\n    function balanceOf(address who) public view returns (uint256);\\n\\n    function transfer(address to, uint256 value) public returns (bool);\\n\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n}\\n\",\"keccak256\":\"0x97ecfb9fc3deb10377e68e764d732f9bd5f043a3ace95e6302fc6c46ec72b5aa\"},\"contracts/test/wyvern/Ownable.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\ncontract Ownable {\\n    address public owner;\\n\\n    event OwnershipRenounced(address indexed previousOwner);\\n    event OwnershipTransferred(\\n        address indexed previousOwner,\\n        address indexed newOwner\\n    );\\n\\n    /**\\n     * @dev The Ownable constructor sets the original `owner` of the contract to the sender\\n     * account.\\n     */\\n    constructor() public {\\n        owner = msg.sender;\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        require(msg.sender == owner);\\n        _;\\n    }\\n\\n    /**\\n     * @dev Allows the current owner to transfer control of the contract to a newOwner.\\n     * @param newOwner The address to transfer ownership to.\\n     */\\n    function transferOwnership(address newOwner) public onlyOwner {\\n        require(newOwner != address(0));\\n        emit OwnershipTransferred(owner, newOwner);\\n        owner = newOwner;\\n    }\\n\\n    /**\\n     * @dev Allows the current owner to relinquish control of the contract.\\n     */\\n    function renounceOwnership() public onlyOwner {\\n        emit OwnershipRenounced(owner);\\n        owner = address(0);\\n    }\\n}\\n\",\"keccak256\":\"0xd441fdcfcc009d1b1e7fb73c28ee1c04d2d3d5dadc774aa4d1f2b726ebf2b2db\"},\"contracts/test/wyvern/OwnableDelegateProxy.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\nimport \\\"./OwnedUpgradeabilityProxy.sol\\\";\\n\\ncontract OwnableDelegateProxy is OwnedUpgradeabilityProxy {\\n    constructor(\\n        address owner,\\n        address initialImplementation,\\n        bytes calldata\\n    ) public {\\n        setUpgradeabilityOwner(owner);\\n        _upgradeTo(initialImplementation);\\n        require(initialImplementation.delegatecall(calldata));\\n    }\\n}\\n\",\"keccak256\":\"0xdc0c6665ba72902a7bf4cc5aebb7b23652f332bb559d7e479d86a3aefeb13fd9\"},\"contracts/test/wyvern/OwnedUpgradeabilityProxy.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\nimport \\\"./Proxy.sol\\\";\\nimport \\\"./OwnedUpgradeabilityStorage.sol\\\";\\n\\ncontract OwnedUpgradeabilityProxy is Proxy, OwnedUpgradeabilityStorage {\\n    /**\\n     * @dev Event to show ownership has been transferred\\n     * @param previousOwner representing the address of the previous owner\\n     * @param newOwner representing the address of the new owner\\n     */\\n    event ProxyOwnershipTransferred(address previousOwner, address newOwner);\\n\\n    /**\\n     * @dev This event will be emitted every time the implementation gets upgraded\\n     * @param implementation representing the address of the upgraded implementation\\n     */\\n    event Upgraded(address indexed implementation);\\n\\n    /**\\n     * @dev Upgrades the implementation address\\n     * @param implementation representing the address of the new implementation to be set\\n     */\\n    function _upgradeTo(address implementation) internal {\\n        require(_implementation != implementation);\\n        _implementation = implementation;\\n        emit Upgraded(implementation);\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyProxyOwner() {\\n        require(msg.sender == proxyOwner());\\n        _;\\n    }\\n\\n    /**\\n     * @dev Tells the address of the proxy owner\\n     * @return the address of the proxy owner\\n     */\\n    function proxyOwner() public view returns (address) {\\n        return upgradeabilityOwner();\\n    }\\n\\n    /**\\n     * @dev Allows the current owner to transfer control of the contract to a newOwner.\\n     * @param newOwner The address to transfer ownership to.\\n     */\\n    function transferProxyOwnership(address newOwner) public onlyProxyOwner {\\n        require(newOwner != address(0));\\n        emit ProxyOwnershipTransferred(proxyOwner(), newOwner);\\n        setUpgradeabilityOwner(newOwner);\\n    }\\n\\n    /**\\n     * @dev Allows the upgradeability owner to upgrade the current implementation of the proxy.\\n     * @param implementation representing the address of the new implementation to be set.\\n     */\\n    function upgradeTo(address implementation) public onlyProxyOwner {\\n        _upgradeTo(implementation);\\n    }\\n\\n    /**\\n     * @dev Allows the upgradeability owner to upgrade the current implementation of the proxy\\n     * and delegatecall the new implementation for initialization.\\n     * @param implementation representing the address of the new implementation to be set.\\n     * @param data represents the msg.data to bet sent in the low level call. This parameter may include the function\\n     * signature of the implementation to be called with the needed payload\\n     */\\n    function upgradeToAndCall(address implementation, bytes data)\\n        public\\n        payable\\n        onlyProxyOwner\\n    {\\n        upgradeTo(implementation);\\n        require(address(this).delegatecall(data));\\n    }\\n}\\n\",\"keccak256\":\"0xad905147cc42187388dfd2ff9670089c29ca873a95dca62c5f99b7f5267126fa\"},\"contracts/test/wyvern/OwnedUpgradeabilityStorage.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\ncontract OwnedUpgradeabilityStorage {\\n    // Current implementation\\n    address internal _implementation;\\n\\n    // Owner of the contract\\n    address private _upgradeabilityOwner;\\n\\n    /**\\n     * @dev Tells the address of the owner\\n     * @return the address of the owner\\n     */\\n    function upgradeabilityOwner() public view returns (address) {\\n        return _upgradeabilityOwner;\\n    }\\n\\n    /**\\n     * @dev Sets the address of the owner\\n     */\\n    function setUpgradeabilityOwner(address newUpgradeabilityOwner) internal {\\n        _upgradeabilityOwner = newUpgradeabilityOwner;\\n    }\\n\\n    /**\\n     * @dev Tells the address of the current implementation\\n     * @return address of the current implementation\\n     */\\n    function implementation() public view returns (address) {\\n        return _implementation;\\n    }\\n\\n    /**\\n     * @dev Tells the proxy type (EIP 897)\\n     * @return Proxy type, 2 for forwarding proxy\\n     */\\n    function proxyType() public pure returns (uint256 proxyTypeId) {\\n        return 2;\\n    }\\n}\\n\",\"keccak256\":\"0x67fae8db22b19effda64da352cba3a193c098008fabf16de7fc533072b8f7b33\"},\"contracts/test/wyvern/Proxy.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\ncontract Proxy {\\n    /**\\n     * @dev Tells the address of the implementation where every call will be delegated.\\n     * @return address of the implementation to which it will be delegated\\n     */\\n    function implementation() public view returns (address);\\n\\n    /**\\n     * @dev Tells the type of proxy (EIP 897)\\n     * @return Type of proxy, 2 for upgradeable proxy\\n     */\\n    function proxyType() public pure returns (uint256 proxyTypeId);\\n\\n    /**\\n     * @dev Fallback function allowing to perform a delegatecall to the given implementation.\\n     * This function will return whatever the implementation call returns\\n     */\\n    function() public payable {\\n        address _impl = implementation();\\n        require(_impl != address(0));\\n\\n        assembly {\\n            let ptr := mload(0x40)\\n            calldatacopy(ptr, 0, calldatasize)\\n            let result := delegatecall(gas, _impl, ptr, calldatasize, 0, 0)\\n            let size := returndatasize\\n            returndatacopy(ptr, 0, size)\\n\\n            switch result\\n            case 0 {\\n                revert(ptr, size)\\n            }\\n            default {\\n                return(ptr, size)\\n            }\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x8ec502a6b636848c549b924b1ac150a39e65c3a65d29e81e13ee1519cba519f0\"},\"contracts/test/wyvern/ProxyRegistry.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\nimport \\\"./Ownable.sol\\\";\\nimport \\\"./OwnableDelegateProxy.sol\\\";\\n\\ncontract ProxyRegistry is Ownable {\\n    /* DelegateProxy implementation contract. Must be initialized. */\\n    address public delegateProxyImplementation;\\n\\n    /* Authenticated proxies by user. */\\n    mapping(address => OwnableDelegateProxy) public proxies;\\n\\n    /* Contracts pending access. */\\n    mapping(address => uint256) public pending;\\n\\n    /* Contracts allowed to call those proxies. */\\n    mapping(address => bool) public contracts;\\n\\n    /* Delay period for adding an authenticated contract.\\n       This mitigates a particular class of potential attack on the Wyvern DAO (which owns this registry) - if at any point the value of assets held by proxy contracts exceeded the value of half the WYV supply (votes in the DAO),\\n       a malicious but rational attacker could buy half the Wyvern and grant themselves access to all the proxy contracts. A delay period renders this attack nonthreatening - given two weeks, if that happened, users would have\\n       plenty of time to notice and transfer their assets.\\n    */\\n    uint256 public DELAY_PERIOD = 2 weeks;\\n\\n    /**\\n     * Start the process to enable access for specified contract. Subject to delay period.\\n     *\\n     * @dev ProxyRegistry owner only\\n     * @param addr Address to which to grant permissions\\n     */\\n    function startGrantAuthentication(address addr) public onlyOwner {\\n        require(!contracts[addr] && pending[addr] == 0);\\n        pending[addr] = now;\\n    }\\n\\n    /**\\n     * End the process to nable access for specified contract after delay period has passed.\\n     *\\n     * @dev ProxyRegistry owner only\\n     * @param addr Address to which to grant permissions\\n     */\\n    function endGrantAuthentication(address addr) public onlyOwner {\\n        require(\\n            !contracts[addr] &&\\n                pending[addr] != 0 &&\\n                ((pending[addr] + DELAY_PERIOD) < now)\\n        );\\n        pending[addr] = 0;\\n        contracts[addr] = true;\\n    }\\n\\n    /**\\n     * Revoke access for specified contract. Can be done instantly.\\n     *\\n     * @dev ProxyRegistry owner only\\n     * @param addr Address of which to revoke permissions\\n     */\\n    function revokeAuthentication(address addr) public onlyOwner {\\n        contracts[addr] = false;\\n    }\\n\\n    /**\\n     * Register a proxy contract with this registry\\n     *\\n     * @dev Must be called by the user which the proxy is for, creates a new AuthenticatedProxy\\n     * @return New AuthenticatedProxy contract\\n     */\\n    function registerProxy() public returns (OwnableDelegateProxy proxy) {\\n        require(proxies[msg.sender] == address(0));\\n        proxy = new OwnableDelegateProxy(\\n            msg.sender,\\n            delegateProxyImplementation,\\n            abi.encodeWithSignature(\\n                \\\"initialize(address,address)\\\",\\n                msg.sender,\\n                address(this)\\n            )\\n        );\\n        proxies[msg.sender] = proxy;\\n        return proxy;\\n    }\\n}\\n\",\"keccak256\":\"0x0473e454deb860811ae9ee2658478db9a1d4efa0257f55422fa4adaa3786b9a2\"},\"contracts/test/wyvern/TokenRecipient.sol\":{\"content\":\"pragma solidity ^0.4.13;\\n\\nimport \\\"./ERC20.sol\\\";\\n\\ncontract TokenRecipient {\\n    event ReceivedEther(address indexed sender, uint256 amount);\\n    event ReceivedTokens(\\n        address indexed from,\\n        uint256 value,\\n        address indexed token,\\n        bytes extraData\\n    );\\n\\n    /**\\n     * @dev Receive tokens and generate a log event\\n     * @param from Address from which to transfer tokens\\n     * @param value Amount of tokens to transfer\\n     * @param token Address of token\\n     * @param extraData Additional data to log\\n     */\\n    function receiveApproval(\\n        address from,\\n        uint256 value,\\n        address token,\\n        bytes extraData\\n    ) public {\\n        ERC20 t = ERC20(token);\\n        require(t.transferFrom(from, this, value));\\n        emit ReceivedTokens(from, value, token, extraData);\\n    }\\n\\n    /**\\n     * @dev Receive Ether and generate a log event\\n     */\\n    function() public payable {\\n        emit ReceivedEther(msg.sender, msg.value);\\n    }\\n}\\n\",\"keccak256\":\"0xb7a900fc6a18e02cd733854b9a457fd4b4f835e83e7bbd5fcc175cd4c1f554fe\"}},\"version\":1}",
+  "bytecode": "0x60806040526001805460a060020a60ff021916905534801561002057600080fd5b50610822806100306000396000f3006080604052600436106100ae5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416631b0f7ba981146100ef5780633f801f911461016f5780634555d5c9146101dd578063485cc955146102045780634c93505f1461022b5780634f8632ba146102455780635c60da1b1461027657806363d256ce1461028b5780636fde8202146102a05780637b103999146102b55780638f4ffcb1146102ca575b604080513481529051600160a060020a033316917fa419615bc8fda4c87663805ee2a3597a6d71c1d476911d9892f340d965bc7bf1919081900360200190a2005b3480156100fb57600080fd5b50604080516020600460443581810135601f810184900484028501840190955284845261015b948235600160a060020a0316946024803560ff169536959460649492019190819084018382808284375094975061033a9650505050505050565b604080519115158252519081900360200190f35b34801561017b57600080fd5b50604080516020600460443581810135601f81018490048402850184019095528484526101db948235600160a060020a0316946024803560ff169536959460649492019190819084018382808284375094975061052e9650505050505050565b005b3480156101e957600080fd5b506101f2610549565b60408051918252519081900360200190f35b34801561021057600080fd5b506101db600160a060020a036004358116906024351661054e565b34801561023757600080fd5b506101db60043515156105c4565b34801561025157600080fd5b5061025a610643565b60408051600160a060020a039092168252519081900360200190f35b34801561028257600080fd5b5061025a610652565b34801561029757600080fd5b5061015b610661565b3480156102ac57600080fd5b5061025a610671565b3480156102c157600080fd5b5061025a610680565b3480156102d657600080fd5b50604080516020601f6064356004818101359283018490048402850184019095528184526101db94600160a060020a0381358116956024803596604435909316953695608494920191819084018382808284375094975061068f9650505050505050565b60025460009033600160a060020a03908116911614806103ff575060035460a060020a900460ff161580156103ff5750600354604080517f69dc9ff3000000000000000000000000000000000000000000000000000000008152600160a060020a033381166004830152915191909216916369dc9ff39160248083019260209291908290030181600087803b1580156103d257600080fd5b505af11580156103e6573d6000803e3d6000fd5b505050506040513d60208110156103fc57600080fd5b50515b151561040a57600080fd5b600083600181111561041857fe5b141561049c5783600160a060020a03168260405180828051906020019080838360005b8381101561045357818101518382015260200161043b565b50505050905090810190601f1680156104805780820380516001836020036101000a031916815260200191505b509150506000604051808303816000865af19150509050610527565b60018360018111156104aa57fe5b14156105275783600160a060020a03168260405180828051906020019080838360005b838110156104e55781810151838201526020016104cd565b50505050905090810190601f1680156105125780820380516001836020036101000a031916815260200191505b50915050600060405180830381855af4925050505b9392505050565b61053983838361033a565b151561054457600080fd5b505050565b600290565b60015460a060020a900460ff161561056557600080fd5b6001805474ff0000000000000000000000000000000000000000191660a060020a17905560028054600160a060020a0393841673ffffffffffffffffffffffffffffffffffffffff199182161790915560038054929093169116179055565b60025433600160a060020a039081169116146105df57600080fd5b6003805482151560a060020a810274ff0000000000000000000000000000000000000000199092169190911790915560408051918252517f2165014523a6f4135deffed62d70149aad59b64de5aac51e3abbcbe2a83e2f7e9181900360200190a150565b600254600160a060020a031681565b600054600160a060020a031690565b60035460a060020a900460ff1681565b600154600160a060020a031690565b600354600160a060020a031681565b604080517f23b872dd000000000000000000000000000000000000000000000000000000008152600160a060020a038681166004830152308116602483015260448201869052915184928316916323b872dd9160648083019260209291908290030181600087803b15801561070357600080fd5b505af1158015610717573d6000803e3d6000fd5b505050506040513d602081101561072d57600080fd5b5051151561073a57600080fd5b82600160a060020a031685600160a060020a03167fd65b48fd35864b3528d38e44760be5553248f89bf3ff6b06cca57817cc2650bf86856040518083815260200180602001828103825283818151815260200191508051906020019080838360005b838110156107b457818101518382015260200161079c565b50505050905090810190601f1680156107e15780820380516001836020036101000a031916815260200191505b50935050505060405180910390a350505050505600a165627a7a723058209219281f84cf1bd1d8881ffcf211e94df692bd3b3deae7a128fedb76a731ad160029",
+  "deployedBytecode": "0x6080604052600436106100ae5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416631b0f7ba981146100ef5780633f801f911461016f5780634555d5c9146101dd578063485cc955146102045780634c93505f1461022b5780634f8632ba146102455780635c60da1b1461027657806363d256ce1461028b5780636fde8202146102a05780637b103999146102b55780638f4ffcb1146102ca575b604080513481529051600160a060020a033316917fa419615bc8fda4c87663805ee2a3597a6d71c1d476911d9892f340d965bc7bf1919081900360200190a2005b3480156100fb57600080fd5b50604080516020600460443581810135601f810184900484028501840190955284845261015b948235600160a060020a0316946024803560ff169536959460649492019190819084018382808284375094975061033a9650505050505050565b604080519115158252519081900360200190f35b34801561017b57600080fd5b50604080516020600460443581810135601f81018490048402850184019095528484526101db948235600160a060020a0316946024803560ff169536959460649492019190819084018382808284375094975061052e9650505050505050565b005b3480156101e957600080fd5b506101f2610549565b60408051918252519081900360200190f35b34801561021057600080fd5b506101db600160a060020a036004358116906024351661054e565b34801561023757600080fd5b506101db60043515156105c4565b34801561025157600080fd5b5061025a610643565b60408051600160a060020a039092168252519081900360200190f35b34801561028257600080fd5b5061025a610652565b34801561029757600080fd5b5061015b610661565b3480156102ac57600080fd5b5061025a610671565b3480156102c157600080fd5b5061025a610680565b3480156102d657600080fd5b50604080516020601f6064356004818101359283018490048402850184019095528184526101db94600160a060020a0381358116956024803596604435909316953695608494920191819084018382808284375094975061068f9650505050505050565b60025460009033600160a060020a03908116911614806103ff575060035460a060020a900460ff161580156103ff5750600354604080517f69dc9ff3000000000000000000000000000000000000000000000000000000008152600160a060020a033381166004830152915191909216916369dc9ff39160248083019260209291908290030181600087803b1580156103d257600080fd5b505af11580156103e6573d6000803e3d6000fd5b505050506040513d60208110156103fc57600080fd5b50515b151561040a57600080fd5b600083600181111561041857fe5b141561049c5783600160a060020a03168260405180828051906020019080838360005b8381101561045357818101518382015260200161043b565b50505050905090810190601f1680156104805780820380516001836020036101000a031916815260200191505b509150506000604051808303816000865af19150509050610527565b60018360018111156104aa57fe5b14156105275783600160a060020a03168260405180828051906020019080838360005b838110156104e55781810151838201526020016104cd565b50505050905090810190601f1680156105125780820380516001836020036101000a031916815260200191505b50915050600060405180830381855af4925050505b9392505050565b61053983838361033a565b151561054457600080fd5b505050565b600290565b60015460a060020a900460ff161561056557600080fd5b6001805474ff0000000000000000000000000000000000000000191660a060020a17905560028054600160a060020a0393841673ffffffffffffffffffffffffffffffffffffffff199182161790915560038054929093169116179055565b60025433600160a060020a039081169116146105df57600080fd5b6003805482151560a060020a810274ff0000000000000000000000000000000000000000199092169190911790915560408051918252517f2165014523a6f4135deffed62d70149aad59b64de5aac51e3abbcbe2a83e2f7e9181900360200190a150565b600254600160a060020a031681565b600054600160a060020a031690565b60035460a060020a900460ff1681565b600154600160a060020a031690565b600354600160a060020a031681565b604080517f23b872dd000000000000000000000000000000000000000000000000000000008152600160a060020a038681166004830152308116602483015260448201869052915184928316916323b872dd9160648083019260209291908290030181600087803b15801561070357600080fd5b505af1158015610717573d6000803e3d6000fd5b505050506040513d602081101561072d57600080fd5b5051151561073a57600080fd5b82600160a060020a031685600160a060020a03167fd65b48fd35864b3528d38e44760be5553248f89bf3ff6b06cca57817cc2650bf86856040518083815260200180602001828103825283818151815260200191508051906020019080838360005b838110156107b457818101518382015260200161079c565b50505050905090810190601f1680156107e15780820380516001836020036101000a031916815260200191505b50935050505060405180910390a350505050505600a165627a7a723058209219281f84cf1bd1d8881ffcf211e94df692bd3b3deae7a128fedb76a731ad160029",
+  "devdoc": {
+    "methods": {
+      "implementation()": {
+        "details": "Tells the address of the current implementation",
+        "return": "address of the current implementation"
+      },
+      "initialize(address,address)": {
+        "params": {
+          "addrRegistry": "Address of ProxyRegistry contract which will manage this proxy",
+          "addrUser": "Address of user on whose behalf this proxy will act"
+        }
+      },
+      "proxy(address,uint8,bytes)": {
+        "details": "Can be called by the user, or by a contract authorized by the registry as long as the user has not revoked access",
+        "params": {
+          "calldata": "Calldata to send",
+          "dest": "Address to which the call will be sent",
+          "howToCall": "Which kind of call to make"
+        },
+        "return": "Result of the call (success or failure)"
+      },
+      "proxyAssert(address,uint8,bytes)": {
+        "details": "Same functionality as `proxy`, just asserts the return value",
+        "params": {
+          "calldata": "Calldata to send",
+          "dest": "Address to which the call will be sent",
+          "howToCall": "What kind of call to make"
+        }
+      },
+      "proxyType()": {
+        "details": "Tells the proxy type (EIP 897)",
+        "return": "Proxy type, 2 for forwarding proxy"
+      },
+      "receiveApproval(address,uint256,address,bytes)": {
+        "details": "Receive tokens and generate a log event",
+        "params": {
+          "extraData": "Additional data to log",
+          "from": "Address from which to transfer tokens",
+          "token": "Address of token",
+          "value": "Amount of tokens to transfer"
+        }
+      },
+      "setRevoke(bool)": {
+        "details": "Can be called by the user only",
+        "params": {
+          "revoke": "Whether or not to revoke access"
+        }
+      },
+      "upgradeabilityOwner()": {
+        "details": "Tells the address of the owner",
+        "return": "the address of the owner"
+      }
+    }
+  },
+  "userdoc": {
+    "methods": {
+      "initialize(address,address)": {
+        "notice": "Initialize an AuthenticatedProxy"
+      },
+      "proxy(address,uint8,bytes)": {
+        "notice": "Execute a message call from the proxy contract"
+      },
+      "proxyAssert(address,uint8,bytes)": {
+        "notice": "Execute a message call and assert success"
+      },
+      "setRevoke(bool)": {
+        "notice": "Set the revoked flag (allows a user to revoke ProxyRegistry access)"
+      }
+    }
+  }
+}

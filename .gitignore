@@ -23,3 +23,6 @@ out
 *.ir.*
 corpus
 crytic-export
+.cache
+.flags
+.local

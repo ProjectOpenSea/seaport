@@ -11,7 +11,7 @@ enum HowToCall {
     DelegateCall
 }
 
-interface AuthenticatedProxy {
+interface IAuthenticatedProxy {
     function user() external returns (address);
     function registry() external returns (address);
     function revoked() external returns (bool);
@@ -21,7 +21,7 @@ interface AuthenticatedProxy {
     function proxyAssert(address, HowToCall, bytes calldata) external;
 }
 
-interface ProxyRegistry {
+interface IProxyRegistry {
     function delegateProxyImplementation() external returns(address);
     function proxies(address) external returns(address);
     function pending(address) external returns(uint);
@@ -34,7 +34,7 @@ interface ProxyRegistry {
     function grantInitialAuthentication(address) external;
 }
 
-interface TokenTransferProxy {
+interface ITokenTransferProxy {
     function transferFrom(
         address,
         address,
@@ -49,13 +49,13 @@ interface FuzzyTests {
 
 contract Echidna is FuzzyTests {
 
-    AuthenticatedProxy private _proxyImplementation = AuthenticatedProxy(
+    IAuthenticatedProxy private _proxyImplementation = IAuthenticatedProxy(
         0x1D7022f5B17d2F8B695918FB48fa1089C9f85401
     );
-    ProxyRegistry private _registry = ProxyRegistry(
+    IProxyRegistry private _registry = IProxyRegistry(
         0x1dC4c1cEFEF38a777b15aA20260a54E584b16C48
     );
-    TokenTransferProxy private _transferProxy = TokenTransferProxy(
+    ITokenTransferProxy private _transferProxy = ITokenTransferProxy(
         0x871DD7C2B4b25E1Aa18728e9D5f2Af4C4e431f5c
     );
     Consideration private _opensea;
