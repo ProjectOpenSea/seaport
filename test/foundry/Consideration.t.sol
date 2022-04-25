@@ -462,4 +462,26 @@ contract ConsiderationTest is DSTestPlusPlus {
 
         emit log("Fulfilled Consideration basic order signed by AccountA");
     }
+
+    function genConsiderationItem(
+      ItemType _itemType,
+      address _token,
+      uint _identifierOrCriteria,
+      uint _startAmount,
+      uint _endAmount,
+      address payable _recipient)
+      external returns( ConsiderationItem[] ){
+
+      ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
+      consideration[0] = ConsiderationItem(
+          _itemType,
+          _token,
+          _identifierOrCriteria,
+          _startAmount,
+          _endAmount,
+          _recipient
+      );
+
+      return ConsiderationItem[]
+    }
 }
