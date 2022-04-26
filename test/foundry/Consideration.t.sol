@@ -366,7 +366,7 @@ contract ConsiderationTest is DSTestPlusPlus {
         emit log(">>>>");
 
         // simple
-        consider.fulfillBasicOrder{ value: _erc20Amount }(order);
+        consider.fulfillBasicOrder(order);
 
         emit log("Fulfilled Consideration basic order signed by AccountA");
     }
@@ -462,7 +462,7 @@ contract ConsiderationTest is DSTestPlusPlus {
         emit log(">>>>");
 
         // simple
-        consider.fulfillBasicOrder{ value: _erc20Amount }(order);
+        consider.fulfillBasicOrder(order);
 
         emit log("Fulfilled Consideration basic order signed by AccountA");
     }
