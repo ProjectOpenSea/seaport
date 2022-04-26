@@ -35,6 +35,7 @@ else
   echo "Waiting for localnet evm instance to wake up (pid=$pid)"
   wait-for -q -t 30 localhost:8545 2>&1 | sed '/nc: bad address/d'
 
+  echo "Deploying contracts to local ethprovider"
   hardhat --config ops/hardhat.config.ts --network localhost deploy --write true
 
   touch "$deployments_flag"

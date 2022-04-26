@@ -1,7 +1,7 @@
 const utils = require("./utils").module;
 
 const eth = utils.eth;
-const provider = utils.provider;
+const wallets = utils.wallets;
 
 const deployments = {
   TestERC20: require("../deployments/localhost/TestERC20.json"),
@@ -21,5 +21,9 @@ for (const key of Object.keys(utils || {})) {
 for (const key of Object.keys(deployments || {})) {
   console.log(`Loading deployed ${key} contract`);
   const deployment = deployments[key];
-  global[key] = new eth.Contract(deployment.address, deployment.abi, provider);
+  global[key] = new eth.Contract(
+    deployment.address,
+    deployment.abi,
+    wallets[0]
+  );
 }

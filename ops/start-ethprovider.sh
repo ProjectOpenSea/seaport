@@ -34,7 +34,8 @@ docker run \
   --tmpfs "/tmp" \
   "$image"
 
-docker container logs "$name" &
+docker container logs -f "$name" &
+pid=$!
 
 while !  curl -q -s -k -s -X POST \
   -H "Content-Type: application/json" \
@@ -55,5 +56,6 @@ do
   fi
 done
 
+kill "$pid"
 sleep 1
 echo "Good morning, ethprovider!"
