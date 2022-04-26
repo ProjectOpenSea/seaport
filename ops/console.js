@@ -36,25 +36,24 @@ global.validateOrder = (order, signerOverride) => {
   const signer = signerOverride || wallets[0];
   const parameters = order?.parameters || {};
   const offer = {
-    ...(parameters.offer?.[0] || {}),
     itemType: 2, // ERC271
     token: global.TestERC721.address,
     identifierOrCriteria: 0,
     startAmount: 1,
     endAmount: 1,
+    ...(parameters.offer?.[0] || {}),
   };
   const consideration = {
-    ...(parameters.consideration?.[0] || {}),
     itemType: 1, // ERC20
     token: global.TestERC20.address,
     identifierOrCriteria: 0,
     startAmount: eth.utils.parseEther("2"), // start the sale at 2 eth
     endAmount: eth.utils.parseEther("1"), // finish the sale at 1 eth
     recipient: signer.address,
+    ...(parameters.consideration?.[0] || {}),
   };
   const fullOrder = {
     parameters: {
-      ...order?.parameters,
       offerer: signer.address,
       zone: eth.constants.AddressZero,
       offer: [offer],
@@ -66,6 +65,7 @@ global.validateOrder = (order, signerOverride) => {
       salt: eth.constants.HashZero,
       conduit: eth.constants.AddressZero,
       totalOriginalConsiderationItems: 1,
+      ...parameters,
     },
     signature: order?.signature || eth.constants.HashZero,
   };
