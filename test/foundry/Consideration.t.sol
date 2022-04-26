@@ -72,6 +72,48 @@ contract ConsiderationTest is
         vm.label(accountA, "Account A");
     }
 
+    // Helpers
+    function signOrder(bytes32 _orderHash)
+        external
+        returns (
+            uint8,
+            bytes32,
+            bytes32
+        )
+    {
+        return
+            vm.sign(
+                1,
+                keccak256(
+                    abi.encodePacked(
+                        bytes2(0x1901),
+                        consider.DOMAIN_SEPARATOR(),
+                        _orderHash
+                    )
+                )
+            );
+    }
+
+    function genConsiderationItem(
+        ItemType _itemType,
+        address _token,
+        uint256 _identifierOrCriteria,
+        uint256 _startAmount,
+        uint256 _endAmount,
+        address payable _recipient
+    ) external pure returns (ConsiderationItem memory) {
+        ConsiderationItem memory consideration = ConsiderationItem(
+            _itemType,
+            _token,
+            _identifierOrCriteria,
+            _startAmount,
+            _endAmount,
+            _recipient
+        );
+
+        return consideration;
+    }
+
     //basic Order
 
 contract ConsiderationTest is BaseOrderTest {
