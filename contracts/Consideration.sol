@@ -120,14 +120,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         }
 
         // Declare more arguments that will be derived from route and calldata.
-        address additionalRecipientsToken;
         ItemType receivedItemType;
         ItemType offeredItemType;
         uint8 routeAsInt = uint8(route);
 
         // If route > 3 additionalRecipientsToken is offerToken
         // else considerationToken
-        additionalRecipientsToken = (routeAsInt > 3)
+        address additionalRecipientsToken = (routeAsInt > 3)
             ? parameters.offerToken
             : parameters.considerationToken;
 
@@ -166,7 +165,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         bytes32 conduitKey;
 
         // use offerer conduit for routes 0-3, fulfiller conduit otherwise.
-        conduit = (routeAsInt > 3)
+        address conduit = (routeAsInt > 3)
             ? parameters.fulfillerConduit
             : parameters.offererConduit;
 
