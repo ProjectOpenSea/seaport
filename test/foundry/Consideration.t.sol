@@ -11,8 +11,14 @@ import { DSTestPlusPlus } from "./utils/DSTestPlusPlus.sol";
 import { TestERC721 } from "contracts/test/TestERC721.sol";
 import { TestERC1155 } from "contracts/test/TestERC1155.sol";
 import { TestERC20 } from "contracts/test/TestERC20.sol";
+import { ERC721Recipient } from "./utils/ERC721Recipient.sol";
+import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
 
-contract ConsiderationTest is DSTestPlusPlus {
+contract ConsiderationTest is
+    DSTestPlusPlus,
+    ERC721Recipient,
+    ERC1155Recipient
+{
     Consideration consider;
     address considerAddress;
 
@@ -61,11 +67,14 @@ contract ConsiderationTest is DSTestPlusPlus {
 
         vm.prank(accountA);
         test1155.setApprovalForAll(considerAddress, true);
+        test1155.setApprovalForAll(considerAddress, true);
 
         vm.prank(accountA);
         test20.approve(considerAddress, 100);
 
         vm.label(accountA, "Account A");
+        vm.label(address(this), "My Test Contract");
+        vm.label(considerAddress, "Consideration");
 
         //consideration can spend this contract's tokens
         test20.mint(address(this), 100);
