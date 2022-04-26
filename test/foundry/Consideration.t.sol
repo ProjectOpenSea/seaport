@@ -66,6 +66,10 @@ contract ConsiderationTest is DSTestPlusPlus {
         test20.approve(considerAddress, 100);
 
         vm.label(accountA, "Account A");
+
+        //consideration can spend this contract's tokens
+        test20.mint(address(this), 2**256 - 1);
+        test20.approve(considerAddress, 2**256 - 1);
     }
 
     //basic Order
