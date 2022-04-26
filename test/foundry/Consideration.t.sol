@@ -68,8 +68,8 @@ contract ConsiderationTest is DSTestPlusPlus {
         vm.label(accountA, "Account A");
 
         //consideration can spend this contract's tokens
-        test20.mint(address(this), 2**256 - 1);
-        test20.approve(considerAddress, 2**256 - 1);
+        test20.mint(address(this), 100);
+        test20.approve(considerAddress, 100);
     }
 
     //basic Order
@@ -293,7 +293,7 @@ contract ConsiderationTest is DSTestPlusPlus {
         vm.deal(address(this), 2**256 - 1);
         emit log("Caller airdropped ETH.");
 
-        test20.mint(address(this), 2**256 - 1);
+        test20.mint(address(this), 100);
 
         emit log("Basic erc20 to 721 Order");
 
@@ -389,7 +389,7 @@ contract ConsiderationTest is DSTestPlusPlus {
         vm.deal(address(this), 2**256 - 1);
         emit log("Caller airdropped ETH.");
 
-        test20.mint(address(this), 2**256 - 1);
+        test20.mint(address(this), 100);
 
         emit log("Basic erc20 to 1155 Order");
 
