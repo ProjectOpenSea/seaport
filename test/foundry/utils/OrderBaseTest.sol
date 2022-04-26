@@ -55,14 +55,14 @@ contract BaseOrderTest is
      */
     function _deployTestTokenContracts() internal {
         token1 = new TestERC20();
-        // token2 = new TestERC20();
-        // token3 = new TestERC20();
+        token2 = new TestERC20();
+        token3 = new TestERC20();
         test721_1 = new TestERC721();
-        // test721_2 = new TestERC721();
-        // test721_3 = new TestERC721();
+        test721_2 = new TestERC721();
+        test721_3 = new TestERC721();
         test1155_1 = new TestERC1155();
-        // test1155_2 = new TestERC1155();
-        // test1155_3 = new TestERC1155();
+        test1155_2 = new TestERC1155();
+        test1155_3 = new TestERC1155();
     }
 
     /**
