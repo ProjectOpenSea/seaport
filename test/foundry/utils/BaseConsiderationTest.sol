@@ -52,7 +52,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     function _deployLegacyContracts() private {
         /// @dev deploy WyvernProxyRegistry from precompiled source
         bytes memory bytecode = vm.getCode(
-            "wyvern-0.4.13/WyvernProxyRegistry.sol/WyvernProxyRegistry.json"
+            "out/WyvernProxyRegistry.sol/WyvernProxyRegistry.json"
         );
         // TODO: temporary, get this working before dealing with storage .slots
         address registryCopy;
@@ -65,7 +65,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         bytes memory constructorArgs = abi.encode(registryCopy);
         bytecode = abi.encodePacked(
             vm.getCode(
-                "wyvern-0.4.13/WyvernTokenTransferProxy.sol/WyvernTokenTransferProxy.json"
+                "out/WyvernTokenTransferProxy.sol/WyvernTokenTransferProxy.json"
             ),
             constructorArgs
         );
