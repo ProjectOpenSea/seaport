@@ -1,7 +1,5 @@
 [default]
-# this gets dependencies with older versions of solc to play nice
-# TODO: investigate vm.getCode cheatcode for loading code compiled by different versions
-auto_detect_solc = true
+solc_version = "0.8.13"
 optimizer = true
 optimizer_runs = 200
 via_ir = true
