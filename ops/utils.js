@@ -1,3 +1,4 @@
+const fs = require("fs");
 const eth = require("ethers");
 
 const env = {
@@ -43,6 +44,16 @@ const traceStorage = (txHash) => {
   });
 };
 
+const traceTx = (txHash, filename) => {
+  provider.send("debug_traceTransaction", [txHash]).then((res) => {
+    if (filename) {
+      fs.writeFileSync(filename, JSON.stringify(res, null, 2));
+    } else {
+      log(res);
+    }
+  });
+};
+
 exports.module = {
   BN: eth.BigNumber.from,
   eth: eth,
@@ -50,4 +61,5 @@ exports.module = {
   provider: provider,
   wallets: wallets,
   traceStorage: traceStorage,
+  traceTx: traceTx,
 };
