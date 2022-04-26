@@ -470,9 +470,8 @@ contract ConsiderationTest is DSTestPlusPlus {
         uint256 _startAmount,
         uint256 _endAmount,
         address payable _recipient
-    ) external returns (memory ConsiderationItem[]) {
-        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
-        consideration[0] = ConsiderationItem(
+    ) external pure returns (ConsiderationItem memory) {
+        ConsiderationItem memory consideration = ConsiderationItem(
             _itemType,
             _token,
             _identifierOrCriteria,
@@ -481,19 +480,27 @@ contract ConsiderationTest is DSTestPlusPlus {
             _recipient
         );
 
-        return ConsiderationItem[];
+        return consideration;
     }
 
-    function signOrder(bytes32 _orderHash) external returns (uint8, bytes32, bytes32) {
-      return (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-          1,
-          keccak256(
-              abi.encodePacked(
-                  bytes2(0x1901),
-                  consider.DOMAIN_SEPARATOR(),
-                  _orderHash
-              )
-          )
-      );
+    function signOrder(bytes32 _orderHash)
+        external
+        returns (
+            uint8,
+            bytes32,
+            bytes32
+        )
+    {
+        return
+            vm.sign(
+                1,
+                keccak256(
+                    abi.encodePacked(
+                        bytes2(0x1901),
+                        consider.DOMAIN_SEPARATOR(),
+                        _orderHash
+                    )
+                )
+            );
     }
 }
