@@ -87,9 +87,9 @@ contract BaseOrderTest is
         uint256 max = 2**256 - 1;
 
         vm.startPrank(_owner);
-        token1.approve(_owner, max);
-        token2.approve(_owner, max);
-        token3.approve(_owner, max);
+        token1.approve(address(consideration), max);
+        token2.approve(address(consideration), max);
+        token3.approve(address(consideration), max);
         test721_1.setApprovalForAll(address(consideration), true);
         test721_2.setApprovalForAll(address(consideration), true);
         test721_3.setApprovalForAll(address(consideration), true);
