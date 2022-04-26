@@ -2,6 +2,8 @@
 pragma solidity 0.8.13;
 
 import "./Consideration.sol";
+import "./lib/ConsiderationStructs.sol";
+import "./lib/ConsiderationEnums.sol";
 import "./test/TestERC20.sol";
 import "./test/TestERC721.sol";
 import "./test/TestERC1155.sol";
@@ -44,7 +46,7 @@ interface ITokenTransferProxy {
 }
 
 interface FuzzyTests {
-    function test() external;
+    function testBasicOrder(bytes32) external;
 }
 
 contract Echidna is FuzzyTests {
@@ -74,9 +76,55 @@ contract Echidna is FuzzyTests {
         _erc1155 = new TestERC1155();
     }
 
-    function test() public view override {
-        uint nonce = _opensea.getNonce(address(0));
-        assert(nonce == 0);
+    function testBasicOrder(bytes32 seed) public override {
+        address payable seller = payable(address(this));
+        uint256 nftId = uint(seed) % 10**6;
+        _erc721.mint(address(this), nftId);
+        uint256 sellForMax = uint256(seed);
+        uint256 sellForMin = uint256(seed) / 2;
+
+        OfferItem[] memory offer;
+        offer[0] = OfferItem({
+            itemType: ItemType.ERC721,
+            token: address(_erc721),
+            identifierOrCriteria: nftId,
+            startAmount: uint256(1),
+            endAmount: uint256(1)
+        });
+
+        ConsiderationItem[] memory consideration;
+        consideration[0] = ConsiderationItem({
+            itemType: ItemType.ERC20,
+            token: address(_erc20),
+            identifierOrCriteria: uint256(0),
+            startAmount: sellForMax,
+            endAmount: sellForMin,
+            recipient: seller
+        });
+
+        OrderParameters memory orderParams =
+            OrderParameters({
+                offerer: seller,
+                zone: address(0),
+                offer: offer,
+                consideration: consideration,
+                orderType: OrderType.FULL_OPEN,
+                startTime: uint256(block.timestamp),
+                endTime: uint256(block.timestamp + (60 * 60)),
+                zoneHash: bytes32(0),
+                salt: uint256(seed),
+                conduit: address(0),
+                totalOriginalConsiderationItems: uint256(1) // ???
+            });
+
+        Order[] memory orders;
+        orders[0] = Order({
+            parameters: orderParams,
+            signature: abi.encodePacked(bytes32(0))
+        });
+
+        _opensea.validate(orders);
+        require(true, "Oh no"); // TODO: add real validation
     }
 
 }
