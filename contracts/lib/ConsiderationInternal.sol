@@ -1961,9 +1961,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
             // If the transfer failed or it returned nothing:
             // Group these because they should be uncommon.
-            if iszero(and(success, iszero(iszero(returndatasize())))) {
+            if or(iszero(success), iszero(returndatasize())) {
                 // If the token has no code or the transfer failed:
-                if iszero(and(iszero(iszero(extcodesize(token))), success)) {
+                if or(iszero(success), iszero(extcodesize(tokenAddress))) {
                     // If the transfer failed:
                     if iszero(success) {
                         // If it was due to a revert:
