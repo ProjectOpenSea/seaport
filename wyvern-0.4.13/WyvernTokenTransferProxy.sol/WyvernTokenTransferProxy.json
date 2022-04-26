@@ -1,0 +1,265 @@
+{
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "transferFrom",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "registry",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "name": "registryAddr",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    }
+  ],
+  "bytecode": {
+    "object": "0x608060405234801561001057600080fd5b506040516020806102bd833981016040525160008054600160a060020a03909216600160a060020a031990921691909117905561026b806100526000396000f30060806040526004361061002f5760003560e01c63ffffffff16806315dacbea146100345780637b10399914610085575b600080fd5b34801561004057600080fd5b5061007173ffffffffffffffffffffffffffffffffffffffff600435811690602435811690604435166064356100c3565b604080519115158252519081900360200190f35b34801561009157600080fd5b5061009a610223565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b60008054604080517f69dc9ff3000000000000000000000000000000000000000000000000000000008152336004820152905173ffffffffffffffffffffffffffffffffffffffff909216916369dc9ff39160248082019260209290919082900301818787803b15801561013657600080fd5b505af115801561014a573d6000803e3d6000fd5b505050506040513d602081101561016057600080fd5b5051151561016d57600080fd5b604080517f23b872dd00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff86811660048301528581166024830152604482018590529151918716916323b872dd916064808201926020929091908290030181600087803b1580156101ee57600080fd5b505af1158015610202573d6000803e3d6000fd5b505050506040513d602081101561021857600080fd5b505195945050505050565b60005473ffffffffffffffffffffffffffffffffffffffff16815600a165627a7a723058200a93afc8268d8984d5b39996c38da6372d818445b9ed84f2d57267aa82a5e0c10029",
+    "sourceMap": "92:151:12:-;;;154:87;8:9:-1;5:2;;;30:1;27;20:12;5:2;154:87:12;;;;;;;;;;;;;211:8;:23;;-1:-1:-1;;;;;211:23:12;;;-1:-1:-1;;;;;;211:23:12;;;;;;;;;92:151;;;;;;",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x60806040526004361061002f5760003560e01c63ffffffff16806315dacbea146100345780637b10399914610085575b600080fd5b34801561004057600080fd5b5061007173ffffffffffffffffffffffffffffffffffffffff600435811690602435811690604435166064356100c3565b604080519115158252519081900360200190f35b34801561009157600080fd5b5061009a610223565b6040805173ffffffffffffffffffffffffffffffffffffffff9092168252519081900360200190f35b60008054604080517f69dc9ff3000000000000000000000000000000000000000000000000000000008152336004820152905173ffffffffffffffffffffffffffffffffffffffff909216916369dc9ff39160248082019260209290919082900301818787803b15801561013657600080fd5b505af115801561014a573d6000803e3d6000fd5b505050506040513d602081101561016057600080fd5b5051151561016d57600080fd5b604080517f23b872dd00000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff86811660048301528581166024830152604482018590529151918716916323b872dd916064808201926020929091908290030181600087803b1580156101ee57600080fd5b505af1158015610202573d6000803e3d6000fd5b505050506040513d602081101561021857600080fd5b505195945050505050565b60005473ffffffffffffffffffffffffffffffffffffffff16815600a165627a7a723058200a93afc8268d8984d5b39996c38da6372d818445b9ed84f2d57267aa82a5e0c10029",
+    "sourceMap": "92:151:12:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;417:255:10;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;417:255:10;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;148:29;;8:9:-1;5:2;;;30:1;27;20:12;5:2;148:29:10;;;;;;;;;;;;;;;;;;;;;;;417:255;550:4;574:8;;:30;;;;;;593:10;574:30;;;;;;:8;;;;;:18;;:30;;;;;;;;;;;;;;;550:4;574:8;:30;;;5:2:-1;;;;30:1;27;20:12;5:2;574:30:10;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;574:30:10;;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;574:30:10;566:39;;;;;;;;622:43;;;;;;:25;:43;;;;;;;;;;;;;;;;;;;;;;:25;;;;;;:43;;;;;;;;;;;;;;;-1:-1:-1;622:25:10;:43;;;5:2:-1;;;;30:1;27;20:12;5:2;622:43:10;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;622:43:10;;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;622:43:10;;417:255;-1:-1:-1;;;;;417:255:10:o;148:29::-;;;;;;:::o",
+    "linkReferences": {}
+  },
+  "ast": {
+    "absolutePath": "/Users/jameswenzel/dev/wyvern-stuff/src/wyvern/WyvernTokenTransferProxy.sol",
+    "id": 840,
+    "exportedSymbols": {
+      "WyvernTokenTransferProxy": [
+        839
+      ]
+    },
+    "nodeType": "SourceUnit",
+    "src": "0:244:12",
+    "nodes": [
+      {
+        "id": 824,
+        "nodeType": "PragmaDirective",
+        "src": "0:24:12",
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".13"
+        ]
+      },
+      {
+        "id": 825,
+        "nodeType": "ImportDirective",
+        "src": "26:29:12",
+        "absolutePath": "/Users/jameswenzel/dev/wyvern-stuff/src/wyvern/ProxyRegistry.sol",
+        "file": "./ProxyRegistry.sol",
+        "scope": 840,
+        "sourceUnit": 674,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 826,
+        "nodeType": "ImportDirective",
+        "src": "56:34:12",
+        "absolutePath": "/Users/jameswenzel/dev/wyvern-stuff/src/wyvern/TokenTransferProxy.sol",
+        "file": "./TokenTransferProxy.sol",
+        "scope": 840,
+        "sourceUnit": 777,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 839,
+        "nodeType": "ContractDefinition",
+        "src": "92:151:12",
+        "nodes": [
+          {
+            "id": 838,
+            "nodeType": "FunctionDefinition",
+            "src": "154:87:12",
+            "body": {
+              "id": 837,
+              "nodeType": "Block",
+              "src": "201:40:12",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 835,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 833,
+                      "name": "registry",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 744,
+                      "src": "211:8:12",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_ProxyRegistry_$673",
+                        "typeString": "contract ProxyRegistry"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "id": 834,
+                      "name": "registryAddr",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 830,
+                      "src": "222:12:12",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_contract$_ProxyRegistry_$673",
+                        "typeString": "contract ProxyRegistry"
+                      }
+                    },
+                    "src": "211:23:12",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_ProxyRegistry_$673",
+                      "typeString": "contract ProxyRegistry"
+                    }
+                  },
+                  "id": 836,
+                  "nodeType": "ExpressionStatement",
+                  "src": "211:23:12"
+                }
+              ]
+            },
+            "documentation": null,
+            "implemented": true,
+            "isConstructor": true,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "",
+            "parameters": {
+              "id": 831,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 830,
+                  "name": "registryAddr",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 838,
+                  "src": "166:26:12",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_contract$_ProxyRegistry_$673",
+                    "typeString": "contract ProxyRegistry"
+                  },
+                  "typeName": {
+                    "contractScope": null,
+                    "id": 829,
+                    "name": "ProxyRegistry",
+                    "nodeType": "UserDefinedTypeName",
+                    "referencedDeclaration": 673,
+                    "src": "166:13:12",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_contract$_ProxyRegistry_$673",
+                      "typeString": "contract ProxyRegistry"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "165:28:12"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 832,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "201:0:12"
+            },
+            "scope": 839,
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 827,
+              "name": "TokenTransferProxy",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 776,
+              "src": "129:18:12",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_TokenTransferProxy_$776",
+                "typeString": "contract TokenTransferProxy"
+              }
+            },
+            "id": 828,
+            "nodeType": "InheritanceSpecifier",
+            "src": "129:18:12"
+          }
+        ],
+        "contractDependencies": [
+          776
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "linearizedBaseContracts": [
+          839,
+          776
+        ],
+        "name": "WyvernTokenTransferProxy",
+        "scope": 840
+      }
+    ]
+  }
+}

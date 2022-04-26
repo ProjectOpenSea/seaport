@@ -1,0 +1,56 @@
+{
+  "abi": [],
+  "bytecode": {
+    "object": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea2646970667358221220bb6926bf63f55e6f210ca64923fa5df9b3e4e3fdbfe691da228d4d40f369e0f464736f6c634300080d0033",
+    "sourceMap": "65:20:1:-:0;;;;;;;;;;;;;;;;;;;",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x6080604052600080fdfea2646970667358221220bb6926bf63f55e6f210ca64923fa5df9b3e4e3fdbfe691da228d4d40f369e0f464736f6c634300080d0033",
+    "sourceMap": "65:20:1:-:0;;;;;",
+    "linkReferences": {}
+  },
+  "ast": {
+    "absolutePath": "/Users/jameswenzel/dev/wyvern-stuff/src/Contract.sol",
+    "id": 1790,
+    "exportedSymbols": {
+      "Contract": [
+        1789
+      ]
+    },
+    "nodeType": "SourceUnit",
+    "src": "39:47:1",
+    "nodes": [
+      {
+        "id": 1788,
+        "nodeType": "PragmaDirective",
+        "src": "39:24:1",
+        "literals": [
+          "solidity",
+          "^",
+          "0.8",
+          ".13"
+        ]
+      },
+      {
+        "id": 1789,
+        "nodeType": "ContractDefinition",
+        "src": "65:20:1",
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "Contract",
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": true,
+        "linearizedBaseContracts": [
+          1789
+        ],
+        "name": "Contract",
+        "nameLocation": "74:8:1",
+        "scope": 1790,
+        "usedErrors": []
+      }
+    ],
+    "license": "UNLICENSED"
+  }
+}
