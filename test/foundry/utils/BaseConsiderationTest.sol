@@ -1,28 +1,26 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity 0.8.13;
 
+import { Consideration, ItemType, ConsiderationItem } from "../../../contracts/Consideration.sol";
 import { DSTestPlusPlus } from "./DSTestPlusPlus.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-
-import { Consideration, ItemType, ConsiderationItem } from "../../../contracts/Consideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DSTestPlusPlus {
     using stdStorage for StdStorage;
 
     Consideration consideration;
-    address registry;
-    address proxy;
-    address delegateProxyImplementation;
+    address internal _wyvernProxyRegistry;
+    address internal _wyvernTokenTransferProxy;
+    address internal _wyvernDelegateProxyImplementation;
 
     function setUp() public virtual {
         _deployLegacyContracts();
 
         consideration = new Consideration(
-            proxy,
-            delegateProxyImplementation,
-            registry
+            _wyvernProxyRegistry,
+            _wyvernTokenTransferProxy,
+            _wyvernDelegateProxyImplementation
         );
     }
 
@@ -61,7 +59,8 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         assembly {
             registryCopy := create(0, add(bytecode, 0x20), mload(bytecode))
         }
-        registry = registryCopy;
+        _wyvernProxyRegistry = registryCopy;
+
         /// @dev deploy WyvernTokenTransferProxy from precompiled source
         bytes memory constructorArgs = abi.encode(registryCopy);
         bytecode = abi.encodePacked(
@@ -70,16 +69,18 @@ contract BaseConsiderationTest is DSTestPlusPlus {
             ),
             constructorArgs
         );
+        /// @dev deploy WyvernTokenTransferProxy from precompiled source
         address proxyCopy;
         assembly {
             proxyCopy := create(0, add(bytecode, 0x20), mload(bytecode))
         }
-        proxy = proxyCopy;
+        _wyvernTokenTransferProxy = proxyCopy;
+
         /// @dev use stdstore to read delegateProxyImplementation from deployed registry
-        delegateProxyImplementation = address(
+        _wyvernDelegateProxyImplementation = address(
             uint160(
                 stdstore
-                    .target(registry)
+                    .target(_wyvernProxyRegistry)
                     .sig("delegateProxyImplementation()")
                     .find()
             )
