@@ -26,9 +26,7 @@ contract ConsiderationTest is DSTestPlusPlus {
     TestERC721 test721;
 
     function setUp() public {
-        conduitControllerAddress = address(
-            new ConduitController()
-        );
+        conduitControllerAddress = address(new ConduitController());
         conduitController = ConduitController(conduitControllerAddress);
 
         considerAddress = address(
