@@ -6,6 +6,7 @@ pragma solidity 0.8.13;
 import { OrderType, BasicOrderType, ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient } from "contracts/lib/ConsiderationStructs.sol";
 import "contracts/Consideration.sol";
+import "contracts/conduit/ConduitController.sol";
 
 import { DSTestPlusPlus } from "./utils/DSTestPlusPlus.sol";
 import { TestERC721 } from "contracts/test/TestERC721.sol";
@@ -13,6 +14,9 @@ import { TestERC721 } from "contracts/test/TestERC721.sol";
 contract ConsiderationTest is DSTestPlusPlus {
     Consideration consider;
     address considerAddress;
+
+    ConduitController conduitController;
+    address conduitControllerAddress;
 
     address accountA;
     address accountB;
@@ -22,8 +26,18 @@ contract ConsiderationTest is DSTestPlusPlus {
     TestERC721 test721;
 
     function setUp() public {
+        conduitControllerAddress = address(
+            ConduitController()
+        );
+        conduitController = ConduitController(conduitControllerAddress);
+
         considerAddress = address(
-            new Consideration(address(0), address(0), address(0))
+            new Consideration(
+                conduitControllerAddress,
+                address(0),
+                address(0),
+                address(0)
+            )
         );
         consider = Consideration(considerAddress);
 
