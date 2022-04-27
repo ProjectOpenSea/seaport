@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { Side } from "./ConsiderationEnums.sol";
-
 // prettier-ignore
 import {
     ERC20Interface,
@@ -10,9 +8,17 @@ import {
     ERC1155Interface
 } from "../interfaces/AbridgedTokenInterfaces.sol";
 
+import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+
 import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
 
-import { OrderType, ItemType } from "./ConsiderationEnums.sol";
+import { Side, OrderType, ItemType } from "./ConsiderationEnums.sol";
+
+// prettier-ignore
+import {
+    ConduitTransfer,
+    ConduitBatch1155Transfer
+} from "../conduit/lib/ConduitStructs.sol";
 
 // prettier-ignore
 import {
@@ -1926,7 +1932,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 );
             }
         } else {
-            revert("Not yet implemented");
+            // Perform the call to the conduit.
+            _callConduit(
+                conduitKey,
+                abi.encodeWithSelector(
+                    ConduitInterface.execute.selector,
+                    uint256(0x20), // array offset
+                    uint256(1), // number
+                    uint256(1), // ConduitItemType.ERC20
+                    token,
+                    from,
+                    to,
+                    uint256(0), // no identifier
+                    amount
+                )
+            );
         }
     }
 
@@ -2188,7 +2208,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 amount
             );
         } else {
-            revert("Not yet implemented");
+            // Perform the call to the conduit.
+            _callConduit(
+                conduitKey,
+                abi.encodeWithSelector(
+                    ConduitInterface.execute.selector,
+                    uint256(0x20), // array offset
+                    uint256(1), // number
+                    uint256(2), // ConduitItemType.ERC721
+                    token,
+                    from,
+                    to,
+                    identifier,
+                    amount
+                )
+            );
         }
     }
 
@@ -2322,7 +2356,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 amount
             );
         } else {
-            revert("Not yet implemented");
+            // Perform the call to the conduit.
+            _callConduit(
+                conduitKey,
+                abi.encodeWithSelector(
+                    ConduitInterface.execute.selector,
+                    uint256(0x20), // array offset
+                    uint256(1), // number
+                    uint256(3), // ConduitItemType.ERC1155
+                    token,
+                    from,
+                    to,
+                    identifier,
+                    amount
+                )
+            );
         }
     }
 
@@ -2346,56 +2394,65 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        bool success;
+        // If no conduit or a legacy conduit has been specified...
+        if (uint256(conduitKey) < 2) {
+            // Declare a boolean representing call status.
+            bool success;
 
-        // If no conduit has been specified...
-        if (conduitKey == bytes32(0)) {
-            // Perform transfer via the token contract directly.
-            (success, ) = token.call(
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeBatchTransferFrom.selector,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts,
-                    ""
-                )
-            );
-        } else if (conduitKey == bytes32(uint256(1))) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                from,
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeBatchTransferFrom.selector,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts,
-                    ""
-                )
-            );
-        } else {
-            revert("Not yet implemented");
-        }
-
-        // If the call fails...
-        if (!success) {
-            // Revert and pass the revert reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic 1155 batch transfer error.
-            revert ERC1155BatchTransferGenericFailure(
-                token,
+            // Derive calldata for the call to perform the batch 1155 transfer.
+            bytes memory callData = abi.encodeWithSelector(
+                ERC1155Interface.safeBatchTransferFrom.selector,
                 from,
                 to,
                 tokenIds,
-                amounts
+                amounts,
+                ""
+            );
+
+            // Perform call either directly or via proxy based on conduit key.
+            if (conduitKey == bytes32(0)) {
+                // Perform transfer via the token contract directly.
+                (success, ) = token.call(callData);
+            } else {
+                // Perform transfer via call to proxy for the supplied owner.
+                success = _callProxy(from, token, callData);
+            }
+
+            // If the call fails...
+            if (!success) {
+                // Revert and pass the revert reason along if one was returned.
+                _revertWithReasonIfOneIsReturned();
+
+                // Otherwise, revert with a generic 1155 batch transfer error.
+                revert ERC1155BatchTransferGenericFailure(
+                    token,
+                    from,
+                    to,
+                    tokenIds,
+                    amounts
+                );
+            }
+
+            // Ensure that a contract is deployed to the token address.
+            _assertContractIsDeployed(token);
+        } else {
+            // Perform the call to the conduit.
+            _callConduit(
+                conduitKey,
+                abi.encodeWithSelector(
+                    ConduitInterface.executeWithBatch1155.selector,
+                    uint256(0x40), // array offset one
+                    uint256(0x60), // array offset two
+                    uint256(0), // no standard transfers
+                    uint256(1), // one batch transfer
+                    token,
+                    from,
+                    to,
+                    tokenIds,
+                    amounts
+                )
             );
         }
-
-        // Ensure that a contract is deployed to the token address.
-        _assertContractIsDeployed(token);
     }
 
     /**
@@ -2438,6 +2495,57 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 callData
             )
         );
+    }
+
+    /**
+     * @dev Internal function to trigger a call to a conduit contract. This call
+     *      will transfer a single ERC20, ERC721, or ERC1155 item.
+     *
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from.
+     * @param callData   The calldata to supply when calling the conduit.
+     *
+     * @return success The status of the call to the proxy.
+     */
+    function _callConduit(bytes32 conduitKey, bytes memory callData)
+        internal
+        returns (bool success)
+    {
+        // Derive the address of the conduit using the conduit key.
+        address conduit = _deriveConduit(conduitKey);
+
+        // Perform the call to the conduit.
+        (success, ) = conduit.call(callData);
+
+        // If the call failed...
+        if (!success) {
+            // Pass along whatever revert reason was given by the conduit.
+            assembly {
+                // Copy returndata to memory, overwriting existing memory.
+                returndatacopy(0, 0, returndatasize())
+
+                // Revert, specifying memory region with copied returndata.
+                revert(0, returndatasize())
+            }
+        }
+
+        // Ensure that the conduit returned the correct magic value.
+        bytes4 result;
+        assembly {
+            // Only put result on stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) {
+                // Copy directly from return data into scratch space.
+                returndatacopy(0, 0, 0x20)
+
+                // Take value from scratch space and place it on the stack.
+                result := mload(0)
+            }
+        }
+
+        // Ensure result was extracted and matches EIP-1271 magic value.
+        if (result != ConduitInterface.execute.selector) {
+            revert InvalidConduit(conduitKey, conduit);
+        }
     }
 
     /**

@@ -9848,7 +9848,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         )
       );
     });
-    it("Reverts on ERC20 as it hasn't been implemeted yet", async () => {
+    it.skip("Reverts on ERC20 as it hasn't been implemeted yet", async () => {
       // Buyer mints nft
       const nftId = ethers.BigNumber.from(randomHex());
       await testERC721.mint(buyer.address, nftId);
@@ -9899,7 +9899,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ).to.be.revertedWith("Not yet implemented");
       });
     });
-    it("Reverts on ERC721 as it hasn't been implemeted yet", async () => {
+    it.skip("Reverts on ERC721 as it hasn't been implemeted yet", async () => {
       // Seller mints nft
       const nftId = ethers.BigNumber.from(randomHex());
       await testERC721.mint(seller.address, nftId);
@@ -9963,7 +9963,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ).to.be.revertedWith("Not yet implemented");
       });
     });
-    it("Reverts on ERC1155 as it hasn't been implemeted yet", async () => {
+    it.skip("Reverts on ERC1155 as it hasn't been implemeted yet", async () => {
       // Seller mints nft
       const nftId = ethers.BigNumber.from(randomHex());
       const amount = ethers.BigNumber.from(randomHex());
@@ -10028,7 +10028,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ).to.be.revertedWith("Not yet implemented");
       });
     });
-    it("Reverts on ERC1155 batch as it hasn't been implemeted yet", async () => {
+    it.skip("Reverts on ERC1155 batch as it hasn't been implemeted yet", async () => {
       // Seller mints first nft
       const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
       const amount = ethers.BigNumber.from(randomHex().slice(0, 10));

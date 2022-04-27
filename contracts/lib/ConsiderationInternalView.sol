@@ -1148,4 +1148,38 @@ contract ConsiderationInternalView is ConsiderationPure {
             fulfillerConduitKey
         );
     }
+
+    /**
+     * @dev Internal view function to derive the address of a given conduit
+     *      using a corresponding conduit key.
+     *
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. This value is
+     *                   the "salt" parameter supplied by the deployer (i.e. the
+     *                   conduit controller) when deploying the given conduit.
+     *
+     * @return conduit The address of the conduit associated with the given
+     *                 conduit key.
+     */
+    function _deriveConduit(bytes32 conduitKey)
+        internal
+        view
+        returns (address conduit)
+    {
+        // Derive conduit address using deployer, key, and creation code hash.
+        conduit = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff),
+                            address(_CONDUIT_CONTROLLER),
+                            conduitKey,
+                            _CONDUIT_CREATION_CODE_HASH
+                        )
+                    )
+                )
+            )
+        );
+    }
 }
