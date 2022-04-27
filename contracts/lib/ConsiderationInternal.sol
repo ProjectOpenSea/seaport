@@ -16,12 +16,6 @@ import { Side, OrderType, ItemType } from "./ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
-    ConduitTransfer,
-    ConduitBatch1155Transfer
-} from "../conduit/lib/ConduitStructs.sol";
-
-// prettier-ignore
-import {
     AdditionalRecipient,
     BasicOrderParameters,
     OfferItem,
