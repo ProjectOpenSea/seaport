@@ -11,32 +11,16 @@ import {
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 contract ConduitController is ConduitControllerInterface {
-    mapping(address => mapping(bytes32 => uint256)) internal _commitments;
-
     mapping(address => bytes32) internal _conduitKeys;
 
     mapping(address => address) internal _conduitOwners;
 
     mapping(address => address) internal _conduitPotentialOwners;
 
-    uint256 internal immutable _DELAY_PERIOD;
-    uint256 internal immutable _VALIDITY_WINDOW;
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
     bytes32 internal immutable _CONDUIT_RUNTIME_CODE_HASH;
 
-    constructor(uint256 delayPeriod, uint256 validityWindow) {
-        if (delayPeriod == 0) {
-            revert InvalidConfigurationParameter();
-        }
-
-        _DELAY_PERIOD = delayPeriod;
-
-        if (validityWindow == 0) {
-            revert InvalidConfigurationParameter();
-        }
-
-        _VALIDITY_WINDOW = validityWindow;
-
+    constructor() {
         _CONDUIT_CREATION_CODE_HASH = keccak256(type(Conduit).creationCode);
 
         Conduit zeroConduit = new Conduit{ salt: bytes32(0) }();
@@ -44,28 +28,13 @@ contract ConduitController is ConduitControllerInterface {
         _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
     }
 
-    function registerKey(bytes32 commitment) external override {
-        _commitments[msg.sender][commitment] = block.timestamp;
-    }
-
-    function createConduit(
-        bytes32 conduitKey,
-        bytes32 commitmentSalt,
-        address initialOwner
-    ) external override returns (address conduit) {
-        bytes32 commitment = keccak256(
-            abi.encodePacked(conduitKey, commitmentSalt, initialOwner)
-        );
-        uint256 committedAt = _commitments[msg.sender][commitment];
-
-        if (committedAt == 0) {
-            revert MissingCommitment(msg.sender, conduitKey);
-        }
-
-        uint256 validAt = committedAt + _DELAY_PERIOD;
-        uint256 validUntil = validAt + _VALIDITY_WINDOW;
-        if (block.timestamp < validAt || block.timestamp >= validUntil) {
-            revert InvalidCommitmentTime(msg.sender, conduitKey);
+    function createConduit(bytes32 conduitKey, address initialOwner)
+        external
+        override
+        returns (address conduit)
+    {
+        if (address(uint160(uint256(conduitKey))) != msg.sender) {
+            revert InvalidCreator();
         }
 
         conduit = address(
@@ -91,6 +60,9 @@ contract ConduitController is ConduitControllerInterface {
 
         _conduitOwners[conduit] = initialOwner;
         _conduitKeys[conduit] = conduitKey;
+
+        emit NewConduit(conduit, conduitKey);
+        emit OwnershipTransferred(conduit, address(0), initialOwner);
     }
 
     function updateChannel(
@@ -121,6 +93,12 @@ contract ConduitController is ConduitControllerInterface {
             revert CallerIsNotOwner(conduit);
         }
 
+        emit PotentialOwnerUpdated(
+            conduit,
+            _conduitPotentialOwners[conduit],
+            newPotentialOwner
+        );
+
         _conduitPotentialOwners[conduit] = newPotentialOwner;
     }
 
@@ -131,6 +109,12 @@ contract ConduitController is ConduitControllerInterface {
             revert CallerIsNotOwner(conduit);
         }
 
+        emit PotentialOwnerUpdated(
+            conduit,
+            _conduitPotentialOwners[conduit],
+            address(0)
+        );
+
         delete _conduitPotentialOwners[conduit];
     }
 
@@ -138,6 +122,12 @@ contract ConduitController is ConduitControllerInterface {
         if (msg.sender != _conduitPotentialOwners[conduit]) {
             revert CallerIsNotNewPotentialOwner(conduit);
         }
+
+        emit PotentialOwnerUpdated(
+            conduit,
+            _conduitPotentialOwners[conduit],
+            address(0)
+        );
 
         delete _conduitPotentialOwners[conduit];
 
@@ -211,42 +201,6 @@ contract ConduitController is ConduitControllerInterface {
         potentialOwner = _conduitPotentialOwners[conduit];
     }
 
-    function getCommitment(address committer, bytes32 commitment)
-        external
-        view
-        override
-        returns (
-            bool committed,
-            bool valid,
-            uint256 validAt,
-            uint256 validUntil
-        )
-    {
-        uint256 committedAt = _commitments[committer][commitment];
-
-        committed = (committedAt == 0);
-
-        if (committed) {
-            validAt = committedAt + _DELAY_PERIOD;
-            validUntil = validAt + _VALIDITY_WINDOW;
-            valid = block.timestamp >= validAt && block.timestamp < validUntil;
-        } else {
-            validAt = 0;
-            validUntil = 0;
-            valid = false;
-        }
-    }
-
-    function getCommitmentParameters()
-        external
-        view
-        override
-        returns (uint256 delayPeriod, uint256 validityWindow)
-    {
-        delayPeriod = _DELAY_PERIOD;
-        validityWindow = _VALIDITY_WINDOW;
-    }
-
     function getConduitCodeHashes()
         external
         view
@@ -255,15 +209,5 @@ contract ConduitController is ConduitControllerInterface {
     {
         creationCodeHash = _CONDUIT_CREATION_CODE_HASH;
         runtimeCodeHash = _CONDUIT_RUNTIME_CODE_HASH;
-    }
-
-    function deriveCommitment(
-        bytes32 conduitKey,
-        bytes32 commitmentSalt,
-        address initialOwner
-    ) external pure override returns (bytes32 commitment) {
-        commitment = keccak256(
-            abi.encodePacked(conduitKey, commitmentSalt, initialOwner)
-        );
     }
 }
