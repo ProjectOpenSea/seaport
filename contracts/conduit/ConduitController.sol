@@ -253,13 +253,11 @@ contract ConduitController is ConduitControllerInterface {
     {
         _assertConduitExists(conduit);
 
-        address[] memory channels = _conduits[conduit].channels;
-
-        if (channels.length >= channelIndex) {
+        if (_conduits[conduit].channels.length >= channelIndex) {
             revert ChannelOutOfRange(conduit);
         }
 
-        channel = channels[channelIndex];
+        channel = _conduits[conduit].channels[channelIndex];
     }
 
     function getChannels(address conduit)
