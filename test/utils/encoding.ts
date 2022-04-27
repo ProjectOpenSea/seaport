@@ -29,6 +29,8 @@ export const toBN = (n: BigNumberish) => BigNumber.from(toHex(n));
 
 export const toAddress = (n: BigNumberish) => getAddress(toHex(n, 20));
 
+export const toKey = (n: BigNumberish) => toHex(n, 32);
+
 export const convertSignatureToEIP2098 = (signature: string) => {
   if (signature.length === 130) {
     return signature;
@@ -74,7 +76,7 @@ export const convertSignatureToEIP2098 = (signature: string) => {
 export const getBasicOrderParameters = (
   basicOrderRouteType: number,
   order: Order,
-  fulfillerConduit = false,
+  fulfillerConduitKey = false,
   tips = [],
 ): BasicOrderParameters => ({
   offerer: order.parameters.offerer,
@@ -95,8 +97,8 @@ export const getBasicOrderParameters = (
     order.parameters.consideration.length - 1
   ),
   signature: order.signature,
-  offererConduit: order.parameters.conduit,
-  fulfillerConduit: toAddress(fulfillerConduit),
+  offererConduitKey: order.parameters.conduitKey,
+  fulfillerConduitKey: toKey(fulfillerConduitKey),
   additionalRecipients: [
     ...order.parameters.consideration
       .slice(1)

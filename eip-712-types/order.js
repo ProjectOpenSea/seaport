@@ -9,7 +9,7 @@ const orderType = {
     { name: "endTime", type: "uint256" },
     { name: "zoneHash", type: "bytes32" },
     { name: "salt", type: "uint256" },
-    { name: "conduit", type: "address" },
+    { name: "conduitKey", type: "bytes32" },
     { name: "nonce", type: "uint256" },
   ],
   OfferItem: [

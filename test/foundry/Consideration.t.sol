@@ -96,7 +96,7 @@ contract ConsiderationTest is DSTestPlusPlus {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
+            bytes32(0), // no conduit
             nonce
         );
         bytes32 orderHash = consider.getOrderHash(orderComponents);
@@ -128,8 +128,8 @@ contract ConsiderationTest is DSTestPlusPlus {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
-            address(0), // no conduit
+            bytes32(0), // no conduit
+            bytes32(0), // no conduit
             0,
             new AdditionalRecipient[](0),
             abi.encodePacked(r, s, v)

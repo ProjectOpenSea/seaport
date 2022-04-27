@@ -13,6 +13,7 @@ const {
   randomHex,
   randomLarge,
   toAddress,
+  toKey,
   convertSignatureToEIP2098,
   getBasicOrderParameters,
   getItem721,
@@ -24,7 +25,7 @@ const { orderType } = require("../eip-712-types/order");
 
 const VERSION = "rc.1";
 
-const LEGACY_PROXY_CONDUIT = constants.AddressZero.slice(0, -1) + "1";
+const LEGACY_PROXY_CONDUIT = constants.HashZero.slice(0, -1) + "1";
 
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
@@ -46,6 +47,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   let EIP1271WalletFactory;
   let reenterer;
   let stubZone;
+  let conduitController;
+  let conduitOne;
 
   const getTestItem721 = (
     identifierOrCriteria,
@@ -96,7 +99,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     const considerationItemTypeString =
       "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)";
     const orderComponentsPartialTypeString =
-      "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,address conduit,uint256 nonce)";
+      "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,bytes32 conduitKey,uint256 nonce)";
     const orderTypeString = `${orderComponentsPartialTypeString}${considerationItemTypeString}${offerItemTypeString}`;
 
     const offerItemTypeHash = ethers.utils.keccak256(
@@ -191,7 +194,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .padStart(64, "0"),
           orderComponents.zoneHash.slice(2),
           orderComponents.salt.slice(2).padStart(64, "0"),
-          orderComponents.conduit.slice(2).padStart(64, "0"),
+          orderComponents.conduitKey.slice(2).padStart(64, "0"),
           ethers.BigNumber.from(orderComponents.nonce)
             .toHexString()
             .slice(2)
@@ -234,7 +237,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     timeFlag,
     signer,
     zoneHash = constants.HashZero,
-    conduit = constants.AddressZero,
+    conduitKey = constants.HashZero,
     extraCheap = false
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
@@ -258,7 +261,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType,
       zoneHash,
       salt,
-      conduit,
+      conduitKey,
       startTime,
       endTime,
     };
@@ -321,7 +324,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     offerer,
     zone,
     order,
-    conduit = constants.AddressZero
+    conduitKey = constants.HashZero
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
@@ -414,7 +417,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType: 0, // FULL_OPEN
       zoneHash: "0x".padEnd(66, "0"),
       salt,
-      conduit,
+      conduitKey,
       startTime,
       endTime,
     };
@@ -455,7 +458,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     zone,
     order,
     criteriaResolvers,
-    conduit = constants.AddressZero
+    conduitKey = constants.HashZero
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
@@ -516,7 +519,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType: 0, // FULL_OPEN
       zoneHash: constants.HashZero,
       salt,
-      conduit,
+      conduitKey,
       startTime,
       endTime,
     };
@@ -563,7 +566,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   ) => {
     if (standardExecutions && standardExecutions.length > 0) {
       for (standardExecution of standardExecutions) {
-        const { item, offerer, conduit } = standardExecution;
+        const { item, offerer, conduitKey } = standardExecution;
 
         const { itemType, token, identifier, amount, recipient } = item;
 
@@ -1129,9 +1132,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     legacyProxyImplementation =
       await legacyProxyRegistry.delegateProxyImplementation();
 
+    conduitController = await deployContract("ConduitController", owner);
+
     marketplaceContract = await deployContract(
       "Consideration",
       owner,
+      conduitController.address,
       legacyProxyRegistry.address,
       legacyTokenTransferProxy.address,
       legacyProxyImplementation
@@ -1660,7 +1666,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -1729,7 +1735,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -1797,7 +1803,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), {
+                .fulfillOrder(order, toKey(false), {
                   value: value.add(ethers.utils.parseEther("1")),
                 });
               const receipt = await tx.wait();
@@ -1865,7 +1871,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -1933,7 +1939,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+                .fulfillAdvancedOrder(order, [], toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2052,7 +2058,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2113,7 +2119,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2181,7 +2187,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2189,7 +2195,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2237,7 +2243,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2252,7 +2258,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2300,7 +2306,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2308,7 +2314,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+                .fulfillAdvancedOrder(order, [], toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2356,7 +2362,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2371,7 +2377,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+                .fulfillAdvancedOrder(order, [], toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -3201,7 +3207,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -3283,7 +3289,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -3954,7 +3960,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4056,7 +4062,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4141,7 +4147,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(true));
+                .fulfillOrder(order, toKey(true));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4590,7 +4596,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4660,7 +4666,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5071,7 +5077,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5143,7 +5149,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5591,7 +5597,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5684,7 +5690,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(true));
+                .fulfillOrder(order, toKey(true));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -6167,7 +6173,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6198,7 +6204,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6258,7 +6264,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6288,7 +6294,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6338,7 +6344,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6443,7 +6449,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
@@ -6527,7 +6533,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
@@ -6598,7 +6604,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
@@ -6682,7 +6688,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
@@ -6747,7 +6753,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6771,7 +6777,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6837,7 +6843,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6861,7 +6867,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6927,7 +6933,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6951,7 +6957,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -7055,7 +7061,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7082,7 +7088,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7135,7 +7141,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks(ordersClone, 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7231,7 +7237,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7258,7 +7264,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7311,7 +7317,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks(ordersClone, 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7399,12 +7405,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, criteriaResolvers, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(
-                order,
-                criteriaResolvers,
-                toAddress(false),
-                { value }
-              );
+              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
+                value,
+              });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7661,14 +7664,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(
-                  order,
-                  criteriaResolvers,
-                  toAddress(false),
-                  {
-                    value,
-                  }
-                );
+                .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
+                  value,
+                });
               const receipt = await tx.wait();
               await checkExpectedEvents(
                 receipt,
@@ -7739,7 +7737,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7859,7 +7857,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -9312,7 +9310,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               );
             const receipt = await tx.wait();
@@ -9435,7 +9433,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   [],
                   offerComponents,
                   considerationComponents,
-                  toAddress(false),
+                  toKey(false),
                   { value: value.mul(2) }
                 );
               const receipt = await tx.wait();
@@ -9568,7 +9566,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([orderFour], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(orderFour, toAddress(false), { value });
+              .fulfillOrder(orderFour, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               {
@@ -9668,7 +9666,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value: value.mul(4) }
               );
             const receipt = await tx.wait();
@@ -9811,7 +9809,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value: value.mul(2) }
               );
             const receipt = await tx.wait();
@@ -9885,7 +9883,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         null,
         seller,
         constants.HashZero,
-        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
+        constants.HashZero.slice(0, -1) + "2" // not address(0) / address(1)
       );
 
       await whileImpersonating(buyer.address, provider, async () => {
@@ -9895,7 +9893,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .fulfillAdvancedOrder(
               order,
               [],
-              constants.AddressZero.slice(0, -1) + "2",
+              constants.HashZero.slice(0, -1) + "2",
               { value }
             )
         ).to.be.revertedWith("Not yet implemented");
@@ -9954,14 +9952,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         null,
         seller,
         constants.HashZero,
-        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
+        constants.HashZero.slice(0, -1) + "2" // not address(0) / address(1)
       );
 
       await whileImpersonating(buyer.address, provider, async () => {
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+            .fulfillAdvancedOrder(order, [], toKey(false), { value })
         ).to.be.revertedWith("Not yet implemented");
       });
     });
@@ -10019,14 +10017,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         null,
         seller,
         constants.HashZero,
-        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
+        constants.HashZero.slice(0, -1) + "2" // not address(0) / address(1)
       );
 
       await whileImpersonating(buyer.address, provider, async () => {
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+            .fulfillAdvancedOrder(order, [], toKey(false), { value })
         ).to.be.revertedWith("Not yet implemented");
       });
     });
@@ -10074,7 +10072,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         null,
         seller,
         constants.HashZero,
-        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
+        constants.HashZero.slice(0, -1) + "2" // not address(0) / address(1)
       );
 
       const { mirrorOrder, mirrorOrderHash, mirrorValue } =
@@ -10310,7 +10308,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("BadFraction");
         });
 
@@ -10328,7 +10326,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("BadFraction");
         });
 
@@ -10346,7 +10344,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("BadFraction");
         });
 
@@ -10364,7 +10362,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10460,7 +10458,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("InexactFraction");
         });
 
@@ -10478,7 +10476,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10574,7 +10572,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("PartialFillsNotEnabledForOrder");
         });
 
@@ -10592,7 +10590,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10688,7 +10686,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10797,7 +10795,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10821,7 +10819,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(`OrderAlreadyFilled("${orderHash}")`);
         });
       });
@@ -10903,7 +10901,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("MissingOriginalConsiderationItems");
         });
       });
@@ -11290,7 +11288,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
         });
       });
@@ -12153,7 +12151,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("MissingFulfillmentComponentOnAggregation(0)");
@@ -12250,7 +12248,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -12346,7 +12344,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -12421,7 +12419,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -12496,7 +12494,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -12587,7 +12585,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([orderThree], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(orderThree, toAddress(false), { value });
+              .fulfillOrder(orderThree, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               {
@@ -12671,7 +12669,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value: value.mul(3) }
               )
           ).to.be.revertedWith("NoSpecifiedOrdersAvailable");
@@ -12744,12 +12742,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(
-                order,
-                criteriaResolvers,
-                toAddress(false),
-                { value }
-              )
+              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
+                value,
+              })
           ).to.be.revertedWith("InvalidProof");
         });
 
@@ -12760,12 +12755,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, criteriaResolvers, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(
-                order,
-                criteriaResolvers,
-                toAddress(false),
-                { value }
-              );
+              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
+                value,
+              });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -12945,7 +12937,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidERC721TransferAmount");
         });
       });
@@ -12990,7 +12982,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidTime");
         });
       });
@@ -13032,7 +13024,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidTime");
         });
       });
@@ -13408,7 +13400,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), {
+              .fulfillOrder(order, toKey(false), {
                 value: ethers.BigNumber.from(1),
               })
           ).to.be.revertedWith("InsufficientEtherSupplied");
@@ -13418,7 +13410,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), {
+              .fulfillOrder(order, toKey(false), {
                 value: ethers.utils.parseEther("9.999999"),
               })
           ).to.be.revertedWith("InsufficientEtherSupplied");
@@ -13432,7 +13424,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), {
+                .fulfillOrder(order, toKey(false), {
                   value: ethers.utils.parseEther("12"),
                 });
               const receipt = await tx.wait();
@@ -13517,7 +13509,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), {
+              .fulfillAdvancedOrder(order, [], toKey(false), {
                 value: ethers.BigNumber.from(1),
               })
           ).to.be.revertedWith("InsufficientEtherSupplied");
@@ -13534,7 +13526,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), {
+              .fulfillAdvancedOrder(order, [], toKey(false), {
                 value: value.sub(1),
               })
           ).to.be.revertedWith("InsufficientEtherSupplied");
@@ -13552,7 +13544,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), {
+              .fulfillAdvancedOrder(order, [], toKey(false), {
                 value: value.add(1),
               });
             const receipt = await tx.wait();
@@ -13849,7 +13841,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.reverted; // panic code thrown by underlying 721
         });
 
@@ -13875,7 +13867,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -13925,7 +13917,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("NOT_AUTHORIZED");
         });
       });
@@ -13964,7 +13956,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(
             `TokenTransferGenericFailure("${testERC1155.address}", "${
               seller.address
@@ -14055,7 +14047,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("MissingItemAmount");
         });
       });
@@ -14143,7 +14135,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(
             `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
               buyer.address
@@ -14164,7 +14156,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -14290,7 +14282,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(true), { value })
+              .fulfillAdvancedOrder(order, [], toKey(true), { value })
           ).to.be.revertedWith(
             `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
               buyer.address
@@ -14311,7 +14303,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(true), { value });
+              .fulfillAdvancedOrder(order, [], toKey(true), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -14562,7 +14554,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.reverted; // TODO: look into the revert reason more thoroughly
           // Transaction reverted: function returned an unexpected amount of data
         });
@@ -14594,7 +14586,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(`NoContract("${ethers.constants.AddressZero}")`);
         });
       });
@@ -14630,7 +14622,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(`NoContract("${ethers.constants.AddressZero}")`);
         });
       });
@@ -14684,7 +14676,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(
             `TokenTransferGenericFailure("${marketplaceContract.address}", "${
               buyer.address
@@ -14719,7 +14711,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(
             `TokenTransferGenericFailure("${marketplaceContract.address}", "${
               seller.address
@@ -15059,7 +15051,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         // prepare the reentrant call on the reenterer
         const callData = marketplaceContract.interface.encodeFunctionData(
           "fulfillOrder",
-          [order, toAddress(false)]
+          [order, toKey(false)]
         );
         const tx = await reenterer.prepare(
           marketplaceContract.address,
@@ -15072,7 +15064,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("NoReentrantCalls");
         });
       });

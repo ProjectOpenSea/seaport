@@ -53,19 +53,24 @@ interface ConsiderationInterface {
      *         criteria-based orders or partial filling of orders (though
      *         filling the remainder of a partially-filled order is supported).
      *
-     * @param order             The order to fulfill. Note that both the offerer
-     *                          and the fulfiller must first approve this
-     *                          contract (or their proxy if indicated by the
-     *                          order) to transfer any relevant tokens on their
-     *                          behalf and that contracts must implement
-     *                          `onERC1155Received` in order to receive ERC1155
-     *                          tokens as consideration.
-     * @param fulfillerConduit A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
+     * @param order               The order to fulfill. Note that both the
+     *                            offerer and the fulfiller must first approve
+     *                            this contract (or the corresponding conduit if
+     *                            indicated) to transfer any relevant tokens on
+     *                            their behalf and that contracts must implement
+     *                            `onERC1155Received` to receive ERC1155 tokens
+     *                            as consideration.
+     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
+     *                            any, to source the fulfiller's token approvals
+     *                            from. The zero hash signifies that no conduit
+     *                            should be used (and direct approvals set on
+     *                            Consideration) and `bytes32(1)` signifies to
+     *                            utilize the legacy user proxy for the
+     *                            fulfiller.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function fulfillOrder(Order calldata order, address fulfillerConduit)
+    function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
         payable
         returns (bool);
@@ -75,36 +80,43 @@ interface ConsiderationInterface {
      *         items for offer and consideration alongside criteria resolvers
      *         containing specific token identifiers and associated proofs.
      *
-     * @param advancedOrder     The order to fulfill along with the fraction of
-     *                          the order to attempt to fill. Note that both the
-     *                          offerer and the fulfiller must first approve
-     *                          this contract (or their proxy if indicated by
-     *                          the order) to transfer any relevant tokens on
-     *                          their behalf and that contracts must implement
-     *                          `onERC1155Received` in order to receive ERC1155
-     *                          tokens as consideration. Also note that all
-     *                          offer and consideration components must have no
-     *                          remainder after multiplication of the respective
-     *                          amount with the supplied fraction in order for
-     *                          the partial fill to be considered valid.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the merkle root held
-     *                          by the item in question's criteria element. Note
-     *                          that an empty criteria indicates that any
-     *                          (transferrable) token identifier on the token in
-     *                          question is valid and that no associated proof
-     *                          needs to be supplied.
-     * @param fulfillerConduit A flag indicating whether to source approvals
-     *                          for fulfilled tokens from an associated proxy.
+     * @param advancedOrder       The order to fulfill along with the fraction
+     *                            of the order to attempt to fill. Note that
+     *                            both the offerer and the fulfiller must first
+     *                            approve this contract (or their proxy if
+     *                            indicated by the order) to transfer any
+     *                            relevant tokens on their behalf and that
+     *                            contracts must implement `onERC1155Received`
+     *                            to receive ERC1155 tokens as consideration.
+     *                            Also note that all offer and consideration
+     *                            components must have no remainder after
+     *                            multiplication of the respective amount with
+     *                            the supplied fraction for the partial fill to
+     *                            be considered valid.
+     * @param criteriaResolvers   An array where each element contains a
+     *                            reference to a specific offer or
+     *                            consideration, a token identifier, and a proof
+     *                            that the supplied token identifier is
+     *                            contained in the merkle root held by the item
+     *                            in question's criteria element. Note that an
+     *                            empty criteria indicates that any
+     *                            (transferrable) token identifier on the token
+     *                            in question is valid and that no associated
+     *                            proof needs to be supplied.
+     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
+     *                            any, to source the fulfiller's token approvals
+     *                            from. The zero hash signifies that no conduit
+     *                            should be used (and direct approvals set on
+     *                            Consideration) and `bytes32(1)` signifies to
+     *                            utilize the legacy user proxy for the
+     *                            fulfiller.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
-        address fulfillerConduit
+        bytes32 fulfillerConduitKey
     ) external payable returns (bool);
 
     /**
@@ -154,9 +166,13 @@ interface ConsiderationInterface {
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
-     * @param fulfillerConduit         A flag indicating whether to source
-     *                                  approvals for fulfilled tokens from an
-     *                                  associated proxy.
+     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
+     *                                  if any, to source the fulfiller's token
+     *                                  approvals from. The zero hash signifies
+     *                                  that no conduit should be used (and
+     *                                  direct approvals set on Consideration)
+     *                                  and `bytes32(1)` signifies to utilize
+     *                                  the legacy user proxy for the fulfiller.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -173,7 +189,7 @@ interface ConsiderationInterface {
         CriteriaResolver[] calldata criteriaResolvers,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
-        address fulfillerConduit
+        bytes32 fulfillerConduitKey
     )
         external
         payable
