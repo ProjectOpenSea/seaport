@@ -27,7 +27,7 @@ contract ConsiderationTest is DSTestPlusPlus {
 
     function setUp() public {
         conduitControllerAddress = address(
-            ConduitController()
+            new ConduitController()
         );
         conduitController = ConduitController(conduitControllerAddress);
 
