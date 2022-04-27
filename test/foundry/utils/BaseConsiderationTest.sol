@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { Consideration, ItemType, ConsiderationItem } from "../../../contracts/Consideration.sol";
+import { Consideration } from "../../../contracts/Consideration.sol";
+import { OrderType, BasicOrderType, ItemType, Side } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+
 import { DSTestPlusPlus } from "./DSTestPlusPlus.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
@@ -22,27 +25,63 @@ contract BaseConsiderationTest is DSTestPlusPlus {
             _wyvernTokenTransferProxy,
             _wyvernDelegateProxyImplementation
         );
+        emit log_named_address(
+            "Deployed Consideration at",
+            address(consideration)
+        );
+    }
+
+    function singleOfferItem(
+        ItemType _itemType,
+        address _tokenAddress,
+        uint256 _identifierOrCriteria,
+        uint256 _startAmount,
+        uint256 _endAmount
+    ) internal pure returns (OfferItem[] memory offerItem) {
+        offerItem = new OfferItem[](1);
+        offerItem[0] = OfferItem(
+            _itemType,
+            _tokenAddress,
+            _identifierOrCriteria,
+            _startAmount,
+            _endAmount
+        );
+    }
+
+    function singleConsiderationItem(
+        ItemType _itemType,
+        address _tokenAddress,
+        uint256 _identifierOrCriteria,
+        uint256 _startAmount,
+        uint256 _endAmount,
+        address _recipient
+    ) internal pure returns (ConsiderationItem[] memory considerationItem) {
+        considerationItem = new ConsiderationItem[](1);
+        considerationItem[0] = ConsiderationItem(
+            _itemType,
+            _tokenAddress,
+            _identifierOrCriteria,
+            _startAmount,
+            _endAmount,
+            payable(_recipient)
+        );
     }
 
     function signOrder(uint256 _pkOfSigner, bytes32 _orderHash)
         internal
-        returns (
-            uint8,
-            bytes32,
-            bytes32
-        )
+        returns (bytes memory)
     {
-        return
-            vm.sign(
-                _pkOfSigner,
-                keccak256(
-                    abi.encodePacked(
-                        bytes2(0x1901),
-                        consideration.DOMAIN_SEPARATOR(),
-                        _orderHash
-                    )
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            _pkOfSigner,
+            keccak256(
+                abi.encodePacked(
+                    bytes2(0x1901),
+                    consideration.DOMAIN_SEPARATOR(),
+                    _orderHash
                 )
-            );
+            )
+        );
+        return abi.encodePacked(r, s, v);
     }
 
     /**
@@ -85,5 +124,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
                     .find()
             )
         );
+
+        emit log("Deployed legacy Wyvern contracts");
     }
 }
