@@ -116,15 +116,6 @@ contract Conduit is ConduitInterface {
         emit ChannelUpdated(channel, isOpen);
     }
 
-    function channels(address channel)
-        external
-        view
-        override
-        returns (bool isOpen)
-    {
-        isOpen = _channels[channel];
-    }
-
     /**
      * @dev Internal function to transfer a given item.
      *

@@ -28,6 +28,8 @@ interface ConduitControllerInterface {
 
     error CallerIsNotNewPotentialOwner(address conduit);
 
+    error ChannelOutOfRange(address conduit);
+
     function createConduit(bytes32 conduitKey, address initialOwner)
         external
         returns (address conduit);
@@ -58,6 +60,26 @@ interface ConduitControllerInterface {
         external
         view
         returns (address potentialOwner);
+
+    function getChannelStatus(address conduit, address channel)
+        external
+        view
+        returns (bool isOpen);
+
+    function getTotalChannels(address conduit)
+        external
+        view
+        returns (uint256 totalChannels);
+
+    function getChannel(address conduit, uint256 channelIndex)
+        external
+        view
+        returns (address channel);
+
+    function getChannels(address conduit)
+        external
+        view
+        returns (address[] memory channels);
 
     function getConduitCodeHashes()
         external

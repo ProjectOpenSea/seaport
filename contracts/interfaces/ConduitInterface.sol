@@ -63,6 +63,4 @@ interface ConduitInterface {
         ConduitTransfer[] calldata standardTransfers,
         ConduitBatch1155Transfer[] calldata batch1155Transfers
     ) external returns (bytes4 executeMagicValue);
-
-    function channels(address channel) external view returns (bool open);
 }

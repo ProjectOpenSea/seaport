@@ -11,11 +11,18 @@ import {
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 contract ConduitController is ConduitControllerInterface {
+    struct ConduitChannels {
+        address[] channels;
+        mapping(address => uint256) channelIndexesPlusOne;
+    }
+
     mapping(address => bytes32) internal _conduitKeys;
 
     mapping(address => address) internal _conduitOwners;
 
     mapping(address => address) internal _conduitPotentialOwners;
+
+    mapping(address => ConduitChannels) internal _conduitChannels;
 
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
     bytes32 internal immutable _CONDUIT_RUNTIME_CODE_HASH;
@@ -70,27 +77,51 @@ contract ConduitController is ConduitControllerInterface {
         address channel,
         bool isOpen
     ) external override {
-        address conduitOwner = _conduitOwners[conduit];
-
-        if (msg.sender != conduitOwner) {
-            revert CallerIsNotOwner(conduit);
-        }
+        _assertCallerIsConduitOwner(conduit);
 
         ConduitInterface(conduit).updateChannel(channel, isOpen);
+
+        ConduitChannels storage conduitChannels = _conduitChannels[conduit];
+
+        uint256 channelIndexPlusOne = (
+            conduitChannels.channelIndexesPlusOne[channel]
+        );
+
+        bool channelCurrentlyOpen = channelIndexPlusOne != 0;
+
+        if (isOpen && !channelCurrentlyOpen) {
+            conduitChannels.channels.push(channel);
+            conduitChannels.channelIndexesPlusOne[channel] = (
+                conduitChannels.channels.length
+            );
+        } else if (!isOpen && channelCurrentlyOpen) {
+            // Use "swap and pop" method
+            uint256 removedChannelIndex = channelIndexPlusOne - 1;
+            uint256 finalChannelIndex = conduitChannels.channels.length - 1;
+
+            if (finalChannelIndex != removedChannelIndex) {
+                address finalChannel = (
+                    conduitChannels.channels[finalChannelIndex]
+                );
+                conduitChannels.channels[removedChannelIndex] = finalChannel;
+                conduitChannels.channelIndexesPlusOne[finalChannel] = (
+                    channelIndexPlusOne
+                );
+            }
+
+            conduitChannels.channels.pop();
+            delete conduitChannels.channelIndexesPlusOne[channel];
+        }
     }
 
     function transferOwnership(address conduit, address newPotentialOwner)
         external
         override
     {
+        _assertCallerIsConduitOwner(conduit);
+
         if (newPotentialOwner == address(0)) {
             revert NewPotentialOwnerIsZeroAddress(conduit);
-        }
-
-        address conduitOwner = _conduitOwners[conduit];
-
-        if (msg.sender != conduitOwner) {
-            revert CallerIsNotOwner(conduit);
         }
 
         emit PotentialOwnerUpdated(
@@ -103,11 +134,7 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     function cancelOwnershipTransfer(address conduit) external override {
-        address conduitOwner = _conduitOwners[conduit];
-
-        if (msg.sender != conduitOwner) {
-            revert CallerIsNotOwner(conduit);
-        }
+        _assertCallerIsConduitOwner(conduit);
 
         emit PotentialOwnerUpdated(
             conduit,
@@ -142,9 +169,7 @@ contract ConduitController is ConduitControllerInterface {
         override
         returns (address owner)
     {
-        if (_conduitKeys[conduit] == bytes32(0)) {
-            revert NoConduit();
-        }
+        _assertConduitExists(conduit);
 
         owner = _conduitOwners[conduit];
     }
@@ -192,13 +217,59 @@ contract ConduitController is ConduitControllerInterface {
         override
         returns (address potentialOwner)
     {
-        bytes32 conduitKey = _conduitKeys[conduit];
-
-        if (conduitKey == bytes32(0)) {
-            revert NoConduit();
-        }
+        _assertConduitExists(conduit);
 
         potentialOwner = _conduitPotentialOwners[conduit];
+    }
+
+    function getChannelStatus(address conduit, address channel)
+        external
+        view
+        override
+        returns (bool isOpen)
+    {
+        _assertConduitExists(conduit);
+
+        isOpen = _conduitChannels[conduit].channelIndexesPlusOne[channel] != 0;
+    }
+
+    function getTotalChannels(address conduit)
+        external
+        view
+        override
+        returns (uint256 totalChannels)
+    {
+        _assertConduitExists(conduit);
+
+        totalChannels = _conduitChannels[conduit].channels.length;
+    }
+
+    function getChannel(address conduit, uint256 channelIndex)
+        external
+        view
+        override
+        returns (address channel)
+    {
+        _assertConduitExists(conduit);
+
+        address[] memory channels = _conduitChannels[conduit].channels;
+
+        if (channels.length >= channelIndex) {
+            revert ChannelOutOfRange(conduit);
+        }
+
+        channel = channels[channelIndex];
+    }
+
+    function getChannels(address conduit)
+        external
+        view
+        override
+        returns (address[] memory channels)
+    {
+        _assertConduitExists(conduit);
+
+        channels = _conduitChannels[conduit].channels;
     }
 
     function getConduitCodeHashes()
@@ -209,5 +280,21 @@ contract ConduitController is ConduitControllerInterface {
     {
         creationCodeHash = _CONDUIT_CREATION_CODE_HASH;
         runtimeCodeHash = _CONDUIT_RUNTIME_CODE_HASH;
+    }
+
+    function _assertCallerIsConduitOwner(address conduit) internal view {
+        address conduitOwner = _conduitOwners[conduit];
+
+        if (msg.sender != conduitOwner) {
+            revert CallerIsNotOwner(conduit);
+        }
+    }
+
+    function _assertConduitExists(address conduit) internal view {
+        bytes32 conduitKey = _conduitKeys[conduit];
+
+        if (conduitKey == bytes32(0)) {
+            revert NoConduit();
+        }
     }
 }
