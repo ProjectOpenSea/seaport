@@ -18,9 +18,11 @@ contract BaseOrderTest is
 {
     using stdStorage for StdStorage;
 
-    uint256 alicePk = 0xa11ce;
-    uint256 bobPk = 0xb0b;
-    uint256 calPk = 0xca1;
+    uint256 constant MAX_INT = ~uint256(0);
+
+    uint256 internal alicePk = 0xa11ce;
+    uint256 internal bobPk = 0xb0b;
+    uint256 internal calPk = 0xca1;
     address internal alice = vm.addr(alicePk);
     address internal bob = vm.addr(bobPk);
     address internal cal = vm.addr(calPk);
@@ -44,10 +46,11 @@ contract BaseOrderTest is
         _deployTestTokenContracts();
 
         // allocate funds and tokens to test addresses
-        globalTokenId = 0;
-        allocateTokensAndApprovals(alice, 2**96);
-        allocateTokensAndApprovals(bob, 2**96);
-        allocateTokensAndApprovals(cal, 2**96);
+        globalTokenId = 1;
+        allocateTokensAndApprovals(address(this), uint128(MAX_INT));
+        allocateTokensAndApprovals(alice, uint128(MAX_INT));
+        allocateTokensAndApprovals(bob, uint128(MAX_INT));
+        allocateTokensAndApprovals(cal, uint128(MAX_INT));
     }
 
     /**
@@ -63,12 +66,13 @@ contract BaseOrderTest is
         test1155_1 = new TestERC1155();
         test1155_2 = new TestERC1155();
         test1155_3 = new TestERC1155();
+        emit log("Deployed test token contracts");
     }
 
     /**
     @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s 
     */
-    function allocateTokensAndApprovals(address _to, uint256 _amount) internal {
+    function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
         token1.mint(_to, _amount);
         token2.mint(_to, _amount);
@@ -84,12 +88,10 @@ contract BaseOrderTest is
     }
 
     function _setApprovals(address _owner) internal {
-        uint256 max = 2**256 - 1;
-
         vm.startPrank(_owner);
-        token1.approve(address(consideration), max);
-        token2.approve(address(consideration), max);
-        token3.approve(address(consideration), max);
+        token1.approve(address(consideration), MAX_INT);
+        token2.approve(address(consideration), MAX_INT);
+        token3.approve(address(consideration), MAX_INT);
         test721_1.setApprovalForAll(address(consideration), true);
         test721_2.setApprovalForAll(address(consideration), true);
         test721_3.setApprovalForAll(address(consideration), true);
@@ -99,7 +101,7 @@ contract BaseOrderTest is
         vm.stopPrank();
 
         emit log_named_address(
-            "Account has approved consideration for all tokens.",
+            "Consideration approved for all tokens from",
             _owner
         );
     }
