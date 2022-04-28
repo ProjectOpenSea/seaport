@@ -46,8 +46,15 @@ interface ITokenTransferProxy {
 }
 
 interface FuzzyTests {
-    function testValidate(bytes32) external;
     function testFulfillBasicOrder(bytes32) external;
+    function testFulfillOrder(bytes32 seed) external;
+    function testFulfillAdvancedOrder(bytes32 seed) external;
+    function testFulfillAvailableAdvancedOrders(bytes32 seed) external;
+    function testMatchOrders(bytes32 seed) external;
+    function testMatchAdvancedOrders(bytes32 seed) external;
+    function testCancel(bytes32 seed) external;
+    function testValidate(bytes32) external;
+    function testIncrementNonce(bytes32 seed) external;
 }
 
 contract Echidna is FuzzyTests {
@@ -77,14 +84,46 @@ contract Echidna is FuzzyTests {
         _erc1155 = new TestERC1155();
     }
 
-    function testValidate(bytes32 seed) public override {
+    function testFulfillBasicOrder(bytes32 seed) public override {
+        testValidate(seed);
+        uint256 nftId = uint256(seed) % 10**6;
+        uint256 sellForMax = uint256(seed);
+        _erc20.mint(address(this), sellForMax);
+        _erc20.approve(address(_opensea), sellForMax);
+        AdditionalRecipient[] memory recipients = new AdditionalRecipient[](1);
+        BasicOrderParameters memory basicOrderParams = BasicOrderParameters({
+            considerationToken: address(_erc20),
+            considerationIdentifier: uint256(0),
+            considerationAmount: sellForMax,
+            offerer: payable(address(this)),
+            zone: address(0),
+            offerToken: address(_erc721),
+            offerIdentifier: nftId,
+            offerAmount: uint256(1),
+            basicOrderType: BasicOrderType.ERC721_TO_ERC20_FULL_OPEN,
+            startTime: uint256(block.timestamp),
+            endTime: uint256(block.timestamp + (60 * 60)),
+            zoneHash: bytes32(0),
+            salt: uint256(seed),
+            offererConduit: address(0),
+            fulfillerConduit: address(0),
+            totalOriginalAdditionalRecipients: uint256(1),
+            additionalRecipients: recipients,
+            signature: abi.encodePacked(bytes32(0))
+        });
+        bool res = _opensea.fulfillBasicOrder(basicOrderParams);
+        assert(res);
+        // assert(false); // the test should fail if this is uncommented
+    }
+
+    function testFulfillOrder(bytes32 seed) public override {
+        testValidate(seed);
         address payable seller = payable(address(this));
         uint256 nftId = uint256(seed) % 10**6;
-        _erc721.mint(address(this), nftId);
-        _erc721.approve(address(_opensea), nftId);
         uint256 sellForMax = uint256(seed);
         uint256 sellForMin = uint256(seed) / 2;
-
+        _erc20.mint(address(this), sellForMax);
+        _erc20.approve(address(_opensea), sellForMax);
         OfferItem[] memory offer = new OfferItem[](1);
         offer[0] = OfferItem({
             itemType: ItemType.ERC721,
@@ -93,7 +132,113 @@ contract Echidna is FuzzyTests {
             startAmount: uint256(1),
             endAmount: uint256(1)
         });
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
+        consideration[0] = ConsiderationItem({
+            itemType: ItemType.ERC20,
+            token: address(_erc20),
+            identifierOrCriteria: uint256(0),
+            startAmount: sellForMax,
+            endAmount: sellForMin,
+            recipient: seller
+        });
+        OrderParameters memory orderParams =
+            OrderParameters({
+                offerer: seller,
+                zone: address(0),
+                offer: offer,
+                consideration: consideration,
+                orderType: OrderType.FULL_OPEN,
+                startTime: uint256(block.timestamp),
+                endTime: uint256(block.timestamp + (60 * 60)),
+                zoneHash: bytes32(0),
+                salt: uint256(seed),
+                conduit: address(0),
+                totalOriginalConsiderationItems: uint256(1) // ???
+            });
+        Order memory order = Order({
+            parameters: orderParams,
+            signature: abi.encodePacked(bytes32(0))
+        });
+        bool res = _opensea.fulfillOrder(order, address(0));
+        assert(res);
+        // assert(false); // the test should fail if this is uncommented
+    }
 
+    function testFulfillAdvancedOrder(bytes32 seed) public override {
+        testValidate(seed);
+        address payable seller = payable(address(this));
+        uint256 nftId = uint256(seed) % 10**6;
+        uint256 sellForMax = uint256(seed);
+        uint256 sellForMin = uint256(seed) / 2;
+        _erc20.mint(address(this), sellForMax);
+        _erc20.approve(address(_opensea), sellForMax);
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0] = OfferItem({
+            itemType: ItemType.ERC721,
+            token: address(_erc721),
+            identifierOrCriteria: nftId,
+            startAmount: uint256(1),
+            endAmount: uint256(1)
+        });
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
+        consideration[0] = ConsiderationItem({
+            itemType: ItemType.ERC20,
+            token: address(_erc20),
+            identifierOrCriteria: uint256(0),
+            startAmount: sellForMax,
+            endAmount: sellForMin,
+            recipient: seller
+        });
+        OrderParameters memory orderParams =
+            OrderParameters({
+                offerer: seller,
+                zone: address(0),
+                offer: offer,
+                consideration: consideration,
+                orderType: OrderType.FULL_OPEN,
+                startTime: uint256(block.timestamp),
+                endTime: uint256(block.timestamp + (60 * 60)),
+                zoneHash: bytes32(0),
+                salt: uint256(seed),
+                conduit: address(0),
+                totalOriginalConsiderationItems: uint256(1) // ???
+            });
+        AdvancedOrder memory order = AdvancedOrder({
+            parameters: orderParams,
+            signature: abi.encodePacked(bytes32(0)),
+            numerator: uint120(1),
+            denominator: uint120(1),
+            extraData: abi.encodePacked("")
+        });
+        CriteriaResolver[] memory resolvers = new CriteriaResolver[](0);
+        bool res = _opensea.fulfillAdvancedOrder(order, resolvers, address(0));
+        assert(res);
+        // assert(false); // the test should fail if this is uncommented
+    }
+
+    function testFulfillAvailableAdvancedOrders(bytes32 seed) public override {}
+
+    function testMatchOrders(bytes32 seed) public override {}
+
+    function testMatchAdvancedOrders(bytes32 seed) public override {}
+
+    function testCancel(bytes32 seed) public override {}
+
+    function testValidate(bytes32 seed) public override {
+        address payable seller = payable(address(this));
+        uint256 nftId = uint256(seed) % 10**6;
+        uint256 sellForMax = uint256(seed);
+        uint256 sellForMin = uint256(seed) / 2;
+        _erc721.mint(address(this), nftId);
+        _erc721.approve(address(_opensea), nftId);
+        OfferItem[] memory offer = new OfferItem[](1);
+        offer[0] = OfferItem({
+            itemType: ItemType.ERC721,
+            token: address(_erc721),
+            identifierOrCriteria: nftId,
+            startAmount: uint256(1),
+            endAmount: uint256(1)
+        });
         ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
         consideration[0] = ConsiderationItem({
             itemType: ItemType.ERC20,
@@ -122,37 +267,10 @@ contract Echidna is FuzzyTests {
             parameters: orderParams,
             signature: abi.encodePacked(bytes32(0))
         });
-        _opensea.validate(orders);
-        // assert(false); // the test should fail if we uncomment this line
+        bool res = _opensea.validate(orders);
+        assert(res);
+        // assert(false); // the test should fail if this is uncommented
     }
 
-    function testFulfillBasicOrder(bytes32 seed) public override {
-        testValidate(seed);
-        uint256 nftId = uint256(seed) % 10**6;
-        uint256 sellForMax = uint256(seed);
-        AdditionalRecipient[] memory recipients = new AdditionalRecipient[](1);
-        BasicOrderParameters memory basicOrderParams = BasicOrderParameters({
-            considerationToken: address(_erc20),
-            considerationIdentifier: uint256(0),
-            considerationAmount: sellForMax,
-            offerer: payable(address(this)),
-            zone: address(0),
-            offerToken: address(_erc721),
-            offerIdentifier: nftId,
-            offerAmount: uint256(1),
-            basicOrderType: BasicOrderType.ERC721_TO_ERC20_FULL_OPEN,
-            startTime: uint256(block.timestamp),
-            endTime: uint256(block.timestamp + (60 * 60)),
-            zoneHash: bytes32(0),
-            salt: uint256(seed),
-            offererConduit: address(0),
-            fulfillerConduit: address(0),
-            totalOriginalAdditionalRecipients: uint256(1),
-            additionalRecipients: recipients,
-            signature: abi.encodePacked(bytes32(0))
-        });
-        _opensea.fulfillBasicOrder(basicOrderParams);
-        // assert(false); // the test should fail if we uncomment this line
-    }
-
+    function testIncrementNonce(bytes32 seed) public override {}
 }
