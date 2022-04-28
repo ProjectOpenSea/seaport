@@ -1061,13 +1061,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     false
                 );
 
-                // Utilize assembly to set overloaded offerItem arguments.
-                assembly {
-                    // Write derived fractional amount to startAmount as amount.
-                    mstore(add(offerItem, 0x60), amount)
-                    // Write fulfiller (i.e. caller) to endAmount as recipient.
-                    mstore(add(offerItem, 0x80), caller())
-                }
+                // Write derived fractional amount to startAmount as amount.
+                offerItem.startAmount = amount;
+                // Write fulfiller (i.e. caller) to endAmount as recipient.
+                offerItem.endAmount = uint256(uint160(address(msg.sender)));
 
                 // Reduce available value if offer spent ETH or a native token.
                 if (offerItem.itemType == ItemType.NATIVE) {
@@ -1147,17 +1144,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     true
                 );
 
-                // Use assembly to set overloaded considerationItem arguments.
-                assembly {
-                    // Write derived fractional amount to startAmount as amount.
-                    mstore(add(considerationItem, 0x60), amount)
-
-                    // Write original recipient to endAmount as recipient.
-                    mstore(
-                        add(considerationItem, 0x80),
-                        mload(add(considerationItem, 0xa0))
-                    )
-                }
+                // Write derived fractional amount to startAmount as amount.
+                considerationItem.startAmount = amount;
+                // Write original recipient to endAmount as recipient.
+                considerationItem.endAmount = uint256(
+                    uint160(address(considerationItem.recipient))
+                );
 
                 // Reduce available value if offer spent ETH or a native token.
                 if (considerationItem.itemType == ItemType.NATIVE) {
@@ -1223,11 +1215,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Track the order hash for each order being fulfilled.
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
 
-        // Override orderHashes length to zero after memory has been allocated.
-        assembly {
-            mstore(orderHashes, 0)
-        }
-
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each order.
@@ -1245,11 +1232,6 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         revertOnInvalid,
                         orderHashes
                     );
-
-                // Update the length of the orderHashes array.
-                assembly {
-                    mstore(orderHashes, add(i, 1))
-                }
 
                 // Place the start time for the order on the stack.
                 uint256 startTime = advancedOrder.parameters.startTime;
@@ -1367,16 +1349,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
                         )
                     );
 
-                    // Utilize assembly to manually "shift" the recipient value.
-                    assembly {
-                        // Write recipient to endAmount, as endAmount is not
-                        // used from this point on and can be repurposed to fit
-                        // the layout of a ReceivedItem.
-                        mstore(
-                            add(considerationItem, 0x80), // endAmount
-                            mload(add(considerationItem, 0xa0)) // recipient
-                        )
-                    }
+                    // Write recipient to endAmount, as endAmount is not
+                    // used from this point on and can be repurposed to fit
+                    // the layout of a ReceivedItem.
+                    considerationItem.endAmount = uint256(
+                        uint160(address(considerationItem.recipient))
+                    );
                 }
             }
         }
@@ -1385,13 +1363,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
         // Determine the fulfiller (revertOnInvalid ? address(0) : msg.sender).
-        address fulfiller;
-
-        // Utilize assembly to operate on revertOnInvalid boolean as an integer.
-        assembly {
-            // Set the fulfiller to the caller if revertOnValid is false.
-            fulfiller := mul(iszero(revertOnInvalid), caller())
-        }
+        address fulfiller = (revertOnInvalid ? address(0) : msg.sender);
 
         // Emit an event for each order signifying that it has been fulfilled.
         // Skip overflow checks as all for loops are indexed starting at zero.
@@ -1836,12 +1808,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
         _assertNonZeroAmount(amount);
 
         // Declare a variable indicating whether the call was successful or not.
-        bool success;
-
-        assembly {
-            // Transfer the ETH and store if it succeeded or not.
-            success := call(gas(), to, amount, 0, 0, 0, 0)
-        }
+        // Attempt to transfer the native tokens to the recipient.
+        (bool success, ) = to.call{ value: amount }("");
 
         // If the call fails...
         if (!success) {
@@ -1926,128 +1894,31 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address to,
         uint256 amount
     ) internal {
-        // Utilize assembly to perform an optimized ERC20 token transfer.
+        // Perform ERC20 transfer via the token contract directly.
+        (bool success, ) = token.call(
+            abi.encodeCall(ERC20Interface.transferFrom, (from, to, amount))
+        );
+
+        // Ensure that the transfer succeeded.
+        _assertValidTokenTransfer(success, token, from, to, 0, amount);
+
+        // Extract result directly from returndata buffer if one is returned.
+        bool result = true;
         assembly {
-            // Write calldata to the free memory pointer, but restore it later.
-            let memPointer := mload(FreeMemoryPointerSlot)
+            // Only put result on the stack if return data is at least 32 bytes.
+            if gt(returndatasize(), 0x19) {
+                // Copy directly from return data into memory in scratch space.
+                returndatacopy(0, 0, 0x20)
 
-            // Write calldata into memory, starting with function selector.
-            mstore(ERC20_transferFrom_sig_ptr, ERC20_transferFrom_signature)
-            mstore(ERC20_transferFrom_from_ptr, from)
-            mstore(ERC20_transferFrom_to_ptr, to)
-            mstore(ERC20_transferFrom_amount_ptr, amount)
-
-            // to copy up to 32 bytes of return data to scratch space.
-            let callStatus := call(
-                gas(),
-                token,
-                0,
-                ERC20_transferFrom_sig_ptr,
-                ERC20_transferFrom_length,
-                0,
-                0x20
-            )
-
-            let success := and(
-                // Set success to whether the call reverted, if not check it
-                // either returned exactly 1 (can't just be non-zero data), or
-                // had no return data.
-                or(
-                    and(eq(mload(0), 1), gt(returndatasize(), 31)),
-                    iszero(returndatasize())
-                ),
-                callStatus
-            )
-
-            // If the transfer failed or it returned nothing:
-            // Group these because they should be uncommon.
-            if iszero(and(success, iszero(iszero(returndatasize())))) {
-                // If the token has no code or the transfer failed:
-                if iszero(and(iszero(iszero(extcodesize(token))), success)) {
-                    // If the transfer failed:
-                    if iszero(success) {
-                        // If it was due to a revert:
-                        if iszero(callStatus) {
-                            // If it returned a message, bubble it up:
-                            if returndatasize() {
-                                // Copy returndata to memory; overwrite existing
-                                // memory.
-                                returndatacopy(0, 0, returndatasize())
-
-                                // Revert, specifying memory region with copied
-                                // returndata.
-                                revert(0, returndatasize())
-                            }
-
-                            // Otherwise revert with a generic error message.
-                            mstore(
-                                TokenTransferGenericFailure_error_sig_ptr,
-                                TokenTransferGenericFailure_error_signature
-                            )
-                            mstore(
-                                TokenTransferGenericFailure_error_token_ptr,
-                                token
-                            )
-                            mstore(
-                                TokenTransferGenericFailure_error_from_ptr,
-                                from
-                            )
-                            mstore(TokenTransferGenericFailure_error_to_ptr, to)
-                            mstore(TokenTransferGenericFailure_error_id_ptr, 0)
-                            mstore(
-                                TokenTransferGenericFailure_error_amount_ptr,
-                                amount
-                            )
-                            revert(
-                                TokenTransferGenericFailure_error_sig_ptr,
-                                TokenTransferGenericFailure_error_length
-                            )
-                        }
-
-                        // Otherwise revert with a message about the token
-                        // returning false.
-                        mstore(
-                            BadReturnValueFromERC20OnTransfer_error_sig_ptr,
-                            BadReturnValueFromERC20OnTransfer_error_signature
-                        )
-                        mstore(
-                            BadReturnValueFromERC20OnTransfer_error_token_ptr,
-                            token
-                        )
-                        mstore(
-                            BadReturnValueFromERC20OnTransfer_error_from_ptr,
-                            from
-                        )
-                        mstore(
-                            BadReturnValueFromERC20OnTransfer_error_to_ptr,
-                            to
-                        )
-                        mstore(
-                            BadReturnValueFromERC20OnTransfer_error_amount_ptr,
-                            amount
-                        )
-                        revert(
-                            BadReturnValueFromERC20OnTransfer_error_sig_ptr,
-                            TokenTransferGenericFailure_error_length
-                        )
-                    }
-
-                    // Otherwise revert with error about token not having code:
-                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                    mstore(NoContract_error_token_ptr, token)
-                    revert(NoContract_error_sig_ptr, NoContract_error_length)
-                }
-
-                // Otherwise the token just returned nothing but otherwise
-                // succeeded; no need to optimize for this as it's not
-                // technically ERC20 compliant.
+                // Take the value from scratch space and place it on the stack.
+                result := mload(0)
             }
+        }
 
-            // Restore the original free memory pointer.
-            mstore(FreeMemoryPointerSlot, memPointer)
-
-            // Restore the zero slot to zero.
-            mstore(ZeroSlot, 0)
+        // If a falsey result is extracted...
+        if (!result) {
+            // Revert with a "Bad Return Value" error.
+            revert BadReturnValueFromERC20OnTransfer(token, from, to, amount);
         }
     }
 
@@ -2080,95 +1951,15 @@ contract ConsiderationInternal is ConsiderationInternalView {
             revert InvalidERC721TransferAmount();
         }
 
-        // If no conduit has been specified...
-        if (conduit == address(0)) {
-            // Perform transfer via the token contract directly.
-            assembly {
-                // If the token has no code, revert.
-                if iszero(extcodesize(token)) {
-                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                    mstore(NoContract_error_token_ptr, token)
-                    revert(NoContract_error_sig_ptr, NoContract_error_length)
-                }
+        bool success = _callDirectlyOrViaProxy(
+            from,
+            token,
+            conduit,
+            abi.encodeCall(ERC721Interface.transferFrom, (from, to, identifier))
+        );
 
-                // Write calldata to the free memory pointer (restore it later).
-                let memPointer := mload(FreeMemoryPointerSlot)
-
-                // Write calldata into memory starting with function selector.
-                mstore(
-                    ERC721_transferFrom_sig_ptr,
-                    ERC721_transferFrom_signature
-                )
-                mstore(ERC721_transferFrom_from_ptr, from)
-                mstore(ERC721_transferFrom_to_ptr, to)
-                mstore(ERC721_transferFrom_id_ptr, identifier)
-
-                let success := call(
-                    gas(),
-                    token,
-                    0,
-                    ERC721_transferFrom_sig_ptr,
-                    ERC721_transferFrom_length,
-                    0,
-                    0
-                )
-
-                // If the transfer reverted:
-                if iszero(success) {
-                    // If it returned a message, bubble it up:
-                    if returndatasize() {
-                        // Copy returndata to memory; overwrite existing memory.
-                        returndatacopy(0, 0, returndatasize())
-
-                        // Revert, specifying memory region with returndata.
-                        revert(0, returndatasize())
-                    }
-
-                    // Otherwise revert with a generic error message.
-                    mstore(
-                        TokenTransferGenericFailure_error_sig_ptr,
-                        TokenTransferGenericFailure_error_signature
-                    )
-                    mstore(TokenTransferGenericFailure_error_token_ptr, token)
-                    mstore(TokenTransferGenericFailure_error_from_ptr, from)
-                    mstore(TokenTransferGenericFailure_error_to_ptr, to)
-                    mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
-                    mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
-                    revert(
-                        TokenTransferGenericFailure_error_sig_ptr,
-                        TokenTransferGenericFailure_error_length
-                    )
-                }
-
-                // Restore the original free memory pointer.
-                mstore(FreeMemoryPointerSlot, memPointer)
-
-                // Restore the zero slot to zero.
-                mstore(ZeroSlot, 0)
-            }
-        } else if (conduit == address(1)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            bool success = _callProxy(
-                from,
-                token,
-                abi.encodeCall(
-                    ERC721Interface.transferFrom,
-                    (from, to, identifier)
-                )
-            );
-
-            // Ensure that the transfer succeeded.
-            _assertValidTokenTransfer(
-                success,
-                token,
-                from,
-                to,
-                identifier,
-                amount
-            );
-        } else {
-            revert("Not yet implemented");
-        }
+        // Ensure that the transfer succeeded.
+        _assertValidTokenTransfer(success, token, from, to, identifier, 1);
     }
 
     /**
@@ -2198,110 +1989,22 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
 
-        // If no conduit has been specified...
-        if (conduit == address(0)) {
-            // Perform transfer via the token contract directly.
-            assembly {
-                // If the token has no code, revert.
-                if iszero(extcodesize(token)) {
-                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                    mstore(NoContract_error_token_ptr, token)
-                    revert(NoContract_error_sig_ptr, NoContract_error_length)
-                }
-
-                // Write calldata to these slots below, but restore them later.
-                let memPointer := mload(FreeMemoryPointerSlot)
-                let slot0x80 := mload(0x80)
-                let slot0xA0 := mload(0xA0)
-
-                // Write calldata into memory, beginning with function selector.
-                mstore(
-                    ERC1155_safeTransferFrom_sig_ptr,
-                    ERC1155_safeTransferFrom_signature
-                )
-                mstore(ERC1155_safeTransferFrom_from_ptr, from)
-                mstore(ERC1155_safeTransferFrom_to_ptr, to)
-                mstore(ERC1155_safeTransferFrom_id_ptr, identifier)
-                mstore(ERC1155_safeTransferFrom_amount_ptr, amount)
-                mstore(
-                    ERC1155_safeTransferFrom_data_offset_ptr,
-                    ERC1155_safeTransferFrom_data_length_offset
-                )
-                mstore(ERC1155_safeTransferFrom_data_length_ptr, 0)
-
-                let success := call(
-                    gas(),
-                    token,
-                    0,
-                    ERC1155_safeTransferFrom_sig_ptr,
-                    ERC1155_safeTransferFrom_length,
-                    0,
-                    0
-                )
-
-                // If the transfer reverted:
-                if iszero(success) {
-                    // If it returned a message, bubble it up:
-                    if returndatasize() {
-                        // Copy returndata to memory; overwrite existing memory.
-                        returndatacopy(0, 0, returndatasize())
-
-                        // Revert; specify memory region with copied returndata.
-                        revert(0, returndatasize())
-                    }
-
-                    // Otherwise revert with a generic error message.
-                    mstore(
-                        TokenTransferGenericFailure_error_sig_ptr,
-                        TokenTransferGenericFailure_error_signature
-                    )
-                    mstore(TokenTransferGenericFailure_error_token_ptr, token)
-                    mstore(TokenTransferGenericFailure_error_from_ptr, from)
-                    mstore(TokenTransferGenericFailure_error_to_ptr, to)
-                    mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
-                    mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
-                    revert(
-                        TokenTransferGenericFailure_error_sig_ptr,
-                        TokenTransferGenericFailure_error_length
-                    )
-                }
-
-                mstore(0x80, slot0x80) // Restore slot 0x80.
-                mstore(0xA0, slot0xA0) // Restore slot 0xA0.
-
-                // Restore the original free memory pointer.
-                mstore(FreeMemoryPointerSlot, memPointer)
-
-                // Restore the zero slot to zero.
-                mstore(ZeroSlot, 0)
-            }
-        } else if (conduit == address(1)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            bool success = _callProxy(
-                from,
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeTransferFrom.selector,
-                    from,
-                    to,
-                    identifier,
-                    amount,
-                    ""
-                )
-            );
-
-            // Ensure that the transfer succeeded.
-            _assertValidTokenTransfer(
-                success,
-                token,
+        bool success = _callDirectlyOrViaProxy(
+            from,
+            token,
+            conduit,
+            abi.encodeWithSelector(
+                ERC1155Interface.safeTransferFrom.selector,
                 from,
                 to,
                 identifier,
-                amount
-            );
-        } else {
-            revert("Not yet implemented");
-        }
+                amount,
+                ""
+            )
+        );
+
+        // Ensure that the transfer succeeded.
+        _assertValidTokenTransfer(success, token, from, to, identifier, amount);
     }
 
     /**
@@ -2374,6 +2077,42 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
         // Ensure that a contract is deployed to the token address.
         _assertContractIsDeployed(token);
+    }
+
+    /**
+     * @dev Internal function to trigger a call to a given token, either
+     *      directly or via a proxy contract. The proxy contract must be
+     *      registered on the legacy proxy registry for the given proxy owner
+     *      and must declare that its implementation matches the required proxy
+     *      implementation in accordance with EIP-897.
+     *
+     * @param from     The account providing the tokens.
+     * @param token    The token contract to call.
+     * @param conduit  An address indicating what conduit, if any, to source
+     *                 token approvals from. The null address signifies that no
+     *                 conduit should be used (and direct approvals set on
+     *                 Consideration) and `address(1)` signifies to utilize the
+     *                 legacy user proxy for the transfer.
+     * @param callData The calldata to supply when calling the token contract.
+     *
+     * @return success The status of the call to the token contract.
+     */
+    function _callDirectlyOrViaProxy(
+        address from,
+        address token,
+        address conduit,
+        bytes memory callData
+    ) internal returns (bool success) {
+        // If no conduit has been specified...
+        if (conduit == address(0)) {
+            // Perform transfer via the token contract directly.
+            (success, ) = token.call(callData);
+        } else if (conduit == address(1)) {
+            // Perform transfer via a call to the proxy for the supplied owner.
+            success = _callProxy(from, token, callData);
+        } else {
+            revert("Not yet implemented");
+        }
     }
 
     /**
