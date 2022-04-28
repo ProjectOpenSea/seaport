@@ -47,7 +47,14 @@ const traceStorage = (txHash) => {
 const traceTx = (txHash, filename) => {
   provider.send("debug_traceTransaction", [txHash]).then((res) => {
     if (filename) {
-      fs.writeFileSync(filename, JSON.stringify(res, null, 2));
+      const indexedRes = {
+        ...res,
+        structLogs: res.structLogs.map((structLog, index) => ({
+          index,
+          ...structLog,
+        })),
+      };
+      fs.writeFileSync(filename, JSON.stringify(indexedRes, null, 2));
     } else {
       log(res);
     }
