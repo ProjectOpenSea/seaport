@@ -728,11 +728,6 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * 2. Here's the summary of this section
-     * blah blah blah
-     */
-
-    /**
      * @dev Internal view function to aggregate offer or consideration items
      *      from a group of orders into a single execution via a supplied array
      *      of fulfillment components. Items that are not available to aggregate
@@ -1166,20 +1161,41 @@ contract ConsiderationInternalView is ConsiderationPure {
         view
         returns (address conduit)
     {
-        // Derive conduit address using deployer, key, and creation code hash.
-        conduit = address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            bytes1(0xff),
-                            address(_CONDUIT_CONTROLLER),
-                            conduitKey,
-                            _CONDUIT_CREATION_CODE_HASH
-                        )
-                    )
+        // Read conduit controller address from runtime and place on the stack.
+        address conduitController = address(_CONDUIT_CONTROLLER);
+
+        // Read conduit creation code hash from runtime and place on the stack.
+        bytes32 conduitCreationCodeHash = _CONDUIT_CREATION_CODE_HASH;
+
+        // Leverage scratch space to perform an efficient hash.
+        assembly {
+            // Retrieve the free memory pointer; it will be replaced afterwards.
+            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
+
+            // Place the control character and the conduit controller in scratch
+            // space; note that eleven bytes at the beginning are left unused.
+            mstore(
+                0x00,
+                or(
+                    0x0000000000000000000000ff0000000000000000000000000000000000000000, // solhint-disable-line max-line-length
+                    conduitController
                 )
             )
-        );
+
+            // Place the conduit key in the next region of scratch space.
+            mstore(0x20, conduitKey)
+
+            // Place conduit creation code hash in free memory pointer location.
+            mstore(0x40, conduitCreationCodeHash)
+
+            // Derive conduit by hashing and applying a mask over last 20 bytes.
+            conduit := and(
+                keccak256(0x0b, 0x55), // Hash the relevant region.
+                0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff // solhint-disable-line max-line-length
+            )
+
+            // Restore the free memory pointer.
+            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
+        }
     }
 }

@@ -370,24 +370,13 @@ interface ConsiderationInterface {
     function getNonce(address offerer) external view returns (uint256);
 
     /**
-     * @notice Retrieve the name of this contract.
+     * @notice Retrieve configuration information for this contract.
      *
-     * @return The name of this contract.
+     * @return domainSeparator   The domain separator for this contract.
+     * @return conduitController The conduit Controller set for this contract.
      */
-    function name() external view returns (string memory);
-
-    /**
-     * @notice Retrieve the version of this contract.
-     *
-     * @return The version of this contract.
-     */
-    function version() external view returns (string memory);
-
-    /**
-     * @notice Retrieve the domain separator, used for signing and verifying
-     * signed orders via EIP-712.
-     *
-     * @return The domain separator.
-     */
-    function DOMAIN_SEPARATOR() external view returns (bytes32);
+    function information()
+        external
+        view
+        returns (bytes32 domainSeparator, address conduitController);
 }

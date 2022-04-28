@@ -891,33 +891,18 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
-     * @notice Retrieve the domain separator, used for signing and verifying
-     * signed orders via EIP-712.
+     * @notice Retrieve configuration information for this contract.
      *
-     * @return The domain separator.
+     * @return domainSeparator   The domain separator for this contract.
+     * @return conduitController The conduit Controller set for this contract.
      */
-    function DOMAIN_SEPARATOR() external view override returns (bytes32) {
-        // Get domain separator, either precomputed or derived based on chainId.
-        return _domainSeparator();
-    }
-
-    /**
-     * @notice Retrieve the name of this contract.
-     *
-     * @return The name of this contract.
-     */
-    function name() external pure override returns (string memory) {
-        // Return the name of the contract.
-        return _NAME;
-    }
-
-    /**
-     * @notice Retrieve the version of this contract.
-     *
-     * @return The version of this contract.
-     */
-    function version() external pure override returns (string memory) {
-        // Return the version.
-        return _VERSION;
+    function information()
+        external
+        view
+        override
+        returns (bytes32 domainSeparator, address conduitController)
+    {
+        domainSeparator = _domainSeparator();
+        conduitController = address(_CONDUIT_CONTROLLER);
     }
 }

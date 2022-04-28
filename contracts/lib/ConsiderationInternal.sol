@@ -2430,22 +2430,42 @@ contract ConsiderationInternal is ConsiderationInternalView {
             // Ensure that a contract is deployed to the token address.
             _assertContractIsDeployed(token);
         } else {
+            uint256 totalTokenIds = tokenIds.length;
+            uint256 tokenWords = totalTokenIds * 32;
+            bytes memory callData = new bytes(388 + 64 * totalTokenIds);
+            bytes4 selector = ConduitInterface.executeWithBatch1155.selector;
+            assembly {
+                mstore(add(callData, 0x20), selector)
+                mstore(add(callData, 0x24), 0x40)
+                mstore(add(callData, 0x44), 0x60)
+                mstore(add(callData, 0x64), 0)
+                mstore(add(callData, 0x84), 1)
+                mstore(add(callData, 0xa4), 0x20)
+                mstore(add(callData, 0xc4), token)
+                mstore(add(callData, 0xe4), from)
+                mstore(add(callData, 0x104), to)
+                mstore(add(callData, 0x124), 0xa0)
+                mstore(add(callData, 0x144), add(0xc0, tokenWords))
+                mstore(add(callData, 0x164), totalTokenIds)
+                mstore(add(callData, add(0x184, tokenWords)), totalTokenIds)
+                for {
+                    let i := 0
+                } lt(i, tokenWords) {
+                    i := add(i, 0x20)
+                } {
+                    mstore(
+                        add(callData, add(0x184, i)),
+                        mload(add(add(0x20, tokenIds), i))
+                    )
+                    mstore(
+                        add(callData, add(0x1e4, i)),
+                        mload(add(add(0x20, amounts), i))
+                    )
+                }
+            }
+
             // Perform the call to the conduit.
-            _callConduit(
-                conduitKey,
-                abi.encodeWithSelector(
-                    ConduitInterface.executeWithBatch1155.selector,
-                    uint256(0x40), // array offset one
-                    uint256(0x60), // array offset two
-                    uint256(0), // no standard transfers
-                    uint256(1), // one batch transfer
-                    token,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts
-                )
-            );
+            _callConduit(conduitKey, callData);
         }
     }
 
