@@ -113,15 +113,13 @@ contract ConsiderationTest is DSTestPlusPlus {
         );
         bytes32 orderHash = consider.getOrderHash(orderComponents);
 
+        (bytes32 domainSeparator, ) = consider.information();
+
         //accountA is pk 1.
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             1,
             keccak256(
-                abi.encodePacked(
-                    bytes2(0x1901),
-                    consider.DOMAIN_SEPARATOR(),
-                    orderHash
-                )
+                abi.encodePacked(bytes2(0x1901), domainSeparator, orderHash)
             )
         );
 
