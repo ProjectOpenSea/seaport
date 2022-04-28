@@ -264,3 +264,17 @@ struct Batch {
     bytes32 hash;
     uint256[] executionIndices;
 }
+
+struct OrderToHash {
+    address offerer;
+    address zone;
+    bytes32 offerHashes;
+    bytes32 considerationHashes;
+    OrderType orderType;
+    uint256 startTime;
+    uint256 endTime;
+    bytes32 zoneHash;
+    uint256 salt;
+    address conduit;
+    uint256 nonce;
+}
