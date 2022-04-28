@@ -26,9 +26,9 @@ interface IAuthenticatedProxy {
 interface IProxyRegistry {
     function delegateProxyImplementation() external returns(address);
     function proxies(address) external returns(address);
-    function pending(address) external returns(uint);
+    function pending(address) external returns(uint256);
     function contracts(address) external returns(bool);
-    function DELAY_PERIOD() external returns(uint);
+    function DELAY_PERIOD() external returns(uint256);
     function startGrantAuthentication(address) external;
     function endGrantAuthentication(address) external;
     function revokeAuthentication(address) external;
@@ -46,7 +46,8 @@ interface ITokenTransferProxy {
 }
 
 interface FuzzyTests {
-    function testBasicOrder(bytes32) external;
+    function testValidate(bytes32) external;
+    function testFulfillBasicOrder(bytes32) external;
 }
 
 contract Echidna is FuzzyTests {
@@ -76,14 +77,15 @@ contract Echidna is FuzzyTests {
         _erc1155 = new TestERC1155();
     }
 
-    function testBasicOrder(bytes32 seed) public override {
+    function testValidate(bytes32 seed) public override {
         address payable seller = payable(address(this));
-        uint256 nftId = uint(seed) % 10**6;
+        uint256 nftId = uint256(seed) % 10**6;
         _erc721.mint(address(this), nftId);
+        _erc721.approve(address(_opensea), nftId);
         uint256 sellForMax = uint256(seed);
         uint256 sellForMin = uint256(seed) / 2;
 
-        OfferItem[] memory offer;
+        OfferItem[] memory offer = new OfferItem[](1);
         offer[0] = OfferItem({
             itemType: ItemType.ERC721,
             token: address(_erc721),
@@ -92,7 +94,7 @@ contract Echidna is FuzzyTests {
             endAmount: uint256(1)
         });
 
-        ConsiderationItem[] memory consideration;
+        ConsiderationItem[] memory consideration = new ConsiderationItem[](1);
         consideration[0] = ConsiderationItem({
             itemType: ItemType.ERC20,
             token: address(_erc20),
@@ -101,7 +103,6 @@ contract Echidna is FuzzyTests {
             endAmount: sellForMin,
             recipient: seller
         });
-
         OrderParameters memory orderParams =
             OrderParameters({
                 offerer: seller,
@@ -116,15 +117,42 @@ contract Echidna is FuzzyTests {
                 conduit: address(0),
                 totalOriginalConsiderationItems: uint256(1) // ???
             });
-
-        Order[] memory orders;
+        Order[] memory orders = new Order[](1);
         orders[0] = Order({
             parameters: orderParams,
             signature: abi.encodePacked(bytes32(0))
         });
-
         _opensea.validate(orders);
-        require(true, "Oh no"); // TODO: add real validation
+        // assert(false); // the test should fail if we uncomment this line
+    }
+
+    function testFulfillBasicOrder(bytes32 seed) public override {
+        testValidate(seed);
+        uint256 nftId = uint256(seed) % 10**6;
+        uint256 sellForMax = uint256(seed);
+        AdditionalRecipient[] memory recipients = new AdditionalRecipient[](1);
+        BasicOrderParameters memory basicOrderParams = BasicOrderParameters({
+            considerationToken: address(_erc20),
+            considerationIdentifier: uint256(0),
+            considerationAmount: sellForMax,
+            offerer: payable(address(this)),
+            zone: address(0),
+            offerToken: address(_erc721),
+            offerIdentifier: nftId,
+            offerAmount: uint256(1),
+            basicOrderType: BasicOrderType.ERC721_TO_ERC20_FULL_OPEN,
+            startTime: uint256(block.timestamp),
+            endTime: uint256(block.timestamp + (60 * 60)),
+            zoneHash: bytes32(0),
+            salt: uint256(seed),
+            offererConduit: address(0),
+            fulfillerConduit: address(0),
+            totalOriginalAdditionalRecipients: uint256(1),
+            additionalRecipients: recipients,
+            signature: abi.encodePacked(bytes32(0))
+        });
+        _opensea.fulfillBasicOrder(basicOrderParams);
+        // assert(false); // the test should fail if we uncomment this line
     }
 
 }

@@ -1,8 +1,8 @@
 _lets go
 
 # Observations
-- checking the proxy implementation doesn't actually ensure anything, save gas by skipping that step? BUT WAIT if the proxy implementation code hash 
 - re ConsiderationInternal#2119: if zero space in memory is allocated for return data during an assembly call, then how will subsequent returndatasize and returndatacopy opcodes behave?
+- checking the proxy implementation doesn't actually ensure anything, save gas by skipping that step? BUT WAIT if the proxy implementation code hash is being verified then this prob does provide useful guarantees
 - Can stale orders be invalidated by the user? YES by calling incrementNonce()
 
 # Validate Trace
