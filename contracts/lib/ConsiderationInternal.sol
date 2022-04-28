@@ -304,7 +304,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderHash = keccak256(abi.encode(orderToHash));
 
             // Emit Event
-             emit OrderFulfilled(
+            emit OrderFulfilled(
                 orderHash,
                 parameters.offerer,
                 parameters.zone,
