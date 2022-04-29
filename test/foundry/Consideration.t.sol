@@ -28,6 +28,9 @@ contract ConsiderationTest is BaseOrderTest {
     address test721Address;
     TestERC721 test721;
 
+    address test1155Address;
+    TestERC1155 test1155;
+
     function setUp() public override {
         _deployLegacyContracts();
         conduitControllerAddress = address(new ConduitController());
@@ -50,6 +53,10 @@ contract ConsiderationTest is BaseOrderTest {
         test721Address = address(new TestERC721());
         test721 = TestERC721(test721Address);
 
+        //deploy a test 1155
+        test1155Address = address(new TestERC1155());
+        test1155 = TestERC1155(test1155Address);
+
         accountA = vm.addr(1);
         accountB = vm.addr(2);
         accountC = vm.addr(3);
@@ -60,7 +67,7 @@ contract ConsiderationTest is BaseOrderTest {
         test721.setApprovalForAll(considerAddress, true);
         vm.prank(accountC);
         test721.setApprovalForAll(considerAddress, true);
-        emit log("Accounts A B C have approved consideration.");
+        emit log("Accounts A B C have approved consider.");
 
         vm.label(accountA, "Account A");
     }
@@ -81,30 +88,37 @@ contract ConsiderationTest is BaseOrderTest {
 
         emit log("Basic 721 Offer - Eth Consideration");
 
-        test721_1.mint(alice, _id);
-        emit log_named_address("Minted test721_1 token to", alice);
+        test721.mint(accountA, _id);
+        emit log_named_address("Minted test721 token to", accountA);
 
         OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItem(ItemType.ERC721, address(test721_1), _id, 1, 1);
+        emit log("offer item createde");
+
+        offer[0] = OfferItem(ItemType.ERC721, test721Address, _id, 1, 1);
+        emit log("offer0 set");
 
         ConsiderationItem[] memory considerationItem = new ConsiderationItem[](
             1
         );
+        emit log("Consideration items made");
+
         considerationItem[0] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
             _ethAmount,
             _ethAmount,
-            payable(alice)
+            payable(accountA)
         );
 
+        emit log("getting nonce");
         // getNonce
-        uint256 nonce = consideration.getNonce(alice);
+        uint256 nonce = consider.getNonce(accountA);
 
+        emit log("Getting order hash creation...");
         // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
-            alice,
+            accountA,
             _zone,
             offer,
             considerationItem,
@@ -116,7 +130,7 @@ contract ConsiderationTest is BaseOrderTest {
             bytes32(0), // no conduit
             nonce
         );
-        bytes32 orderHash = consideration.getOrderHash(orderComponents);
+        bytes32 orderHash = consider.getOrderHash(orderComponents);
 
         (bytes32 domainSeparator, ) = consider.information();
 
@@ -128,14 +142,16 @@ contract ConsiderationTest is BaseOrderTest {
             )
         );
 
+        emit log("Creating Basic Order Params to fulfill...");
+
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(0),
             0,
             _ethAmount,
-            payable(alice),
+            payable(accountA),
             _zone,
-            address(test721_1),
+            test721Address,
             _id,
             1,
             BasicOrderType.ETH_TO_ERC721_FULL_OPEN,
@@ -153,11 +169,11 @@ contract ConsiderationTest is BaseOrderTest {
         emit log(">>>>");
 
         // simple
-        consideration.fulfillBasicOrder{ value: _ethAmount }(order);
+        consider.fulfillBasicOrder{ value: _ethAmount }(order);
 
         emit log_named_address(
             "Fulfilled Basic 721 Offer - Eth Consideration",
-            alice
+            accountA
         );
     }
 
@@ -177,12 +193,12 @@ contract ConsiderationTest is BaseOrderTest {
 
         emit log("Basic 1155 Offer - Eth Consideration");
 
-        test1155_1.mint(alice, _id, _tokenAmount);
-        emit log_named_address("Minted test1155_1 token to", alice);
+        test1155.mint(accountA, _id, _tokenAmount);
+        emit log_named_address("Minted test1155 token to", accountA);
 
         OfferItem[] memory offer = singleOfferItem(
             ItemType.ERC1155,
-            address(test1155_1),
+            test1155Address,
             _id,
             _tokenAmount,
             _tokenAmount
@@ -194,15 +210,15 @@ contract ConsiderationTest is BaseOrderTest {
             0,
             _ethAmount,
             _ethAmount,
-            alice
+            accountA
         );
 
         // getNonce
-        uint256 nonce = consideration.getNonce(alice);
+        uint256 nonce = consider.getNonce(accountA);
 
         // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
-            alice,
+            accountA,
             _zone,
             offer,
             considerationItem,
@@ -214,17 +230,17 @@ contract ConsiderationTest is BaseOrderTest {
             bytes32(0), // no conduit
             nonce
         );
-        bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(alicePk, orderHash);
+        bytes32 orderHash = consider.getOrderHash(orderComponents);
+        bytes memory signature = signOrder(1, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(0),
             0,
             _ethAmount,
-            payable(alice),
+            payable(accountA),
             _zone,
-            address(test1155_1),
+            test1155Address,
             _id,
             _tokenAmount,
             BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
@@ -242,11 +258,11 @@ contract ConsiderationTest is BaseOrderTest {
         emit log(">>>>");
 
         // simple
-        consideration.fulfillBasicOrder{ value: _ethAmount }(order);
+        consider.fulfillBasicOrder{ value: _ethAmount }(order);
 
         emit log_named_address(
             "Fulfilled Basic 1155 Offer - Eth Consideration",
-            alice
+            accountA
         );
     }
 
@@ -263,12 +279,12 @@ contract ConsiderationTest is BaseOrderTest {
         vm.assume(_id > globalTokenId || _id == 0);
         emit log("Basic 721 Offer - ERC20 Consideration");
 
-        test721_1.mint(alice, _id);
-        emit log_named_address("Minted test721_1 token to", alice);
+        test721.mint(accountA, _id);
+        emit log_named_address("Minted test721 token to", accountA);
 
         OfferItem[] memory offer = singleOfferItem(
             ItemType.ERC721,
-            address(test721_1),
+            test721Address,
             _id,
             1,
             1
@@ -280,15 +296,15 @@ contract ConsiderationTest is BaseOrderTest {
             0,
             _erc20Amount,
             _erc20Amount,
-            payable(alice)
+            payable(accountA)
         );
 
         // getNonce
-        uint256 nonce = consideration.getNonce(alice);
+        uint256 nonce = consider.getNonce(accountA);
 
         // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
-            alice,
+            accountA,
             _zone,
             offer,
             considerationItem,
@@ -300,17 +316,17 @@ contract ConsiderationTest is BaseOrderTest {
             bytes32(0), // no conduit
             nonce
         );
-        bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(alicePk, orderHash);
+        bytes32 orderHash = consider.getOrderHash(orderComponents);
+        bytes memory signature = signOrder(1, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(token1),
             0,
             _erc20Amount,
-            payable(alice),
+            payable(accountA),
             _zone,
-            address(address(test721_1)),
+            test721Address,
             _id,
             1,
             BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
@@ -328,7 +344,7 @@ contract ConsiderationTest is BaseOrderTest {
         emit log(">>>>");
 
         // simple
-        consideration.fulfillBasicOrder(order);
+        consider.fulfillBasicOrder(order);
 
         emit log("Fulfilled Basic 721 Offer - ERC20 Consideration");
     }
@@ -348,12 +364,12 @@ contract ConsiderationTest is BaseOrderTest {
 
         emit log("Basic 1155 Offer - ERC20 Consideration");
 
-        test1155_1.mint(alice, _id, _tokenAmount);
-        emit log_named_address("Minted test1155_1 token to", alice);
+        test1155.mint(accountA, _id, _tokenAmount);
+        emit log_named_address("Minted test1155 token to", accountA);
 
         OfferItem[] memory offer = singleOfferItem(
             ItemType.ERC1155,
-            address(test1155_1),
+            test1155Address,
             _id,
             _tokenAmount,
             _tokenAmount
@@ -364,15 +380,15 @@ contract ConsiderationTest is BaseOrderTest {
             0,
             _erc20Amount,
             _erc20Amount,
-            payable(alice)
+            payable(accountA)
         );
 
         // getNonce
-        uint256 nonce = consideration.getNonce(alice);
+        uint256 nonce = consider.getNonce(accountA);
 
         // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
-            alice,
+            accountA,
             _zone,
             offer,
             considerationItem,
@@ -385,17 +401,17 @@ contract ConsiderationTest is BaseOrderTest {
             nonce
         );
 
-        bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(alicePk, orderHash);
+        bytes32 orderHash = consider.getOrderHash(orderComponents);
+        bytes memory signature = signOrder(1, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(token1),
             0,
             _erc20Amount,
-            payable(alice),
+            payable(accountA),
             _zone,
-            address(test1155_1),
+            test1155Address,
             _id,
             _tokenAmount,
             BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN,
@@ -413,7 +429,7 @@ contract ConsiderationTest is BaseOrderTest {
         emit log(">>>>");
 
         // simple
-        consideration.fulfillBasicOrder(order);
+        consider.fulfillBasicOrder(order);
 
         emit log("Fulfilled Basic 1155 Offer - ERC20 Consideration");
     }
