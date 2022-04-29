@@ -21,6 +21,9 @@ contract ConsiderationTest is
     Consideration consider;
     address considerAddress;
 
+    Consideration consider;
+    address considerAddress;
+
     ConduitController conduitController;
     address conduitControllerAddress;
 
