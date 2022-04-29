@@ -450,7 +450,10 @@ contract ConsiderationPure is ConsiderationBase {
 
                 // If no matching hash was located, create a new batch element.
                 if (!foundMatchingHash) {
-                    // Reuse existing array & update w/ current execution index.
+                    // Create a new execution indices array.
+                    executionIndices = new uint256[](1);
+
+                    // Set the current execution index as the first element.
                     executionIndices[0] = executionIndex;
 
                     // Set next batch element and increment total unique hashes.
