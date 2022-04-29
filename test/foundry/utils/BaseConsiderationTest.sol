@@ -17,19 +17,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     address internal _wyvernTokenTransferProxy;
     address internal _wyvernDelegateProxyImplementation;
 
-    function setUp() public virtual {
-        _deployLegacyContracts();
-
-        consideration = new Consideration(
-            _wyvernProxyRegistry,
-            _wyvernTokenTransferProxy,
-            _wyvernDelegateProxyImplementation
-        );
-        emit log_named_address(
-            "Deployed Consideration at",
-            address(consideration)
-        );
-    }
+    function setUp() public virtual {}
 
     function singleOfferItem(
         ItemType _itemType,
@@ -71,14 +59,12 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         internal
         returns (bytes memory)
     {
+        (bytes32 domainSeparator, ) = consideration.information();
+
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
             keccak256(
-                abi.encodePacked(
-                    bytes2(0x1901),
-                    consideration.DOMAIN_SEPARATOR(),
-                    _orderHash
-                )
+                abi.encodePacked(bytes2(0x1901), domainSeparator, _orderHash)
             )
         );
         return abi.encodePacked(r, s, v);
@@ -88,7 +74,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     @dev get and deploy precompiled contracts that depend on legacy versions
         of the solidity compiler
      */
-    function _deployLegacyContracts() private {
+    function _deployLegacyContracts() public {
         /// @dev deploy WyvernProxyRegistry from precompiled source
         bytes memory bytecode = vm.getCode(
             "out/WyvernProxyRegistry.sol/WyvernProxyRegistry.json"

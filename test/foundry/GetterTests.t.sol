@@ -5,7 +5,7 @@ pragma solidity 0.8.13;
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
 contract TestGetters is BaseConsiderationTest {
-    function tesGetCorrectName() public {
+    /**function tesGetCorrectName() public {
         assertEq(consideration.name(), "Consideration");
     }
 
@@ -13,12 +13,13 @@ contract TestGetters is BaseConsiderationTest {
         assertEq(consideration.version(), "rc.1");
     }
 
+
     function testGetCorrectDomainSeparator() public {
         bytes memory typeName = abi.encodePacked(
             "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
         );
         bytes32 typeHash = keccak256(typeName);
-        bytes32 nameHash = keccak256(bytes(consideration.name()));
+        /**bytes32 nameHash = keccak256(bytes(consideration.name()));
         bytes32 versionHash = keccak256(bytes(consideration.version()));
         bytes32 considerationSeparator = consideration.DOMAIN_SEPARATOR();
 
@@ -64,4 +65,5 @@ contract TestGetters is BaseConsiderationTest {
             )
         );
     }
+    **/
 }

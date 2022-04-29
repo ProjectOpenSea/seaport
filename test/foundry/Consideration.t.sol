@@ -28,18 +28,22 @@ contract ConsiderationTest is BaseOrderTest {
     address test721Address;
     TestERC721 test721;
 
-    function setUp() public {
+    function setUp() public override {
+        _deployLegacyContracts();
         conduitControllerAddress = address(new ConduitController());
         conduitController = ConduitController(conduitControllerAddress);
 
         considerAddress = address(
             new Consideration(
                 conduitControllerAddress,
-                address(0),
-                address(0),
-                address(0)
+                _wyvernProxyRegistry,
+                _wyvernTokenTransferProxy,
+                _wyvernDelegateProxyImplementation
             )
         );
+
+        emit log_named_address("Deployed Consideration at", considerAddress);
+
         consider = Consideration(considerAddress);
 
         //deploy a test 721
@@ -109,7 +113,7 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
+            bytes32(0), // no conduit
             nonce
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
@@ -139,8 +143,8 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
-            address(0), // no conduit
+            bytes32(0), // no conduit
+            bytes32(0), // no conduit
             0,
             new AdditionalRecipient[](0),
             abi.encodePacked(r, s, v)
@@ -228,8 +232,8 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
-            address(0), // no conduit
+            bytes32(0), // no conduit
+            bytes32(0), // no conduit
             0,
             new AdditionalRecipient[](0),
             signature
@@ -293,7 +297,7 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
+            bytes32(0), // no conduit
             nonce
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
@@ -314,8 +318,8 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
-            address(0), // no conduit
+            bytes32(0), // no conduit
+            bytes32(0), // no conduit
             0,
             new AdditionalRecipient[](0),
             signature
@@ -377,7 +381,7 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
+            bytes32(0), // no conduit
             nonce
         );
 
