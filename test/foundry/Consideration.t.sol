@@ -26,17 +26,18 @@ contract ConsiderationTest is BaseOrderTest {
         // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
         vm.assume(_ethAmount > 0);
         // don't try to mint IDs that already exist
-        vm.assume(_id > globalTokenId || _id == 0);
+        vm.assume(_id > globalTokenId);
 
         emit log("Basic 721 Offer - Eth Consideration");
 
-        test721_1.mint(alice, _id);
-        emit log_named_address("Minted test721_1 token to", alice);
+        test721.mint(alice, _id);
+        emit log_named_address("Minted test721 token to", alice);
+
         ConduitController conduitController;
         address conduitControllerAddress;
 
         OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItem(ItemType.ERC721, address(test721_1), _id, 1, 1);
+        offer[0] = OfferItem(ItemType.ERC721, test721Address, _id, 1, 1);
 
         ConsiderationItem[] memory considerationItem = new ConsiderationItem[](
             1
@@ -49,10 +50,11 @@ contract ConsiderationTest is BaseOrderTest {
             _ethAmount,
             payable(alice)
         );
-
+        emit log("getting nonce");
         // getNonce
         uint256 nonce = consideration.getNonce(alice);
 
+        emit log("setting up order comps");
         // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
             alice,
@@ -67,9 +69,14 @@ contract ConsiderationTest is BaseOrderTest {
             bytes32(0), // no conduit
             nonce
         );
+
+        emit log("created order comps");
+
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
+        emit log("signing...");
         bytes memory signature = signOrder(alicePk, orderHash);
 
+        emit log("creating Order params");
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(0),
@@ -77,7 +84,7 @@ contract ConsiderationTest is BaseOrderTest {
             _ethAmount,
             payable(alice),
             _zone,
-            address(test721_1),
+            test721Address,
             _id,
             1,
             BasicOrderType.ETH_TO_ERC721_FULL_OPEN,
@@ -208,9 +215,11 @@ contract ConsiderationTest is BaseOrderTest {
         test721_1.mint(alice, _id);
         emit log_named_address("Minted test721_1 token to", alice);
 
+        emit log("test 721 minted success");
+
         OfferItem[] memory offer = singleOfferItem(
             ItemType.ERC721,
-            address(test721_1),
+            test721Address,
             _id,
             1,
             1
@@ -252,7 +261,7 @@ contract ConsiderationTest is BaseOrderTest {
             _erc20Amount,
             payable(alice),
             _zone,
-            address(address(test721_1)),
+            test721Address,
             _id,
             1,
             BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,

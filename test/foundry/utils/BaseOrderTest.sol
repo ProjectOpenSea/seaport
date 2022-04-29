@@ -31,6 +31,8 @@ contract BaseOrderTest is
     TestERC20 internal token2;
     TestERC20 internal token3;
 
+    address internal test721Address;
+    TestERC721 internal test721;
     TestERC721 internal test721_1;
     TestERC721 internal test721_2;
     TestERC721 internal test721_3;
@@ -61,6 +63,9 @@ contract BaseOrderTest is
         token2 = new TestERC20();
         token3 = new TestERC20();
         test721_1 = new TestERC721();
+        //deploy a test 721
+        test721Address = address(new TestERC721());
+        test721 = TestERC721(test721Address);
         test721_2 = new TestERC721();
         test721_3 = new TestERC721();
         test1155_1 = new TestERC1155();
@@ -70,7 +75,7 @@ contract BaseOrderTest is
     }
 
     /**
-    @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s 
+    @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s
     */
     function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
