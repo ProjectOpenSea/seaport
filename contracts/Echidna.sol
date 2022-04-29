@@ -57,6 +57,7 @@ interface FuzzyTests {
     function testIncrementNonce(bytes32 seed) external;
 }
 
+// echidna-test-2.0 . --contract Echidna --config ./contracts/e2e.yaml
 contract Echidna is FuzzyTests {
 
     IAuthenticatedProxy private _proxyImplementation = IAuthenticatedProxy(
