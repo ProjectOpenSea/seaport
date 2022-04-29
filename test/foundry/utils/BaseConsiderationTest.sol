@@ -9,6 +9,7 @@ import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } f
 
 import { DSTestPlusPlus } from "./DSTestPlusPlus.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
+import { ProxyRegistry } from "../interfaces/proxyRegistry.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DSTestPlusPlus {
