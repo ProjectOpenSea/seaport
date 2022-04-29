@@ -116,19 +116,30 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Declare additional recipient item type to derive from the route type.
         ItemType additionalRecipientsItemType;
 
-        // Get orderType
-        orderType = OrderType(uint8(parameters.basicOrderType) % 4);
-        // Divide basicOrderType by four to derive the route.
-        route = BasicOrderRouteType(uint8(parameters.basicOrderType) / 4);
-        // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
-        additionalRecipientsItemType = uint8(route) > 1
-            ? ItemType(1)
-            : ItemType(0);
+        // Utilize assembly to extract the order type and the basic order route.
+        assembly {
+            // Mask all but 2 least-significant bits to derive the order type.
+            orderType := and(calldataload(0x124), 3)
+
+            // Divide basicOrderType by four to derive the route.
+            route := div(calldataload(0x124), 4)
+
+            // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
+            additionalRecipientsItemType := gt(route, 1)
+        }
 
         {
             // Declare temporary variable for enforcing payable status.
-            bool correctPayableStatus = uint8(additionalRecipientsItemType) !=
-                (msg.value > 0 ? 1 : 0);
+            bool correctPayableStatus;
+
+            // Utilize assembly to compare the route to the callvalue.
+            assembly {
+                // route 0 and 1 are payable, otherwise route is not payable.
+                correctPayableStatus := eq(
+                    additionalRecipientsItemType,
+                    iszero(callvalue())
+                )
+            }
 
             // Revert if msg.value has not been supplied as part of payable
             // routes or has been supplied as part of non-payable routes.
@@ -138,32 +149,36 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         }
 
         // Declare more arguments that will be derived from route and calldata.
+        address additionalRecipientsToken;
         ItemType receivedItemType;
         ItemType offeredItemType;
-        uint8 routeAsInt = uint8(route);
 
-        // If route > 3 additionalRecipientsToken is offerToken
-        // else considerationToken
-        address additionalRecipientsToken = (routeAsInt > 3)
-            ? parameters.offerToken
-            : parameters.considerationToken;
+        // Utilize assembly to retrieve function arguments and cast types.
+        assembly {
+            // Determine if offered item type == additional recipient item type.
+            let offerTypeIsAdditionalRecipientsType := gt(route, 3)
 
-        // receivedItemType Logic
-        // If route > 2, receivedItemType is route - 2. If route is 2, then
-        // receivedItemType is ERC20 (1). Otherwise, it is Eth (0).
+            // If route > 3 additionalRecipientsToken is at 0xc4 else 0x24
+            additionalRecipientsToken := calldataload(
+                add(0x24, mul(0xa0, offerTypeIsAdditionalRecipientsType))
+            )
 
-        // offeredItemType Logic
-        // If route > 3, offeredItemType is ERC20 (1). If route is 2 or 3,
-        // offeredItemType = route. If route is 0 or 1, it is route + 2.
-        if (routeAsInt > 3) {
-            offeredItemType = ItemType(1);
-            receivedItemType = ItemType(routeAsInt - 2);
-        } else if (routeAsInt == 2 || routeAsInt == 3) {
-            offeredItemType = ItemType(routeAsInt);
-            receivedItemType = ItemType(1);
-        } else {
-            offeredItemType = ItemType(routeAsInt + 2);
-            receivedItemType = ItemType(0);
+            // If route > 2, receivedItemType is route - 2. If route is 2, then
+            // receivedItemType is ERC20 (1). Otherwise, it is Eth (0).
+            receivedItemType := add(
+                mul(sub(route, 2), gt(route, 2)),
+                eq(route, 2)
+            )
+
+            // If route > 3, offeredItemType is ERC20 (1). If route is 2 or 3,
+            // offeredItemType = route. If route is 0 or 1, it is route + 2.
+            offeredItemType := sub(
+                add(route, mul(iszero(additionalRecipientsItemType), 2)),
+                mul(
+                    offerTypeIsAdditionalRecipientsType,
+                    add(receivedItemType, 1)
+                )
+            )
         }
 
         // Derive & validate order using parameters and update order status.
