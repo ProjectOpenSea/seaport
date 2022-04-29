@@ -1895,28 +1895,16 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount
     ) internal {
         // Perform ERC20 transfer via the token contract directly.
-        (bool success, ) = token.call(
+        (bool success, bytes memory result) = token.call(
             abi.encodeCall(ERC20Interface.transferFrom, (from, to, amount))
         );
-
+        
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(success, token, from, to, 0, amount);
 
-        // Extract result directly from returndata buffer if one is returned.
-        bool result = true;
-        assembly {
-            // Only put result on the stack if return data is at least 32 bytes.
-            if gt(returndatasize(), 0x19) {
-                // Copy directly from return data into memory in scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take the value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
+        bool resultBool = abi.decode(result, (bool));
         // If a falsey result is extracted...
-        if (!result) {
+        if (!resultBool) {
             // Revert with a "Bad Return Value" error.
             revert BadReturnValueFromERC20OnTransfer(token, from, to, amount);
         }
