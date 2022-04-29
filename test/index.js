@@ -11854,6 +11854,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
       expect(isOpen).to.be.true;
 
+      // No-op
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, marketplaceContract.address, true);
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.true;
+
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
           .connect(owner)
@@ -11924,6 +11937,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           conduitOne.connect(seller).executeWithBatch1155(
             [
+              {
+                itemType: 1, // ERC20
+                token: testERC20.address,
+                from: buyer.address,
+                to: seller.address,
+                identifier: 0,
+                amount: 0,
+              },
               {
                 itemType: 0, // NATIVE (invalid)
                 token: ethers.constants.AddressZero,
@@ -16480,6 +16501,138 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(1);
         expect(orderStatus.totalSize).to.equal(1);
       });
+      it("Reverts when providing non-existent conduit", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount.mul(10000));
+
+        // Seller approves conduit contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(conduitOne.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, conduitOne.address, true);
+        });
+
+        // Buyer mints ERC20
+        const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+        await testERC20.mint(buyer.address, tokenAmount);
+
+        // Buyer approves conduit contract to transfer tokens
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            testERC20.connect(buyer).approve(conduitOne.address, tokenAmount)
+          )
+            .to.emit(testERC20, "Approval")
+            .withArgs(buyer.address, conduitOne.address, tokenAmount);
+        });
+
+        // Seller approves conduit contract to transfer tokens
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC20.connect(seller).approve(conduitOne.address, tokenAmount)
+          )
+            .to.emit(testERC20, "Approval")
+            .withArgs(seller.address, conduitOne.address, tokenAmount);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(1000),
+            endAmount: amount.mul(1000),
+            recipient: seller.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+            recipient: zone.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(20),
+            endAmount: amount.mul(20),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
+        );
+
+        const badKey = ethers.constants.HashZero.slice(0, -1) + "2";
+
+        const missingConduit = await conduitController.getConduit(badKey);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], badKey, { value })
+          ).to.be.revertedWith("InvalidConduit", badKey, missingConduit);
+        });
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, [], async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], conduitKeyOne, { value });
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: buyer.address }],
+              null,
+              null,
+              []
+            );
+            return receipt;
+          });
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(true);
+        expect(orderStatus.totalFilled).to.equal(1);
+        expect(orderStatus.totalSize).to.equal(1);
+      });
       it("Reverts when 1155 batch tokens are not approved", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -16870,6 +17023,64 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillAdvancedOrder(order, [], toKey(false), { value })
+          ).to.be.revertedWith(
+            `TokenTransferGenericFailure("${marketplaceContract.address}", "${
+              buyer.address
+            }", "${seller.address}", 0, ${amount.toString()})`
+          );
+        });
+      });
+      it("Reverts when non-token account is supplied as the token fulfilled via conduit", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount,
+            endAmount: amount,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 1, // ERC20
+            token: marketplaceContract.address,
+            identifierOrCriteria: 0,
+            startAmount: amount,
+            endAmount: amount,
+            recipient: seller.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], conduitKeyOne, { value })
           ).to.be.revertedWith(
             `TokenTransferGenericFailure("${marketplaceContract.address}", "${
               buyer.address
