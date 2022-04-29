@@ -1,8 +1,8 @@
 const utils = require("./utils").module;
 
 const log = utils.log;
+const logEvents = utils.logEvents;
 const eth = utils.eth;
-const provider = utils.provider;
 const wallets = utils.wallets;
 
 const deployments = {
@@ -20,6 +20,14 @@ for (const key of Object.keys(utils || {})) {
   global[key] = utils[key];
 }
 
+// Add all ethers utils & constants to the global scope for easy access
+Object.keys(eth.utils || {}).forEach((key) => {
+  global[key] = eth.utils[key];
+});
+Object.keys(eth.constants || {}).forEach((key) => {
+  global[key] = eth.constants[key];
+});
+
 // Save deployments to global scope
 for (const key of Object.keys(deployments || {})) {
   console.log(`Loading deployed ${key} contract`);
@@ -31,9 +39,16 @@ for (const key of Object.keys(deployments || {})) {
   );
 }
 
+global.fulfillBasicOrder = () => {};
+global.fulfillOrder = () => {};
+global.fulfillAdvancedOrder = () => {};
+global.fulfillAvailableAdvancedOrders = () => {};
+global.matchOrders = () => {};
+global.matchAdvancedOrders = () => {};
+global.cancel = () => {};
+
 // Only one offer & consideration supported (for now)
-global.validateOrder = (order, signerOverride) => {
-  const signer = signerOverride || wallets[0];
+global.validateOrder = (order, signer = wallets[0]) => {
   const parameters = order?.parameters || {};
   const offer = {
     itemType: 2, // ERC271
@@ -69,27 +84,22 @@ global.validateOrder = (order, signerOverride) => {
     },
     signature: order?.signature || eth.constants.HashZero,
   };
-  const Consideration = global.Consideration.connect(signer);
   log(`Validating order: ${JSON.stringify(fullOrder, null, 2)}`);
-  Consideration.validate([fullOrder]).then((tx) => {
-    log(``);
-    // Save the hash to the global scope to make it easier to investigate after
-    global.hash = tx.hash;
-    // Print formatted events
-    provider.getTransactionReceipt(tx.hash).then((receipt) => {
-      const iface = new eth.utils.Interface(deployments.Consideration.abi);
-      log(`Events Emitted:`);
-      receipt.logs.forEach((txLog) => {
-        const evt = iface.parseLog(txLog);
-        log(``);
-        log(`${evt.signature}`);
-        evt.args.forEach((arg, i) => {
-          log(
-            `- ${evt.eventFragment.inputs[i].name} [${evt.eventFragment.inputs[i].type}]: ${arg}`
-          );
-        });
-      });
-      log(``);
+  global.Consideration.connect(signer)
+    .validate([fullOrder])
+    .then((tx) => {
+      // Save the hash to the global scope to make it easier to investigate after
+      global.hash = tx.hash;
+      // Print formatted events
+      logEvents(tx.hash, deployments.Consideration.abi);
     });
-  });
+};
+
+global.incrementNonce = (signer = wallets[0]) => {
+  global.Consideration.connect(signer)
+    .incrementNonce()
+    .then((tx) => {
+      global.hash = tx.hash;
+      logEvents(tx.hash, deployments.Consideration.abi);
+    });
 };

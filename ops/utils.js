@@ -14,7 +14,9 @@ const provider = new eth.providers.JsonRpcProvider(env.ethProviderUrl);
 
 const log = (msg) => {
   const prefix = `\n`;
-  if (typeof msg === "string") {
+  if (msg === null || msg === undefined) {
+    console.log(msg);
+  } else if (typeof msg === "string") {
     console.log(msg);
   } else if (typeof msg === "object") {
     if (msg._isBigNumber) {
@@ -23,6 +25,26 @@ const log = (msg) => {
       console.log(prefix + JSON.stringify(msg, undefined, 2));
     }
   }
+};
+
+const logEvents = (hash, abi) => {
+  provider.getTransactionReceipt(hash).then((receipt) => {
+    if (!receipt) log(`No receipt is available for ${hash}`);
+    const iface = new eth.utils.Interface(abi);
+    log(``);
+    log(`Events Emitted:`);
+    receipt.logs.forEach((txLog) => {
+      const evt = iface.parseLog(txLog);
+      log(``);
+      log(`${evt.signature}`);
+      evt.args.forEach((arg, i) => {
+        log(
+          ` - ${evt.eventFragment.inputs[i].name} [${evt.eventFragment.inputs[i].type}]: ${arg}`
+        );
+      });
+    });
+    log(``);
+  });
 };
 
 const hdNode = eth.utils.HDNode.fromMnemonic(env.mnemonic).derivePath(
@@ -62,9 +84,10 @@ const traceTx = (txHash, filename) => {
 };
 
 exports.module = {
-  BN: eth.BigNumber.from,
+  toBN: eth.BigNumber.from,
   eth: eth,
   log: log,
+  logEvents: logEvents,
   provider: provider,
   wallets: wallets,
   traceStorage: traceStorage,
