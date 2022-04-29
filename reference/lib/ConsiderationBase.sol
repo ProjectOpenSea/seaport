@@ -9,6 +9,11 @@ import {
 
 // prettier-ignore
 import {
+    ConduitControllerInterface
+} from "../interfaces/ConduitControllerInterface.sol";
+
+// prettier-ignore
+import {
     ConsiderationEventsAndErrors
 } from "../interfaces/ConsiderationEventsAndErrors.sol";
 
@@ -37,6 +42,9 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
+    // Allow for interaction with the conduit controller.
+    ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
+
     // Allow for interaction with user proxies on the legacy proxy registry.
     ProxyRegistryInterface internal immutable _LEGACY_PROXY_REGISTRY;
 
@@ -45,6 +53,9 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
 
     // Ensure that user proxies adhere to the required proxy implementation.
     address internal immutable _REQUIRED_PROXY_IMPLEMENTATION;
+
+    // Cache the conduit creation code hash used by the conduit controller.
+    bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
 
     // Prevent reentrant calls on protected functions.
     uint256 internal _reentrancyGuard;
@@ -59,6 +70,10 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
+     * @param conduitController           A contract that deploys conduits, or
+     *                                    proxies that may optionally be used to
+     *                                    transfer approved ERC20+721+1155
+     *                                    tokens.
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC721+1155 tokens.
@@ -69,6 +84,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      *                                    each proxy in order to utilize it.
      */
     constructor(
+        address conduitController,
         address legacyProxyRegistry,
         address legacyTokenTransferProxy,
         address requiredProxyImplementation
@@ -110,7 +126,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
                 "uint256 endTime,",
                 "bytes32 zoneHash,",
                 "uint256 salt,",
-                "address conduit,",
+                "bytes32 conduitKey,",
                 "uint256 nonce",
             ")"
         );
@@ -137,6 +153,12 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         );
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator();
+
+        _CONDUIT_CONTROLLER = ConduitControllerInterface(conduitController);
+
+        (_CONDUIT_CREATION_CODE_HASH, ) = (
+            _CONDUIT_CONTROLLER.getConduitCodeHashes()
+        );
 
         _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
         _LEGACY_TOKEN_TRANSFER_PROXY = TokenTransferProxyInterface(

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { Side } from "./ConsiderationEnums.sol";
-
 // prettier-ignore
 import {
     ERC20Interface,
@@ -10,9 +8,11 @@ import {
     ERC1155Interface
 } from "../interfaces/AbridgedTokenInterfaces.sol";
 
+import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+
 import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
 
-import { OrderType, ItemType } from "./ConsiderationEnums.sol";
+import { Side, OrderType, ItemType } from "./ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -48,6 +48,10 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
+     * @param conduitController           A contract that deploys conduits, or
+     *                                    proxies that may optionally be used to
+     *                                    transfer approved ERC20+721+1155
+     *                                    tokens.
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC721+1155 tokens.
@@ -58,11 +62,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                                    each proxy in order to utilize it.
      */
     constructor(
+        address conduitController,
         address legacyProxyRegistry,
         address legacyTokenTransferProxy,
         address requiredProxyImplementation
     )
         ConsiderationInternalView(
+            conduitController,
             legacyProxyRegistry,
             legacyTokenTransferProxy,
             requiredProxyImplementation
@@ -532,7 +538,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
              *   - 0x160:  orderParameters.endTime
              *   - 0x180:  orderParameters.zoneHash
              *   - 0x1a0:  orderParameters.salt
-             *   - 0x1c0:  orderParameters.conduit
+             *   - 0x1c0:  orderParameters.conduitKey
              *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
              */
 
@@ -893,30 +899,32 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      prices based on current time, apply criteria resolvers, determine
      *      what portion to fill, and transfer relevant tokens.
      *
-     * @param advancedOrder     The order to fulfill as well as the fraction to
-     *                          fill. Note that all offer and consideration
-     *                          components must divide with no remainder in
-     *                          order for the partial fill to be valid.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the order's merkle
-     *                          root. Note that a criteria of zero indicates
-     *                          that any (transferrable) token identifier is
-     *                          valid and that no proof needs to be supplied.
-     * @param fulfillerConduit  An address indicating what conduit, if any, to
-     *                          source the fulfiller's token approvals from. The
-     *                          null address signifies that no conduit should be
-     *                          used (and direct approvals set on Consideration)
-     *                          and `address(1)` signifies to utilize the legacy
-     *                          user proxy for the fulfiller.
+     * @param advancedOrder       The order to fulfill as well as the fraction
+     *                            to fill. Note that all offer and consideration
+     *                            components must divide with no remainder for
+     *                            the partial fill to be valid.
+     * @param criteriaResolvers   An array where each element contains a
+     *                            reference to a specific offer or
+     *                            consideration, a token identifier, and a proof
+     *                            that the supplied token identifier is
+     *                            contained in the order's merkle root. Note
+     *                            that a criteria of zero indicates that any
+     *                            (transferrable) token identifier is valid and
+     *                            that no proof needs to be supplied.
+     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
+     *                            any, to source the fulfiller's token approvals
+     *                            from. The zero hash signifies that no conduit
+     *                            should be used (and direct approvals set on
+     *                            Consideration) and `bytes32(uint256(1)))`
+     *                            signifies to utilize the legacy user proxy for
+     *                            the fulfiller.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function _validateAndFulfillAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
-        address fulfillerConduit
+        bytes32 fulfillerConduitKey
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -950,8 +958,8 @@ contract ConsiderationInternal is ConsiderationInternalView {
             orderParameters,
             fillNumerator,
             fillDenominator,
-            orderParameters.conduit,
-            fulfillerConduit
+            orderParameters.conduitKey,
+            fulfillerConduitKey
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -975,29 +983,31 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *      order fulfillment after applying a respective fraction to the amount
      *      being transferred.
      *
-     * @param orderParameters  The parameters for the fulfilled order.
-     * @param numerator        A value indicating the portion of the order that
-     *                         should be filled.
-     * @param denominator      A value indicating the total size of the order.
-     * @param offererConduit   An address indicating what conduit, if any, to
-     *                         source the offerer's token approvals from. The
-     *                         null address signifies that no conduit should be
-     *                         used (and direct approvals set on Consideration)
-     *                         and `address(1)` signifies to utilize the legacy
-     *                         user proxy for the offerer.
-     * @param fulfillerConduit An address indicating what conduit, if any, to
-     *                         source the fulfiller's token approvals from. The
-     *                         null address signifies that no conduit should be
-     *                         used (and direct approvals set on Consideration)
-     *                         and `address(1)` signifies to utilize the legacy
-     *                         user proxy for the fulfiller.
+     * @param orderParameters     The parameters for the fulfilled order.
+     * @param numerator           A value indicating the portion of the order
+     *                            that should be filled.
+     * @param denominator         A value indicating the total order size.
+     * @param offererConduitKey   An address indicating what conduit, if any, to
+     *                            source the offerer's token approvals from. The
+     *                            zero hash signifies that no conduit should be
+     *                            used (and direct approvals set on
+     *                            Consideration) and `bytes32(uint256(1)))`
+     *                            signifies to utilize the legacy user proxy for
+     *                            the offerer.
+     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
+     *                            any, to source the fulfiller's token approvals
+     *                            from. The zero hash signifies that no conduit
+     *                            should be used (and direct approvals set on
+     *                            Consideration) and `bytes32(uint256(1)))`
+     *                            signifies to utilize the legacy user proxy for
+     *                            the fulfiller.
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
-        address offererConduit,
-        address fulfillerConduit
+        bytes32 offererConduitKey,
+        bytes32 fulfillerConduitKey
     ) internal {
         // Derive order duration, time elapsed, and time remaining.
         uint256 duration = orderParameters.endTime - orderParameters.startTime;
@@ -1030,12 +1040,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Declare a nested scope to minimize stack depth.
         {
             // Declare a virtual function pointer taking an OfferItem argument.
-            function(OfferItem memory, address, address)
+            function(OfferItem memory, address, bytes32)
                 internal _transferOfferItem;
 
             // Assign _transfer function to a new function pointer (it takes a
             // ReceivedItem as its initial argument)
-            function(ReceivedItem memory, address, address)
+            function(ReceivedItem memory, address, bytes32)
                 internal _transferReceivedItem = _transfer;
 
             // Utilize assembly to override the virtual function pointer.
@@ -1086,7 +1096,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferOfferItem(
                     offerItem,
                     orderParameters.offerer,
-                    offererConduit
+                    offererConduitKey
                 );
 
                 // Skip overflow check as for loop is indexed starting at zero.
@@ -1114,12 +1124,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
         // Declare a nested scope to minimize stack depth.
         {
             // Declare virtual function pointer with ConsiderationItem argument.
-            function(ConsiderationItem memory, address, address)
+            function(ConsiderationItem memory, address, bytes32)
                 internal _transferConsiderationItem;
 
             // Reassign _transfer function to a new function pointer (it takes a
             /// ReceivedItem as its initial argument).
-            function(ReceivedItem memory, address, address)
+            function(ReceivedItem memory, address, bytes32)
                 internal _transferReceivedItem = _transfer;
 
             // Utilize assembly to override the virtual function pointer.
@@ -1176,7 +1186,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 _transferConsiderationItem(
                     considerationItem,
                     msg.sender,
-                    fulfillerConduit
+                    fulfillerConduitKey
                 );
 
                 // Skip overflow check as for loop is indexed starting at zero.
@@ -1539,6 +1549,14 @@ contract ConsiderationInternal is ConsiderationInternalView {
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
+     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
+     *                                  if any, to source the fulfiller's token
+     *                                  approvals from. The zero hash signifies
+     *                                  that no conduit should be used (and
+     *                                  direct approvals set on Consideration)
+     *                                  and `bytes32(uint256(1))` signifies to
+     *                                  utilize the legacy user proxy for the
+     *                                  fulfiller.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -1554,7 +1572,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        address fulfillerConduit
+        bytes32 fulfillerConduitKey
     )
         internal
         returns (
@@ -1583,7 +1601,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     advancedOrders,
                     Side.OFFER,
                     components,
-                    fulfillerConduit
+                    fulfillerConduitKey
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -1608,7 +1626,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                     advancedOrders,
                     Side.CONSIDERATION,
                     components,
-                    fulfillerConduit
+                    fulfillerConduitKey
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -1744,7 +1762,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
             }
 
             // Transfer the item specified by the execution.
-            _transfer(item, execution.offerer, execution.conduit);
+            _transfer(item, execution.offerer, execution.conduitKey);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -1775,18 +1793,19 @@ contract ConsiderationInternal is ConsiderationInternalView {
     /**
      * @dev Internal function to transfer a given item.
      *
-     * @param item    The item to transfer, including an amount and recipient.
-     * @param offerer The account offering the item, i.e. the from address.
-     * @param conduit An address indicating what conduit, if any, to source
-     *                token approvals from. The null address signifies that no
-     *                conduit should be used (and direct approvals set on
-     *                Consideration) and `address(1)` signifies to utilize the
-     *                legacy user proxy for the transfer.
+     * @param item       The item to transfer including an amount and recipient.
+     * @param offerer    The account offering the item, i.e. the from address.
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. The zero hash
+     *                   signifies that no conduit should be used (and direct
+     *                   approvals set on Consideration) and
+     *                   `bytes32(uint256(1))` signifies to utilize the legacy
+     *                   user proxy for the transfer.
      */
     function _transfer(
         ReceivedItem memory item,
         address offerer,
-        address conduit
+        bytes32 conduitKey
     ) internal {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
@@ -1799,7 +1818,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 offerer,
                 item.recipient,
                 item.amount,
-                conduit
+                conduitKey
             );
         } else if (item.itemType == ItemType.ERC721) {
             // Transfer ERC721 token from the offerer to the recipient.
@@ -1809,7 +1828,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 item.recipient,
                 item.identifier,
                 item.amount,
-                conduit
+                conduitKey
             );
         } else {
             // Transfer ERC1155 token from the offerer to the recipient.
@@ -1819,7 +1838,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 item.recipient,
                 item.identifier,
                 item.amount,
-                conduit
+                conduitKey
             );
         }
     }
@@ -1863,27 +1882,28 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param from       The originator of the transfer.
      * @param to         The recipient of the transfer.
      * @param amount     The amount to transfer.
-     * @param conduit    An address indicating what conduit, if any, to source
-     *                   token approvals from. The null address signifies that
-     *                   no conduit should be used (and direct approvals set on
-     *                   Consideration) and `address(1)` signifies to utilize
-     *                   the legacy token transfer proxy for the transfer.
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. The zero hash
+     *                   signifies that no conduit should be used (and direct
+     *                   approvals set on Consideration) and
+     *                   `bytes32(uint256(1))` signifies to utilize the legacy
+     *                   user proxy for the transfer.
      */
     function _transferERC20(
         address token,
         address from,
         address to,
         uint256 amount,
-        address conduit
+        bytes32 conduitKey
     ) internal {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
 
         // If no conduit has been specified...
-        if (conduit == address(0)) {
+        if (conduitKey == bytes32(0)) {
             // Perform the token transfer directly.
             _performDirectERC20Transfer(token, from, to, amount);
-        } else if (conduit == address(1)) {
+        } else if (conduitKey == bytes32(uint256(1))) {
             // Perform transfer via a call to the legacy token transfer proxy.
             bool success = _LEGACY_TOKEN_TRANSFER_PROXY.transferFrom(
                 token,
@@ -1906,7 +1926,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 );
             }
         } else {
-            revert("Not yet implemented");
+            // Perform the call to the conduit.
+            _callConduit(
+                conduitKey,
+                abi.encodeWithSelector(
+                    ConduitInterface.execute.selector,
+                    uint256(0x20), // array offset
+                    uint256(1), // number
+                    uint256(1), // ConduitItemType.ERC20
+                    token,
+                    from,
+                    to,
+                    uint256(0), // no identifier
+                    amount
+                )
+            );
         }
     }
 
@@ -1961,9 +1995,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
 
             // If the transfer failed or it returned nothing:
             // Group these because they should be uncommon.
-            if iszero(and(success, iszero(iszero(returndatasize())))) {
+            if or(iszero(success), iszero(returndatasize())) {
                 // If the token has no code or the transfer failed:
-                if iszero(and(iszero(iszero(extcodesize(token))), success)) {
+                if or(iszero(success), iszero(extcodesize(token))) {
                     // If the transfer failed:
                     if iszero(success) {
                         // If it was due to a revert:
@@ -2061,11 +2095,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param to         The recipient of the transfer.
      * @param identifier The tokenId to transfer.
      * @param amount     The "amount" (this value must be equal to one).
-     * @param conduit    An address indicating what conduit, if any, to source
-     *                   token approvals from. The null address signifies that
-     *                   no conduit should be used (and direct approvals set on
-     *                   Consideration) and `address(1)` signifies to utilize
-     *                   the legacy user proxy for the transfer.
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. The zero hash
+     *                   signifies that no conduit should be used (and direct
+     *                   approvals set on Consideration) and
+     *                   `bytes32(uint256(1))` signifies to utilize the legacy
+     *                   user proxy for the transfer.
      */
     function _transferERC721(
         address token,
@@ -2073,101 +2108,133 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address to,
         uint256 identifier,
         uint256 amount,
-        address conduit
+        bytes32 conduitKey
     ) internal {
-        // Ensure that exactly one 721 item is being transferred.
-        if (amount != 1) {
-            revert InvalidERC721TransferAmount();
-        }
+        // If no conduit or a legacy conduit has been specified...
+        if (uint256(conduitKey) < 2) {
+            // Ensure that exactly one 721 item is being transferred.
+            if (amount != 1) {
+                revert InvalidERC721TransferAmount();
+            }
 
-        // If no conduit has been specified...
-        if (conduit == address(0)) {
-            // Perform transfer via the token contract directly.
-            assembly {
-                // If the token has no code, revert.
-                if iszero(extcodesize(token)) {
-                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                    mstore(NoContract_error_token_ptr, token)
-                    revert(NoContract_error_sig_ptr, NoContract_error_length)
-                }
-
-                // Write calldata to the free memory pointer (restore it later).
-                let memPointer := mload(FreeMemoryPointerSlot)
-
-                // Write calldata into memory starting with function selector.
-                mstore(
-                    ERC721_transferFrom_sig_ptr,
-                    ERC721_transferFrom_signature
-                )
-                mstore(ERC721_transferFrom_from_ptr, from)
-                mstore(ERC721_transferFrom_to_ptr, to)
-                mstore(ERC721_transferFrom_id_ptr, identifier)
-
-                let success := call(
-                    gas(),
-                    token,
-                    0,
-                    ERC721_transferFrom_sig_ptr,
-                    ERC721_transferFrom_length,
-                    0,
-                    0
-                )
-
-                // If the transfer reverted:
-                if iszero(success) {
-                    // If it returned a message, bubble it up:
-                    if returndatasize() {
-                        // Copy returndata to memory; overwrite existing memory.
-                        returndatacopy(0, 0, returndatasize())
-
-                        // Revert, specifying memory region with returndata.
-                        revert(0, returndatasize())
+            // If no conduit has been specified...
+            if (conduitKey == bytes32(0)) {
+                // Perform transfer via the token contract directly.
+                assembly {
+                    // If the token has no code, revert.
+                    if iszero(extcodesize(token)) {
+                        mstore(
+                            NoContract_error_sig_ptr,
+                            NoContract_error_signature
+                        )
+                        mstore(NoContract_error_token_ptr, token)
+                        revert(
+                            NoContract_error_sig_ptr,
+                            NoContract_error_length
+                        )
                     }
 
-                    // Otherwise revert with a generic error message.
+                    // Write calldata to free memory pointer (restore it later).
+                    let memPointer := mload(FreeMemoryPointerSlot)
+
+                    // Write calldata to memory starting with function selector.
                     mstore(
-                        TokenTransferGenericFailure_error_sig_ptr,
-                        TokenTransferGenericFailure_error_signature
+                        ERC721_transferFrom_sig_ptr,
+                        ERC721_transferFrom_signature
                     )
-                    mstore(TokenTransferGenericFailure_error_token_ptr, token)
-                    mstore(TokenTransferGenericFailure_error_from_ptr, from)
-                    mstore(TokenTransferGenericFailure_error_to_ptr, to)
-                    mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
-                    mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
-                    revert(
-                        TokenTransferGenericFailure_error_sig_ptr,
-                        TokenTransferGenericFailure_error_length
+                    mstore(ERC721_transferFrom_from_ptr, from)
+                    mstore(ERC721_transferFrom_to_ptr, to)
+                    mstore(ERC721_transferFrom_id_ptr, identifier)
+
+                    let success := call(
+                        gas(),
+                        token,
+                        0,
+                        ERC721_transferFrom_sig_ptr,
+                        ERC721_transferFrom_length,
+                        0,
+                        0
                     )
+
+                    // If the transfer reverted:
+                    if iszero(success) {
+                        // If it returned a message, bubble it up:
+                        if returndatasize() {
+                            // Copy returndata to memory; overwriting existing.
+                            returndatacopy(0, 0, returndatasize())
+
+                            // Revert, specifying memory region with returndata.
+                            revert(0, returndatasize())
+                        }
+
+                        // Otherwise revert with a generic error message.
+                        mstore(
+                            TokenTransferGenericFailure_error_sig_ptr,
+                            TokenTransferGenericFailure_error_signature
+                        )
+                        mstore(
+                            TokenTransferGenericFailure_error_token_ptr,
+                            token
+                        )
+                        mstore(TokenTransferGenericFailure_error_from_ptr, from)
+                        mstore(TokenTransferGenericFailure_error_to_ptr, to)
+                        mstore(
+                            TokenTransferGenericFailure_error_id_ptr,
+                            identifier
+                        )
+                        mstore(
+                            TokenTransferGenericFailure_error_amount_ptr,
+                            amount
+                        )
+                        revert(
+                            TokenTransferGenericFailure_error_sig_ptr,
+                            TokenTransferGenericFailure_error_length
+                        )
+                    }
+
+                    // Restore the original free memory pointer.
+                    mstore(FreeMemoryPointerSlot, memPointer)
+
+                    // Restore the zero slot to zero.
+                    mstore(ZeroSlot, 0)
                 }
+            } else {
+                // Perform transfer via a call to the proxy for supplied owner.
+                bool success = _callProxy(
+                    from,
+                    token,
+                    abi.encodeCall(
+                        ERC721Interface.transferFrom,
+                        (from, to, identifier)
+                    )
+                );
 
-                // Restore the original free memory pointer.
-                mstore(FreeMemoryPointerSlot, memPointer)
-
-                // Restore the zero slot to zero.
-                mstore(ZeroSlot, 0)
+                // Ensure that the transfer succeeded.
+                _assertValidTokenTransfer(
+                    success,
+                    token,
+                    from,
+                    to,
+                    identifier,
+                    amount
+                );
             }
-        } else if (conduit == address(1)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            bool success = _callProxy(
-                from,
-                token,
-                abi.encodeCall(
-                    ERC721Interface.transferFrom,
-                    (from, to, identifier)
+        } else {
+            // Perform the call to the conduit.
+            _callConduit(
+                conduitKey,
+                abi.encodeWithSelector(
+                    ConduitInterface.execute.selector,
+                    uint256(0x20), // array offset
+                    uint256(1), // number
+                    uint256(2), // ConduitItemType.ERC721
+                    token,
+                    from,
+                    to,
+                    identifier,
+                    amount
                 )
             );
-
-            // Ensure that the transfer succeeded.
-            _assertValidTokenTransfer(
-                success,
-                token,
-                from,
-                to,
-                identifier,
-                amount
-            );
-        } else {
-            revert("Not yet implemented");
         }
     }
 
@@ -2181,11 +2248,12 @@ contract ConsiderationInternal is ConsiderationInternalView {
      * @param to         The recipient of the transfer.
      * @param identifier The tokenId to transfer.
      * @param amount     The amount to transfer.
-     * @param conduit    An address indicating what conduit, if any, to source
-     *                   token approvals from. The null address signifies that
-     *                   no conduit should be used (and direct approvals set on
-     *                   Consideration) and `address(1)` signifies to utilize
-     *                   the legacy user proxy for the transfer.
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. The zero hash
+     *                   signifies that no conduit should be used (and direct
+     *                   approvals set on Consideration) and
+     *                   `bytes32(uint256(1))` signifies to utilize the legacy
+     *                   user proxy for the transfer.
      */
     function _transferERC1155(
         address token,
@@ -2193,13 +2261,13 @@ contract ConsiderationInternal is ConsiderationInternalView {
         address to,
         uint256 identifier,
         uint256 amount,
-        address conduit
+        bytes32 conduitKey
     ) internal {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
 
         // If no conduit has been specified...
-        if (conduit == address(0)) {
+        if (conduitKey == bytes32(0)) {
             // Perform transfer via the token contract directly.
             assembly {
                 // If the token has no code, revert.
@@ -2275,7 +2343,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 // Restore the zero slot to zero.
                 mstore(ZeroSlot, 0)
             }
-        } else if (conduit == address(1)) {
+        } else if (conduitKey == bytes32(uint256(1))) {
             // Perform transfer via a call to the proxy for the supplied owner.
             bool success = _callProxy(
                 from,
@@ -2300,7 +2368,21 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 amount
             );
         } else {
-            revert("Not yet implemented");
+            // Perform the call to the conduit.
+            _callConduit(
+                conduitKey,
+                abi.encodeWithSelector(
+                    ConduitInterface.execute.selector,
+                    uint256(0x20), // array offset
+                    uint256(1), // number
+                    uint256(3), // ConduitItemType.ERC1155
+                    token,
+                    from,
+                    to,
+                    identifier,
+                    amount
+                )
+            );
         }
     }
 
@@ -2315,7 +2397,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         internal
     {
         // Place elements of the batch execution in memory onto the stack.
-        address conduit = batchExecution.conduit;
+        bytes32 conduitKey = batchExecution.conduitKey;
         address token = batchExecution.token;
         address from = batchExecution.from;
         address to = batchExecution.to;
@@ -2324,56 +2406,85 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        bool success;
+        // If no conduit or a legacy conduit has been specified...
+        if (uint256(conduitKey) < 2) {
+            // Declare a boolean representing call status.
+            bool success;
 
-        // If no conduit has been specified...
-        if (conduit == address(0)) {
-            // Perform transfer via the token contract directly.
-            (success, ) = token.call(
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeBatchTransferFrom.selector,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts,
-                    ""
-                )
-            );
-        } else if (conduit == address(1)) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            success = _callProxy(
-                from,
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeBatchTransferFrom.selector,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts,
-                    ""
-                )
-            );
-        } else {
-            revert("Not yet implemented");
-        }
-
-        // If the call fails...
-        if (!success) {
-            // Revert and pass the revert reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic 1155 batch transfer error.
-            revert ERC1155BatchTransferGenericFailure(
-                token,
+            // Derive calldata for the call to perform the batch 1155 transfer.
+            bytes memory callData = abi.encodeWithSelector(
+                ERC1155Interface.safeBatchTransferFrom.selector,
                 from,
                 to,
                 tokenIds,
-                amounts
+                amounts,
+                ""
             );
-        }
 
-        // Ensure that a contract is deployed to the token address.
-        _assertContractIsDeployed(token);
+            // Perform call either directly or via proxy based on conduit key.
+            if (conduitKey == bytes32(0)) {
+                // Perform transfer via the token contract directly.
+                (success, ) = token.call(callData);
+            } else {
+                // Perform transfer via call to proxy for the supplied owner.
+                success = _callProxy(from, token, callData);
+            }
+
+            // If the call fails...
+            if (!success) {
+                // Revert and pass the revert reason along if one was returned.
+                _revertWithReasonIfOneIsReturned();
+
+                // Otherwise, revert with a generic 1155 batch transfer error.
+                revert ERC1155BatchTransferGenericFailure(
+                    token,
+                    from,
+                    to,
+                    tokenIds,
+                    amounts
+                );
+            }
+
+            // Ensure that a contract is deployed to the token address.
+            _assertContractIsDeployed(token);
+        } else {
+            uint256 totalTokenIds = tokenIds.length;
+            uint256 tokenWords = totalTokenIds * 32;
+            bytes memory callData = new bytes(388 + 64 * totalTokenIds);
+            bytes4 selector = ConduitInterface.executeWithBatch1155.selector;
+            assembly {
+                mstore(add(callData, 0x20), selector)
+                mstore(add(callData, 0x24), 0x40)
+                mstore(add(callData, 0x44), 0x60)
+                mstore(add(callData, 0x64), 0)
+                mstore(add(callData, 0x84), 1)
+                mstore(add(callData, 0xa4), 0x20)
+                mstore(add(callData, 0xc4), token)
+                mstore(add(callData, 0xe4), from)
+                mstore(add(callData, 0x104), to)
+                mstore(add(callData, 0x124), 0xa0)
+                mstore(add(callData, 0x144), add(0xc0, tokenWords))
+                mstore(add(callData, 0x164), totalTokenIds)
+                mstore(add(callData, add(0x184, tokenWords)), totalTokenIds)
+                for {
+                    let i := 0
+                } lt(i, tokenWords) {
+                    i := add(i, 0x20)
+                } {
+                    mstore(
+                        add(callData, add(0x184, i)),
+                        mload(add(add(0x20, tokenIds), i))
+                    )
+                    mstore(
+                        add(callData, add(0x1e4, i)),
+                        mload(add(add(0x20, amounts), i))
+                    )
+                }
+            }
+
+            // Perform the call to the conduit.
+            _callConduit(conduitKey, callData);
+        }
     }
 
     /**
@@ -2416,6 +2527,57 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 callData
             )
         );
+    }
+
+    /**
+     * @dev Internal function to trigger a call to a conduit contract. This call
+     *      will transfer a single ERC20, ERC721, or ERC1155 item.
+     *
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from.
+     * @param callData   The calldata to supply when calling the conduit.
+     *
+     * @return success The status of the call to the proxy.
+     */
+    function _callConduit(bytes32 conduitKey, bytes memory callData)
+        internal
+        returns (bool success)
+    {
+        // Derive the address of the conduit using the conduit key.
+        address conduit = _deriveConduit(conduitKey);
+
+        // Perform the call to the conduit.
+        (success, ) = conduit.call(callData);
+
+        // If the call failed...
+        if (!success) {
+            // Pass along whatever revert reason was given by the conduit.
+            assembly {
+                // Copy returndata to memory, overwriting existing memory.
+                returndatacopy(0, 0, returndatasize())
+
+                // Revert, specifying memory region with copied returndata.
+                revert(0, returndatasize())
+            }
+        }
+
+        // Ensure that the conduit returned the correct magic value.
+        bytes4 result;
+        assembly {
+            // Only put result on stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) {
+                // Copy directly from return data into scratch space.
+                returndatacopy(0, 0, 0x20)
+
+                // Take value from scratch space and place it on the stack.
+                result := mload(0)
+            }
+        }
+
+        // Ensure result was extracted and matches EIP-1271 magic value.
+        if (result != ConduitInterface.execute.selector) {
+            revert InvalidConduit(conduitKey, conduit);
+        }
     }
 
     /**
@@ -2509,9 +2671,9 @@ contract ConsiderationInternal is ConsiderationInternalView {
         bool fromOfferer
     ) internal {
         // Determine the appropriate conduit to utilize.
-        address conduit = fromOfferer
-            ? parameters.offererConduit
-            : parameters.fulfillerConduit;
+        bytes32 conduitKey = fromOfferer
+            ? parameters.offererConduitKey
+            : parameters.fulfillerConduitKey;
 
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length; ) {
@@ -2531,7 +2693,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
                 from,
                 additionalRecipient.recipient,
                 additionalRecipient.amount,
-                conduit
+                conduitKey
             );
 
             // Skip overflow check as for loop is indexed starting at zero.
@@ -2541,7 +2703,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         }
 
         // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(erc20Token, from, to, amount, conduit);
+        _transferERC20(erc20Token, from, to, amount, conduitKey);
 
         // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;

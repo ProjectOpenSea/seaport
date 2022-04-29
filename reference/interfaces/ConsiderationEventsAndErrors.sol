@@ -79,9 +79,15 @@ interface ConsiderationEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to fill an order outside the
-     *      specified start time and end time .
+     *      specified start time and end time.
      */
     error InvalidTime();
+
+    /**
+     * @dev Revert with an error when attempting to fill an order referencing an
+     *      invalid conduit (i.e. one that has not been deployed).
+     */
+    error InvalidConduit(bytes32 conduitKey, address conduit);
 
     /**
      * @dev Revert with an error when attempting to fill an order that specifies

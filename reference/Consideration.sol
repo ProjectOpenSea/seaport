@@ -51,6 +51,10 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
      *
+     * @param conduitController           A contract that deploys conduits, or
+     *                                    proxies that may optionally be used to
+     *                                    transfer approved ERC20+721+1155
+     *                                    tokens.
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC721+1155 tokens.
@@ -61,11 +65,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                    each proxy in order to utilize it.
      */
     constructor(
+        address conduitController,
         address legacyProxyRegistry,
         address legacyTokenTransferProxy,
         address requiredProxyImplementation
     )
         ConsiderationInternal(
+            conduitController,
             legacyProxyRegistry,
             legacyTokenTransferProxy,
             requiredProxyImplementation
@@ -188,13 +194,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Read offerer from calldata and place on the stack.
         address payable offerer = parameters.offerer;
 
-        // Declare conduit argument used by transfer functions.
-        address conduit;
+        // Declare conduitKey argument used by transfer functions.
+        bytes32 conduitKey;
 
         // Utilize assembly to derive conduit (if relevant) based on route.
         assembly {
             // use offerer conduit for routes 0-3, fulfiller conduit otherwise.
-            conduit := calldataload(add(0x1c4, mul(gt(route, 3), 0x20)))
+            conduitKey := calldataload(add(0x1c4, mul(gt(route, 3), 0x20)))
         }
 
         // Transfer tokens based on the route.
@@ -206,7 +212,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduit
+                conduitKey
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
@@ -219,7 +225,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduit
+                conduitKey
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
@@ -232,7 +238,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduit
+                conduitKey
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -252,7 +258,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduit
+                conduitKey
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -272,7 +278,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
-                conduit
+                conduitKey
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -294,7 +300,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
-                conduit
+                conduitKey
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -317,23 +323,24 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         criteria-based orders or partial filling of orders (though
      *         filling the remainder of a partially-filled order is supported).
      *
-     * @param order            The order to fulfill. Note that both the offerer
-     *                         and the fulfiller must first approve this
-     *                         contract (or the supplied conduit if indicated)
-     *                         to transfer any relevant tokens on their behalf
-     *                         and that contracts must implement
-     *                         `onERC1155Received` in order to receive ERC1155
-     *                         tokens as consideration.
-     * @param fulfillerConduit An address indicating what conduit, if any, to
-     *                         source the fulfiller's token approvals from. The
-     *                         null address signifies that no conduit should be
-     *                         used (and direct approvals set on Consideration)
-     *                         and `address(1)` signifies to utilize the legacy
-     *                         user proxy for the fulfiller.
+     * @param order               The order to fulfill. Note that both the
+     *                            offerer and the fulfiller must first approve
+     *                            this contract (or the corresponding conduit if
+     *                            indicated) to transfer any relevant tokens on
+     *                            their behalf and that contracts must implement
+     *                            `onERC1155Received` to receive ERC1155 tokens
+     *                            as consideration.
+     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
+     *                            any, to source the fulfiller's token approvals
+     *                            from. The zero hash signifies that no conduit
+     *                            should be used (and direct approvals set on
+     *                            Consideration) and `bytes32(1)` signifies to
+     *                            utilize the legacy user proxy for the
+     *                            fulfiller.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function fulfillOrder(Order calldata order, address fulfillerConduit)
+    function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
         payable
         override
@@ -344,7 +351,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         return _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
-            fulfillerConduit
+            fulfillerConduitKey
         );
     }
 
@@ -353,47 +360,50 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         items for offer and consideration alongside criteria resolvers
      *         containing specific token identifiers and associated proofs.
      *
-     * @param advancedOrder     The order to fulfill along with the fraction of
-     *                          the order to attempt to fill. Note that both the
-     *                          offerer and the fulfiller must first approve
-     *                          this contract (or their proxy if indicated by
-     *                          the order) to transfer any relevant tokens on
-     *                          their behalf and that contracts must implement
-     *                          `onERC1155Received` in order to receive ERC1155
-     *                          tokens as consideration. Also note that all
-     *                          offer and consideration components must have no
-     *                          remainder after multiplication of the respective
-     *                          amount with the supplied fraction in order for
-     *                          the partial fill to be considered valid.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the merkle root held
-     *                          by the item in question's criteria element. Note
-     *                          that an empty criteria indicates that any
-     *                          (transferrable) token identifier on the token in
-     *                          question is valid and that no associated proof
-     *                          needs to be supplied.
-     * @param fulfillerConduit  An address indicating what conduit, if any, to
-     *                          source the fulfiller's token approvals from. The
-     *                          null address signifies that no conduit should be
-     *                          used (and direct approvals set on Consideration)
-     *                          and `address(1)` signifies to utilize the legacy
-     *                          user proxy for the fulfiller.
+     * @param advancedOrder       The order to fulfill along with the fraction
+     *                            of the order to attempt to fill. Note that
+     *                            both the offerer and the fulfiller must first
+     *                            approve this contract (or their proxy if
+     *                            indicated by the order) to transfer any
+     *                            relevant tokens on their behalf and that
+     *                            contracts must implement `onERC1155Received`
+     *                            to receive ERC1155 tokens as consideration.
+     *                            Also note that all offer and consideration
+     *                            components must have no remainder after
+     *                            multiplication of the respective amount with
+     *                            the supplied fraction for the partial fill to
+     *                            be considered valid.
+     * @param criteriaResolvers   An array where each element contains a
+     *                            reference to a specific offer or
+     *                            consideration, a token identifier, and a proof
+     *                            that the supplied token identifier is
+     *                            contained in the merkle root held by the item
+     *                            in question's criteria element. Note that an
+     *                            empty criteria indicates that any
+     *                            (transferrable) token identifier on the token
+     *                            in question is valid and that no associated
+     *                            proof needs to be supplied.
+     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
+     *                            any, to source the fulfiller's token approvals
+     *                            from. The zero hash signifies that no conduit
+     *                            should be used (and direct approvals set on
+     *                            Consideration) and `bytes32(1)` signifies to
+     *                            utilize the legacy user proxy for the
+     *                            fulfiller.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
-        address fulfillerConduit
+        bytes32 fulfillerConduitKey
     ) external payable override returns (bool) {
         // Validate and fulfill the order.
         return
             _validateAndFulfillAdvancedOrder(
                 advancedOrder,
                 criteriaResolvers,
-                fulfillerConduit
+                fulfillerConduitKey
             );
     }
 
@@ -444,14 +454,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  indicating which consideration items to
      *                                  attempt to aggregate when preparing
      *                                  executions.
-     * @param fulfillerConduit          An address indicating what conduit, if
-     *                                  any, to source the fulfiller's token
-     *                                  approvals from. The null address
-     *                                  signifies that no conduit should be used
-     *                                  (with direct token approvals set on
-     *                                  Consideration) and `address(1)`
-     *                                  signifies to utilize the legacy user
-     *                                  proxy for the fulfiller.
+     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
+     *                                  if any, to source the fulfiller's token
+     *                                  approvals from. The zero hash signifies
+     *                                  that no conduit should be used (and
+     *                                  direct approvals set on Consideration)
+     *                                  and `bytes32(1)` signifies to utilize
+     *                                  the legacy user proxy for the fulfiller.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -468,7 +477,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         CriteriaResolver[] memory criteriaResolvers,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        address fulfillerConduit
+        bytes32 fulfillerConduitKey
     )
         external
         payable
@@ -495,7 +504,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             advancedOrders,
             offerFulfillments,
             considerationFulfillments,
-            fulfillerConduit
+            fulfillerConduitKey
         );
 
         // Return order fulfillment details and executions.
@@ -670,7 +679,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                         order.endTime,
                         order.zoneHash,
                         order.salt,
-                        order.conduit,
+                        order.conduitKey,
                         order.consideration.length
                     ),
                     order.nonce
@@ -817,7 +826,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 order.endTime,
                 order.zoneHash,
                 order.salt,
-                order.conduit,
+                order.conduitKey,
                 order.consideration.length
             ),
             order.nonce
@@ -882,33 +891,18 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
-     * @notice Retrieve the domain separator, used for signing and verifying
-     * signed orders via EIP-712.
+     * @notice Retrieve configuration information for this contract.
      *
-     * @return The domain separator.
+     * @return domainSeparator   The domain separator for this contract.
+     * @return conduitController The conduit Controller set for this contract.
      */
-    function DOMAIN_SEPARATOR() external view override returns (bytes32) {
-        // Get domain separator, either precomputed or derived based on chainId.
-        return _domainSeparator();
-    }
-
-    /**
-     * @notice Retrieve the name of this contract.
-     *
-     * @return The name of this contract.
-     */
-    function name() external pure override returns (string memory) {
-        // Return the name of the contract.
-        return _NAME;
-    }
-
-    /**
-     * @notice Retrieve the version of this contract.
-     *
-     * @return The version of this contract.
-     */
-    function version() external pure override returns (string memory) {
-        // Return the version.
-        return _VERSION;
+    function information()
+        external
+        view
+        override
+        returns (bytes32 domainSeparator, address conduitController)
+    {
+        domainSeparator = _domainSeparator();
+        conduitController = address(_CONDUIT_CONTROLLER);
     }
 }
