@@ -375,7 +375,6 @@ contract ConsiderationInternalView is ConsiderationPure {
             );
     }
 
-
     /**
      * @dev Internal view function to derive the order hash for a given order.
      *      Note that only the original consideration items are included in the
