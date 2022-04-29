@@ -143,6 +143,8 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     function acceptOwnership(address conduit) external override {
+        _assertConduitExists(conduit);
+
         if (msg.sender != _conduits[conduit].potentialOwner) {
             revert CallerIsNotNewPotentialOwner(conduit);
         }
@@ -253,7 +255,9 @@ contract ConduitController is ConduitControllerInterface {
     {
         _assertConduitExists(conduit);
 
-        if (_conduits[conduit].channels.length >= channelIndex) {
+        uint256 totalChannels = _conduits[conduit].channels.length;
+
+        if (channelIndex >= totalChannels) {
             revert ChannelOutOfRange(conduit);
         }
 
@@ -282,6 +286,8 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     function _assertCallerIsConduitOwner(address conduit) internal view {
+        _assertConduitExists(conduit);
+
         if (msg.sender != _conduits[conduit].owner) {
             revert CallerIsNotOwner(conduit);
         }

@@ -11729,316 +11729,271 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         )
       );
     });
-    it.skip("Reverts on ERC20 as it hasn't been implemeted yet", async () => {
-      // Buyer mints nft
-      const nftId = ethers.BigNumber.from(randomHex());
-      await testERC721.mint(buyer.address, nftId);
 
-      // Seller mints ERC20
-      const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
-      await testERC20.mint(seller.address, tokenAmount);
-
-      const offer = [
-        {
-          itemType: 1, // ERC20
-          token: testERC20.address,
-          identifierOrCriteria: 0, // ignored for ERC20
-          startAmount: tokenAmount.sub(100),
-          endAmount: tokenAmount.sub(100),
-        },
-      ];
-
-      const consideration = [
-        getTestItem721(nftId, 1, 1, seller.address),
-        getTestItem20(50, 50, zone.address),
-        getTestItem20(50, 50, owner.address),
-      ];
-
-      const { order, orderHash, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0, // FULL_OPEN
-        [],
-        null,
-        seller,
-        constants.HashZero,
-        constants.HashZero.slice(0, -1) + "2" // not address(0) / address(1)
-      );
-
-      await whileImpersonating(buyer.address, provider, async () => {
+    it("Reverts when attempting to update a conduit channel when call is not from controller", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
         await expect(
-          marketplaceContract
-            .connect(buyer)
-            .fulfillAdvancedOrder(
-              order,
-              [],
-              constants.HashZero.slice(0, -1) + "2",
-              { value }
-            )
-        ).to.be.revertedWith("Not yet implemented");
+          conduitOne.connect(owner).updateChannel(constants.AddressZero, true)
+        ).to.be.revertedWith("InvalidController");
       });
     });
-    it.skip("Reverts on ERC721 as it hasn't been implemeted yet", async () => {
-      // Seller mints nft
-      const nftId = ethers.BigNumber.from(randomHex());
-      await testERC721.mint(seller.address, nftId);
 
-      // Seller approves their proxy contract to transfer NFT
-      await whileImpersonating(seller.address, provider, async () => {
-        await expect(
-          testERC721.connect(seller).setApprovalForAll(sellerProxy, true)
-        )
-          .to.emit(testERC721, "ApprovalForAll")
-          .withArgs(seller.address, sellerProxy, true);
-      });
-
-      const offer = [getTestItem721(nftId)];
-
-      const consideration = [
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("10"),
-          endAmount: ethers.utils.parseEther("10"),
-          recipient: seller.address,
-        },
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("1"),
-          endAmount: ethers.utils.parseEther("1"),
-          recipient: zone.address,
-        },
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("1"),
-          endAmount: ethers.utils.parseEther("1"),
-          recipient: owner.address,
-        },
-      ];
-
-      const { order, orderHash, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0, // FULL_OPEN
-        [],
-        null,
-        seller,
-        constants.HashZero,
-        constants.HashZero.slice(0, -1) + "2" // not address(0) / address(1)
-      );
-
-      await whileImpersonating(buyer.address, provider, async () => {
-        await expect(
-          marketplaceContract
-            .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), { value })
-        ).to.be.revertedWith("Not yet implemented");
+    it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(conduitOne.connect(owner).execute([])).to.be.revertedWith(
+          "ChannelClosed"
+        );
       });
     });
-    it.skip("Reverts on ERC1155 as it hasn't been implemeted yet", async () => {
-      // Seller mints nft
-      const nftId = ethers.BigNumber.from(randomHex());
-      const amount = ethers.BigNumber.from(randomHex());
-      await testERC1155.mint(seller.address, nftId, amount);
 
-      // Seller approves proxy contract to transfer NFT
-      await whileImpersonating(seller.address, provider, async () => {
+    it("Reverts when attempting to execute with batch 1155 transfers on a conduit when not called from a channel", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
         await expect(
-          testERC1155.connect(seller).setApprovalForAll(sellerProxy, true)
-        )
-          .to.emit(testERC1155, "ApprovalForAll")
-          .withArgs(seller.address, sellerProxy, true);
-      });
-
-      const offer = [getTestItem1155(nftId, amount, amount)];
-
-      const consideration = [
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("10"),
-          endAmount: ethers.utils.parseEther("10"),
-          recipient: seller.address,
-        },
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("1"),
-          endAmount: ethers.utils.parseEther("1"),
-          recipient: zone.address,
-        },
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("1"),
-          endAmount: ethers.utils.parseEther("1"),
-          recipient: owner.address,
-        },
-      ];
-
-      const { order, orderHash, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0, // FULL_OPEN
-        [],
-        null,
-        seller,
-        constants.HashZero,
-        constants.HashZero.slice(0, -1) + "2" // not address(0) / address(1)
-      );
-
-      await whileImpersonating(buyer.address, provider, async () => {
-        await expect(
-          marketplaceContract
-            .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), { value })
-        ).to.be.revertedWith("Not yet implemented");
+          conduitOne.connect(owner).executeWithBatch1155([], [])
+        ).to.be.revertedWith("ChannelClosed");
       });
     });
-    it.skip("Reverts on ERC1155 batch as it hasn't been implemeted yet", async () => {
-      // Seller mints first nft
-      const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-      const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
-      await testERC1155.mint(seller.address, nftId, amount);
 
-      // Seller mints second nft
-      const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-      const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
-      await testERC1155.mint(seller.address, secondNftId, secondAmount);
-
-      const offer = [
-        {
-          itemType: 3, // ERC1155
-          token: testERC1155.address,
-          identifierOrCriteria: nftId,
-          startAmount: amount,
-          endAmount: amount,
-        },
-        {
-          itemType: 3, // ERC1155
-          token: testERC1155.address,
-          identifierOrCriteria: secondNftId,
-          startAmount: secondAmount,
-          endAmount: secondAmount,
-        },
-      ];
-
-      const consideration = [
-        getItemETH(10, 10, seller.address),
-        getItemETH(1, 1, zone.address),
-        getItemETH(1, 1, owner.address),
-      ];
-
-      const { order, orderHash, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0, // FULL_OPEN
-        [],
-        null,
-        seller,
-        constants.HashZero,
-        constants.HashZero.slice(0, -1) + "2" // not address(0) / address(1)
-      );
-
-      const { mirrorOrder, mirrorOrderHash, mirrorValue } =
-        await createMirrorBuyNowOrder(buyer, zone, order);
-
-      const fulfillments = [
-        {
-          offerComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 0,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 0,
-            },
-          ],
-        },
-        {
-          offerComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 1,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 1,
-            },
-          ],
-        },
-        {
-          offerComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 0,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 0,
-            },
-          ],
-        },
-        {
-          offerComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 0,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 1,
-            },
-          ],
-        },
-        {
-          offerComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 0,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 2,
-            },
-          ],
-        },
-      ];
+    it("Retrieves the owner of a conduit", async () => {
+      const ownerOf = await conduitController.ownerOf(conduitOne.address);
+      expect(ownerOf).to.equal(owner.address);
 
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
-          marketplaceContract
-            .connect(buyer)
-            .matchOrders([order, mirrorOrder], fulfillments, { value })
-        ).to.be.revertedWith("Not yet implemented");
+          conduitController.connect(owner).ownerOf(buyer.address)
+        ).to.be.revertedWith("NoConduit");
       });
+    });
+
+    it("Retrieves the key of a conduit", async () => {
+      const key = await conduitController.getKey(conduitOne.address);
+      expect(key.toLowerCase()).to.equal(conduitKeyOne.toLowerCase());
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getKey(buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+    });
+
+    it("Retrieves the status of a conduit channel", async () => {
+      let isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.true;
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        seller.address
+      );
+      expect(isOpen).to.be.false;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .getChannelStatus(buyer.address, seller.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+    });
+
+    it("Retrieves conduit channels from the controller", async () => {
+      const totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getTotalChannels(buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      const firstChannel = await conduitController.getChannel(
+        conduitOne.address,
+        0
+      );
+      expect(firstChannel).to.equal(marketplaceContract.address);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .getChannel(buyer.address, totalChannels - 1)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getChannel(conduitOne.address, 1)
+        ).to.be.revertedWith("ChannelOutOfRange", conduitOne.address);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getChannel(conduitOne.address, 2)
+        ).to.be.revertedWith("ChannelOutOfRange", conduitOne.address);
+      });
+
+      const channels = await conduitController.getChannels(conduitOne.address);
+      expect(channels.length).to.equal(1);
+      expect(channels[0]).to.equal(marketplaceContract.address);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getChannels(buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+    });
+
+    it("Reverts when attempting to create a conduit not scoped to the creator", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .createConduit(ethers.constants.HashZero, owner.address)
+        ).to.be.revertedWith("InvalidCreator");
+      });
+    });
+
+    it("Reverts when attempting to create a conduit that already exists", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .createConduit(conduitKeyOne, owner.address)
+        ).to.be.revertedWith(`ConduitAlreadyExists("${conduitOne.address}")`);
+      });
+    });
+
+    it("Reverts when attempting to update a channel for an unowned conduit", async () => {
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(buyer)
+            .updateChannel(conduitOne.address, buyer.address, true)
+        ).to.be.revertedWith(`CallerIsNotOwner("${conduitOne.address}")`);
+      });
+    });
+
+    it("Retrieves no initial potential owner for new conduit", async () => {
+      const potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getPotentialOwner(buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+    });
+
+    it("Lets the owner transfer ownership via a two-stage process", async () => {
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(buyer)
+            .transferOwnership(conduitOne.address, buyer.address)
+        ).to.be.revertedWith("CallerIsNotOwner", conduitOne.address);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .transferOwnership(conduitOne.address, ethers.constants.AddressZero)
+        ).to.be.revertedWith(
+          "NewPotentialOwnerIsZeroAddress",
+          conduitOne.address
+        );
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .transferOwnership(seller.address, buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      let potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+      await conduitController.transferOwnership(
+        conduitOne.address,
+        buyer.address
+      );
+
+      potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(buyer.address);
+
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(buyer)
+            .cancelOwnershipTransfer(conduitOne.address)
+        ).to.be.revertedWith("CallerIsNotOwner", conduitOne.address);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .cancelOwnershipTransfer(seller.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      await conduitController.cancelOwnershipTransfer(conduitOne.address);
+
+      potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+      await conduitController.transferOwnership(
+        conduitOne.address,
+        buyer.address
+      );
+
+      potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(buyer.address);
+
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          conduitController.connect(buyer).acceptOwnership(seller.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          conduitController.connect(seller).acceptOwnership(conduitOne.address)
+        ).to.be.revertedWith(
+          "CallerIsNotNewPotentialOwner",
+          conduitOne.address
+        );
+      });
+
+      await whileImpersonating(buyer.address, provider, async () => {
+        await conduitController
+          .connect(buyer)
+          .acceptOwnership(conduitOne.address);
+      });
+
+      potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+      const ownerOf = await conduitController.ownerOf(conduitOne.address);
+      expect(ownerOf).to.equal(buyer.address);
     });
   });
 
@@ -14822,6 +14777,59 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.revertedWith("InvalidERC721TransferAmount");
         });
       });
+      it("Reverts on attempts to transfer >1 ERC721 in single transfer via conduit", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves conduit contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(conduitOne.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, conduitOne.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(2),
+            endAmount: ethers.BigNumber.from(2),
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillOrder(order, toKey(false), { value })
+          ).to.be.revertedWith("InvalidERC721TransferAmount");
+        });
+      });
     });
 
     describe("Out of timespan", async () => {
@@ -16856,6 +16864,154 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           offer,
           consideration,
           0 // FULL_OPEN
+        );
+
+        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+          await createMirrorBuyNowOrder(buyer, zone, order);
+
+        const fulfillments = [
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 2,
+              },
+            ],
+          },
+        ];
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments, { value })
+          ).to.be.revertedWith(
+            `ERC1155BatchTransferGenericFailure("${
+              marketplaceContract.address
+            }", "${seller.address}", "${
+              buyer.address
+            }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
+          );
+        });
+
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
+      });
+      it("Reverts when 1155 batch non-token account is supplied as the token via conduit", async () => {
+        // Seller mints first nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller mints second nft
+        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, secondNftId, secondAmount);
+
+        // Seller approves conduit contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(conduitOne.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, conduitOne.address, true);
+        });
+
+        const offer = [
+          getTestItem1155(nftId, amount, amount, marketplaceContract.address),
+          getTestItem1155(
+            secondNftId,
+            secondAmount,
+            secondAmount,
+            marketplaceContract.address
+          ),
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
         );
 
         const { mirrorOrder, mirrorOrderHash, mirrorValue } =

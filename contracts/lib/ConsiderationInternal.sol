@@ -2110,97 +2110,115 @@ contract ConsiderationInternal is ConsiderationInternalView {
         uint256 amount,
         bytes32 conduitKey
     ) internal {
-        // Ensure that exactly one 721 item is being transferred.
-        if (amount != 1) {
-            revert InvalidERC721TransferAmount();
-        }
+        // If no conduit or a legacy conduit has been specified...
+        if (uint256(conduitKey) < 2) {
+            // Ensure that exactly one 721 item is being transferred.
+            if (amount != 1) {
+                revert InvalidERC721TransferAmount();
+            }
 
-        // If no conduit has been specified...
-        if (conduitKey == bytes32(0)) {
-            // Perform transfer via the token contract directly.
-            assembly {
-                // If the token has no code, revert.
-                if iszero(extcodesize(token)) {
-                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                    mstore(NoContract_error_token_ptr, token)
-                    revert(NoContract_error_sig_ptr, NoContract_error_length)
-                }
-
-                // Write calldata to the free memory pointer (restore it later).
-                let memPointer := mload(FreeMemoryPointerSlot)
-
-                // Write calldata into memory starting with function selector.
-                mstore(
-                    ERC721_transferFrom_sig_ptr,
-                    ERC721_transferFrom_signature
-                )
-                mstore(ERC721_transferFrom_from_ptr, from)
-                mstore(ERC721_transferFrom_to_ptr, to)
-                mstore(ERC721_transferFrom_id_ptr, identifier)
-
-                let success := call(
-                    gas(),
-                    token,
-                    0,
-                    ERC721_transferFrom_sig_ptr,
-                    ERC721_transferFrom_length,
-                    0,
-                    0
-                )
-
-                // If the transfer reverted:
-                if iszero(success) {
-                    // If it returned a message, bubble it up:
-                    if returndatasize() {
-                        // Copy returndata to memory; overwrite existing memory.
-                        returndatacopy(0, 0, returndatasize())
-
-                        // Revert, specifying memory region with returndata.
-                        revert(0, returndatasize())
+            // If no conduit has been specified...
+            if (conduitKey == bytes32(0)) {
+                // Perform transfer via the token contract directly.
+                assembly {
+                    // If the token has no code, revert.
+                    if iszero(extcodesize(token)) {
+                        mstore(
+                            NoContract_error_sig_ptr,
+                            NoContract_error_signature
+                        )
+                        mstore(NoContract_error_token_ptr, token)
+                        revert(
+                            NoContract_error_sig_ptr,
+                            NoContract_error_length
+                        )
                     }
 
-                    // Otherwise revert with a generic error message.
+                    // Write calldata to free memory pointer (restore it later).
+                    let memPointer := mload(FreeMemoryPointerSlot)
+
+                    // Write calldata to memory starting with function selector.
                     mstore(
-                        TokenTransferGenericFailure_error_sig_ptr,
-                        TokenTransferGenericFailure_error_signature
+                        ERC721_transferFrom_sig_ptr,
+                        ERC721_transferFrom_signature
                     )
-                    mstore(TokenTransferGenericFailure_error_token_ptr, token)
-                    mstore(TokenTransferGenericFailure_error_from_ptr, from)
-                    mstore(TokenTransferGenericFailure_error_to_ptr, to)
-                    mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
-                    mstore(TokenTransferGenericFailure_error_amount_ptr, amount)
-                    revert(
-                        TokenTransferGenericFailure_error_sig_ptr,
-                        TokenTransferGenericFailure_error_length
+                    mstore(ERC721_transferFrom_from_ptr, from)
+                    mstore(ERC721_transferFrom_to_ptr, to)
+                    mstore(ERC721_transferFrom_id_ptr, identifier)
+
+                    let success := call(
+                        gas(),
+                        token,
+                        0,
+                        ERC721_transferFrom_sig_ptr,
+                        ERC721_transferFrom_length,
+                        0,
+                        0
                     )
+
+                    // If the transfer reverted:
+                    if iszero(success) {
+                        // If it returned a message, bubble it up:
+                        if returndatasize() {
+                            // Copy returndata to memory; overwriting existing.
+                            returndatacopy(0, 0, returndatasize())
+
+                            // Revert, specifying memory region with returndata.
+                            revert(0, returndatasize())
+                        }
+
+                        // Otherwise revert with a generic error message.
+                        mstore(
+                            TokenTransferGenericFailure_error_sig_ptr,
+                            TokenTransferGenericFailure_error_signature
+                        )
+                        mstore(
+                            TokenTransferGenericFailure_error_token_ptr,
+                            token
+                        )
+                        mstore(TokenTransferGenericFailure_error_from_ptr, from)
+                        mstore(TokenTransferGenericFailure_error_to_ptr, to)
+                        mstore(
+                            TokenTransferGenericFailure_error_id_ptr,
+                            identifier
+                        )
+                        mstore(
+                            TokenTransferGenericFailure_error_amount_ptr,
+                            amount
+                        )
+                        revert(
+                            TokenTransferGenericFailure_error_sig_ptr,
+                            TokenTransferGenericFailure_error_length
+                        )
+                    }
+
+                    // Restore the original free memory pointer.
+                    mstore(FreeMemoryPointerSlot, memPointer)
+
+                    // Restore the zero slot to zero.
+                    mstore(ZeroSlot, 0)
                 }
+            } else {
+                // Perform transfer via a call to the proxy for supplied owner.
+                bool success = _callProxy(
+                    from,
+                    token,
+                    abi.encodeCall(
+                        ERC721Interface.transferFrom,
+                        (from, to, identifier)
+                    )
+                );
 
-                // Restore the original free memory pointer.
-                mstore(FreeMemoryPointerSlot, memPointer)
-
-                // Restore the zero slot to zero.
-                mstore(ZeroSlot, 0)
+                // Ensure that the transfer succeeded.
+                _assertValidTokenTransfer(
+                    success,
+                    token,
+                    from,
+                    to,
+                    identifier,
+                    amount
+                );
             }
-        } else if (conduitKey == bytes32(uint256(1))) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            bool success = _callProxy(
-                from,
-                token,
-                abi.encodeCall(
-                    ERC721Interface.transferFrom,
-                    (from, to, identifier)
-                )
-            );
-
-            // Ensure that the transfer succeeded.
-            _assertValidTokenTransfer(
-                success,
-                token,
-                from,
-                to,
-                identifier,
-                amount
-            );
         } else {
             // Perform the call to the conduit.
             _callConduit(
