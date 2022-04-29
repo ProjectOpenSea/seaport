@@ -120,12 +120,6 @@ interface ConsiderationEventsAndErrors {
     error OfferAndConsiderationRequiredOnFulfillment();
 
     /**
-     * @dev Revert with an error when a fulfillment is provided with an index
-     *      that references an order or item that has not been supplied.
-     */
-    error FulfilledOrderIndexOutOfRange();
-
-    /**
      * @dev Revert with an error when a signature that does not contain a v
      *      value of 27 or 28 has been supplied.
      *

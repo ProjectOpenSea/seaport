@@ -770,7 +770,7 @@ contract ConsiderationInternalView is ConsiderationPure {
 
                 // Ensure that the order index is in range.
                 if (orderIndex >= advancedOrders.length) {
-                    revert FulfilledOrderIndexOutOfRange();
+                    revert InvalidFulfillmentComponentData();
                 }
 
                 // If order is being fulfilled (i.e. it is still available)...
