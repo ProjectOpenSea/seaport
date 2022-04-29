@@ -1,4 +1,4 @@
-import { BigNumber, constants } from "ethers";
+import { utils, BigNumber, constants } from "ethers";
 import { getAddress, parseEther } from "ethers/lib/utils";
 import { BasicOrderParameters, BigNumberish, Order } from "./types";
 
@@ -29,6 +29,8 @@ export const toBN = (n: BigNumberish) => BigNumber.from(toHex(n));
 
 export const toAddress = (n: BigNumberish) => getAddress(toHex(n, 20));
 
+export const toKey = (n: BigNumberish) => toHex(n, 32);
+
 export const convertSignatureToEIP2098 = (signature: string) => {
   if (signature.length === 130) {
     return signature;
@@ -38,43 +40,13 @@ export const convertSignatureToEIP2098 = (signature: string) => {
     throw Error("invalid signature length (must be 64 or 65 bytes)");
   }
 
-  signature = signature.toLowerCase();
-
-  // flip signature if malleable
-  const secp256k1n = BigNumber.from(
-    "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
-  );
-  const maxS = BigNumber.from(
-    "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0"
-  );
-  let s = BigNumber.from("0x" + signature.slice(66, 130));
-  let v = signature.slice(130);
-
-  if (v !== "1b" && v !== "1c") {
-    throw Error("invalid v value (must be 27 or 28)");
-  }
-
-  if (s.gt(maxS)) {
-    s = secp256k1n.sub(s);
-    v = v === "1c" ? "1b" : "1c";
-  }
-
-  const nonMalleableSig = `${signature.slice(0, 66)}${s
-    .toHexString()
-    .slice(2)}${v}`;
-
-  // Convert the signature by adding a higher bit
-  return nonMalleableSig.slice(-2) === "1b"
-    ? nonMalleableSig.slice(0, -2)
-    : `${nonMalleableSig.slice(0, 66)}${(
-        parseInt("0x" + nonMalleableSig[66]) + 8
-      ).toString(16)}${nonMalleableSig.slice(67, -2)}`;
+  return utils.splitSignature(signature).compact;
 };
 
 export const getBasicOrderParameters = (
   basicOrderRouteType: number,
   order: Order,
-  fulfillerConduit = false,
+  fulfillerConduitKey = false,
   tips = [],
 ): BasicOrderParameters => ({
   offerer: order.parameters.offerer,
@@ -95,8 +67,8 @@ export const getBasicOrderParameters = (
     order.parameters.consideration.length - 1
   ),
   signature: order.signature,
-  offererConduit: order.parameters.conduit,
-  fulfillerConduit: toAddress(fulfillerConduit),
+  offererConduitKey: order.parameters.conduitKey,
+  fulfillerConduitKey: toKey(fulfillerConduitKey),
   additionalRecipients: [
     ...order.parameters.consideration
       .slice(1)

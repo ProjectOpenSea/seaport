@@ -13,6 +13,7 @@ const {
   randomHex,
   randomLarge,
   toAddress,
+  toKey,
   convertSignatureToEIP2098,
   getBasicOrderParameters,
   getItem721,
@@ -24,7 +25,7 @@ const { orderType } = require("../eip-712-types/order");
 
 const VERSION = "rc.1";
 
-const LEGACY_PROXY_CONDUIT = constants.AddressZero.slice(0, -1) + "1";
+const LEGACY_PROXY_CONDUIT = constants.HashZero.slice(0, -1) + "1";
 
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
@@ -46,6 +47,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   let EIP1271WalletFactory;
   let reenterer;
   let stubZone;
+  let conduitController;
+  let conduitImplementation;
+  let conduitOne;
+  let conduitKeyOne;
 
   const getTestItem721 = (
     identifierOrCriteria,
@@ -96,7 +101,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     const considerationItemTypeString =
       "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)";
     const orderComponentsPartialTypeString =
-      "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,address conduit,uint256 nonce)";
+      "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,bytes32 conduitKey,uint256 nonce)";
     const orderTypeString = `${orderComponentsPartialTypeString}${considerationItemTypeString}${offerItemTypeString}`;
 
     const offerItemTypeHash = ethers.utils.keccak256(
@@ -191,7 +196,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .padStart(64, "0"),
           orderComponents.zoneHash.slice(2),
           orderComponents.salt.slice(2).padStart(64, "0"),
-          orderComponents.conduit.slice(2).padStart(64, "0"),
+          orderComponents.conduitKey.slice(2).padStart(64, "0"),
           ethers.BigNumber.from(orderComponents.nonce)
             .toHexString()
             .slice(2)
@@ -213,7 +218,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     const orderHash = await getAndVerifyOrderHash(orderComponents);
 
-    const domainSeparator = await marketplaceContract.DOMAIN_SEPARATOR();
+    const { domainSeparator } = await marketplaceContract.information();
     const digest = ethers.utils.keccak256(
       `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
     );
@@ -234,7 +239,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     timeFlag,
     signer,
     zoneHash = constants.HashZero,
-    conduit = constants.AddressZero,
+    conduitKey = constants.HashZero,
     extraCheap = false
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
@@ -258,7 +263,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType,
       zoneHash,
       salt,
-      conduit,
+      conduitKey,
       startTime,
       endTime,
     };
@@ -321,7 +326,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     offerer,
     zone,
     order,
-    conduit = constants.AddressZero
+    conduitKey = constants.HashZero
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
@@ -414,7 +419,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType: 0, // FULL_OPEN
       zoneHash: "0x".padEnd(66, "0"),
       salt,
-      conduit,
+      conduitKey,
       startTime,
       endTime,
     };
@@ -455,7 +460,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     zone,
     order,
     criteriaResolvers,
-    conduit = constants.AddressZero
+    conduitKey = constants.HashZero
   ) => {
     const nonce = await marketplaceContract.getNonce(offerer.address);
     const salt = randomHex();
@@ -516,7 +521,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       orderType: 0, // FULL_OPEN
       zoneHash: constants.HashZero,
       salt,
-      conduit,
+      conduitKey,
       startTime,
       endTime,
     };
@@ -563,7 +568,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   ) => {
     if (standardExecutions && standardExecutions.length > 0) {
       for (standardExecution of standardExecutions) {
-        const { item, offerer, conduit } = standardExecution;
+        const { item, offerer, conduitKey } = standardExecution;
 
         const { itemType, token, identifier, amount, recipient } = item;
 
@@ -1129,13 +1134,33 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     legacyProxyImplementation =
       await legacyProxyRegistry.delegateProxyImplementation();
 
+    conduitImplementation = await ethers.getContractFactory("Conduit");
+
+    conduitController = await deployContract("ConduitController", owner);
+
+    conduitKeyOne = `0x000000000000000000000000${owner.address.slice(2)}`;
+
+    await conduitController.createConduit(conduitKeyOne, owner.address);
+
+    const { conduit: conduitOneAddress, exists } =
+      await conduitController.getConduit(conduitKeyOne);
+
+    expect(exists).to.be.true;
+
+    conduitOne = conduitImplementation.attach(conduitOneAddress);
+
     marketplaceContract = await deployContract(
       "Consideration",
       owner,
+      conduitController.address,
       legacyProxyRegistry.address,
       legacyTokenTransferProxy.address,
       legacyProxyImplementation
     );
+
+    await conduitController
+      .connect(owner)
+      .updateChannel(conduitOne.address, marketplaceContract.address, true);
 
     await legacyProxyRegistry.grantInitialAuthentication(
       marketplaceContract.address
@@ -1493,18 +1518,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   });
 
   describe("Getter tests", async () => {
-    it("gets correct name", async () => {
+    it.skip("gets correct name", async () => {
       const name = await marketplaceContract.name();
       expect(name).to.equal("Consideration");
     });
-    it("gets correct version", async () => {
+    it.skip("gets correct version", async () => {
       const version = await marketplaceContract.version();
       expect(version).to.equal(VERSION);
     });
-    it("gets correct domain separator", async () => {
-      const name = await marketplaceContract.name();
-      const version = await marketplaceContract.version();
-      const domainSeparator = await marketplaceContract.DOMAIN_SEPARATOR();
+    it("gets correct domain separator and conduit controller", async () => {
+      const name = "Consideration";
+      const version = VERSION;
+      const { domainSeparator, conduitController: controller } =
+        await marketplaceContract.information();
       const typehash = ethers.utils.keccak256(
         ethers.utils.toUtf8Bytes(
           "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
@@ -1526,6 +1552,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           )}${chainIdEncoded}${addressEncoded}`
         )
       );
+      expect(controller).to.equal(conduitController.address);
     });
   });
 
@@ -1660,7 +1687,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -1729,7 +1756,78 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC721 <=> ETH (standard via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves conduit contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -1797,7 +1895,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), {
+                .fulfillOrder(order, toKey(false), {
                   value: value.add(ethers.utils.parseEther("1")),
                 });
               const receipt = await tx.wait();
@@ -1865,7 +1963,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -1933,7 +2031,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+                .fulfillAdvancedOrder(order, [], toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2052,7 +2150,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2113,7 +2211,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2181,7 +2279,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2189,7 +2287,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2237,7 +2335,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2252,7 +2350,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2300,7 +2398,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2308,7 +2406,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+                .fulfillAdvancedOrder(order, [], toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2356,7 +2454,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             null,
             seller,
             constants.HashZero,
-            constants.AddressZero,
+            constants.HashZero,
             true // extraCheap
           );
 
@@ -2371,7 +2469,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+                .fulfillAdvancedOrder(order, [], toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -2523,6 +2621,82 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             LEGACY_PROXY_CONDUIT
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            0, // EthForERC721
+            order
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters, { value });
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC721 <=> ETH (basic via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves their proxy contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -3034,6 +3208,106 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             return receipt;
           });
         });
+        it("ERC721 <=> ETH (match via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves their proxy contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+            await createMirrorBuyNowOrder(buyer, zone, order);
+
+          const fulfillments = defaultBuyNowMirrorFulfillment;
+
+          const { standardExecutions, batchExecutions } =
+            await simulateMatchOrders(
+              [order, mirrorOrder],
+              fulfillments,
+              owner,
+              value
+            );
+
+          expect(batchExecutions.length).to.equal(0);
+          expect(standardExecutions.length).to.equal(4);
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments, { value });
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: constants.AddressZero }],
+              standardExecutions,
+              batchExecutions
+            );
+            await checkExpectedEvents(
+              receipt,
+              [
+                {
+                  order: mirrorOrder,
+                  orderHash: mirrorOrderHash,
+                  fulfiller: constants.AddressZero,
+                },
+              ],
+              standardExecutions,
+              batchExecutions
+            );
+            return receipt;
+          });
+        });
         it("ERC721 <=> ETH (match, extra eth supplied and returned to caller)", async () => {
           // Seller mints nft
           const nftId = ethers.BigNumber.from(randomHex());
@@ -3201,7 +3475,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -3283,7 +3557,91 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC721 <=> ERC20 (standard via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves their proxy contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          // Buyer mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(buyer.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          // Buyer approves marketplace contract to transfer tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(buyer)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                buyer.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -3443,6 +3801,95 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             LEGACY_PROXY_CONDUIT
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            2, // ERC20ForERC721
+            order
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters);
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC721 <=> ERC20 (basic via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves their proxy contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          // Buyer mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(buyer.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          // Buyer approves marketplace contract to transfer tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(buyer)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                buyer.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -3630,7 +4077,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
           // Compute the digest based on the order hash
-          const domainSeparator = await marketplaceContract.DOMAIN_SEPARATOR();
+          const { domainSeparator } = await marketplaceContract.information();
           const digest = ethers.utils.keccak256(
             `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
           );
@@ -3873,6 +4320,119 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             return receipt;
           });
         });
+        it("ERC721 <=> ERC20 (match via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves their proxy contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          // Buyer mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(buyer.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          // Buyer approves marketplace contract to transfer tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(buyer)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                buyer.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+            await createMirrorBuyNowOrder(buyer, zone, order);
+
+          const fulfillments = defaultBuyNowMirrorFulfillment;
+
+          const { standardExecutions, batchExecutions } =
+            await simulateMatchOrders(
+              [order, mirrorOrder],
+              fulfillments,
+              owner,
+              value
+            );
+
+          expect(batchExecutions.length).to.equal(0);
+          expect(standardExecutions.length).to.equal(4);
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments);
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: constants.AddressZero }],
+              standardExecutions,
+              batchExecutions
+            );
+            await checkExpectedEvents(
+              receipt,
+              [
+                {
+                  order: mirrorOrder,
+                  orderHash: mirrorOrderHash,
+                  fulfiller: constants.AddressZero,
+                },
+              ],
+              standardExecutions,
+              batchExecutions
+            );
+            return receipt;
+          });
+        });
       });
       describe("[Accept offer] User accepts a buy offer on a single ERC721", async () => {
         // Note: ETH is not a possible case
@@ -3954,7 +4514,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4013,16 +4573,87 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
           });
 
-          // Seller approves marketplace contract to transfer ERC20 tokens
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount.sub(100),
+              endAmount: tokenAmount.sub(100),
+            },
+          ];
+
+          const consideration = [
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            LEGACY_PROXY_CONDUIT
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false));
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC721 <=> ERC20 (standard, via conduit)", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(buyer.address, nftId);
+
+          // Buyer approves marketplace contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(buyer)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(buyer.address, marketplaceContract.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves conduit contract to transfer tokens
           await whileImpersonating(seller.address, provider, async () => {
             await expect(
+              testERC20.connect(seller).approve(conduitOne.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(seller.address, conduitOne.address, tokenAmount);
+          });
+
+          // Buyer approves marketplace contract to transfer ERC20 tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
               testERC20
-                .connect(seller)
+                .connect(buyer)
                 .approve(marketplaceContract.address, tokenAmount)
             )
               .to.emit(testERC20, "Approval")
               .withArgs(
-                seller.address,
+                buyer.address,
                 marketplaceContract.address,
                 tokenAmount
               );
@@ -4049,14 +4680,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             zone,
             offer,
             consideration,
-            0 // FULL_OPEN
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4141,7 +4777,88 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(true));
+                .fulfillOrder(order, toKey(true));
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC721 <=> ERC20 (standard, fulfilled via conduit)", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(buyer.address, nftId);
+
+          // Buyer approves conduit contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(buyer)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(buyer.address, conduitOne.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer tokens
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(seller)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                seller.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          // Buyer approves conduit to transfer ERC20 tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC20.connect(buyer).approve(conduitOne.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(buyer.address, conduitOne.address, tokenAmount);
+          });
+
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount.sub(100),
+              endAmount: tokenAmount.sub(100),
+            },
+          ];
+
+          const consideration = [
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, conduitKeyOne);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4297,6 +5014,91 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             4, // ERC721ForERC20
             order,
             true
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks(
+              [order],
+              ethers.BigNumber.from(0),
+              null,
+              async () => {
+                const tx = await marketplaceContract
+                  .connect(buyer)
+                  .fulfillBasicOrder(basicOrderParameters);
+                const receipt = await tx.wait();
+                await checkExpectedEvents(receipt, [
+                  { order, orderHash, fulfiller: buyer.address },
+                ]);
+                return receipt;
+              }
+            );
+          });
+        });
+        it("ERC721 <=> ERC20 (basic, fulfilled via conduit)", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(buyer.address, nftId);
+
+          // Buyer approves conduit contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(buyer)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(buyer.address, conduitOne.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge());
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer tokens
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(seller)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                seller.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount,
+              endAmount: tokenAmount,
+            },
+          ];
+
+          const consideration = [
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            4, // ERC721ForERC20
+            order,
+            conduitKeyOne
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
@@ -4527,6 +5329,115 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             return receipt;
           });
         });
+        it("ERC721 <=> ERC20 (match via conduit)", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(buyer.address, nftId);
+
+          // Buyer approves conduit contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(buyer)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(buyer.address, conduitOne.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer tokens
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(seller)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                seller.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount.sub(100),
+              endAmount: tokenAmount.sub(100),
+            },
+          ];
+
+          const consideration = [
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+
+          const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+            await createMirrorAcceptOfferOrder(
+              buyer,
+              zone,
+              order,
+              [],
+              conduitKeyOne
+            );
+
+          const fulfillments = defaultAcceptOfferMirrorFulfillment;
+
+          const { standardExecutions, batchExecutions } =
+            await simulateMatchOrders(
+              [order, mirrorOrder],
+              fulfillments,
+              owner,
+              value
+            );
+
+          expect(batchExecutions.length).to.equal(0);
+          expect(standardExecutions.length).to.equal(4);
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments);
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: constants.AddressZero }],
+              standardExecutions,
+              batchExecutions
+            );
+            await checkExpectedEvents(
+              receipt,
+              [
+                {
+                  order: mirrorOrder,
+                  orderHash: mirrorOrderHash,
+                  fulfiller: constants.AddressZero,
+                },
+              ],
+              standardExecutions,
+              batchExecutions
+            );
+            return receipt;
+          });
+        });
       });
     });
 
@@ -4590,7 +5501,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4660,7 +5571,79 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), { value });
+                .fulfillOrder(order, toKey(false), { value });
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC1155 <=> ETH (standard via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller approves conduit contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC1155
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          const offer = [getTestItem1155(nftId, amount, amount)];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -4796,6 +5779,83 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             LEGACY_PROXY_CONDUIT
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            1, // EthForERC1155
+            order
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters, { value });
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC1155 <=> ETH (basic via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller approves proxy contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC1155
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          const offer = [getTestItem1155(nftId, amount, amount)];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -5011,6 +6071,107 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             return receipt;
           });
         });
+        it("ERC1155 <=> ETH (match via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller approves proxy contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC1155
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          const offer = [getTestItem1155(nftId, amount, amount)];
+
+          const consideration = [
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("10"),
+              endAmount: ethers.utils.parseEther("10"),
+              recipient: seller.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: zone.address,
+            },
+            {
+              itemType: 0, // ETH
+              token: constants.AddressZero,
+              identifierOrCriteria: 0, // ignored for ETH
+              startAmount: ethers.utils.parseEther("1"),
+              endAmount: ethers.utils.parseEther("1"),
+              recipient: owner.address,
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+            await createMirrorBuyNowOrder(buyer, zone, order);
+
+          const fulfillments = defaultBuyNowMirrorFulfillment;
+
+          const { standardExecutions, batchExecutions } =
+            await simulateMatchOrders(
+              [order, mirrorOrder],
+              fulfillments,
+              owner,
+              value
+            );
+
+          expect(batchExecutions.length).to.equal(0);
+          expect(standardExecutions.length).to.equal(4);
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments, { value });
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: constants.AddressZero }],
+              standardExecutions,
+              batchExecutions
+            );
+            await checkExpectedEvents(
+              receipt,
+              [
+                {
+                  order: mirrorOrder,
+                  orderHash: mirrorOrderHash,
+                  fulfiller: constants.AddressZero,
+                },
+              ],
+              standardExecutions,
+              batchExecutions
+            );
+            return receipt;
+          });
+        });
         it("ERC1155 <=> ERC20 (standard)", async () => {
           // Seller mints nft
           const nftId = ethers.BigNumber.from(randomHex());
@@ -5071,7 +6232,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5143,7 +6304,81 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC1155 <=> ERC20 (standard via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller approves proxy contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC1155
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          // Buyer mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(buyer.address, tokenAmount);
+
+          // Buyer approves marketplace contract to transfer tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(buyer)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                buyer.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          const offer = [getTestItem1155(nftId, amount, amount)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5283,6 +6518,85 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             constants.HashZero,
             LEGACY_PROXY_CONDUIT
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            3, // ERC20ForERC1155
+            order
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters);
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC1155 <=> ERC20 (basic via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller approves proxy contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC1155
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          // Buyer mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(buyer.address, tokenAmount);
+
+          // Buyer approves marketplace contract to transfer tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(buyer)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                buyer.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          const offer = [getTestItem1155(nftId, amount, amount)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -5502,6 +6816,109 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             return receipt;
           });
         });
+        it("ERC1155 <=> ERC20 (match via conduit)", async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(seller.address, nftId, amount);
+
+          // Seller approves conduit contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC1155
+                .connect(seller)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(seller.address, conduitOne.address, true);
+          });
+
+          // Buyer mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(buyer.address, tokenAmount);
+
+          // Buyer approves marketplace contract to transfer tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(buyer)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                buyer.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          const offer = [getTestItem1155(nftId, amount, amount)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              seller.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+            await createMirrorBuyNowOrder(buyer, zone, order);
+
+          const fulfillments = defaultBuyNowMirrorFulfillment;
+
+          const { standardExecutions, batchExecutions } =
+            await simulateMatchOrders(
+              [order, mirrorOrder],
+              fulfillments,
+              owner,
+              value
+            );
+
+          expect(batchExecutions.length).to.equal(0);
+          expect(standardExecutions.length).to.equal(4);
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments);
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: constants.AddressZero }],
+              standardExecutions,
+              batchExecutions
+            );
+            await checkExpectedEvents(
+              receipt,
+              [
+                {
+                  order: mirrorOrder,
+                  orderHash: mirrorOrderHash,
+                  fulfiller: constants.AddressZero,
+                },
+              ],
+              standardExecutions,
+              batchExecutions
+            );
+            return receipt;
+          });
+        });
       });
       describe("[Accept offer] User accepts a buy offer on a single ERC1155", async () => {
         // Note: ETH is not a possible case
@@ -5591,7 +7008,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false));
+                .fulfillOrder(order, toKey(false));
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5684,7 +7101,96 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(true));
+                .fulfillOrder(order, toKey(true));
+              const receipt = await tx.wait();
+              await checkExpectedEvents(receipt, [
+                { order, orderHash, fulfiller: buyer.address },
+              ]);
+              return receipt;
+            });
+          });
+        });
+        it("ERC1155 <=> ERC20 (standard, fulfilled via conduit)", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(buyer.address, nftId, amount);
+
+          // Buyer approves conduit contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC1155
+                .connect(buyer)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(buyer.address, conduitOne.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer tokens
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(seller)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                seller.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          // Buyer approves conduit to transfer ERC20 tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC20.connect(buyer).approve(conduitOne.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(buyer.address, conduitOne.address, tokenAmount);
+          });
+
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount.sub(100),
+              endAmount: tokenAmount.sub(100),
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 3, // ERC1155
+              token: testERC1155.address,
+              identifierOrCriteria: nftId,
+              startAmount: amount,
+              endAmount: amount,
+              recipient: seller.address,
+            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks([order], 0, null, async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, conduitKeyOne);
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
                 { order, orderHash, fulfiller: buyer.address },
@@ -5856,6 +7362,99 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             5, // ERC1155ForERC20
             order,
             true
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks(
+              [order],
+              ethers.BigNumber.from(0),
+              null,
+              async () => {
+                const tx = await marketplaceContract
+                  .connect(buyer)
+                  .fulfillBasicOrder(basicOrderParameters);
+                const receipt = await tx.wait();
+                await checkExpectedEvents(receipt, [
+                  { order, orderHash, fulfiller: buyer.address },
+                ]);
+                return receipt;
+              }
+            );
+          });
+        });
+        it("ERC1155 <=> ERC20 (basic, fulfilled via conduit)", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(buyer.address, nftId, amount);
+
+          // Buyer approves conduit contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC1155
+                .connect(buyer)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(buyer.address, conduitOne.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge());
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer tokens
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(seller)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                seller.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount,
+              endAmount: tokenAmount,
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 3, // ERC1155
+              token: testERC1155.address,
+              identifierOrCriteria: nftId,
+              startAmount: amount,
+              endAmount: amount,
+              recipient: seller.address,
+            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            5, // ERC1155ForERC20
+            order,
+            conduitKeyOne
           );
 
           await whileImpersonating(buyer.address, provider, async () => {
@@ -6102,6 +7701,123 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             return receipt;
           });
         });
+        it("ERC1155 <=> ERC20 (match via conduit)", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          const amount = ethers.BigNumber.from(randomHex());
+          await testERC1155.mint(buyer.address, nftId, amount);
+
+          // Buyer approves conduit contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC1155
+                .connect(buyer)
+                .setApprovalForAll(conduitOne.address, true)
+            )
+              .to.emit(testERC1155, "ApprovalForAll")
+              .withArgs(buyer.address, conduitOne.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer tokens
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(seller)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(
+                seller.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
+          });
+
+          // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount.sub(100),
+              endAmount: tokenAmount.sub(100),
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 3, // ERC1155
+              token: testERC1155.address,
+              identifierOrCriteria: nftId,
+              startAmount: amount,
+              endAmount: amount,
+              recipient: seller.address,
+            },
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+
+          const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+            await createMirrorAcceptOfferOrder(
+              buyer,
+              zone,
+              order,
+              [],
+              conduitKeyOne
+            );
+
+          const fulfillments = defaultAcceptOfferMirrorFulfillment;
+
+          const { standardExecutions, batchExecutions } =
+            await simulateMatchOrders(
+              [order, mirrorOrder],
+              fulfillments,
+              owner,
+              value
+            );
+
+          expect(batchExecutions.length).to.equal(0);
+          expect(standardExecutions.length).to.equal(4);
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments);
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: constants.AddressZero }],
+              standardExecutions,
+              batchExecutions
+            );
+            await checkExpectedEvents(
+              receipt,
+              [
+                {
+                  order: mirrorOrder,
+                  orderHash: mirrorOrderHash,
+                  fulfiller: constants.AddressZero,
+                },
+              ],
+              standardExecutions,
+              batchExecutions
+            );
+            return receipt;
+          });
+        });
       });
     });
   });
@@ -6167,7 +7883,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6198,7 +7914,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6258,7 +7974,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6288,7 +8004,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6338,7 +8054,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6443,7 +8159,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
@@ -6527,7 +8243,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
@@ -6598,7 +8314,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
@@ -6682,7 +8398,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
         });
 
@@ -6747,7 +8463,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6771,7 +8487,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6837,7 +8553,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6861,7 +8577,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -6927,7 +8643,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidSigner");
         });
 
@@ -6951,7 +8667,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value });
+              .fulfillOrder(order, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               { order, orderHash, fulfiller: buyer.address },
@@ -7055,7 +8771,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7082,7 +8798,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7135,7 +8851,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks(ordersClone, 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7231,7 +8947,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7258,7 +8974,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7311,7 +9027,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks(ordersClone, 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7399,12 +9115,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, criteriaResolvers, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(
-                order,
-                criteriaResolvers,
-                toAddress(false),
-                { value }
-              );
+              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
+                value,
+              });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7661,14 +9374,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillAdvancedOrder(
-                  order,
-                  criteriaResolvers,
-                  toAddress(false),
-                  {
-                    value,
-                  }
-                );
+                .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
+                  value,
+                });
               const receipt = await tx.wait();
               await checkExpectedEvents(
                 receipt,
@@ -7739,7 +9447,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -7859,7 +9567,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -9238,6 +10946,177 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
+      it("ERC1155 <=> ETH (match via conduit)", async () => {
+        // Seller mints first nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller mints second nft
+        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, secondNftId, secondAmount);
+
+        // Seller approves conduit contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(conduitOne.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, conduitOne.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount,
+            endAmount: amount,
+          },
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: secondNftId,
+            startAmount: secondAmount,
+            endAmount: secondAmount,
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
+        );
+
+        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+          await createMirrorBuyNowOrder(buyer, zone, order);
+
+        const fulfillments = [
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 2,
+              },
+            ],
+          },
+        ];
+
+        const { standardExecutions, batchExecutions } =
+          await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
+
+        expect(batchExecutions.length).to.equal(1);
+        expect(standardExecutions.length).to.equal(3);
+
+        await whileImpersonating(owner.address, provider, async () => {
+          const tx = await marketplaceContract
+            .connect(owner)
+            .matchOrders([order, mirrorOrder], fulfillments, { value });
+          const receipt = await tx.wait();
+          await checkExpectedEvents(
+            receipt,
+            [{ order, orderHash, fulfiller: constants.AddressZero }],
+            standardExecutions,
+            batchExecutions
+          );
+          await checkExpectedEvents(
+            receipt,
+            [
+              {
+                order: mirrorOrder,
+                orderHash: mirrorOrderHash,
+                fulfiller: constants.AddressZero,
+              },
+            ],
+            standardExecutions,
+            batchExecutions
+          );
+          return receipt;
+        });
+      });
     });
 
     describe("Fulfill Available Orders", async () => {
@@ -9312,7 +11191,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               );
             const receipt = await tx.wait();
@@ -9435,7 +11314,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   [],
                   offerComponents,
                   considerationComponents,
-                  toAddress(false),
+                  toKey(false),
                   { value: value.mul(2) }
                 );
               const receipt = await tx.wait();
@@ -9568,7 +11447,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([orderFour], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(orderFour, toAddress(false), { value });
+              .fulfillOrder(orderFour, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               {
@@ -9668,7 +11547,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value: value.mul(4) }
               );
             const receipt = await tx.wait();
@@ -9811,7 +11690,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value: value.mul(2) }
               );
             const receipt = await tx.wait();
@@ -9850,316 +11729,384 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         )
       );
     });
-    it("Reverts on ERC20 as it hasn't been implemeted yet", async () => {
-      // Buyer mints nft
-      const nftId = ethers.BigNumber.from(randomHex());
-      await testERC721.mint(buyer.address, nftId);
 
-      // Seller mints ERC20
-      const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
-      await testERC20.mint(seller.address, tokenAmount);
-
-      const offer = [
-        {
-          itemType: 1, // ERC20
-          token: testERC20.address,
-          identifierOrCriteria: 0, // ignored for ERC20
-          startAmount: tokenAmount.sub(100),
-          endAmount: tokenAmount.sub(100),
-        },
-      ];
-
-      const consideration = [
-        getTestItem721(nftId, 1, 1, seller.address),
-        getTestItem20(50, 50, zone.address),
-        getTestItem20(50, 50, owner.address),
-      ];
-
-      const { order, orderHash, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0, // FULL_OPEN
-        [],
-        null,
-        seller,
-        constants.HashZero,
-        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
-      );
-
-      await whileImpersonating(buyer.address, provider, async () => {
+    it("Reverts when attempting to update a conduit channel when call is not from controller", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
         await expect(
-          marketplaceContract
-            .connect(buyer)
-            .fulfillAdvancedOrder(
-              order,
-              [],
-              constants.AddressZero.slice(0, -1) + "2",
-              { value }
-            )
-        ).to.be.revertedWith("Not yet implemented");
+          conduitOne.connect(owner).updateChannel(constants.AddressZero, true)
+        ).to.be.revertedWith("InvalidController");
       });
     });
-    it("Reverts on ERC721 as it hasn't been implemeted yet", async () => {
-      // Seller mints nft
-      const nftId = ethers.BigNumber.from(randomHex());
-      await testERC721.mint(seller.address, nftId);
 
-      // Seller approves their proxy contract to transfer NFT
-      await whileImpersonating(seller.address, provider, async () => {
-        await expect(
-          testERC721.connect(seller).setApprovalForAll(sellerProxy, true)
-        )
-          .to.emit(testERC721, "ApprovalForAll")
-          .withArgs(seller.address, sellerProxy, true);
-      });
-
-      const offer = [getTestItem721(nftId)];
-
-      const consideration = [
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("10"),
-          endAmount: ethers.utils.parseEther("10"),
-          recipient: seller.address,
-        },
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("1"),
-          endAmount: ethers.utils.parseEther("1"),
-          recipient: zone.address,
-        },
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("1"),
-          endAmount: ethers.utils.parseEther("1"),
-          recipient: owner.address,
-        },
-      ];
-
-      const { order, orderHash, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0, // FULL_OPEN
-        [],
-        null,
-        seller,
-        constants.HashZero,
-        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
-      );
-
-      await whileImpersonating(buyer.address, provider, async () => {
-        await expect(
-          marketplaceContract
-            .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-        ).to.be.revertedWith("Not yet implemented");
+    it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(conduitOne.connect(owner).execute([])).to.be.revertedWith(
+          "ChannelClosed"
+        );
       });
     });
-    it("Reverts on ERC1155 as it hasn't been implemeted yet", async () => {
-      // Seller mints nft
-      const nftId = ethers.BigNumber.from(randomHex());
-      const amount = ethers.BigNumber.from(randomHex());
-      await testERC1155.mint(seller.address, nftId, amount);
 
-      // Seller approves proxy contract to transfer NFT
-      await whileImpersonating(seller.address, provider, async () => {
+    it("Reverts when attempting to execute with batch 1155 transfers on a conduit when not called from a channel", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
         await expect(
-          testERC1155.connect(seller).setApprovalForAll(sellerProxy, true)
-        )
-          .to.emit(testERC1155, "ApprovalForAll")
-          .withArgs(seller.address, sellerProxy, true);
-      });
-
-      const offer = [getTestItem1155(nftId, amount, amount)];
-
-      const consideration = [
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("10"),
-          endAmount: ethers.utils.parseEther("10"),
-          recipient: seller.address,
-        },
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("1"),
-          endAmount: ethers.utils.parseEther("1"),
-          recipient: zone.address,
-        },
-        {
-          itemType: 0, // ETH
-          token: constants.AddressZero,
-          identifierOrCriteria: 0, // ignored for ETH
-          startAmount: ethers.utils.parseEther("1"),
-          endAmount: ethers.utils.parseEther("1"),
-          recipient: owner.address,
-        },
-      ];
-
-      const { order, orderHash, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0, // FULL_OPEN
-        [],
-        null,
-        seller,
-        constants.HashZero,
-        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
-      );
-
-      await whileImpersonating(buyer.address, provider, async () => {
-        await expect(
-          marketplaceContract
-            .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toAddress(false), { value })
-        ).to.be.revertedWith("Not yet implemented");
+          conduitOne.connect(owner).executeWithBatch1155([], [])
+        ).to.be.revertedWith("ChannelClosed");
       });
     });
-    it("Reverts on ERC1155 batch as it hasn't been implemeted yet", async () => {
-      // Seller mints first nft
-      const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-      const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
-      await testERC1155.mint(seller.address, nftId, amount);
 
-      // Seller mints second nft
-      const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-      const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
-      await testERC1155.mint(seller.address, secondNftId, secondAmount);
-
-      const offer = [
-        {
-          itemType: 3, // ERC1155
-          token: testERC1155.address,
-          identifierOrCriteria: nftId,
-          startAmount: amount,
-          endAmount: amount,
-        },
-        {
-          itemType: 3, // ERC1155
-          token: testERC1155.address,
-          identifierOrCriteria: secondNftId,
-          startAmount: secondAmount,
-          endAmount: secondAmount,
-        },
-      ];
-
-      const consideration = [
-        getItemETH(10, 10, seller.address),
-        getItemETH(1, 1, zone.address),
-        getItemETH(1, 1, owner.address),
-      ];
-
-      const { order, orderHash, value } = await createOrder(
-        seller,
-        zone,
-        offer,
-        consideration,
-        0, // FULL_OPEN
-        [],
-        null,
-        seller,
-        constants.HashZero,
-        constants.AddressZero.slice(0, -1) + "2" // not address(0) / address(1)
-      );
-
-      const { mirrorOrder, mirrorOrderHash, mirrorValue } =
-        await createMirrorBuyNowOrder(buyer, zone, order);
-
-      const fulfillments = [
-        {
-          offerComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 0,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 0,
-            },
-          ],
-        },
-        {
-          offerComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 1,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 1,
-            },
-          ],
-        },
-        {
-          offerComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 0,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 0,
-            },
-          ],
-        },
-        {
-          offerComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 0,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 1,
-            },
-          ],
-        },
-        {
-          offerComponents: [
-            {
-              orderIndex: 1,
-              itemIndex: 0,
-            },
-          ],
-          considerationComponents: [
-            {
-              orderIndex: 0,
-              itemIndex: 2,
-            },
-          ],
-        },
-      ];
+    it("Retrieves the owner of a conduit", async () => {
+      const ownerOf = await conduitController.ownerOf(conduitOne.address);
+      expect(ownerOf).to.equal(owner.address);
 
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
-          marketplaceContract
-            .connect(buyer)
-            .matchOrders([order, mirrorOrder], fulfillments, { value })
-        ).to.be.revertedWith("Not yet implemented");
+          conduitController.connect(owner).ownerOf(buyer.address)
+        ).to.be.revertedWith("NoConduit");
       });
+    });
+
+    it("Retrieves the key of a conduit", async () => {
+      const key = await conduitController.getKey(conduitOne.address);
+      expect(key.toLowerCase()).to.equal(conduitKeyOne.toLowerCase());
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getKey(buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+    });
+
+    it("Retrieves the status of a conduit channel", async () => {
+      let isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.true;
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        seller.address
+      );
+      expect(isOpen).to.be.false;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .getChannelStatus(buyer.address, seller.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+    });
+
+    it("Retrieves conduit channels from the controller", async () => {
+      const totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getTotalChannels(buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      const firstChannel = await conduitController.getChannel(
+        conduitOne.address,
+        0
+      );
+      expect(firstChannel).to.equal(marketplaceContract.address);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .getChannel(buyer.address, totalChannels - 1)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getChannel(conduitOne.address, 1)
+        ).to.be.revertedWith("ChannelOutOfRange", conduitOne.address);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getChannel(conduitOne.address, 2)
+        ).to.be.revertedWith("ChannelOutOfRange", conduitOne.address);
+      });
+
+      const channels = await conduitController.getChannels(conduitOne.address);
+      expect(channels.length).to.equal(1);
+      expect(channels[0]).to.equal(marketplaceContract.address);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getChannels(buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+    });
+
+    it("Adds and removes channels", async () => {
+      let isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.true;
+
+      // No-op
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, marketplaceContract.address, true);
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.true;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, seller.address, true);
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        seller.address
+      );
+      expect(isOpen).to.be.true;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(
+            conduitOne.address,
+            marketplaceContract.address,
+            false
+          );
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.false;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, seller.address, false);
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        seller.address
+      );
+      expect(isOpen).to.be.false;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, marketplaceContract.address, true);
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.true;
+    });
+
+    it("Reverts on an attempt to move an unsupported item", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, seller.address, true);
+      });
+
+      let isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        seller.address
+      );
+      expect(isOpen).to.be.true;
+
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          conduitOne.connect(seller).executeWithBatch1155(
+            [
+              {
+                itemType: 1, // ERC20
+                token: testERC20.address,
+                from: buyer.address,
+                to: seller.address,
+                identifier: 0,
+                amount: 0,
+              },
+              {
+                itemType: 0, // NATIVE (invalid)
+                token: ethers.constants.AddressZero,
+                from: conduitOne.address,
+                to: seller.address,
+                identifier: 0,
+                amount: 1,
+              },
+            ],
+            []
+          )
+        ).to.be.revertedWith("InvalidItemType");
+      });
+    });
+
+    it("Reverts when attempting to create a conduit not scoped to the creator", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .createConduit(ethers.constants.HashZero, owner.address)
+        ).to.be.revertedWith("InvalidCreator");
+      });
+    });
+
+    it("Reverts when attempting to create a conduit that already exists", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .createConduit(conduitKeyOne, owner.address)
+        ).to.be.revertedWith(`ConduitAlreadyExists("${conduitOne.address}")`);
+      });
+    });
+
+    it("Reverts when attempting to update a channel for an unowned conduit", async () => {
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(buyer)
+            .updateChannel(conduitOne.address, buyer.address, true)
+        ).to.be.revertedWith(`CallerIsNotOwner("${conduitOne.address}")`);
+      });
+    });
+
+    it("Retrieves no initial potential owner for new conduit", async () => {
+      const potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController.connect(owner).getPotentialOwner(buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+    });
+
+    it("Lets the owner transfer ownership via a two-stage process", async () => {
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(buyer)
+            .transferOwnership(conduitOne.address, buyer.address)
+        ).to.be.revertedWith("CallerIsNotOwner", conduitOne.address);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .transferOwnership(conduitOne.address, ethers.constants.AddressZero)
+        ).to.be.revertedWith(
+          "NewPotentialOwnerIsZeroAddress",
+          conduitOne.address
+        );
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .transferOwnership(seller.address, buyer.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      let potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+      await conduitController.transferOwnership(
+        conduitOne.address,
+        buyer.address
+      );
+
+      potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(buyer.address);
+
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(buyer)
+            .cancelOwnershipTransfer(conduitOne.address)
+        ).to.be.revertedWith("CallerIsNotOwner", conduitOne.address);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          conduitController
+            .connect(owner)
+            .cancelOwnershipTransfer(seller.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      await conduitController.cancelOwnershipTransfer(conduitOne.address);
+
+      potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+      await conduitController.transferOwnership(
+        conduitOne.address,
+        buyer.address
+      );
+
+      potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(buyer.address);
+
+      await whileImpersonating(buyer.address, provider, async () => {
+        await expect(
+          conduitController.connect(buyer).acceptOwnership(seller.address)
+        ).to.be.revertedWith("NoConduit");
+      });
+
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          conduitController.connect(seller).acceptOwnership(conduitOne.address)
+        ).to.be.revertedWith(
+          "CallerIsNotNewPotentialOwner",
+          conduitOne.address
+        );
+      });
+
+      await whileImpersonating(buyer.address, provider, async () => {
+        await conduitController
+          .connect(buyer)
+          .acceptOwnership(conduitOne.address);
+      });
+
+      potentialOwner = await conduitController.getPotentialOwner(
+        conduitOne.address
+      );
+      expect(potentialOwner).to.equal(ethers.constants.AddressZero);
+
+      const ownerOf = await conduitController.ownerOf(conduitOne.address);
+      expect(ownerOf).to.equal(buyer.address);
     });
   });
 
@@ -10310,7 +12257,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("BadFraction");
         });
 
@@ -10328,7 +12275,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("BadFraction");
         });
 
@@ -10346,7 +12293,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("BadFraction");
         });
 
@@ -10364,7 +12311,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10460,7 +12407,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("InexactFraction");
         });
 
@@ -10478,7 +12425,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10574,7 +12521,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("PartialFillsNotEnabledForOrder");
         });
 
@@ -10592,7 +12539,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10688,7 +12635,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10797,7 +12744,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -10821,7 +12768,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(`OrderAlreadyFilled("${orderHash}")`);
         });
       });
@@ -10903,7 +12850,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("MissingOriginalConsiderationItems");
         });
       });
@@ -11290,7 +13237,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
         });
       });
@@ -12153,7 +14100,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("MissingFulfillmentComponentOnAggregation(0)");
@@ -12250,7 +14197,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -12346,7 +14293,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -12421,7 +14368,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -12496,7 +14443,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -12587,7 +14534,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([orderThree], 0, null, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillOrder(orderThree, toAddress(false), { value });
+              .fulfillOrder(orderThree, toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(receipt, [
               {
@@ -12671,7 +14618,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 [],
                 offerComponents,
                 considerationComponents,
-                toAddress(false),
+                toKey(false),
                 { value: value.mul(3) }
               )
           ).to.be.revertedWith("NoSpecifiedOrdersAvailable");
@@ -12744,12 +14691,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(
-                order,
-                criteriaResolvers,
-                toAddress(false),
-                { value }
-              )
+              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
+                value,
+              })
           ).to.be.revertedWith("InvalidProof");
         });
 
@@ -12760,12 +14704,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, criteriaResolvers, async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(
-                order,
-                criteriaResolvers,
-                toAddress(false),
-                { value }
-              );
+              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
+                value,
+              });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -12945,7 +14886,60 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
+          ).to.be.revertedWith("InvalidERC721TransferAmount");
+        });
+      });
+      it("Reverts on attempts to transfer >1 ERC721 in single transfer via conduit", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves conduit contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(conduitOne.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, conduitOne.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(2),
+            endAmount: ethers.BigNumber.from(2),
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidERC721TransferAmount");
         });
       });
@@ -12990,7 +14984,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidTime");
         });
       });
@@ -13032,7 +15026,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("InvalidTime");
         });
       });
@@ -13408,7 +15402,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), {
+              .fulfillOrder(order, toKey(false), {
                 value: ethers.BigNumber.from(1),
               })
           ).to.be.revertedWith("InsufficientEtherSupplied");
@@ -13418,7 +15412,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), {
+              .fulfillOrder(order, toKey(false), {
                 value: ethers.utils.parseEther("9.999999"),
               })
           ).to.be.revertedWith("InsufficientEtherSupplied");
@@ -13432,7 +15426,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, toAddress(false), {
+                .fulfillOrder(order, toKey(false), {
                   value: ethers.utils.parseEther("12"),
                 });
               const receipt = await tx.wait();
@@ -13517,7 +15511,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), {
+              .fulfillAdvancedOrder(order, [], toKey(false), {
                 value: ethers.BigNumber.from(1),
               })
           ).to.be.revertedWith("InsufficientEtherSupplied");
@@ -13534,7 +15528,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), {
+              .fulfillAdvancedOrder(order, [], toKey(false), {
                 value: value.sub(1),
               })
           ).to.be.revertedWith("InsufficientEtherSupplied");
@@ -13552,7 +15546,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), {
+              .fulfillAdvancedOrder(order, [], toKey(false), {
                 value: value.add(1),
               });
             const receipt = await tx.wait();
@@ -13849,7 +15843,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.reverted; // panic code thrown by underlying 721
         });
 
@@ -13875,7 +15869,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -13925,7 +15919,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("NOT_AUTHORIZED");
         });
       });
@@ -13964,7 +15958,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(
             `TokenTransferGenericFailure("${testERC1155.address}", "${
               seller.address
@@ -13972,6 +15966,45 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .mul(10)
               .toString()})`
           );
+        });
+      });
+      it("Reverts when 1155 token transfer reverts (via conduit)", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount.mul(10000));
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+          },
+        ];
+
+        const consideration = [getItemETH(10, 10, seller.address)];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
+          ).to.be.revertedWith(`NOT_AUTHORIZED`);
         });
       });
       it("Reverts when transferred item amount is zero", async () => {
@@ -14055,7 +16088,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith("MissingItemAmount");
         });
       });
@@ -14143,7 +16176,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(
             `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
               buyer.address
@@ -14164,7 +16197,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value });
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -14290,7 +16323,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(true), { value })
+              .fulfillAdvancedOrder(order, [], toKey(true), { value })
           ).to.be.revertedWith(
             `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
               buyer.address
@@ -14311,7 +16344,276 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, [], async () => {
             const tx = await marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(true), { value });
+              .fulfillAdvancedOrder(order, [], toKey(true), { value });
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: buyer.address }],
+              null,
+              null,
+              []
+            );
+            return receipt;
+          });
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(true);
+        expect(orderStatus.totalFilled).to.equal(1);
+        expect(orderStatus.totalSize).to.equal(1);
+      });
+      it("Reverts when ERC20 tokens return falsey values (via conduit)", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount.mul(10000));
+
+        // Seller approves conduit contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(conduitOne.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, conduitOne.address, true);
+        });
+
+        // Buyer mints ERC20
+        const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+        await testERC20.mint(buyer.address, tokenAmount);
+
+        // Buyer approves conduit contract to transfer tokens
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            testERC20.connect(buyer).approve(conduitOne.address, tokenAmount)
+          )
+            .to.emit(testERC20, "Approval")
+            .withArgs(buyer.address, conduitOne.address, tokenAmount);
+        });
+
+        // Seller approves conduit contract to transfer tokens
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC20.connect(seller).approve(conduitOne.address, tokenAmount)
+          )
+            .to.emit(testERC20, "Approval")
+            .withArgs(seller.address, conduitOne.address, tokenAmount);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(1000),
+            endAmount: amount.mul(1000),
+            recipient: seller.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+            recipient: zone.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(20),
+            endAmount: amount.mul(20),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
+        );
+
+        // block transfers
+        await testERC20.blockTransfer(true);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], conduitKeyOne, { value })
+          ).to.be.revertedWith(
+            `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
+              buyer.address
+            }", "${seller.address}", ${amount.mul(1000).toString()})`
+          );
+        });
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
+
+        await testERC20.blockTransfer(false);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, [], async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], conduitKeyOne, { value });
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: buyer.address }],
+              null,
+              null,
+              []
+            );
+            return receipt;
+          });
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(true);
+        expect(orderStatus.totalFilled).to.equal(1);
+        expect(orderStatus.totalSize).to.equal(1);
+      });
+      it("Reverts when providing non-existent conduit", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount.mul(10000));
+
+        // Seller approves conduit contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(conduitOne.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, conduitOne.address, true);
+        });
+
+        // Buyer mints ERC20
+        const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+        await testERC20.mint(buyer.address, tokenAmount);
+
+        // Buyer approves conduit contract to transfer tokens
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            testERC20.connect(buyer).approve(conduitOne.address, tokenAmount)
+          )
+            .to.emit(testERC20, "Approval")
+            .withArgs(buyer.address, conduitOne.address, tokenAmount);
+        });
+
+        // Seller approves conduit contract to transfer tokens
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC20.connect(seller).approve(conduitOne.address, tokenAmount)
+          )
+            .to.emit(testERC20, "Approval")
+            .withArgs(seller.address, conduitOne.address, tokenAmount);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(1000),
+            endAmount: amount.mul(1000),
+            recipient: seller.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+            recipient: zone.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(20),
+            endAmount: amount.mul(20),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
+        );
+
+        const badKey = ethers.constants.HashZero.slice(0, -1) + "2";
+
+        const missingConduit = await conduitController.getConduit(badKey);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], badKey, { value })
+          ).to.be.revertedWith("InvalidConduit", badKey, missingConduit);
+        });
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, [], async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], conduitKeyOne, { value });
             const receipt = await tx.wait();
             await checkExpectedEvents(
               receipt,
@@ -14562,7 +16864,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.reverted; // TODO: look into the revert reason more thoroughly
           // Transaction reverted: function returned an unexpected amount of data
         });
@@ -14594,7 +16896,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(`NoContract("${ethers.constants.AddressZero}")`);
         });
       });
@@ -14630,7 +16932,43 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
+          ).to.be.revertedWith(`NoContract("${ethers.constants.AddressZero}")`);
+        });
+      });
+      it("Reverts when 1155 account with no code is supplied (via conduit)", async () => {
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: ethers.constants.AddressZero,
+            identifierOrCriteria: 0,
+            startAmount: amount,
+            endAmount: amount,
+          },
+        ];
+
+        const consideration = [getItemETH(10, 10, seller.address)];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(`NoContract("${ethers.constants.AddressZero}")`);
         });
       });
@@ -14684,7 +17022,65 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
+          ).to.be.revertedWith(
+            `TokenTransferGenericFailure("${marketplaceContract.address}", "${
+              buyer.address
+            }", "${seller.address}", 0, ${amount.toString()})`
+          );
+        });
+      });
+      it("Reverts when non-token account is supplied as the token fulfilled via conduit", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount,
+            endAmount: amount,
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 1, // ERC20
+            token: marketplaceContract.address,
+            identifierOrCriteria: 0,
+            startAmount: amount,
+            endAmount: amount,
+            recipient: seller.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], conduitKeyOne, { value })
           ).to.be.revertedWith(
             `TokenTransferGenericFailure("${marketplaceContract.address}", "${
               buyer.address
@@ -14719,7 +17115,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toAddress(false), { value })
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
           ).to.be.revertedWith(
             `TokenTransferGenericFailure("${marketplaceContract.address}", "${
               seller.address
@@ -14771,6 +17167,154 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           offer,
           consideration,
           0 // FULL_OPEN
+        );
+
+        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+          await createMirrorBuyNowOrder(buyer, zone, order);
+
+        const fulfillments = [
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 2,
+              },
+            ],
+          },
+        ];
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments, { value })
+          ).to.be.revertedWith(
+            `ERC1155BatchTransferGenericFailure("${
+              marketplaceContract.address
+            }", "${seller.address}", "${
+              buyer.address
+            }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
+          );
+        });
+
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
+      });
+      it("Reverts when 1155 batch non-token account is supplied as the token via conduit", async () => {
+        // Seller mints first nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller mints second nft
+        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, secondNftId, secondAmount);
+
+        // Seller approves conduit contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(conduitOne.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, conduitOne.address, true);
+        });
+
+        const offer = [
+          getTestItem1155(nftId, amount, amount, marketplaceContract.address),
+          getTestItem1155(
+            secondNftId,
+            secondAmount,
+            secondAmount,
+            marketplaceContract.address
+          ),
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          conduitKeyOne
         );
 
         const { mirrorOrder, mirrorOrderHash, mirrorValue } =
@@ -15059,7 +17603,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         // prepare the reentrant call on the reenterer
         const callData = marketplaceContract.interface.encodeFunctionData(
           "fulfillOrder",
-          [order, toAddress(false)]
+          [order, toKey(false)]
         );
         const tx = await reenterer.prepare(
           marketplaceContract.address,
@@ -15072,7 +17616,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillOrder(order, toAddress(false), { value })
+              .fulfillOrder(order, toKey(false), { value })
           ).to.be.revertedWith("NoReentrantCalls");
         });
       });

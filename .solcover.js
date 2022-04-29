@@ -1,7 +1,11 @@
 module.exports = {
   skipFiles: [
+    "conduit/lib/ConduitEnums.sol",
+    "conduit/lib/ConduitStructs.sol",
     "interfaces/AbridgedProxyInterfaces.sol",
     "interfaces/AbridgedTokenInterfaces.sol",
+    "interfaces/ConduitControllerInterface.sol",
+    "interfaces/ConduitInterface.sol",
     "interfaces/ConsiderationEventsAndErrors.sol",
     "interfaces/ConsiderationInterface.sol",
     "interfaces/EIP1271Interface.sol",

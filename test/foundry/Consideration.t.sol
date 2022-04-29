@@ -6,6 +6,7 @@ pragma solidity 0.8.13;
 import { OrderType, BasicOrderType, ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient } from "contracts/lib/ConsiderationStructs.sol";
 import "contracts/Consideration.sol";
+import "contracts/conduit/ConduitController.sol";
 
 import { DSTestPlusPlus } from "./utils/DSTestPlusPlus.sol";
 import { TestERC721 } from "contracts/test/TestERC721.sol";
@@ -13,6 +14,9 @@ import { TestERC721 } from "contracts/test/TestERC721.sol";
 contract ConsiderationTest is DSTestPlusPlus {
     Consideration consider;
     address considerAddress;
+
+    ConduitController conduitController;
+    address conduitControllerAddress;
 
     address accountA;
     address accountB;
@@ -22,8 +26,16 @@ contract ConsiderationTest is DSTestPlusPlus {
     TestERC721 test721;
 
     function setUp() public {
+        conduitControllerAddress = address(new ConduitController());
+        conduitController = ConduitController(conduitControllerAddress);
+
         considerAddress = address(
-            new Consideration(address(0), address(0), address(0))
+            new Consideration(
+                conduitControllerAddress,
+                address(0),
+                address(0),
+                address(0)
+            )
         );
         consider = Consideration(considerAddress);
 
@@ -96,20 +108,18 @@ contract ConsiderationTest is DSTestPlusPlus {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
+            bytes32(0), // no conduit
             nonce
         );
         bytes32 orderHash = consider.getOrderHash(orderComponents);
+
+        (bytes32 domainSeparator, ) = consider.information();
 
         //accountA is pk 1.
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             1,
             keccak256(
-                abi.encodePacked(
-                    bytes2(0x1901),
-                    consider.DOMAIN_SEPARATOR(),
-                    orderHash
-                )
+                abi.encodePacked(bytes2(0x1901), domainSeparator, orderHash)
             )
         );
 
@@ -128,8 +138,8 @@ contract ConsiderationTest is DSTestPlusPlus {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
-            address(0), // no conduit
+            bytes32(0), // no conduit
+            bytes32(0), // no conduit
             0,
             new AdditionalRecipient[](0),
             abi.encodePacked(r, s, v)

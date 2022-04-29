@@ -12,12 +12,12 @@ import {
 /**
  * @dev An order contains ten components: an offerer, a zone (or account that
  *      can cancel the order or restrict who can fulfill the order depending on
- *      the type), the order type (specifying partial fill support, restricted
- *      order status, and the offerer's conduit usage preference), the start and
- *      end time, a hash that will be provided to the zone when validating
- *      restricted orders, a salt, a nonce, and an arbitrary number of offer
- *      items that can be spent along with consideration items that must be
- *      received by their respective recipient.
+ *      the type), the order type (specifying partial fill support as well as
+ *      restricted order status), the start and end time, a hash that will be
+ *      provided to the zone when validating restricted orders, a salt, a key
+ *      corresponding to a given conduit, a nonce, and an arbitrary number of
+ *      offer items that can be spent along with consideration items that must
+ *      be received by their respective recipient.
  */
 struct OrderComponents {
     address offerer;
@@ -29,7 +29,7 @@ struct OrderComponents {
     uint256 endTime;
     bytes32 zoneHash;
     uint256 salt;
-    address conduit;
+    bytes32 conduitKey;
     uint256 nonce;
 }
 
@@ -112,8 +112,8 @@ struct BasicOrderParameters {
     uint256 endTime; // 0x164
     bytes32 zoneHash; // 0x184
     uint256 salt; // 0x1a4
-    address offererConduit; // 0x1c4
-    address fulfillerConduit; // 0x1e4
+    bytes32 offererConduitKey; // 0x1c4
+    bytes32 fulfillerConduitKey; // 0x1e4
     uint256 totalOriginalAdditionalRecipients; // 0x204
     AdditionalRecipient[] additionalRecipients; // 0x224
     bytes signature; // 0x244
@@ -146,9 +146,9 @@ struct OrderParameters {
     uint256 endTime; // 0xc0
     bytes32 zoneHash; // 0xe0
     uint256 salt; // 0x100
-    address conduit; // 0x120
+    bytes32 conduitKey; // 0x120
     uint256 totalOriginalConsiderationItems; // 0x140
-    // offer.length                           // 0x160
+    // offer.length                          // 0x160
 }
 
 /**
@@ -240,7 +240,7 @@ struct FulfillmentComponent {
 struct Execution {
     ReceivedItem item;
     address offerer;
-    address conduit;
+    bytes32 conduitKey;
 }
 
 /**
@@ -254,7 +254,7 @@ struct BatchExecution {
     address to;
     uint256[] tokenIds;
     uint256[] amounts;
-    address conduit;
+    bytes32 conduitKey;
 }
 
 /**
