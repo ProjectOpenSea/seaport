@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "./Consideration.sol";
-import "./lib/ConsiderationStructs.sol";
-import "./lib/ConsiderationEnums.sol";
-import "./test/TestERC20.sol";
-import "./test/TestERC721.sol";
-import "./test/TestERC1155.sol";
+import "../Consideration.sol";
+import "../lib/ConsiderationStructs.sol";
+import "../lib/ConsiderationEnums.sol";
+import "../test/TestERC20.sol";
+import "../test/TestERC721.sol";
+import "../test/TestERC1155.sol";
 
 enum HowToCall {
     Call,
@@ -57,7 +57,7 @@ interface FuzzyTests {
     function testIncrementNonce(bytes32 seed) external;
 }
 
-// echidna-test-2.0 . --contract Echidna --config ./contracts/e2e.yaml
+// echidna-test-2.0 . --contract Echidna --config ./contracts/crytic/e2e.yaml
 contract Echidna is FuzzyTests {
 
     IAuthenticatedProxy private _proxyImplementation = IAuthenticatedProxy(
