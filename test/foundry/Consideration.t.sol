@@ -50,7 +50,7 @@ contract ConsiderationTest is BaseOrderTest {
             _ethAmount,
             payable(alice)
         );
-        emit log("getting nonce");
+        emit log_named_address("getting nonce for", alice);
         // getNonce
         uint256 nonce = consideration.getNonce(alice);
 
