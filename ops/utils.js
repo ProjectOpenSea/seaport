@@ -28,20 +28,22 @@ const log = (msg) => {
 };
 
 const logEvents = (hash, abi) => {
-  provider.getTransactionReceipt(hash).then((receipt) => {
+  return provider.getTransactionReceipt(hash).then((receipt) => {
     if (!receipt) log(`No receipt is available for ${hash}`);
     const iface = new eth.utils.Interface(abi);
-    log(``);
-    log(`Events Emitted:`);
     receipt.logs.forEach((txLog) => {
-      const evt = iface.parseLog(txLog);
-      log(``);
-      log(`${evt.signature}`);
-      evt.args.forEach((arg, i) => {
-        log(
-          ` - ${evt.eventFragment.inputs[i].name} [${evt.eventFragment.inputs[i].type}]: ${arg}`
-        );
-      });
+      try {
+        const evt = iface.parseLog(txLog);
+        log(``);
+        log(`Event Emitted: ${evt.signature}`);
+        evt.args.forEach((arg, i) => {
+          log(
+            ` - ${evt.eventFragment.inputs[i].name} [${evt.eventFragment.inputs[i].type}]: ${arg}`
+          );
+        });
+      } catch (e) {
+        log(`Unknown Event Emitted: ${txLog.topics[0]}`);
+      }
     });
     log(``);
   });
