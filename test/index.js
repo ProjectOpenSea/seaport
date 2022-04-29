@@ -11847,6 +11847,98 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
+    it("Adds and removes channels", async () => {
+      let isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.true;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, seller.address, true);
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        seller.address
+      );
+      expect(isOpen).to.be.true;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(
+            conduitOne.address,
+            marketplaceContract.address,
+            false
+          );
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.false;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, seller.address, false);
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        seller.address
+      );
+      expect(isOpen).to.be.false;
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, marketplaceContract.address, true);
+      });
+
+      isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        marketplaceContract.address
+      );
+      expect(isOpen).to.be.true;
+    });
+
+    it("Reverts on an attempt to move an unsupported item", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, seller.address, true);
+      });
+
+      let isOpen = await conduitController.getChannelStatus(
+        conduitOne.address,
+        seller.address
+      );
+      expect(isOpen).to.be.true;
+
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          conduitOne.connect(seller).executeWithBatch1155(
+            [
+              {
+                itemType: 0, // NATIVE (invalid)
+                token: ethers.constants.AddressZero,
+                from: conduitOne.address,
+                to: seller.address,
+                identifier: 0,
+                amount: 1,
+              },
+            ],
+            []
+          )
+        ).to.be.revertedWith("InvalidItemType");
+      });
+    });
+
     it("Reverts when attempting to create a conduit not scoped to the creator", async () => {
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
