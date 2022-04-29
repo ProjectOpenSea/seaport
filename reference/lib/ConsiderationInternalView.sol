@@ -35,6 +35,10 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
+     * @param conduitController           A contract that deploys conduits, or
+     *                                    proxies that may optionally be used to
+     *                                    transfer approved ERC20+721+1155
+     *                                    tokens.
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC721+1155 tokens.
@@ -45,11 +49,13 @@ contract ConsiderationInternalView is ConsiderationPure {
      *                                    each proxy in order to utilize it.
      */
     constructor(
+        address conduitController,
         address legacyProxyRegistry,
         address legacyTokenTransferProxy,
         address requiredProxyImplementation
     )
         ConsiderationPure(
+            conduitController,
             legacyProxyRegistry,
             legacyTokenTransferProxy,
             requiredProxyImplementation
@@ -669,7 +675,7 @@ contract ConsiderationInternalView is ConsiderationPure {
              * address token,
              * uint256 identifier,
              * address offerer,
-             * address conduit,
+             * bytes32 conduitKey,
              * uint256 offerAmount
              */
         ) = _aggregateValidFulfillmentOfferItems(
@@ -718,13 +724,8 @@ contract ConsiderationInternalView is ConsiderationPure {
         execution.item.recipient = considerationItem.recipient;
 
         // Return the final execution that will be triggered for relevant items.
-        return execution; // Execution(considerationItem, offerer, conduit);
+        return execution; // Execution(considerationItem, offerer, conduitKey);
     }
-
-    /**
-     * 2. Here's the summary of this section
-     * blah blah blah
-     */
 
     /**
      * @dev Internal view function to aggregate offer or consideration items
@@ -736,9 +737,13 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param side                  The side (i.e. offer or consideration).
      * @param fulfillmentComponents An array designating item components to
      *                              aggregate if part of an available order.
-     * @param fulfillerConduit      A flag indicating whether to source
-     *                              approvals for fulfilled tokens from the
-     *                              fulfiller's respective proxy.
+     * @param fulfillerConduitKey   A bytes32 value indicating what conduit, if
+     *                              any, to source the fulfiller's token
+     *                              approvals from. The zero hash signifies that
+     *                              no conduit should be used (and direct
+     *                              approvals set on Consideration) and
+     *                              `bytes32(1)` signifies to utilize the legacy
+     *                               user proxy for the fulfiller.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -746,7 +751,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         AdvancedOrder[] memory advancedOrders,
         Side side,
         FulfillmentComponent[] memory fulfillmentComponents,
-        address fulfillerConduit
+        bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
         // Ensure at least one fulfillment component has been supplied.
         if (fulfillmentComponents.length == 0) {
@@ -792,7 +797,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                     payable(address(0))
                 ),
                 address(0),
-                address(0)
+                bytes32(0)
             );
         }
 
@@ -813,7 +818,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                 advancedOrders,
                 fulfillmentComponents,
                 nextComponentIndex - 1,
-                fulfillerConduit
+                fulfillerConduitKey
             );
         }
     }
@@ -927,7 +932,7 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Set the offerer on returned execution using order pointer.
             mstore(add(execution, Execution_offerer_offset), mload(orderPtr))
 
-            // Set conduit on returned execution using offset of order pointer.
+            // Set conduitKey on returned execution via offset of order pointer.
             mstore(
                 add(execution, Execution_conduit_offset),
                 mload(add(orderPtr, OrderParameters_conduit_offset))
@@ -1039,7 +1044,7 @@ contract ConsiderationInternalView is ConsiderationPure {
                                             add(execution, Common_token_offset)
                                         )
                                     ),
-                                    // The conduit must match on both items.
+                                    // The conduit key must match on both items.
                                     eq(
                                         mload(
                                             add(
@@ -1105,9 +1110,13 @@ contract ConsiderationInternalView is ConsiderationPure {
      *                                available order.
      * @param nextComponentIndex      The index of the next potential
      *                                consideration component.
-     * @param fulfillerConduit       A flag indicating whether to source
-     *                                approvals for fulfilled tokens from the
-     *                                fulfiller's respective proxy.
+     * @param fulfillerConduitKey     A bytes32 value indicating what conduit,
+     *                                if any, to source the fulfiller's token
+     *                                approvals from. The zero hash signifies
+     *                                that no conduit should be used (and direct
+     *                                approvals set on Consideration) and
+     *                                `bytes32(1)` signifies to utilize the
+     *                                legacy user proxy for the fulfiller.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -1115,7 +1124,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory considerationComponents,
         uint256 nextComponentIndex,
-        address fulfillerConduit
+        bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
         // Validate and aggregate consideration items on available orders and
         // store result as a ReceivedItem.
@@ -1131,7 +1140,62 @@ contract ConsiderationInternalView is ConsiderationPure {
         execution = Execution(
             receiveConsiderationItem,
             msg.sender,
-            fulfillerConduit
+            fulfillerConduitKey
         );
+    }
+
+    /**
+     * @dev Internal view function to derive the address of a given conduit
+     *      using a corresponding conduit key.
+     *
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. This value is
+     *                   the "salt" parameter supplied by the deployer (i.e. the
+     *                   conduit controller) when deploying the given conduit.
+     *
+     * @return conduit The address of the conduit associated with the given
+     *                 conduit key.
+     */
+    function _deriveConduit(bytes32 conduitKey)
+        internal
+        view
+        returns (address conduit)
+    {
+        // Read conduit controller address from runtime and place on the stack.
+        address conduitController = address(_CONDUIT_CONTROLLER);
+
+        // Read conduit creation code hash from runtime and place on the stack.
+        bytes32 conduitCreationCodeHash = _CONDUIT_CREATION_CODE_HASH;
+
+        // Leverage scratch space to perform an efficient hash.
+        assembly {
+            // Retrieve the free memory pointer; it will be replaced afterwards.
+            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
+
+            // Place the control character and the conduit controller in scratch
+            // space; note that eleven bytes at the beginning are left unused.
+            mstore(
+                0x00,
+                or(
+                    0x0000000000000000000000ff0000000000000000000000000000000000000000, // solhint-disable-line max-line-length
+                    conduitController
+                )
+            )
+
+            // Place the conduit key in the next region of scratch space.
+            mstore(0x20, conduitKey)
+
+            // Place conduit creation code hash in free memory pointer location.
+            mstore(0x40, conduitCreationCodeHash)
+
+            // Derive conduit by hashing and applying a mask over last 20 bytes.
+            conduit := and(
+                keccak256(0x0b, 0x55), // Hash the relevant region.
+                0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff // solhint-disable-line max-line-length
+            )
+
+            // Restore the free memory pointer.
+            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
+        }
     }
 }

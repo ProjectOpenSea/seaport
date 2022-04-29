@@ -37,6 +37,10 @@ contract ConsiderationPure is ConsiderationBase {
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
+     * @param conduitController           A contract that deploys conduits, or
+     *                                    proxies that may optionally be used to
+     *                                    transfer approved ERC20+721+1155
+     *                                    tokens.
      * @param legacyProxyRegistry         A proxy registry that stores per-user
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC721+1155 tokens.
@@ -47,11 +51,13 @@ contract ConsiderationPure is ConsiderationBase {
      *                                    each proxy in order to utilize it.
      */
     constructor(
+        address conduitController,
         address legacyProxyRegistry,
         address legacyTokenTransferProxy,
         address requiredProxyImplementation
     )
         ConsiderationBase(
+            conduitController,
             legacyProxyRegistry,
             legacyTokenTransferProxy,
             requiredProxyImplementation
@@ -581,7 +587,7 @@ contract ConsiderationPure is ConsiderationBase {
                             execution.item.recipient, // to
                             new uint256[](totalElements), // tokenIds
                             new uint256[](totalElements), // amounts
-                            execution.conduit // conduit
+                            execution.conduitKey // conduitKey
                         );
                     }
 
@@ -1074,7 +1080,7 @@ contract ConsiderationPure is ConsiderationBase {
             item.token,
             execution.offerer,
             item.recipient,
-            execution.conduit
+            execution.conduitKey
         );
     }
 
@@ -1082,11 +1088,15 @@ contract ConsiderationPure is ConsiderationBase {
      * @dev Internal pure function to derive a hash for comparing transfers to
      *      see if they can be batched. Only applies to ERC1155 tokens.
      *
-     * @param token    The token to transfer.
-     * @param from     The originator of the transfer.
-     * @param to       The recipient of the transfer.
-     * @param conduit A boolean indicating whether to utilize a proxy when
-     *                 performing the transfer.
+     * @param token      The token to transfer.
+     * @param from       The originator of the transfer.
+     * @param to         The recipient of the transfer.
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. The zero hash
+     *                   signifies that no conduit should be used (and direct
+     *                   approvals set on Consideration) and `bytes32(1)`
+     *                   signifies to utilize the legacy user proxy for the
+     *                   transfer.
      *
      * @return value The hash.
      */
@@ -1094,11 +1104,11 @@ contract ConsiderationPure is ConsiderationBase {
         address token,
         address from,
         address to,
-        address conduit
+        bytes32 conduitKey
     ) internal pure returns (bytes32 value) {
         // Leverage scratch space to perform an efficient hash.
         assembly {
-            mstore(0x20, conduit) // Place proxy bool at end of scratch space.
+            mstore(0x20, conduitKey) // Put conduit key at end of scratch space.
             mstore(0x1c, to) // Place to address just before bool.
             mstore(0x08, from) // Place from address just before to.
 
