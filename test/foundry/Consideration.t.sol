@@ -17,6 +17,9 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
 contract ConsiderationTest is BaseOrderTest {
 
+    Consideration consider;
+    address considerAddress;
+
     ConduitController conduitController;
     address conduitControllerAddress;
 
@@ -24,6 +27,9 @@ contract ConsiderationTest is BaseOrderTest {
     address accountB;
     address accountC;
 
+    address test721Address;
+    TestERC721 test721;
+    
     function setUp() public {
         conduitControllerAddress = address(new ConduitController());
         conduitController = ConduitController(conduitControllerAddress);
