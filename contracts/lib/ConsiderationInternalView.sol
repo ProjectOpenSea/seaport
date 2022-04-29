@@ -332,6 +332,50 @@ contract ConsiderationInternalView is ConsiderationPure {
             : _deriveDomainSeparator();
     }
 
+    /// @dev Internal view function to derive the EIP-712 hash for an offer item.
+    /// @param offerItem The offered item to hash.
+    /// @return The hash.
+    function _hashOfferItem(OfferItem memory offerItem)
+        internal
+        view
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encode(
+                    _OFFER_ITEM_TYPEHASH,
+                    offerItem.itemType,
+                    offerItem.token,
+                    offerItem.identifierOrCriteria,
+                    offerItem.startAmount,
+                    offerItem.endAmount
+                )
+            );
+    }
+
+    /// @dev Internal view function to derive the EIP-712 hash for a consideration item.
+    /// @param considerationItem The consideration item to hash.
+    /// @return The hash.
+    function _hashConsiderationItem(ConsiderationItem memory considerationItem)
+        internal
+        view
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encode(
+                    _CONSIDERATION_ITEM_TYPEHASH,
+                    considerationItem.itemType,
+                    considerationItem.token,
+                    considerationItem.identifierOrCriteria,
+                    considerationItem.startAmount,
+                    considerationItem.endAmount,
+                    considerationItem.recipient
+                )
+            );
+    }
+
+
     /**
      * @dev Internal view function to derive the order hash for a given order.
      *      Note that only the original consideration items are included in the
@@ -347,147 +391,54 @@ contract ConsiderationInternalView is ConsiderationPure {
         OrderParameters memory orderParameters,
         uint256 nonce
     ) internal view returns (bytes32 orderHash) {
-        // Get length of original consideration array and place it on the stack.
+        //////////////////////////////////////////////////////////////////////
+        // Put offer and consideration item array lengths onto the stack.
+        uint256 offerLength = orderParameters.offer.length;
         uint256 originalConsiderationLength = (
             orderParameters.totalOriginalConsiderationItems
         );
 
-        /*
-         * Memory layout for an array of structs (dynamic or not) is similar
-         * to ABI encoding of dynamic types, with a head segment followed by
-         * a data segment. The main difference is that the head of an element
-         * is a memory pointer rather than an offset.
-         */
+        // Designate new memory regions for offer and consideration item hashes.
+        bytes32[] memory offerHashes = new bytes32[](offerLength);
+        bytes32[] memory considerationHashes = new bytes32[](
+            originalConsiderationLength
+        );
 
-        // Declare a variable for the derived hash of the offer array.
-        bytes32 offerHash;
-
-        // Read offer item EIP-712 typehash from runtime code & place on stack.
-        bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
-
-        // Utilize assembly so that memory regions can be reused across hashes.
-        assembly {
-            // Retrieve the free memory pointer and place on the stack.
-            let hashArrPtr := mload(FreeMemoryPointerSlot)
-
-            // Get the pointer to the offers array.
-            let offerArrPtr := mload(add(orderParameters, 0x40))
-
-            // Load the length.
-            let offerLength := mload(offerArrPtr)
-
-            // Set the pointer to the first offer's head.
-            offerArrPtr := add(offerArrPtr, 0x20)
-
-            // Iterate over the offer items.
-            // prettier-ignore
-            for { let i := 0 } lt(i, offerLength) {
-                i := add(i, 1)
-            } {
-                // Read the pointer to the offer data and subtract 32
-                // to get typeHash pointer.
-                let ptr := sub(mload(offerArrPtr), 0x20)
-
-                // Read the current value before the offer data.
-                let value := mload(ptr)
-
-                // Write the type hash to the previous word.
-                mstore(ptr, typeHash)
-
-                // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, 0xc0))
-
-                // Restore the previous word.
-                mstore(ptr, value)
-
-                // Increment the array pointers.
-                offerArrPtr := add(offerArrPtr, 0x20)
-                hashArrPtr := add(hashArrPtr, 0x20)
+        // Skip overflow checks as all for loops are indexed starting at zero.
+        unchecked {
+            // Iterate over each offer on the order.
+            for (uint256 i = 0; i < offerLength; ++i) {
+                // Hash the offer and place the result into memory.
+                offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
             }
 
-            // Derive the offer hash.
-            offerHash := keccak256(
-                mload(FreeMemoryPointerSlot),
-                mul(offerLength, 0x20)
-            )
-        }
-
-        // Declare a variable for the derived hash of the consideration array.
-        bytes32 considerationHash;
-
-        // Read consideration item typehash from runtime code & place on stack.
-        typeHash = _CONSIDERATION_ITEM_TYPEHASH;
-
-        // Utilize assembly so that memory regions can be reused across hashes.
-        assembly {
-            // Retrieve the free memory pointer and place on the stack.
-            let hashArrPtr := mload(FreeMemoryPointerSlot)
-
-            // Get the pointer to the consideration array.
-            let considerationArrPtr := add(
-                mload(add(orderParameters, 0x60)),
-                0x20
-            )
-
-            // Iterate over the offer items.
-            // prettier-ignore
-            for { let i := 0 } lt(i, originalConsiderationLength) {
-                i := add(i, 1)
-            } {
-                // Read the pointer to the consideration data and subtract 32
-                // to get typeHash pointer.
-                let ptr := sub(mload(considerationArrPtr), 0x20)
-
-                // Read the current value before the consideration data.
-                let value := mload(ptr)
-
-                // Write the type hash to the previous word.
-                mstore(ptr, typeHash)
-
-                // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, 0xe0))
-
-                // Restore the previous word.
-                mstore(ptr, value)
-
-                // Increment the array pointers.
-                considerationArrPtr := add(considerationArrPtr, 0x20)
-                hashArrPtr := add(hashArrPtr, 0x20)
+            // Iterate over each consideration on the order.
+            for (uint256 i = 0; i < originalConsiderationLength; ++i) {
+                // Hash the consideration and place the result into memory.
+                considerationHashes[i] = _hashConsiderationItem(
+                    orderParameters.consideration[i]
+                );
             }
-
-            // Derive the offer hash.
-            considerationHash := keccak256(
-                mload(FreeMemoryPointerSlot),
-                mul(originalConsiderationLength, 0x20)
-            )
         }
 
-        // Read order item EIP-712 typehash from runtime code & place on stack.
-        typeHash = _ORDER_TYPEHASH;
-
-        // Utilize assembly to access derived hashes & other arguments directly.
-        assembly {
-            let typeHashPtr := sub(orderParameters, 0x20)
-            let previousValue := mload(typeHashPtr)
-            mstore(typeHashPtr, typeHash)
-
-            let offerHeadPtr := add(orderParameters, 0x40)
-            let offerDataPtr := mload(offerHeadPtr)
-            mstore(offerHeadPtr, offerHash)
-
-            let considerationHeadPtr := add(orderParameters, 0x60)
-            let considerationDataPtr := mload(considerationHeadPtr)
-            mstore(considerationHeadPtr, considerationHash)
-
-            let noncePtr := add(orderParameters, 0x140)
-            mstore(noncePtr, nonce)
-
-            orderHash := keccak256(typeHashPtr, 0x180)
-            mstore(typeHashPtr, previousValue)
-            mstore(offerHeadPtr, offerDataPtr)
-            mstore(considerationHeadPtr, considerationDataPtr)
-            mstore(noncePtr, originalConsiderationLength)
-        }
+        // Derive and return the order hash as specified by EIP-712.
+        return
+            keccak256(
+                abi.encode(
+                    _ORDER_TYPEHASH,
+                    orderParameters.offerer,
+                    orderParameters.zone,
+                    keccak256(abi.encodePacked(offerHashes)),
+                    keccak256(abi.encodePacked(considerationHashes)),
+                    orderParameters.orderType,
+                    orderParameters.startTime,
+                    orderParameters.endTime,
+                    orderParameters.zoneHash,
+                    orderParameters.salt,
+                    orderParameters.conduit,
+                    nonce
+                )
+            );
     }
 
     /**
