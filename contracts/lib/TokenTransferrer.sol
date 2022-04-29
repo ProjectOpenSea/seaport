@@ -166,25 +166,16 @@ contract TokenTransferrer {
         assembly {
             // If the token has no code, revert.
             if iszero(extcodesize(token)) {
-                mstore(
-                    NoContract_error_sig_ptr,
-                    NoContract_error_signature
-                )
+                mstore(NoContract_error_sig_ptr, NoContract_error_signature)
                 mstore(NoContract_error_token_ptr, token)
-                revert(
-                    NoContract_error_sig_ptr,
-                    NoContract_error_length
-                )
+                revert(NoContract_error_sig_ptr, NoContract_error_length)
             }
 
             // Write calldata to free memory pointer (restore it later).
             let memPointer := mload(FreeMemoryPointerSlot)
 
             // Write calldata to memory starting with function selector.
-            mstore(
-                ERC721_transferFrom_sig_ptr,
-                ERC721_transferFrom_signature
-            )
+            mstore(ERC721_transferFrom_sig_ptr, ERC721_transferFrom_signature)
             mstore(ERC721_transferFrom_from_ptr, from)
             mstore(ERC721_transferFrom_to_ptr, to)
             mstore(ERC721_transferFrom_id_ptr, identifier)
@@ -216,20 +207,11 @@ contract TokenTransferrer {
                     TokenTransferGenericFailure_error_sig_ptr,
                     TokenTransferGenericFailure_error_signature
                 )
-                mstore(
-                    TokenTransferGenericFailure_error_token_ptr,
-                    token
-                )
+                mstore(TokenTransferGenericFailure_error_token_ptr, token)
                 mstore(TokenTransferGenericFailure_error_from_ptr, from)
                 mstore(TokenTransferGenericFailure_error_to_ptr, to)
-                mstore(
-                    TokenTransferGenericFailure_error_id_ptr,
-                    identifier
-                )
-                mstore(
-                    TokenTransferGenericFailure_error_amount_ptr,
-                    1
-                )
+                mstore(TokenTransferGenericFailure_error_id_ptr, identifier)
+                mstore(TokenTransferGenericFailure_error_amount_ptr, 1)
                 revert(
                     TokenTransferGenericFailure_error_sig_ptr,
                     TokenTransferGenericFailure_error_length
@@ -264,7 +246,7 @@ contract TokenTransferrer {
         uint256 identifier,
         uint256 amount
     ) internal {
-    	// Utilize assembly to perform an optimized ERC1155 token transfer.
+        // Utilize assembly to perform an optimized ERC1155 token transfer.
         assembly {
             // If the token has no code, revert.
             if iszero(extcodesize(token)) {
