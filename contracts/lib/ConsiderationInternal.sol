@@ -1898,7 +1898,7 @@ contract ConsiderationInternal is ConsiderationInternalView {
         (bool success, bytes memory result) = token.call(
             abi.encodeCall(ERC20Interface.transferFrom, (from, to, amount))
         );
-        
+
         // Ensure that the transfer succeeded.
         _assertValidTokenTransfer(success, token, from, to, 0, amount);
 
