@@ -392,27 +392,33 @@ contract ConsiderationInternalView is ConsiderationPure {
     ) internal view returns (bytes32 orderHash) {
         //////////////////////////////////////////////////////////////////////
         // Put offer and consideration item array lengths onto the stack.
-        uint256 offerLength = orderParameters.offer.length;
-        uint256 originalConsiderationLength = (
-            orderParameters.totalOriginalConsiderationItems
-        );
+        //uint256 offerLength = orderParameters.offer.length;
+        //uint256 originalConsiderationLength = (
+        //    orderParameters.totalOriginalConsiderationItems
+        //);
 
         // Designate new memory regions for offer and consideration item hashes.
-        bytes32[] memory offerHashes = new bytes32[](offerLength);
+        bytes32[] memory offerHashes = new bytes32[](
+            orderParameters.offer.length
+        );
         bytes32[] memory considerationHashes = new bytes32[](
-            originalConsiderationLength
+            orderParameters.totalOriginalConsiderationItems
         );
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each offer on the order.
-            for (uint256 i = 0; i < offerLength; ++i) {
+            for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
                 // Hash the offer and place the result into memory.
                 offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
             }
 
             // Iterate over each consideration on the order.
-            for (uint256 i = 0; i < originalConsiderationLength; ++i) {
+            for (
+                uint256 i = 0;
+                i < orderParameters.totalOriginalConsiderationItems;
+                ++i
+            ) {
                 // Hash the consideration and place the result into memory.
                 considerationHashes[i] = _hashConsiderationItem(
                     orderParameters.consideration[i]
@@ -421,6 +427,7 @@ contract ConsiderationInternalView is ConsiderationPure {
         }
 
         // Derive and return the order hash as specified by EIP-712.
+
         return
             keccak256(
                 abi.encode(
