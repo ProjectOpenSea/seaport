@@ -3,7 +3,6 @@
 
 pragma solidity 0.8.13;
 
-
 import "contracts/conduit/ConduitController.sol";
 
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
@@ -16,7 +15,6 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
 contract ConsiderationTest is BaseOrderTest {
-
     Consideration consider;
     address considerAddress;
 
@@ -29,7 +27,7 @@ contract ConsiderationTest is BaseOrderTest {
 
     address test721Address;
     TestERC721 test721;
-    
+
     function setUp() public {
         conduitControllerAddress = address(new ConduitController());
         conduitController = ConduitController(conduitControllerAddress);
@@ -115,7 +113,7 @@ contract ConsiderationTest is BaseOrderTest {
             nonce
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        
+
         (bytes32 domainSeparator, ) = consider.information();
 
         //accountA is pk 1.
