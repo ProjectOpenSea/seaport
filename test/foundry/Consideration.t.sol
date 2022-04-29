@@ -73,7 +73,7 @@ contract ConsiderationTest is BaseOrderTest {
     }
 
     //eth to 721
-    // alice is offering their 721 for ETH
+    // AccountA is offering their 721 for ETH
     function testListBasicETHto721(
         address _zone,
         uint256 _id,
