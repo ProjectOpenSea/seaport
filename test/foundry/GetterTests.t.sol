@@ -5,7 +5,7 @@ pragma solidity 0.8.13;
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
 contract TestGetters is BaseConsiderationTest {
-    function tesGetCorrectName() public {
+    /*function tesGetCorrectName() public {
         assertEq(consideration.name(), "Consideration");
     }
 
@@ -63,5 +63,5 @@ contract TestGetters is BaseConsiderationTest {
                 )
             )
         );
-    }
+    }*/
 }

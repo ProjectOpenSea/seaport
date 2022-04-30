@@ -3,8 +3,6 @@
 
 pragma solidity 0.8.13;
 
-import "contracts/conduit/ConduitController.sol";
-
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
 import { Consideration } from "../../contracts/Consideration.sol";
@@ -15,52 +13,6 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
 contract ConsiderationTest is BaseOrderTest {
-    Consideration consider;
-    address considerAddress;
-
-    ConduitController conduitController;
-    address conduitControllerAddress;
-
-    address accountA;
-    address accountB;
-    address accountC;
-
-    address test721Address;
-    TestERC721 test721;
-
-    function setUp() public {
-        conduitControllerAddress = address(new ConduitController());
-        conduitController = ConduitController(conduitControllerAddress);
-
-        considerAddress = address(
-            new Consideration(
-                conduitControllerAddress,
-                address(0),
-                address(0),
-                address(0)
-            )
-        );
-        consider = Consideration(considerAddress);
-
-        //deploy a test 721
-        test721Address = address(new TestERC721());
-        test721 = TestERC721(test721Address);
-
-        accountA = vm.addr(1);
-        accountB = vm.addr(2);
-        accountC = vm.addr(3);
-
-        vm.prank(accountA);
-        test721.setApprovalForAll(considerAddress, true);
-        vm.prank(accountB);
-        test721.setApprovalForAll(considerAddress, true);
-        vm.prank(accountC);
-        test721.setApprovalForAll(considerAddress, true);
-        emit log("Accounts A B C have approved consideration.");
-
-        vm.label(accountA, "Account A");
-    }
-
     //eth to 721
     // alice is offering their 721 for ETH
     function testListBasicETHto721(
@@ -109,20 +61,11 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
+            bytes32(0), // no conduit
             nonce
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
-
-        (bytes32 domainSeparator, ) = consider.information();
-
-        //accountA is pk 1.
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            1,
-            keccak256(
-                abi.encodePacked(bytes2(0x1901), domainSeparator, orderHash)
-            )
-        );
+        bytes memory signature = signOrder(alicePk, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
@@ -139,11 +82,11 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
-            address(0), // no conduit
+            bytes32(0), // no conduit
+            bytes32(0), // no conduit
             0,
             new AdditionalRecipient[](0),
-            abi.encodePacked(r, s, v)
+            signature
         );
 
         emit log(">>>>");
@@ -228,8 +171,8 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
-            address(0), // no conduit
+            bytes32(0), // no conduit
+            bytes32(0), // no conduit
             0,
             new AdditionalRecipient[](0),
             signature
@@ -293,7 +236,7 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
+            bytes32(0), // no conduit
             nonce
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
@@ -314,8 +257,8 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
-            address(0), // no conduit
+            bytes32(0), // no conduit
+            bytes32(0), // no conduit
             0,
             new AdditionalRecipient[](0),
             signature
@@ -377,7 +320,7 @@ contract ConsiderationTest is BaseOrderTest {
             block.timestamp + 5000,
             _zoneHash,
             _salt,
-            address(0), // no conduit
+            bytes32(0), // no conduit
             nonce
         );
 
@@ -411,6 +354,9 @@ contract ConsiderationTest is BaseOrderTest {
         // simple
         consideration.fulfillBasicOrder(order);
 
-        emit log("Fulfilled Basic 1155 Offer - ERC20 Consideration");
+        emit log_named_address(
+            "Fulfilled Basic 721 Offer - Eth Consideration",
+            alice
+        );
     }
 }

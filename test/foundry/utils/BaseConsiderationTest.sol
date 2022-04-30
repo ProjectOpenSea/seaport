@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
+import "../../../contracts/conduit/ConduitController.sol";
+
 import { Consideration } from "../../../contracts/Consideration.sol";
 import { OrderType, BasicOrderType, ItemType, Side } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
@@ -13,14 +15,21 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     using stdStorage for StdStorage;
 
     Consideration consideration;
+
+    ConduitController conduitController;
+    address conduitContorllerAddress;
+
     address internal _wyvernProxyRegistry;
     address internal _wyvernTokenTransferProxy;
     address internal _wyvernDelegateProxyImplementation;
 
     function setUp() public virtual {
         _deployLegacyContracts();
+        conduitContorllerAddress = address(new ConduitController());
+        conduitController = ConduitController(conduitContorllerAddress);
 
         consideration = new Consideration(
+            conduitContorllerAddress,
             _wyvernProxyRegistry,
             _wyvernTokenTransferProxy,
             _wyvernDelegateProxyImplementation
@@ -71,14 +80,11 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         internal
         returns (bytes memory)
     {
+        (bytes32 domainSeparator, ) = consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
             keccak256(
-                abi.encodePacked(
-                    bytes2(0x1901),
-                    consideration.DOMAIN_SEPARATOR(),
-                    _orderHash
-                )
+                abi.encodePacked(bytes2(0x1901), domainSeparator, _orderHash)
             )
         );
         return abi.encodePacked(r, s, v);

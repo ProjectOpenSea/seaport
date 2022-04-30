@@ -6,9 +6,11 @@ typechain-types
 yarn-error.log
 
 #Hardhat files
-hh-cache
-artifacts
+artifacts/
+artifacts-ref/
 hh-cache/
+hh-cache-ref/
+
 
 #foundry test compilation files
 cache
