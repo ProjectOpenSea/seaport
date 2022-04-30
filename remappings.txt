@@ -1,2 +1,3 @@
 ds-test=lib/ds-test/src/
 forge-std=lib/forge-std/src/
+merkle-tree-solidity/=lib/merkle-tree-solidity/src/
