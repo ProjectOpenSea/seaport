@@ -84,11 +84,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
             keccak256(
-                abi.encodePacked(
-                    bytes2(0x1901),
-                    domainSeparator,
-                    _orderHash
-                )
+                abi.encodePacked(bytes2(0x1901), domainSeparator, _orderHash)
             )
         );
         return abi.encodePacked(r, s, v);
