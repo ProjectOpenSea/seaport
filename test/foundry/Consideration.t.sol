@@ -396,6 +396,9 @@ contract ConsiderationTest is BaseOrderTest {
         // simple
         consideration.fulfillBasicOrder(order);
 
-        emit log("Fulfilled Basic 1155 Offer - ERC20 Consideration");
+        emit log_named_address(
+            "Fulfilled Basic 721 Offer - Eth Consideration",
+            alice
+        );
     }
 }
