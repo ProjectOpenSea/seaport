@@ -12,6 +12,8 @@ import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 import { ConduitItemType } from "./lib/ConduitEnums.sol";
 
+import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
+
 // prettier-ignore
 import {
     ConduitTransfer,
@@ -26,7 +28,7 @@ import {
  *         controller" that can add and remove "channels" or contracts that can
  *         instruct the conduit to transfer approved ERC20/721/1155 tokens.
  */
-contract Conduit is ConduitInterface {
+contract Conduit is ConduitInterface, TokenTransferrer {
     address private immutable _controller;
 
     mapping(address => bool) private _channels;
@@ -125,19 +127,23 @@ contract Conduit is ConduitInterface {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ConduitItemType.ERC20) {
             // Transfer ERC20 token.
-            _transferERC20(item.token, item.from, item.to, item.amount);
+            _performERC20Transfer(item.token, item.from, item.to, item.amount);
         } else if (item.itemType == ConduitItemType.ERC721) {
+            // Ensure that exactly one 721 item is being transferred.
+            if (item.amount != 1) {
+                revert InvalidERC721TransferAmount();
+            }
+
             // Transfer ERC721 token.
-            _transferERC721(
+            _performERC721Transfer(
                 item.token,
                 item.from,
                 item.to,
-                item.identifier,
-                item.amount
+                item.identifier
             );
         } else if (item.itemType == ConduitItemType.ERC1155) {
             // Transfer ERC1155 token.
-            _transferERC1155(
+            _performERC1155Transfer(
                 item.token,
                 item.from,
                 item.to,
@@ -148,123 +154,6 @@ contract Conduit is ConduitInterface {
             // Throw with an error.
             revert InvalidItemType();
         }
-    }
-
-    /**
-     * @dev Internal function to transfer ERC20 tokens from a given originator
-     *      to a given recipient. Sufficient approvals must be set on this
-     *      contract (note that proxies are not utilized for ERC20 items).
-     *
-     * @param token      The ERC20 token to transfer.
-     * @param from       The originator of the transfer.
-     * @param to         The recipient of the transfer.
-     * @param amount     The amount to transfer.
-     */
-    function _transferERC20(
-        address token,
-        address from,
-        address to,
-        uint256 amount
-    ) internal {
-        // Perform ERC20 transfer via the token contract directly.
-        bool success = _call(
-            token,
-            abi.encodeCall(ERC20Interface.transferFrom, (from, to, amount))
-        );
-
-        // Ensure that the transfer succeeded.
-        _assertValidTokenTransfer(success, token, from, to, 0, amount);
-
-        // Extract result directly from returndata buffer if one is returned.
-        bool result;
-
-        assembly {
-            // Default to true if no data is returned.
-            result := eq(returndatasize(), 0)
-
-            // Only put result on the stack if return data is at least 32 bytes.
-            if gt(returndatasize(), 0x19) {
-                // Copy directly from return data into memory in scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take the value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        // If a falsey result is extracted or returndatasize is not zero...
-        if (!result) {
-            // Revert with a "Bad Return Value" error.
-            revert BadReturnValueFromERC20OnTransfer(token, from, to, amount);
-        }
-    }
-
-    /**
-     * @dev Internal function to transfer a single ERC721 token from a given
-     *      originator to a given recipient. Sufficient approvals must be set,
-     *      either on the respective proxy or on this contract itself.
-     *
-     * @param token      The ERC721 token to transfer.
-     * @param from       The originator of the transfer.
-     * @param to         The recipient of the transfer.
-     * @param identifier The tokenId to transfer.
-     * @param amount     The "amount" (this value must be equal to one).
-     */
-    function _transferERC721(
-        address token,
-        address from,
-        address to,
-        uint256 identifier,
-        uint256 amount
-    ) internal {
-        // Ensure that exactly one 721 item is being transferred.
-        if (amount != 1) {
-            revert InvalidERC721TransferAmount();
-        }
-
-        // Perform transfer, either directly or via proxy.
-        bool success = _call(
-            token,
-            abi.encodeCall(ERC721Interface.transferFrom, (from, to, identifier))
-        );
-
-        // Ensure that the transfer succeeded.
-        _assertValidTokenTransfer(success, token, from, to, identifier, 1);
-    }
-
-    /**
-     * @dev Internal function to transfer ERC1155 tokens from a given originator
-     *      to a given recipient. Sufficient approvals must be set, either on
-     *      the respective proxy or on this contract itself.
-     *
-     * @param token      The ERC1155 token to transfer.
-     * @param from       The originator of the transfer.
-     * @param to         The recipient of the transfer.
-     * @param identifier The tokenId to transfer.
-     * @param amount     The amount to transfer.
-     */
-    function _transferERC1155(
-        address token,
-        address from,
-        address to,
-        uint256 identifier,
-        uint256 amount
-    ) internal {
-        // Perform transfer, either directly or via proxy.
-        bool success = _call(
-            token,
-            abi.encodeWithSelector(
-                ERC1155Interface.safeTransferFrom.selector,
-                from,
-                to,
-                identifier,
-                amount,
-                ""
-            )
-        );
-
-        // Ensure that the transfer succeeded.
-        _assertValidTokenTransfer(success, token, from, to, identifier, amount);
     }
 
     /**
@@ -333,51 +222,6 @@ contract Conduit is ConduitInterface {
         returns (bool success)
     {
         (success, ) = target.call(callData);
-    }
-
-    /**
-     * @dev Internal view function to validate whether a token transfer was
-     *      successful based on the returned status and data. Note that
-     *      malicious or non-compliant tokens (like fee-on-transfer tokens) may
-     *      still return improper data — consider checking token balances before
-     *      and after for more comprehensive transfer validation. Also note that
-     *      this function must be called after the account in question has been
-     *      called and before any other contracts have been called.
-     *
-     * @param success The status of the call to transfer. Note that contract
-     *                size must be checked on status of true and no returned
-     *                data to rule out undeployed contracts.
-     * @param token   The token to transfer.
-     * @param from    The originator of the transfer.
-     * @param to      The recipient of the transfer.
-     * @param tokenId The tokenId to transfer (if applicable).
-     * @param amount  The amount to transfer (if applicable).
-     */
-    function _assertValidTokenTransfer(
-        bool success,
-        address token,
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 amount
-    ) internal view {
-        // If the call failed...
-        if (!success) {
-            // Revert and pass reason along if one was returned from the token.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error.
-            revert TokenTransferGenericFailure(
-                token,
-                from,
-                to,
-                tokenId,
-                amount
-            );
-        }
-
-        // Ensure that the token contract has code.
-        _assertContractIsDeployed(token);
     }
 
     /**
