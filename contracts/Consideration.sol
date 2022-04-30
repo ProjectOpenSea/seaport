@@ -474,7 +474,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      */
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers,
+        CriteriaResolver[] calldata criteriaResolvers,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         bytes32 fulfillerConduitKey
@@ -607,7 +607,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      */
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers,
+        CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
     )
         external

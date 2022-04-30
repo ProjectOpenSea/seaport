@@ -9746,8 +9746,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const fulfillments = defaultBuyNowMirrorFulfillment;
 
-        console.log("?");
-
         const { standardExecutions, batchExecutions } =
           await simulateMatchOrders(
             [order, mirrorOrder],
@@ -18976,6 +18974,143 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           offer,
           consideration,
           0 // FULL_OPEN
+        );
+
+        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+          await createMirrorBuyNowOrder(buyer, zone, order);
+
+        const fulfillments = [
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 2,
+              },
+            ],
+          },
+        ];
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments, { value })
+          ).to.be.revertedWith(
+            `ERC1155BatchTransferGenericFailure("${
+              marketplaceContract.address
+            }", "${seller.address}", "${
+              buyer.address
+            }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
+          );
+        });
+
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(false);
+        expect(orderStatus.totalFilled).to.equal(0);
+        expect(orderStatus.totalSize).to.equal(0);
+      });
+      it("Reverts when 1155 batch non-token account is supplied as the token via proxy", async () => {
+        // Seller mints first nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller mints second nft
+        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, secondNftId, secondAmount);
+
+        const offer = [
+          getTestItem1155(nftId, amount, amount, marketplaceContract.address),
+          getTestItem1155(
+            secondNftId,
+            secondAmount,
+            secondAmount,
+            marketplaceContract.address
+          ),
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          seller,
+          constants.HashZero,
+          LEGACY_PROXY_CONDUIT
         );
 
         const { mirrorOrder, mirrorOrderHash, mirrorValue } =

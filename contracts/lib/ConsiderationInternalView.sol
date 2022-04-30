@@ -16,6 +16,7 @@ import {
     OrderParameters,
     Order,
     AdvancedOrder,
+    CriteriaResolver,
     OrderStatus,
     Execution,
     FulfillmentComponent
@@ -143,30 +144,6 @@ contract ConsiderationInternalView is ConsiderationPure {
                 tokenId,
                 amount
             );
-        }
-
-        // Ensure that the token contract has code.
-        _assertContractIsDeployed(token);
-    }
-
-    /**
-     * @dev Internal view function to item that a contract is deployed to a
-     *      given account. Note that this function must be called after the
-     *      account in question has been called and before any other contracts
-     *      have been called.
-     *
-     * @param account The account to check.
-     */
-    function _assertContractIsDeployed(address account) internal view {
-        // Find out whether data was returned by inspecting returndata buffer.
-        uint256 returnDataSize;
-        assembly {
-            returnDataSize := returndatasize()
-        }
-
-        // If no data was returned, ensure that the account has code.
-        if (returnDataSize == 0 && account.code.length == 0) {
-            revert NoContract(account);
         }
     }
 
@@ -567,20 +544,28 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      for a given order and to ensure that the submitter is allowed by the
      *      order type.
      *
-     * @param advancedOrder    The order in question.
-     * @param priorOrderHashes The order hashes of each order supplied prior to
-     *                         the current order as part of a "match" variety of
-     *                         order fulfillment (e.g. this array will be empty
-     *                         for single or "fulfill available").
-     * @param orderHash        The hash of the order.
-     * @param zoneHash         The hash to provide upon calling the zone.
-     * @param orderType        The type of the order.
-     * @param offerer          The offerer in question.
-     * @param zone             The zone in question.
+     * @param advancedOrder     The order in question.
+     * @param criteriaResolvers An array where each element contains a reference
+     *                          to a specific offer or consideration, a token
+     *                          identifier, and a proof that the supplied token
+     *                          identifier is contained in the order's merkle
+     *                          root. Note that a criteria of zero indicates
+     *                          that any (transferrable) token identifier is
+     *                          valid and that no proof needs to be supplied.
+     * @param priorOrderHashes  The order hashes of each order supplied prior to
+     *                          the current order as part of a "match" variety
+     *                          of order fulfillment (e.g. this array will be
+     *                          empty for single or "fulfill available").
+     * @param orderHash         The hash of the order.
+     * @param zoneHash          The hash to provide upon calling the zone.
+     * @param orderType         The type of the order.
+     * @param offerer           The offerer in question.
+     * @param zone              The zone in question.
 
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
+        CriteriaResolver[] memory criteriaResolvers,
         bytes32[] memory priorOrderHashes,
         bytes32 orderHash,
         bytes32 zoneHash,
@@ -597,8 +582,11 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Declare a variable for the status of the staticcall to the zone.
             bool success;
 
-            // If no extraData is supplied...
-            if (advancedOrder.extraData.length == 0) {
+            // If no extraData or criteria resolvers are supplied...
+            if (
+                advancedOrder.extraData.length == 0 &&
+                criteriaResolvers.length == 0
+            ) {
                 // Perform minimal staticcall to the zone.
                 success = _staticcall(
                     zone,
@@ -611,8 +599,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                     )
                 );
             } else {
-                // Otherwise, extraData was supplied; in that event, perform a
-                // more verbose staticcall to the zone.
+                // Otherwise, extra data or criteria resolvers were supplied; in
+                // that event, perform a more verbose staticcall to the zone.
                 success = _staticcall(
                     zone,
                     abi.encodeWithSelector(
@@ -620,7 +608,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                         orderHash,
                         msg.sender,
                         advancedOrder,
-                        priorOrderHashes
+                        priorOrderHashes,
+                        criteriaResolvers
                     )
                 );
             }
