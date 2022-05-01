@@ -41,27 +41,9 @@ contract ConsiderationPure is ConsiderationBase {
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
-     * @param legacyProxyRegistry         A proxy registry that stores per-user
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC721+1155 tokens.
-     * @param legacyTokenTransferProxy    A shared proxy contract that may
-     *                                    optionally be used to transfer
-     *                                    approved ERC20 tokens.
-     * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it.
      */
-    constructor(
-        address conduitController,
-        address legacyProxyRegistry,
-        address legacyTokenTransferProxy,
-        address requiredProxyImplementation
-    )
-        ConsiderationBase(
-            conduitController,
-            legacyProxyRegistry,
-            legacyTokenTransferProxy,
-            requiredProxyImplementation
-        )
+    constructor(address conduitController)
+        ConsiderationBase(conduitController)
     {}
 
     /**
@@ -84,10 +66,15 @@ contract ConsiderationPure is ConsiderationBase {
     ) internal pure {
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // Retrieve length of criteria resolvers array and place on stack.
+            uint256 arraySize = criteriaResolvers.length;
+
             // Iterate over each criteria resolver.
-            for (uint256 i = 0; i < criteriaResolvers.length; ++i) {
+            for (uint256 i = 0; i < arraySize; ++i) {
                 // Retrieve the criteria resolver.
-                CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
+                CriteriaResolver memory criteriaResolver = (
+                    criteriaResolvers[i]
+                );
 
                 // Read the order index from memory and place it on the stack.
                 uint256 orderIndex = criteriaResolver.orderIndex;
@@ -186,9 +173,12 @@ contract ConsiderationPure is ConsiderationBase {
                 }
             }
 
-            // Iterate over each order.
-            for (uint256 i = 0; i < advancedOrders.length; ++i) {
-                // Retrieve the order.
+            // Retrieve length of advanced orders array and place on stack.
+            arraySize = advancedOrders.length;
+
+            // Iterate over each advanced order.
+            for (uint256 i = 0; i < arraySize; ++i) {
+                // Retrieve the advanced order.
                 AdvancedOrder memory advancedOrder = advancedOrders[i];
 
                 // Skip criteria resolution for order if not fulfilled.

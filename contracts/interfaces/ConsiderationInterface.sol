@@ -372,11 +372,23 @@ interface ConsiderationInterface {
     /**
      * @notice Retrieve configuration information for this contract.
      *
+     * @return version           The contract version.
      * @return domainSeparator   The domain separator for this contract.
      * @return conduitController The conduit Controller set for this contract.
      */
     function information()
         external
         view
-        returns (bytes32 domainSeparator, address conduitController);
+        returns (
+            string memory version,
+            bytes32 domainSeparator,
+            address conduitController
+        );
+
+    /**
+     * @notice Retrieve the name of this contract.
+     *
+     * @return The name of this contract.
+     */
+    function name() external view returns (string memory);
 }

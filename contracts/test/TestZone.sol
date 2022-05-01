@@ -3,7 +3,11 @@ pragma solidity 0.8.13;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
-import { AdvancedOrder } from "../lib/ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    AdvancedOrder,
+    CriteriaResolver
+} from "../lib/ConsiderationStructs.sol";
 
 contract TestZone is ZoneInterface {
     function isValidOrder(
@@ -31,12 +35,14 @@ contract TestZone is ZoneInterface {
         bytes32 orderHash,
         address caller,
         AdvancedOrder calldata order,
-        bytes32[] calldata priorOrderHashes
+        bytes32[] calldata priorOrderHashes,
+        CriteriaResolver[] calldata criteriaResolvers
     ) external pure override returns (bytes4 validOrderMagicValue) {
         orderHash;
         caller;
         order;
         priorOrderHashes;
+        criteriaResolvers;
 
         if (order.extraData.length == 4) {
             revert("Revert on extraData length 4");
