@@ -29,14 +29,7 @@ contract ConsiderationTest is DSTestPlusPlus {
         conduitControllerAddress = address(new ConduitController());
         conduitController = ConduitController(conduitControllerAddress);
 
-        considerAddress = address(
-            new Consideration(
-                conduitControllerAddress,
-                address(0),
-                address(0),
-                address(0)
-            )
-        );
+        considerAddress = address(new Consideration(conduitControllerAddress));
         consider = Consideration(considerAddress);
 
         //deploy a test 721
@@ -113,7 +106,7 @@ contract ConsiderationTest is DSTestPlusPlus {
         );
         bytes32 orderHash = consider.getOrderHash(orderComponents);
 
-        (bytes32 domainSeparator, ) = consider.information();
+        (, bytes32 domainSeparator, ) = consider.information();
 
         //accountA is pk 1.
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
