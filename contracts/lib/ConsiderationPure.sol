@@ -41,27 +41,9 @@ contract ConsiderationPure is ConsiderationBase {
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
-     * @param legacyProxyRegistry         A proxy registry that stores per-user
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC721+1155 tokens.
-     * @param legacyTokenTransferProxy    A shared proxy contract that may
-     *                                    optionally be used to transfer
-     *                                    approved ERC20 tokens.
-     * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it.
      */
-    constructor(
-        address conduitController,
-        address legacyProxyRegistry,
-        address legacyTokenTransferProxy,
-        address requiredProxyImplementation
-    )
-        ConsiderationBase(
-            conduitController,
-            legacyProxyRegistry,
-            legacyTokenTransferProxy,
-            requiredProxyImplementation
-        )
+    constructor(address conduitController)
+        ConsiderationBase(conduitController)
     {}
 
     /**

@@ -40,27 +40,9 @@ contract ConsiderationInternalView is ConsiderationPure {
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
-     * @param legacyProxyRegistry         A proxy registry that stores per-user
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC721+1155 tokens.
-     * @param legacyTokenTransferProxy    A shared proxy contract that may
-     *                                    optionally be used to transfer
-     *                                    approved ERC20 tokens.
-     * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it.
      */
-    constructor(
-        address conduitController,
-        address legacyProxyRegistry,
-        address legacyTokenTransferProxy,
-        address requiredProxyImplementation
-    )
-        ConsiderationPure(
-            conduitController,
-            legacyProxyRegistry,
-            legacyTokenTransferProxy,
-            requiredProxyImplementation
-        )
+    constructor(address conduitController)
+        ConsiderationPure(conduitController)
     {}
 
     /**
@@ -103,48 +85,6 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         // Return true as the order time is valid.
         valid = true;
-    }
-
-    /**
-     * @dev Internal view function to validate whether a token transfer was
-     *      successful based on the returned status and data. Note that
-     *      malicious or non-compliant tokens (like fee-on-transfer tokens) may
-     *      still return improper data — consider checking token balances before
-     *      and after for more comprehensive transfer validation. Also note that
-     *      this function must be called after the account in question has been
-     *      called and before any other contracts have been called.
-     *
-     * @param success The status of the call to transfer. Note that contract
-     *                size must be checked on status of true and no returned
-     *                data to rule out undeployed contracts.
-     * @param token   The token to transfer.
-     * @param from    The originator of the transfer.
-     * @param to      The recipient of the transfer.
-     * @param tokenId The tokenId to transfer (if applicable).
-     * @param amount  The amount to transfer (if applicable).
-     */
-    function _assertValidTokenTransfer(
-        bool success,
-        address token,
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 amount
-    ) internal view {
-        // If the call failed...
-        if (!success) {
-            // Revert and pass reason along if one was returned from the token.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error.
-            revert TokenTransferGenericFailure(
-                token,
-                from,
-                to,
-                tokenId,
-                amount
-            );
-        }
     }
 
     /**
