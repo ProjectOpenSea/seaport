@@ -10363,6 +10363,87 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("Fulfill Available Orders", async () => {
+      it("Can fulfill a single order via fulfillAvailableOrders", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [getTestItem721(nftId)];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const offerComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+          ],
+        ];
+
+        const considerationComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 2,
+            },
+          ],
+        ];
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillAvailableOrders(
+                [order],
+                offerComponents,
+                considerationComponents,
+                toKey(false),
+                { value }
+              );
+            const receipt = await tx.wait();
+            await checkExpectedEvents(receipt, [
+              { order, orderHash, fulfiller: buyer.address },
+            ]);
+            return receipt;
+          });
+        });
+      });
       it("Can fulfill a single order via fulfillAvailableAdvancedOrders", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
@@ -10443,6 +10524,157 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             ]);
             return receipt;
           });
+        });
+      });
+      it("Can fulfill and aggregate multiple orders via fulfillAvailableOrders", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).mul(2);
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.div(2),
+            endAmount: amount.div(2),
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const {
+          order: orderOne,
+          orderHash: orderHashOne,
+          value,
+        } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const offerComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+        ];
+
+        const considerationComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 1,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 2,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 2,
+            },
+          ],
+        ];
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks(
+            [orderOne, orderTwo],
+            0,
+            null,
+            async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillAvailableOrders(
+                  [orderOne, orderTwo],
+                  offerComponents,
+                  considerationComponents,
+                  toKey(false),
+                  { value: value.mul(2) }
+                );
+              const receipt = await tx.wait();
+              await checkExpectedEvents(
+                receipt,
+                [
+                  {
+                    order: orderOne,
+                    orderHash: orderHashOne,
+                    fulfiller: buyer.address,
+                  },
+                ],
+                [],
+                [],
+                [],
+                false,
+                2
+              );
+              await checkExpectedEvents(
+                receipt,
+                [
+                  {
+                    order: orderTwo,
+                    orderHash: orderHashTwo,
+                    fulfiller: buyer.address,
+                  },
+                ],
+                [],
+                [],
+                [],
+                false,
+                2
+              );
+              return receipt;
+            },
+            2
+          );
         });
       });
       it("Can fulfill and aggregate multiple orders via fulfillAvailableAdvancedOrders", async () => {
@@ -10595,6 +10827,213 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             },
             2
           );
+        });
+      });
+      it("Can fulfill and aggregate multiple orders via fulfillAvailableOrders with failing orders", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).mul(2);
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.div(2),
+            endAmount: amount.div(2),
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const {
+          order: orderOne,
+          orderHash: orderHashOne,
+          value,
+        } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        // second order is expired
+        const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          "EXPIRED"
+        );
+
+        // third order will be cancelled
+        const {
+          order: orderThree,
+          orderHash: orderHashThree,
+          orderComponents,
+        } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        // can cancel it
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            marketplaceContract.connect(seller).cancel([orderComponents])
+          )
+            .to.emit(marketplaceContract, "OrderCancelled")
+            .withArgs(orderHashThree, seller.address, zone.address);
+        });
+
+        // fourth order will be filled
+        const { order: orderFour, orderHash: orderHashFour } =
+          await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+
+        // can fill it
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([orderFour], 0, null, async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillOrder(orderFour, toKey(false), { value });
+            const receipt = await tx.wait();
+            await checkExpectedEvents(receipt, [
+              {
+                order: orderFour,
+                orderHash: orderHashFour,
+                fulfiller: buyer.address,
+              },
+            ]);
+            return receipt;
+          });
+        });
+
+        const offerComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 2,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 3,
+              itemIndex: 0,
+            },
+          ],
+        ];
+
+        const considerationComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 2,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 3,
+              itemIndex: 0,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 1,
+            },
+            {
+              orderIndex: 2,
+              itemIndex: 1,
+            },
+            {
+              orderIndex: 3,
+              itemIndex: 1,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 2,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 2,
+            },
+            {
+              orderIndex: 2,
+              itemIndex: 2,
+            },
+            {
+              orderIndex: 3,
+              itemIndex: 2,
+            },
+          ],
+        ];
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([orderOne], 0, null, async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillAvailableOrders(
+                [orderOne, orderTwo, orderThree, orderFour],
+                offerComponents,
+                considerationComponents,
+                toKey(false),
+                { value: value.mul(4) }
+              );
+            const receipt = await tx.wait();
+            await checkExpectedEvents(receipt, [
+              {
+                order: orderOne,
+                orderHash: orderHashOne,
+                fulfiller: buyer.address,
+              },
+            ]);
+            return receipt;
+          });
         });
       });
       it("Can fulfill and aggregate multiple orders via fulfillAvailableAdvancedOrders with failing orders", async () => {
