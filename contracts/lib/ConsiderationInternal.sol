@@ -1249,6 +1249,11 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                     // Mark fill fraction as zero as the order will not be used.
                     advancedOrder.numerator = 0;
 
+                    // Update the length of the orderHashes array.
+                    assembly {
+                        mstore(orderHashes, add(i, 1))
+                    }
+
                     // Continue iterating through the remaining orders.
                     continue;
                 }
