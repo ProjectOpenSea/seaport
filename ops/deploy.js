@@ -1,8 +1,9 @@
+// Used via etheno to generate additional contracts to deploy via echidna
+
 const eth = require("ethers");
 const registryArtifacts = require("../artifacts/contracts/test/wyvern/WyvernProxyRegistry.sol/WyvernProxyRegistry.json");
 const proxyImplementationArtifacts = require("../artifacts/contracts/test/wyvern/AuthenticatedProxy.sol/AuthenticatedProxy.json");
 const transferProxyArtifacts = require("../artifacts/contracts/test/wyvern/TokenTransferProxy.sol/TokenTransferProxy.json");
-console.log(`Deps loaded, time to deploy!`);
 
 const pk = "0xf2f48ee19680706196e2e339e5da3491186e0c4c5030670656b0e0164837257d";
 const provider = new eth.providers.JsonRpcProvider("http://localhost:8545");

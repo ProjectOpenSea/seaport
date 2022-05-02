@@ -1,16 +1,8 @@
 const fs = require("fs");
 const eth = require("ethers");
+const constants = require("./constants").module;
 
-const env = {
-  hardhat: process.env.ETHCONSOLE_HARDHAT || "",
-  ethProviderUrl: process.env.ETH_PROVIDER || "http://localhost:8545",
-  mnemonic:
-    process.env.ETH_MNEMONIC ||
-    "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat",
-};
-
-// This provider should only be used from the console, in tests use hre.ethers.provider
-const provider = new eth.providers.JsonRpcProvider(env.ethProviderUrl);
+const { provider, wallets } = constants;
 
 const log = (msg) => {
   const prefix = `\n`;
@@ -48,19 +40,6 @@ const logEvents = (hash, abi) => {
     log(``);
   });
 };
-
-const hdNode = eth.utils.HDNode.fromMnemonic(env.mnemonic).derivePath(
-  "m/44'/60'/0'/0"
-);
-const wallets = Array(10)
-  .fill(0)
-  .map((_, idx) => {
-    const wallet = new eth.Wallet(
-      hdNode.derivePath(idx.toString()).privateKey,
-      provider
-    );
-    return wallet;
-  });
 
 const traceStorage = (txHash) => {
   provider.send("debug_traceTransaction", [txHash]).then((res) => {

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+## Deploys contracts w old solc for use w/in echidna
 
 ########################################
 echo "Setting up deploy env.."
