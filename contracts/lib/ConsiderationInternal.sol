@@ -1668,8 +1668,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      */
     function _executeAvailableFulfillments(
         AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[][] calldata offerFulfillments,
-        FulfillmentComponent[][] calldata considerationFulfillments,
+        FulfillmentComponent[][] memory offerFulfillments,
+        FulfillmentComponent[][] memory considerationFulfillments,
         bytes32 fulfillerConduitKey
     )
         internal
@@ -1700,7 +1700,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             // Iterate over each offer fulfillment.
             for (uint256 i = 0; i < totalOfferFulfillments; ++i) {
                 /// Retrieve the offer fulfillment components in question.
-                FulfillmentComponent[] calldata components = (
+                FulfillmentComponent[] memory components = (
                     offerFulfillments[i]
                 );
 
@@ -1725,7 +1725,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             // Iterate over each consideration fulfillment.
             for (uint256 i = 0; i < totalConsiderationFulfillments; ++i) {
                 /// Retrieve consideration fulfillment components in question.
-                FulfillmentComponent[] calldata components = (
+                FulfillmentComponent[] memory components = (
                     considerationFulfillments[i]
                 );
 

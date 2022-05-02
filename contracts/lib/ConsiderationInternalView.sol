@@ -679,7 +679,7 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _aggregateAvailable(
         AdvancedOrder[] memory advancedOrders,
         Side side,
-        FulfillmentComponent[] calldata fulfillmentComponents,
+        FulfillmentComponent[] memory fulfillmentComponents,
         bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
         // Skip overflow / underflow checks; conditions checked or unreachable.
@@ -1058,7 +1058,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      */
     function _aggregateConsiderationItems(
         AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] calldata considerationComponents,
+        FulfillmentComponent[] memory considerationComponents,
         uint256 nextComponentIndex,
         bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
