@@ -1212,11 +1212,16 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      *                          a root of zero indicates that any transferrable
      *                          token identifier is valid and that no proof
      *                          needs to be supplied.
+     * @param revertOnInvalid   A boolean indicating whether to revert on any
+     *                          order being invalid; setting this to false will
+     *                          instead cause the invalid order to be skipped.
+     * @param maximumFulfilled  The maximum number of orders to fulfill.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
-        bool revertOnInvalid
+        bool revertOnInvalid,
+        uint256 maximumFulfilled
     ) internal {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -1239,6 +1244,20 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 // Retrieve the current order.
                 AdvancedOrder memory advancedOrder = advancedOrders[i];
 
+                // Determine if max number orders have already been fulfilled.
+                if (maximumFulfilled == 0) {
+                    // Mark fill fraction as zero as the order will not be used.
+                    advancedOrder.numerator = 0;
+
+                    // Update the length of the orderHashes array.
+                    assembly {
+                        mstore(orderHashes, add(i, 1))
+                    }
+
+                    // Continue iterating through the remaining orders.
+                    continue;
+                }
+
                 // Validate it, update status, and determine fraction to fill.
                 (
                     bytes32 orderHash,
@@ -1256,18 +1275,6 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                     mstore(orderHashes, add(i, 1))
                 }
 
-                // Place the start time for the order on the stack.
-                uint256 startTime = advancedOrder.parameters.startTime;
-
-                // Derive the duration for the order and place it on the stack.
-                uint256 duration = advancedOrder.parameters.endTime - startTime;
-
-                // Derive time elapsed since the order started & place on stack.
-                uint256 elapsed = block.timestamp - startTime;
-
-                // Derive time remaining until order expires and place on stack.
-                uint256 remaining = duration - elapsed;
-
                 // Do not track hash or adjust prices if order is not fulfilled.
                 if (numerator == 0) {
                     // Mark fill fraction as zero if the order is not fulfilled.
@@ -1279,6 +1286,21 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
 
                 // Otherwise, track the order hash in question.
                 orderHashes[i] = orderHash;
+
+                // Decrement the number of fulfilled orders.
+                maximumFulfilled--;
+
+                // Place the start time for the order on the stack.
+                uint256 startTime = advancedOrder.parameters.startTime;
+
+                // Derive the duration for the order and place it on the stack.
+                uint256 duration = advancedOrder.parameters.endTime - startTime;
+
+                // Derive time elapsed since the order started & place on stack.
+                uint256 elapsed = block.timestamp - startTime;
+
+                // Derive time remaining until order expires and place on stack.
+                uint256 remaining = duration - elapsed;
 
                 // Retrieve array of offer items for the order in question.
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
@@ -1564,6 +1586,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -1580,7 +1603,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         CriteriaResolver[] memory criteriaResolvers,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        uint256 maximumFulfilled
     )
         internal
         returns (
@@ -1593,7 +1617,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             criteriaResolvers,
-            false // Signifies that invalid orders should NOT revert.
+            false, // Signifies that invalid orders should NOT revert.
+            maximumFulfilled
         );
 
         // Aggregate used offer and consideration items and execute transfers.

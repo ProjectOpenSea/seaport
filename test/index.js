@@ -10434,6 +10434,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               );
             const receipt = await tx.wait();
@@ -10516,6 +10517,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               );
             const receipt = await tx.wait();
@@ -10638,6 +10640,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   offerComponents,
                   considerationComponents,
                   toKey(false),
+                  100,
                   { value: value.mul(2) }
                 );
               const receipt = await tx.wait();
@@ -10790,6 +10793,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   offerComponents,
                   considerationComponents,
                   toKey(false),
+                  100,
                   { value: value.mul(2) }
                 );
               const receipt = await tx.wait();
@@ -10826,6 +10830,281 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               return receipt;
             },
             2
+          );
+        });
+      });
+      it("Can fulfill and aggregate a max number of multiple orders via fulfillAvailableOrders", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).mul(2);
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.div(2),
+            endAmount: amount.div(2),
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const {
+          order: orderOne,
+          orderHash: orderHashOne,
+          value,
+        } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const offerComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+        ];
+
+        const considerationComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 1,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 2,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 2,
+            },
+          ],
+        ];
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks(
+            [orderOne],
+            0,
+            null,
+            async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillAvailableOrders(
+                  [orderOne, orderTwo],
+                  offerComponents,
+                  considerationComponents,
+                  toKey(false),
+                  1,
+                  { value: value.mul(2) }
+                );
+              const receipt = await tx.wait();
+              await checkExpectedEvents(
+                receipt,
+                [
+                  {
+                    order: orderOne,
+                    orderHash: orderHashOne,
+                    fulfiller: buyer.address,
+                  },
+                ],
+                [],
+                [],
+                [],
+                false,
+                1
+              );
+              return receipt;
+            },
+            1
+          );
+        });
+      });
+      it("Can fulfill and aggregate a max number of multiple orders via fulfillAvailableAdvancedOrders", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).mul(2);
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.div(2),
+            endAmount: amount.div(2),
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const {
+          order: orderOne,
+          orderHash: orderHashOne,
+          value,
+        } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const offerComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+        ];
+
+        const considerationComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 1,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 2,
+            },
+            {
+              orderIndex: 1,
+              itemIndex: 2,
+            },
+          ],
+        ];
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks(
+            [orderOne],
+            0,
+            null,
+            async () => {
+              const tx = await marketplaceContract
+                .connect(buyer)
+                .fulfillAvailableAdvancedOrders(
+                  [orderOne, orderTwo],
+                  [],
+                  offerComponents,
+                  considerationComponents,
+                  toKey(false),
+                  1,
+                  { value: value.mul(2) }
+                );
+              const receipt = await tx.wait();
+              await checkExpectedEvents(
+                receipt,
+                [
+                  {
+                    order: orderOne,
+                    orderHash: orderHashOne,
+                    fulfiller: buyer.address,
+                  },
+                ],
+                [],
+                [],
+                [],
+                false,
+                1
+              );
+              return receipt;
+            },
+            1
           );
         });
       });
@@ -11022,6 +11301,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value: value.mul(4) }
               );
             const receipt = await tx.wait();
@@ -11230,6 +11510,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value: value.mul(4) }
               );
             const receipt = await tx.wait();
@@ -11411,6 +11692,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value: value.mul(2) }
               );
             const receipt = await tx.wait();
@@ -13886,6 +14168,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("MissingFulfillmentComponentOnAggregation(0)");
@@ -13983,6 +14266,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14080,6 +14364,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14176,6 +14461,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14251,6 +14537,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14326,6 +14613,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14501,6 +14789,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value: value.mul(3) }
               )
           ).to.be.revertedWith("NoSpecifiedOrdersAvailable");
