@@ -15821,6 +15821,101 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.revertedWith("InvalidMsgValue(1)");
         });
       });
+
+      it.only("Reverts when ether transfer fails (returndata)", async () => {
+        const recipient = await (await ethers.getContractFactory('ExcessReturnDataRecipient')).deploy();
+        const setup = async () => {
+          // Seller mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          // Buyer mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+          await testERC20.mint(buyer.address, tokenAmount);
+
+          // Seller approves marketplace contract to transfer NFT
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          // Buyer approves marketplace contract to transfer tokens
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC20
+                .connect(buyer)
+                .approve(marketplaceContract.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+          });
+          const offer = [getTestItem721(nftId)];
+  
+          const consideration = [
+            getItemETH(10, 10, seller.address),
+            getItemETH(1, 1, recipient.address),
+          ];
+  
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+  
+          const basicOrderParameters = getBasicOrderParameters(
+            0, // EthForERC721
+            order
+          );
+          return basicOrderParameters
+        }
+        let basicOrderParameters = await setup()
+        const baseGas = await marketplaceContract
+          .connect(buyer)
+          .estimateGas
+          .fulfillBasicOrder(basicOrderParameters, {
+            value: ethers.utils.parseEther("12"),
+          })
+        let w = 0;
+        for (; w < 1000; w+=20) {
+          console.log(w)
+          basicOrderParameters = await setup();
+          await recipient.setRevertDataSize(w*32);
+          try {
+            await whileImpersonating(buyer.address, provider, async () => {
+                marketplaceContract
+                  .connect(buyer)
+                  .fulfillBasicOrder(basicOrderParameters, {
+                    value: ethers.utils.parseEther("12"),
+                    gasLimit: baseGas
+                  })
+            });
+          } catch (err) {
+            if (err.message.includes('EtherTransferGenericFailure')) {
+              throw Error(`Got thing finally`)
+            }
+          }
+          
+        }
+      });
+
       it("Reverts when ether transfer fails (basic)", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
