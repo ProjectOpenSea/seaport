@@ -46,7 +46,7 @@ contract BasicBuyAccept is BaseOrderTest {
             uint256(_ethAmt1) + uint256(_ethAmt2) + uint256(_ethAmt3) <=
                 2**128 - 1
         );
-        address conduit = _legacyProxyConduit ? address(1) : address(0);
+        bytes32 conduitKey = _legacyProxyConduit ? conduitKeyOne : bytes32(0);
 
         test721_1.mint(alice, _id);
         OfferItem[] memory offerItem = singleOfferItem(
@@ -94,7 +94,7 @@ contract BasicBuyAccept is BaseOrderTest {
             block.timestamp + 1,
             _zoneHash,
             _salt,
-            conduit,
+            conduitKeyOne,
             consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
@@ -111,12 +111,12 @@ contract BasicBuyAccept is BaseOrderTest {
             block.timestamp + 1,
             _zoneHash,
             _salt,
-            conduit,
+            conduitKey,
             considerationItems.length
         );
         Order memory order = Order(orderParameters, signature);
         uint256 sum = _ethAmt1 + _ethAmt2 + _ethAmt3;
-        consideration.fulfillOrder{ value: sum }(order, conduit);
+        consideration.fulfillOrder{ value: sum }(order, conduitKeyOne);
     }
 
     function getMaxConsiderationValue(
