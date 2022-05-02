@@ -10434,6 +10434,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               );
             const receipt = await tx.wait();
@@ -10516,6 +10517,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               );
             const receipt = await tx.wait();
@@ -10638,6 +10640,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   offerComponents,
                   considerationComponents,
                   toKey(false),
+                  100,
                   { value: value.mul(2) }
                 );
               const receipt = await tx.wait();
@@ -10790,6 +10793,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   offerComponents,
                   considerationComponents,
                   toKey(false),
+                  100,
                   { value: value.mul(2) }
                 );
               const receipt = await tx.wait();
@@ -11022,6 +11026,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value: value.mul(4) }
               );
             const receipt = await tx.wait();
@@ -11230,6 +11235,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value: value.mul(4) }
               );
             const receipt = await tx.wait();
@@ -11411,6 +11417,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value: value.mul(2) }
               );
             const receipt = await tx.wait();
@@ -13886,6 +13893,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("MissingFulfillmentComponentOnAggregation(0)");
@@ -13983,6 +13991,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14080,6 +14089,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14176,6 +14186,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14251,6 +14262,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14326,6 +14338,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value }
               )
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
@@ -14501,6 +14514,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 offerComponents,
                 considerationComponents,
                 toKey(false),
+                100,
                 { value: value.mul(3) }
               )
           ).to.be.revertedWith("NoSpecifiedOrdersAvailable");

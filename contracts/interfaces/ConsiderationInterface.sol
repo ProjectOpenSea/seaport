@@ -153,6 +153,7 @@ interface ConsiderationInterface {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -168,7 +169,8 @@ interface ConsiderationInterface {
         Order[] calldata orders,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        uint256 maximumFulfilled
     )
         external
         payable
@@ -232,6 +234,7 @@ interface ConsiderationInterface {
      *                                  direct approvals set on Consideration)
      *                                  and `bytes32(1)` signifies to utilize
      *                                  the legacy user proxy for the fulfiller.
+     * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -248,7 +251,8 @@ interface ConsiderationInterface {
         CriteriaResolver[] calldata criteriaResolvers,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        uint256 maximumFulfilled
     )
         external
         payable

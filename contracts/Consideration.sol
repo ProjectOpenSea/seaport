@@ -419,6 +419,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -434,7 +435,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         Order[] calldata orders,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        uint256 maximumFulfilled
     )
         external
         payable
@@ -452,7 +454,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
                 offerFulfillments,
                 considerationFulfillments,
-                fulfillerConduitKey
+                fulfillerConduitKey,
+                maximumFulfilled
             );
     }
 
@@ -508,6 +511,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -524,7 +528,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         CriteriaResolver[] calldata criteriaResolvers,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        uint256 maximumFulfilled
     )
         external
         payable
@@ -542,7 +547,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 criteriaResolvers,
                 offerFulfillments,
                 considerationFulfillments,
-                fulfillerConduitKey
+                fulfillerConduitKey,
+                maximumFulfilled
             );
     }
 
@@ -594,7 +600,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             new CriteriaResolver[](0), // No criteria resolvers supplied.
-            true // Signifies that invalid orders should revert.
+            true, // Signifies that invalid orders should revert.
+            advancedOrders.length
         );
 
         // Fulfill the orders using the supplied fulfillments.
@@ -657,7 +664,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             criteriaResolvers,
-            true // Signifies that invalid orders should revert.
+            true, // Signifies that invalid orders should revert.
+            advancedOrders.length
         );
 
         // Fulfill the orders using the supplied fulfillments.
