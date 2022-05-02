@@ -15893,27 +15893,42 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .fulfillBasicOrder(basicOrderParameters, {
             value: ethers.utils.parseEther("12"),
           })
-        let w = 0;
-        for (; w < 1000; w+=20) {
-          console.log(w)
-          basicOrderParameters = await setup();
-          await recipient.setRevertDataSize(w*32);
-          try {
-            await whileImpersonating(buyer.address, provider, async () => {
-                marketplaceContract
-                  .connect(buyer)
-                  .fulfillBasicOrder(basicOrderParameters, {
-                    value: ethers.utils.parseEther("12"),
-                    gasLimit: baseGas
-                  })
-            });
-          } catch (err) {
-            if (err.message.includes('EtherTransferGenericFailure')) {
-              throw Error(`Got thing finally`)
-            }
-          }
-          
-        }
+        // let w = 0;
+        // for (; w < 1000; w+=10) {
+        //   console.log(w)
+        //   basicOrderParameters = await setup();
+        //   await recipient.setRevertDataSize(w*32);
+        //   try {
+        //     await whileImpersonating(buyer.address, provider, async () => {
+        //         await marketplaceContract
+        //           .connect(buyer)
+        //           .fulfillBasicOrder(basicOrderParameters, {
+        //             value: ethers.utils.parseEther("12"),
+        //             gasLimit: baseGas.add(1000)
+        //           })
+        //     });
+        //   } catch (err) {
+        //     console.log(err.message)
+        //     if (err.message.includes('EtherTransferGenericFailure')) {
+        //       throw Error(`Got thing finally`)
+        //     }
+        //   }
+        // }
+        await recipient.setRevertDataSize(80*32)
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, {
+                value: ethers.utils.parseEther("12"),
+                gasLimit: baseGas.add(1000)
+              })
+          ).to.be.revertedWith(
+            `EtherTransferGenericFailure("${
+              recipient.address
+            }", ${ethers.utils.parseEther("1").toString()})`
+          );
+        });
       });
 
       it("Reverts when ether transfer fails (basic)", async () => {

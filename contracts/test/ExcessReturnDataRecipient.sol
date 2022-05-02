@@ -12,7 +12,11 @@ contract ExcessReturnDataRecipient {
     fallback() external payable {
       uint256 size = revertDataSize;
       if (size > 0) {
-        assembly { revert(0, size) }
+        assembly { mstore(size, 1) }
+        while (gasleft() > 100) { keccak256(""); }
+        assembly {
+          revert(0, size)
+        }
       }
     }
 }
