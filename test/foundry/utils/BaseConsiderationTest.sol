@@ -15,7 +15,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     using stdStorage for StdStorage;
 
     Consideration consideration;
-
+    bytes32 conduitKeyOne;
     ConduitController conduitController;
     address conduitContorllerAddress;
 
@@ -25,15 +25,10 @@ contract BaseConsiderationTest is DSTestPlusPlus {
 
     function setUp() public virtual {
         _deployLegacyContracts();
-        conduitContorllerAddress = address(new ConduitController());
-        conduitController = ConduitController(conduitContorllerAddress);
-
-        consideration = new Consideration(
-            conduitContorllerAddress,
-            _wyvernProxyRegistry,
-            _wyvernTokenTransferProxy,
-            _wyvernDelegateProxyImplementation
-        );
+        conduitController = new ConduitController();
+        conduitKeyOne = bytes32(uint256(uint160(address(this))));
+        conduitController.createConduit(conduitKeyOne, address(this));
+        consideration = new Consideration(address(conduitController));
         emit log_named_address(
             "Deployed Consideration at",
             address(consideration)
@@ -80,7 +75,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         internal
         returns (bytes memory)
     {
-        (bytes32 domainSeparator, ) = consideration.information();
+        (, bytes32 domainSeparator, ) = consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
             keccak256(
