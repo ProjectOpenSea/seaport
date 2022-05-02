@@ -1,6 +1,6 @@
 const fs = require("fs");
 const eth = require("ethers");
-const constants = require("./constants").module;
+const constants = require("./constants");
 
 const { provider, wallets } = constants;
 
@@ -64,7 +64,7 @@ const traceTx = (txHash, filename) => {
   });
 };
 
-exports.module = {
+module.exports = {
   toBN: eth.BigNumber.from,
   eth: eth,
   log: log,

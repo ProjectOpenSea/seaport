@@ -19,4 +19,4 @@ echo
 
 cd "$root" || exit 1
 node --version
-node --no-deprecation --interactive --require "./ops/console.js" "$arg"
+node --no-deprecation --interactive --require "./ops/console/entry.js" "$arg"

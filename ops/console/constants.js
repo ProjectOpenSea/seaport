@@ -26,17 +26,25 @@ const wallets = Array(10)
   });
 
 const deployments = {
-  TestERC20: require("../deployments/localhost/TestERC20.json"),
-  TestERC721: require("../deployments/localhost/TestERC721.json"),
-  TestERC1155: require("../deployments/localhost/TestERC1155.json"),
-  Consideration: require("../deployments/localhost/Consideration.json"),
-  AuthenticatedProxy: require("../deployments/localhost/AuthenticatedProxy.json"),
-  TokenTransferProxy: require("../deployments/localhost/TokenTransferProxy.json"),
-  WyvernProxyRegistry: require("../deployments/localhost/WyvernProxyRegistry.json"),
+  TestERC20: require("../../deployments/localhost/TestERC20.json"),
+  TestERC721: require("../../deployments/localhost/TestERC721.json"),
+  TestERC1155: require("../../deployments/localhost/TestERC1155.json"),
+  Consideration: require("../../deployments/localhost/Consideration.json"),
+  AuthenticatedProxy: require("../../deployments/localhost/AuthenticatedProxy.json"),
+  TokenTransferProxy: require("../../deployments/localhost/TokenTransferProxy.json"),
+  WyvernProxyRegistry: require("../../deployments/localhost/WyvernProxyRegistry.json"),
 };
 
-exports.module = {
+const contracts = Object.entries(deployments).reduce((acc, cur) => {
+  const name = cur[0];
+  const deployment = cur[1];
+  acc[name] = new eth.Contract(deployment.address, deployment.abi, wallets[0]);
+  return acc;
+}, {});
+
+module.exports = {
   deployments: deployments,
+  contracts: contracts,
   provider: provider,
   wallets: wallets,
 };
