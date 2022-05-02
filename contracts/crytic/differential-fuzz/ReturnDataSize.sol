@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
+
 // echidna-test-2.0 . --contract Rds  --test-mode assertion
 contract Rds {
 	function original_version(uint256 rds,bool success) private pure returns(bool result){

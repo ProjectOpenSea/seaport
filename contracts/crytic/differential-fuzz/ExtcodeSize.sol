@@ -1,5 +1,8 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
+
 import "../../test/TestERC20.sol";
+
 // echidna-test-2.0 . --contract ExtcodeSize  --test-mode assertion
 contract ExtcodeSize { 
 	// https://github.com/trailofbits/audit-opensea-consideration/blob/dfb7130f97f803dd1069140abe92e5207777a923/contracts/lib/ConsiderationInternal.sol#L1824	
