@@ -24,7 +24,8 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     address internal _wyvernDelegateProxyImplementation;
 
     function setUp() public virtual {
-        _deployLegacyContracts();
+        // skip for now(?)
+        // _deployLegacyContracts();
         conduitController = new ConduitController();
         conduitKeyOne = bytes32(uint256(uint160(address(this))));
         conduitController.createConduit(conduitKeyOne, address(this));
