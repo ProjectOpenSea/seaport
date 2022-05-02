@@ -576,8 +576,8 @@ contract ConsiderationInternalView is ConsiderationPure {
      */
     function _applyFulfillment(
         AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] memory offerComponents,
-        FulfillmentComponent[] memory considerationComponents
+        FulfillmentComponent[] calldata offerComponents,
+        FulfillmentComponent[] calldata considerationComponents
     ) internal view returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
@@ -679,26 +679,32 @@ contract ConsiderationInternalView is ConsiderationPure {
     function _aggregateAvailable(
         AdvancedOrder[] memory advancedOrders,
         Side side,
-        FulfillmentComponent[] memory fulfillmentComponents,
+        FulfillmentComponent[] calldata fulfillmentComponents,
         bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
-        // Ensure at least one fulfillment component has been supplied.
-        if (fulfillmentComponents.length == 0) {
-            revert MissingFulfillmentComponentOnAggregation(side);
-        }
-
-        // Determine component index after first available (zero implies none).
-        uint256 nextComponentIndex = 0;
-
-        // Skip overflow checks as all for loops are indexed starting at zero.
+        // Skip overflow / underflow checks; conditions checked or unreachable.
         unchecked {
+            // Retrieve advanced orders array length and place on the stack.
+            uint256 totalOrders = advancedOrders.length;
+
+            // Retrieve fulfillment components array length and place on stack.
+            uint256 totalFulfillmentComponents = fulfillmentComponents.length;
+
+            // Ensure at least one fulfillment component has been supplied.
+            if (totalFulfillmentComponents == 0) {
+                revert MissingFulfillmentComponentOnAggregation(side);
+            }
+
+            // Determine component index after first available (0 implies none).
+            uint256 nextComponentIndex = 0;
+
             // Iterate over components until finding one with a fulfilled order.
-            for (uint256 i = 0; i < fulfillmentComponents.length; ++i) {
+            for (uint256 i = 0; i < totalFulfillmentComponents; ++i) {
                 // Retrieve the fulfillment component index.
                 uint256 orderIndex = fulfillmentComponents[i].orderIndex;
 
                 // Ensure that the order index is in range.
-                if (orderIndex >= advancedOrders.length) {
+                if (orderIndex >= totalOrders) {
                     revert InvalidFulfillmentComponentData();
                 }
 
@@ -711,44 +717,45 @@ contract ConsiderationInternalView is ConsiderationPure {
                     break;
                 }
             }
-        }
 
-        // If no available order was located...
-        if (nextComponentIndex == 0) {
-            // Return early with a null execution element that will be filtered.
-            // prettier-ignore
-            return Execution(
-                ReceivedItem(
-                    ItemType.NATIVE,
+            // If no available order was located...
+            if (nextComponentIndex == 0) {
+                // Return with an empty execution element that will be filtered.
+                // prettier-ignore
+                return Execution(
+                    ReceivedItem(
+                        ItemType.NATIVE,
+                        address(0),
+                        0,
+                        0,
+                        payable(address(0))
+                    ),
                     address(0),
-                    0,
-                    0,
-                    payable(address(0))
-                ),
-                address(0),
-                bytes32(0)
-            );
-        }
+                    bytes32(0)
+                );
+            }
 
-        // If the fulfillment components are offer components...
-        if (side == Side.OFFER) {
-            // Return execution for aggregated items provided by the offerer.
-            // prettier-ignore
-            return _aggregateValidFulfillmentOfferItems(
-                advancedOrders,
-                fulfillmentComponents,
-                nextComponentIndex - 1
-            );
-        } else {
-            // Otherwise, fulfillment components are consideration components.
-            // Return execution for aggregated items provided by the fulfiller.
-            // prettier-ignore
-            return _aggregateConsiderationItems(
-                advancedOrders,
-                fulfillmentComponents,
-                nextComponentIndex - 1,
-                fulfillerConduitKey
-            );
+            // If the fulfillment components are offer components...
+            if (side == Side.OFFER) {
+                // Return execution for aggregated items provided by offerer.
+                // prettier-ignore
+                return _aggregateValidFulfillmentOfferItems(
+                    advancedOrders,
+                    fulfillmentComponents,
+                    nextComponentIndex - 1
+                );
+            } else {
+                // Otherwise, fulfillment components are consideration
+                // components. Return execution for aggregated items provided by
+                // the fulfiller.
+                // prettier-ignore
+                return _aggregateConsiderationItems(
+                    advancedOrders,
+                    fulfillmentComponents,
+                    nextComponentIndex - 1,
+                    fulfillerConduitKey
+                );
+            }
         }
     }
 
@@ -1051,7 +1058,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      */
     function _aggregateConsiderationItems(
         AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] memory considerationComponents,
+        FulfillmentComponent[] calldata considerationComponents,
         uint256 nextComponentIndex,
         bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
