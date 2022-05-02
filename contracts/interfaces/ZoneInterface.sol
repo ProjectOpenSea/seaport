@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { AdvancedOrder } from "../lib/ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    AdvancedOrder,
+    CriteriaResolver
+} from "../lib/ConsiderationStructs.sol";
 
 interface ZoneInterface {
     // Called by Consideration whenever extraData is not provided by the caller.
@@ -17,6 +21,7 @@ interface ZoneInterface {
         bytes32 orderHash,
         address caller,
         AdvancedOrder calldata order,
-        bytes32[] calldata priorOrderHashes
+        bytes32[] calldata priorOrderHashes,
+        CriteriaResolver[] calldata criteriaResolvers
     ) external view returns (bytes4 validOrderMagicValue);
 }

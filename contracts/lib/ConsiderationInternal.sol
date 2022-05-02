@@ -54,27 +54,9 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
-     * @param legacyProxyRegistry         A proxy registry that stores per-user
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC721+1155 tokens.
-     * @param legacyTokenTransferProxy    A shared proxy contract that may
-     *                                    optionally be used to transfer
-     *                                    approved ERC20 tokens.
-     * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it.
      */
-    constructor(
-        address conduitController,
-        address legacyProxyRegistry,
-        address legacyTokenTransferProxy,
-        address requiredProxyImplementation
-    )
-        ConsiderationInternalView(
-            conduitController,
-            legacyProxyRegistry,
-            legacyTokenTransferProxy,
-            requiredProxyImplementation
-        )
+    constructor(address conduitController)
+        ConsiderationInternalView(conduitController)
     {}
 
     /**
@@ -745,6 +727,13 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      *                         fill. Note that all offer and consideration
      *                         amounts must divide with no remainder in order
      *                         for a partial fill to be valid.
+     * @param criteriaResolvers An array where each element contains a reference
+     *                          to a specific offer or consideration, a token
+     *                          identifier, and a proof that the supplied token
+     *                          identifier is contained in the order's merkle
+     *                          root. Note that a criteria of zero indicates
+     *                          that any (transferrable) token identifier is
+     *                          valid and that no proof needs to be supplied.
      * @param revertOnInvalid  A boolean indicating whether to revert if the
      *                         order is invalid due to the time or order status.
      * @param priorOrderHashes The order hashes of each order supplied prior to
@@ -759,6 +748,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
+        CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid,
         bytes32[] memory priorOrderHashes
     )
@@ -810,6 +800,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         // Determine if a proxy should be utilized and ensure a valid submitter.
         _assertRestrictedAdvancedOrderValidity(
             advancedOrder,
+            criteriaResolvers,
             priorOrderHashes,
             orderHash,
             orderParameters.zoneHash,
@@ -941,6 +932,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             uint256 fillDenominator
         ) = _validateOrderAndUpdateStatus(
                 advancedOrder,
+                criteriaResolvers,
                 true,
                 priorOrderHashes
             );
@@ -1254,6 +1246,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                     uint256 denominator
                 ) = _validateOrderAndUpdateStatus(
                         advancedOrder,
+                        criteriaResolvers,
                         revertOnInvalid,
                         orderHashes
                     );
@@ -1776,6 +1769,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         unchecked {
             // Iterate over each batch execution.
             for (uint256 i = 0; i < batchExecutions.length; ++i) {
+                // Perform the batch transfer.
                 _batchTransferERC1155(batchExecutions[i]);
             }
         }
@@ -1905,28 +1899,6 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         if (conduitKey == bytes32(0)) {
             // Perform the token transfer directly.
             _performERC20Transfer(token, from, to, amount);
-        } else if (conduitKey == bytes32(uint256(1))) {
-            // Perform transfer via a call to the legacy token transfer proxy.
-            bool success = _LEGACY_TOKEN_TRANSFER_PROXY.transferFrom(
-                token,
-                from,
-                to,
-                amount
-            );
-
-            // If the call to the token transfer proxy does not return true...
-            if (!success) {
-                // Revert with an error indicating that return value is falsey.
-                // Note that the legacy token transfer proxy does not support
-                // non-compliant ERC20 tokens that do not return any data on a
-                // successful transfer.
-                revert BadReturnValueFromERC20OnTransfer(
-                    token,
-                    from,
-                    to,
-                    amount
-                );
-            }
         } else {
             // Perform the call to the conduit.
             _callConduit(
@@ -1971,38 +1943,15 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         uint256 amount,
         bytes32 conduitKey
     ) internal {
-        // If no conduit or a legacy conduit has been specified...
-        if (uint256(conduitKey) < 2) {
+        // If no conduit has been specified...
+        if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
             if (amount != 1) {
                 revert InvalidERC721TransferAmount();
             }
 
-            // If no conduit has been specified...
-            if (conduitKey == bytes32(0)) {
-                // Perform transfer via the token contract directly.
-                _performERC721Transfer(token, from, to, identifier);
-            } else {
-                // Perform transfer via a call to the proxy for supplied owner.
-                bool success = _callProxy(
-                    from,
-                    token,
-                    abi.encodeCall(
-                        ERC721Interface.transferFrom,
-                        (from, to, identifier)
-                    )
-                );
-
-                // Ensure that the transfer succeeded.
-                _assertValidTokenTransfer(
-                    success,
-                    token,
-                    from,
-                    to,
-                    identifier,
-                    amount
-                );
-            }
+            // Perform transfer via the token contract directly.
+            _performERC721Transfer(token, from, to, identifier);
         } else {
             // Perform the call to the conduit.
             _callConduit(
@@ -2054,30 +2003,6 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         if (conduitKey == bytes32(0)) {
             // Perform transfer via the token contract directly.
             _performERC1155Transfer(token, from, to, identifier, amount);
-        } else if (conduitKey == bytes32(uint256(1))) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            bool success = _callProxy(
-                from,
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeTransferFrom.selector,
-                    from,
-                    to,
-                    identifier,
-                    amount,
-                    ""
-                )
-            );
-
-            // Ensure that the transfer succeeded.
-            _assertValidTokenTransfer(
-                success,
-                token,
-                from,
-                to,
-                identifier,
-                amount
-            );
         } else {
             // Perform the call to the conduit.
             _callConduit(
@@ -2117,47 +2042,10 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        // If no conduit or a legacy conduit has been specified...
-        if (uint256(conduitKey) < 2) {
-            // Declare a boolean representing call status.
-            bool success;
-
-            // Derive calldata for the call to perform the batch 1155 transfer.
-            bytes memory callData = abi.encodeWithSelector(
-                ERC1155Interface.safeBatchTransferFrom.selector,
-                from,
-                to,
-                tokenIds,
-                amounts,
-                ""
-            );
-
-            // Perform call either directly or via proxy based on conduit key.
-            if (conduitKey == bytes32(0)) {
-                // Perform transfer via the token contract directly.
-                (success, ) = token.call(callData);
-            } else {
-                // Perform transfer via call to proxy for the supplied owner.
-                success = _callProxy(from, token, callData);
-            }
-
-            // If the call fails...
-            if (!success) {
-                // Revert and pass the revert reason along if one was returned.
-                _revertWithReasonIfOneIsReturned();
-
-                // Otherwise, revert with a generic 1155 batch transfer error.
-                revert ERC1155BatchTransferGenericFailure(
-                    token,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts
-                );
-            }
-
-            // Ensure that a contract is deployed to the token address.
-            _assertContractIsDeployed(token);
+        // If no conduit has been specified...
+        if (conduitKey == bytes32(0)) {
+            // Perform transfer via the token contract directly.
+            _performERC1155BatchTransfer(token, from, to, tokenIds, amounts);
         } else {
             uint256 totalTokenIds = tokenIds.length;
             uint256 tokenWords = totalTokenIds * 32;
@@ -2196,48 +2084,6 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             // Perform the call to the conduit.
             _callConduit(conduitKey, callData);
         }
-    }
-
-    /**
-     * @dev Internal function to trigger a call to a proxy contract. The proxy
-     *      contract must be registered on the legacy proxy registry for the
-     *      given proxy owner and must declare that its implementation matches
-     *      the required proxy implementation in accordance with EIP-897.
-     *
-     * @param proxyOwner The original owner of the proxy in question. Note that
-     *                   this owner may have been modified since the proxy was
-     *                   originally deployed.
-     * @param target     The account that should be called by the proxy.
-     * @param callData   The calldata to supply when calling the target from the
-     *                   proxy.
-     *
-     * @return success The status of the call to the proxy.
-     */
-    function _callProxy(
-        address proxyOwner,
-        address target,
-        bytes memory callData
-    ) internal returns (bool success) {
-        // Retrieve the user proxy from the registry assuming one is set.
-        address proxy = _LEGACY_PROXY_REGISTRY.proxies(proxyOwner);
-
-        // Assert that the user proxy has the correct implementation.
-        if (
-            ProxyInterface(proxy).implementation() !=
-            _REQUIRED_PROXY_IMPLEMENTATION
-        ) {
-            revert InvalidProxyImplementation();
-        }
-
-        // perform call to proxy via proxyAssert and HowToCall = CALL (value 0).
-        (success, ) = proxy.call(
-            abi.encodeWithSelector(
-                ProxyInterface.proxyAssert.selector,
-                target,
-                0,
-                callData
-            )
-        );
     }
 
     /**

@@ -55,27 +55,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
-     * @param legacyProxyRegistry         A proxy registry that stores per-user
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC721+1155 tokens.
-     * @param legacyTokenTransferProxy    A shared proxy contract that may
-     *                                    optionally be used to transfer
-     *                                    approved ERC20 tokens.
-     * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it.
      */
-    constructor(
-        address conduitController,
-        address legacyProxyRegistry,
-        address legacyTokenTransferProxy,
-        address requiredProxyImplementation
-    )
-        ConsiderationInternal(
-            conduitController,
-            legacyProxyRegistry,
-            legacyTokenTransferProxy,
-            requiredProxyImplementation
-        )
+    constructor(address conduitController)
+        ConsiderationInternal(conduitController)
     {}
 
     /**
@@ -334,9 +316,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
-     *                            Consideration) and `bytes32(1)` signifies to
-     *                            utilize the legacy user proxy for the
-     *                            fulfiller.
+     *                            Consideration).
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -387,9 +367,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
-     *                            Consideration) and `bytes32(1)` signifies to
-     *                            utilize the legacy user proxy for the
-     *                            fulfiller.
+     *                            Consideration).
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -458,9 +436,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
-     *                                  direct approvals set on Consideration)
-     *                                  and `bytes32(1)` signifies to utilize
-     *                                  the legacy user proxy for the fulfiller.
+     *                                  direct approvals set on Consideration).
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -474,7 +450,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      */
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers,
+        CriteriaResolver[] calldata criteriaResolvers,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         bytes32 fulfillerConduitKey
@@ -607,7 +583,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      */
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers,
+        CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
     )
         external
@@ -893,6 +869,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     /**
      * @notice Retrieve configuration information for this contract.
      *
+     * @return version           The contract version.
      * @return domainSeparator   The domain separator for this contract.
      * @return conduitController The conduit Controller set for this contract.
      */
@@ -900,9 +877,24 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         external
         view
         override
-        returns (bytes32 domainSeparator, address conduitController)
+        returns (
+            string memory version,
+            bytes32 domainSeparator,
+            address conduitController
+        )
     {
+        version = _VERSION;
         domainSeparator = _domainSeparator();
         conduitController = address(_CONDUIT_CONTROLLER);
+    }
+
+    /**
+     * @notice Retrieve the name of this contract.
+     *
+     * @return The name of this contract.
+     */
+    function name() external pure override returns (string memory) {
+        // Return the name of the contract.
+        return _NAME;
     }
 }
