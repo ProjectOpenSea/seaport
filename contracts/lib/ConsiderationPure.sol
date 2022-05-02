@@ -1101,14 +1101,18 @@ contract ConsiderationPure is ConsiderationBase {
     ) internal pure returns (bytes32 value) {
         // Leverage scratch space to perform an efficient hash.
         assembly {
-            mstore(0x20, conduitKey) // Put conduit key at end of scratch space.
-            mstore(0x1c, to) // Place to address just before bool.
-            mstore(0x08, from) // Place from address just before to.
+            // Place the free memory pointer on the stack; replace afterwards.
+            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
 
-            // Place combined token + start of from at start of scratch space.
-            mstore(0x00, or(shl(0x60, token), shr(0x40, from)))
+            mstore(0x3c, to) // Place to address in memory.
+            mstore(0x28, from) // Place from address in memory
+            mstore(0x14, token) // Place token address in memory.
+            mstore(0x00, conduitKey) // Put conduit key at beginning of region.
 
-            value := keccak256(0x00, 0x40) // Hash scratch space region.
+            value := keccak256(0x00, 0x5c) // Hash the 92-byte memory region.
+
+            // Restore the free memory pointer.
+            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
         }
     }
 
