@@ -102,7 +102,7 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function testFailSingleERC721WithConduit() public {
+    function testFailSingleERC721NonPayableZone() public {
         // fuzzer completely ignores params that fail vm.assume,
         // so confirm that this invalid param does fail
         testSingleERC721(
