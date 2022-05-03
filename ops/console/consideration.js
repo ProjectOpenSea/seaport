@@ -16,7 +16,7 @@ const day = 60 * 60 * 24; // seconds in a day
 // NOTE: offer = what's being sold, consideration = what's being paid
 
 /// /////////////////////////////////////
-/// Helper Methods
+/// Helper Utility Methods
 
 const mintERC20 = async (amount, signer = wallets[0]) => {
   log(`Minting ${amount} tokens..`);
@@ -90,8 +90,10 @@ const createOrderParameters = (overrides) => ({
   conduit: AddressZero,
   totalOriginalConsiderationItems: 1,
   ...(overrides || {}),
-  offer: [createOfferItem(overrides?.offer?.[0])],
-  consideration: [createConsiderationItem(overrides?.consideration?.[0])],
+  offer: (overrides?.offer || [{}]).map(createOfferItem),
+  consideration: (overrides?.consideration || [{}]).map(
+    createConsiderationItem
+  ),
 });
 
 // By default, consider a payment of one ERC20 token
@@ -106,8 +108,10 @@ const createOrderComponents = (overrides) => ({
   conduit: AddressZero,
   nonce: 0,
   ...(overrides || {}),
-  offer: [createOfferItem(overrides?.offer?.[0])],
-  consideration: [createConsiderationItem(overrides?.consideration?.[0])],
+  offer: (overrides?.offer || [{}]).map(createOfferItem),
+  consideration: (overrides?.consideration || [{}]).map(
+    createConsiderationItem
+  ),
 });
 
 // By default, consider a payment of one ERC20 token
@@ -143,8 +147,8 @@ const createAdvancedOrder = (overrides) => ({
   denominator: 1,
   signature: HashZero,
   extraData: HashZero,
-  ...(overrides?.advancedOrder || {}),
-  parameters: createOrderParameters(overrides?.params),
+  ...(overrides || {}),
+  parameters: createOrderParameters(overrides?.parameters),
 });
 
 const helpers = {
@@ -181,8 +185,8 @@ const fulfillBasicOrder = async (overrides, signer = wallets[0]) => {
     .then((tx) => {
       global.hash = tx.hash;
       logEvents(tx.hash, deployments.Consideration.abi);
+      log(`Success`);
     });
-  log(`Success`);
 };
 
 const fulfillOrder = async (overrides, signer = wallets[0]) => {
@@ -194,11 +198,11 @@ const fulfillOrder = async (overrides, signer = wallets[0]) => {
     .then((tx) => {
       global.hash = tx.hash;
       logEvents(tx.hash, deployments.Consideration.abi);
+      log(`Success`);
     });
-  log(`Success`);
 };
 
-// eg for: let nftId = 26; run the following:
+// eg for: let nftId = 1337; run the following:
 // validate({ parameters: { offer: [{ itemType: 4, identifierOrCriteria: nftId }] } })
 // fulfillAdvancedOrder({ advancedOrder: { parameters: { offer: [{ itemType: 4, identifierOrCriteria: nftId }] } }, criteriaResolvers: [{ identifier: nftId }] })
 const fulfillAdvancedOrder = async (overrides, signer = wallets[0]) => {
@@ -222,13 +226,63 @@ const fulfillAdvancedOrder = async (overrides, signer = wallets[0]) => {
     .fulfillAdvancedOrder(advancedOrder, criteriaResolvers, fulfillerConduit)
     .then((tx) => {
       global.hash = tx.hash;
-      return logEvents(tx.hash, deployments.Consideration.abi);
+      logEvents(tx.hash, deployments.Consideration.abi);
+      log(`Success`);
     });
-  log(`Success`);
 };
 
-const fulfillAvailableAdvancedOrders = async () => {};
+// eg for: let nftId = 1337; run the following:
+// validate({ parameters: { offer: [{ itemType: 4, identifierOrCriteria: nftId }] } })
+// fulfillAvailableAdvancedOrders({ advancedOrders: [{ parameters: { offer: [{ itemType: 4, identifierOrCriteria: nftId }] } }], criteriaResolvers: [{ identifier: nftId }] })
+const fulfillAvailableAdvancedOrders = async (
+  overrides,
+  signer = wallets[0]
+) => {
+  const advancedOrders = (overrides?.advancedOrders || [{}]).map(
+    createAdvancedOrder
+  );
+  const criteriaResolvers = (overrides?.criteriaResolvers || [{}]).map(
+    createCriteriaResolver
+  );
+  const offerFulfillments = overrides?.offerFulfillments || [];
+  const considerationFulfillments = overrides?.considerationFulfillments || [];
+  const fulfillerConduit = overrides?.fulfillerConduit || AddressZero;
+  log(
+    `Fulfilling Available Advanced Orders: ${JSON.stringify(
+      {
+        advancedOrders,
+        criteriaResolvers,
+        offerFulfillments,
+        considerationFulfillments,
+        fulfillerConduit,
+      },
+      null,
+      2
+    )}`
+  );
+  return await Consideration.connect(signer)
+    .fulfillAvailableAdvancedOrders(
+      advancedOrders,
+      criteriaResolvers,
+      offerFulfillments,
+      considerationFulfillments,
+      fulfillerConduit
+    )
+    .then((tx) => {
+      global.hash = tx.hash;
+      logEvents(tx.hash, deployments.Consideration.abi);
+      log(`Success`);
+      return tx.hash;
+    })
+    .catch((e) => {
+      log(e.message);
+      log(`Failure`);
+    });
+};
+
+// TODO
 const matchOrders = async () => {};
+// TODO
 const matchAdvancedOrders = async () => {};
 
 const cancel = async (overrides, signer = wallets[0]) => {
@@ -238,25 +292,32 @@ const cancel = async (overrides, signer = wallets[0]) => {
     .cancel([order])
     .then((tx) => {
       global.hash = tx.hash;
-      return logEvents(tx.hash, deployments.Consideration.abi);
+      logEvents(tx.hash, deployments.Consideration.abi);
+      log(`Success`);
     });
-  log(`Success`);
 };
 
 // Only one offer & consideration supported (for now)
 // Validates the sale of an NFT in exchange for some tokens by default
 // to validate an advanced order: use keccak256(nftId) for the identifierOrCriteria
 const validate = async (overrides, signer = wallets[0]) => {
-  const order = createOrder(overrides);
-  await mintERC721(order.parameters.offer[0].identifierOrCriteria, signer);
-  log(`Validating order: ${JSON.stringify(order, null, 2)}`);
+  const orders = (overrides?.orders || [{}]).map(createOrder);
+  log(`Minting NFTs for orders: ${JSON.stringify(orders, null, 2)}`);
+  for (let i = 0; i < orders.length; i++) {
+    const order = orders[i];
+    for (let i = 0; i < order.parameters.offer.length; i++) {
+      const offer = order.parameters.offer[i];
+      await mintERC721(offer.identifierOrCriteria, signer);
+    }
+  }
+  log(`Validating order: ${JSON.stringify(orders, null, 2)}`);
   await Consideration.connect(signer)
-    .validate([order])
+    .validate(orders)
     .then((tx) => {
       global.hash = tx.hash;
-      return logEvents(tx.hash, deployments.Consideration.abi);
+      logEvents(tx.hash, deployments.Consideration.abi);
+      log(`Success`);
     });
-  log(`Success`);
 };
 
 const incrementNonce = (signer = wallets[0]) => {
@@ -266,6 +327,80 @@ const incrementNonce = (signer = wallets[0]) => {
       global.hash = tx.hash;
       logEvents(tx.hash, deployments.Consideration.abi);
     });
+};
+
+/// /////////////////////////////////////
+/// Wrapper Methods for easy testing
+
+const test = {};
+
+test.validate = async () => {
+  const nftId1 = Math.round(Math.random() * 1000000);
+  const nftId2 = Math.round(Math.random() * 1000000);
+  const seller = wallets[1];
+  const overrides = {
+    orders: [
+      {
+        parameters: {
+          offerer: seller.address,
+          offer: [
+            { itemType: 4, identifierOrCriteria: nftId1 },
+            { itemType: 4, identifierOrCriteria: nftId2 },
+          ],
+          consideration: [{ startAmount: 2, endAmount: 2 }],
+        },
+      },
+    ],
+  };
+  await validate(overrides, seller);
+};
+
+test.fulfillAvailableAdvancedOrders = async () => {
+  const nftId1 = Math.round(Math.random() * 1000000);
+  const nftId2 = Math.round(Math.random() * 1000000);
+  const buyer = wallets[0];
+  const seller = wallets[1];
+  // Register two offers to sell 2 different NFTs for 1 token each
+  await validate(
+    {
+      orders: [
+        {
+          parameters: {
+            offerer: seller.address,
+            offer: [
+              { itemType: 4, identifierOrCriteria: nftId1 },
+              { itemType: 4, identifierOrCriteria: nftId2 },
+            ],
+            consideration: [{ startAmount: 2, endAmount: 2 }],
+          },
+        },
+      ],
+    },
+    seller
+  );
+  // Fulfill both offers..?
+  return await fulfillAvailableAdvancedOrders(
+    {
+      advancedOrders: [
+        {
+          parameters: {
+            offer: [
+              { itemType: 4, identifierOrCriteria: nftId1 },
+              { itemType: 4, identifierOrCriteria: nftId2 },
+            ],
+            consideration: [{ startAmount: 2, endAmount: 2 }],
+          },
+        },
+      ],
+      criteriaResolvers: [
+        { identifier: nftId1 },
+        { identifier: nftId2, index: 1 },
+      ],
+      offerFulfillments: [[{ orderIndex: 0, itemIndex: 0 }]],
+      considerationFulfillments: [[{ orderIndex: 0, itemIndex: 0 }]],
+    },
+    buyer
+  );
 };
 
 module.exports = {
@@ -279,4 +414,5 @@ module.exports = {
   validate: validate,
   incrementNonce: incrementNonce,
   helpers: helpers,
+  test: test,
 };
