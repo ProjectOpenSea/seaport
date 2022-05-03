@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
+import "../../../contracts/conduit/ConduitController.sol";
+
 import { Consideration } from "../../../contracts/Consideration.sol";
 import { OrderType, BasicOrderType, ItemType, Side } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
@@ -87,11 +89,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
             keccak256(
-                abi.encodePacked(
-                    bytes2(0x1901),
-                    consideration.DOMAIN_SEPARATOR(),
-                    _orderHash
-                )
+                abi.encodePacked(bytes2(0x1901), domainSeparator, _orderHash)
             )
         );
         return abi.encodePacked(r, s, v);

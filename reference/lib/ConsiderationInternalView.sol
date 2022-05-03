@@ -16,6 +16,7 @@ import {
     OrderParameters,
     Order,
     AdvancedOrder,
+    CriteriaResolver,
     OrderStatus,
     Execution,
     FulfillmentComponent
@@ -39,27 +40,9 @@ contract ConsiderationInternalView is ConsiderationPure {
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
-     * @param legacyProxyRegistry         A proxy registry that stores per-user
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC721+1155 tokens.
-     * @param legacyTokenTransferProxy    A shared proxy contract that may
-     *                                    optionally be used to transfer
-     *                                    approved ERC20 tokens.
-     * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it.
      */
-    constructor(
-        address conduitController,
-        address legacyProxyRegistry,
-        address legacyTokenTransferProxy,
-        address requiredProxyImplementation
-    )
-        ConsiderationPure(
-            conduitController,
-            legacyProxyRegistry,
-            legacyTokenTransferProxy,
-            requiredProxyImplementation
-        )
+    constructor(address conduitController)
+        ConsiderationPure(conduitController)
     {}
 
     /**
@@ -102,72 +85,6 @@ contract ConsiderationInternalView is ConsiderationPure {
 
         // Return true as the order time is valid.
         valid = true;
-    }
-
-    /**
-     * @dev Internal view function to validate whether a token transfer was
-     *      successful based on the returned status and data. Note that
-     *      malicious or non-compliant tokens (like fee-on-transfer tokens) may
-     *      still return improper data — consider checking token balances before
-     *      and after for more comprehensive transfer validation. Also note that
-     *      this function must be called after the account in question has been
-     *      called and before any other contracts have been called.
-     *
-     * @param success The status of the call to transfer. Note that contract
-     *                size must be checked on status of true and no returned
-     *                data to rule out undeployed contracts.
-     * @param token   The token to transfer.
-     * @param from    The originator of the transfer.
-     * @param to      The recipient of the transfer.
-     * @param tokenId The tokenId to transfer (if applicable).
-     * @param amount  The amount to transfer (if applicable).
-     */
-    function _assertValidTokenTransfer(
-        bool success,
-        address token,
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 amount
-    ) internal view {
-        // If the call failed...
-        if (!success) {
-            // Revert and pass reason along if one was returned from the token.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error.
-            revert TokenTransferGenericFailure(
-                token,
-                from,
-                to,
-                tokenId,
-                amount
-            );
-        }
-
-        // Ensure that the token contract has code.
-        _assertContractIsDeployed(token);
-    }
-
-    /**
-     * @dev Internal view function to item that a contract is deployed to a
-     *      given account. Note that this function must be called after the
-     *      account in question has been called and before any other contracts
-     *      have been called.
-     *
-     * @param account The account to check.
-     */
-    function _assertContractIsDeployed(address account) internal view {
-        // Find out whether data was returned by inspecting returndata buffer.
-        uint256 returnDataSize;
-        assembly {
-            returnDataSize := returndatasize()
-        }
-
-        // If no data was returned, ensure that the account has code.
-        if (returnDataSize == 0 && account.code.length == 0) {
-            revert NoContract(account);
-        }
     }
 
     /**
@@ -567,20 +484,28 @@ contract ConsiderationInternalView is ConsiderationPure {
      *      for a given order and to ensure that the submitter is allowed by the
      *      order type.
      *
-     * @param advancedOrder    The order in question.
-     * @param priorOrderHashes The order hashes of each order supplied prior to
-     *                         the current order as part of a "match" variety of
-     *                         order fulfillment (e.g. this array will be empty
-     *                         for single or "fulfill available").
-     * @param orderHash        The hash of the order.
-     * @param zoneHash         The hash to provide upon calling the zone.
-     * @param orderType        The type of the order.
-     * @param offerer          The offerer in question.
-     * @param zone             The zone in question.
+     * @param advancedOrder     The order in question.
+     * @param criteriaResolvers An array where each element contains a reference
+     *                          to a specific offer or consideration, a token
+     *                          identifier, and a proof that the supplied token
+     *                          identifier is contained in the order's merkle
+     *                          root. Note that a criteria of zero indicates
+     *                          that any (transferrable) token identifier is
+     *                          valid and that no proof needs to be supplied.
+     * @param priorOrderHashes  The order hashes of each order supplied prior to
+     *                          the current order as part of a "match" variety
+     *                          of order fulfillment (e.g. this array will be
+     *                          empty for single or "fulfill available").
+     * @param orderHash         The hash of the order.
+     * @param zoneHash          The hash to provide upon calling the zone.
+     * @param orderType         The type of the order.
+     * @param offerer           The offerer in question.
+     * @param zone              The zone in question.
 
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
+        CriteriaResolver[] memory criteriaResolvers,
         bytes32[] memory priorOrderHashes,
         bytes32 orderHash,
         bytes32 zoneHash,
@@ -597,8 +522,11 @@ contract ConsiderationInternalView is ConsiderationPure {
             // Declare a variable for the status of the staticcall to the zone.
             bool success;
 
-            // If no extraData is supplied...
-            if (advancedOrder.extraData.length == 0) {
+            // If no extraData or criteria resolvers are supplied...
+            if (
+                advancedOrder.extraData.length == 0 &&
+                criteriaResolvers.length == 0
+            ) {
                 // Perform minimal staticcall to the zone.
                 success = _staticcall(
                     zone,
@@ -611,8 +539,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                     )
                 );
             } else {
-                // Otherwise, extraData was supplied; in that event, perform a
-                // more verbose staticcall to the zone.
+                // Otherwise, extra data or criteria resolvers were supplied; in
+                // that event, perform a more verbose staticcall to the zone.
                 success = _staticcall(
                     zone,
                     abi.encodeWithSelector(
@@ -620,7 +548,8 @@ contract ConsiderationInternalView is ConsiderationPure {
                         orderHash,
                         msg.sender,
                         advancedOrder,
-                        priorOrderHashes
+                        priorOrderHashes,
+                        criteriaResolvers
                     )
                 );
             }
@@ -647,8 +576,8 @@ contract ConsiderationInternalView is ConsiderationPure {
      */
     function _applyFulfillment(
         AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] memory offerComponents,
-        FulfillmentComponent[] memory considerationComponents
+        FulfillmentComponent[] calldata offerComponents,
+        FulfillmentComponent[] calldata considerationComponents
     ) internal view returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
@@ -753,23 +682,29 @@ contract ConsiderationInternalView is ConsiderationPure {
         FulfillmentComponent[] memory fulfillmentComponents,
         bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
-        // Ensure at least one fulfillment component has been supplied.
-        if (fulfillmentComponents.length == 0) {
-            revert MissingFulfillmentComponentOnAggregation(side);
-        }
-
-        // Determine component index after first available (zero implies none).
-        uint256 nextComponentIndex = 0;
-
-        // Skip overflow checks as all for loops are indexed starting at zero.
+        // Skip overflow / underflow checks; conditions checked or unreachable.
         unchecked {
+            // Retrieve advanced orders array length and place on the stack.
+            uint256 totalOrders = advancedOrders.length;
+
+            // Retrieve fulfillment components array length and place on stack.
+            uint256 totalFulfillmentComponents = fulfillmentComponents.length;
+
+            // Ensure at least one fulfillment component has been supplied.
+            if (totalFulfillmentComponents == 0) {
+                revert MissingFulfillmentComponentOnAggregation(side);
+            }
+
+            // Determine component index after first available (0 implies none).
+            uint256 nextComponentIndex = 0;
+
             // Iterate over components until finding one with a fulfilled order.
-            for (uint256 i = 0; i < fulfillmentComponents.length; ++i) {
+            for (uint256 i = 0; i < totalFulfillmentComponents; ++i) {
                 // Retrieve the fulfillment component index.
                 uint256 orderIndex = fulfillmentComponents[i].orderIndex;
 
                 // Ensure that the order index is in range.
-                if (orderIndex >= advancedOrders.length) {
+                if (orderIndex >= totalOrders) {
                     revert InvalidFulfillmentComponentData();
                 }
 
@@ -782,44 +717,45 @@ contract ConsiderationInternalView is ConsiderationPure {
                     break;
                 }
             }
-        }
 
-        // If no available order was located...
-        if (nextComponentIndex == 0) {
-            // Return early with a null execution element that will be filtered.
-            // prettier-ignore
-            return Execution(
-                ReceivedItem(
-                    ItemType.NATIVE,
+            // If no available order was located...
+            if (nextComponentIndex == 0) {
+                // Return with an empty execution element that will be filtered.
+                // prettier-ignore
+                return Execution(
+                    ReceivedItem(
+                        ItemType.NATIVE,
+                        address(0),
+                        0,
+                        0,
+                        payable(address(0))
+                    ),
                     address(0),
-                    0,
-                    0,
-                    payable(address(0))
-                ),
-                address(0),
-                bytes32(0)
-            );
-        }
+                    bytes32(0)
+                );
+            }
 
-        // If the fulfillment components are offer components...
-        if (side == Side.OFFER) {
-            // Return execution for aggregated items provided by the offerer.
-            // prettier-ignore
-            return _aggregateValidFulfillmentOfferItems(
-                advancedOrders,
-                fulfillmentComponents,
-                nextComponentIndex - 1
-            );
-        } else {
-            // Otherwise, fulfillment components are consideration components.
-            // Return execution for aggregated items provided by the fulfiller.
-            // prettier-ignore
-            return _aggregateConsiderationItems(
-                advancedOrders,
-                fulfillmentComponents,
-                nextComponentIndex - 1,
-                fulfillerConduitKey
-            );
+            // If the fulfillment components are offer components...
+            if (side == Side.OFFER) {
+                // Return execution for aggregated items provided by offerer.
+                // prettier-ignore
+                return _aggregateValidFulfillmentOfferItems(
+                    advancedOrders,
+                    fulfillmentComponents,
+                    nextComponentIndex - 1
+                );
+            } else {
+                // Otherwise, fulfillment components are consideration
+                // components. Return execution for aggregated items provided by
+                // the fulfiller.
+                // prettier-ignore
+                return _aggregateConsiderationItems(
+                    advancedOrders,
+                    fulfillmentComponents,
+                    nextComponentIndex - 1,
+                    fulfillerConduitKey
+                );
+            }
         }
     }
 
@@ -1142,6 +1078,100 @@ contract ConsiderationInternalView is ConsiderationPure {
             msg.sender,
             fulfillerConduitKey
         );
+    }
+
+    /**
+     * @dev Internal view function to ensure that a staticcall to `isValidOrder`
+     *      or `isValidOrderIncludingExtraData` as part of validating a
+     *      restricted order that was not submitted by the named offerer or zone
+     *      was successful and returned the required magic value.
+     *
+     * @param success   A boolean indicating the status of the staticcall.
+     * @param orderHash The order hash of the order in question.
+     */
+    function _assertIsValidOrderStaticcallSuccess(
+        bool success,
+        bytes32 orderHash
+    ) internal view {
+        // If the call failed...
+        if (!success) {
+            // Revert and pass reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
+
+            // Otherwise, revert with a generic error message.
+            revert InvalidRestrictedOrder(orderHash);
+        }
+
+        // Extract result from returndata buffer in case of memory overflow.
+        bytes4 result;
+        assembly {
+            // Only put result on stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) {
+                // Copy directly from return data into scratch space.
+                returndatacopy(0, 0, 0x20)
+
+                // Take value from scratch space and place it on the stack.
+                result := mload(0)
+            }
+        }
+
+        // Ensure result was extracted and matches isValidOrder magic value.
+        if (result != ZoneInterface.isValidOrder.selector) {
+            revert InvalidRestrictedOrder(orderHash);
+        }
+    }
+
+    /**
+     * @dev Internal view function to revert and pass along the revert reason if
+     *      data was returned by the last call and that the size of that data
+     *      does not exceed the currently allocated memory size.
+     */
+    function _revertWithReasonIfOneIsReturned() internal view {
+        assembly {
+            // If it returned a message, bubble it up as long as sufficient gas
+            // remains to do so:
+            if returndatasize() {
+                // Ensure that sufficient gas is available to copy returndata
+                // while expanding memory where necessary. Start by computing
+                // the word size of returndata and allocated memory.
+                let returnDataWords := div(returndatasize(), 0x20)
+
+                // Note: use the free memory pointer in place of msize() to work
+                // around a Yul warning that prevents accessing msize directly
+                // when the IR pipeline is activated.
+                let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
+
+                // Next, compute the cost of the returndatacopy.
+                let cost := mul(3, returnDataWords)
+
+                // Then, compute cost of new memory allocation.
+                if gt(returnDataWords, msizeWords) {
+                    cost := add(
+                        cost,
+                        add(
+                            mul(sub(returnDataWords, msizeWords), 3),
+                            div(
+                                sub(
+                                    mul(returnDataWords, returnDataWords),
+                                    mul(msizeWords, msizeWords)
+                                ),
+                                0x200
+                            )
+                        )
+                    )
+                }
+
+                // Finally, add a small constant and compare to gas remaining;
+                // bubble up the revert data if enough gas is still available.
+                if lt(add(cost, 0x20), gas()) {
+                    // Copy returndata to memory; overwrite existing memory.
+                    returndatacopy(0, 0, returndatasize())
+
+                    // Revert, specifying memory region with copied returndata.
+                    revert(0, returndatasize())
+                }
+            }
+        }
     }
 
     /**

@@ -179,10 +179,11 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         // Declare conduitKey argument used by transfer functions.
         bytes32 conduitKey;
 
-        // use offerer conduit for routes 0-3, fulfiller conduit otherwise.
-        address conduit = (routeAsInt > 3)
-            ? parameters.fulfillerConduit
-            : parameters.offererConduit;
+        // Utilize assembly to derive conduit (if relevant) based on route.
+        assembly {
+            // use offerer conduit for routes 0-3, fulfiller conduit otherwise.
+            conduitKey := calldataload(add(0x1c4, mul(gt(route, 3), 0x20)))
+        }
 
         // Transfer tokens based on the route.
         if (route == BasicOrderRouteType.ETH_TO_ERC721) {

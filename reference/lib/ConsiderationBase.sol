@@ -45,15 +45,6 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
 
-    // Allow for interaction with user proxies on the legacy proxy registry.
-    ProxyRegistryInterface internal immutable _LEGACY_PROXY_REGISTRY;
-
-    // Allow for interaction with the legacy token transfer proxy.
-    TokenTransferProxyInterface internal immutable _LEGACY_TOKEN_TRANSFER_PROXY;
-
-    // Ensure that user proxies adhere to the required proxy implementation.
-    address internal immutable _REQUIRED_PROXY_IMPLEMENTATION;
-
     // Cache the conduit creation code hash used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
 
@@ -74,21 +65,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
-     * @param legacyProxyRegistry         A proxy registry that stores per-user
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC721+1155 tokens.
-     * @param legacyTokenTransferProxy    A shared proxy contract that may
-     *                                    optionally be used to transfer
-     *                                    approved ERC20 tokens.
-     * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it.
      */
-    constructor(
-        address conduitController,
-        address legacyProxyRegistry,
-        address legacyTokenTransferProxy,
-        address requiredProxyImplementation
-    ) {
+    constructor(address conduitController) {
         // Derive hashes, reference chainId, and associated domain separator.
         _NAME_HASH = keccak256(bytes(_NAME));
         _VERSION_HASH = keccak256(bytes(_VERSION));
@@ -159,12 +137,6 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         (_CONDUIT_CREATION_CODE_HASH, ) = (
             _CONDUIT_CONTROLLER.getConduitCodeHashes()
         );
-
-        _LEGACY_PROXY_REGISTRY = ProxyRegistryInterface(legacyProxyRegistry);
-        _LEGACY_TOKEN_TRANSFER_PROXY = TokenTransferProxyInterface(
-            legacyTokenTransferProxy
-        );
-        _REQUIRED_PROXY_IMPLEMENTATION = requiredProxyImplementation;
 
         // Initialize the reentrancy guard in a cleared state.
         _reentrancyGuard = _NOT_ENTERED;
