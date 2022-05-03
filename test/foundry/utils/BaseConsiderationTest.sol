@@ -17,10 +17,6 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     ConduitController conduitController;
     address conduit;
 
-    address internal _wyvernProxyRegistry;
-    address internal _wyvernTokenTransferProxy;
-    address internal _wyvernDelegateProxyImplementation;
-
     function setUp() public virtual {
         conduitController = new ConduitController();
         emit log_named_address(
