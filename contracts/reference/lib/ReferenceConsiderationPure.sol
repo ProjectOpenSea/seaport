@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
+import { OrderType, ItemType, Side } from "../../lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -19,20 +19,20 @@ import {
     CriteriaResolver,
     Batch,
     BatchExecution
-} from "./ConsiderationStructs.sol";
+} from "../../lib/ConsiderationStructs.sol";
 
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
 
-import { ConsiderationBase } from "./ConsiderationBase.sol";
+import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ReferenceConsiderationConstants.sol";
 
 /**
- * @title ConsiderationPure
+ * @title ReferenceConsiderationPure
  * @author 0age
  * @notice ConsiderationPure contains all pure functions.
  */
-contract ConsiderationPure is ConsiderationBase {
+contract ReferenceConsiderationPure is ReferenceConsiderationBase {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
@@ -43,7 +43,7 @@ contract ConsiderationPure is ConsiderationBase {
      *                                    tokens.
      */
     constructor(address conduitController)
-        ConsiderationBase(conduitController)
+        ReferenceConsiderationBase(conduitController)
     {}
 
     /**

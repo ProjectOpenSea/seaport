@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
+import { EIP1271Interface } from "../../interfaces/EIP1271Interface.sol";
 
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
 
-import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
+import { OrderType, ItemType, Side } from "../../lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -20,18 +20,18 @@ import {
     OrderStatus,
     Execution,
     FulfillmentComponent
-} from "./ConsiderationStructs.sol";
+} from "../../lib/ConsiderationStructs.sol";
 
-import { ConsiderationPure } from "./ConsiderationPure.sol";
+import { ReferenceConsiderationPure } from "./ReferenceConsiderationPure.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ReferenceConsiderationConstants.sol";
 
 /**
- * @title ConsiderationInternalView
+ * @title ReferenceConsiderationInternalView
  * @author 0age
  * @notice ConsiderationInternal contains all internal view functions.
  */
-contract ConsiderationInternalView is ConsiderationPure {
+contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
@@ -42,7 +42,7 @@ contract ConsiderationInternalView is ConsiderationPure {
      *                                    tokens.
      */
     constructor(address conduitController)
-        ConsiderationPure(conduitController)
+        ReferenceConsiderationPure(conduitController)
     {}
 
     /**

@@ -5,19 +5,19 @@ pragma solidity 0.8.13;
 import {
     ProxyRegistryInterface,
     TokenTransferProxyInterface
-} from "../interfaces/AbridgedProxyInterfaces.sol";
+} from "../../interfaces/AbridgedProxyInterfaces.sol";
 
 // prettier-ignore
 import {
     ConduitControllerInterface
-} from "../interfaces/ConduitControllerInterface.sol";
+} from "../../interfaces/ConduitControllerInterface.sol";
 
 // prettier-ignore
 import {
     ConsiderationEventsAndErrors
-} from "../interfaces/ConsiderationEventsAndErrors.sol";
+} from "../../interfaces/ConsiderationEventsAndErrors.sol";
 
-import { OrderStatus } from "./ConsiderationStructs.sol";
+import { OrderStatus } from "../../lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationBase
@@ -25,7 +25,7 @@ import { OrderStatus } from "./ConsiderationStructs.sol";
  * @notice ConsiderationBase contains all storage, constants, and constructor
  *         logic.
  */
-contract ConsiderationBase is ConsiderationEventsAndErrors {
+contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
     // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
     string internal constant _VERSION = "rc.1";
