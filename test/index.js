@@ -15823,7 +15823,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       it.only("Reverts when ether transfer fails (returndata)", async () => {
-        const recipient = await (await ethers.getContractFactory('ExcessReturnDataRecipient')).deploy();
+        const recipient = await (
+          await ethers.getContractFactory("ExcessReturnDataRecipient")
+        ).deploy();
         const setup = async () => {
           // Seller mints nft
           const nftId = ethers.BigNumber.from(randomHex());
@@ -15863,15 +15865,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 .approve(marketplaceContract.address, tokenAmount)
             )
               .to.emit(testERC20, "Approval")
-              .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+              .withArgs(
+                buyer.address,
+                marketplaceContract.address,
+                tokenAmount
+              );
           });
           const offer = [getTestItem721(nftId)];
-  
+
           const consideration = [
             getItemETH(10, 10, seller.address),
             getItemETH(1, 1, recipient.address),
           ];
-  
+
           const { order, orderHash, value } = await createOrder(
             seller,
             zone,
@@ -15879,20 +15885,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             consideration,
             0 // FULL_OPEN
           );
-  
+
           const basicOrderParameters = getBasicOrderParameters(
             0, // EthForERC721
             order
           );
-          return basicOrderParameters
-        }
-        let basicOrderParameters = await setup()
+          return basicOrderParameters;
+        };
+        let basicOrderParameters = await setup();
         const baseGas = await marketplaceContract
           .connect(buyer)
-          .estimateGas
-          .fulfillBasicOrder(basicOrderParameters, {
+          .estimateGas.fulfillBasicOrder(basicOrderParameters, {
             value: ethers.utils.parseEther("12"),
-          })
+          });
         // let w = 0;
         // for (; w < 1000; w+=10) {
         //   console.log(w)
@@ -15914,19 +15919,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         //     }
         //   }
         // }
-        await recipient.setRevertDataSize(80*32)
+        await recipient.setRevertDataSize(80 * 32);
         await whileImpersonating(buyer.address, provider, async () => {
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters, {
                 value: ethers.utils.parseEther("12"),
-                gasLimit: baseGas.add(1000)
+                gasLimit: baseGas.add(1000),
               })
           ).to.be.revertedWith(
-            `EtherTransferGenericFailure("${
-              recipient.address
-            }", ${ethers.utils.parseEther("1").toString()})`
+            `EtherTransferGenericFailure("${recipient.address}", ${ethers.utils
+              .parseEther("1")
+              .toString()})`
           );
         });
       });
