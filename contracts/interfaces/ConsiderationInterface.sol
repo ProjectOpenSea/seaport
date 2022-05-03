@@ -120,6 +120,67 @@ interface ConsiderationInterface {
     ) external payable returns (bool);
 
     /**
+     * @notice Attempt to fill a group of orders, each with an arbitrary number
+     *         of items for offer and consideration. Any order that is not
+     *         currently active, has already been fully filled, or has been
+     *         cancelled will be omitted. Remaining offer and consideration
+     *         items will then be aggregated where possible as indicated by the
+     *         supplied offer and consideration component arrays and aggregated
+     *         items will be transferred to the fulfiller or to each intended
+     *         recipient, respectively. Note that a failing item transfer or an
+     *         issue with order formatting will cause the entire batch to fail.
+     *         Note that this function does not support criteria-based orders or
+     *         partial filling of orders (though filling the remainder of a
+     *         partially-filled order is supported).
+     *
+     * @param orders                    The orders to fulfill. Note that both
+     *                                  the offerer and the fulfiller must first
+     *                                  approve this contract (or the
+     *                                  corresponding conduit if indicated) to
+     *                                  transfer any relevant tokens on their
+     *                                  behalf and that contracts must implement
+     *                                  `onERC1155Received` to receive ERC1155
+     *                                  tokens as consideration.
+     * @param offerFulfillments         An array of FulfillmentComponent arrays
+     *                                  indicating which offer items to attempt
+     *                                  to aggregate when preparing executions.
+     * @param considerationFulfillments An array of FulfillmentComponent arrays
+     *                                  indicating which consideration items to
+     *                                  attempt to aggregate when preparing
+     *                                  executions.
+     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
+     *                                  if any, to source the fulfiller's token
+     *                                  approvals from. The zero hash signifies
+     *                                  that no conduit should be used (and
+     *                                  direct approvals set on Consideration).
+     * @param maximumFulfilled          The maximum number of orders to fulfill.
+     *
+     * @return availableOrders    An array of booleans indicating if each order
+     *                            with an index corresponding to the index of
+     *                            the returned boolean was fulfillable or not.
+     * @return standardExecutions An array of elements indicating the sequence
+     *                            of non-batch transfers performed as part of
+     *                            matching the given orders.
+     * @return batchExecutions    An array of elements indicating the sequence
+     *                            of batch transfers performed as part of
+     *                            matching the given orders.
+     */
+    function fulfillAvailableOrders(
+        Order[] calldata orders,
+        FulfillmentComponent[][] calldata offerFulfillments,
+        FulfillmentComponent[][] calldata considerationFulfillments,
+        bytes32 fulfillerConduitKey,
+        uint256 maximumFulfilled
+    )
+        external
+        payable
+        returns (
+            bool[] memory availableOrders,
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        );
+
+    /**
      * @notice Attempt to fill a group of orders, fully or partially, with an
      *         arbitrary number of items for offer and consideration per order
      *         alongside criteria resolvers containing specific token
@@ -173,6 +234,7 @@ interface ConsiderationInterface {
      *                                  direct approvals set on Consideration)
      *                                  and `bytes32(1)` signifies to utilize
      *                                  the legacy user proxy for the fulfiller.
+     * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -189,7 +251,8 @@ interface ConsiderationInterface {
         CriteriaResolver[] calldata criteriaResolvers,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        uint256 maximumFulfilled
     )
         external
         payable

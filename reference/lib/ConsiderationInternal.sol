@@ -54,27 +54,9 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
-     * @param legacyProxyRegistry         A proxy registry that stores per-user
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC721+1155 tokens.
-     * @param legacyTokenTransferProxy    A shared proxy contract that may
-     *                                    optionally be used to transfer
-     *                                    approved ERC20 tokens.
-     * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it.
      */
-    constructor(
-        address conduitController,
-        address legacyProxyRegistry,
-        address legacyTokenTransferProxy,
-        address requiredProxyImplementation
-    )
-        ConsiderationInternalView(
-            conduitController,
-            legacyProxyRegistry,
-            legacyTokenTransferProxy,
-            requiredProxyImplementation
-        )
+    constructor(address conduitController)
+        ConsiderationInternalView(conduitController)
     {}
 
     /**
@@ -745,6 +727,13 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      *                         fill. Note that all offer and consideration
      *                         amounts must divide with no remainder in order
      *                         for a partial fill to be valid.
+     * @param criteriaResolvers An array where each element contains a reference
+     *                          to a specific offer or consideration, a token
+     *                          identifier, and a proof that the supplied token
+     *                          identifier is contained in the order's merkle
+     *                          root. Note that a criteria of zero indicates
+     *                          that any (transferrable) token identifier is
+     *                          valid and that no proof needs to be supplied.
      * @param revertOnInvalid  A boolean indicating whether to revert if the
      *                         order is invalid due to the time or order status.
      * @param priorOrderHashes The order hashes of each order supplied prior to
@@ -759,6 +748,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      */
     function _validateOrderAndUpdateStatus(
         AdvancedOrder memory advancedOrder,
+        CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid,
         bytes32[] memory priorOrderHashes
     )
@@ -810,6 +800,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         // Determine if a proxy should be utilized and ensure a valid submitter.
         _assertRestrictedAdvancedOrderValidity(
             advancedOrder,
+            criteriaResolvers,
             priorOrderHashes,
             orderHash,
             orderParameters.zoneHash,
@@ -941,6 +932,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             uint256 fillDenominator
         ) = _validateOrderAndUpdateStatus(
                 advancedOrder,
+                criteriaResolvers,
                 true,
                 priorOrderHashes
             );
@@ -1220,11 +1212,16 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      *                          a root of zero indicates that any transferrable
      *                          token identifier is valid and that no proof
      *                          needs to be supplied.
+     * @param revertOnInvalid   A boolean indicating whether to revert on any
+     *                          order being invalid; setting this to false will
+     *                          instead cause the invalid order to be skipped.
+     * @param maximumFulfilled  The maximum number of orders to fulfill.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
-        bool revertOnInvalid
+        bool revertOnInvalid,
+        uint256 maximumFulfilled
     ) internal {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -1247,6 +1244,20 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 // Retrieve the current order.
                 AdvancedOrder memory advancedOrder = advancedOrders[i];
 
+                // Determine if max number orders have already been fulfilled.
+                if (maximumFulfilled == 0) {
+                    // Mark fill fraction as zero as the order will not be used.
+                    advancedOrder.numerator = 0;
+
+                    // Update the length of the orderHashes array.
+                    assembly {
+                        mstore(orderHashes, add(i, 1))
+                    }
+
+                    // Continue iterating through the remaining orders.
+                    continue;
+                }
+
                 // Validate it, update status, and determine fraction to fill.
                 (
                     bytes32 orderHash,
@@ -1254,6 +1265,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                     uint256 denominator
                 ) = _validateOrderAndUpdateStatus(
                         advancedOrder,
+                        criteriaResolvers,
                         revertOnInvalid,
                         orderHashes
                     );
@@ -1262,18 +1274,6 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 assembly {
                     mstore(orderHashes, add(i, 1))
                 }
-
-                // Place the start time for the order on the stack.
-                uint256 startTime = advancedOrder.parameters.startTime;
-
-                // Derive the duration for the order and place it on the stack.
-                uint256 duration = advancedOrder.parameters.endTime - startTime;
-
-                // Derive time elapsed since the order started & place on stack.
-                uint256 elapsed = block.timestamp - startTime;
-
-                // Derive time remaining until order expires and place on stack.
-                uint256 remaining = duration - elapsed;
 
                 // Do not track hash or adjust prices if order is not fulfilled.
                 if (numerator == 0) {
@@ -1286,6 +1286,21 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
 
                 // Otherwise, track the order hash in question.
                 orderHashes[i] = orderHash;
+
+                // Decrement the number of fulfilled orders.
+                maximumFulfilled--;
+
+                // Place the start time for the order on the stack.
+                uint256 startTime = advancedOrder.parameters.startTime;
+
+                // Derive the duration for the order and place it on the stack.
+                uint256 duration = advancedOrder.parameters.endTime - startTime;
+
+                // Derive time elapsed since the order started & place on stack.
+                uint256 elapsed = block.timestamp - startTime;
+
+                // Derive time remaining until order expires and place on stack.
+                uint256 remaining = duration - elapsed;
 
                 // Retrieve array of offer items for the order in question.
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
@@ -1463,8 +1478,11 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             BatchExecution[] memory batchExecutions
         )
     {
+        // Retrieve fulfillments array length and place on the stack.
+        uint256 totalFulfillments = fulfillments.length;
+
         // Allocate executions by fulfillment and apply them to each execution.
-        Execution[] memory executions = new Execution[](fulfillments.length);
+        Execution[] memory executions = new Execution[](totalFulfillments);
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
@@ -1472,9 +1490,9 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             uint256 totalFilteredExecutions = 0;
 
             // Iterate over each fulfillment.
-            for (uint256 i = 0; i < fulfillments.length; ++i) {
+            for (uint256 i = 0; i < totalFulfillments; ++i) {
                 /// Retrieve the fulfillment in question.
-                Fulfillment memory fulfillment = fulfillments[i];
+                Fulfillment calldata fulfillment = fulfillments[i];
 
                 // Derive the execution corresponding with the fulfillment.
                 Execution memory execution = _applyFulfillment(
@@ -1514,6 +1532,109 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
 
         // Return both standard and batch ERC1155 executions.
         return (standardExecutions, batchExecutions);
+    }
+
+    /**
+     * @notice Internal function to attempt to fill a group of orders, fully or
+     *         partially, with an arbitrary number of items for offer and
+     *         consideration per order alongside criteria resolvers containing
+     *         specific token identifiers and associated proofs. Any order that
+     *         is not currently active, has already been fully filled, or has
+     *         been cancelled will be omitted. Remaining offer and consideration
+     *         items will then be aggregated where possible as indicated by the
+     *         supplied offer and consideration component arrays and aggregated
+     *         items will be transferred to the fulfiller or to each intended
+     *         recipient, respectively. Note that a failing item transfer or an
+     *         issue with order formatting will cause the entire batch to fail.
+     *
+     * @param advancedOrders            The orders to fulfill along with the
+     *                                  fraction of those orders to attempt to
+     *                                  fill. Note that both the offerer and the
+     *                                  fulfiller must first approve this
+     *                                  contract (or their proxy if indicated by
+     *                                  the order) to transfer any relevant
+     *                                  tokens on their behalf and that
+     *                                  contracts must implement
+     *                                  `onERC1155Received` in order to receive
+     *                                  ERC1155 tokens as consideration. Also
+     *                                  note that all offer and consideration
+     *                                  components must have no remainder after
+     *                                  multiplication of the respective amount
+     *                                  with the supplied fraction for an
+     *                                  order's partial fill amount to be
+     *                                  considered valid.
+     * @param criteriaResolvers         An array where each element contains a
+     *                                  reference to a specific offer or
+     *                                  consideration, a token identifier, and a
+     *                                  proof that the supplied token identifier
+     *                                  is contained in the merkle root held by
+     *                                  the item in question's criteria element.
+     *                                  Note that an empty criteria indicates
+     *                                  that any (transferrable) token
+     *                                  identifier on the token in question is
+     *                                  valid and that no associated proof needs
+     *                                  to be supplied.
+     * @param offerFulfillments         An array of FulfillmentComponent arrays
+     *                                  indicating which offer items to attempt
+     *                                  to aggregate when preparing executions.
+     * @param considerationFulfillments An array of FulfillmentComponent arrays
+     *                                  indicating which consideration items to
+     *                                  attempt to aggregate when preparing
+     *                                  executions.
+     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
+     *                                  if any, to source the fulfiller's token
+     *                                  approvals from. The zero hash signifies
+     *                                  that no conduit should be used (and
+     *                                  direct approvals set on Consideration).
+     * @param maximumFulfilled          The maximum number of orders to fulfill.
+     *
+     * @return availableOrders    An array of booleans indicating if each order
+     *                            with an index corresponding to the index of
+     *                            the returned boolean was fulfillable or not.
+     * @return standardExecutions An array of elements indicating the sequence
+     *                            of non-batch transfers performed as part of
+     *                            matching the given orders.
+     * @return batchExecutions    An array of elements indicating the sequence
+     *                            of batch transfers performed as part of
+     *                            matching the given orders.
+     */
+    function _fulfillAvailableAdvancedOrders(
+        AdvancedOrder[] memory advancedOrders,
+        CriteriaResolver[] memory criteriaResolvers,
+        FulfillmentComponent[][] calldata offerFulfillments,
+        FulfillmentComponent[][] calldata considerationFulfillments,
+        bytes32 fulfillerConduitKey,
+        uint256 maximumFulfilled
+    )
+        internal
+        returns (
+            bool[] memory availableOrders,
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        )
+    {
+        // Validate orders, apply amounts, & determine if they utilize conduits.
+        _validateOrdersAndPrepareToFulfill(
+            advancedOrders,
+            criteriaResolvers,
+            false, // Signifies that invalid orders should NOT revert.
+            maximumFulfilled
+        );
+
+        // Aggregate used offer and consideration items and execute transfers.
+        (
+            availableOrders,
+            standardExecutions,
+            batchExecutions
+        ) = _executeAvailableFulfillments(
+            advancedOrders,
+            offerFulfillments,
+            considerationFulfillments,
+            fulfillerConduitKey
+        );
+
+        // Return order fulfillment details and executions.
+        return (availableOrders, standardExecutions, batchExecutions);
     }
 
     /**
@@ -1570,7 +1691,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      *                            of batch transfers performed as part of
      *                            matching the given orders.
      */
-    function _fulfillAvailableOrders(
+    function _executeAvailableFulfillments(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
@@ -1583,9 +1704,17 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             BatchExecution[] memory batchExecutions
         )
     {
+        // Retrieve length of offer fulfillments array and place on the stack.
+        uint256 totalOfferFulfillments = offerFulfillments.length;
+
+        // Retrieve length of consideration fulfillments array & place on stack.
+        uint256 totalConsiderationFulfillments = (
+            considerationFulfillments.length
+        );
+
         // Allocate an execution for each offer and consideration fulfillment.
         Execution[] memory executions = new Execution[](
-            offerFulfillments.length + considerationFulfillments.length
+            totalOfferFulfillments + totalConsiderationFulfillments
         );
 
         // Skip overflow checks as all for loops are indexed starting at zero.
@@ -1594,9 +1723,11 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             uint256 totalFilteredExecutions = 0;
 
             // Iterate over each offer fulfillment.
-            for (uint256 i = 0; i < offerFulfillments.length; ++i) {
+            for (uint256 i = 0; i < totalOfferFulfillments; ++i) {
                 /// Retrieve the offer fulfillment components in question.
-                FulfillmentComponent[] memory components = offerFulfillments[i];
+                FulfillmentComponent[] memory components = (
+                    offerFulfillments[i]
+                );
 
                 // Derive aggregated execution corresponding with fulfillment.
                 Execution memory execution = _aggregateAvailable(
@@ -1617,7 +1748,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             }
 
             // Iterate over each consideration fulfillment.
-            for (uint256 i = 0; i < considerationFulfillments.length; ++i) {
+            for (uint256 i = 0; i < totalConsiderationFulfillments; ++i) {
                 /// Retrieve consideration fulfillment components in question.
                 FulfillmentComponent[] memory components = (
                     considerationFulfillments[i]
@@ -1638,7 +1769,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 } else {
                     // Otherwise, assign the execution to the executions array.
                     executions[
-                        i + offerFulfillments.length - totalFilteredExecutions
+                        i + totalOfferFulfillments - totalFilteredExecutions
                     ] = execution;
                 }
             }
@@ -1776,6 +1907,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         unchecked {
             // Iterate over each batch execution.
             for (uint256 i = 0; i < batchExecutions.length; ++i) {
+                // Perform the batch transfer.
                 _batchTransferERC1155(batchExecutions[i]);
             }
         }
@@ -1905,28 +2037,6 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         if (conduitKey == bytes32(0)) {
             // Perform the token transfer directly.
             _performERC20Transfer(token, from, to, amount);
-        } else if (conduitKey == bytes32(uint256(1))) {
-            // Perform transfer via a call to the legacy token transfer proxy.
-            bool success = _LEGACY_TOKEN_TRANSFER_PROXY.transferFrom(
-                token,
-                from,
-                to,
-                amount
-            );
-
-            // If the call to the token transfer proxy does not return true...
-            if (!success) {
-                // Revert with an error indicating that return value is falsey.
-                // Note that the legacy token transfer proxy does not support
-                // non-compliant ERC20 tokens that do not return any data on a
-                // successful transfer.
-                revert BadReturnValueFromERC20OnTransfer(
-                    token,
-                    from,
-                    to,
-                    amount
-                );
-            }
         } else {
             // Perform the call to the conduit.
             _callConduit(
@@ -1971,38 +2081,15 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         uint256 amount,
         bytes32 conduitKey
     ) internal {
-        // If no conduit or a legacy conduit has been specified...
-        if (uint256(conduitKey) < 2) {
+        // If no conduit has been specified...
+        if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
             if (amount != 1) {
                 revert InvalidERC721TransferAmount();
             }
 
-            // If no conduit has been specified...
-            if (conduitKey == bytes32(0)) {
-                // Perform transfer via the token contract directly.
-                _performERC721Transfer(token, from, to, identifier);
-            } else {
-                // Perform transfer via a call to the proxy for supplied owner.
-                bool success = _callProxy(
-                    from,
-                    token,
-                    abi.encodeCall(
-                        ERC721Interface.transferFrom,
-                        (from, to, identifier)
-                    )
-                );
-
-                // Ensure that the transfer succeeded.
-                _assertValidTokenTransfer(
-                    success,
-                    token,
-                    from,
-                    to,
-                    identifier,
-                    amount
-                );
-            }
+            // Perform transfer via the token contract directly.
+            _performERC721Transfer(token, from, to, identifier);
         } else {
             // Perform the call to the conduit.
             _callConduit(
@@ -2054,30 +2141,6 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         if (conduitKey == bytes32(0)) {
             // Perform transfer via the token contract directly.
             _performERC1155Transfer(token, from, to, identifier, amount);
-        } else if (conduitKey == bytes32(uint256(1))) {
-            // Perform transfer via a call to the proxy for the supplied owner.
-            bool success = _callProxy(
-                from,
-                token,
-                abi.encodeWithSelector(
-                    ERC1155Interface.safeTransferFrom.selector,
-                    from,
-                    to,
-                    identifier,
-                    amount,
-                    ""
-                )
-            );
-
-            // Ensure that the transfer succeeded.
-            _assertValidTokenTransfer(
-                success,
-                token,
-                from,
-                to,
-                identifier,
-                amount
-            );
         } else {
             // Perform the call to the conduit.
             _callConduit(
@@ -2117,47 +2180,10 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
 
-        // If no conduit or a legacy conduit has been specified...
-        if (uint256(conduitKey) < 2) {
-            // Declare a boolean representing call status.
-            bool success;
-
-            // Derive calldata for the call to perform the batch 1155 transfer.
-            bytes memory callData = abi.encodeWithSelector(
-                ERC1155Interface.safeBatchTransferFrom.selector,
-                from,
-                to,
-                tokenIds,
-                amounts,
-                ""
-            );
-
-            // Perform call either directly or via proxy based on conduit key.
-            if (conduitKey == bytes32(0)) {
-                // Perform transfer via the token contract directly.
-                (success, ) = token.call(callData);
-            } else {
-                // Perform transfer via call to proxy for the supplied owner.
-                success = _callProxy(from, token, callData);
-            }
-
-            // If the call fails...
-            if (!success) {
-                // Revert and pass the revert reason along if one was returned.
-                _revertWithReasonIfOneIsReturned();
-
-                // Otherwise, revert with a generic 1155 batch transfer error.
-                revert ERC1155BatchTransferGenericFailure(
-                    token,
-                    from,
-                    to,
-                    tokenIds,
-                    amounts
-                );
-            }
-
-            // Ensure that a contract is deployed to the token address.
-            _assertContractIsDeployed(token);
+        // If no conduit has been specified...
+        if (conduitKey == bytes32(0)) {
+            // Perform transfer via the token contract directly.
+            _performERC1155BatchTransfer(token, from, to, tokenIds, amounts);
         } else {
             uint256 totalTokenIds = tokenIds.length;
             uint256 tokenWords = totalTokenIds * 32;
@@ -2199,48 +2225,6 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
     }
 
     /**
-     * @dev Internal function to trigger a call to a proxy contract. The proxy
-     *      contract must be registered on the legacy proxy registry for the
-     *      given proxy owner and must declare that its implementation matches
-     *      the required proxy implementation in accordance with EIP-897.
-     *
-     * @param proxyOwner The original owner of the proxy in question. Note that
-     *                   this owner may have been modified since the proxy was
-     *                   originally deployed.
-     * @param target     The account that should be called by the proxy.
-     * @param callData   The calldata to supply when calling the target from the
-     *                   proxy.
-     *
-     * @return success The status of the call to the proxy.
-     */
-    function _callProxy(
-        address proxyOwner,
-        address target,
-        bytes memory callData
-    ) internal returns (bool success) {
-        // Retrieve the user proxy from the registry assuming one is set.
-        address proxy = _LEGACY_PROXY_REGISTRY.proxies(proxyOwner);
-
-        // Assert that the user proxy has the correct implementation.
-        if (
-            ProxyInterface(proxy).implementation() !=
-            _REQUIRED_PROXY_IMPLEMENTATION
-        ) {
-            revert InvalidProxyImplementation();
-        }
-
-        // perform call to proxy via proxyAssert and HowToCall = CALL (value 0).
-        (success, ) = proxy.call(
-            abi.encodeWithSelector(
-                ProxyInterface.proxyAssert.selector,
-                target,
-                0,
-                callData
-            )
-        );
-    }
-
-    /**
      * @dev Internal function to trigger a call to a conduit contract. This call
      *      will transfer a single ERC20, ERC721, or ERC1155 item.
      *
@@ -2262,14 +2246,57 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
 
         // If the call failed...
         if (!success) {
-            // Pass along whatever revert reason was given by the conduit.
+            // Pass along whatever revert reason was given by the conduit. Note
+            // that the conduit will not return unreasonably large returndata.
             assembly {
-                // Copy returndata to memory, overwriting existing memory.
-                returndatacopy(0, 0, returndatasize())
+                // If it returned a message, bubble it up as long as sufficient
+                // gas remains to do so:
+                if returndatasize() {
+                    // Ensure that sufficient gas is available to copy
+                    // returndata while expanding memory where necessary. Start
+                    // by computing word size of returndata & allocated memory.
+                    let returnDataWords := div(returndatasize(), 0x20)
 
-                // Revert, specifying memory region with copied returndata.
-                revert(0, returndatasize())
+                    // Note: use the free memory pointer in place of msize() to
+                    // work around a Yul warning that prevents accessing msize
+                    // directly when the IR pipeline is activated.
+                    let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
+
+                    // Next, compute the cost of the returndatacopy.
+                    let cost := mul(3, returnDataWords)
+
+                    // Then, compute cost of new memory allocation.
+                    if gt(returnDataWords, msizeWords) {
+                        cost := add(
+                            cost,
+                            add(
+                                mul(sub(returnDataWords, msizeWords), 3),
+                                div(
+                                    sub(
+                                        mul(returnDataWords, returnDataWords),
+                                        mul(msizeWords, msizeWords)
+                                    ),
+                                    0x200
+                                )
+                            )
+                        )
+                    }
+
+                    // Finally, add a small constant and compare to gas
+                    // remaining; bubble up the revert data if enough gas is
+                    // still available.
+                    if lt(add(cost, 0x20), gas()) {
+                        // Copy returndata to memory; overwrite existing memory.
+                        returndatacopy(0, 0, returndatasize())
+
+                        // Revert, giving memory region with copied returndata.
+                        revert(0, returndatasize())
+                    }
+                }
             }
+
+            // Otherwise, revert with a generic error.
+            revert InvalidCallToConduit(conduit);
         }
 
         // Ensure that the conduit returned the correct magic value.

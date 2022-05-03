@@ -160,6 +160,12 @@ interface ConsiderationEventsAndErrors {
     error InvalidFulfillmentComponentData();
 
     /**
+     * @dev Revert with an error when a call to a conduit fails with revert data
+     *      that is too expensive to return.
+     */
+    error InvalidCallToConduit(address conduit);
+
+    /**
      * @dev Revert with an error if a consideration amount has not been fully
      *      zeroed out after applying all fulfillments.
      *

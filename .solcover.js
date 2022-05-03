@@ -14,6 +14,7 @@ module.exports = {
     "lib/ConsiderationEnums.sol",
     "lib/ConsiderationStructs.sol",
     "test/EIP1271Wallet.sol",
+    "test/ExcessReturnDataRecipient.sol",
     "test/Reenterer.sol",
     "test/TestERC1155.sol",
     "test/TestERC20.sol",
