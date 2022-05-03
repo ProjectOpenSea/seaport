@@ -5,12 +5,13 @@ pragma solidity 0.8.13;
 import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
 contract TestGetters is BaseConsiderationTest {
-    /*function tesGetCorrectName() public {
+    function tesGetCorrectName() public {
         assertEq(consideration.name(), "Consideration");
     }
 
     function testGetsCorrectVersion() public {
-        assertEq(consideration.version(), "rc.1");
+        (string memory version, , ) = consideration.information();
+        assertEq(version, "rc.1");
     }
 
     function testGetCorrectDomainSeparator() public {
@@ -19,8 +20,10 @@ contract TestGetters is BaseConsiderationTest {
         );
         bytes32 typeHash = keccak256(typeName);
         bytes32 nameHash = keccak256(bytes(consideration.name()));
-        bytes32 versionHash = keccak256(bytes(consideration.version()));
-        bytes32 considerationSeparator = consideration.DOMAIN_SEPARATOR();
+        (string memory version, bytes32 domainSeparator, ) = consideration
+            .information();
+        bytes32 versionHash = keccak256(bytes(version));
+        bytes32 considerationSeparator = domainSeparator;
 
         // manually construct separator and compare
         assertEq(
@@ -45,14 +48,18 @@ contract TestGetters is BaseConsiderationTest {
         );
         bytes32 typeHash = keccak256(typeName);
         bytes32 nameHash = keccak256(bytes(consideration.name()));
-        bytes32 versionHash = keccak256(bytes(consideration.version()));
-        bytes32 considerationSeparator = consideration.DOMAIN_SEPARATOR();
+        (string memory version, bytes32 domainSeparator, ) = consideration
+            .information();
+        bytes32 versionHash = keccak256(bytes(version));
+        bytes32 considerationSeparator = domainSeparator;
 
         // change chainId and check that separator changes
         vm.chainId(_chainId);
-        assertFalse(consideration.DOMAIN_SEPARATOR() == considerationSeparator);
+        // Repull the domainSeparator
+        (, domainSeparator, ) = consideration.information();
+        assertFalse(domainSeparator == considerationSeparator);
         assertEq(
-            consideration.DOMAIN_SEPARATOR(),
+            domainSeparator,
             keccak256(
                 abi.encode(
                     typeHash,
@@ -63,5 +70,5 @@ contract TestGetters is BaseConsiderationTest {
                 )
             )
         );
-    }*/
+    }
 }
