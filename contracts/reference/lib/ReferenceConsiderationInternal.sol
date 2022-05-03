@@ -6,15 +6,15 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
+} from "../../interfaces/AbridgedTokenInterfaces.sol";
 
-import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "../../interfaces/ConduitInterface.sol";
 
-import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
+import { ProxyInterface } from "../../interfaces/AbridgedProxyInterfaces.sol";
 
-import { Side, OrderType, ItemType } from "./ConsiderationEnums.sol";
+import { Side, OrderType, ItemType } from "../../lib/ConsiderationEnums.sol";
 
-import { TokenTransferrer } from "./TokenTransferrer.sol";
+import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
 
 // prettier-ignore
 import {
@@ -34,18 +34,21 @@ import {
     CriteriaResolver,
     Batch,
     BatchExecution
-} from "./ConsiderationStructs.sol";
+} from "../../lib/ConsiderationStructs.sol";
 
-import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
+import { ReferenceConsiderationInternalView } from "./ReferenceConsiderationInternalView.sol";
 
-import "./ConsiderationConstants.sol";
+import "./ReferenceConsiderationConstants.sol";
 
 /**
- * @title ConsiderationInternal
+ * @title ReferenceConsiderationInternal
  * @author 0age
  * @notice ConsiderationInternal contains all internal functions.
  */
-contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
+contract ReferenceConsiderationInternal is
+    ReferenceConsiderationInternalView,
+    ReferenceTokenTransferrer
+{
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
@@ -56,7 +59,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
      *                                    tokens.
      */
     constructor(address conduitController)
-        ConsiderationInternalView(conduitController)
+        ReferenceConsiderationInternalView(conduitController)
     {}
 
     /**

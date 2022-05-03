@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { Conduit } from "./Conduit.sol";
+import { ReferenceConduit } from "./ReferenceConduit.sol";
 
 // prettier-ignore
 import {
 	ConduitControllerInterface
-} from "../interfaces/ConduitControllerInterface.sol";
+} from "../../interfaces/ConduitControllerInterface.sol";
 
-import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "../../interfaces/ConduitInterface.sol";
 
-contract ConduitController is ConduitControllerInterface {
+contract ReferenceConduitController is ConduitControllerInterface {
     struct ConduitProperties {
         bytes32 key;
         address owner;
@@ -25,9 +25,13 @@ contract ConduitController is ConduitControllerInterface {
     bytes32 internal immutable _CONDUIT_RUNTIME_CODE_HASH;
 
     constructor() {
-        _CONDUIT_CREATION_CODE_HASH = keccak256(type(Conduit).creationCode);
+        _CONDUIT_CREATION_CODE_HASH = keccak256(
+            type(ReferenceConduit).creationCode
+        );
 
-        Conduit zeroConduit = new Conduit{ salt: bytes32(0) }();
+        ReferenceConduit zeroConduit = new ReferenceConduit{
+            salt: bytes32(0)
+        }();
 
         _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
     }
@@ -60,7 +64,7 @@ contract ConduitController is ConduitControllerInterface {
             revert ConduitAlreadyExists(conduit);
         }
 
-        new Conduit{ salt: conduitKey }();
+        new ReferenceConduit{ salt: conduitKey }();
 
         _conduits[conduit].owner = initialOwner;
         _conduits[conduit].key = conduitKey;

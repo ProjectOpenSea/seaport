@@ -6,29 +6,29 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
+} from "../../interfaces/AbridgedTokenInterfaces.sol";
 
-import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "../../interfaces/ConduitInterface.sol";
 
-import { ConduitItemType } from "./lib/ConduitEnums.sol";
+import { ConduitItemType } from "../../conduit/lib/ConduitEnums.sol";
 
-import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
+import { ReferenceTokenTransferrer } from "../lib/ReferenceTokenTransferrer.sol";
 
 // prettier-ignore
 import {
     ConduitTransfer,
     ConduitBatch1155Transfer
-} from "./lib/ConduitStructs.sol";
+} from "../../conduit/lib/ConduitStructs.sol";
 
 /**
- * @title Conduit
+ * @title ReferenceConduit
  * @author 0age
  * @notice This contract serves as an originator for "proxied" transfers. Each
  *         conduit contract will be deployed and controlled by a "conduit
  *         controller" that can add and remove "channels" or contracts that can
  *         instruct the conduit to transfer approved ERC20/721/1155 tokens.
  */
-contract Conduit is ConduitInterface, TokenTransferrer {
+contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
     address private immutable _controller;
 
     mapping(address => bool) private _channels;
