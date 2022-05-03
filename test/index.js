@@ -16210,7 +16210,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
 
-      it.only("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
+      it("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
         const recipient = await (
           await ethers.getContractFactory("ExcessReturnDataRecipient")
         ).deploy();
@@ -16291,10 +16291,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         // TODO: clean *this* up
         let w = 0;
-        let ceiling = hre.__SOLIDITY_COVERAGE_RUNNING ? 200 : 80;
+        let ceiling = hre.__SOLIDITY_COVERAGE_RUNNING ? 1720 : 910;
         let found = false;
         for (; w <= ceiling; w += 5) {
-          console.log(w);
           const { order } = await setup();
           await recipient.setRevertDataSize(w * 32);
           try {
@@ -16309,10 +16308,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 });
             });
           } catch (err) {
-            console.error(err.message);
             if (err.message.includes("InvalidCallToConduit")) {
               found = true;
             }
+          }
+
+          if (w === 0) {
+            w = hre.__SOLIDITY_COVERAGE_RUNNING ? 1715 : 905;
           }
         }
 

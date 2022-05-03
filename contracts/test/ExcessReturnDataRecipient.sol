@@ -21,10 +21,6 @@ contract ExcessReturnDataRecipient {
             assembly {
                 mstore(size, 1)
             }
-            bytes32 noOp;
-            while (gasleft() > 100) {
-                noOp = keccak256("");
-            }
             assembly {
                 revert(0, size)
             }
