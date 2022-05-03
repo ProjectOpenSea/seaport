@@ -25,9 +25,13 @@ contract ReferenceConduitController is ConduitControllerInterface {
     bytes32 internal immutable _CONDUIT_RUNTIME_CODE_HASH;
 
     constructor() {
-        _CONDUIT_CREATION_CODE_HASH = keccak256(type(ReferenceConduit).creationCode);
+        _CONDUIT_CREATION_CODE_HASH = keccak256(
+            type(ReferenceConduit).creationCode
+        );
 
-        ReferenceConduit zeroConduit = new ReferenceConduit{ salt: bytes32(0) }();
+        ReferenceConduit zeroConduit = new ReferenceConduit{
+            salt: bytes32(0)
+        }();
 
         _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
     }

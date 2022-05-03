@@ -45,7 +45,10 @@ import "./ReferenceConsiderationConstants.sol";
  * @author 0age
  * @notice ConsiderationInternal contains all internal functions.
  */
-contract ReferenceConsiderationInternal is ReferenceConsiderationInternalView, ReferenceTokenTransferrer {
+contract ReferenceConsiderationInternal is
+    ReferenceConsiderationInternalView,
+    ReferenceTokenTransferrer
+{
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.

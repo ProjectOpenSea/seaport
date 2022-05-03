@@ -46,7 +46,10 @@ import { ReferenceConsiderationInternal } from "./lib/ReferenceConsiderationInte
  *         (the "offer") along with an arbitrary number of items that must be
  *         received back by the indicated recipients (the "consideration").
  */
-contract ReferenceConsideration is ConsiderationInterface, ReferenceConsiderationInternal {
+contract ReferenceConsideration is
+    ConsiderationInterface,
+    ReferenceConsiderationInternal
+{
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
