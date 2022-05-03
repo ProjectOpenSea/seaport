@@ -19,14 +19,14 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 _id,
         bytes32 _zoneHash,
         uint256 _salt,
-        uint128 _ethAmt1,
-        uint128 _ethAmt2,
-        uint128 _ethAmt3,
+        uint128[3] memory _ethAmts,
         bool _useConduit
-    ) public {
-        vm.assume(_ethAmt1 > 0 && _ethAmt2 > 0 && _ethAmt3 > 0);
+    ) public onlyPayable(_zone) topUp {
+        vm.assume(_ethAmts[0] > 0 && _ethAmts[1] > 0 && _ethAmts[2] > 0);
         vm.assume(
-            uint256(_ethAmt1) + uint256(_ethAmt2) + uint256(_ethAmt3) <=
+            uint256(_ethAmts[0]) +
+                uint256(_ethAmts[1]) +
+                uint256(_ethAmts[2]) <=
                 2**128 - 1
         );
         bytes32 conduitKey = _useConduit ? conduitKeyOne : bytes32(0);
@@ -46,24 +46,24 @@ contract FulfillOrderTest is BaseOrderTest {
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(_ethAmt1),
-            uint256(_ethAmt1),
+            uint256(_ethAmts[0]),
+            uint256(_ethAmts[0]),
             payable(alice)
         );
         considerationItems[1] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(_ethAmt2),
-            uint256(_ethAmt2),
-            payable(_zone)
+            uint256(_ethAmts[1]),
+            uint256(_ethAmts[1]),
+            payable(_zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
         );
         considerationItems[2] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(_ethAmt3),
-            uint256(_ethAmt3),
+            uint256(_ethAmts[2]),
+            uint256(_ethAmts[2]),
             payable(cal)
         );
 
@@ -97,9 +97,26 @@ contract FulfillOrderTest is BaseOrderTest {
             conduitKey,
             considerationItems.length
         );
-        Order memory order = Order(orderParameters, signature);
-        uint256 sum = _ethAmt1 + _ethAmt2 + _ethAmt3;
-        consideration.fulfillOrder{ value: sum }(order, conduitKey);
+        consideration.fulfillOrder{
+            value: _ethAmts[0] + _ethAmts[1] + _ethAmts[2]
+        }(Order(orderParameters, signature), conduitKey);
+    }
+
+    function testFailSingleERC721NonPayableZone() public {
+        // fuzzer completely ignores params that fail vm.assume,
+        // so confirm that this invalid param does fail
+        testSingleERC721(
+            address(test721_1),
+            11091106379292436006407652670679179902088932118277811194146176427645468672,
+            0x00000000000000000000000000000000000657137d140ac73d37f3c9267132fd,
+            11737039766497076565,
+            [
+                1329227995784915872903807060280344576,
+                2941925602480186165443492,
+                276220320249354716809723209050602608289
+            ],
+            false
+        );
     }
 
     function getMaxConsiderationValue(

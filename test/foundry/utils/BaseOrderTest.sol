@@ -43,6 +43,26 @@ contract BaseOrderTest is
 
     uint256 internal globalTokenId;
 
+    modifier onlyPayable(address _addr) {
+        {
+            bool success;
+            assembly {
+                // Transfer the ETH and store if it succeeded or not.
+                success := call(gas(), _addr, 1, 0, 0, 0, 0)
+            }
+            vm.assume(success);
+        }
+        _;
+    }
+
+    /**
+    @dev top up eth of this contract to uint128(MAX_INT) to avoid fuzz failures
+     */
+    modifier topUp() {
+        vm.deal(address(this), uint128(MAX_INT));
+        _;
+    }
+
     function setUp() public virtual override {
         super.setUp();
 
