@@ -29,11 +29,6 @@ contract BaseOrderTest is
     address internal bob = vm.addr(bobPk);
     address internal cal = vm.addr(calPk);
 
-    OwnableDelegateProxy thisProxy;
-    OwnableDelegateProxy aliceProxy;
-    OwnableDelegateProxy bobProxy;
-    OwnableDelegateProxy calProxy;
-
     TestERC20 internal token1;
     TestERC20 internal token2;
     TestERC20 internal token3;
@@ -50,15 +45,19 @@ contract BaseOrderTest is
 
     function setUp() public virtual override {
         super.setUp();
+
+        vm.label(alice, "alice");
+        vm.label(bob, "bob");
+        vm.label(cal, "cal");
+
         _deployTestTokenContracts();
-        _createProxies();
 
         // allocate funds and tokens to test addresses
         globalTokenId = 1;
-        allocateTokensAndApprovals(address(this), thisProxy, uint128(MAX_INT));
-        allocateTokensAndApprovals(alice, aliceProxy, uint128(MAX_INT));
-        allocateTokensAndApprovals(bob, bobProxy, uint128(MAX_INT));
-        allocateTokensAndApprovals(cal, calProxy, uint128(MAX_INT));
+        allocateTokensAndApprovals(address(this), uint128(MAX_INT));
+        allocateTokensAndApprovals(alice, uint128(MAX_INT));
+        allocateTokensAndApprovals(bob, uint128(MAX_INT));
+        allocateTokensAndApprovals(cal, uint128(MAX_INT));
     }
 
     /**
@@ -74,38 +73,15 @@ contract BaseOrderTest is
         test1155_1 = new TestERC1155();
         test1155_2 = new TestERC1155();
         test1155_3 = new TestERC1155();
+        vm.label(address(token1), "token1");
         vm.label(address(test721_1), "test721_1");
         emit log("Deployed test token contracts");
-    }
-
-    function _createProxies() internal {
-        thisProxy = ProxyRegistry(_wyvernProxyRegistry).registerProxy();
-        vm.prank(alice);
-        aliceProxy = ProxyRegistry(_wyvernProxyRegistry).registerProxy();
-        vm.prank(bob);
-        bobProxy = ProxyRegistry(_wyvernProxyRegistry).registerProxy();
-        vm.prank(cal);
-        calProxy = ProxyRegistry(_wyvernProxyRegistry).registerProxy();
-
-        emit log("Created proxies");
-        emit log_named_address("thisProxy", address(thisProxy));
-        emit log_named_address("AliceProxy", address(aliceProxy));
-        emit log_named_address("BobProxy", address(bobProxy));
-        emit log_named_address("CalProxy", address(calProxy));
-        vm.label(address(thisProxy), "thisProxy");
-        vm.label(address(aliceProxy), "AliceProxy");
-        vm.label(address(bobProxy), "BobProxy");
-        vm.label(address(calProxy), "CalProxy");
     }
 
     /**
     @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s 
     */
-    function allocateTokensAndApprovals(
-        address _to,
-        OwnableDelegateProxy _ownerProxy,
-        uint128 _amount
-    ) internal {
+    function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
         token1.mint(_to, _amount);
         token2.mint(_to, _amount);
@@ -117,12 +93,10 @@ contract BaseOrderTest is
         // test1155_2.mint(_to, globalTokenId++, 5);
         // test1155_3.mint(_to, globalTokenId++, 10);
         emit log_named_address("Allocated tokens to", _to);
-        _setApprovals(_to, _ownerProxy);
+        _setApprovals(_to);
     }
 
-    function _setApprovals(address _owner, OwnableDelegateProxy _ownerProxy)
-        internal
-    {
+    function _setApprovals(address _owner) internal {
         vm.startPrank(_owner);
         token1.approve(address(consideration), MAX_INT);
         token2.approve(address(consideration), MAX_INT);
@@ -134,15 +108,15 @@ contract BaseOrderTest is
         test1155_2.setApprovalForAll(address(consideration), true);
         test1155_3.setApprovalForAll(address(consideration), true);
 
-        token1.approve(address(_ownerProxy), MAX_INT);
-        token2.approve(address(_ownerProxy), MAX_INT);
-        token3.approve(address(_ownerProxy), MAX_INT);
-        test721_1.setApprovalForAll(address(_ownerProxy), true);
-        test721_2.setApprovalForAll(address(_ownerProxy), true);
-        test721_3.setApprovalForAll(address(_ownerProxy), true);
-        test1155_1.setApprovalForAll(address(_ownerProxy), true);
-        test1155_2.setApprovalForAll(address(_ownerProxy), true);
-        test1155_3.setApprovalForAll(address(_ownerProxy), true);
+        token1.approve(address(conduit), MAX_INT);
+        token2.approve(address(conduit), MAX_INT);
+        token3.approve(address(conduit), MAX_INT);
+        test721_1.setApprovalForAll(address(conduit), true);
+        test721_2.setApprovalForAll(address(conduit), true);
+        test721_3.setApprovalForAll(address(conduit), true);
+        test1155_1.setApprovalForAll(address(conduit), true);
+        test1155_2.setApprovalForAll(address(conduit), true);
+        test1155_3.setApprovalForAll(address(conduit), true);
 
         vm.stopPrank();
         emit log_named_address(

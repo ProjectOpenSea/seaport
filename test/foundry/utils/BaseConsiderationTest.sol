@@ -15,39 +15,32 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     Consideration consideration;
     bytes32 conduitKeyOne;
     ConduitController conduitController;
-<<<<<<< HEAD
     address conduit;
 
     function setUp() public virtual {
+        vm.label(address(this), "testContract");
+
         conduitController = new ConduitController();
+        vm.label(address(conduitController), "conduitController");
         emit log_named_address(
             "Deployed conduitController at",
             address(conduitController)
         );
+
         conduitKeyOne = bytes32(uint256(uint160(address(this))));
+
         conduit = conduitController.createConduit(conduitKeyOne, address(this));
+        vm.label(conduit, "conduit");
         emit log_named_address("Deployed conduit at", conduit);
-=======
-    // address conduitControllerAddress;
-    bytes32 conduitKeyOne;
 
-    address internal _wyvernProxyRegistry;
-    address internal _wyvernTokenTransferProxy;
-    address internal _wyvernDelegateProxyImplementation;
-
-    function setUp() public virtual {
-        _deployLegacyContracts();
-        conduitController = new ConduitController();
-        // conduitControllerAddress = address(conduitController);
-        conduitKeyOne = bytes32(uint256(uint160(address(this)))); //conduitKeyOne = `0x000000000000000000000000${owner.address.slice(2)}`;
-        conduitController.createConduit(conduitKeyOne, address(this));
-
->>>>>>> 0563506 (rebase onto reference)
         consideration = new Consideration(address(conduitController));
+        vm.label(address(consideration), "consideration");
         emit log_named_address(
             "Deployed Consideration at",
             address(consideration)
         );
+
+        conduitController.updateChannel(conduit, address(consideration), true);
     }
 
     function singleOfferItem(
@@ -103,51 +96,4 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         );
         return abi.encodePacked(r, s, v);
     }
-<<<<<<< HEAD
-=======
-
-    /**
-    @dev get and deploy precompiled contracts that depend on legacy versions
-        of the solidity compiler
-     */
-    function _deployLegacyContracts() private {
-        /// @dev deploy WyvernProxyRegistry from precompiled source
-        bytes memory bytecode = vm.getCode(
-            "out/WyvernProxyRegistry.sol/WyvernProxyRegistry.json"
-        );
-        // TODO: temporary, get this working before dealing with storage .slots
-        address registryCopy;
-        assembly {
-            registryCopy := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
-        _wyvernProxyRegistry = registryCopy;
-
-        /// @dev deploy WyvernTokenTransferProxy from precompiled source
-        bytes memory constructorArgs = abi.encode(registryCopy);
-        bytecode = abi.encodePacked(
-            vm.getCode(
-                "out/WyvernTokenTransferProxy.sol/WyvernTokenTransferProxy.json"
-            ),
-            constructorArgs
-        );
-        /// @dev deploy WyvernTokenTransferProxy from precompiled source
-        address proxyCopy;
-        assembly {
-            proxyCopy := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
-        _wyvernTokenTransferProxy = proxyCopy;
-
-        /// @dev use stdstore to read delegateProxyImplementation from deployed registry
-        _wyvernDelegateProxyImplementation = address(
-            uint160(
-                stdstore
-                    .target(_wyvernProxyRegistry)
-                    .sig("delegateProxyImplementation()")
-                    .find()
-            )
-        );
-
-        emit log("Deployed legacy Wyvern contracts");
-    }
->>>>>>> 0563506 (rebase onto reference)
 }

@@ -119,7 +119,7 @@ contract ConsiderationTest is
 
     //basic Order
 
-contract ConsiderationTest is BaseOrderTest {
+contract FulfillBasicOrderTest is BaseOrderTest {
     //eth to 721
     // alice is offering their 721 for ETH
     function testListBasicETHto721(

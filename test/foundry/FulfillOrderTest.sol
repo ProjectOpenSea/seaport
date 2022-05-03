@@ -13,24 +13,7 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 
-contract BasicBuyAccept is BaseOrderTest {
-    function setUp() public virtual override {
-        super.setUp();
-    }
-
-    function testSetUp() public {
-        assertEq(aliceProxy.proxyOwner(), alice);
-        assertEq(bobProxy.proxyOwner(), bob);
-        assertEq(
-            address(ProxyRegistry(_wyvernProxyRegistry).proxies(alice)),
-            address(aliceProxy)
-        );
-        assertEq(
-            address(ProxyRegistry(_wyvernProxyRegistry).proxies(bob)),
-            address(bobProxy)
-        );
-    }
-
+contract FulfillOrderTest is BaseOrderTest {
     function testSingleERC721(
         address _zone,
         uint256 _id,
@@ -39,14 +22,14 @@ contract BasicBuyAccept is BaseOrderTest {
         uint128 _ethAmt1,
         uint128 _ethAmt2,
         uint128 _ethAmt3,
-        bool _legacyProxyConduit
+        bool _useConduit
     ) public {
         vm.assume(_ethAmt1 > 0 && _ethAmt2 > 0 && _ethAmt3 > 0);
         vm.assume(
             uint256(_ethAmt1) + uint256(_ethAmt2) + uint256(_ethAmt3) <=
                 2**128 - 1
         );
-        bytes32 conduitKey = _legacyProxyConduit ? conduitKeyOne : bytes32(0);
+        bytes32 conduitKey = _useConduit ? conduitKeyOne : bytes32(0);
 
         test721_1.mint(alice, _id);
         OfferItem[] memory offerItem = singleOfferItem(
@@ -94,7 +77,7 @@ contract BasicBuyAccept is BaseOrderTest {
             block.timestamp + 1,
             _zoneHash,
             _salt,
-            conduitKeyOne,
+            conduitKey,
             consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
@@ -116,7 +99,7 @@ contract BasicBuyAccept is BaseOrderTest {
         );
         Order memory order = Order(orderParameters, signature);
         uint256 sum = _ethAmt1 + _ethAmt2 + _ethAmt3;
-        consideration.fulfillOrder{ value: sum }(order, conduitKeyOne);
+        consideration.fulfillOrder{ value: sum }(order, conduitKey);
     }
 
     function getMaxConsiderationValue(
