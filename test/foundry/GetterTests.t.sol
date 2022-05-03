@@ -20,7 +20,8 @@ contract TestGetters is BaseConsiderationTest {
         );
         bytes32 typeHash = keccak256(typeName);
         bytes32 nameHash = keccak256(bytes(consideration.name()));
-        (string memory version, bytes32 domainSeparator, ) = consideration.information();
+        (string memory version, bytes32 domainSeparator, ) = consideration
+            .information();
         bytes32 versionHash = keccak256(bytes(version));
         bytes32 considerationSeparator = domainSeparator;
 
@@ -47,7 +48,8 @@ contract TestGetters is BaseConsiderationTest {
         );
         bytes32 typeHash = keccak256(typeName);
         bytes32 nameHash = keccak256(bytes(consideration.name()));
-        (string memory version, bytes32 domainSeparator, ) = consideration.information();
+        (string memory version, bytes32 domainSeparator, ) = consideration
+            .information();
         bytes32 versionHash = keccak256(bytes(version));
         bytes32 considerationSeparator = domainSeparator;
 
