@@ -20,19 +20,29 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     address conduit;
 
     function setUp() public virtual {
+        vm.label(address(this), "testContract");
+
         conduitController = new ConduitController();
+        vm.label(address(conduitController), "conduitController");
         emit log_named_address(
             "Deployed conduitController at",
             address(conduitController)
         );
+
         conduitKeyOne = bytes32(uint256(uint160(address(this))));
+
         conduit = conduitController.createConduit(conduitKeyOne, address(this));
+        vm.label(conduit, "conduit");
         emit log_named_address("Deployed conduit at", conduit);
+
         consideration = new Consideration(address(conduitController));
+        vm.label(address(consideration), "consideration");
         emit log_named_address(
             "Deployed Consideration at",
             address(consideration)
         );
+
+        conduitController.updateChannel(conduit, address(consideration), true);
     }
 
     function singleOfferItem(
