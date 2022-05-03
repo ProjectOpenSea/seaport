@@ -17,18 +17,21 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     Consideration consideration;
     bytes32 conduitKeyOne;
     ConduitController conduitController;
-    address conduitContorllerAddress;
+    address conduit;
 
     address internal _wyvernProxyRegistry;
     address internal _wyvernTokenTransferProxy;
     address internal _wyvernDelegateProxyImplementation;
 
     function setUp() public virtual {
-        // skip for now(?)
-        // _deployLegacyContracts();
         conduitController = new ConduitController();
+        emit log_named_address(
+            "Deployed conduitController at",
+            address(conduitController)
+        );
         conduitKeyOne = bytes32(uint256(uint160(address(this))));
-        conduitController.createConduit(conduitKeyOne, address(this));
+        conduit = conduitController.createConduit(conduitKeyOne, address(this));
+        emit log_named_address("Deployed conduit at", conduit);
         consideration = new Consideration(address(conduitController));
         emit log_named_address(
             "Deployed Consideration at",
@@ -84,49 +87,5 @@ contract BaseConsiderationTest is DSTestPlusPlus {
             )
         );
         return abi.encodePacked(r, s, v);
-    }
-
-    /**
-    @dev get and deploy precompiled contracts that depend on legacy versions
-        of the solidity compiler
-     */
-    function _deployLegacyContracts() private {
-        /// @dev deploy WyvernProxyRegistry from precompiled source
-        bytes memory bytecode = vm.getCode(
-            "out/WyvernProxyRegistry.sol/WyvernProxyRegistry.json"
-        );
-        // TODO: temporary, get this working before dealing with storage .slots
-        address registryCopy;
-        assembly {
-            registryCopy := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
-        _wyvernProxyRegistry = registryCopy;
-
-        /// @dev deploy WyvernTokenTransferProxy from precompiled source
-        bytes memory constructorArgs = abi.encode(registryCopy);
-        bytecode = abi.encodePacked(
-            vm.getCode(
-                "out/WyvernTokenTransferProxy.sol/WyvernTokenTransferProxy.json"
-            ),
-            constructorArgs
-        );
-        /// @dev deploy WyvernTokenTransferProxy from precompiled source
-        address proxyCopy;
-        assembly {
-            proxyCopy := create(0, add(bytecode, 0x20), mload(bytecode))
-        }
-        _wyvernTokenTransferProxy = proxyCopy;
-
-        /// @dev use stdstore to read delegateProxyImplementation from deployed registry
-        _wyvernDelegateProxyImplementation = address(
-            uint160(
-                stdstore
-                    .target(_wyvernProxyRegistry)
-                    .sig("delegateProxyImplementation()")
-                    .find()
-            )
-        );
-
-        emit log("Deployed legacy Wyvern contracts");
     }
 }
