@@ -41,27 +41,9 @@ contract ConsiderationPure is ConsiderationBase {
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
-     * @param legacyProxyRegistry         A proxy registry that stores per-user
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC721+1155 tokens.
-     * @param legacyTokenTransferProxy    A shared proxy contract that may
-     *                                    optionally be used to transfer
-     *                                    approved ERC20 tokens.
-     * @param requiredProxyImplementation The implementation that must be set on
-     *                                    each proxy in order to utilize it.
      */
-    constructor(
-        address conduitController,
-        address legacyProxyRegistry,
-        address legacyTokenTransferProxy,
-        address requiredProxyImplementation
-    )
-        ConsiderationBase(
-            conduitController,
-            legacyProxyRegistry,
-            legacyTokenTransferProxy,
-            requiredProxyImplementation
-        )
+    constructor(address conduitController)
+        ConsiderationBase(conduitController)
     {}
 
     /**
@@ -84,10 +66,15 @@ contract ConsiderationPure is ConsiderationBase {
     ) internal pure {
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
+            // Retrieve length of criteria resolvers array and place on stack.
+            uint256 arraySize = criteriaResolvers.length;
+
             // Iterate over each criteria resolver.
-            for (uint256 i = 0; i < criteriaResolvers.length; ++i) {
+            for (uint256 i = 0; i < arraySize; ++i) {
                 // Retrieve the criteria resolver.
-                CriteriaResolver memory criteriaResolver = criteriaResolvers[i];
+                CriteriaResolver memory criteriaResolver = (
+                    criteriaResolvers[i]
+                );
 
                 // Read the order index from memory and place it on the stack.
                 uint256 orderIndex = criteriaResolver.orderIndex;
@@ -186,9 +173,12 @@ contract ConsiderationPure is ConsiderationBase {
                 }
             }
 
-            // Iterate over each order.
-            for (uint256 i = 0; i < advancedOrders.length; ++i) {
-                // Retrieve the order.
+            // Retrieve length of advanced orders array and place on stack.
+            arraySize = advancedOrders.length;
+
+            // Iterate over each advanced order.
+            for (uint256 i = 0; i < arraySize; ++i) {
+                // Retrieve the advanced order.
                 AdvancedOrder memory advancedOrder = advancedOrders[i];
 
                 // Skip criteria resolution for order if not fulfilled.
@@ -963,47 +953,6 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to ensure that a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` as part of validating a
-     *      restricted order that was not submitted by the named offerer or zone
-     *      was successful and returned the required magic value.
-     *
-     * @param success   A boolean indicating the status of the staticcall.
-     * @param orderHash The order hash of the order in question.
-     */
-    function _assertIsValidOrderStaticcallSuccess(
-        bool success,
-        bytes32 orderHash
-    ) internal pure {
-        // If the call failed...
-        if (!success) {
-            // Revert and pass reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert InvalidRestrictedOrder(orderHash);
-        }
-
-        // Extract result from returndata buffer in case of memory overflow.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        // Ensure result was extracted and matches isValidOrder magic value.
-        if (result != ZoneInterface.isValidOrder.selector) {
-            revert InvalidRestrictedOrder(orderHash);
-        }
-    }
-
-    /**
      * @dev Internal pure function to validate that a given order is fillable
      *      and not cancelled based on the order status.
      *
@@ -1111,14 +1060,18 @@ contract ConsiderationPure is ConsiderationBase {
     ) internal pure returns (bytes32 value) {
         // Leverage scratch space to perform an efficient hash.
         assembly {
-            mstore(0x20, conduitKey) // Put conduit key at end of scratch space.
-            mstore(0x1c, to) // Place to address just before bool.
-            mstore(0x08, from) // Place from address just before to.
+            // Place the free memory pointer on the stack; replace afterwards.
+            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
 
-            // Place combined token + start of from at start of scratch space.
-            mstore(0x00, or(shl(0x60, token), shr(0x40, from)))
+            mstore(0x3c, to) // Place to address in memory.
+            mstore(0x28, from) // Place from address in memory
+            mstore(0x14, token) // Place token address in memory.
+            mstore(0x00, conduitKey) // Put conduit key at beginning of region.
 
-            value := keccak256(0x00, 0x40) // Hash scratch space region.
+            value := keccak256(0x00, 0x5c) // Hash the 92-byte memory region.
+
+            // Restore the free memory pointer.
+            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
         }
     }
 
@@ -1258,23 +1211,6 @@ contract ConsiderationPure is ConsiderationBase {
 
         // Return the array of advanced orders.
         return advancedOrders;
-    }
-
-    /**
-     * @dev Internal pure function to revert and pass along the revert reason if
-     *      data was returned by the last call.
-     */
-    function _revertWithReasonIfOneIsReturned() internal pure {
-        assembly {
-            // If data was returned...
-            if returndatasize() {
-                // Copy returndata to memory, overwriting existing memory.
-                returndatacopy(0, 0, returndatasize())
-
-                // Revert, specifying memory region with copied returndata.
-                revert(0, returndatasize())
-            }
-        }
     }
 
     /**
