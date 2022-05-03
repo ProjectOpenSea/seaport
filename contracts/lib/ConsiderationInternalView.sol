@@ -1081,6 +1081,100 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
+     * @dev Internal view function to ensure that a staticcall to `isValidOrder`
+     *      or `isValidOrderIncludingExtraData` as part of validating a
+     *      restricted order that was not submitted by the named offerer or zone
+     *      was successful and returned the required magic value.
+     *
+     * @param success   A boolean indicating the status of the staticcall.
+     * @param orderHash The order hash of the order in question.
+     */
+    function _assertIsValidOrderStaticcallSuccess(
+        bool success,
+        bytes32 orderHash
+    ) internal view {
+        // If the call failed...
+        if (!success) {
+            // Revert and pass reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
+
+            // Otherwise, revert with a generic error message.
+            revert InvalidRestrictedOrder(orderHash);
+        }
+
+        // Extract result from returndata buffer in case of memory overflow.
+        bytes4 result;
+        assembly {
+            // Only put result on stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) {
+                // Copy directly from return data into scratch space.
+                returndatacopy(0, 0, 0x20)
+
+                // Take value from scratch space and place it on the stack.
+                result := mload(0)
+            }
+        }
+
+        // Ensure result was extracted and matches isValidOrder magic value.
+        if (result != ZoneInterface.isValidOrder.selector) {
+            revert InvalidRestrictedOrder(orderHash);
+        }
+    }
+
+    /**
+     * @dev Internal view function to revert and pass along the revert reason if
+     *      data was returned by the last call and that the size of that data
+     *      does not exceed the currently allocated memory size.
+     */
+    function _revertWithReasonIfOneIsReturned() internal view {
+        assembly {
+            // If it returned a message, bubble it up as long as sufficient gas
+            // remains to do so:
+            if returndatasize() {
+                // Ensure that sufficient gas is available to copy returndata
+                // while expanding memory where necessary. Start by computing
+                // the word size of returndata and allocated memory.
+                let returnDataWords := div(returndatasize(), 0x20)
+
+                // Note: use the free memory pointer in place of msize() to work
+                // around a Yul warning that prevents accessing msize directly
+                // when the IR pipeline is activated.
+                let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
+
+                // Next, compute the cost of the returndatacopy.
+                let cost := mul(3, returnDataWords)
+
+                // Then, compute cost of new memory allocation.
+                if gt(returnDataWords, msizeWords) {
+                    cost := add(
+                        cost,
+                        add(
+                            mul(sub(returnDataWords, msizeWords), 3),
+                            div(
+                                sub(
+                                    mul(returnDataWords, returnDataWords),
+                                    mul(msizeWords, msizeWords)
+                                ),
+                                0x200
+                            )
+                        )
+                    )
+                }
+
+                // Finally, add a small constant and compare to gas remaining;
+                // bubble up the revert data if enough gas is still available.
+                if lt(add(cost, 0x20), gas()) {
+                    // Copy returndata to memory; overwrite existing memory.
+                    returndatacopy(0, 0, returndatasize())
+
+                    // Revert, specifying memory region with copied returndata.
+                    revert(0, returndatasize())
+                }
+            }
+        }
+    }
+
+    /**
      * @dev Internal view function to derive the address of a given conduit
      *      using a corresponding conduit key.
      *

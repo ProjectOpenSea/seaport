@@ -63,15 +63,68 @@ contract TokenTransferrer {
                     if iszero(success) {
                         // If it was due to a revert:
                         if iszero(callStatus) {
-                            // If it returned a message, bubble it up:
+                            // If it returned a message, bubble it up as long as
+                            // sufficient gas remains to do so:
                             if returndatasize() {
-                                // Copy returndata to memory; overwrite existing
-                                // memory.
-                                returndatacopy(0, 0, returndatasize())
+                                // Ensure that sufficient gas is available to
+                                // copy returndata while expanding memory where
+                                // necessary. Start by computing the word size
+                                // of returndata and allocated memory.
+                                let returnDataWords := div(
+                                    returndatasize(),
+                                    0x20
+                                )
 
-                                // Revert, specifying memory region with copied
-                                // returndata.
-                                revert(0, returndatasize())
+                                // Note: use the free memory pointer in place of
+                                // msize() to work around a Yul warning that
+                                // prevents accessing msize directly when the IR
+                                // pipeline is activated.
+                                let msizeWords := div(
+                                    mload(FreeMemoryPointerSlot),
+                                    0x20
+                                )
+
+                                // Next, compute the cost of the returndatacopy.
+                                let cost := mul(3, returnDataWords)
+
+                                // Then, compute cost of new memory allocation.
+                                if gt(returnDataWords, msizeWords) {
+                                    cost := add(
+                                        cost,
+                                        add(
+                                            mul(
+                                                sub(
+                                                    returnDataWords,
+                                                    msizeWords
+                                                ),
+                                                3
+                                            ),
+                                            div(
+                                                sub(
+                                                    mul(
+                                                        returnDataWords,
+                                                        returnDataWords
+                                                    ),
+                                                    mul(msizeWords, msizeWords)
+                                                ),
+                                                0x200
+                                            )
+                                        )
+                                    )
+                                }
+
+                                // Finally, add a small constant and compare to
+                                // gas remaining; bubble up the revert data if
+                                // enough gas is still available.
+                                if lt(add(cost, 0x20), gas()) {
+                                    // Copy returndata to memory; overwrite
+                                    // existing memory.
+                                    returndatacopy(0, 0, returndatasize())
+
+                                    // Revert, specifying memory region with
+                                    // copied returndata.
+                                    revert(0, returndatasize())
+                                }
                             }
 
                             // Otherwise revert with a generic error message.
@@ -193,13 +246,49 @@ contract TokenTransferrer {
 
             // If the transfer reverted:
             if iszero(success) {
-                // If it returned a message, bubble it up:
+                // If it returned a message, bubble it up as long as sufficient
+                // gas remains to do so:
                 if returndatasize() {
-                    // Copy returndata to memory; overwriting existing.
-                    returndatacopy(0, 0, returndatasize())
+                    // Ensure that sufficient gas is available to copy
+                    // returndata while expanding memory where necessary. Start
+                    // by computing word size of returndata & allocated memory.
+                    let returnDataWords := div(returndatasize(), 0x20)
 
-                    // Revert, specifying memory region with returndata.
-                    revert(0, returndatasize())
+                    // Note: use the free memory pointer in place of msize() to
+                    // work around a Yul warning that prevents accessing msize
+                    // directly when the IR pipeline is activated.
+                    let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
+
+                    // Next, compute the cost of the returndatacopy.
+                    let cost := mul(3, returnDataWords)
+
+                    // Then, compute cost of new memory allocation.
+                    if gt(returnDataWords, msizeWords) {
+                        cost := add(
+                            cost,
+                            add(
+                                mul(sub(returnDataWords, msizeWords), 3),
+                                div(
+                                    sub(
+                                        mul(returnDataWords, returnDataWords),
+                                        mul(msizeWords, msizeWords)
+                                    ),
+                                    0x200
+                                )
+                            )
+                        )
+                    }
+
+                    // Finally, add a small constant and compare to gas
+                    // remaining; bubble up the revert data if enough gas is
+                    // still available.
+                    if lt(add(cost, 0x20), gas()) {
+                        // Copy returndata to memory; overwrite existing memory.
+                        returndatacopy(0, 0, returndatasize())
+
+                        // Revert, giving memory region with copied returndata.
+                        revert(0, returndatasize())
+                    }
                 }
 
                 // Otherwise revert with a generic error message.
@@ -287,13 +376,49 @@ contract TokenTransferrer {
 
             // If the transfer reverted:
             if iszero(success) {
-                // If it returned a message, bubble it up:
+                // If it returned a message, bubble it up as long as sufficient
+                // gas remains to do so:
                 if returndatasize() {
-                    // Copy returndata to memory; overwrite existing memory.
-                    returndatacopy(0, 0, returndatasize())
+                    // Ensure that sufficient gas is available to copy
+                    // returndata while expanding memory where necessary. Start
+                    // by computing word size of returndata & allocated memory.
+                    let returnDataWords := div(returndatasize(), 0x20)
 
-                    // Revert; specify memory region with copied returndata.
-                    revert(0, returndatasize())
+                    // Note: use the free memory pointer in place of msize() to
+                    // work around a Yul warning that prevents accessing msize
+                    // directly when the IR pipeline is activated.
+                    let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
+
+                    // Next, compute the cost of the returndatacopy.
+                    let cost := mul(3, returnDataWords)
+
+                    // Then, compute cost of new memory allocation.
+                    if gt(returnDataWords, msizeWords) {
+                        cost := add(
+                            cost,
+                            add(
+                                mul(sub(returnDataWords, msizeWords), 3),
+                                div(
+                                    sub(
+                                        mul(returnDataWords, returnDataWords),
+                                        mul(msizeWords, msizeWords)
+                                    ),
+                                    0x200
+                                )
+                            )
+                        )
+                    }
+
+                    // Finally, add a small constant and compare to gas
+                    // remaining; bubble up the revert data if enough gas is
+                    // still available.
+                    if lt(add(cost, 0x20), gas()) {
+                        // Copy returndata to memory; overwrite existing memory.
+                        returndatacopy(0, 0, returndatasize())
+
+                        // Revert, giving memory region with copied returndata.
+                        revert(0, returndatasize())
+                    }
                 }
 
                 // Otherwise revert with a generic error message.
@@ -376,13 +501,49 @@ contract TokenTransferrer {
 
             // If the transfer reverted:
             if iszero(success) {
-                // If it returned a message, bubble it up:
+                // If it returned a message, bubble it up as long as sufficient
+                // gas remains to do so:
                 if returndatasize() {
-                    // Copy returndata to memory; overwrite existing memory.
-                    returndatacopy(0, 0, returndatasize())
+                    // Ensure that sufficient gas is available to copy
+                    // returndata while expanding memory where necessary. Start
+                    // by computing word size of returndata & allocated memory.
+                    let returnDataWords := div(returndatasize(), 0x20)
 
-                    // Revert; specify memory region with copied returndata.
-                    revert(0, returndatasize())
+                    // Note: use the free memory pointer in place of msize() to
+                    // work around a Yul warning that prevents accessing msize
+                    // directly when the IR pipeline is activated.
+                    let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
+
+                    // Next, compute the cost of the returndatacopy.
+                    let cost := mul(3, returnDataWords)
+
+                    // Then, compute cost of new memory allocation.
+                    if gt(returnDataWords, msizeWords) {
+                        cost := add(
+                            cost,
+                            add(
+                                mul(sub(returnDataWords, msizeWords), 3),
+                                div(
+                                    sub(
+                                        mul(returnDataWords, returnDataWords),
+                                        mul(msizeWords, msizeWords)
+                                    ),
+                                    0x200
+                                )
+                            )
+                        )
+                    }
+
+                    // Finally, add a small constant and compare to gas
+                    // remaining; bubble up the revert data if enough gas is
+                    // still available.
+                    if lt(add(cost, 0x20), gas()) {
+                        // Copy returndata to memory; overwrite existing memory.
+                        returndatacopy(0, 0, returndatasize())
+
+                        // Revert, giving memory region with copied returndata.
+                        revert(0, returndatasize())
+                    }
                 }
 
                 // Otherwise revert with a generic batch error message; reuse

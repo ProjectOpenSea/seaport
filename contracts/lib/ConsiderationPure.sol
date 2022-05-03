@@ -953,47 +953,6 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to ensure that a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` as part of validating a
-     *      restricted order that was not submitted by the named offerer or zone
-     *      was successful and returned the required magic value.
-     *
-     * @param success   A boolean indicating the status of the staticcall.
-     * @param orderHash The order hash of the order in question.
-     */
-    function _assertIsValidOrderStaticcallSuccess(
-        bool success,
-        bytes32 orderHash
-    ) internal pure {
-        // If the call failed...
-        if (!success) {
-            // Revert and pass reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert InvalidRestrictedOrder(orderHash);
-        }
-
-        // Extract result from returndata buffer in case of memory overflow.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        // Ensure result was extracted and matches isValidOrder magic value.
-        if (result != ZoneInterface.isValidOrder.selector) {
-            revert InvalidRestrictedOrder(orderHash);
-        }
-    }
-
-    /**
      * @dev Internal pure function to validate that a given order is fillable
      *      and not cancelled based on the order status.
      *
@@ -1252,23 +1211,6 @@ contract ConsiderationPure is ConsiderationBase {
 
         // Return the array of advanced orders.
         return advancedOrders;
-    }
-
-    /**
-     * @dev Internal pure function to revert and pass along the revert reason if
-     *      data was returned by the last call.
-     */
-    function _revertWithReasonIfOneIsReturned() internal pure {
-        assembly {
-            // If data was returned...
-            if returndatasize() {
-                // Copy returndata to memory, overwriting existing memory.
-                returndatacopy(0, 0, returndatasize())
-
-                // Revert, specifying memory region with copied returndata.
-                revert(0, returndatasize())
-            }
-        }
     }
 
     /**
