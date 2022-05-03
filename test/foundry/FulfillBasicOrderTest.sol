@@ -12,7 +12,7 @@ import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
-contract ConsiderationTest is BaseOrderTest {
+contract FulfillBasicOrderTest is BaseOrderTest {
     //eth to 721
     // alice is offering their 721 for ETH
     function testListBasicETHto721(
