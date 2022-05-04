@@ -16,6 +16,10 @@ import { Side, OrderType, ItemType } from "../../lib/ConsiderationEnums.sol";
 
 import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
 
+// TODO: Stack too deep
+// Used in the _prepareBasicFulfillmentFromCalldata simplification
+//import { OrderToHash } from "./ReferenceConsiderationStructs.sol";
+
 // prettier-ignore
 import {
     AdditionalRecipient,
@@ -668,6 +672,170 @@ contract ReferenceConsiderationInternal is
             mstore(0x60, 0)
         }
 
+        // TODO: Stack too deep
+        // Create Consideration Item
+        /*ConsiderationItem
+            memory primaryConsiderationItem = ConsiderationItem(
+                receivedItemType,
+                parameters.considerationToken,
+                parameters.considerationIdentifier,
+                parameters.considerationAmount,
+                parameters.considerationAmount,
+                parameters.offerer
+            );
+
+        // Array of all consideration item hashes
+        bytes32[] memory considerationHashes = new bytes32[](
+            parameters.totalOriginalAdditionalRecipients + 1
+        );
+        // Hash Contents
+        considerationHashes[0] = keccak256(
+            abi.encode(primaryConsiderationItem)
+        );
+
+        // Create ReceivedItem for Primary Consideration
+        // Array of Received Items for use with OrderFulfilled Event
+        ReceivedItem[] memory consideration = new ReceivedItem[](
+            parameters.additionalRecipients.length
+        );
+        ReceivedItem memory additionalReceivedItem;
+        ConsiderationItem memory additionalRecipientItem;
+
+        ReceivedItem memory primaryReceivedItem = ReceivedItem(
+            receivedItemType,
+            primaryConsiderationItem.token,
+            primaryConsiderationItem.identifierOrCriteria,
+            primaryConsiderationItem.endAmount,
+            primaryConsiderationItem.recipient
+        );
+        // Add the primary conderation item to the
+        // OrderFulfilled ReceivedItem[]
+        consideration[0] = primaryReceivedItem;
+
+        // Additional Recipient Handling
+        uint256 totalOriginalAdditionalRecipients = parameters
+            .totalOriginalAdditionalRecipients;
+
+        for (
+            uint256 recipientCount = 0;
+            recipientCount < totalOriginalAdditionalRecipients;
+            recipientCount++
+        ) {
+            // Create a new consideration Item for each Additional Recipient
+            // Using the Primary Consideration as base.
+            additionalRecipientItem = ConsiderationItem(
+                additionalRecipientsItemType,
+                additionalRecipientsToken,
+                primaryConsiderationItem.identifierOrCriteria,
+                primaryConsiderationItem.startAmount,
+                primaryConsiderationItem.endAmount,
+                primaryConsiderationItem.recipient
+            );
+
+            // Calculate the EIP712 ConsiderationItem hash for
+            // each additional recipients
+            considerationHashes[recipientCount + 1] = keccak256(
+                abi.encode(additionalRecipientItem)
+            );
+
+            // Create a Received Item for each additional recipients
+            additionalReceivedItem = ReceivedItem(
+                additionalRecipientsItemType,
+                additionalRecipientsToken,
+                primaryReceivedItem.identifier,
+                primaryReceivedItem.amount,
+                primaryReceivedItem.recipient
+            );
+            // Add additonal received items to the
+            // OrderFulfilled ReceivedItem[]
+            consideration[recipientCount + 1] = additionalReceivedItem;
+        }
+
+        // The considerationItems array should now contain the
+        // Primary Consideration Item along with all additional recipients.
+
+        // The considerationHashes array now contains
+        // all consideration Item hashes.
+
+        // The consideration array now contains all receieved
+        // items for OrderFulfilled Event.
+
+        // Get hash of all consideration items
+        bytes32 receivedItemsHash = keccak256(
+            abi.encodePacked(considerationHashes)
+        );
+
+        // Get remainder of additionalRecipients
+        for (
+            uint256 additionalTips = totalOriginalAdditionalRecipients + 1;
+            additionalTips < parameters.additionalRecipients.length;
+            additionalTips++
+        ) {
+            additionalReceivedItem = ReceivedItem(
+                additionalRecipientsItemType,
+                additionalRecipientsToken,
+                primaryReceivedItem.identifier,
+                primaryReceivedItem.amount,
+                primaryReceivedItem.recipient
+            );
+            // Add additonal received items to the
+            // OrderFulfilled ReceivedItem[]
+            consideration[additionalTips + 1] = additionalReceivedItem;
+        }
+
+        // Now let's handle the offer side.
+
+        // Create Spent Item
+        SpentItem memory offerItem = SpentItem(
+            offeredItemType,
+            parameters.offerToken,
+            parameters.offerIdentifier,
+            parameters.offerAmount
+        );
+
+        // Write the offer to the Event SpentItem array
+        SpentItem[] memory offer = new SpentItem[](1);
+        offer[0] = offerItem;
+
+        bytes32 offerItemHash = keccak256(abi.encode(offerItem));
+
+        bytes32[1] memory offerItemHashes = [offerItemHash];
+
+        bytes32 offerItemsHash = keccak256(
+            abi.encodePacked(offerItemHashes)
+        );
+
+        // Create the OrderComponent in order to derive
+        // the orderHash
+
+        // Read offerer's current nonce from storage and place on the stack.
+        uint256 nonce = _nonces[parameters.offerer];
+        OrderToHash memory orderToHash = OrderToHash(
+            parameters.offerer,
+            parameters.zone,
+            offerItemsHash,
+            receivedItemsHash,
+            orderType,
+            parameters.startTime,
+            parameters.endTime,
+            parameters.zoneHash,
+            parameters.salt,
+            parameters.offererConduit,
+            nonce
+        );
+
+        orderHash = keccak256(abi.encode(orderToHash));
+
+        // Emit Event
+        emit OrderFulfilled(
+            orderHash,
+            parameters.offerer,
+            parameters.zone,
+            msg.sender,
+            offer,
+            consideration
+        );*/
+
         // Determine whether order is restricted and, if so, that it is valid.
         _assertRestrictedBasicOrderValidity(
             orderHash,
@@ -1068,6 +1236,10 @@ contract ReferenceConsiderationInternal is
                     false
                 );
 
+                // TODO: Stack too deep
+                //offerItem.startAmount = amount;
+                //offerItem.endAmount = uint256(uint160(address(msg.sender)));
+
                 // Utilize assembly to set overloaded offerItem arguments.
                 assembly {
                     // Write derived fractional amount to startAmount as amount.
@@ -1153,6 +1325,10 @@ contract ReferenceConsiderationInternal is
                     duration,
                     true
                 );
+
+                // TODO: Stack too deep
+                //considerationItem.startAmount = amount;
+                //considerationItem.endAmount = uint256(uint160(address(considerationItem.recipient)));
 
                 // Use assembly to set overloaded considerationItem arguments.
                 assembly {
@@ -1397,6 +1573,10 @@ contract ReferenceConsiderationInternal is
                         )
                     );
 
+                    // TODO: Stack too deep
+                    //considerationItem.startAmount = amount;
+                    //considerationItem.endAmount = uint256(uint160(address(considerationItem.recipient)));
+
                     // Utilize assembly to manually "shift" the recipient value.
                     assembly {
                         // Write recipient to endAmount, as endAmount is not
@@ -1415,13 +1595,7 @@ contract ReferenceConsiderationInternal is
         _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
         // Determine the fulfiller (revertOnInvalid ? address(0) : msg.sender).
-        address fulfiller;
-
-        // Utilize assembly to operate on revertOnInvalid boolean as an integer.
-        assembly {
-            // Set the fulfiller to the caller if revertOnValid is false.
-            fulfiller := mul(iszero(revertOnInvalid), caller())
-        }
+        address fulfiller = revertOnInvalid ? address(0) : msg.sender;
 
         // Emit an event for each order signifying that it has been fulfilled.
         // Skip overflow checks as all for loops are indexed starting at zero.
