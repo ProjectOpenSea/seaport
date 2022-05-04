@@ -13924,7 +13924,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           [
             {
               orderIndex: 0,
-              itemIndex: 0,
+              itemIndex: 5,
             },
           ],
         ];
@@ -13945,7 +13945,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           [
             {
               orderIndex: 0,
-              itemIndex: 5,
+              itemIndex: 2,
             },
           ],
         ];
