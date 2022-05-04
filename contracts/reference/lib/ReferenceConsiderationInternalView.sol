@@ -728,7 +728,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             execution.offerer != aOrder.parameters.offerer ||
             execution.conduitKey != aOrder.parameters.conduitKey ||
             execution.item.itemType != offer.itemType ||
-        execution.item.token != offer.token;
+            execution.item.token != offer.token;
     }
 
     /**
@@ -753,7 +753,6 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         uint256 orderIndex = offerComponents[startIndex].orderIndex;
         uint256 itemIndex = offerComponents[startIndex].itemIndex;
 
-     
         // Declare a variable indicating whether the aggregation is invalid.
         // Ensure that the order index is not out of range.
         bool invalidFulfillment = (orderIndex >= advancedOrders.length);
@@ -825,7 +824,6 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             revert InvalidFulfillmentComponentData();
         }
     }
-
 
     /**
      * @dev Internal view function to aggregate consideration items from a group
