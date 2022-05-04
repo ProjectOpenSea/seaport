@@ -111,6 +111,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                     orderParameters.offer[componentIndex]
                 );
 
+<<<<<<< ben/uncheckRemoval
                 // Read item type and criteria from memory & place on stack.
                 itemType = offer.itemType;
                 identifierOrCriteria = offer.identifierOrCriteria;
@@ -128,6 +129,23 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 if (componentIndex >= orderParameters.consideration.length) {
                     revert ConsiderationCriteriaResolverOutOfRange();
                 }
+=======
+                    // Optimistically update item type to remove criteria usage.
+                    offer.itemType = (itemType == ItemType.ERC721_WITH_CRITERIA)
+                        ? ItemType.ERC721
+                        : ItemType.ERC1155;
+
+                    // Optimistically update identifier w/ supplied identifier.
+                    offer.identifierOrCriteria = criteriaResolver.identifier;
+                } else {
+                    // Otherwise, the resolver refers to a consideration item.
+                    // Ensure that the component index is in range.
+                    if (
+                        componentIndex >= orderParameters.consideration.length
+                    ) {
+                        revert ConsiderationCriteriaResolverOutOfRange();
+                    }
+>>>>>>> main
 
                 // Retrieve relevant item using order and component index.
                 ConsiderationItem memory consideration = (
@@ -138,11 +156,19 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 itemType = consideration.itemType;
                 identifierOrCriteria = consideration.identifierOrCriteria;
 
+<<<<<<< ben/uncheckRemoval
                 // Optimistically update item type to remove criteria usage.
                 consideration.itemType = (itemType ==
                     ItemType.ERC721_WITH_CRITERIA)
                     ? ItemType.ERC721
                     : ItemType.ERC1155;
+=======
+                    // Optimistically update item type to remove criteria usage.
+                    consideration.itemType = (itemType ==
+                        ItemType.ERC721_WITH_CRITERIA)
+                        ? ItemType.ERC721
+                        : ItemType.ERC1155;
+>>>>>>> main
 
                 // Optimistically update identifier w/ supplied identifier.
                 consideration.identifierOrCriteria = (
@@ -704,7 +730,11 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 for (
                     uint256 i = startIndex + 1;
                     i < considerationComponents.length;
+<<<<<<< ben/uncheckRemoval
                     ++i
+=======
+
+>>>>>>> main
                 ) {
                     potentialCandidate.orderIndex = considerationComponents[i]
                         .orderIndex;
@@ -744,6 +774,12 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                             consideration,
                             receivedItem
                         );
+<<<<<<< ben/uncheckRemoval
+=======
+                    }
+                    unchecked {
+                        ++i;
+>>>>>>> main
                     }
                 }
             }
