@@ -861,23 +861,18 @@ contract ReferenceConsiderationInternal is
 
             // Once adjusted, if current+supplied numerator exceeds denominator:
             if (filledNumerator + numerator > denominator) {
-                // Skip underflow check: denominator >= orderStatus.numerator
-                unchecked {
-                    // Reduce current numerator so it + supplied = denominator.
-                    numerator = denominator - filledNumerator;
-                }
+                // Reduce current numerator so it + supplied = denominator.
+                numerator = denominator - filledNumerator;
             }
 
-            // Skip overflow check: checked above unless numerator is reduced.
-            unchecked {
-                // Update order status and fill amount, packing struct values.
-                _orderStatus[orderHash].isValidated = true;
-                _orderStatus[orderHash].isCancelled = false;
-                _orderStatus[orderHash].numerator = uint120(
-                    filledNumerator + numerator
-                );
-                _orderStatus[orderHash].denominator = uint120(denominator);
-            }
+            // Update order status and fill amount, packing struct values.
+            _orderStatus[orderHash].isValidated = true;
+            _orderStatus[orderHash].isCancelled = false;
+            _orderStatus[orderHash].numerator = uint120(
+                filledNumerator + numerator
+            );
+            _orderStatus[orderHash].denominator = uint120(denominator);
+            
         } else {
             // Update order status and fill amount, packing struct values.
             _orderStatus[orderHash].isValidated = true;
@@ -1052,7 +1047,7 @@ contract ReferenceConsiderationInternal is
             }
 
             // Iterate over each offer on the order.
-            for (uint256 i = 0; i < orderParameters.offer.length; ) {
+            for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
 
@@ -1083,10 +1078,7 @@ contract ReferenceConsiderationInternal is
                         revert InsufficientEtherSupplied();
                     }
 
-                    // Skip underflow check as a comparison has just been made.
-                    unchecked {
-                        etherRemaining -= amount;
-                    }
+                    etherRemaining -= amount;        
                 }
 
                 // Transfer the item from the offerer to the caller.
@@ -1095,11 +1087,6 @@ contract ReferenceConsiderationInternal is
                     orderParameters.offerer,
                     offererConduitKey
                 );
-
-                // Skip overflow check as for loop is indexed starting at zero.
-                unchecked {
-                    ++i;
-                }
             }
         }
 
@@ -1136,7 +1123,7 @@ contract ReferenceConsiderationInternal is
             }
 
             // Iterate over each consideration on the order.
-            for (uint256 i = 0; i < orderParameters.consideration.length; ) {
+            for (uint256 i = 0; i < orderParameters.consideration.length; ++i) {
                 // Retrieve the consideration item.
                 ConsiderationItem memory considerationItem = (
                     orderParameters.consideration[i]
@@ -1173,10 +1160,7 @@ contract ReferenceConsiderationInternal is
                         revert InsufficientEtherSupplied();
                     }
 
-                    // Skip underflow check as a comparison has just been made.
-                    unchecked {
-                        etherRemaining -= amount;
-                    }
+                    etherRemaining -= amount;                
                 }
 
                 // Transfer item from caller to recipient specified by the item.
@@ -1185,11 +1169,6 @@ contract ReferenceConsiderationInternal is
                     msg.sender,
                     fulfillerConduitKey
                 );
-
-                // Skip overflow check as for loop is indexed starting at zero.
-                unchecked {
-                    ++i;
-                }
             }
         }
 
@@ -1240,176 +1219,174 @@ contract ReferenceConsiderationInternal is
             mstore(orderHashes, 0)
         }
 
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ++i) {
-                // Retrieve the current order.
-                AdvancedOrder memory advancedOrder = advancedOrders[i];
+        // Iterate over each order.
+        for (uint256 i = 0; i < totalOrders; ++i) {
+            // Retrieve the current order.
+            AdvancedOrder memory advancedOrder = advancedOrders[i];
 
-                // Determine if max number orders have already been fulfilled.
-                if (maximumFulfilled == 0) {
-                    // Mark fill fraction as zero as the order will not be used.
-                    advancedOrder.numerator = 0;
-
-                    // Update the length of the orderHashes array.
-                    assembly {
-                        mstore(orderHashes, add(i, 1))
-                    }
-
-                    // Continue iterating through the remaining orders.
-                    continue;
-                }
-
-                // Validate it, update status, and determine fraction to fill.
-                (
-                    bytes32 orderHash,
-                    uint256 numerator,
-                    uint256 denominator
-                ) = _validateOrderAndUpdateStatus(
-                        advancedOrder,
-                        criteriaResolvers,
-                        revertOnInvalid,
-                        orderHashes
-                    );
+            // Determine if max number orders have already been fulfilled.
+            if (maximumFulfilled == 0) {
+                // Mark fill fraction as zero as the order will not be used.
+                advancedOrder.numerator = 0;
 
                 // Update the length of the orderHashes array.
                 assembly {
                     mstore(orderHashes, add(i, 1))
                 }
 
-                // Do not track hash or adjust prices if order is not fulfilled.
-                if (numerator == 0) {
-                    // Mark fill fraction as zero if the order is not fulfilled.
-                    advancedOrder.numerator = 0;
+                // Continue iterating through the remaining orders.
+                continue;
+            }
 
-                    // Continue iterating through the remaining orders.
-                    continue;
-                }
+            // Validate it, update status, and determine fraction to fill.
+            (
+                bytes32 orderHash,
+                uint256 numerator,
+                uint256 denominator
+            ) = _validateOrderAndUpdateStatus(
+                    advancedOrder,
+                    criteriaResolvers,
+                    revertOnInvalid,
+                    orderHashes
+                );
 
-                // Otherwise, track the order hash in question.
-                orderHashes[i] = orderHash;
+            // Update the length of the orderHashes array.
+            assembly {
+                mstore(orderHashes, add(i, 1))
+            }
 
-                // Decrement the number of fulfilled orders.
-                maximumFulfilled--;
+            // Do not track hash or adjust prices if order is not fulfilled.
+            if (numerator == 0) {
+                // Mark fill fraction as zero if the order is not fulfilled.
+                advancedOrder.numerator = 0;
 
-                // Place the start time for the order on the stack.
-                uint256 startTime = advancedOrder.parameters.startTime;
+                // Continue iterating through the remaining orders.
+                continue;
+            }
 
-                // Derive the duration for the order and place it on the stack.
-                uint256 duration = advancedOrder.parameters.endTime - startTime;
+            // Otherwise, track the order hash in question.
+            orderHashes[i] = orderHash;
 
-                // Derive time elapsed since the order started & place on stack.
-                uint256 elapsed = block.timestamp - startTime;
+            // Decrement the number of fulfilled orders.
+            maximumFulfilled--;
 
-                // Derive time remaining until order expires and place on stack.
-                uint256 remaining = duration - elapsed;
+            // Place the start time for the order on the stack.
+            uint256 startTime = advancedOrder.parameters.startTime;
 
-                // Retrieve array of offer items for the order in question.
-                OfferItem[] memory offer = advancedOrder.parameters.offer;
+            // Derive the duration for the order and place it on the stack.
+            uint256 duration = advancedOrder.parameters.endTime - startTime;
 
-                // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < offer.length; ++j) {
-                    // Retrieve the offer item.
-                    OfferItem memory offerItem = offer[j];
+            // Derive time elapsed since the order started & place on stack.
+            uint256 elapsed = block.timestamp - startTime;
 
-                    // Apply order fill fraction to offer item end amount.
-                    uint256 endAmount = _getFraction(
+            // Derive time remaining until order expires and place on stack.
+            uint256 remaining = duration - elapsed;
+
+            // Retrieve array of offer items for the order in question.
+            OfferItem[] memory offer = advancedOrder.parameters.offer;
+
+            // Iterate over each offer item on the order.
+            for (uint256 j = 0; j < offer.length; ++j) {
+                // Retrieve the offer item.
+                OfferItem memory offerItem = offer[j];
+
+                // Apply order fill fraction to offer item end amount.
+                uint256 endAmount = _getFraction(
+                    numerator,
+                    denominator,
+                    offerItem.endAmount
+                );
+
+                // Reuse same fraction if start and end amounts are equal.
+                if (offerItem.startAmount == offerItem.endAmount) {
+                    // Apply derived amount to both start and end amount.
+                    offerItem.startAmount = endAmount;
+                } else {
+                    // Apply order fill fraction to offer item start amount.
+                    offerItem.startAmount = _getFraction(
                         numerator,
                         denominator,
-                        offerItem.endAmount
+                        offerItem.startAmount
                     );
+                }
 
-                    // Reuse same fraction if start and end amounts are equal.
-                    if (offerItem.startAmount == offerItem.endAmount) {
-                        // Apply derived amount to both start and end amount.
-                        offerItem.startAmount = endAmount;
-                    } else {
-                        // Apply order fill fraction to offer item start amount.
-                        offerItem.startAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            offerItem.startAmount
-                        );
-                    }
+                // Update end amount in memory to match the derived amount.
+                offerItem.endAmount = endAmount;
 
-                    // Update end amount in memory to match the derived amount.
-                    offerItem.endAmount = endAmount;
+                // Adjust offer amount using current time; round down.
+                offerItem.startAmount = _locateCurrentAmount(
+                    offerItem.startAmount,
+                    offerItem.endAmount,
+                    elapsed,
+                    remaining,
+                    duration,
+                    false // round down
+                );
+            }
 
-                    // Adjust offer amount using current time; round down.
-                    offerItem.startAmount = _locateCurrentAmount(
-                        offerItem.startAmount,
-                        offerItem.endAmount,
+            // Retrieve array of consideration items for order in question.
+            ConsiderationItem[] memory consideration = (
+                advancedOrder.parameters.consideration
+            );
+
+            // Iterate over each consideration item on the order.
+            for (uint256 j = 0; j < consideration.length; ++j) {
+                // Retrieve the consideration item.
+                ConsiderationItem memory considerationItem = (
+                    consideration[j]
+                );
+
+                // Apply fraction to consideration item end amount.
+                uint256 endAmount = _getFraction(
+                    numerator,
+                    denominator,
+                    considerationItem.endAmount
+                );
+
+                // Reuse same fraction if start and end amounts are equal.
+                if (
+                    considerationItem.startAmount ==
+                    considerationItem.endAmount
+                ) {
+                    // Apply derived amount to both start and end amount.
+                    considerationItem.startAmount = endAmount;
+                } else {
+                    // Apply fraction to consideration item start amount.
+                    considerationItem.startAmount = _getFraction(
+                        numerator,
+                        denominator,
+                        considerationItem.startAmount
+                    );
+                }
+
+                // Update end amount in memory to match the derived amount.
+                considerationItem.endAmount = endAmount;
+
+                // Adjust consideration amount using current time; round up.
+                considerationItem.startAmount = (
+                    _locateCurrentAmount(
+                        considerationItem.startAmount,
+                        considerationItem.endAmount,
                         elapsed,
                         remaining,
                         duration,
-                        false // round down
-                    );
-                }
-
-                // Retrieve array of consideration items for order in question.
-                ConsiderationItem[] memory consideration = (
-                    advancedOrder.parameters.consideration
+                        true // round up
+                    )
                 );
 
-                // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < consideration.length; ++j) {
-                    // Retrieve the consideration item.
-                    ConsiderationItem memory considerationItem = (
-                        consideration[j]
-                    );
-
-                    // Apply fraction to consideration item end amount.
-                    uint256 endAmount = _getFraction(
-                        numerator,
-                        denominator,
-                        considerationItem.endAmount
-                    );
-
-                    // Reuse same fraction if start and end amounts are equal.
-                    if (
-                        considerationItem.startAmount ==
-                        considerationItem.endAmount
-                    ) {
-                        // Apply derived amount to both start and end amount.
-                        considerationItem.startAmount = endAmount;
-                    } else {
-                        // Apply fraction to consideration item start amount.
-                        considerationItem.startAmount = _getFraction(
-                            numerator,
-                            denominator,
-                            considerationItem.startAmount
-                        );
-                    }
-
-                    // Update end amount in memory to match the derived amount.
-                    considerationItem.endAmount = endAmount;
-
-                    // Adjust consideration amount using current time; round up.
-                    considerationItem.startAmount = (
-                        _locateCurrentAmount(
-                            considerationItem.startAmount,
-                            considerationItem.endAmount,
-                            elapsed,
-                            remaining,
-                            duration,
-                            true // round up
-                        )
-                    );
-
-                    // Utilize assembly to manually "shift" the recipient value.
-                    assembly {
-                        // Write recipient to endAmount, as endAmount is not
-                        // used from this point on and can be repurposed to fit
-                        // the layout of a ReceivedItem.
-                        mstore(
-                            add(considerationItem, 0x80), // endAmount
-                            mload(add(considerationItem, 0xa0)) // recipient
-                        )
-                    }
+                // Utilize assembly to manually "shift" the recipient value.
+                assembly {
+                    // Write recipient to endAmount, as endAmount is not
+                    // used from this point on and can be repurposed to fit
+                    // the layout of a ReceivedItem.
+                    mstore(
+                        add(considerationItem, 0x80), // endAmount
+                        mload(add(considerationItem, 0xa0)) // recipient
+                    )
                 }
             }
         }
+        
 
         // Apply criteria resolvers to each order as applicable.
         _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
@@ -1424,31 +1401,29 @@ contract ReferenceConsiderationInternal is
         }
 
         // Emit an event for each order signifying that it has been fulfilled.
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ++i) {
-                // Do not emit an event if no order hash is present.
-                if (orderHashes[i] == bytes32(0)) {
-                    continue;
-                }
-
-                // Retrieve parameters for the order in question.
-                OrderParameters memory orderParameters = (
-                    advancedOrders[i].parameters
-                );
-
-                // Emit an OrderFulfilled event.
-                _emitOrderFulfilledEvent(
-                    orderHashes[i],
-                    orderParameters.offerer,
-                    orderParameters.zone,
-                    fulfiller,
-                    orderParameters.offer,
-                    orderParameters.consideration
-                );
+        // Iterate over each order.
+        for (uint256 i = 0; i < totalOrders; ++i) {
+            // Do not emit an event if no order hash is present.
+            if (orderHashes[i] == bytes32(0)) {
+                continue;
             }
+
+            // Retrieve parameters for the order in question.
+            OrderParameters memory orderParameters = (
+                advancedOrders[i].parameters
+            );
+
+            // Emit an OrderFulfilled event.
+            _emitOrderFulfilledEvent(
+                orderHashes[i],
+                orderParameters.offerer,
+                orderParameters.zone,
+                fulfiller,
+                orderParameters.offer,
+                orderParameters.consideration
+            );
         }
+        
     }
 
     /**
@@ -1487,44 +1462,42 @@ contract ReferenceConsiderationInternal is
         // Allocate executions by fulfillment and apply them to each execution.
         Execution[] memory executions = new Execution[](totalFulfillments);
 
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Track number of filtered executions.
-            uint256 totalFilteredExecutions = 0;
+        // Track number of filtered executions.
+        uint256 totalFilteredExecutions = 0;
 
-            // Iterate over each fulfillment.
-            for (uint256 i = 0; i < totalFulfillments; ++i) {
-                /// Retrieve the fulfillment in question.
-                Fulfillment calldata fulfillment = fulfillments[i];
+        // Iterate over each fulfillment.
+        for (uint256 i = 0; i < totalFulfillments; ++i) {
+            /// Retrieve the fulfillment in question.
+            Fulfillment calldata fulfillment = fulfillments[i];
 
-                // Derive the execution corresponding with the fulfillment.
-                Execution memory execution = _applyFulfillment(
-                    advancedOrders,
-                    fulfillment.offerComponents,
-                    fulfillment.considerationComponents
-                );
+            // Derive the execution corresponding with the fulfillment.
+            Execution memory execution = _applyFulfillment(
+                advancedOrders,
+                fulfillment.offerComponents,
+                fulfillment.considerationComponents
+            );
 
-                // If offerer and recipient on the execution are the same...
-                if (execution.item.recipient == execution.offerer) {
-                    // increment total filtered executions.
-                    totalFilteredExecutions += 1;
-                } else {
-                    // Otherwise, assign the execution to the executions array.
-                    executions[i - totalFilteredExecutions] = execution;
-                }
-            }
-
-            // If some number of executions have been filtered...
-            if (totalFilteredExecutions != 0) {
-                // reduce the total length of the executions array.
-                assembly {
-                    mstore(
-                        executions,
-                        sub(mload(executions), totalFilteredExecutions)
-                    )
-                }
+            // If offerer and recipient on the execution are the same...
+            if (execution.item.recipient == execution.offerer) {
+                // increment total filtered executions.
+                totalFilteredExecutions += 1;
+            } else {
+                // Otherwise, assign the execution to the executions array.
+                executions[i - totalFilteredExecutions] = execution;
             }
         }
+
+        // If some number of executions have been filtered...
+        if (totalFilteredExecutions != 0) {
+            // reduce the total length of the executions array.
+            assembly {
+                mstore(
+                    executions,
+                    sub(mload(executions), totalFilteredExecutions)
+                )
+            }
+        }
+        
 
         // Perform final checks and compress executions into standard and batch.
         (
@@ -1720,74 +1693,72 @@ contract ReferenceConsiderationInternal is
             totalOfferFulfillments + totalConsiderationFulfillments
         );
 
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Track number of filtered executions.
-            uint256 totalFilteredExecutions = 0;
+        // Track number of filtered executions.
+        uint256 totalFilteredExecutions = 0;
 
-            // Iterate over each offer fulfillment.
-            for (uint256 i = 0; i < totalOfferFulfillments; ++i) {
-                /// Retrieve the offer fulfillment components in question.
-                FulfillmentComponent[] memory components = (
-                    offerFulfillments[i]
-                );
+        // Iterate over each offer fulfillment.
+        for (uint256 i = 0; i < totalOfferFulfillments; ++i) {
+            /// Retrieve the offer fulfillment components in question.
+            FulfillmentComponent[] memory components = (
+                offerFulfillments[i]
+            );
 
-                // Derive aggregated execution corresponding with fulfillment.
-                Execution memory execution = _aggregateAvailable(
-                    advancedOrders,
-                    Side.OFFER,
-                    components,
-                    fulfillerConduitKey
-                );
+            // Derive aggregated execution corresponding with fulfillment.
+            Execution memory execution = _aggregateAvailable(
+                advancedOrders,
+                Side.OFFER,
+                components,
+                fulfillerConduitKey
+            );
 
-                // If offerer and recipient on the execution are the same...
-                if (execution.item.recipient == execution.offerer) {
-                    // increment total filtered executions.
-                    totalFilteredExecutions += 1;
-                } else {
-                    // Otherwise, assign the execution to the executions array.
-                    executions[i - totalFilteredExecutions] = execution;
-                }
-            }
-
-            // Iterate over each consideration fulfillment.
-            for (uint256 i = 0; i < totalConsiderationFulfillments; ++i) {
-                /// Retrieve consideration fulfillment components in question.
-                FulfillmentComponent[] memory components = (
-                    considerationFulfillments[i]
-                );
-
-                // Derive aggregated execution corresponding with fulfillment.
-                Execution memory execution = _aggregateAvailable(
-                    advancedOrders,
-                    Side.CONSIDERATION,
-                    components,
-                    fulfillerConduitKey
-                );
-
-                // If offerer and recipient on the execution are the same...
-                if (execution.item.recipient == execution.offerer) {
-                    // increment total filtered executions.
-                    totalFilteredExecutions += 1;
-                } else {
-                    // Otherwise, assign the execution to the executions array.
-                    executions[
-                        i + totalOfferFulfillments - totalFilteredExecutions
-                    ] = execution;
-                }
-            }
-
-            // If some number of executions have been filtered...
-            if (totalFilteredExecutions != 0) {
-                // reduce the total length of the executions array.
-                assembly {
-                    mstore(
-                        executions,
-                        sub(mload(executions), totalFilteredExecutions)
-                    )
-                }
+            // If offerer and recipient on the execution are the same...
+            if (execution.item.recipient == execution.offerer) {
+                // increment total filtered executions.
+                totalFilteredExecutions += 1;
+            } else {
+                // Otherwise, assign the execution to the executions array.
+                executions[i - totalFilteredExecutions] = execution;
             }
         }
+
+        // Iterate over each consideration fulfillment.
+        for (uint256 i = 0; i < totalConsiderationFulfillments; ++i) {
+            /// Retrieve consideration fulfillment components in question.
+            FulfillmentComponent[] memory components = (
+                considerationFulfillments[i]
+            );
+
+            // Derive aggregated execution corresponding with fulfillment.
+            Execution memory execution = _aggregateAvailable(
+                advancedOrders,
+                Side.CONSIDERATION,
+                components,
+                fulfillerConduitKey
+            );
+
+            // If offerer and recipient on the execution are the same...
+            if (execution.item.recipient == execution.offerer) {
+                // increment total filtered executions.
+                totalFilteredExecutions += 1;
+            } else {
+                // Otherwise, assign the execution to the executions array.
+                executions[
+                    i + totalOfferFulfillments - totalFilteredExecutions
+                ] = execution;
+            }
+        }
+
+        // If some number of executions have been filtered...
+        if (totalFilteredExecutions != 0) {
+            // reduce the total length of the executions array.
+            assembly {
+                mstore(
+                    executions,
+                    sub(mload(executions), totalFilteredExecutions)
+                )
+            }
+        }
+        
 
         // Revert if no orders are available.
         if (executions.length == 0) {
@@ -1836,41 +1807,39 @@ contract ReferenceConsiderationInternal is
         // Initialize array for tracking available orders.
         availableOrders = new bool[](totalOrders);
 
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over orders to ensure all considerations are met.
-            for (uint256 i = 0; i < totalOrders; ++i) {
-                // Retrieve the order in question.
-                AdvancedOrder memory advancedOrder = advancedOrders[i];
+        // Iterate over orders to ensure all considerations are met.
+        for (uint256 i = 0; i < totalOrders; ++i) {
+            // Retrieve the order in question.
+            AdvancedOrder memory advancedOrder = advancedOrders[i];
 
-                // Skip consideration item checks for order if not fulfilled.
-                if (advancedOrder.numerator == 0) {
-                    // Note: orders do not need to be marked as unavailable as a
-                    // new memory region has been allocated. Review carefully if
-                    // altering compiler version or managing memory manually.
-                    continue;
-                }
+            // Skip consideration item checks for order if not fulfilled.
+            if (advancedOrder.numerator == 0) {
+                // Note: orders do not need to be marked as unavailable as a
+                // new memory region has been allocated. Review carefully if
+                // altering compiler version or managing memory manually.
+                continue;
+            }
 
-                // Mark the order as available.
-                availableOrders[i] = true;
+            // Mark the order as available.
+            availableOrders[i] = true;
 
-                // Retrieve consideration items to ensure they are fulfilled.
-                ConsiderationItem[] memory consideration = (
-                    advancedOrder.parameters.consideration
-                );
+            // Retrieve consideration items to ensure they are fulfilled.
+            ConsiderationItem[] memory consideration = (
+                advancedOrder.parameters.consideration
+            );
 
-                // Iterate over each consideration item to ensure it is met.
-                for (uint256 j = 0; j < consideration.length; ++j) {
-                    // Retrieve remaining amount on the consideration item.
-                    uint256 unmetAmount = consideration[j].startAmount;
+            // Iterate over each consideration item to ensure it is met.
+            for (uint256 j = 0; j < consideration.length; ++j) {
+                // Retrieve remaining amount on the consideration item.
+                uint256 unmetAmount = consideration[j].startAmount;
 
-                    // Revert if the remaining amount is not zero.
-                    if (unmetAmount != 0) {
-                        revert ConsiderationNotMet(i, j, unmetAmount);
-                    }
+                // Revert if the remaining amount is not zero.
+                if (unmetAmount != 0) {
+                    revert ConsiderationNotMet(i, j, unmetAmount);
                 }
             }
         }
+        
 
         // Split executions into "standard" (no batch) and "batch" executions.
         (standardExecutions, batchExecutions) = _compressExecutions(executions);
@@ -1879,7 +1848,7 @@ contract ReferenceConsiderationInternal is
         uint256 etherRemaining = msg.value;
 
         // Iterate over each standard execution.
-        for (uint256 i = 0; i < standardExecutions.length; ) {
+        for (uint256 i = 0; i < standardExecutions.length; ++i) {
             // Retrieve the execution and the associated received item.
             Execution memory execution = standardExecutions[i];
             ReceivedItem memory item = execution.item;
@@ -1891,30 +1860,19 @@ contract ReferenceConsiderationInternal is
                     revert InsufficientEtherSupplied();
                 }
 
-                // Skip underflow check as amount is less than ether remaining.
-                unchecked {
-                    etherRemaining -= item.amount;
-                }
+                etherRemaining -= item.amount;
             }
 
             // Transfer the item specified by the execution.
             _transfer(item, execution.offerer, execution.conduitKey);
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
         }
 
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Iterate over each batch execution.
-            for (uint256 i = 0; i < batchExecutions.length; ++i) {
-                // Perform the batch transfer.
-                _batchTransferERC1155(batchExecutions[i]);
-            }
+        // Iterate over each batch execution.
+        for (uint256 i = 0; i < batchExecutions.length; ++i) {
+            // Perform the batch transfer.
+            _batchTransferERC1155(batchExecutions[i]);
         }
-
+    
         // If any ether remains after fulfillments, return it to the caller.
         if (etherRemaining != 0) {
             _transferEth(payable(msg.sender), etherRemaining);
@@ -2338,7 +2296,7 @@ contract ReferenceConsiderationInternal is
         uint256 etherRemaining = msg.value;
 
         // Iterate over each additional recipient.
-        for (uint256 i = 0; i < parameters.additionalRecipients.length; ) {
+        for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
             // Retrieve the additional recipient.
             AdditionalRecipient calldata additionalRecipient = (
                 parameters.additionalRecipients[i]
@@ -2358,16 +2316,8 @@ contract ReferenceConsiderationInternal is
                 additionalRecipientAmount
             );
 
-            // Skip underflow check as subtracted value is less than remaining.
-            unchecked {
-                // Reduce ether value available.
-                etherRemaining -= additionalRecipientAmount;
-            }
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
+            // Reduce ether value available.
+            etherRemaining -= additionalRecipientAmount;
         }
 
         // Ensure that sufficient Ether is still available.
@@ -2380,11 +2330,8 @@ contract ReferenceConsiderationInternal is
 
         // If any Ether remains after transfers, return it to the caller.
         if (etherRemaining > amount) {
-            // Skip underflow check as etherRemaining > amount.
-            unchecked {
-                // Transfer remaining Ether to the caller.
-                _transferEth(payable(msg.sender), etherRemaining - amount);
-            }
+            // Transfer remaining Ether to the caller.
+            _transferEth(payable(msg.sender), etherRemaining - amount);
         }
 
         // Clear the reentrancy guard.
@@ -2417,7 +2364,7 @@ contract ReferenceConsiderationInternal is
             : parameters.fulfillerConduitKey;
 
         // Iterate over each additional recipient.
-        for (uint256 i = 0; i < parameters.additionalRecipients.length; ) {
+        for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
             // Retrieve the additional recipient.
             AdditionalRecipient calldata additionalRecipient = (
                 parameters.additionalRecipients[i]
@@ -2436,11 +2383,6 @@ contract ReferenceConsiderationInternal is
                 additionalRecipient.amount,
                 conduitKey
             );
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
         }
 
         // Transfer ERC20 token amount (from account must have proper approval).

@@ -321,26 +321,24 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             orderParameters.totalOriginalConsiderationItems
         );
 
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Iterate over each offer on the order.
-            for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
-                // Hash the offer and place the result into memory.
-                offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
-            }
-
-            // Iterate over each consideration on the order.
-            for (
-                uint256 i = 0;
-                i < orderParameters.totalOriginalConsiderationItems;
-                ++i
-            ) {
-                // Hash the consideration and place the result into memory.
-                considerationHashes[i] = _hashConsiderationItem(
-                    orderParameters.consideration[i]
-                );
-            }
+        // Iterate over each offer on the order.
+        for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
+            // Hash the offer and place the result into memory.
+            offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
         }
+
+        // Iterate over each consideration on the order.
+        for (
+            uint256 i = 0;
+            i < orderParameters.totalOriginalConsiderationItems;
+            ++i
+        ) {
+            // Hash the consideration and place the result into memory.
+            considerationHashes[i] = _hashConsiderationItem(
+                orderParameters.consideration[i]
+            );
+        }
+    
 
         // Derive and return the order hash as specified by EIP-712.
 
@@ -632,81 +630,79 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         FulfillmentComponent[] memory fulfillmentComponents,
         bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
-        // Skip overflow / underflow checks; conditions checked or unreachable.
-        unchecked {
-            // Retrieve advanced orders array length and place on the stack.
-            uint256 totalOrders = advancedOrders.length;
+        // Retrieve advanced orders array length and place on the stack.
+        uint256 totalOrders = advancedOrders.length;
 
-            // Retrieve fulfillment components array length and place on stack.
-            uint256 totalFulfillmentComponents = fulfillmentComponents.length;
+        // Retrieve fulfillment components array length and place on stack.
+        uint256 totalFulfillmentComponents = fulfillmentComponents.length;
 
-            // Ensure at least one fulfillment component has been supplied.
-            if (totalFulfillmentComponents == 0) {
-                revert MissingFulfillmentComponentOnAggregation(side);
+        // Ensure at least one fulfillment component has been supplied.
+        if (totalFulfillmentComponents == 0) {
+            revert MissingFulfillmentComponentOnAggregation(side);
+        }
+
+        // Determine component index after first available (0 implies none).
+        uint256 nextComponentIndex = 0;
+
+        // Iterate over components until finding one with a fulfilled order.
+        for (uint256 i = 0; i < totalFulfillmentComponents; ++i) {
+            // Retrieve the fulfillment component index.
+            uint256 orderIndex = fulfillmentComponents[i].orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= totalOrders) {
+                revert InvalidFulfillmentComponentData();
             }
 
-            // Determine component index after first available (0 implies none).
-            uint256 nextComponentIndex = 0;
+            // If order is being fulfilled (i.e. it is still available)...
+            if (advancedOrders[orderIndex].numerator != 0) {
+                // Update the next potential component index.
+                nextComponentIndex = i + 1;
 
-            // Iterate over components until finding one with a fulfilled order.
-            for (uint256 i = 0; i < totalFulfillmentComponents; ++i) {
-                // Retrieve the fulfillment component index.
-                uint256 orderIndex = fulfillmentComponents[i].orderIndex;
-
-                // Ensure that the order index is in range.
-                if (orderIndex >= totalOrders) {
-                    revert InvalidFulfillmentComponentData();
-                }
-
-                // If order is being fulfilled (i.e. it is still available)...
-                if (advancedOrders[orderIndex].numerator != 0) {
-                    // Update the next potential component index.
-                    nextComponentIndex = i + 1;
-
-                    // Exit the loop.
-                    break;
-                }
-            }
-
-            // If no available order was located...
-            if (nextComponentIndex == 0) {
-                // Return with an empty execution element that will be filtered.
-                // prettier-ignore
-                return Execution(
-                    ReceivedItem(
-                        ItemType.NATIVE,
-                        address(0),
-                        0,
-                        0,
-                        payable(address(0))
-                    ),
-                    address(0),
-                    bytes32(0)
-                );
-            }
-
-            // If the fulfillment components are offer components...
-            if (side == Side.OFFER) {
-                // Return execution for aggregated items provided by offerer.
-                // prettier-ignore
-                return _aggregateValidFulfillmentOfferItems(
-                    advancedOrders,
-                    fulfillmentComponents,
-                    nextComponentIndex - 1
-                );
-            } else {
-                // Otherwise, fulfillment components are consideration
-                // components. Return execution for aggregated items provided by
-                // the fulfiller.
-                // prettier-ignore
-                return _aggregateConsiderationItems(
-                    advancedOrders,
-                    fulfillmentComponents,
-                    nextComponentIndex - 1,
-                    fulfillerConduitKey
-                );
+                // Exit the loop.
+                break;
             }
         }
+
+        // If no available order was located...
+        if (nextComponentIndex == 0) {
+            // Return with an empty execution element that will be filtered.
+            // prettier-ignore
+            return Execution(
+                ReceivedItem(
+                    ItemType.NATIVE,
+                    address(0),
+                    0,
+                    0,
+                    payable(address(0))
+                ),
+                address(0),
+                bytes32(0)
+            );
+        }
+
+        // If the fulfillment components are offer components...
+        if (side == Side.OFFER) {
+            // Return execution for aggregated items provided by offerer.
+            // prettier-ignore
+            return _aggregateValidFulfillmentOfferItems(
+                advancedOrders,
+                fulfillmentComponents,
+                nextComponentIndex - 1
+            );
+        } else {
+            // Otherwise, fulfillment components are consideration
+            // components. Return execution for aggregated items provided by
+            // the fulfiller.
+            // prettier-ignore
+            return _aggregateConsiderationItems(
+                advancedOrders,
+                fulfillmentComponents,
+                nextComponentIndex - 1,
+                fulfillerConduitKey
+            );
+        }
+        
     }
 
     /**
@@ -780,7 +776,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
                 // Zero out amount on original offerItem to indicate it is spent
                 offer.startAmount = 0;
 
-                for (uint256 i = startIndex + 1; i < offerComponents.length; ) {
+                for (uint256 i = startIndex + 1; i < offerComponents.length; ++i) {
                     orderIndex = offerComponents[i].orderIndex;
                     itemIndex = offerComponents[i].itemIndex;
 
@@ -812,9 +808,6 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
                             offer,
                             execution
                         );
-                    }
-                    unchecked {
-                        ++i;
                     }
                 }
             }
