@@ -102,7 +102,39 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function testSingleERC1155(
+    function testFulfillOrderEthToERC1155(
+        address _zone,
+        uint256 _id,
+        uint256 _amount,
+        bytes32 _zoneHash,
+        uint256 _salt,
+        uint128[3] memory _ethAmts,
+        bool _useConduit
+    ) public {
+        _testFulfillOrderEthToERC1155(
+            consideration,
+            _zone,
+            _id,
+            _amount,
+            _zoneHash,
+            _salt,
+            _ethAmts,
+            _useConduit
+        );
+        _testFulfillOrderEthToERC1155(
+            Consideration(address(referenceConsideration)),
+            _zone,
+            _id,
+            _amount,
+            _zoneHash,
+            _salt,
+            _ethAmts,
+            _useConduit
+        );
+    }
+
+    function _testFulfillOrderEthToERC1155(
+        Consideration _consideration,
         address _zone,
         uint256 _id,
         uint256 _amount,
@@ -188,10 +220,21 @@ contract FulfillOrderTest is BaseOrderTest {
             conduitKey,
             considerationItems.length
         );
-        consideration.fulfillOrder{
+        _consideration.fulfillOrder{
             value: _ethAmts[0] + _ethAmts[1] + _ethAmts[2]
         }(Order(orderParameters, signature), conduitKey);
     }
+
+    // function _testFulfillOrderERC20ToERC1155(
+    //     Consideration _consideration,
+    //     address _zone,
+    //     uint256 _id,
+    //     uint256 _amount,
+    //     bytes32 _zoneHash,
+    //     uint256 _salt,
+    //     uint128[3] memory _erc20Amts,
+    //     bool _useConduit
+    // ) public onlyPayble(_zone) topUp {}
 
     function testFailSingleERC721NonPayableZone() public {
         // fuzzer completely ignores params that fail vm.assume,

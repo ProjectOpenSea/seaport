@@ -128,6 +128,16 @@ contract BaseOrderTest is
         test1155_2.setApprovalForAll(address(consideration), true);
         test1155_3.setApprovalForAll(address(consideration), true);
 
+        token1.approve(address(referenceConsideration), MAX_INT);
+        token2.approve(address(referenceConsideration), MAX_INT);
+        token3.approve(address(referenceConsideration), MAX_INT);
+        test721_1.setApprovalForAll(address(referenceConsideration), true);
+        test721_2.setApprovalForAll(address(referenceConsideration), true);
+        test721_3.setApprovalForAll(address(referenceConsideration), true);
+        test1155_1.setApprovalForAll(address(referenceConsideration), true);
+        test1155_2.setApprovalForAll(address(referenceConsideration), true);
+        test1155_3.setApprovalForAll(address(referenceConsideration), true);
+
         token1.approve(address(conduit), MAX_INT);
         token2.approve(address(conduit), MAX_INT);
         token3.approve(address(conduit), MAX_INT);
