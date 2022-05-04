@@ -171,7 +171,7 @@ contract ReferenceConsiderationInternal is
             );
             // Hash Contents
             considerationHashes[0] = keccak256(
-                abi.encode(
+                abi.encodePacked(
                     typeHash,
                     primaryConsiderationItem.itemType,
                     primaryConsiderationItem.token,
@@ -224,7 +224,7 @@ contract ReferenceConsiderationInternal is
                 // Calculate the EIP712 ConsiderationItem hash for
                 // each additional recipients
                 considerationHashes[recipientCount + 1] = keccak256(
-                    abi.encode(
+                    abi.encodePacked(
                         typeHash,
                         additionalRecipientItem.itemType,
                         additionalRecipientItem.token,
@@ -298,11 +298,13 @@ contract ReferenceConsiderationInternal is
             offer[0] = offerItem;
 
             bytes32 offerItemHash = keccak256(
-                abi.encode(
+                abi.encodePacked(
+                    typeHash,
                     offerItem.itemType,
                     offerItem.token,
                     offerItem.identifier,
-                    offerItem.amount
+                    offerItem.amount,
+                    offerItem.amount //Assembly uses OfferItem instead of SpentItem
                 )
             );
 
@@ -315,14 +317,18 @@ contract ReferenceConsiderationInternal is
             // Create the OrderComponent in order to derive
             // the orderHash
 
+            // Load order typehash from runtime code and place on stack.
+            typeHash = _ORDER_TYPEHASH;
+
             // Read offerer's current nonce from storage and place on the stack.
             uint256 nonce = _nonces[parameters.offerer];
             OrderToHash memory orderToHash = OrderToHash(
+                typeHash,
                 parameters.offerer,
                 parameters.zone,
                 offerItemsHash,
                 receivedItemsHash,
-                orderType,
+                fulfillmentItemTypes.orderType,
                 parameters.startTime,
                 parameters.endTime,
                 parameters.zoneHash,
@@ -347,7 +353,7 @@ contract ReferenceConsiderationInternal is
         _assertRestrictedBasicOrderValidity(
             orderHash,
             parameters.zoneHash,
-            orderType,
+            fulfillmentItemTypes.orderType,
             parameters.offerer,
             parameters.zone
         );

@@ -22,6 +22,7 @@ struct ConsiderationItemIndicesAndValidity {
  * @dev A struct used to hold all Items of an Order to be hashed
  */
 struct OrderToHash {
+    bytes32 typeHash;
     address offerer;
     address zone;
     bytes32 offerHashes;
