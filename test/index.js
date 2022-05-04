@@ -13888,23 +13888,39 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
         });
       });
-      it("Reverts on fulfillment component with out-of-range offer item on fulfillAvailableOrders", async () => {
+      it("Reverts on fulfillment component with out-of-range sybsequent offer item on fulfillAvailableOrders", async () => {
         // Seller mints nft
-        const nftId = ethers.BigNumber.from(randomHex());
-        await testERC721.mint(seller.address, nftId);
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).mul(2);
+        await testERC1155.mint(seller.address, nftId, amount);
 
         // Seller approves marketplace contract to transfer NFT
         await whileImpersonating(seller.address, provider, async () => {
           await expect(
-            testERC721
+            testERC1155
               .connect(seller)
               .setApprovalForAll(marketplaceContract.address, true)
           )
-            .to.emit(testERC721, "ApprovalForAll")
+            .to.emit(testERC1155, "ApprovalForAll")
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const offer = [getTestItem721(nftId)];
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.div(2),
+            endAmount: amount.div(2),
+          },
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.div(2),
+            endAmount: amount.div(2),
+          },
+        ];
 
         const consideration = [
           getItemETH(10, 10, seller.address),
@@ -13922,6 +13938,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const offerComponents = [
           [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
             {
               orderIndex: 0,
               itemIndex: 5,
