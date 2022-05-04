@@ -872,7 +872,6 @@ contract ReferenceConsiderationInternal is
                 filledNumerator + numerator
             );
             _orderStatus[orderHash].denominator = uint120(denominator);
-            
         } else {
             // Update order status and fill amount, packing struct values.
             _orderStatus[orderHash].isValidated = true;
@@ -1078,7 +1077,7 @@ contract ReferenceConsiderationInternal is
                         revert InsufficientEtherSupplied();
                     }
 
-                    etherRemaining -= amount;        
+                    etherRemaining -= amount;
                 }
 
                 // Transfer the item from the offerer to the caller.
@@ -1160,7 +1159,7 @@ contract ReferenceConsiderationInternal is
                         revert InsufficientEtherSupplied();
                     }
 
-                    etherRemaining -= amount;                
+                    etherRemaining -= amount;
                 }
 
                 // Transfer item from caller to recipient specified by the item.
@@ -1332,9 +1331,7 @@ contract ReferenceConsiderationInternal is
             // Iterate over each consideration item on the order.
             for (uint256 j = 0; j < consideration.length; ++j) {
                 // Retrieve the consideration item.
-                ConsiderationItem memory considerationItem = (
-                    consideration[j]
-                );
+                ConsiderationItem memory considerationItem = (consideration[j]);
 
                 // Apply fraction to consideration item end amount.
                 uint256 endAmount = _getFraction(
@@ -1345,8 +1342,7 @@ contract ReferenceConsiderationInternal is
 
                 // Reuse same fraction if start and end amounts are equal.
                 if (
-                    considerationItem.startAmount ==
-                    considerationItem.endAmount
+                    considerationItem.startAmount == considerationItem.endAmount
                 ) {
                     // Apply derived amount to both start and end amount.
                     considerationItem.startAmount = endAmount;
@@ -1386,7 +1382,6 @@ contract ReferenceConsiderationInternal is
                 }
             }
         }
-        
 
         // Apply criteria resolvers to each order as applicable.
         _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
@@ -1423,7 +1418,6 @@ contract ReferenceConsiderationInternal is
                 orderParameters.consideration
             );
         }
-        
     }
 
     /**
@@ -1497,7 +1491,6 @@ contract ReferenceConsiderationInternal is
                 )
             }
         }
-        
 
         // Perform final checks and compress executions into standard and batch.
         (
@@ -1699,9 +1692,7 @@ contract ReferenceConsiderationInternal is
         // Iterate over each offer fulfillment.
         for (uint256 i = 0; i < totalOfferFulfillments; ++i) {
             /// Retrieve the offer fulfillment components in question.
-            FulfillmentComponent[] memory components = (
-                offerFulfillments[i]
-            );
+            FulfillmentComponent[] memory components = (offerFulfillments[i]);
 
             // Derive aggregated execution corresponding with fulfillment.
             Execution memory execution = _aggregateAvailable(
@@ -1758,7 +1749,6 @@ contract ReferenceConsiderationInternal is
                 )
             }
         }
-        
 
         // Revert if no orders are available.
         if (executions.length == 0) {
@@ -1839,7 +1829,6 @@ contract ReferenceConsiderationInternal is
                 }
             }
         }
-        
 
         // Split executions into "standard" (no batch) and "batch" executions.
         (standardExecutions, batchExecutions) = _compressExecutions(executions);
@@ -1872,7 +1861,7 @@ contract ReferenceConsiderationInternal is
             // Perform the batch transfer.
             _batchTransferERC1155(batchExecutions[i]);
         }
-    
+
         // If any ether remains after fulfillments, return it to the caller.
         if (etherRemaining != 0) {
             _transferEth(payable(msg.sender), etherRemaining);

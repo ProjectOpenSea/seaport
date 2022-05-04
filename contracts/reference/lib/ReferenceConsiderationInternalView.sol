@@ -338,7 +338,6 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
                 orderParameters.consideration[i]
             );
         }
-    
 
         // Derive and return the order hash as specified by EIP-712.
 
@@ -702,7 +701,6 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
                 fulfillerConduitKey
             );
         }
-        
     }
 
     /**
@@ -776,7 +774,11 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
                 // Zero out amount on original offerItem to indicate it is spent
                 offer.startAmount = 0;
 
-                for (uint256 i = startIndex + 1; i < offerComponents.length; ++i) {
+                for (
+                    uint256 i = startIndex + 1;
+                    i < offerComponents.length;
+                    ++i
+                ) {
                     orderIndex = offerComponents[i].orderIndex;
                     itemIndex = offerComponents[i].itemIndex;
 

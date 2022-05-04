@@ -70,9 +70,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         // Iterate over each criteria resolver.
         for (uint256 i = 0; i < arraySize; ++i) {
             // Retrieve the criteria resolver.
-            CriteriaResolver memory criteriaResolver = (
-                criteriaResolvers[i]
-            );
+            CriteriaResolver memory criteriaResolver = (criteriaResolvers[i]);
 
             // Read the order index from memory and place it on the stack.
             uint256 orderIndex = criteriaResolver.orderIndex;
@@ -127,9 +125,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             } else {
                 // Otherwise, the resolver refers to a consideration item.
                 // Ensure that the component index is in range.
-                if (
-                    componentIndex >= orderParameters.consideration.length
-                ) {
+                if (componentIndex >= orderParameters.consideration.length) {
                     revert ConsiderationCriteriaResolverOutOfRange();
                 }
 
@@ -216,7 +212,6 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 }
             }
         }
-        
     }
 
     /**
@@ -492,7 +487,6 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 totals[0],
                 totals[1]
             );
-        
     }
 
     /**
@@ -549,9 +543,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             // If the execution is a standard execution...
             if (batchExecutionPointer == 0) {
                 // Copy it to next standard index, then increment the index.
-                standardExecutions[nextStandardExecutionIndex++] = (
-                    execution
-                );
+                standardExecutions[nextStandardExecutionIndex++] = (execution);
                 // Otherwise, it is a batch execution.
             } else {
                 // Decrement pointer to derive the batch execution index.
@@ -576,9 +568,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 }
 
                 // Put next batch element index on stack, then increment it.
-                uint256 batchElementIndex = (
-                    batchElementIndices[batchIndex]++
-                );
+                uint256 batchElementIndex = (batchElementIndices[batchIndex]++);
 
                 // Update current element's batch with respective tokenId.
                 batchExecutions[batchIndex].tokenIds[batchElementIndex] = (
@@ -600,7 +590,6 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
 
         // Return both the standard and batch execution arrays.
         return (standardExecutions, batchExecutions);
-    
     }
 
     /**
@@ -1195,7 +1184,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         for (uint256 i = 0; i < totalOrders; ++i) {
             // Convert to partial order (1/1 or full fill) and update array.
             advancedOrders[i] = _convertOrderToAdvanced(orders[i]);
-        } 
+        }
 
         // Return the array of advanced orders.
         return advancedOrders;
@@ -1229,7 +1218,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 // Hash(current element of proof + current computed hash)
                 computedHash = _efficientHash(proofElement, computedHash);
             }
-        }   
+        }
 
         // Ensure that the final derived hash matches the expected root.
         if (computedHash != bytes32(root)) {

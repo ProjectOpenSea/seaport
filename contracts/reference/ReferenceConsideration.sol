@@ -699,7 +699,7 @@ contract ReferenceConsideration is
         uint256 totalOrders = orders.length;
 
         // Iterate over each order.
-        for (uint256 i = 0; i < totalOrders;  ++i) {
+        for (uint256 i = 0; i < totalOrders; ++i) {
             // Retrieve the order.
             OrderComponents calldata order = orders[i];
 
@@ -801,14 +801,9 @@ contract ReferenceConsideration is
                 _orderStatus[orderHash].isValidated = true;
 
                 // Emit an event signifying the order has been validated.
-                emit OrderValidated(
-                    orderHash,
-                    offerer,
-                    orderParameters.zone
-                );
+                emit OrderValidated(orderHash, offerer, orderParameters.zone);
             }
         }
-        
 
         return true;
     }
@@ -826,7 +821,7 @@ contract ReferenceConsideration is
 
         // Increment current nonce for the supplied offerer.
         newNonce = ++_nonces[msg.sender];
-    
+
         // Emit an event containing the new nonce.
         emit NonceIncremented(newNonce, msg.sender);
     }
