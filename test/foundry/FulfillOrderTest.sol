@@ -129,7 +129,7 @@ contract FulfillOrderTest is BaseOrderTest {
             _amount,
             _amount
         );
-        
+
         ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
             3
         );
