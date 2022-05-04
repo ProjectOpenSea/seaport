@@ -4,6 +4,7 @@ pragma solidity 0.8.13;
 import "../../../contracts/conduit/ConduitController.sol";
 
 import { Consideration } from "../../../contracts/Consideration.sol";
+import { ReferenceConsideration } from "../../../contracts/reference/ReferenceConsideration.sol";
 import { OrderType, BasicOrderType, ItemType, Side } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 
@@ -15,6 +16,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     using stdStorage for StdStorage;
 
     Consideration consideration;
+    ReferenceConsideration referenceConsideration;
     bytes32 conduitKeyOne;
     ConduitController conduitController;
     address conduit;
@@ -42,7 +44,21 @@ contract BaseConsiderationTest is DSTestPlusPlus {
             address(consideration)
         );
 
+        referenceConsideration = new ReferenceConsideration(
+            address(conduitController)
+        );
+        vm.label(address(referenceConsideration), "consideration");
+        emit log_named_address(
+            "Deployed referenceConsideration at",
+            address(referenceConsideration)
+        );
+
         conduitController.updateChannel(conduit, address(consideration), true);
+        conduitController.updateChannel(
+            conduit,
+            address(referenceConsideration),
+            true
+        );
     }
 
     function singleOfferItem(
