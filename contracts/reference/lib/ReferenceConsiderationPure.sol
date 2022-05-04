@@ -665,9 +665,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         ReceivedItem memory receievedItem
     ) internal pure returns (bool invalidFulfillment) {
         return
-            //receievedItem.recipient != consideration.recipient ||
-            //receievedItem.itemType != consideration.itemType ||
-            //receievedItem.token != consideration.token ||
+            receievedItem.recipient != consideration.recipient ||
+            receievedItem.itemType != consideration.itemType ||
+            receievedItem.token != consideration.token ||
             receievedItem.identifier != consideration.identifierOrCriteria;
     }
 
@@ -1190,6 +1190,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         pure
         returns (bytes32 value)
     {
+        // TODO: Stack too deep
         /*return
             keccak256(
                 abi.encodePacked(uint16(0x1901), domainSeparator, orderHash)
