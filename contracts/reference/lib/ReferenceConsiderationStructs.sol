@@ -46,3 +46,13 @@ struct FulfillmentItemTypes {
     address additionalRecipientsToken;
     ItemType offeredItemType;
 }
+
+struct BasicFulfillmentHashes {
+    bytes32 typeHash;
+    bytes32 orderHash;
+    bytes32 offerItemsHash;
+    bytes32[] considerationHashes;
+    bytes32 receivedItemsHash;
+    bytes32 receivedItemHash;
+    bytes32 offerItemHash;
+}
