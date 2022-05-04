@@ -13888,6 +13888,83 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.revertedWith("InvalidFulfillmentComponentData");
         });
       });
+      it("Reverts on fulfillment component with out-of-range offer item on fulfillAvailableOrders", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [getTestItem721(nftId)];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const offerComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+          ],
+        ];
+
+        const considerationComponents = [
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+          ],
+          [
+            {
+              orderIndex: 0,
+              itemIndex: 5,
+            },
+          ],
+        ];
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAvailableOrders(
+                [order],
+                offerComponents,
+                considerationComponents,
+                toKey(false),
+                100,
+                { value }
+              )
+          ).to.be.revertedWith("InvalidFulfillmentComponentData");
+        });
+      });
       it("Reverts on fulfillment component with out-of-range consideration item", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
