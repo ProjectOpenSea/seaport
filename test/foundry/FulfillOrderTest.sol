@@ -102,6 +102,97 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
+    function testSingleERC1155(
+        address _zone,
+        uint256 _id,
+        uint256 _amount,
+        bytes32 _zoneHash,
+        uint256 _salt,
+        uint128[3] memory _ethAmts,
+        bool _useConduit
+    ) public onlyPayable(_zone) topUp {
+        vm.assume(_amount > 0);
+        vm.assume(_ethAmts[0] > 0 && _ethAmts[1] > 0 && _ethAmts[2] > 0);
+        vm.assume(
+            uint256(_ethAmts[0]) +
+                uint256(_ethAmts[1]) +
+                uint256(_ethAmts[2]) <=
+                2**128 - 1
+        );
+        bytes32 conduitKey = _useConduit ? conduitKeyOne : bytes32(0);
+
+        test1155_1.mint(alice, _id, _amount);
+        OfferItem[] memory offerItem = singleOfferItem(
+            ItemType.ERC1155,
+            address(test1155_1),
+            _id,
+            _amount,
+            _amount
+        );
+
+        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
+            3
+        );
+        considerationItems[0] = ConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            uint256(_ethAmts[0]),
+            uint256(_ethAmts[0]),
+            payable(alice)
+        );
+        considerationItems[1] = ConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            uint256(_ethAmts[1]),
+            uint256(_ethAmts[1]),
+            payable(_zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+        );
+        considerationItems[2] = ConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            uint256(_ethAmts[2]),
+            uint256(_ethAmts[2]),
+            payable(cal)
+        );
+
+        OrderComponents memory orderComponents = OrderComponents(
+            alice,
+            _zone,
+            offerItem,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            _zoneHash,
+            _salt,
+            conduitKey,
+            consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            alicePk,
+            consideration.getOrderHash(orderComponents)
+        );
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            _zone,
+            offerItem,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            _zoneHash,
+            _salt,
+            conduitKey,
+            considerationItems.length
+        );
+        consideration.fulfillOrder{
+            value: _ethAmts[0] + _ethAmts[1] + _ethAmts[2]
+        }(Order(orderParameters, signature), conduitKey);
+    }
+
     function testFailSingleERC721NonPayableZone() public {
         // fuzzer completely ignores params that fail vm.assume,
         // so confirm that this invalid param does fail
