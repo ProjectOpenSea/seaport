@@ -54,6 +54,23 @@ jobs:
       - run: yarn install
       - run: yarn test
 
+  reference-test:
+    name: Run Reference Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: yarn install
+      - run: yarn test:ref
+
   forge:
     name: Run Forge Tests
     runs-on: ubuntu-latest
@@ -95,6 +112,27 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn coverage
+      - uses: VeryGoodOpenSource/very_good_coverage@v1
+        with:
+          path: "./coverage/lcov.info"
+          min_coverage: 100
+
+  reference-coverage:
+    name: Run Reference Coverage Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: yarn install
+      - run: yarn coverage:ref
       - uses: VeryGoodOpenSource/very_good_coverage@v1
         with:
           path: "./coverage/lcov.info"
