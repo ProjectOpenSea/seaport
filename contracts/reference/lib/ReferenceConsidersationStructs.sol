@@ -33,4 +33,3 @@ struct OrderToHash {
     bytes32 conduitKey;
     uint256 nonce;
 }
-
