@@ -29,6 +29,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       blockGasLimit: 30_000_000,
+      allowUnlimitedContractSize: true,
     },
   },
   gasReporter: {

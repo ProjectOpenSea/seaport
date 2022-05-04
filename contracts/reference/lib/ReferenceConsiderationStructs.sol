@@ -3,7 +3,8 @@ pragma solidity 0.8.13;
 
 // prettier-ignore
 import {
-    OrderType
+    OrderType,
+    ItemType
 } from "../../lib/ConsiderationEnums.sol";
 
 // This file should only be used by the Reference Implementation
@@ -32,4 +33,16 @@ struct OrderToHash {
     uint256 salt;
     bytes32 conduitKey;
     uint256 nonce;
+}
+
+/**
+ * @dev A struct used to hold all ItemTypes/Token of a Basic Order Fulfillment
+ *       used in _prepareBasicFulfillmentFromCalldata
+ */
+struct FulfillmentItemTypes {
+    OrderType orderType;
+    ItemType receivedItemType;
+    ItemType additionalRecipientsItemType;
+    address additionalRecipientsToken;
+    ItemType offeredItemType;
 }
