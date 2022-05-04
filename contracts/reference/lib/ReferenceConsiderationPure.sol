@@ -1150,24 +1150,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         address to,
         bytes32 conduitKey
     ) internal pure returns (bytes32 value) {
-        // TODO: Stack too deep
-        //return keccak256(abi.encodePacked(conduitKey, token, from, to));
-
-        // Leverage scratch space to perform an efficient hash.
-        assembly {
-            // Place the free memory pointer on the stack; replace afterwards.
-            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
-
-            mstore(0x3c, to) // Place to address in memory.
-            mstore(0x28, from) // Place from address in memory
-            mstore(0x14, token) // Place token address in memory.
-            mstore(0x00, conduitKey) // Put conduit key at beginning of region.
-
-            value := keccak256(0x00, 0x5c) // Hash the 92-byte memory region.
-
-            // Restore the free memory pointer.
-            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
-        }
+        value = keccak256(abi.encodePacked(conduitKey, token, from, to));
     }
 
     /**
@@ -1184,32 +1167,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         pure
         returns (bytes32 value)
     {
-        // TODO: Stack too deep
-        /*return
-            keccak256(
-                abi.encodePacked(uint16(0x1901), domainSeparator, orderHash)
-            );*/
-        // Leverage scratch space to perform an efficient hash.
-        assembly {
-            // Place the EIP-712 prefix at the start of scratch space.
-            mstore(
-                0x00,
-                0x1901000000000000000000000000000000000000000000000000000000000000 // solhint-disable-line max-line-length
-            )
-
-            // Place the domain separator in the next region of scratch space.
-            mstore(0x02, domainSeparator)
-
-            // Place the order hash in scratch space, spilling into the first
-            // two bytes of the free memory pointer — this should never be set
-            // as memory cannot be expanded to that size, and will be zeroed out
-            // after the hash is performed.
-            mstore(0x22, orderHash)
-
-            value := keccak256(0x00, 0x42) // Hash the relevant region.
-
-            mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
-        }
+        value = keccak256(
+            abi.encodePacked(uint16(0x1901), domainSeparator, orderHash)
+        );
     }
 
     /**
