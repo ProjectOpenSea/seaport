@@ -21,6 +21,8 @@ import {
     BatchExecution
 } from "../../lib/ConsiderationStructs.sol";
 
+//import { ConsiderationItemIndicesAndValidity } from "./ReferenceConsiderationStructs.sol";
+
 import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
 
 import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
@@ -118,11 +120,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                     identifierOrCriteria = offer.identifierOrCriteria;
 
                     // Optimistically update item type to remove criteria usage.
-                    ItemType newItemType;
-                    assembly {
-                        newItemType := sub(3, eq(itemType, 4))
-                    }
-                    offer.itemType = newItemType;
+                    offer.itemType = (itemType == ItemType.ERC721_WITH_CRITERIA)
+                        ? ItemType.ERC721
+                        : ItemType.ERC1155;
 
                     // Optimistically update identifier w/ supplied identifier.
                     offer.identifierOrCriteria = criteriaResolver.identifier;
@@ -145,11 +145,10 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                     identifierOrCriteria = consideration.identifierOrCriteria;
 
                     // Optimistically update item type to remove criteria usage.
-                    ItemType newItemType;
-                    assembly {
-                        newItemType := sub(3, eq(itemType, 4))
-                    }
-                    consideration.itemType = newItemType;
+                    consideration.itemType = (itemType ==
+                        ItemType.ERC721_WITH_CRITERIA)
+                        ? ItemType.ERC721
+                        : ItemType.ERC1155;
 
                     // Optimistically update identifier w/ supplied identifier.
                     consideration.identifierOrCriteria = (
@@ -264,10 +263,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 extraCeiling);
 
             // Division is performed without zero check as it cannot be zero.
-            uint256 newAmount;
-            assembly {
-                newAmount := div(totalBeforeDivision, duration)
-            }
+            uint256 newAmount = totalBeforeDivision / duration;
 
             // Return the current amount (expressed as endAmount internally).
             return newAmount;
@@ -302,6 +298,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         uint256 valueTimesNumerator = value * numerator;
 
         // Divide (Note: denominator must not be zero!) and check for remainder.
+        // TODO: Stack too deep
+        //bool exact = (mulmod(value, numerator, denominator) == 0) ? true : false;
+        //newValue = valueTimesNumerator / denominator;
         bool exact;
         assembly {
             newValue := div(valueTimesNumerator, denominator)
@@ -654,6 +653,25 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
     }
 
     /**
+     * @dev Internal pure function to check the indicated consideration item matches original item.
+     *
+     * @param consideration The consideration to compare
+     * @param receievedItem  The aggregated receieved item
+     *
+     * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
+     */
+    function _checkMatchingConsideration(
+        ConsiderationItem memory consideration,
+        ReceivedItem memory receievedItem
+    ) internal pure returns (bool invalidFulfillment) {
+        return
+            //receievedItem.recipient != consideration.recipient ||
+            //receievedItem.itemType != consideration.itemType ||
+            //receievedItem.token != consideration.token ||
+            receievedItem.identifier != consideration.identifierOrCriteria;
+    }
+
+    /**
      * @dev Internal pure function to aggregate a group of consideration items
      *      using supplied directives on which component items are candidates
      *      for aggregation, skipping items on orders that are not available.
@@ -950,6 +968,86 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         if (invalidFulfillment) {
             revert InvalidFulfillmentComponentData();
         }
+
+        // TODO: Stack too deep
+
+        // Declare struct in memory to avoid declaring multiple local variables
+        /*ConsiderationItemIndicesAndValidity memory potentialCandidate;
+        potentialCandidate.orderIndex = considerationComponents[startIndex].orderIndex;
+        potentialCandidate.itemIndex = considerationComponents[startIndex].itemIndex;
+        potentialCandidate.invalidFulfillment = (potentialCandidate.orderIndex >= advancedOrders.length);
+
+        if (!potentialCandidate.invalidFulfillment) {
+            AdvancedOrder memory aOrder = advancedOrders[potentialCandidate.orderIndex];
+            // Ensure that the item index is not out of range.
+            potentialCandidate.invalidFulfillment =
+                potentialCandidate.invalidFulfillment ||
+                (potentialCandidate.itemIndex >= aOrder.parameters.consideration.length);
+            if (!potentialCandidate.invalidFulfillment) {
+                ConsiderationItem memory consideration = aOrder
+                    .parameters
+                    .consideration[potentialCandidate.itemIndex];
+
+                receivedItem = ReceivedItem(
+                    consideration.itemType,
+                    consideration.token,
+                    consideration.identifierOrCriteria,
+                    consideration.startAmount,
+                    consideration.recipient
+                );
+
+                // Zero out amount on original offerItem to indicate it is spent
+                consideration.startAmount = 0;
+
+                for (
+                    uint256 i = startIndex + 1;
+                    i < considerationComponents.length;
+
+                ) {
+                    potentialCandidate.orderIndex = considerationComponents[i].orderIndex;
+                    potentialCandidate.itemIndex = considerationComponents[i].itemIndex;
+
+                    /// Ensure that the order index is not out of range.
+                    potentialCandidate.invalidFulfillment = potentialCandidate.orderIndex >= advancedOrders.length;
+                    // Break if invalid
+                    if (potentialCandidate.invalidFulfillment) {
+                        break;
+                    }
+                    aOrder = advancedOrders[potentialCandidate.orderIndex];
+                    if (aOrder.numerator != 0) {
+                        // Ensure that the item index is not out of range.
+                       potentialCandidate.invalidFulfillment = (potentialCandidate.itemIndex >=
+                            aOrder.parameters.consideration.length);
+                        // Break if invalid
+                        if (potentialCandidate.invalidFulfillment) {
+                            break;
+                        }
+                        consideration = aOrder.parameters.consideration[
+                            potentialCandidate.itemIndex
+                        ];
+                        // Updating Received Item Amount
+                        receivedItem.amount =
+                            receivedItem.amount +
+                            consideration.startAmount;
+                        // Zero out amount on original offerItem to indicate it is spent
+                        consideration.startAmount = 0;
+                        // Ensure the indicated offer item matches original item.
+                        potentialCandidate.invalidFulfillment = _checkMatchingConsideration(
+                            consideration,
+                            receivedItem
+                        );
+                    } 
+                    unchecked {
+                        ++i;
+                    }
+                }
+            }
+        }
+       
+        // Revert if an order/item was out of range or was not aggregatable.
+        if (potentialCandidate.invalidFulfillment) {
+            revert InvalidFulfillmentComponentData();
+        }*/
     }
 
     /**
@@ -1058,6 +1156,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         address to,
         bytes32 conduitKey
     ) internal pure returns (bytes32 value) {
+        // TODO: Stack too deep
+        //return keccak256(abi.encodePacked(conduitKey, token, from, to));
+
         // Leverage scratch space to perform an efficient hash.
         assembly {
             // Place the free memory pointer on the stack; replace afterwards.
@@ -1089,6 +1190,10 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         pure
         returns (bytes32 value)
     {
+        /*return
+            keccak256(
+                abi.encodePacked(uint16(0x1901), domainSeparator, orderHash)
+            );*/
         // Leverage scratch space to perform an efficient hash.
         assembly {
             // Place the EIP-712 prefix at the start of scratch space.
