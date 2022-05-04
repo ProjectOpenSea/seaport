@@ -689,16 +689,22 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
     ) internal pure returns (ReceivedItem memory receivedItem) {
         // Declare struct in memory to avoid declaring multiple local variables
         ConsiderationItemIndicesAndValidity memory potentialCandidate;
-        potentialCandidate.orderIndex = considerationComponents[startIndex].orderIndex;
-        potentialCandidate.itemIndex = considerationComponents[startIndex].itemIndex;
-        potentialCandidate.invalidFulfillment = (potentialCandidate.orderIndex >= advancedOrders.length);
+        potentialCandidate.orderIndex = considerationComponents[startIndex]
+            .orderIndex;
+        potentialCandidate.itemIndex = considerationComponents[startIndex]
+            .itemIndex;
+        potentialCandidate.invalidFulfillment = (potentialCandidate
+            .orderIndex >= advancedOrders.length);
 
         if (!potentialCandidate.invalidFulfillment) {
-            AdvancedOrder memory aOrder = advancedOrders[potentialCandidate.orderIndex];
+            AdvancedOrder memory aOrder = advancedOrders[
+                potentialCandidate.orderIndex
+            ];
             // Ensure that the item index is not out of range.
             potentialCandidate.invalidFulfillment =
                 potentialCandidate.invalidFulfillment ||
-                (potentialCandidate.itemIndex >= aOrder.parameters.consideration.length);
+                (potentialCandidate.itemIndex >=
+                    aOrder.parameters.consideration.length);
             if (!potentialCandidate.invalidFulfillment) {
                 ConsiderationItem memory consideration = aOrder
                     .parameters
@@ -720,11 +726,14 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                     i < considerationComponents.length;
 
                 ) {
-                    potentialCandidate.orderIndex = considerationComponents[i].orderIndex;
-                    potentialCandidate.itemIndex = considerationComponents[i].itemIndex;
+                    potentialCandidate.orderIndex = considerationComponents[i]
+                        .orderIndex;
+                    potentialCandidate.itemIndex = considerationComponents[i]
+                        .itemIndex;
 
                     /// Ensure that the order index is not out of range.
-                    potentialCandidate.invalidFulfillment = potentialCandidate.orderIndex >= advancedOrders.length;
+                    potentialCandidate.invalidFulfillment =
+                        potentialCandidate.orderIndex >= advancedOrders.length;
                     // Break if invalid
                     if (potentialCandidate.invalidFulfillment) {
                         break;
@@ -732,7 +741,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                     aOrder = advancedOrders[potentialCandidate.orderIndex];
                     if (aOrder.numerator != 0) {
                         // Ensure that the item index is not out of range.
-                       potentialCandidate.invalidFulfillment = (potentialCandidate.itemIndex >=
+                        potentialCandidate
+                            .invalidFulfillment = (potentialCandidate
+                            .itemIndex >=
                             aOrder.parameters.consideration.length);
                         // Break if invalid
                         if (potentialCandidate.invalidFulfillment) {
@@ -748,11 +759,12 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                         // Zero out amount on original offerItem to indicate it is spent
                         consideration.startAmount = 0;
                         // Ensure the indicated offer item matches original item.
-                        potentialCandidate.invalidFulfillment = _checkMatchingConsideration(
+                        potentialCandidate
+                            .invalidFulfillment = _checkMatchingConsideration(
                             consideration,
                             receivedItem
                         );
-                    } 
+                    }
                     unchecked {
                         ++i;
                     }
