@@ -269,7 +269,8 @@ contract ReferenceConsiderationInternal is
 
             // Get remainder of additionalRecipients
             for (
-                uint256 additionalTips = parameters.totalOriginalAdditionalRecipients + 1;
+                uint256 additionalTips = parameters
+                    .totalOriginalAdditionalRecipients + 1;
                 additionalTips < parameters.additionalRecipients.length;
                 additionalTips++
             ) {
@@ -302,16 +303,18 @@ contract ReferenceConsiderationInternal is
 
             offer[0] = offerItem;
 
-            bytes32[1] memory offerItemHashes = [keccak256(
-                abi.encodePacked(
-                    hashes.typeHash,
-                    offerItem.itemType,
-                    offerItem.token,
-                    offerItem.identifier,
-                    offerItem.amount,
-                    offerItem.amount //Assembly uses OfferItem instead of SpentItem
+            bytes32[1] memory offerItemHashes = [
+                keccak256(
+                    abi.encodePacked(
+                        hashes.typeHash,
+                        offerItem.itemType,
+                        offerItem.token,
+                        offerItem.identifier,
+                        offerItem.amount,
+                        offerItem.amount //Assembly uses OfferItem instead of SpentItem
+                    )
                 )
-            )];
+            ];
 
             hashes.offerItemsHash = keccak256(
                 abi.encodePacked(offerItemHashes)
