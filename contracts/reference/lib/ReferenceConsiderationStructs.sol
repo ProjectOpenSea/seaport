@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { OrderType, ItemType } from "../../lib/ConsiderationEnums.sol";
+// prettier-ignore
+import {
+    OrderType,
+    ItemType
+} from "../../lib/ConsiderationEnums.sol";
 
 // This file should only be used by the Reference Implementation
 
