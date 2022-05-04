@@ -297,17 +297,11 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         // Multiply the numerator by the value and ensure no overflow occurs.
         uint256 valueTimesNumerator = value * numerator;
 
-        // Divide (Note: denominator must not be zero!) and check for remainder.
-        // TODO: Stack too deep
-        //bool exact = (mulmod(value, numerator, denominator) == 0) ? true : false;
-        //newValue = valueTimesNumerator / denominator;
-        bool exact;
-        assembly {
-            newValue := div(valueTimesNumerator, denominator)
-            exact := iszero(mulmod(value, numerator, denominator))
-        }
+        // Divide that value by the denominator to get the new value.
+        newValue = valueTimesNumerator / denominator;
 
         // Ensure that division gave a final result with no remainder.
+        bool exact = ((newValue * denominator) / numerator) == value;
         if (!exact) {
             revert InexactFraction();
         }
