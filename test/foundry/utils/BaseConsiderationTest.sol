@@ -97,11 +97,12 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         );
     }
 
-    function signOrder(uint256 _pkOfSigner, bytes32 _orderHash)
-        internal
-        returns (bytes memory)
-    {
-        (, bytes32 domainSeparator, ) = consideration.information();
+    function signOrder(
+        Consideration _consideration,
+        uint256 _pkOfSigner,
+        bytes32 _orderHash
+    ) internal returns (bytes memory) {
+        (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
             keccak256(

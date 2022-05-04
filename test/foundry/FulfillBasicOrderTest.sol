@@ -65,7 +65,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             nonce
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(alicePk, orderHash);
+        bytes memory signature = signOrder(consideration, alicePk, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
@@ -154,7 +154,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             nonce
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(alicePk, orderHash);
+        bytes memory signature = signOrder(consideration, alicePk, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
@@ -240,7 +240,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             nonce
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(alicePk, orderHash);
+        bytes memory signature = signOrder(consideration, alicePk, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
@@ -325,7 +325,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         );
 
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(alicePk, orderHash);
+        bytes memory signature = signOrder(consideration, alicePk, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
