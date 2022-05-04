@@ -353,7 +353,7 @@ contract ReferenceConsiderationInternal is
         _assertRestrictedBasicOrderValidity(
             orderHash,
             parameters.zoneHash,
-            fulfillmentItemTypes.orderType,
+            orderType,
             parameters.offerer,
             parameters.zone
         );
