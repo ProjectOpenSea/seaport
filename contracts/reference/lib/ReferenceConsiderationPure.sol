@@ -66,155 +66,148 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure {
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Retrieve length of criteria resolvers array and place on stack.
-            uint256 arraySize = criteriaResolvers.length;
+        // Retrieve length of criteria resolvers array and place on stack.
+        uint256 arraySize = criteriaResolvers.length;
 
-            // Iterate over each criteria resolver.
-            for (uint256 i = 0; i < arraySize; ++i) {
-                // Retrieve the criteria resolver.
-                CriteriaResolver memory criteriaResolver = (
-                    criteriaResolvers[i]
+        // Iterate over each criteria resolver.
+        for (uint256 i = 0; i < arraySize; ++i) {
+            // Retrieve the criteria resolver.
+            CriteriaResolver memory criteriaResolver = (criteriaResolvers[i]);
+
+            // Read the order index from memory and place it on the stack.
+            uint256 orderIndex = criteriaResolver.orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= advancedOrders.length) {
+                revert OrderCriteriaResolverOutOfRange();
+            }
+
+            // Skip criteria resolution for order if not fulfilled.
+            if (advancedOrders[orderIndex].numerator == 0) {
+                continue;
+            }
+
+            // Retrieve the parameters for the order.
+            OrderParameters memory orderParameters = (
+                advancedOrders[orderIndex].parameters
+            );
+
+            // Read component index from memory and place it on the stack.
+            uint256 componentIndex = criteriaResolver.index;
+
+            // Declare values for item's type and criteria.
+            ItemType itemType;
+            uint256 identifierOrCriteria;
+
+            // If the criteria resolver refers to an offer item...
+            if (criteriaResolver.side == Side.OFFER) {
+                // Ensure that the component index is in range.
+                if (componentIndex >= orderParameters.offer.length) {
+                    revert OfferCriteriaResolverOutOfRange();
+                }
+
+                // Retrieve relevant item using order and component index.
+                OfferItem memory offer = (
+                    orderParameters.offer[componentIndex]
                 );
 
-                // Read the order index from memory and place it on the stack.
-                uint256 orderIndex = criteriaResolver.orderIndex;
+                // Read item type and criteria from memory & place on stack.
+                itemType = offer.itemType;
+                identifierOrCriteria = offer.identifierOrCriteria;
 
-                // Ensure that the order index is in range.
-                if (orderIndex >= advancedOrders.length) {
-                    revert OrderCriteriaResolverOutOfRange();
+                // Optimistically update item type to remove criteria usage.
+                offer.itemType = (itemType == ItemType.ERC721_WITH_CRITERIA)
+                    ? ItemType.ERC721
+                    : ItemType.ERC1155;
+
+                // Optimistically update identifier w/ supplied identifier.
+                offer.identifierOrCriteria = criteriaResolver.identifier;
+            } else {
+                // Otherwise, the resolver refers to a consideration item.
+                // Ensure that the component index is in range.
+                if (componentIndex >= orderParameters.consideration.length) {
+                    revert ConsiderationCriteriaResolverOutOfRange();
                 }
 
-                // Skip criteria resolution for order if not fulfilled.
-                if (advancedOrders[orderIndex].numerator == 0) {
-                    continue;
-                }
-
-                // Retrieve the parameters for the order.
-                OrderParameters memory orderParameters = (
-                    advancedOrders[orderIndex].parameters
+                // Retrieve relevant item using order and component index.
+                ConsiderationItem memory consideration = (
+                    orderParameters.consideration[componentIndex]
                 );
 
-                // Read component index from memory and place it on the stack.
-                uint256 componentIndex = criteriaResolver.index;
+                // Read item type and criteria from memory & place on stack.
+                itemType = consideration.itemType;
+                identifierOrCriteria = consideration.identifierOrCriteria;
 
-                // Declare values for item's type and criteria.
-                ItemType itemType;
-                uint256 identifierOrCriteria;
+                // Optimistically update item type to remove criteria usage.
+                consideration.itemType = (itemType ==
+                    ItemType.ERC721_WITH_CRITERIA)
+                    ? ItemType.ERC721
+                    : ItemType.ERC1155;
 
-                // If the criteria resolver refers to an offer item...
-                if (criteriaResolver.side == Side.OFFER) {
-                    // Ensure that the component index is in range.
-                    if (componentIndex >= orderParameters.offer.length) {
-                        revert OfferCriteriaResolverOutOfRange();
-                    }
+                // Optimistically update identifier w/ supplied identifier.
+                consideration.identifierOrCriteria = (
+                    criteriaResolver.identifier
+                );
+            }
 
-                    // Retrieve relevant item using order and component index.
-                    OfferItem memory offer = (
-                        orderParameters.offer[componentIndex]
-                    );
+            // Ensure the specified item type indicates criteria usage.
+            if (!_isItemWithCriteria(itemType)) {
+                revert CriteriaNotEnabledForItem();
+            }
 
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = offer.itemType;
-                    identifierOrCriteria = offer.identifierOrCriteria;
+            // If criteria is not 0 (i.e. a collection-wide offer)...
+            if (identifierOrCriteria != uint256(0)) {
+                // Verify identifier inclusion in criteria root using proof.
+                _verifyProof(
+                    criteriaResolver.identifier,
+                    identifierOrCriteria,
+                    criteriaResolver.criteriaProof
+                );
+            }
+        }
 
-                    // Optimistically update item type to remove criteria usage.
-                    offer.itemType = (itemType == ItemType.ERC721_WITH_CRITERIA)
-                        ? ItemType.ERC721
-                        : ItemType.ERC1155;
+        // Retrieve length of advanced orders array and place on stack.
+        arraySize = advancedOrders.length;
 
-                    // Optimistically update identifier w/ supplied identifier.
-                    offer.identifierOrCriteria = criteriaResolver.identifier;
-                } else {
-                    // Otherwise, the resolver refers to a consideration item.
-                    // Ensure that the component index is in range.
-                    if (
-                        componentIndex >= orderParameters.consideration.length
-                    ) {
-                        revert ConsiderationCriteriaResolverOutOfRange();
-                    }
+        // Iterate over each advanced order.
+        for (uint256 i = 0; i < arraySize; ++i) {
+            // Retrieve the advanced order.
+            AdvancedOrder memory advancedOrder = advancedOrders[i];
 
-                    // Retrieve relevant item using order and component index.
-                    ConsiderationItem memory consideration = (
-                        orderParameters.consideration[componentIndex]
-                    );
+            // Skip criteria resolution for order if not fulfilled.
+            if (advancedOrder.numerator == 0) {
+                continue;
+            }
 
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = consideration.itemType;
-                    identifierOrCriteria = consideration.identifierOrCriteria;
+            // Read consideration length from memory and place on stack.
+            uint256 totalItems = (
+                advancedOrder.parameters.consideration.length
+            );
 
-                    // Optimistically update item type to remove criteria usage.
-                    consideration.itemType = (itemType ==
-                        ItemType.ERC721_WITH_CRITERIA)
-                        ? ItemType.ERC721
-                        : ItemType.ERC1155;
-
-                    // Optimistically update identifier w/ supplied identifier.
-                    consideration.identifierOrCriteria = (
-                        criteriaResolver.identifier
-                    );
-                }
-
-                // Ensure the specified item type indicates criteria usage.
-                if (!_isItemWithCriteria(itemType)) {
-                    revert CriteriaNotEnabledForItem();
-                }
-
-                // If criteria is not 0 (i.e. a collection-wide offer)...
-                if (identifierOrCriteria != uint256(0)) {
-                    // Verify identifier inclusion in criteria root using proof.
-                    _verifyProof(
-                        criteriaResolver.identifier,
-                        identifierOrCriteria,
-                        criteriaResolver.criteriaProof
-                    );
+            // Iterate over each consideration item on the order.
+            for (uint256 j = 0; j < totalItems; ++j) {
+                // Ensure item type no longer indicates criteria usage.
+                if (
+                    _isItemWithCriteria(
+                        advancedOrder.parameters.consideration[j].itemType
+                    )
+                ) {
+                    revert UnresolvedConsiderationCriteria();
                 }
             }
 
-            // Retrieve length of advanced orders array and place on stack.
-            arraySize = advancedOrders.length;
+            // Read offer length from memory and place on stack.
+            totalItems = advancedOrder.parameters.offer.length;
 
-            // Iterate over each advanced order.
-            for (uint256 i = 0; i < arraySize; ++i) {
-                // Retrieve the advanced order.
-                AdvancedOrder memory advancedOrder = advancedOrders[i];
-
-                // Skip criteria resolution for order if not fulfilled.
-                if (advancedOrder.numerator == 0) {
-                    continue;
-                }
-
-                // Read consideration length from memory and place on stack.
-                uint256 totalItems = (
-                    advancedOrder.parameters.consideration.length
-                );
-
-                // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < totalItems; ++j) {
-                    // Ensure item type no longer indicates criteria usage.
-                    if (
-                        _isItemWithCriteria(
-                            advancedOrder.parameters.consideration[j].itemType
-                        )
-                    ) {
-                        revert UnresolvedConsiderationCriteria();
-                    }
-                }
-
-                // Read offer length from memory and place on stack.
-                totalItems = advancedOrder.parameters.offer.length;
-
-                // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < totalItems; ++j) {
-                    // Ensure item type no longer indicates criteria usage.
-                    if (
-                        _isItemWithCriteria(
-                            advancedOrder.parameters.offer[j].itemType
-                        )
-                    ) {
-                        revert UnresolvedOfferCriteria();
-                    }
+            // Iterate over each offer item on the order.
+            for (uint256 j = 0; j < totalItems; ++j) {
+                // Ensure item type no longer indicates criteria usage.
+                if (
+                    _isItemWithCriteria(
+                        advancedOrder.parameters.offer[j].itemType
+                    )
+                ) {
+                    revert UnresolvedOfferCriteria();
                 }
             }
         }
@@ -251,10 +244,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
 
             // If rounding up, set rounding factor to one less than denominator.
             if (roundUp) {
-                // Skip underflow check: duration cannot be zero.
-                unchecked {
-                    extraCeiling = duration - 1;
-                }
+                extraCeiling = duration - 1;
             }
 
             // Aggregate new amounts weighted by time with rounding factor
@@ -328,171 +318,168 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             BatchExecution[] memory batchExecutions
         )
     {
-        // Skip overflow checks as all incremented values start at low amounts.
-        unchecked {
-            // Read executions array length from memory and place on the stack.
-            uint256 totalExecutions = executions.length;
+        // Read executions array length from memory and place on the stack.
+        uint256 totalExecutions = executions.length;
 
-            // Return early if less than two executions are provided.
-            if (totalExecutions <= 1) {
-                return (executions, new BatchExecution[](0));
+        // Return early if less than two executions are provided.
+        if (totalExecutions <= 1) {
+            return (executions, new BatchExecution[](0));
+        }
+
+        // Determine the toal number of ERC1155 executions in the array.
+        uint256 total1155Executions = 0;
+
+        // Allocate array in memory for indices of each ERC1155 execution.
+        uint256[] memory indexBy1155 = new uint256[](totalExecutions);
+
+        // Iterate over each execution.
+        for (uint256 i = 0; i < executions.length; ++i) {
+            // If the item specified by the execution is an ERC1155 item...
+            if (executions[i].item.itemType == ItemType.ERC1155) {
+                // Set index of 1155 execution in memory, then increment it.
+                indexBy1155[total1155Executions++] = i;
             }
+        }
 
-            // Determine the toal number of ERC1155 executions in the array.
-            uint256 total1155Executions = 0;
+        // Return early if less than two ERC1155 executions are located.
+        if (total1155Executions <= 1) {
+            return (executions, new BatchExecution[](0));
+        }
 
-            // Allocate array in memory for indices of each ERC1155 execution.
-            uint256[] memory indexBy1155 = new uint256[](totalExecutions);
+        // Allocate array to track potential ERC1155 batch executions.
+        Batch[] memory batches = new Batch[](total1155Executions);
 
-            // Iterate over each execution.
-            for (uint256 i = 0; i < executions.length; ++i) {
-                // If the item specified by the execution is an ERC1155 item...
-                if (executions[i].item.itemType == ItemType.ERC1155) {
-                    // Set index of 1155 execution in memory, then increment it.
-                    indexBy1155[total1155Executions++] = i;
-                }
-            }
+        // Read initial execution index from memory and place on the stack.
+        uint256 initialExecutionIndex = indexBy1155[0];
 
-            // Return early if less than two ERC1155 executions are located.
-            if (total1155Executions <= 1) {
-                return (executions, new BatchExecution[](0));
-            }
+        // Get hash from initial token, offerer, recipient, & proxy usage.
+        bytes32 hash = _getHashByExecutionIndex(
+            executions,
+            initialExecutionIndex
+        );
 
-            // Allocate array to track potential ERC1155 batch executions.
-            Batch[] memory batches = new Batch[](total1155Executions);
+        // Allocate an array of length 1 in memory for the execution index.
+        uint256[] memory executionIndices = new uint256[](1);
 
-            // Read initial execution index from memory and place on the stack.
-            uint256 initialExecutionIndex = indexBy1155[0];
+        // Populate the memory region with the initial execution index.
+        executionIndices[0] = initialExecutionIndex;
 
-            // Get hash from initial token, offerer, recipient, & proxy usage.
-            bytes32 hash = _getHashByExecutionIndex(
-                executions,
-                initialExecutionIndex
-            );
+        // Set hash and array with execution index as first batch element.
+        batches[0].hash = hash;
+        batches[0].executionIndices = executionIndices;
 
-            // Allocate an array of length 1 in memory for the execution index.
-            uint256[] memory executionIndices = new uint256[](1);
+        // Track total number of unique hashes (starts at one).
+        uint256 uniqueHashes = 1;
 
-            // Populate the memory region with the initial execution index.
-            executionIndices[0] = initialExecutionIndex;
+        // Iterate over each additional 1155 execution.
+        for (uint256 i = 1; i < total1155Executions; ++i) {
+            // Read execution index from memory and place on the stack.
+            uint256 executionIndex = indexBy1155[i];
 
-            // Set hash and array with execution index as first batch element.
-            batches[0].hash = hash;
-            batches[0].executionIndices = executionIndices;
+            // Derive hash based on the same parameters as the initial hash.
+            hash = _getHashByExecutionIndex(executions, executionIndex);
 
-            // Track total number of unique hashes (starts at one).
-            uint256 uniqueHashes = 1;
+            // Assume no matching hash exists unless proven otherwise.
+            bool foundMatchingHash = false;
 
-            // Iterate over each additional 1155 execution.
-            for (uint256 i = 1; i < total1155Executions; ++i) {
-                // Read execution index from memory and place on the stack.
-                uint256 executionIndex = indexBy1155[i];
+            // Iterate over all known unique hashes.
+            for (uint256 j = 0; j < uniqueHashes; ++j) {
+                // If the hash matches the known unique hash in question...
+                if (hash == batches[j].hash) {
+                    // Retrieve execution index of the original execution.
+                    uint256[] memory oldExecutionIndices = (
+                        batches[j].executionIndices
+                    );
 
-                // Derive hash based on the same parameters as the initial hash.
-                hash = _getHashByExecutionIndex(executions, executionIndex);
+                    // Place old execution indices array length on stack.
+                    uint256 originalLength = oldExecutionIndices.length;
 
-                // Assume no matching hash exists unless proven otherwise.
-                bool foundMatchingHash = false;
+                    // Allocate execution indices array w/ an extra element.
+                    uint256[] memory newExecutionIndices = (
+                        new uint256[](originalLength + 1)
+                    );
 
-                // Iterate over all known unique hashes.
-                for (uint256 j = 0; j < uniqueHashes; ++j) {
-                    // If the hash matches the known unique hash in question...
-                    if (hash == batches[j].hash) {
-                        // Retrieve execution index of the original execution.
-                        uint256[] memory oldExecutionIndices = (
-                            batches[j].executionIndices
-                        );
-
-                        // Place old execution indices array length on stack.
-                        uint256 originalLength = oldExecutionIndices.length;
-
-                        // Allocate execution indices array w/ an extra element.
-                        uint256[] memory newExecutionIndices = (
-                            new uint256[](originalLength + 1)
-                        );
-
-                        // Iterate over existing execution indices.
-                        for (uint256 k = 0; k < originalLength; ++k) {
-                            // Add them to the new execution indices array.
-                            newExecutionIndices[k] = oldExecutionIndices[k];
-                        }
-
-                        // Add new execution index to the end of the array.
-                        newExecutionIndices[originalLength] = executionIndex;
-
-                        // Update the batch with the extended array.
-                        batches[j].executionIndices = newExecutionIndices;
-
-                        // Mark that new hash matches one already in a batch.
-                        foundMatchingHash = true;
-
-                        // Stop scanning for a match as one has now been found.
-                        break;
+                    // Iterate over existing execution indices.
+                    for (uint256 k = 0; k < originalLength; ++k) {
+                        // Add them to the new execution indices array.
+                        newExecutionIndices[k] = oldExecutionIndices[k];
                     }
-                }
 
-                // If no matching hash was located, create a new batch element.
-                if (!foundMatchingHash) {
-                    // Create a new execution indices array.
-                    executionIndices = new uint256[](1);
+                    // Add new execution index to the end of the array.
+                    newExecutionIndices[originalLength] = executionIndex;
 
-                    // Set the current execution index as the first element.
-                    executionIndices[0] = executionIndex;
+                    // Update the batch with the extended array.
+                    batches[j].executionIndices = newExecutionIndices;
 
-                    // Set next batch element and increment total unique hashes.
-                    batches[uniqueHashes].hash = hash;
-                    batches[uniqueHashes++].executionIndices = executionIndices;
-                }
-            }
+                    // Mark that new hash matches one already in a batch.
+                    foundMatchingHash = true;
 
-            // Return early if every hash is unique.
-            if (uniqueHashes == total1155Executions) {
-                return (executions, new BatchExecution[](0));
-            }
-
-            // Allocate an array to track the batch each execution is used in.
-            // Values of zero indicate that it is not used in a batch, whereas
-            // non-zero values indicate the execution index *plus one*.
-            uint256[] memory usedInBatch = new uint256[](totalExecutions);
-
-            // Stack elements have been exhausted, so utilize memory to track
-            // total elements used as part of a batch as well as total batches.
-            uint256[] memory totals = new uint256[](2);
-
-            // Iterate over each potential batch (determined via unique hashes).
-            for (uint256 i = 0; i < uniqueHashes; ++i) {
-                // Retrieve the indices for the batch in question.
-                uint256[] memory indices = batches[i].executionIndices;
-
-                // Read total number of indices from memory and place on stack.
-                uint256 indicesLength = indices.length;
-
-                // if more than one execution applies to a potential batch...
-                if (indicesLength >= 2) {
-                    // Increment the total number of batches.
-                    ++totals[1];
-
-                    // Increment total executions used as part of a batch.
-                    totals[0] += indicesLength;
-
-                    // Iterate over each execution index for the batch.
-                    for (uint256 j = 0; j < indicesLength; ++j) {
-                        // Update array tracking batch the execution applies to.
-                        usedInBatch[indices[j]] = i + 1;
-                    }
+                    // Stop scanning for a match as one has now been found.
+                    break;
                 }
             }
 
-            // Split executions into standard and batched executions and return.
-            // prettier-ignore
-            return _splitExecution(
+            // If no matching hash was located, create a new batch element.
+            if (!foundMatchingHash) {
+                // Create a new execution indices array.
+                executionIndices = new uint256[](1);
+
+                // Set the current execution index as the first element.
+                executionIndices[0] = executionIndex;
+
+                // Set next batch element and increment total unique hashes.
+                batches[uniqueHashes].hash = hash;
+                batches[uniqueHashes++].executionIndices = executionIndices;
+            }
+        }
+
+        // Return early if every hash is unique.
+        if (uniqueHashes == total1155Executions) {
+            return (executions, new BatchExecution[](0));
+        }
+
+        // Allocate an array to track the batch each execution is used in.
+        // Values of zero indicate that it is not used in a batch, whereas
+        // non-zero values indicate the execution index *plus one*.
+        uint256[] memory usedInBatch = new uint256[](totalExecutions);
+
+        // Stack elements have been exhausted, so utilize memory to track
+        // total elements used as part of a batch as well as total batches.
+        uint256[] memory totals = new uint256[](2);
+
+        // Iterate over each potential batch (determined via unique hashes).
+        for (uint256 i = 0; i < uniqueHashes; ++i) {
+            // Retrieve the indices for the batch in question.
+            uint256[] memory indices = batches[i].executionIndices;
+
+            // Read total number of indices from memory and place on stack.
+            uint256 indicesLength = indices.length;
+
+            // if more than one execution applies to a potential batch...
+            if (indicesLength >= 2) {
+                // Increment the total number of batches.
+                ++totals[1];
+
+                // Increment total executions used as part of a batch.
+                totals[0] += indicesLength;
+
+                // Iterate over each execution index for the batch.
+                for (uint256 j = 0; j < indicesLength; ++j) {
+                    // Update array tracking batch the execution applies to.
+                    usedInBatch[indices[j]] = i + 1;
+                }
+            }
+        }
+
+        // Split executions into standard and batched executions and return.
+        // prettier-ignore
+        return _splitExecution(
                     executions,
                     batches,
                     usedInBatch,
                     totals[0],
                     totals[1]
                 );
-        }
     }
 
     /**
@@ -519,90 +506,83 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         uint256 totalUsedInBatch,
         uint256 totalBatches
     ) internal pure returns (Execution[] memory, BatchExecution[] memory) {
-        // Skip overflow checks as all incremented values start at low amounts.
-        unchecked {
-            // Read executions array length from memory and place on the stack.
-            uint256 totalExecutions = executions.length;
+        // Read executions array length from memory and place on the stack.
+        uint256 totalExecutions = executions.length;
 
-            // Allocate standard executions array (exclude ones used in batch).
-            Execution[] memory standardExecutions = new Execution[](
-                totalExecutions - totalUsedInBatch
-            );
+        // Allocate standard executions array (exclude ones used in batch).
+        Execution[] memory standardExecutions = new Execution[](
+            totalExecutions - totalUsedInBatch
+        );
 
-            // Allocate batch executions array (length equal to total batches).
-            BatchExecution[] memory batchExecutions = new BatchExecution[](
-                totalBatches
-            );
+        // Allocate batch executions array (length equal to total batches).
+        BatchExecution[] memory batchExecutions = new BatchExecution[](
+            totalBatches
+        );
 
-            // Track the index of the next available standard execution element.
-            uint256 nextStandardExecutionIndex = 0;
+        // Track the index of the next available standard execution element.
+        uint256 nextStandardExecutionIndex = 0;
 
-            // Allocate array in memory to track next element index per batch.
-            uint256[] memory batchElementIndices = new uint256[](totalBatches);
+        // Allocate array in memory to track next element index per batch.
+        uint256[] memory batchElementIndices = new uint256[](totalBatches);
 
-            // Iterate over each execution.
-            for (uint256 i = 0; i < totalExecutions; ++i) {
-                // Check if execution is standard (0) or part of a batch (1+).
-                uint256 batchExecutionPointer = batchExecutionPointers[i];
+        // Iterate over each execution.
+        for (uint256 i = 0; i < totalExecutions; ++i) {
+            // Check if execution is standard (0) or part of a batch (1+).
+            uint256 batchExecutionPointer = batchExecutionPointers[i];
 
-                // Retrieve the execution element.
-                Execution memory execution = executions[i];
+            // Retrieve the execution element.
+            Execution memory execution = executions[i];
 
-                // If the execution is a standard execution...
-                if (batchExecutionPointer == 0) {
-                    // Copy it to next standard index, then increment the index.
-                    standardExecutions[nextStandardExecutionIndex++] = (
-                        execution
-                    );
-                    // Otherwise, it is a batch execution.
-                } else {
-                    // Decrement pointer to derive the batch execution index.
-                    uint256 batchIndex = batchExecutionPointer - 1;
+            // If the execution is a standard execution...
+            if (batchExecutionPointer == 0) {
+                // Copy it to next standard index, then increment the index.
+                standardExecutions[nextStandardExecutionIndex++] = (execution);
+                // Otherwise, it is a batch execution.
+            } else {
+                // Decrement pointer to derive the batch execution index.
+                uint256 batchIndex = batchExecutionPointer - 1;
 
-                    // If it is the first item applied to the batch execution...
-                    if (batchExecutions[batchIndex].token == address(0)) {
-                        // Determine total elements in batch and place on stack.
-                        uint256 totalElements = (
-                            batches[batchIndex].executionIndices.length
-                        );
-
-                        // Populate all other fields using execution parameters.
-                        batchExecutions[batchIndex] = BatchExecution(
-                            execution.item.token, // token
-                            execution.offerer, // from
-                            execution.item.recipient, // to
-                            new uint256[](totalElements), // tokenIds
-                            new uint256[](totalElements), // amounts
-                            execution.conduitKey // conduitKey
-                        );
-                    }
-
-                    // Put next batch element index on stack, then increment it.
-                    uint256 batchElementIndex = (
-                        batchElementIndices[batchIndex]++
+                // If it is the first item applied to the batch execution...
+                if (batchExecutions[batchIndex].token == address(0)) {
+                    // Determine total elements in batch and place on stack.
+                    uint256 totalElements = (
+                        batches[batchIndex].executionIndices.length
                     );
 
-                    // Update current element's batch with respective tokenId.
-                    batchExecutions[batchIndex].tokenIds[batchElementIndex] = (
-                        execution.item.identifier
-                    );
-
-                    // Retrieve execution item amount and place on the stack.
-                    uint256 amount = execution.item.amount;
-
-                    // Ensure that the amount is non-zero.
-                    _assertNonZeroAmount(amount);
-
-                    // Update current element's batch with respective amount.
-                    batchExecutions[batchIndex].amounts[batchElementIndex] = (
-                        amount
+                    // Populate all other fields using execution parameters.
+                    batchExecutions[batchIndex] = BatchExecution(
+                        execution.item.token, // token
+                        execution.offerer, // from
+                        execution.item.recipient, // to
+                        new uint256[](totalElements), // tokenIds
+                        new uint256[](totalElements), // amounts
+                        execution.conduitKey // conduitKey
                     );
                 }
-            }
 
-            // Return both the standard and batch execution arrays.
-            return (standardExecutions, batchExecutions);
+                // Put next batch element index on stack, then increment it.
+                uint256 batchElementIndex = (batchElementIndices[batchIndex]++);
+
+                // Update current element's batch with respective tokenId.
+                batchExecutions[batchIndex].tokenIds[batchElementIndex] = (
+                    execution.item.identifier
+                );
+
+                // Retrieve execution item amount and place on the stack.
+                uint256 amount = execution.item.amount;
+
+                // Ensure that the amount is non-zero.
+                _assertNonZeroAmount(amount);
+
+                // Update current element's batch with respective amount.
+                batchExecutions[batchIndex].amounts[batchElementIndex] = (
+                    amount
+                );
+            }
         }
+
+        // Return both the standard and batch execution arrays.
+        return (standardExecutions, batchExecutions);
     }
 
     /**
@@ -724,7 +704,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 for (
                     uint256 i = startIndex + 1;
                     i < considerationComponents.length;
-
+                    ++i
                 ) {
                     potentialCandidate.orderIndex = considerationComponents[i]
                         .orderIndex;
@@ -764,9 +744,6 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                             consideration,
                             receivedItem
                         );
-                    }
-                    unchecked {
-                        ++i;
                     }
                 }
             }
@@ -994,13 +971,10 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         // Allocate new empty array for each partial order in memory.
         advancedOrders = new AdvancedOrder[](totalOrders);
 
-        // Skip overflow check as the index for the loop starts at zero.
-        unchecked {
-            // Iterate over the given orders.
-            for (uint256 i = 0; i < totalOrders; ++i) {
-                // Convert to partial order (1/1 or full fill) and update array.
-                advancedOrders[i] = _convertOrderToAdvanced(orders[i]);
-            }
+        // Iterate over the given orders.
+        for (uint256 i = 0; i < totalOrders; ++i) {
+            // Convert to partial order (1/1 or full fill) and update array.
+            advancedOrders[i] = _convertOrderToAdvanced(orders[i]);
         }
 
         // Return the array of advanced orders.
@@ -1023,20 +997,17 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         // Convert the supplied leaf element from uint256 to bytes32.
         bytes32 computedHash = bytes32(leaf);
 
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Iterate over each proof element.
-            for (uint256 i = 0; i < proof.length; ++i) {
-                // Retrieve the proof element.
-                bytes32 proofElement = proof[i];
+        // Iterate over each proof element.
+        for (uint256 i = 0; i < proof.length; ++i) {
+            // Retrieve the proof element.
+            bytes32 proofElement = proof[i];
 
-                if (computedHash <= proofElement) {
-                    // Hash(current computed hash + current element of proof)
-                    computedHash = _efficientHash(computedHash, proofElement);
-                } else {
-                    // Hash(current element of proof + current computed hash)
-                    computedHash = _efficientHash(proofElement, computedHash);
-                }
+            if (computedHash <= proofElement) {
+                // Hash(current computed hash + current element of proof)
+                computedHash = _efficientHash(computedHash, proofElement);
+            } else {
+                // Hash(current element of proof + current computed hash)
+                computedHash = _efficientHash(proofElement, computedHash);
             }
         }
 
