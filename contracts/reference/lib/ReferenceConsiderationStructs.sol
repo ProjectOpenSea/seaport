@@ -19,24 +19,6 @@ struct ConsiderationItemIndicesAndValidity {
 }
 
 /**
- * @dev A struct used to hold all Items of an Order to be hashed
- */
-struct OrderToHash {
-    bytes32 typeHash;
-    address offerer;
-    address zone;
-    bytes32 offerHashes;
-    bytes32 considerationHashes;
-    OrderType orderType;
-    uint256 startTime;
-    uint256 endTime;
-    bytes32 zoneHash;
-    uint256 salt;
-    bytes32 conduitKey;
-    uint256 nonce;
-}
-
-/**
  * @dev A struct used to hold all ItemTypes/Token of a Basic Order Fulfillment
  *       used in _prepareBasicFulfillmentFromCalldata
  */

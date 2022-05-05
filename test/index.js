@@ -16208,7 +16208,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
 
-      it("Reverts when ether transfer fails (returndata)", async () => {
+      it.only(`Reverts when ether transfer fails (returndata)${
+        process.env.REFERENCE ? " — SKIPPED ON REFERENCE" : ""
+      }`, async () => {
+        if (process.env.REFERENCE) {
+          return;
+        }
+
         const recipient = await (
           await ethers.getContractFactory("ExcessReturnDataRecipient")
         ).deploy();
@@ -16596,7 +16602,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
 
-      it("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
+      it(`Reverts when 1155 token transfer reverts (via conduit, returndata)${
+        process.env.REFERENCE ? " — SKIPPED ON REFERENCE" : ""
+      }`, async () => {
+        if (process.env.REFERENCE) {
+          return;
+        }
+
         const recipient = await (
           await ethers.getContractFactory("ExcessReturnDataRecipient")
         ).deploy();
