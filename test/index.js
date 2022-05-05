@@ -2406,6 +2406,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 amount: ethers.utils.parseEther("2"),
                 recipient: `0x0000000000000000000000000000000000000001`,
               },
+              {
+                amount: ethers.utils.parseEther("3"),
+                recipient: `0x0000000000000000000000000000000000000002`,
+              },
+              {
+                amount: ethers.utils.parseEther("4"),
+                recipient: `0x0000000000000000000000000000000000000003`,
+              },
             ]
           );
 
@@ -2418,12 +2426,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             recipient: `0x0000000000000000000000000000000000000001`,
           });
 
+          order.parameters.consideration.push({
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("3"),
+            endAmount: ethers.utils.parseEther("3"),
+            recipient: `0x0000000000000000000000000000000000000002`,
+          });
+
+          order.parameters.consideration.push({
+            itemType: 0, // ETH
+            token: constants.AddressZero,
+            identifierOrCriteria: 0, // ignored for ETH
+            startAmount: ethers.utils.parseEther("4"),
+            endAmount: ethers.utils.parseEther("4"),
+            recipient: `0x0000000000000000000000000000000000000003`,
+          });
+
           await whileImpersonating(buyer.address, provider, async () => {
             await withBalanceChecks([order], 0, null, async () => {
               const tx = await marketplaceContract
                 .connect(buyer)
                 .fulfillBasicOrder(basicOrderParameters, {
-                  value: value.add(ethers.utils.parseEther("2")),
+                  value: value.add(ethers.utils.parseEther("9")),
                 });
               const receipt = await tx.wait();
               await checkExpectedEvents(receipt, [
@@ -16208,7 +16234,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
 
-      it("Reverts when ether transfer fails (returndata)", async () => {
+      it(`Reverts when ether transfer fails (returndata)${
+        process.env.REFERENCE ? " — SKIPPED ON REFERENCE" : ""
+      }`, async () => {
+        if (process.env.REFERENCE) {
+          return;
+        }
+
         const recipient = await (
           await ethers.getContractFactory("ExcessReturnDataRecipient")
         ).deploy();
@@ -17014,17 +17046,27 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         // block transfers
         await testERC20.blockTransfer(true);
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillAdvancedOrder(order, [], conduitKeyOne, { value })
-          ).to.be.revertedWith(
-            `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
-              buyer.address
-            }", "${seller.address}", ${amount.mul(1000).toString()})`
-          );
-        });
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillAdvancedOrder(order, [], conduitKeyOne, { value })
+            ).to.be.revertedWith(
+              `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
+                buyer.address
+              }", "${seller.address}", ${amount.mul(1000).toString()})`
+            );
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillAdvancedOrder(order, [], conduitKeyOne, { value })
+            ).to.be.reverted;
+          });
+        }
 
         let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 

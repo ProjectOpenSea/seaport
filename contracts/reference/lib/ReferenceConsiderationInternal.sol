@@ -40,7 +40,15 @@ import { ReferenceConsiderationInternalView } from "./ReferenceConsiderationInte
 
 import "./ReferenceConsiderationConstants.sol";
 
-import { OrderToHash, FulfillmentItemTypes } from "./ReferenceConsiderationStructs.sol";
+import { FulfillmentItemTypes, BasicFulfillmentHashes } from "./ReferenceConsiderationStructs.sol";
+
+// prettier-ignore
+import {
+    ConduitTransfer,
+    ConduitBatch1155Transfer
+} from "../../conduit/lib/ConduitStructs.sol";
+
+import { ConduitItemType } from "../../conduit/lib/ConduitEnums.sol";
 
 /**
  * @title ReferenceConsiderationInternal
@@ -118,8 +126,7 @@ contract ReferenceConsiderationInternal is
             parameters.totalOriginalAdditionalRecipients
         );
 
-        // Declare stack element for the order hash.
-        bytes32 orderHash;
+        BasicFulfillmentHashes memory hashes;
 
         // Store ItemType/Token parameters in a struct in memory to avoid stack issues.
         FulfillmentItemTypes memory fulfillmentItemTypes = FulfillmentItemTypes(
@@ -129,6 +136,15 @@ contract ReferenceConsiderationInternal is
             additionalRecipientsToken,
             offeredItemType
         );
+
+        // Create ReceivedItem for Primary Consideration
+        // Array of Received Items for use with OrderFulfilled Event
+        ReceivedItem[] memory consideration = new ReceivedItem[](
+            parameters.additionalRecipients.length + 1
+        );
+
+        // Write the offer to the Event SpentItem array
+        SpentItem[] memory offer = new SpentItem[](1);
 
         {
             /**
@@ -152,27 +168,29 @@ contract ReferenceConsiderationInternal is
              */
 
             // Load consideration item typehash from runtime and place on stack.
-            bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
+            hashes.typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
             // Create Consideration Item
-            ConsiderationItem
-                memory primaryConsiderationItem = ConsiderationItem(
+            ConsiderationItem memory primaryConsiderationItem = (
+                ConsiderationItem(
                     fulfillmentItemTypes.receivedItemType,
                     parameters.considerationToken,
                     parameters.considerationIdentifier,
                     parameters.considerationAmount,
                     parameters.considerationAmount,
                     parameters.offerer
-                );
+                )
+            );
 
             // Array of all consideration item hashes
-            bytes32[] memory considerationHashes = new bytes32[](
+            hashes.considerationHashes = new bytes32[](
                 parameters.totalOriginalAdditionalRecipients + 1
             );
+
             // Hash Contents
-            considerationHashes[0] = keccak256(
-                abi.encodePacked(
-                    typeHash,
+            hashes.considerationHashes[0] = keccak256(
+                abi.encode(
+                    hashes.typeHash,
                     primaryConsiderationItem.itemType,
                     primaryConsiderationItem.token,
                     primaryConsiderationItem.identifierOrCriteria,
@@ -182,14 +200,10 @@ contract ReferenceConsiderationInternal is
                 )
             );
 
-            // Create ReceivedItem for Primary Consideration
-            // Array of Received Items for use with OrderFulfilled Event
-            ReceivedItem[] memory consideration = new ReceivedItem[](
-                parameters.additionalRecipients.length + 1
-            );
             ReceivedItem memory additionalReceivedItem;
             ConsiderationItem memory additionalRecipientItem;
 
+            // Create Received Item
             ReceivedItem memory primaryReceivedItem = ReceivedItem(
                 fulfillmentItemTypes.receivedItemType,
                 primaryConsiderationItem.token,
@@ -197,35 +211,53 @@ contract ReferenceConsiderationInternal is
                 primaryConsiderationItem.endAmount,
                 primaryConsiderationItem.recipient
             );
-            // Add the primary consideration item to the
+            // Add the Received Item to the
             // OrderFulfilled ReceivedItem[]
             consideration[0] = primaryReceivedItem;
 
-            // Additional Recipient Handling
-            uint256 totalOriginalAdditionalRecipients = parameters
-                .totalOriginalAdditionalRecipients;
-
             for (
                 uint256 recipientCount = 0;
-                recipientCount < totalOriginalAdditionalRecipients;
+                recipientCount < parameters.additionalRecipients.length;
                 recipientCount++
             ) {
+                AdditionalRecipient memory additionalRecipient = (
+                    parameters.additionalRecipients[recipientCount]
+                );
+
+                // Create a Received Item for each additional recipients
+                additionalReceivedItem = ReceivedItem(
+                    fulfillmentItemTypes.additionalRecipientsItemType,
+                    fulfillmentItemTypes.additionalRecipientsToken,
+                    0,
+                    additionalRecipient.amount,
+                    additionalRecipient.recipient
+                );
+                // Add additonal received items to the
+                // OrderFulfilled ReceivedItem[]
+                consideration[recipientCount + 1] = additionalReceivedItem;
+
+                if (
+                    recipientCount >=
+                    parameters.totalOriginalAdditionalRecipients
+                ) {
+                    continue;
+                }
+
                 // Create a new consideration Item for each Additional Recipient
-                // Using the Primary Consideration as base.
                 additionalRecipientItem = ConsiderationItem(
                     fulfillmentItemTypes.additionalRecipientsItemType,
                     fulfillmentItemTypes.additionalRecipientsToken,
-                    primaryConsiderationItem.identifierOrCriteria,
-                    primaryConsiderationItem.startAmount,
-                    primaryConsiderationItem.endAmount,
-                    primaryConsiderationItem.recipient
+                    0,
+                    additionalRecipient.amount,
+                    additionalRecipient.amount,
+                    additionalRecipient.recipient
                 );
 
                 // Calculate the EIP712 ConsiderationItem hash for
                 // each additional recipients
-                considerationHashes[recipientCount + 1] = keccak256(
-                    abi.encodePacked(
-                        typeHash,
+                hashes.considerationHashes[recipientCount + 1] = keccak256(
+                    abi.encode(
+                        hashes.typeHash,
                         additionalRecipientItem.itemType,
                         additionalRecipientItem.token,
                         additionalRecipientItem.identifierOrCriteria,
@@ -234,22 +266,10 @@ contract ReferenceConsiderationInternal is
                         additionalRecipientItem.recipient
                     )
                 );
-
-                // Create a Received Item for each additional recipients
-                additionalReceivedItem = ReceivedItem(
-                    fulfillmentItemTypes.additionalRecipientsItemType,
-                    fulfillmentItemTypes.additionalRecipientsToken,
-                    primaryReceivedItem.identifier,
-                    primaryReceivedItem.amount,
-                    primaryReceivedItem.recipient
-                );
-                // Add additonal received items to the
-                // OrderFulfilled ReceivedItem[]
-                consideration[recipientCount + 1] = additionalReceivedItem;
             }
 
             // The considerationItems array should now contain the
-            // Primary Consideration Item along with all additional recipients.
+            // Primary Received Item along with all additional recipients.
 
             // The considerationHashes array now contains
             // all consideration Item hashes.
@@ -258,32 +278,39 @@ contract ReferenceConsiderationInternal is
             // items for OrderFulfilled Event.
 
             // Get hash of all consideration items
-            bytes32 receivedItemsHash = keccak256(
-                abi.encodePacked(considerationHashes)
+            hashes.receivedItemsHash = keccak256(
+                abi.encodePacked(hashes.considerationHashes)
             );
 
-            // Get remainder of additionalRecipients
+            // Get remainder of additionalRecipients for tips
             for (
-                uint256 additionalTips = totalOriginalAdditionalRecipients + 1;
+                uint256 additionalTips = parameters
+                    .totalOriginalAdditionalRecipients;
                 additionalTips < parameters.additionalRecipients.length;
                 additionalTips++
             ) {
+                AdditionalRecipient memory additionalRecipient = (
+                    parameters.additionalRecipients[additionalTips]
+                );
+
                 additionalReceivedItem = ReceivedItem(
                     fulfillmentItemTypes.additionalRecipientsItemType,
                     fulfillmentItemTypes.additionalRecipientsToken,
-                    primaryReceivedItem.identifier,
-                    primaryReceivedItem.amount,
-                    primaryReceivedItem.recipient
+                    0,
+                    additionalRecipient.amount,
+                    additionalRecipient.recipient
                 );
                 // Add additonal received items to the
                 // OrderFulfilled ReceivedItem[]
                 consideration[additionalTips + 1] = additionalReceivedItem;
             }
+        }
 
+        {
             // Now let's handle the offer side.
 
             // Place offer item typehash on the stack.
-            typeHash = _OFFER_ITEM_TYPEHASH;
+            hashes.typeHash = _OFFER_ITEM_TYPEHASH;
 
             // Create Spent Item
             SpentItem memory offerItem = SpentItem(
@@ -293,55 +320,44 @@ contract ReferenceConsiderationInternal is
                 parameters.offerAmount
             );
 
-            // Write the offer to the Event SpentItem array
-            SpentItem[] memory offer = new SpentItem[](1);
             offer[0] = offerItem;
 
-            bytes32 offerItemHash = keccak256(
-                abi.encodePacked(
-                    typeHash,
-                    offerItem.itemType,
-                    offerItem.token,
-                    offerItem.identifier,
-                    offerItem.amount,
-                    offerItem.amount //Assembly uses OfferItem instead of SpentItem
+            // Get the hash of the Spent Item, treated as an Offer Item.
+            bytes32[1] memory offerItemHashes = [
+                keccak256(
+                    abi.encode(
+                        hashes.typeHash,
+                        offerItem.itemType,
+                        offerItem.token,
+                        offerItem.identifier,
+                        offerItem.amount,
+                        offerItem.amount //Assembly uses OfferItem instead of SpentItem
+                    )
                 )
-            );
+            ];
 
-            bytes32[1] memory offerItemHashes = [offerItemHash];
-
-            bytes32 offerItemsHash = keccak256(
+            // Get hash of all Spent Items
+            hashes.offerItemsHash = keccak256(
                 abi.encodePacked(offerItemHashes)
             );
+        }
 
+        {
             // Create the OrderComponent in order to derive
             // the orderHash
 
             // Load order typehash from runtime code and place on stack.
-            typeHash = _ORDER_TYPEHASH;
+            hashes.typeHash = _ORDER_TYPEHASH;
 
-            // Read offerer's current nonce from storage and place on the stack.
-            uint256 nonce = _nonces[parameters.offerer];
-            OrderToHash memory orderToHash = OrderToHash(
-                typeHash,
-                parameters.offerer,
-                parameters.zone,
-                offerItemsHash,
-                receivedItemsHash,
-                fulfillmentItemTypes.orderType,
-                parameters.startTime,
-                parameters.endTime,
-                parameters.zoneHash,
-                parameters.salt,
-                parameters.offererConduitKey,
-                nonce
+            hashes.orderHash = _hashOrder(
+                hashes,
+                parameters,
+                fulfillmentItemTypes
             );
-
-            orderHash = keccak256(abi.encode(orderToHash));
 
             // Emit Event
             emit OrderFulfilled(
-                orderHash,
+                hashes.orderHash,
                 parameters.offerer,
                 parameters.zone,
                 msg.sender,
@@ -351,18 +367,44 @@ contract ReferenceConsiderationInternal is
         }
         // Determine whether order is restricted and, if so, that it is valid.
         _assertRestrictedBasicOrderValidity(
-            orderHash,
+            hashes.orderHash,
             parameters.zoneHash,
-            fulfillmentItemTypes.orderType,
+            orderType,
             parameters.offerer,
             parameters.zone
         );
 
         // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(
-            orderHash,
+            hashes.orderHash,
             parameters.offerer,
             parameters.signature
+        );
+    }
+
+    function _hashOrder(
+        BasicFulfillmentHashes memory hashes,
+        BasicOrderParameters calldata parameters,
+        FulfillmentItemTypes memory fulfillmentItemTypes
+    ) internal view returns (bytes32 orderHash) {
+        // Read offerer's current nonce from storage and place on the stack.
+        uint256 nonce = _nonces[parameters.offerer];
+
+        orderHash = keccak256(
+            abi.encode(
+                hashes.typeHash,
+                parameters.offerer,
+                parameters.zone,
+                hashes.offerItemsHash,
+                hashes.receivedItemsHash,
+                fulfillmentItemTypes.orderType,
+                parameters.startTime,
+                parameters.endTime,
+                parameters.zoneHash,
+                parameters.salt,
+                parameters.offererConduitKey,
+                nonce
+            )
         );
     }
 
@@ -1058,7 +1100,6 @@ contract ReferenceConsiderationInternal is
                         true // round up
                     )
                 );
-
                 // TODO: Stack too deep
                 //considerationItem.startAmount = amount;
                 //considerationItem.endAmount = uint256(uint160(address(considerationItem.recipient)));
