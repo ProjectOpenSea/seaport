@@ -29,9 +29,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     function testAdvancedSingleERC721(
         TestAdvancedOrder memory testAdvancedOrder
     ) public {
-        vm.record();
         _advancedSingleERC721(consideration, testAdvancedOrder);
-        _resetTokensAndEthForTestAccounts();
         _advancedSingleERC721(
             Consideration(address(referenceConsideration)),
             testAdvancedOrder
@@ -41,7 +39,12 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     function _advancedSingleERC721(
         Consideration _consideration,
         TestAdvancedOrder memory testAdvancedOrder
-    ) internal onlyPayable(testAdvancedOrder.zone) topUp {
+    )
+        internal
+        onlyPayable(testAdvancedOrder.zone)
+        topUp
+        resetTokenBalancesBetweenRuns
+    {
         vm.assume(
             testAdvancedOrder.ethAmts[0] > 0 &&
                 testAdvancedOrder.ethAmts[1] > 0 &&
@@ -135,19 +138,5 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             "ending balance of this",
             test721_1.balanceOf(address(this))
         );
-    }
-
-    function getMaxConsiderationValue(
-        ConsiderationItem[] memory considerationItems
-    ) internal pure returns (uint256) {
-        uint256 value = 0;
-        for (uint256 i = 0; i < considerationItems.length; i++) {
-            uint256 amount = considerationItems[i].startAmount >
-                considerationItems[i].endAmount
-                ? considerationItems[i].startAmount
-                : considerationItems[i].endAmount;
-            value += amount;
-        }
-        return value;
     }
 }

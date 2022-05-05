@@ -3,7 +3,7 @@
 auto_detect_solc = true
 optimizer = true
 optimizer_runs = 200
-#via_ir = true
+via_ir = true
 fuzz_runs = 5000
 src = 'contracts'
 out = 'out'

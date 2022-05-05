@@ -3,6 +3,8 @@ pragma solidity 0.8.13;
 
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
 import { ERC20 } from "@rari-capital/solmate/src/tokens/ERC20.sol";
+import { ERC721 } from "@rari-capital/solmate/src/tokens/ERC721.sol";
+import { ERC1155 } from "@rari-capital/solmate/src/tokens/ERC1155.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
@@ -11,6 +13,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
+import { ConsiderationItem } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -40,6 +43,11 @@ contract BaseOrderTest is
     TestERC1155 internal test1155_1;
     TestERC1155 internal test1155_2;
     TestERC1155 internal test1155_3;
+
+    address[] allTokens;
+    ERC20[] erc20s;
+
+    address[] accounts;
 
     uint256 internal globalTokenId;
 
@@ -88,6 +96,18 @@ contract BaseOrderTest is
         allocateTokensAndApprovals(alice, uint128(MAX_INT));
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
+        allTokens = [
+            address(token1),
+            address(token2),
+            address(token3),
+            address(test721_1),
+            address(test721_2),
+            address(test721_3),
+            address(test1155_1),
+            address(test1155_2),
+            address(test1155_3)
+        ];
+        accounts = [alice, bob, cal, address(this)];
     }
 
     /**
@@ -169,24 +189,18 @@ contract BaseOrderTest is
         );
     }
 
-    function _reset721Mint(
-        TestERC721 token,
-        uint256 tokenId,
-        address finalOwner
-    ) internal {
-        address token721 = address(token);
-        // ownerOf(uint256)
-        stdstore
-            .target(token721)
-            .sig("ownerOf(uint256)")
-            .with_key(tokenId)
-            .checked_write(address(0));
-        // balanceOf(address)
-        stdstore
-            .target(token721)
-            .sig("balanceOf(address)")
-            .with_key(finalOwner)
-            .checked_write(uint256(0));
+    function getMaxConsiderationValue(
+        ConsiderationItem[] memory considerationItems
+    ) internal pure returns (uint256) {
+        uint256 value = 0;
+        for (uint256 i = 0; i < considerationItems.length; i++) {
+            uint256 amount = considerationItems[i].startAmount >
+                considerationItems[i].endAmount
+                ? considerationItems[i].startAmount
+                : considerationItems[i].endAmount;
+            value += amount;
+        }
+        return value;
     }
 
     /**
