@@ -157,9 +157,97 @@ contract BaseOrderTest is
             "Consideration approved for all tokens from",
             _owner
         );
-        emit log_named_address(
-            "referenceConsideration approved for all tokens from",
-            _owner
-        );
+    }
+
+    function _reset721Mint(
+        TestERC721 token,
+        uint256 tokenId,
+        address finalOwner
+    ) internal {
+        address token721 = address(token);
+        // ownerOf(uint256)
+        stdstore
+            .target(token721)
+            .sig("ownerOf(uint256)")
+            .with_key(tokenId)
+            .checked_write(address(0));
+        // balanceOf(address)
+        stdstore
+            .target(token721)
+            .sig("balanceOf(address)")
+            .with_key(finalOwner)
+            .checked_write(uint256(0));
+    }
+
+    /**
+     * @dev reset written token storage slots to 0 and reinitialize uint128(MAX_INT) erc20 balances for 3 test accounts and this
+     */
+    function _resetTokensAndEthForTestAccounts() internal {
+        _resetTokensStorage();
+        _restoreERC20Balances();
+        _restoreEthBalances();
+    }
+
+    function _restoreEthBalances() internal {
+        vm.deal(address(this), uint128(MAX_INT));
+        vm.deal(alice, uint128(MAX_INT));
+        vm.deal(bob, uint128(MAX_INT));
+        vm.deal(cal, uint128(MAX_INT));
+    }
+
+    function _resetTokensStorage() internal {
+        _resetStorage(address(token1));
+        _resetStorage(address(token2));
+        _resetStorage(address(token3));
+        _resetStorage(address(test721_1));
+        _resetStorage(address(test721_2));
+        _resetStorage(address(test721_3));
+        _resetStorage(address(test1155_1));
+        _resetStorage(address(test1155_2));
+        _resetStorage(address(test1155_3));
+    }
+
+    /**
+     * @dev restore erc20 balances for all accounts
+     */
+    function _restoreERC20Balances() internal {
+        _restoreERC20BalancesForAddress(alice);
+        _restoreERC20BalancesForAddress(bob);
+        _restoreERC20BalancesForAddress(cal);
+        _restoreERC20BalancesForAddress(address(this));
+    }
+
+    /**
+     * @dev restore all erc20 balances for a given address
+     */
+    function _restoreERC20BalancesForAddress(address _who) internal {
+        _restoreERC20Balance(address(token1), _who);
+        _restoreERC20Balance(address(token2), _who);
+        _restoreERC20Balance(address(token3), _who);
+    }
+
+    /**
+     * @dev reset all storage written at an address thus far to 0; will overwrite totalSupply()for ERC20s but that should be fine
+     *      with the goal of resetting the balances and owners of tokens - but note: should be careful about approvals, etc
+     *
+     *      note: must be called in conjunction with vm.record()
+     */
+    function _resetStorage(address _addr) internal {
+        (, bytes32[] memory writeSlots) = vm.accesses(_addr);
+        for (uint256 i = 0; i < writeSlots.length; i++) {
+            bytes32 slot = writeSlots[i];
+            vm.store(_addr, slot, bytes32(0));
+        }
+    }
+
+    /**
+     * @dev reset token balance for an address to uint128(MAX_INT)
+     */
+    function _restoreERC20Balance(address _token, address _who) internal {
+        stdstore
+            .target(_token)
+            .sig("balanceOf(address)")
+            .with_key(_who)
+            .checked_write(uint128(MAX_INT));
     }
 }
