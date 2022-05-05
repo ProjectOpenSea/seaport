@@ -71,6 +71,30 @@ contract ReferenceConsiderationInternal is
     {}
 
     /**
+     * @dev Modifier to check that the sentinal value for the reentrancy guard is not currently set,
+            and to set it to the sentinal value for the duration of the function call.
+     */
+    modifier nonReentrant() {
+        if (_reentrancyGuard != _NOT_ENTERED) {
+            revert NoReentrantCalls();
+        }
+        _reentrancyGuard = _ENTERED;
+        _;
+        _reentrancyGuard = _NOT_ENTERED;
+    }
+
+    /**
+     * @dev Modifier to only check that the sentinal value for the reentrancy guard is not currently set
+     *      by a previous call
+     */
+    modifier notEntered() {
+        if (_reentrancyGuard == _ENTERED) {
+            revert NoReentrantCalls();
+        }
+        _;
+    }
+
+    /**
      * @dev Internal function to prepare fulfillment of a basic order with
      *      manual calldata and memory access. This calculates the order hash,
      *      emits an OrderFulfilled event, and asserts basic order validity.
@@ -106,9 +130,6 @@ contract ReferenceConsiderationInternal is
         address additionalRecipientsToken,
         ItemType offeredItemType
     ) internal {
-        // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
-
         // Ensure current timestamp falls between order start time and end time.
         _verifyTime(parameters.startTime, parameters.endTime, true);
 
@@ -924,9 +945,6 @@ contract ReferenceConsiderationInternal is
         CriteriaResolver[] memory criteriaResolvers,
         bytes32 fulfillerConduitKey
     ) internal returns (bool) {
-        // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
-
         // Declare empty bytes32 array (unused, will remain empty).
         bytes32[] memory priorOrderHashes;
 
@@ -970,9 +988,6 @@ contract ReferenceConsiderationInternal is
             orderParameters.offer,
             orderParameters.consideration
         );
-
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
 
         return true;
     }
@@ -1212,9 +1227,6 @@ contract ReferenceConsiderationInternal is
         bool revertOnInvalid,
         uint256 maximumFulfilled
     ) internal {
-        // Ensure this function cannot be triggered during a reentrant call.
-        _setReentrancyGuard();
-
         // Read length of orders array and place on the stack.
         uint256 totalOrders = advancedOrders.length;
 
@@ -1875,9 +1887,6 @@ contract ReferenceConsiderationInternal is
             _transferEth(payable(msg.sender), etherRemaining);
         }
 
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
-
         // Return arrays with available orders and triggered executions.
         return (availableOrders, standardExecutions, batchExecutions);
     }
@@ -2222,9 +2231,6 @@ contract ReferenceConsiderationInternal is
             // Transfer remaining Ether to the caller.
             _transferEth(payable(msg.sender), etherRemaining - amount);
         }
-
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
     }
 
     /**
@@ -2276,22 +2282,6 @@ contract ReferenceConsiderationInternal is
 
         // Transfer ERC20 token amount (from account must have proper approval).
         _transferERC20(erc20Token, from, to, amount, conduitKey);
-
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
-    }
-
-    /**
-     * @dev Internal function to ensure that the sentinel value for the
-     *      reentrancy guard is not currently set and, if not, to set the
-     *      sentinel value for the reentrancy guard.
-     */
-    function _setReentrancyGuard() internal {
-        // Ensure that the reentrancy guard is not already set.
-        _assertNonReentrant();
-
-        // Set the reentrancy guard.
-        _reentrancyGuard = _ENTERED;
     }
 
     /**
