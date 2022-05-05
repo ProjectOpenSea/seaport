@@ -825,6 +825,39 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     }
 
     /**
+     * @notice Retrieve the order digest for a given order.
+     *
+     * @param order The components of the order.
+     *
+     * @return digest The order digest.
+     */
+    function getOrderDigest(OrderComponents memory order)
+        external
+        view
+        returns (bytes32 digest)
+    {
+        // Derive order hash by supplying order parameters along with the nonce.
+        // prettier-ignore
+        bytes32 orderHash = _getOrderHash(
+            OrderParameters(
+                order.offerer,
+                order.zone,
+                order.offer,
+                order.consideration,
+                order.orderType,
+                order.startTime,
+                order.endTime,
+                order.zoneHash,
+                order.salt,
+                order.conduit,
+                order.consideration.length
+            ),
+            order.nonce
+        );
+        digest = _hashDigest(_domainSeparator(), orderHash);
+    }
+
+    /**
      * @notice Retrieve the status of a given order by hash, including whether
      *         the order has been cancelled or validated and the fraction of the
      *         order that has been filled.

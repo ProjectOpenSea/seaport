@@ -157,6 +157,25 @@ const createFulfillment = (overrides) => ({
   considerationComponents: [{ orderIndex: 0, itemIndex: 0 }],
 });
 
+const signOrder = async (overrides, signer = wallets[0]) => {
+  const order = createOrderComponents(overrides.parameters);
+  order.offerer = signer.address;
+  const domain = await Consideration.DOMAIN_SEPARATOR();
+  const hash = await getOrderHash(order);
+  const digest = eth.utils.keccak256(
+    eth.utils.hexConcat(["0x1901", domain, hash])
+  );
+  const trueDigest = await Consideration.getOrderDigest(order);
+  if (digest !== trueDigest) {
+    throw new Error(`Error: digests don't match. ${digest} !== ${trueDigest}`);
+  }
+  // UNSAFE SIGNATURE, we should prob use _signTypedData here instead..
+  const sig = new eth.utils.SigningKey(signer.privateKey).signDigest(digest);
+  const signature = eth.utils.hexConcat([sig.r, sig.s, sig.v]);
+  log(`Signature is ${eth.utils.hexDataLength(signature)} bytes long`);
+  return { parameters: order, signature };
+};
+
 const helpers = {
   mintERC20,
   mintERC721,
@@ -319,7 +338,7 @@ const cancel = async (overrides, signer = wallets[0]) => {
 // Validates the sale of an NFT in exchange for some tokens by default
 // to validate an advanced order: use keccak256(nftId) for the identifierOrCriteria
 const validate = async (overrides, signer = wallets[0]) => {
-  const orders = (overrides?.orders || [{}]).map(createOrder);
+  const orders = (overrides || [{}]).map(createOrder);
   log(`Minting NFTs for orders: ${JSON.stringify(orders, null, 2)}`);
   for (let i = 0; i < orders.length; i++) {
     const order = orders[i];
@@ -350,7 +369,7 @@ const incrementNonce = async (signer = wallets[0]) => {
 const getOrderHash = async (overrides, signer = wallets[0]) => {
   const order = createOrderComponents(overrides);
   log(`Getting order hash for: ${JSON.stringify(order, null, 2)}`);
-  await Consideration.connect(signer)
+  return await Consideration.connect(signer)
     .getOrderHash(order)
     .then((hash) => {
       log(`Order Hash: ${hash}`);
@@ -372,7 +391,6 @@ test.validate = async () => {
   const orders = [
     {
       parameters: {
-        offerer: seller.address,
         offer: [
           { itemType: 4, identifierOrCriteria: nftId1 },
           { itemType: 4, identifierOrCriteria: nftId2 },
@@ -380,11 +398,8 @@ test.validate = async () => {
         consideration: [{ startAmount: 2, endAmount: 2 }],
       },
     },
-  ];
-  const hash = await getOrderHash(orders[0]);
-  const signature = await seller.signMessage(hash);
-  orders[0].signature = signature;
-  log(`Adding signature to order: ${signature}`);
+  ].map(createOrder);
+  orders[0] = await signOrder(orders[0], seller);
   await validate(orders, rando);
 };
 
