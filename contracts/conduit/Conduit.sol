@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-// prettier-ignore
-import {
-    ERC20Interface,
-    ERC721Interface,
-    ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
-
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 import { ConduitItemType } from "./lib/ConduitEnums.sol";

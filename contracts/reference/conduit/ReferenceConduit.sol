@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-// prettier-ignore
-import {
-    ERC20Interface,
-    ERC721Interface,
-    ERC1155Interface
-} from "../../interfaces/AbridgedTokenInterfaces.sol";
-
 import { ConduitInterface } from "../../interfaces/ConduitInterface.sol";
 
 import { ConduitItemType } from "../../conduit/lib/ConduitEnums.sol";
@@ -49,17 +42,12 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         uint256 totalStandardTransfers = transfers.length;
 
         // Iterate over each standard execution.
-        for (uint256 i = 0; i < totalStandardTransfers; ) {
+        for (uint256 i = 0; i < totalStandardTransfers; i++) {
             // Retrieve the transfer in question.
             ConduitTransfer calldata standardTransfer = transfers[i];
 
             // Perform the transfer.
             _transfer(standardTransfer);
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
         }
 
         return this.execute.selector;
@@ -76,33 +64,23 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         uint256 totalStandardTransfers = standardTransfers.length;
 
         // Iterate over each standard transfer.
-        for (uint256 i = 0; i < totalStandardTransfers; ) {
+        for (uint256 i = 0; i < totalStandardTransfers; i++) {
             // Retrieve the transfer in question.
             ConduitTransfer calldata standardTransfer = standardTransfers[i];
 
             // Perform the transfer.
             _transfer(standardTransfer);
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
         }
 
         uint256 totalBatchTransfers = batchTransfers.length;
 
         // Iterate over each batch transfer.
-        for (uint256 i = 0; i < totalBatchTransfers; ) {
+        for (uint256 i = 0; i < totalBatchTransfers; i++) {
             // Retrieve the batch transfer in question.
             ConduitBatch1155Transfer calldata batchTransfer = batchTransfers[i];
 
             // Perform the batch transfer.
             _batchTransferERC1155(batchTransfer);
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
         }
 
         return this.execute.selector;
