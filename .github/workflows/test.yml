@@ -87,12 +87,6 @@ jobs:
         with:
           version: nightly
 
-      - name: Install npm lib dependencies
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node-version }}
-      - run: yarn install
-
       - name: Install forge dependencies
         run: forge install
 
