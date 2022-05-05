@@ -100,36 +100,23 @@ contract ReferenceConsideration is
         returns (bool)
     {
         // Declare enums for order type & route to extract from basicOrderType.
-        BasicOrderRouteType route;
-        OrderType orderType;
+        BasicOrderRouteType route = BasicOrderRouteType(
+            uint8(parameters.basicOrderType) / 4
+        );
+
+        OrderType orderType = OrderType(uint8(parameters.basicOrderType) % 4);
 
         // Declare additional recipient item type to derive from the route type.
-        ItemType additionalRecipientsItemType;
-
-        // Utilize assembly to extract the order type and the basic order route.
-        assembly {
-            // Mask all but 2 least-significant bits to derive the order type.
-            orderType := and(calldataload(0x124), 3)
-
-            // Divide basicOrderType by four to derive the route.
-            route := div(calldataload(0x124), 4)
-
-            // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
-            additionalRecipientsItemType := gt(route, 1)
-        }
+        ItemType additionalRecipientsItemType = ItemType(
+            uint8(route) > 1 ? 1 : 0
+        );
 
         {
             // Declare temporary variable for enforcing payable status.
-            bool correctPayableStatus;
-
-            // Utilize assembly to compare the route to the callvalue.
-            assembly {
-                // route 0 and 1 are payable, otherwise route is not payable.
-                correctPayableStatus := eq(
-                    additionalRecipientsItemType,
-                    iszero(callvalue())
-                )
-            }
+            bool correctPayableStatus = (msg.value != 0 &&
+                additionalRecipientsItemType == ItemType.NATIVE) ||
+                (msg.value == 0 &&
+                    additionalRecipientsItemType == ItemType.ERC20);
 
             // Revert if msg.value has not been supplied as part of payable
             // routes or has been supplied as part of non-payable routes.
@@ -139,37 +126,25 @@ contract ReferenceConsideration is
         }
 
         // Declare more arguments that will be derived from route and calldata.
-        address additionalRecipientsToken;
-        ItemType receivedItemType;
-        ItemType offeredItemType;
+        address additionalRecipientsToken = uint8(route) > 3
+            ? parameters.offerToken
+            : parameters.considerationToken;
 
-        // Utilize assembly to retrieve function arguments and cast types.
-        assembly {
-            // Determine if offered item type == additional recipient item type.
-            let offerTypeIsAdditionalRecipientsType := gt(route, 3)
+        ItemType receivedItemType = uint8(route) > 3
+            ? ItemType(uint8(route) - 2)
+            : (
+                route == BasicOrderRouteType.ERC20_TO_ERC721
+                    ? ItemType.ERC20
+                    : ItemType.NATIVE
+            );
 
-            // If route > 3 additionalRecipientsToken is at 0xc4 else 0x24
-            additionalRecipientsToken := calldataload(
-                add(0x24, mul(0xa0, offerTypeIsAdditionalRecipientsType))
-            )
-
-            // If route > 2, receivedItemType is route - 2. If route is 2, then
-            // receivedItemType is ERC20 (1). Otherwise, it is Eth (0).
-            receivedItemType := add(
-                mul(sub(route, 2), gt(route, 2)),
-                eq(route, 2)
-            )
-
-            // If route > 3, offeredItemType is ERC20 (1). If route is 2 or 3,
-            // offeredItemType = route. If route is 0 or 1, it is route + 2.
-            offeredItemType := sub(
-                add(route, mul(iszero(additionalRecipientsItemType), 2)),
-                mul(
-                    offerTypeIsAdditionalRecipientsType,
-                    add(receivedItemType, 1)
-                )
-            )
-        }
+        ItemType offeredItemType = uint8(route) > 3
+            ? ItemType.ERC20
+            : (
+                uint8(route) > 1
+                    ? ItemType(uint8(route))
+                    : ItemType(uint8(route) + 2)
+            );
 
         // Derive & validate order using parameters and update order status.
         _prepareBasicFulfillmentFromCalldata(
@@ -185,13 +160,9 @@ contract ReferenceConsideration is
         address payable offerer = parameters.offerer;
 
         // Declare conduitKey argument used by transfer functions.
-        bytes32 conduitKey;
-
-        // Utilize assembly to derive conduit (if relevant) based on route.
-        assembly {
-            // use offerer conduit for routes 0-3, fulfiller conduit otherwise.
-            conduitKey := calldataload(add(0x1c4, mul(gt(route, 3), 0x20)))
-        }
+        bytes32 conduitKey = uint8(route) > 3
+            ? parameters.fulfillerConduitKey
+            : parameters.offererConduitKey;
 
         // Transfer tokens based on the route.
         if (route == BasicOrderRouteType.ETH_TO_ERC721) {
