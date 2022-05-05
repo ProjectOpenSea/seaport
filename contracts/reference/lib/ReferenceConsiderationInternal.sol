@@ -71,20 +71,16 @@ contract ReferenceConsiderationInternal is
     {}
 
     /**
-     * @dev Modifier to check that the sentinal value for the reentrancy guard is not currently set,
-            and to set it to the sentinal value for the duration of the function call.
+     * @dev Modifier to set the reentrancy guard sentinal value for the duration of the call
      */
     modifier nonReentrant() {
-        if (_reentrancyGuard != _NOT_ENTERED) {
-            revert NoReentrantCalls();
-        }
         _reentrancyGuard = _ENTERED;
         _;
         _reentrancyGuard = _NOT_ENTERED;
     }
 
     /**
-     * @dev Modifier to only check that the sentinal value for the reentrancy guard is not currently set
+     * @dev Modifier to check that the sentinal value for the reentrancy guard is not currently set
      *      by a previous call
      */
     modifier notEntered() {

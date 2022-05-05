@@ -92,6 +92,7 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
         nonReentrant
         returns (bool)
     {
@@ -328,6 +329,7 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
         nonReentrant
         returns (bool)
     {
@@ -380,7 +382,7 @@ contract ReferenceConsideration is
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) external payable override nonReentrant returns (bool) {
+    ) external payable override notEntered nonReentrant returns (bool) {
         // Validate and fulfill the order.
         return
             _validateAndFulfillAdvancedOrder(
@@ -446,6 +448,7 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
         nonReentrant
         returns (
             bool[] memory availableOrders,
@@ -540,6 +543,7 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
         nonReentrant
         returns (
             bool[] memory availableOrders,
@@ -593,6 +597,7 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
         nonReentrant
         returns (
             Execution[] memory standardExecutions,
@@ -663,6 +668,7 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
         nonReentrant
         returns (
             Execution[] memory standardExecutions,
@@ -694,6 +700,7 @@ contract ReferenceConsideration is
         external
         override
         notEntered
+        nonReentrant
         returns (bool)
     {
         address offerer;
