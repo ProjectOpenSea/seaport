@@ -468,7 +468,7 @@ contract FulfillOrderTest is BaseOrderTest {
             toErc721Struct.zoneHash,
             toErc721Struct.salt,
             conduitKey,
-            considerationItems.length
+            considerationItems.length - 1
         );
 
         _consideration.fulfillOrder{
