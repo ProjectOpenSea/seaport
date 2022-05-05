@@ -30,7 +30,10 @@ import {
     BatchExecution
 } from "../lib/ConsiderationStructs.sol";
 
-import { ReferenceConsiderationInternal } from "./lib/ReferenceConsiderationInternal.sol";
+// prettier-ignore
+import {
+    ReferenceConsiderationInternal
+} from "./lib/ReferenceConsiderationInternal.sol";
 
 /**
  * @title ReferenceConsideration
