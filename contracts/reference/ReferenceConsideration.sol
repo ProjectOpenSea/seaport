@@ -130,7 +130,7 @@ contract ReferenceConsideration is
             ? parameters.offerToken
             : parameters.considerationToken;
 
-        ItemType receivedItemType = uint8(route) > 3
+        ItemType receivedItemType = uint8(route) > 2
             ? ItemType(uint8(route) - 2)
             : (
                 route == BasicOrderRouteType.ERC20_TO_ERC721
