@@ -16208,7 +16208,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
 
-      it.only(`Reverts when ether transfer fails (returndata)${
+      it(`Reverts when ether transfer fails (returndata)${
         process.env.REFERENCE ? " — SKIPPED ON REFERENCE" : ""
       }`, async () => {
         if (process.env.REFERENCE) {
