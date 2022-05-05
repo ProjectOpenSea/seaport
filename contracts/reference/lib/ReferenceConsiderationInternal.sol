@@ -40,7 +40,6 @@ import { ReferenceConsiderationInternalView } from "./ReferenceConsiderationInte
 
 import "./ReferenceConsiderationConstants.sol";
 
-
 import { OrderToHash, FulfillmentItemTypes } from "./ReferenceConsiderationStructs.sol";
 
 // prettier-ignore
