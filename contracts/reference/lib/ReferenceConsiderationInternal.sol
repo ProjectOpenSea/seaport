@@ -1675,21 +1675,19 @@ contract ReferenceConsiderationInternal is
             // Perform the token transfer directly.
             _performERC20Transfer(token, from, to, amount);
         } else {
-            // Perform the call to the conduit.
-            _callConduit(
-                conduitKey,
-                abi.encodeWithSelector(
-                    ConduitInterface.execute.selector,
-                    uint256(0x20), // array offset
-                    uint256(1), // number
-                    uint256(1), // ConduitItemType.ERC20
-                    token,
-                    from,
-                    to,
-                    uint256(0), // no identifier
-                    amount
-                )
+            ConduitTransfer[] memory transfers = (new ConduitTransfer[](1));
+
+            transfers[0] = ConduitTransfer(
+                ConduitItemType.ERC20,
+                token,
+                from,
+                to,
+                0,
+                amount
             );
+
+            // Perform the call to the conduit.
+            ConduitInterface(_getConduit(conduitKey)).execute(transfers);
         }
     }
 
@@ -1728,21 +1726,19 @@ contract ReferenceConsiderationInternal is
             // Perform transfer via the token contract directly.
             _performERC721Transfer(token, from, to, identifier);
         } else {
-            // Perform the call to the conduit.
-            _callConduit(
-                conduitKey,
-                abi.encodeWithSelector(
-                    ConduitInterface.execute.selector,
-                    uint256(0x20), // array offset
-                    uint256(1), // number
-                    uint256(2), // ConduitItemType.ERC721
-                    token,
-                    from,
-                    to,
-                    identifier,
-                    amount
-                )
+            ConduitTransfer[] memory transfers = (new ConduitTransfer[](1));
+
+            transfers[0] = ConduitTransfer(
+                ConduitItemType.ERC721,
+                token,
+                from,
+                to,
+                identifier,
+                amount
             );
+
+            // Perform the call to the conduit.
+            ConduitInterface(_getConduit(conduitKey)).execute(transfers);
         }
     }
 
@@ -1779,21 +1775,19 @@ contract ReferenceConsiderationInternal is
             // Perform transfer via the token contract directly.
             _performERC1155Transfer(token, from, to, identifier, amount);
         } else {
-            // Perform the call to the conduit.
-            _callConduit(
-                conduitKey,
-                abi.encodeWithSelector(
-                    ConduitInterface.execute.selector,
-                    uint256(0x20), // array offset
-                    uint256(1), // number
-                    uint256(3), // ConduitItemType.ERC1155
-                    token,
-                    from,
-                    to,
-                    identifier,
-                    amount
-                )
+            ConduitTransfer[] memory transfers = (new ConduitTransfer[](1));
+
+            transfers[0] = ConduitTransfer(
+                ConduitItemType.ERC1155,
+                token,
+                from,
+                to,
+                identifier,
+                amount
             );
+
+            // Perform the call to the conduit.
+            ConduitInterface(_getConduit(conduitKey)).execute(transfers);
         }
     }
 
@@ -1822,135 +1816,33 @@ contract ReferenceConsiderationInternal is
             // Perform transfer via the token contract directly.
             _performERC1155BatchTransfer(token, from, to, tokenIds, amounts);
         } else {
-            uint256 totalTokenIds = tokenIds.length;
-            uint256 tokenWords = totalTokenIds * 32;
-            bytes memory callData = new bytes(388 + 64 * totalTokenIds);
-            bytes4 selector = ConduitInterface.executeWithBatch1155.selector;
-            assembly {
-                mstore(add(callData, 0x20), selector)
-                mstore(add(callData, 0x24), 0x40)
-                mstore(add(callData, 0x44), 0x60)
-                mstore(add(callData, 0x64), 0)
-                mstore(add(callData, 0x84), 1)
-                mstore(add(callData, 0xa4), 0x20)
-                mstore(add(callData, 0xc4), token)
-                mstore(add(callData, 0xe4), from)
-                mstore(add(callData, 0x104), to)
-                mstore(add(callData, 0x124), 0xa0)
-                mstore(add(callData, 0x144), add(0xc0, tokenWords))
-                mstore(add(callData, 0x164), totalTokenIds)
-                mstore(add(callData, add(0x184, tokenWords)), totalTokenIds)
-                for {
-                    let i := 0
-                } lt(i, tokenWords) {
-                    i := add(i, 0x20)
-                } {
-                    mstore(
-                        add(callData, add(0x184, i)),
-                        mload(add(add(0x20, tokenIds), i))
-                    )
-                    mstore(
-                        add(callData, add(0x1e4, i)),
-                        mload(add(add(0x20, amounts), i))
-                    )
-                }
-            }
+            ConduitBatch1155Transfer[] memory batchTransfers = (
+                new ConduitBatch1155Transfer[](1)
+            );
+
+            batchTransfers[0] = ConduitBatch1155Transfer(
+                token,
+                from,
+                to,
+                tokenIds,
+                amounts
+            );
 
             // Perform the call to the conduit.
-            _callConduit(conduitKey, callData);
+            ConduitInterface(_getConduit(conduitKey)).executeWithBatch1155(
+                new ConduitTransfer[](0),
+                batchTransfers
+            );
         }
     }
 
-    /**
-     * @dev Internal function to trigger a call to a conduit contract. This call
-     *      will transfer a single ERC20, ERC721, or ERC1155 item.
-     *
-     * @param conduitKey A bytes32 value indicating what corresponding conduit,
-     *                   if any, to source token approvals from.
-     * @param callData   The calldata to supply when calling the conduit.
-     *
-     * @return success The status of the call to the proxy.
-     */
-    function _callConduit(bytes32 conduitKey, bytes memory callData)
+    function _getConduit(bytes32 conduitKey)
         internal
-        returns (bool success)
+        returns (address conduit)
     {
-        // Derive the address of the conduit using the conduit key.
-        address conduit = _deriveConduit(conduitKey);
+        conduit = _deriveConduit(conduitKey);
 
-        // Perform the call to the conduit.
-        (success, ) = conduit.call(callData);
-
-        // If the call failed...
-        if (!success) {
-            // Pass along whatever revert reason was given by the conduit. Note
-            // that the conduit will not return unreasonably large returndata.
-            assembly {
-                // If it returned a message, bubble it up as long as sufficient
-                // gas remains to do so:
-                if returndatasize() {
-                    // Ensure that sufficient gas is available to copy
-                    // returndata while expanding memory where necessary. Start
-                    // by computing word size of returndata & allocated memory.
-                    let returnDataWords := div(returndatasize(), 0x20)
-
-                    // Note: use the free memory pointer in place of msize() to
-                    // work around a Yul warning that prevents accessing msize
-                    // directly when the IR pipeline is activated.
-                    let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
-
-                    // Next, compute the cost of the returndatacopy.
-                    let cost := mul(3, returnDataWords)
-
-                    // Then, compute cost of new memory allocation.
-                    if gt(returnDataWords, msizeWords) {
-                        cost := add(
-                            cost,
-                            add(
-                                mul(sub(returnDataWords, msizeWords), 3),
-                                div(
-                                    sub(
-                                        mul(returnDataWords, returnDataWords),
-                                        mul(msizeWords, msizeWords)
-                                    ),
-                                    0x200
-                                )
-                            )
-                        )
-                    }
-
-                    // Finally, add a small constant and compare to gas
-                    // remaining; bubble up the revert data if enough gas is
-                    // still available.
-                    if lt(add(cost, 0x20), gas()) {
-                        // Copy returndata to memory; overwrite existing memory.
-                        returndatacopy(0, 0, returndatasize())
-
-                        // Revert, giving memory region with copied returndata.
-                        revert(0, returndatasize())
-                    }
-                }
-            }
-
-            // Otherwise, revert with a generic error.
-            revert InvalidCallToConduit(conduit);
-        }
-
-        // Ensure that the conduit returned the correct magic value.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        // Ensure result was extracted and matches EIP-1271 magic value.
-        if (result != ConduitInterface.execute.selector) {
+        if (conduit.code.length == 0) {
             revert InvalidConduit(conduitKey, conduit);
         }
     }

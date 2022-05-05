@@ -255,6 +255,49 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             : _deriveDomainSeparator();
     }
 
+    /// @dev Internal view function to derive the EIP-712 hash for an offer item.
+    /// @param offerItem The offered item to hash.
+    /// @return The hash.
+    function _hashOfferItem(OfferItem memory offerItem)
+        internal
+        view
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encode(
+                    _OFFER_ITEM_TYPEHASH,
+                    offerItem.itemType,
+                    offerItem.token,
+                    offerItem.identifierOrCriteria,
+                    offerItem.startAmount,
+                    offerItem.endAmount
+                )
+            );
+    }
+
+    /// @dev Internal view function to derive the EIP-712 hash for a consideration item.
+    /// @param considerationItem The consideration item to hash.
+    /// @return The hash.
+    function _hashConsiderationItem(ConsiderationItem memory considerationItem)
+        internal
+        view
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encode(
+                    _CONSIDERATION_ITEM_TYPEHASH,
+                    considerationItem.itemType,
+                    considerationItem.token,
+                    considerationItem.identifierOrCriteria,
+                    considerationItem.startAmount,
+                    considerationItem.endAmount,
+                    considerationItem.recipient
+                )
+            );
+    }
+
     /**
      * @dev Internal view function to derive the order hash for a given order.
      *      Note that only the original consideration items are included in the
@@ -270,147 +313,51 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         OrderParameters memory orderParameters,
         uint256 nonce
     ) internal view returns (bytes32 orderHash) {
-        // Get length of original consideration array and place it on the stack.
-        uint256 originalConsiderationLength = (
+        // Designate new memory regions for offer and consideration item hashes.
+        bytes32[] memory offerHashes = new bytes32[](
+            orderParameters.offer.length
+        );
+        bytes32[] memory considerationHashes = new bytes32[](
             orderParameters.totalOriginalConsiderationItems
         );
 
-        /*
-         * Memory layout for an array of structs (dynamic or not) is similar
-         * to ABI encoding of dynamic types, with a head segment followed by
-         * a data segment. The main difference is that the head of an element
-         * is a memory pointer rather than an offset.
-         */
-
-        // Declare a variable for the derived hash of the offer array.
-        bytes32 offerHash;
-
-        // Read offer item EIP-712 typehash from runtime code & place on stack.
-        bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
-
-        // Utilize assembly so that memory regions can be reused across hashes.
-        assembly {
-            // Retrieve the free memory pointer and place on the stack.
-            let hashArrPtr := mload(FreeMemoryPointerSlot)
-
-            // Get the pointer to the offers array.
-            let offerArrPtr := mload(add(orderParameters, 0x40))
-
-            // Load the length.
-            let offerLength := mload(offerArrPtr)
-
-            // Set the pointer to the first offer's head.
-            offerArrPtr := add(offerArrPtr, 0x20)
-
-            // Iterate over the offer items.
-            // prettier-ignore
-            for { let i := 0 } lt(i, offerLength) {
-                i := add(i, 1)
-            } {
-                // Read the pointer to the offer data and subtract 32
-                // to get typeHash pointer.
-                let ptr := sub(mload(offerArrPtr), 0x20)
-
-                // Read the current value before the offer data.
-                let value := mload(ptr)
-
-                // Write the type hash to the previous word.
-                mstore(ptr, typeHash)
-
-                // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, 0xc0))
-
-                // Restore the previous word.
-                mstore(ptr, value)
-
-                // Increment the array pointers.
-                offerArrPtr := add(offerArrPtr, 0x20)
-                hashArrPtr := add(hashArrPtr, 0x20)
-            }
-
-            // Derive the offer hash.
-            offerHash := keccak256(
-                mload(FreeMemoryPointerSlot),
-                mul(offerLength, 0x20)
-            )
+        // Iterate over each offer on the order.
+        for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
+            // Hash the offer and place the result into memory.
+            offerHashes[i] = _hashOfferItem(orderParameters.offer[i]);
         }
 
-        // Declare a variable for the derived hash of the consideration array.
-        bytes32 considerationHash;
-
-        // Read consideration item typehash from runtime code & place on stack.
-        typeHash = _CONSIDERATION_ITEM_TYPEHASH;
-
-        // Utilize assembly so that memory regions can be reused across hashes.
-        assembly {
-            // Retrieve the free memory pointer and place on the stack.
-            let hashArrPtr := mload(FreeMemoryPointerSlot)
-
-            // Get the pointer to the consideration array.
-            let considerationArrPtr := add(
-                mload(add(orderParameters, 0x60)),
-                0x20
-            )
-
-            // Iterate over the offer items.
-            // prettier-ignore
-            for { let i := 0 } lt(i, originalConsiderationLength) {
-                i := add(i, 1)
-            } {
-                // Read the pointer to the consideration data and subtract 32
-                // to get typeHash pointer.
-                let ptr := sub(mload(considerationArrPtr), 0x20)
-
-                // Read the current value before the consideration data.
-                let value := mload(ptr)
-
-                // Write the type hash to the previous word.
-                mstore(ptr, typeHash)
-
-                // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, 0xe0))
-
-                // Restore the previous word.
-                mstore(ptr, value)
-
-                // Increment the array pointers.
-                considerationArrPtr := add(considerationArrPtr, 0x20)
-                hashArrPtr := add(hashArrPtr, 0x20)
-            }
-
-            // Derive the offer hash.
-            considerationHash := keccak256(
-                mload(FreeMemoryPointerSlot),
-                mul(originalConsiderationLength, 0x20)
-            )
+        // Iterate over each consideration on the order.
+        for (
+            uint256 i = 0;
+            i < orderParameters.totalOriginalConsiderationItems;
+            ++i
+        ) {
+            // Hash the consideration and place the result into memory.
+            considerationHashes[i] = _hashConsiderationItem(
+                orderParameters.consideration[i]
+            );
         }
 
-        // Read order item EIP-712 typehash from runtime code & place on stack.
-        typeHash = _ORDER_TYPEHASH;
+        // Derive and return the order hash as specified by EIP-712.
 
-        // Utilize assembly to access derived hashes & other arguments directly.
-        assembly {
-            let typeHashPtr := sub(orderParameters, 0x20)
-            let previousValue := mload(typeHashPtr)
-            mstore(typeHashPtr, typeHash)
-
-            let offerHeadPtr := add(orderParameters, 0x40)
-            let offerDataPtr := mload(offerHeadPtr)
-            mstore(offerHeadPtr, offerHash)
-
-            let considerationHeadPtr := add(orderParameters, 0x60)
-            let considerationDataPtr := mload(considerationHeadPtr)
-            mstore(considerationHeadPtr, considerationHash)
-
-            let noncePtr := add(orderParameters, 0x140)
-            mstore(noncePtr, nonce)
-
-            orderHash := keccak256(typeHashPtr, 0x180)
-            mstore(typeHashPtr, previousValue)
-            mstore(offerHeadPtr, offerDataPtr)
-            mstore(considerationHeadPtr, considerationDataPtr)
-            mstore(noncePtr, originalConsiderationLength)
-        }
+        return
+            keccak256(
+                abi.encode(
+                    _ORDER_TYPEHASH,
+                    orderParameters.offerer,
+                    orderParameters.zone,
+                    keccak256(abi.encodePacked(offerHashes)),
+                    keccak256(abi.encodePacked(considerationHashes)),
+                    orderParameters.orderType,
+                    orderParameters.startTime,
+                    orderParameters.endTime,
+                    orderParameters.zoneHash,
+                    orderParameters.salt,
+                    orderParameters.conduitKey,
+                    nonce
+                )
+            );
     }
 
     /**
@@ -682,81 +629,100 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         FulfillmentComponent[] memory fulfillmentComponents,
         bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
-        // Skip overflow / underflow checks; conditions checked or unreachable.
-        unchecked {
-            // Retrieve advanced orders array length and place on the stack.
-            uint256 totalOrders = advancedOrders.length;
+        // Retrieve advanced orders array length and place on the stack.
+        uint256 totalOrders = advancedOrders.length;
 
-            // Retrieve fulfillment components array length and place on stack.
-            uint256 totalFulfillmentComponents = fulfillmentComponents.length;
+        // Retrieve fulfillment components array length and place on stack.
+        uint256 totalFulfillmentComponents = fulfillmentComponents.length;
 
-            // Ensure at least one fulfillment component has been supplied.
-            if (totalFulfillmentComponents == 0) {
-                revert MissingFulfillmentComponentOnAggregation(side);
+        // Ensure at least one fulfillment component has been supplied.
+        if (totalFulfillmentComponents == 0) {
+            revert MissingFulfillmentComponentOnAggregation(side);
+        }
+
+        // Determine component index after first available (0 implies none).
+        uint256 nextComponentIndex = 0;
+
+        // Iterate over components until finding one with a fulfilled order.
+        for (uint256 i = 0; i < totalFulfillmentComponents; ++i) {
+            // Retrieve the fulfillment component index.
+            uint256 orderIndex = fulfillmentComponents[i].orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= totalOrders) {
+                revert InvalidFulfillmentComponentData();
             }
 
-            // Determine component index after first available (0 implies none).
-            uint256 nextComponentIndex = 0;
+            // If order is being fulfilled (i.e. it is still available)...
+            if (advancedOrders[orderIndex].numerator != 0) {
+                // Update the next potential component index.
+                nextComponentIndex = i + 1;
 
-            // Iterate over components until finding one with a fulfilled order.
-            for (uint256 i = 0; i < totalFulfillmentComponents; ++i) {
-                // Retrieve the fulfillment component index.
-                uint256 orderIndex = fulfillmentComponents[i].orderIndex;
-
-                // Ensure that the order index is in range.
-                if (orderIndex >= totalOrders) {
-                    revert InvalidFulfillmentComponentData();
-                }
-
-                // If order is being fulfilled (i.e. it is still available)...
-                if (advancedOrders[orderIndex].numerator != 0) {
-                    // Update the next potential component index.
-                    nextComponentIndex = i + 1;
-
-                    // Exit the loop.
-                    break;
-                }
-            }
-
-            // If no available order was located...
-            if (nextComponentIndex == 0) {
-                // Return with an empty execution element that will be filtered.
-                // prettier-ignore
-                return Execution(
-                    ReceivedItem(
-                        ItemType.NATIVE,
-                        address(0),
-                        0,
-                        0,
-                        payable(address(0))
-                    ),
-                    address(0),
-                    bytes32(0)
-                );
-            }
-
-            // If the fulfillment components are offer components...
-            if (side == Side.OFFER) {
-                // Return execution for aggregated items provided by offerer.
-                // prettier-ignore
-                return _aggregateValidFulfillmentOfferItems(
-                    advancedOrders,
-                    fulfillmentComponents,
-                    nextComponentIndex - 1
-                );
-            } else {
-                // Otherwise, fulfillment components are consideration
-                // components. Return execution for aggregated items provided by
-                // the fulfiller.
-                // prettier-ignore
-                return _aggregateConsiderationItems(
-                    advancedOrders,
-                    fulfillmentComponents,
-                    nextComponentIndex - 1,
-                    fulfillerConduitKey
-                );
+                // Exit the loop.
+                break;
             }
         }
+
+        // If no available order was located...
+        if (nextComponentIndex == 0) {
+            // Return with an empty execution element that will be filtered.
+            // prettier-ignore
+            return Execution(
+                ReceivedItem(
+                    ItemType.NATIVE,
+                    address(0),
+                    0,
+                    0,
+                    payable(address(0))
+                ),
+                address(0),
+                bytes32(0)
+            );
+        }
+
+        // If the fulfillment components are offer components...
+        if (side == Side.OFFER) {
+            // Return execution for aggregated items provided by offerer.
+            // prettier-ignore
+            return _aggregateValidFulfillmentOfferItems(
+                advancedOrders,
+                fulfillmentComponents,
+                nextComponentIndex - 1
+            );
+        } else {
+            // Otherwise, fulfillment components are consideration
+            // components. Return execution for aggregated items provided by
+            // the fulfiller.
+            // prettier-ignore
+            return _aggregateConsiderationItems(
+                advancedOrders,
+                fulfillmentComponents,
+                nextComponentIndex - 1,
+                fulfillerConduitKey
+            );
+        }
+    }
+
+    /**
+     * @dev Internal pure function to check the indicated offer item matches original item.
+     *
+     * @param aOrder  The advanced order to compare.
+     * @param offer The offer to compare
+     * @param execution  The aggregated offer item
+     *
+     * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
+     */
+    function _checkMatchingOffer(
+        AdvancedOrder memory aOrder,
+        OfferItem memory offer,
+        Execution memory execution
+    ) internal pure returns (bool invalidFulfillment) {
+        return
+            execution.item.identifier != offer.identifierOrCriteria ||
+            execution.offerer != aOrder.parameters.offerer ||
+            execution.conduitKey != aOrder.parameters.conduitKey ||
+            execution.item.itemType != offer.itemType ||
+            execution.item.token != offer.token;
     }
 
     /**
@@ -778,256 +744,76 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         FulfillmentComponent[] memory offerComponents,
         uint256 startIndex
     ) internal view returns (Execution memory execution) {
-        // Declare a variable for the final aggregated item amount.
-        uint256 amount;
+        uint256 orderIndex = offerComponents[startIndex].orderIndex;
+        uint256 itemIndex = offerComponents[startIndex].itemIndex;
 
         // Declare a variable indicating whether the aggregation is invalid.
-        bool invalidFulfillment;
-
-        // Utilize assembly in order to efficiently aggregate the items.
-        assembly {
-            // Retrieve fulfillment pointer from offer component & start index.
-            let fulfillmentPtr := mload(
-                add(add(offerComponents, 0x20), mul(startIndex, 0x20))
-            )
-
-            // Retrieve the order index using the fulfillment pointer.
-            let orderIndex := mload(fulfillmentPtr)
-
-            // Retrieve item index using an offset of the fulfillment pointer.
-            let itemIndex := mload(
-                add(fulfillmentPtr, Fulfillment_itemIndex_offset)
-            )
-
-            // Ensure that the order index is not out of range.
-            invalidFulfillment := iszero(lt(orderIndex, mload(advancedOrders)))
-
-            // Retrieve the initial order pointer from the order index.
-            let orderPtr := mload(
-                mload(
-                    add(
-                        // Calculate pointer to start of advancedOrders head.
-                        add(advancedOrders, 0x20),
-                        // Calculate offset to pointer for desired order.
-                        mul(orderIndex, 0x20)
-                    )
-                )
-            )
-            // Retrieve offer array pointer using offset of the order pointer.
-            let offerArrPtr := mload(
-                add(orderPtr, OrderParameters_offer_head_offset)
-            )
-
+        // Ensure that the order index is not out of range.
+        bool invalidFulfillment = (orderIndex >= advancedOrders.length);
+        if (!invalidFulfillment) {
+            AdvancedOrder memory aOrder = advancedOrders[orderIndex];
             // Ensure that the item index is not out of range.
-            invalidFulfillment := or(
-                iszero(lt(itemIndex, mload(offerArrPtr))),
-                invalidFulfillment
-            )
+            invalidFulfillment =
+                invalidFulfillment ||
+                (itemIndex >= aOrder.parameters.offer.length);
+            if (!invalidFulfillment) {
+                OfferItem memory offer = aOrder.parameters.offer[itemIndex];
 
-            // Retrieve the offer item pointer using offset of the item index.
-            let offerItemPtr := mload(
-                add(
-                    // Get pointer to beginning of OfferItem.
-                    add(offerArrPtr, 0x20),
-                    // Calculate offset to pointer for desired order.
-                    mul(itemIndex, 0x20)
-                )
-            )
+                execution = Execution(
+                    ReceivedItem(
+                        offer.itemType,
+                        offer.token,
+                        offer.identifierOrCriteria,
+                        offer.startAmount,
+                        payable(msg.sender)
+                    ),
+                    aOrder.parameters.offerer,
+                    aOrder.parameters.conduitKey
+                );
 
-            // Retrieve the received item pointer.
-            let receivedItemPtr := mload(execution)
+                // Zero out amount on original offerItem to indicate it is spent
+                offer.startAmount = 0;
 
-            // Set itemType located at the offerItem pointer on receivedItem.
-            mstore(receivedItemPtr, mload(offerItemPtr))
+                for (
+                    uint256 i = startIndex + 1;
+                    i < offerComponents.length;
+                    ++i
+                ) {
+                    orderIndex = offerComponents[i].orderIndex;
+                    itemIndex = offerComponents[i].itemIndex;
 
-            // Set token located at offset of offerItem pointer on receivedItem.
-            mstore(
-                add(receivedItemPtr, Common_token_offset),
-                mload(add(offerItemPtr, Common_token_offset))
-            )
-
-            // Set identifier located at offset of offerItem pointer as well.
-            mstore(
-                add(receivedItemPtr, 0x40),
-                mload(add(offerItemPtr, Common_identifier_offset))
-            )
-
-            // Set amount on received item and additionaly place on the stack.
-            let amountPtr := add(offerItemPtr, Common_amount_offset)
-            amount := mload(amountPtr)
-
-            // Set the caller as the recipient on the received item.
-            mstore(
-                add(receivedItemPtr, ReceivedItem_recipient_offset),
-                caller()
-            )
-
-            // Zero out amount on original offerItem to indicate it is spent.
-            mstore(amountPtr, 0)
-
-            // Set the offerer on returned execution using order pointer.
-            mstore(add(execution, Execution_offerer_offset), mload(orderPtr))
-
-            // Set conduitKey on returned execution via offset of order pointer.
-            mstore(
-                add(execution, Execution_conduit_offset),
-                mload(add(orderPtr, OrderParameters_conduit_offset))
-            )
-        }
-
-        // Declare new assembly scope to avoid stack too deep errors.
-        assembly {
-            // Retrieve the received item pointer using the execution.
-            let receivedItemPtr := mload(execution)
-
-            // Iterate over offer components as long as fulfillment is valid.
-            // prettier-ignore
-            for {
-                let i := add(startIndex, 1)
-            } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
-                i := add(i, 1)
-            } {
-                // Retrieve fulfillment pointer for the current offer component.
-                let fulfillmentPtr := mload(
-                    add(add(offerComponents, 0x20), mul(i, 0x20))
-                )
-
-                // Retrieve the order index using the fulfillment pointer.
-                let orderIndex := mload(fulfillmentPtr)
-
-                // Retrieve the item index using offset of fulfillment pointer.
-                let itemIndex := mload(
-                    add(fulfillmentPtr, Fulfillment_itemIndex_offset)
-                )
-
-                // Ensure that the order index is in range.
-                invalidFulfillment := iszero(
-                    lt(orderIndex, mload(advancedOrders))
-                )
-
-                // Exit iteration if it is out of range.
-                if invalidFulfillment {
-                    break
-                }
-
-                // Retrieve the order pointer using the order index. Note that
-                // advancedOrders[orderIndex].OrderParameters pointer is first
-                // word of AdvancedOrder struct, so mload again in a moment.
-                let orderPtr := mload(
-                    add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
-                )
-
-                // If the order is available (i.e. has a numerator != 0)...
-                if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
-                    // Retrieve the order pointer (i.e. the second mload).
-                    orderPtr := mload(orderPtr)
-
-                    // Load offer item array pointer.
-                    let offerArrPtr := mload(
-                        add(orderPtr, OrderParameters_offer_head_offset)
-                    )
-
-                    // Ensure that the offer item index is in range.
-                    invalidFulfillment := iszero(
-                        lt(itemIndex, mload(offerArrPtr))
-                    )
-
-                    // Exit iteration if it is out of range.
-                    if invalidFulfillment {
-                        break
+                    // Ensure that the order index is not out of range.
+                    invalidFulfillment = orderIndex >= advancedOrders.length;
+                    // Break if invalid
+                    if (invalidFulfillment) {
+                        break;
                     }
-
-                    // Retrieve the offer item pointer using the item index.
-                    let offerItemPtr := mload(
-                        add(
-                            // Get pointer to beginning of OfferItem
-                            add(offerArrPtr, 0x20),
-                            // Calculate offset to pointer for desired order
-                            mul(itemIndex, 0x20)
-                        )
-                    )
-
-                    // Retrieve the amount using the offer item pointer.
-                    let amountPtr := add(offerItemPtr, Common_amount_offset)
-
-                    // Increment the amount.
-                    amount := add(amount, mload(amountPtr))
-
-                    // Zero out amount on original item to indicate it is spent.
-                    mstore(amountPtr, 0)
-
-                    // Ensure the indicated offer item matches original item.
-                    invalidFulfillment := iszero(
-                        and(
-                            // The identifier must match on both items.
-                            eq(
-                                mload(
-                                    add(offerItemPtr, Common_identifier_offset)
-                                ),
-                                mload(
-                                    add(
-                                        receivedItemPtr,
-                                        Common_identifier_offset
-                                    )
-                                )
-                            ),
-                            and(
-                                and(
-                                    // The offerer must match on both items.
-                                    eq(
-                                        mload(orderPtr),
-                                        mload(
-                                            add(execution, Common_token_offset)
-                                        )
-                                    ),
-                                    // The conduit key must match on both items.
-                                    eq(
-                                        mload(
-                                            add(
-                                                orderPtr,
-                                                OrderParameters_conduit_offset
-                                            )
-                                        ),
-                                        mload(
-                                            add(
-                                                execution,
-                                                Execution_conduit_offset
-                                            )
-                                        )
-                                    )
-                                ),
-                                and(
-                                    // The item type must match on both items.
-                                    eq(
-                                        mload(offerItemPtr),
-                                        mload(receivedItemPtr)
-                                    ),
-                                    // The token must match on both items.
-                                    eq(
-                                        mload(
-                                            add(
-                                                offerItemPtr,
-                                                Common_token_offset
-                                            )
-                                        ),
-                                        mload(
-                                            add(
-                                                receivedItemPtr,
-                                                Common_token_offset
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
+                    aOrder = advancedOrders[orderIndex];
+                    if (aOrder.numerator != 0) {
+                        // Ensure that the item index is not out of range.
+                        invalidFulfillment = (itemIndex >=
+                            aOrder.parameters.offer.length);
+                        // Break if invalid
+                        if (invalidFulfillment) {
+                            break;
+                        }
+                        offer = aOrder.parameters.offer[itemIndex];
+                        // Updating Received Item Amount
+                        execution.item.amount =
+                            execution.item.amount +
+                            offer.startAmount;
+                        // Zero out amount on original offerItem to indicate it is spent
+                        offer.startAmount = 0;
+                        // Ensure the indicated offer item matches original item.
+                        invalidFulfillment = _checkMatchingOffer(
+                            aOrder,
+                            offer,
+                            execution
+                        );
+                    }
                 }
             }
-
-            // Update the final amount on the returned received item.
-            mstore(add(receivedItemPtr, Common_amount_offset), amount)
         }
-
         // Revert if an order/item was out of range or was not aggregatable.
         if (invalidFulfillment) {
             revert InvalidFulfillmentComponentData();

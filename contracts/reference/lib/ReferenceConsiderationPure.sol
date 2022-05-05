@@ -21,6 +21,8 @@ import {
     BatchExecution
 } from "../../lib/ConsiderationStructs.sol";
 
+import { ConsiderationItemIndicesAndValidity } from "./ReferenceConsiderationStructs.sol";
+
 import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
 
 import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
@@ -64,158 +66,148 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure {
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Retrieve length of criteria resolvers array and place on stack.
-            uint256 arraySize = criteriaResolvers.length;
+        // Retrieve length of criteria resolvers array and place on stack.
+        uint256 arraySize = criteriaResolvers.length;
 
-            // Iterate over each criteria resolver.
-            for (uint256 i = 0; i < arraySize; ++i) {
-                // Retrieve the criteria resolver.
-                CriteriaResolver memory criteriaResolver = (
-                    criteriaResolvers[i]
+        // Iterate over each criteria resolver.
+        for (uint256 i = 0; i < arraySize; ++i) {
+            // Retrieve the criteria resolver.
+            CriteriaResolver memory criteriaResolver = (criteriaResolvers[i]);
+
+            // Read the order index from memory and place it on the stack.
+            uint256 orderIndex = criteriaResolver.orderIndex;
+
+            // Ensure that the order index is in range.
+            if (orderIndex >= advancedOrders.length) {
+                revert OrderCriteriaResolverOutOfRange();
+            }
+
+            // Skip criteria resolution for order if not fulfilled.
+            if (advancedOrders[orderIndex].numerator == 0) {
+                continue;
+            }
+
+            // Retrieve the parameters for the order.
+            OrderParameters memory orderParameters = (
+                advancedOrders[orderIndex].parameters
+            );
+
+            // Read component index from memory and place it on the stack.
+            uint256 componentIndex = criteriaResolver.index;
+
+            // Declare values for item's type and criteria.
+            ItemType itemType;
+            uint256 identifierOrCriteria;
+
+            // If the criteria resolver refers to an offer item...
+            if (criteriaResolver.side == Side.OFFER) {
+                // Ensure that the component index is in range.
+                if (componentIndex >= orderParameters.offer.length) {
+                    revert OfferCriteriaResolverOutOfRange();
+                }
+
+                // Retrieve relevant item using order and component index.
+                OfferItem memory offer = (
+                    orderParameters.offer[componentIndex]
                 );
 
-                // Read the order index from memory and place it on the stack.
-                uint256 orderIndex = criteriaResolver.orderIndex;
+                // Read item type and criteria from memory & place on stack.
+                itemType = offer.itemType;
+                identifierOrCriteria = offer.identifierOrCriteria;
 
-                // Ensure that the order index is in range.
-                if (orderIndex >= advancedOrders.length) {
-                    revert OrderCriteriaResolverOutOfRange();
+                // Optimistically update item type to remove criteria usage.
+                offer.itemType = (itemType == ItemType.ERC721_WITH_CRITERIA)
+                    ? ItemType.ERC721
+                    : ItemType.ERC1155;
+
+                // Optimistically update identifier w/ supplied identifier.
+                offer.identifierOrCriteria = criteriaResolver.identifier;
+            } else {
+                // Otherwise, the resolver refers to a consideration item.
+                // Ensure that the component index is in range.
+                if (componentIndex >= orderParameters.consideration.length) {
+                    revert ConsiderationCriteriaResolverOutOfRange();
                 }
 
-                // Skip criteria resolution for order if not fulfilled.
-                if (advancedOrders[orderIndex].numerator == 0) {
-                    continue;
-                }
-
-                // Retrieve the parameters for the order.
-                OrderParameters memory orderParameters = (
-                    advancedOrders[orderIndex].parameters
+                // Retrieve relevant item using order and component index.
+                ConsiderationItem memory consideration = (
+                    orderParameters.consideration[componentIndex]
                 );
 
-                // Read component index from memory and place it on the stack.
-                uint256 componentIndex = criteriaResolver.index;
+                // Read item type and criteria from memory & place on stack.
+                itemType = consideration.itemType;
+                identifierOrCriteria = consideration.identifierOrCriteria;
 
-                // Declare values for item's type and criteria.
-                ItemType itemType;
-                uint256 identifierOrCriteria;
+                // Optimistically update item type to remove criteria usage.
+                consideration.itemType = (itemType ==
+                    ItemType.ERC721_WITH_CRITERIA)
+                    ? ItemType.ERC721
+                    : ItemType.ERC1155;
 
-                // If the criteria resolver refers to an offer item...
-                if (criteriaResolver.side == Side.OFFER) {
-                    // Ensure that the component index is in range.
-                    if (componentIndex >= orderParameters.offer.length) {
-                        revert OfferCriteriaResolverOutOfRange();
-                    }
+                // Optimistically update identifier w/ supplied identifier.
+                consideration.identifierOrCriteria = (
+                    criteriaResolver.identifier
+                );
+            }
 
-                    // Retrieve relevant item using order and component index.
-                    OfferItem memory offer = (
-                        orderParameters.offer[componentIndex]
-                    );
+            // Ensure the specified item type indicates criteria usage.
+            if (!_isItemWithCriteria(itemType)) {
+                revert CriteriaNotEnabledForItem();
+            }
 
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = offer.itemType;
-                    identifierOrCriteria = offer.identifierOrCriteria;
+            // If criteria is not 0 (i.e. a collection-wide offer)...
+            if (identifierOrCriteria != uint256(0)) {
+                // Verify identifier inclusion in criteria root using proof.
+                _verifyProof(
+                    criteriaResolver.identifier,
+                    identifierOrCriteria,
+                    criteriaResolver.criteriaProof
+                );
+            }
+        }
 
-                    // Optimistically update item type to remove criteria usage.
-                    ItemType newItemType;
-                    assembly {
-                        newItemType := sub(3, eq(itemType, 4))
-                    }
-                    offer.itemType = newItemType;
+        // Retrieve length of advanced orders array and place on stack.
+        arraySize = advancedOrders.length;
 
-                    // Optimistically update identifier w/ supplied identifier.
-                    offer.identifierOrCriteria = criteriaResolver.identifier;
-                } else {
-                    // Otherwise, the resolver refers to a consideration item.
-                    // Ensure that the component index is in range.
-                    if (
-                        componentIndex >= orderParameters.consideration.length
-                    ) {
-                        revert ConsiderationCriteriaResolverOutOfRange();
-                    }
+        // Iterate over each advanced order.
+        for (uint256 i = 0; i < arraySize; ++i) {
+            // Retrieve the advanced order.
+            AdvancedOrder memory advancedOrder = advancedOrders[i];
 
-                    // Retrieve relevant item using order and component index.
-                    ConsiderationItem memory consideration = (
-                        orderParameters.consideration[componentIndex]
-                    );
+            // Skip criteria resolution for order if not fulfilled.
+            if (advancedOrder.numerator == 0) {
+                continue;
+            }
 
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = consideration.itemType;
-                    identifierOrCriteria = consideration.identifierOrCriteria;
+            // Read consideration length from memory and place on stack.
+            uint256 totalItems = (
+                advancedOrder.parameters.consideration.length
+            );
 
-                    // Optimistically update item type to remove criteria usage.
-                    ItemType newItemType;
-                    assembly {
-                        newItemType := sub(3, eq(itemType, 4))
-                    }
-                    consideration.itemType = newItemType;
-
-                    // Optimistically update identifier w/ supplied identifier.
-                    consideration.identifierOrCriteria = (
-                        criteriaResolver.identifier
-                    );
-                }
-
-                // Ensure the specified item type indicates criteria usage.
-                if (!_isItemWithCriteria(itemType)) {
-                    revert CriteriaNotEnabledForItem();
-                }
-
-                // If criteria is not 0 (i.e. a collection-wide offer)...
-                if (identifierOrCriteria != uint256(0)) {
-                    // Verify identifier inclusion in criteria root using proof.
-                    _verifyProof(
-                        criteriaResolver.identifier,
-                        identifierOrCriteria,
-                        criteriaResolver.criteriaProof
-                    );
+            // Iterate over each consideration item on the order.
+            for (uint256 j = 0; j < totalItems; ++j) {
+                // Ensure item type no longer indicates criteria usage.
+                if (
+                    _isItemWithCriteria(
+                        advancedOrder.parameters.consideration[j].itemType
+                    )
+                ) {
+                    revert UnresolvedConsiderationCriteria();
                 }
             }
 
-            // Retrieve length of advanced orders array and place on stack.
-            arraySize = advancedOrders.length;
+            // Read offer length from memory and place on stack.
+            totalItems = advancedOrder.parameters.offer.length;
 
-            // Iterate over each advanced order.
-            for (uint256 i = 0; i < arraySize; ++i) {
-                // Retrieve the advanced order.
-                AdvancedOrder memory advancedOrder = advancedOrders[i];
-
-                // Skip criteria resolution for order if not fulfilled.
-                if (advancedOrder.numerator == 0) {
-                    continue;
-                }
-
-                // Read consideration length from memory and place on stack.
-                uint256 totalItems = (
-                    advancedOrder.parameters.consideration.length
-                );
-
-                // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < totalItems; ++j) {
-                    // Ensure item type no longer indicates criteria usage.
-                    if (
-                        _isItemWithCriteria(
-                            advancedOrder.parameters.consideration[j].itemType
-                        )
-                    ) {
-                        revert UnresolvedConsiderationCriteria();
-                    }
-                }
-
-                // Read offer length from memory and place on stack.
-                totalItems = advancedOrder.parameters.offer.length;
-
-                // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < totalItems; ++j) {
-                    // Ensure item type no longer indicates criteria usage.
-                    if (
-                        _isItemWithCriteria(
-                            advancedOrder.parameters.offer[j].itemType
-                        )
-                    ) {
-                        revert UnresolvedOfferCriteria();
-                    }
+            // Iterate over each offer item on the order.
+            for (uint256 j = 0; j < totalItems; ++j) {
+                // Ensure item type no longer indicates criteria usage.
+                if (
+                    _isItemWithCriteria(
+                        advancedOrder.parameters.offer[j].itemType
+                    )
+                ) {
+                    revert UnresolvedOfferCriteria();
                 }
             }
         }
@@ -252,10 +244,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
 
             // If rounding up, set rounding factor to one less than denominator.
             if (roundUp) {
-                // Skip underflow check: duration cannot be zero.
-                unchecked {
-                    extraCeiling = duration - 1;
-                }
+                extraCeiling = duration - 1;
             }
 
             // Aggregate new amounts weighted by time with rounding factor
@@ -264,10 +253,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 extraCeiling);
 
             // Division is performed without zero check as it cannot be zero.
-            uint256 newAmount;
-            assembly {
-                newAmount := div(totalBeforeDivision, duration)
-            }
+            uint256 newAmount = totalBeforeDivision / duration;
 
             // Return the current amount (expressed as endAmount internally).
             return newAmount;
@@ -301,14 +287,11 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         // Multiply the numerator by the value and ensure no overflow occurs.
         uint256 valueTimesNumerator = value * numerator;
 
-        // Divide (Note: denominator must not be zero!) and check for remainder.
-        bool exact;
-        assembly {
-            newValue := div(valueTimesNumerator, denominator)
-            exact := iszero(mulmod(value, numerator, denominator))
-        }
+        // Divide that value by the denominator to get the new value.
+        newValue = valueTimesNumerator / denominator;
 
         // Ensure that division gave a final result with no remainder.
+        bool exact = ((newValue * denominator) / numerator) == value;
         if (!exact) {
             revert InexactFraction();
         }
@@ -335,171 +318,168 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             BatchExecution[] memory batchExecutions
         )
     {
-        // Skip overflow checks as all incremented values start at low amounts.
-        unchecked {
-            // Read executions array length from memory and place on the stack.
-            uint256 totalExecutions = executions.length;
+        // Read executions array length from memory and place on the stack.
+        uint256 totalExecutions = executions.length;
 
-            // Return early if less than two executions are provided.
-            if (totalExecutions <= 1) {
-                return (executions, new BatchExecution[](0));
+        // Return early if less than two executions are provided.
+        if (totalExecutions <= 1) {
+            return (executions, new BatchExecution[](0));
+        }
+
+        // Determine the toal number of ERC1155 executions in the array.
+        uint256 total1155Executions = 0;
+
+        // Allocate array in memory for indices of each ERC1155 execution.
+        uint256[] memory indexBy1155 = new uint256[](totalExecutions);
+
+        // Iterate over each execution.
+        for (uint256 i = 0; i < executions.length; ++i) {
+            // If the item specified by the execution is an ERC1155 item...
+            if (executions[i].item.itemType == ItemType.ERC1155) {
+                // Set index of 1155 execution in memory, then increment it.
+                indexBy1155[total1155Executions++] = i;
             }
+        }
 
-            // Determine the toal number of ERC1155 executions in the array.
-            uint256 total1155Executions = 0;
+        // Return early if less than two ERC1155 executions are located.
+        if (total1155Executions <= 1) {
+            return (executions, new BatchExecution[](0));
+        }
 
-            // Allocate array in memory for indices of each ERC1155 execution.
-            uint256[] memory indexBy1155 = new uint256[](totalExecutions);
+        // Allocate array to track potential ERC1155 batch executions.
+        Batch[] memory batches = new Batch[](total1155Executions);
 
-            // Iterate over each execution.
-            for (uint256 i = 0; i < executions.length; ++i) {
-                // If the item specified by the execution is an ERC1155 item...
-                if (executions[i].item.itemType == ItemType.ERC1155) {
-                    // Set index of 1155 execution in memory, then increment it.
-                    indexBy1155[total1155Executions++] = i;
-                }
-            }
+        // Read initial execution index from memory and place on the stack.
+        uint256 initialExecutionIndex = indexBy1155[0];
 
-            // Return early if less than two ERC1155 executions are located.
-            if (total1155Executions <= 1) {
-                return (executions, new BatchExecution[](0));
-            }
+        // Get hash from initial token, offerer, recipient, & proxy usage.
+        bytes32 hash = _getHashByExecutionIndex(
+            executions,
+            initialExecutionIndex
+        );
 
-            // Allocate array to track potential ERC1155 batch executions.
-            Batch[] memory batches = new Batch[](total1155Executions);
+        // Allocate an array of length 1 in memory for the execution index.
+        uint256[] memory executionIndices = new uint256[](1);
 
-            // Read initial execution index from memory and place on the stack.
-            uint256 initialExecutionIndex = indexBy1155[0];
+        // Populate the memory region with the initial execution index.
+        executionIndices[0] = initialExecutionIndex;
 
-            // Get hash from initial token, offerer, recipient, & proxy usage.
-            bytes32 hash = _getHashByExecutionIndex(
-                executions,
-                initialExecutionIndex
-            );
+        // Set hash and array with execution index as first batch element.
+        batches[0].hash = hash;
+        batches[0].executionIndices = executionIndices;
 
-            // Allocate an array of length 1 in memory for the execution index.
-            uint256[] memory executionIndices = new uint256[](1);
+        // Track total number of unique hashes (starts at one).
+        uint256 uniqueHashes = 1;
 
-            // Populate the memory region with the initial execution index.
-            executionIndices[0] = initialExecutionIndex;
+        // Iterate over each additional 1155 execution.
+        for (uint256 i = 1; i < total1155Executions; ++i) {
+            // Read execution index from memory and place on the stack.
+            uint256 executionIndex = indexBy1155[i];
 
-            // Set hash and array with execution index as first batch element.
-            batches[0].hash = hash;
-            batches[0].executionIndices = executionIndices;
+            // Derive hash based on the same parameters as the initial hash.
+            hash = _getHashByExecutionIndex(executions, executionIndex);
 
-            // Track total number of unique hashes (starts at one).
-            uint256 uniqueHashes = 1;
+            // Assume no matching hash exists unless proven otherwise.
+            bool foundMatchingHash = false;
 
-            // Iterate over each additional 1155 execution.
-            for (uint256 i = 1; i < total1155Executions; ++i) {
-                // Read execution index from memory and place on the stack.
-                uint256 executionIndex = indexBy1155[i];
+            // Iterate over all known unique hashes.
+            for (uint256 j = 0; j < uniqueHashes; ++j) {
+                // If the hash matches the known unique hash in question...
+                if (hash == batches[j].hash) {
+                    // Retrieve execution index of the original execution.
+                    uint256[] memory oldExecutionIndices = (
+                        batches[j].executionIndices
+                    );
 
-                // Derive hash based on the same parameters as the initial hash.
-                hash = _getHashByExecutionIndex(executions, executionIndex);
+                    // Place old execution indices array length on stack.
+                    uint256 originalLength = oldExecutionIndices.length;
 
-                // Assume no matching hash exists unless proven otherwise.
-                bool foundMatchingHash = false;
+                    // Allocate execution indices array w/ an extra element.
+                    uint256[] memory newExecutionIndices = (
+                        new uint256[](originalLength + 1)
+                    );
 
-                // Iterate over all known unique hashes.
-                for (uint256 j = 0; j < uniqueHashes; ++j) {
-                    // If the hash matches the known unique hash in question...
-                    if (hash == batches[j].hash) {
-                        // Retrieve execution index of the original execution.
-                        uint256[] memory oldExecutionIndices = (
-                            batches[j].executionIndices
-                        );
-
-                        // Place old execution indices array length on stack.
-                        uint256 originalLength = oldExecutionIndices.length;
-
-                        // Allocate execution indices array w/ an extra element.
-                        uint256[] memory newExecutionIndices = (
-                            new uint256[](originalLength + 1)
-                        );
-
-                        // Iterate over existing execution indices.
-                        for (uint256 k = 0; k < originalLength; ++k) {
-                            // Add them to the new execution indices array.
-                            newExecutionIndices[k] = oldExecutionIndices[k];
-                        }
-
-                        // Add new execution index to the end of the array.
-                        newExecutionIndices[originalLength] = executionIndex;
-
-                        // Update the batch with the extended array.
-                        batches[j].executionIndices = newExecutionIndices;
-
-                        // Mark that new hash matches one already in a batch.
-                        foundMatchingHash = true;
-
-                        // Stop scanning for a match as one has now been found.
-                        break;
+                    // Iterate over existing execution indices.
+                    for (uint256 k = 0; k < originalLength; ++k) {
+                        // Add them to the new execution indices array.
+                        newExecutionIndices[k] = oldExecutionIndices[k];
                     }
-                }
 
-                // If no matching hash was located, create a new batch element.
-                if (!foundMatchingHash) {
-                    // Create a new execution indices array.
-                    executionIndices = new uint256[](1);
+                    // Add new execution index to the end of the array.
+                    newExecutionIndices[originalLength] = executionIndex;
 
-                    // Set the current execution index as the first element.
-                    executionIndices[0] = executionIndex;
+                    // Update the batch with the extended array.
+                    batches[j].executionIndices = newExecutionIndices;
 
-                    // Set next batch element and increment total unique hashes.
-                    batches[uniqueHashes].hash = hash;
-                    batches[uniqueHashes++].executionIndices = executionIndices;
-                }
-            }
+                    // Mark that new hash matches one already in a batch.
+                    foundMatchingHash = true;
 
-            // Return early if every hash is unique.
-            if (uniqueHashes == total1155Executions) {
-                return (executions, new BatchExecution[](0));
-            }
-
-            // Allocate an array to track the batch each execution is used in.
-            // Values of zero indicate that it is not used in a batch, whereas
-            // non-zero values indicate the execution index *plus one*.
-            uint256[] memory usedInBatch = new uint256[](totalExecutions);
-
-            // Stack elements have been exhausted, so utilize memory to track
-            // total elements used as part of a batch as well as total batches.
-            uint256[] memory totals = new uint256[](2);
-
-            // Iterate over each potential batch (determined via unique hashes).
-            for (uint256 i = 0; i < uniqueHashes; ++i) {
-                // Retrieve the indices for the batch in question.
-                uint256[] memory indices = batches[i].executionIndices;
-
-                // Read total number of indices from memory and place on stack.
-                uint256 indicesLength = indices.length;
-
-                // if more than one execution applies to a potential batch...
-                if (indicesLength >= 2) {
-                    // Increment the total number of batches.
-                    ++totals[1];
-
-                    // Increment total executions used as part of a batch.
-                    totals[0] += indicesLength;
-
-                    // Iterate over each execution index for the batch.
-                    for (uint256 j = 0; j < indicesLength; ++j) {
-                        // Update array tracking batch the execution applies to.
-                        usedInBatch[indices[j]] = i + 1;
-                    }
+                    // Stop scanning for a match as one has now been found.
+                    break;
                 }
             }
 
-            // Split executions into standard and batched executions and return.
-            // prettier-ignore
-            return _splitExecution(
+            // If no matching hash was located, create a new batch element.
+            if (!foundMatchingHash) {
+                // Create a new execution indices array.
+                executionIndices = new uint256[](1);
+
+                // Set the current execution index as the first element.
+                executionIndices[0] = executionIndex;
+
+                // Set next batch element and increment total unique hashes.
+                batches[uniqueHashes].hash = hash;
+                batches[uniqueHashes++].executionIndices = executionIndices;
+            }
+        }
+
+        // Return early if every hash is unique.
+        if (uniqueHashes == total1155Executions) {
+            return (executions, new BatchExecution[](0));
+        }
+
+        // Allocate an array to track the batch each execution is used in.
+        // Values of zero indicate that it is not used in a batch, whereas
+        // non-zero values indicate the execution index *plus one*.
+        uint256[] memory usedInBatch = new uint256[](totalExecutions);
+
+        // Stack elements have been exhausted, so utilize memory to track
+        // total elements used as part of a batch as well as total batches.
+        uint256[] memory totals = new uint256[](2);
+
+        // Iterate over each potential batch (determined via unique hashes).
+        for (uint256 i = 0; i < uniqueHashes; ++i) {
+            // Retrieve the indices for the batch in question.
+            uint256[] memory indices = batches[i].executionIndices;
+
+            // Read total number of indices from memory and place on stack.
+            uint256 indicesLength = indices.length;
+
+            // if more than one execution applies to a potential batch...
+            if (indicesLength >= 2) {
+                // Increment the total number of batches.
+                ++totals[1];
+
+                // Increment total executions used as part of a batch.
+                totals[0] += indicesLength;
+
+                // Iterate over each execution index for the batch.
+                for (uint256 j = 0; j < indicesLength; ++j) {
+                    // Update array tracking batch the execution applies to.
+                    usedInBatch[indices[j]] = i + 1;
+                }
+            }
+        }
+
+        // Split executions into standard and batched executions and return.
+        // prettier-ignore
+        return _splitExecution(
                     executions,
                     batches,
                     usedInBatch,
                     totals[0],
                     totals[1]
                 );
-        }
     }
 
     /**
@@ -526,90 +506,83 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         uint256 totalUsedInBatch,
         uint256 totalBatches
     ) internal pure returns (Execution[] memory, BatchExecution[] memory) {
-        // Skip overflow checks as all incremented values start at low amounts.
-        unchecked {
-            // Read executions array length from memory and place on the stack.
-            uint256 totalExecutions = executions.length;
+        // Read executions array length from memory and place on the stack.
+        uint256 totalExecutions = executions.length;
 
-            // Allocate standard executions array (exclude ones used in batch).
-            Execution[] memory standardExecutions = new Execution[](
-                totalExecutions - totalUsedInBatch
-            );
+        // Allocate standard executions array (exclude ones used in batch).
+        Execution[] memory standardExecutions = new Execution[](
+            totalExecutions - totalUsedInBatch
+        );
 
-            // Allocate batch executions array (length equal to total batches).
-            BatchExecution[] memory batchExecutions = new BatchExecution[](
-                totalBatches
-            );
+        // Allocate batch executions array (length equal to total batches).
+        BatchExecution[] memory batchExecutions = new BatchExecution[](
+            totalBatches
+        );
 
-            // Track the index of the next available standard execution element.
-            uint256 nextStandardExecutionIndex = 0;
+        // Track the index of the next available standard execution element.
+        uint256 nextStandardExecutionIndex = 0;
 
-            // Allocate array in memory to track next element index per batch.
-            uint256[] memory batchElementIndices = new uint256[](totalBatches);
+        // Allocate array in memory to track next element index per batch.
+        uint256[] memory batchElementIndices = new uint256[](totalBatches);
 
-            // Iterate over each execution.
-            for (uint256 i = 0; i < totalExecutions; ++i) {
-                // Check if execution is standard (0) or part of a batch (1+).
-                uint256 batchExecutionPointer = batchExecutionPointers[i];
+        // Iterate over each execution.
+        for (uint256 i = 0; i < totalExecutions; ++i) {
+            // Check if execution is standard (0) or part of a batch (1+).
+            uint256 batchExecutionPointer = batchExecutionPointers[i];
 
-                // Retrieve the execution element.
-                Execution memory execution = executions[i];
+            // Retrieve the execution element.
+            Execution memory execution = executions[i];
 
-                // If the execution is a standard execution...
-                if (batchExecutionPointer == 0) {
-                    // Copy it to next standard index, then increment the index.
-                    standardExecutions[nextStandardExecutionIndex++] = (
-                        execution
-                    );
-                    // Otherwise, it is a batch execution.
-                } else {
-                    // Decrement pointer to derive the batch execution index.
-                    uint256 batchIndex = batchExecutionPointer - 1;
+            // If the execution is a standard execution...
+            if (batchExecutionPointer == 0) {
+                // Copy it to next standard index, then increment the index.
+                standardExecutions[nextStandardExecutionIndex++] = (execution);
+                // Otherwise, it is a batch execution.
+            } else {
+                // Decrement pointer to derive the batch execution index.
+                uint256 batchIndex = batchExecutionPointer - 1;
 
-                    // If it is the first item applied to the batch execution...
-                    if (batchExecutions[batchIndex].token == address(0)) {
-                        // Determine total elements in batch and place on stack.
-                        uint256 totalElements = (
-                            batches[batchIndex].executionIndices.length
-                        );
-
-                        // Populate all other fields using execution parameters.
-                        batchExecutions[batchIndex] = BatchExecution(
-                            execution.item.token, // token
-                            execution.offerer, // from
-                            execution.item.recipient, // to
-                            new uint256[](totalElements), // tokenIds
-                            new uint256[](totalElements), // amounts
-                            execution.conduitKey // conduitKey
-                        );
-                    }
-
-                    // Put next batch element index on stack, then increment it.
-                    uint256 batchElementIndex = (
-                        batchElementIndices[batchIndex]++
+                // If it is the first item applied to the batch execution...
+                if (batchExecutions[batchIndex].token == address(0)) {
+                    // Determine total elements in batch and place on stack.
+                    uint256 totalElements = (
+                        batches[batchIndex].executionIndices.length
                     );
 
-                    // Update current element's batch with respective tokenId.
-                    batchExecutions[batchIndex].tokenIds[batchElementIndex] = (
-                        execution.item.identifier
-                    );
-
-                    // Retrieve execution item amount and place on the stack.
-                    uint256 amount = execution.item.amount;
-
-                    // Ensure that the amount is non-zero.
-                    _assertNonZeroAmount(amount);
-
-                    // Update current element's batch with respective amount.
-                    batchExecutions[batchIndex].amounts[batchElementIndex] = (
-                        amount
+                    // Populate all other fields using execution parameters.
+                    batchExecutions[batchIndex] = BatchExecution(
+                        execution.item.token, // token
+                        execution.offerer, // from
+                        execution.item.recipient, // to
+                        new uint256[](totalElements), // tokenIds
+                        new uint256[](totalElements), // amounts
+                        execution.conduitKey // conduitKey
                     );
                 }
-            }
 
-            // Return both the standard and batch execution arrays.
-            return (standardExecutions, batchExecutions);
+                // Put next batch element index on stack, then increment it.
+                uint256 batchElementIndex = (batchElementIndices[batchIndex]++);
+
+                // Update current element's batch with respective tokenId.
+                batchExecutions[batchIndex].tokenIds[batchElementIndex] = (
+                    execution.item.identifier
+                );
+
+                // Retrieve execution item amount and place on the stack.
+                uint256 amount = execution.item.amount;
+
+                // Ensure that the amount is non-zero.
+                _assertNonZeroAmount(amount);
+
+                // Update current element's batch with respective amount.
+                batchExecutions[batchIndex].amounts[batchElementIndex] = (
+                    amount
+                );
+            }
         }
+
+        // Return both the standard and batch execution arrays.
+        return (standardExecutions, batchExecutions);
     }
 
     /**
@@ -654,6 +627,25 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
     }
 
     /**
+     * @dev Internal pure function to check the indicated consideration item matches original item.
+     *
+     * @param consideration The consideration to compare
+     * @param receievedItem  The aggregated receieved item
+     *
+     * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
+     */
+    function _checkMatchingConsideration(
+        ConsiderationItem memory consideration,
+        ReceivedItem memory receievedItem
+    ) internal pure returns (bool invalidFulfillment) {
+        return
+            receievedItem.recipient != consideration.recipient ||
+            receievedItem.itemType != consideration.itemType ||
+            receievedItem.token != consideration.token ||
+            receievedItem.identifier != consideration.identifierOrCriteria;
+    }
+
+    /**
      * @dev Internal pure function to aggregate a group of consideration items
      *      using supplied directives on which component items are candidates
      *      for aggregation, skipping items on orders that are not available.
@@ -675,279 +667,90 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         FulfillmentComponent[] memory considerationComponents,
         uint256 startIndex
     ) internal pure returns (ReceivedItem memory receivedItem) {
-        // Declare a variable indicating whether the aggregation is invalid.
-        bool invalidFulfillment;
+        // Declare struct in memory to avoid declaring multiple local variables
+        ConsiderationItemIndicesAndValidity memory potentialCandidate;
+        potentialCandidate.orderIndex = considerationComponents[startIndex]
+            .orderIndex;
+        potentialCandidate.itemIndex = considerationComponents[startIndex]
+            .itemIndex;
+        potentialCandidate.invalidFulfillment = (potentialCandidate
+            .orderIndex >= advancedOrders.length);
 
-        // Utilize assembly in order to efficiently aggregate the items.
-        assembly {
-            // Retrieve the length of the orders array.
-            let totalOrders := mload(advancedOrders)
+        if (!potentialCandidate.invalidFulfillment) {
+            AdvancedOrder memory aOrder = advancedOrders[
+                potentialCandidate.orderIndex
+            ];
+            // Ensure that the item index is not out of range.
+            potentialCandidate.invalidFulfillment =
+                potentialCandidate.invalidFulfillment ||
+                (potentialCandidate.itemIndex >=
+                    aOrder.parameters.consideration.length);
+            if (!potentialCandidate.invalidFulfillment) {
+                ConsiderationItem memory consideration = aOrder
+                    .parameters
+                    .consideration[potentialCandidate.itemIndex];
 
-            // Begin iteration at the indicated start index.
-            let i := startIndex
+                receivedItem = ReceivedItem(
+                    consideration.itemType,
+                    consideration.token,
+                    consideration.identifierOrCriteria,
+                    consideration.startAmount,
+                    consideration.recipient
+                );
 
-            // Get fulfillment ptr from consideration component & start index.
-            let fulfillmentPtr := mload(
-                add(add(considerationComponents, 0x20), mul(i, 0x20))
-            )
+                // Zero out amount on original offerItem to indicate it is spent
+                consideration.startAmount = 0;
 
-            // Retrieve the order index using the fulfillment pointer.
-            let orderIndex := mload(fulfillmentPtr)
+                for (
+                    uint256 i = startIndex + 1;
+                    i < considerationComponents.length;
+                    ++i
+                ) {
+                    potentialCandidate.orderIndex = considerationComponents[i]
+                        .orderIndex;
+                    potentialCandidate.itemIndex = considerationComponents[i]
+                        .itemIndex;
 
-            // Retrieve item index using an offset of the fulfillment pointer.
-            let itemIndex := mload(add(fulfillmentPtr, 0x20))
-
-            // Ensure that the order index is not out of range.
-            invalidFulfillment := iszero(lt(orderIndex, totalOrders))
-
-            // Only continue if the fulfillment is not invalid.
-            if iszero(invalidFulfillment) {
-                // Calculate pointer to AdvancedOrder element at
-                // advancedOrders[orderIndex].OrderParameters pointer is first
-                // word of AdvancedOrder struct, so we mload twice.
-                let orderPtr := mload(
-                    // Read the pointer to advancedOrders[orderIndex] from its
-                    // head in the array.
-                    mload(
-                        // Calculate head position of advancedOrders[orderIndex]
-                        add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
-                    )
-                )
-
-                // Load consideration array pointer.
-                let considerationArrPtr := mload(
-                    add(orderPtr, OrderParameters_consideration_head_offset)
-                )
-
-                // Check if itemIndex is within the range of the array.
-                invalidFulfillment := iszero(
-                    lt(itemIndex, mload(considerationArrPtr))
-                )
-
-                // Only continue if the fulfillment is not invalid.
-                if iszero(invalidFulfillment) {
-                    // Retrieve consideration item pointer using the item index.
-                    let considerationItemPtr := mload(
-                        add(
-                            // Get pointer to beginning of receivedItem.
-                            add(considerationArrPtr, 0x20),
-                            // Calculate offset to pointer for desired order.
-                            mul(itemIndex, 0x20)
-                        )
-                    )
-
-                    // Set the item type on the received item.
-                    mstore(receivedItem, mload(considerationItemPtr))
-
-                    // Set the token on the received item.
-                    mstore(
-                        add(receivedItem, Common_token_offset),
-                        mload(add(considerationItemPtr, Common_token_offset))
-                    )
-
-                    // Set the identifier on the received item.
-                    mstore(
-                        add(receivedItem, Common_identifier_offset),
-                        mload(
-                            add(considerationItemPtr, Common_identifier_offset)
-                        )
-                    )
-
-                    // Retrieve amount pointer using consideration item pointer.
-                    let amountPtr := add(
-                        considerationItemPtr,
-                        Common_amount_offset
-                    )
-                    // Set the amount.
-                    mstore(
-                        add(receivedItem, Common_amount_offset),
-                        mload(amountPtr)
-                    )
-
-                    // Zero out amount on item to indicate it is credited.
-                    mstore(amountPtr, 0)
-
-                    // Set the recipient.
-                    mstore(
-                        add(receivedItem, ReceivedItem_recipient_offset),
-                        mload(
-                            add(
-                                considerationItemPtr,
-                                ConsiderationItem_recipient_offset
-                            )
-                        )
-                    )
-
-                    // Increment the iterator.
-                    i := add(i, 1)
-
-                    // Iterate over remaining consideration components.
-                    // prettier-ignore
-                    for {} lt(i, mload(considerationComponents)) {
-                        i := add(i, 1)
-                    } {
-                        // Retrieve the fulfillment pointer.
-                        fulfillmentPtr := mload(
-                            add(
-                                add(considerationComponents, 0x20),
-                                mul(i, 0x20)
-                            )
-                        )
-
-                        // Get the order index using the fulfillment pointer.
-                        orderIndex := mload(fulfillmentPtr)
-
-                        // Get the item index using the fulfillment pointer.
-                        itemIndex := mload(add(fulfillmentPtr, 0x20))
-
-                        // Ensure the order index is in range.
-                        invalidFulfillment := iszero(
-                            lt(orderIndex, totalOrders)
-                        )
-
-                        // Exit iteration if order index is not in range.
-                        if invalidFulfillment {
-                            break
+                    /// Ensure that the order index is not out of range.
+                    potentialCandidate.invalidFulfillment =
+                        potentialCandidate.orderIndex >= advancedOrders.length;
+                    // Break if invalid
+                    if (potentialCandidate.invalidFulfillment) {
+                        break;
+                    }
+                    aOrder = advancedOrders[potentialCandidate.orderIndex];
+                    if (aOrder.numerator != 0) {
+                        // Ensure that the item index is not out of range.
+                        potentialCandidate
+                            .invalidFulfillment = (potentialCandidate
+                            .itemIndex >=
+                            aOrder.parameters.consideration.length);
+                        // Break if invalid
+                        if (potentialCandidate.invalidFulfillment) {
+                            break;
                         }
-                        // Get pointer to AdvancedOrder element. The pointer
-                        // will be reused as the pointer to OrderParameters.
-                        orderPtr := mload(
-                            add(
-                                add(advancedOrders, 0x20),
-                                mul(orderIndex, 0x20)
-                            )
-                        )
-
-                        // Only continue if numerator is not zero.
-                        if mload(
-                            add(orderPtr, AdvancedOrder_numerator_offset)
-                        ) {
-                            // First word of AdvancedOrder is pointer to
-                            // OrderParameters.
-                            orderPtr := mload(orderPtr)
-
-                            // Load consideration array pointer.
-                            considerationArrPtr := mload(
-                                add(
-                                    orderPtr,
-                                    OrderParameters_consideration_head_offset
-                                )
-                            )
-
-                            // Check if itemIndex is within the range of array.
-                            invalidFulfillment := iszero(
-                                lt(itemIndex, mload(considerationArrPtr))
-                            )
-
-                            // Exit iteration if item index is not in range.
-                            if invalidFulfillment {
-                                break
-                            }
-
-                            // Retrieve consideration item pointer using index.
-                            considerationItemPtr := mload(
-                                add(
-                                    // Get pointer to beginning of receivedItem.
-                                    add(considerationArrPtr, 0x20),
-                                    // Use offset to pointer for desired order.
-                                    mul(itemIndex, 0x20)
-                                )
-                            )
-
-                            // Retrieve amount pointer using consideration item
-                            // pointer.
-                            amountPtr := add(
-                                considerationItemPtr,
-                                Common_amount_offset
-                            )
-
-                            // Increment the amount on the received item.
-                            mstore(
-                                add(receivedItem, Common_amount_offset),
-                                add(
-                                    mload(
-                                        add(receivedItem, Common_amount_offset)
-                                    ),
-                                    mload(amountPtr)
-                                )
-                            )
-
-                            // Zero out amount on original item to indicate it
-                            // is credited.
-                            mstore(amountPtr, 0)
-
-                            // Ensure the indicated item matches original item.
-                            invalidFulfillment := iszero(
-                                and(
-                                    // Item recipients must match.
-                                    eq(
-                                        mload(
-                                            add(
-                                                considerationItemPtr,
-                                                ConsiderItem_recipient_offset
-                                            )
-                                        ),
-                                        mload(
-                                            add(
-                                                receivedItem,
-                                                ReceivedItem_recipient_offset
-                                            )
-                                        )
-                                    ),
-                                    and(
-                                        // Item types must match.
-                                        eq(
-                                            mload(considerationItemPtr),
-                                            mload(receivedItem)
-                                        ),
-                                        and(
-                                            // Item tokens must match.
-                                            eq(
-                                                mload(
-                                                    add(
-                                                        considerationItemPtr,
-                                                        Common_token_offset
-                                                    )
-                                                ),
-                                                mload(
-                                                    add(
-                                                        receivedItem,
-                                                        Common_token_offset
-                                                    )
-                                                )
-                                            ),
-                                            // Item identifiers must match.
-                                            eq(
-                                                mload(
-                                                    add(
-                                                        considerationItemPtr,
-                                                        Common_identifier_offset
-                                                    )
-                                                ),
-                                                mload(
-                                                    add(
-                                                        receivedItem,
-                                                        Common_identifier_offset
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-
-                            // Exit iteration if items do not match.
-                            if invalidFulfillment {
-                                break
-                            }
-                        }
+                        consideration = aOrder.parameters.consideration[
+                            potentialCandidate.itemIndex
+                        ];
+                        // Updating Received Item Amount
+                        receivedItem.amount =
+                            receivedItem.amount +
+                            consideration.startAmount;
+                        // Zero out amount on original offerItem to indicate it is spent
+                        consideration.startAmount = 0;
+                        // Ensure the indicated offer item matches original item.
+                        potentialCandidate
+                            .invalidFulfillment = _checkMatchingConsideration(
+                            consideration,
+                            receivedItem
+                        );
                     }
                 }
             }
         }
 
         // Revert if an order/item was out of range or was not aggregatable.
-        if (invalidFulfillment) {
+        if (potentialCandidate.invalidFulfillment) {
             revert InvalidFulfillmentComponentData();
         }
     }
@@ -1058,21 +861,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         address to,
         bytes32 conduitKey
     ) internal pure returns (bytes32 value) {
-        // Leverage scratch space to perform an efficient hash.
-        assembly {
-            // Place the free memory pointer on the stack; replace afterwards.
-            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
-
-            mstore(0x3c, to) // Place to address in memory.
-            mstore(0x28, from) // Place from address in memory
-            mstore(0x14, token) // Place token address in memory.
-            mstore(0x00, conduitKey) // Put conduit key at beginning of region.
-
-            value := keccak256(0x00, 0x5c) // Hash the 92-byte memory region.
-
-            // Restore the free memory pointer.
-            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
-        }
+        value = keccak256(abi.encodePacked(conduitKey, token, from, to));
     }
 
     /**
@@ -1089,27 +878,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         pure
         returns (bytes32 value)
     {
-        // Leverage scratch space to perform an efficient hash.
-        assembly {
-            // Place the EIP-712 prefix at the start of scratch space.
-            mstore(
-                0x00,
-                0x1901000000000000000000000000000000000000000000000000000000000000 // solhint-disable-line max-line-length
-            )
-
-            // Place the domain separator in the next region of scratch space.
-            mstore(0x02, domainSeparator)
-
-            // Place the order hash in scratch space, spilling into the first
-            // two bytes of the free memory pointer — this should never be set
-            // as memory cannot be expanded to that size, and will be zeroed out
-            // after the hash is performed.
-            mstore(0x22, orderHash)
-
-            value := keccak256(0x00, 0x42) // Hash the relevant region.
-
-            mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
-        }
+        value = keccak256(
+            abi.encodePacked(uint16(0x1901), domainSeparator, orderHash)
+        );
     }
 
     /**
@@ -1200,13 +971,10 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         // Allocate new empty array for each partial order in memory.
         advancedOrders = new AdvancedOrder[](totalOrders);
 
-        // Skip overflow check as the index for the loop starts at zero.
-        unchecked {
-            // Iterate over the given orders.
-            for (uint256 i = 0; i < totalOrders; ++i) {
-                // Convert to partial order (1/1 or full fill) and update array.
-                advancedOrders[i] = _convertOrderToAdvanced(orders[i]);
-            }
+        // Iterate over the given orders.
+        for (uint256 i = 0; i < totalOrders; ++i) {
+            // Convert to partial order (1/1 or full fill) and update array.
+            advancedOrders[i] = _convertOrderToAdvanced(orders[i]);
         }
 
         // Return the array of advanced orders.
@@ -1229,20 +997,17 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         // Convert the supplied leaf element from uint256 to bytes32.
         bytes32 computedHash = bytes32(leaf);
 
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Iterate over each proof element.
-            for (uint256 i = 0; i < proof.length; ++i) {
-                // Retrieve the proof element.
-                bytes32 proofElement = proof[i];
+        // Iterate over each proof element.
+        for (uint256 i = 0; i < proof.length; ++i) {
+            // Retrieve the proof element.
+            bytes32 proofElement = proof[i];
 
-                if (computedHash <= proofElement) {
-                    // Hash(current computed hash + current element of proof)
-                    computedHash = _efficientHash(computedHash, proofElement);
-                } else {
-                    // Hash(current element of proof + current computed hash)
-                    computedHash = _efficientHash(proofElement, computedHash);
-                }
+            if (computedHash <= proofElement) {
+                // Hash(current computed hash + current element of proof)
+                computedHash = _efficientHash(computedHash, proofElement);
+            } else {
+                // Hash(current element of proof + current computed hash)
+                computedHash = _efficientHash(proofElement, computedHash);
             }
         }
 
