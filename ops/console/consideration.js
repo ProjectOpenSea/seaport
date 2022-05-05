@@ -18,13 +18,22 @@ const day = 60 * 60 * 24; // seconds in a day
 /// /////////////////////////////////////
 /// Helper Utility Methods
 
-const mintERC20 = async (amount, signer = wallets[0]) => {
-  log(`Minting ${amount} tokens..`);
-  await TestERC20.connect(signer)
-    .mint(signer.address, amount)
-    .then((tx) => {
-      return logEvents(tx.hash, deployments.TestERC20.abi);
-    });
+const getWallet = (address) => {
+  return wallets.find((w) => w.address === address);
+};
+
+const mintERC20 = async (amount, address) => {
+  log(`Minting ${amount} tokens for ${address}`);
+  const signer = getWallet(address);
+  const token = TestERC20.connect(signer);
+  const bal = await token.balanceOf(address);
+  if (bal >= amount) {
+    log(`${address} already owns ${amount} tokens, skipping mint..`);
+    return;
+  }
+  await token.mint(signer.address, amount).then((tx) => {
+    return logEvents(tx.hash, deployments.TestERC20.abi);
+  });
   log(`Approving ${amount} tokens..`);
   await TestERC20.connect(signer)
     .approve(Consideration.address, amount)
@@ -33,13 +42,18 @@ const mintERC20 = async (amount, signer = wallets[0]) => {
     });
 };
 
-const mintERC721 = async (nftId, signer = wallets[0]) => {
-  log(`Minting NFT #${nftId}`);
-  await TestERC721.connect(signer)
-    .mint(signer.address, nftId)
-    .then((tx) => {
-      return logEvents(tx.hash, deployments.TestERC721.abi);
-    });
+const mintERC721 = async (nftId, address) => {
+  log(`Minting NFT #${nftId} for ${address}`);
+  const signer = getWallet(address);
+  const token = TestERC721.connect(signer);
+  const owner = await token.ownerOf(nftId);
+  if (owner >= address) {
+    log(`${address} already owns NFT #${nftId}, skipping mint..`);
+    return;
+  }
+  await token.mint(signer.address, nftId).then((tx) => {
+    return logEvents(tx.hash, deployments.TestERC721.abi);
+  });
   log(`Approving NFT #${nftId}`);
   await TestERC721.connect(signer)
     .approve(Consideration.address, nftId)
@@ -51,7 +65,10 @@ const mintERC721 = async (nftId, signer = wallets[0]) => {
 // By default, offer 1 NFT up for sale
 const createOfferItem = (overrides) => ({
   itemType: 2, // ERC721
-  token: TestERC721.address,
+  token:
+    overrides.itemType === 2 || overrides.itemType === 4
+      ? TestERC721.address
+      : TestERC20.address,
   identifierOrCriteria: 0,
   startAmount: 1,
   endAmount: 1,
@@ -61,7 +78,10 @@ const createOfferItem = (overrides) => ({
 // By default, consider a payment of one ERC20 token
 const createConsiderationItem = (overrides) => ({
   itemType: 1, // ERC20
-  token: TestERC20.address,
+  token:
+    overrides.itemType === 2 || overrides.itemType === 4
+      ? TestERC721.address
+      : TestERC20.address,
   identifierOrCriteria: 0,
   startAmount: 1,
   endAmount: 1,
@@ -153,8 +173,12 @@ const createAdvancedOrder = (overrides) => ({
 
 // By default, consider a payment of one ERC20 token
 const createFulfillment = (overrides) => ({
-  offerComponents: [{ orderIndex: 0, itemIndex: 0 }],
-  considerationComponents: [{ orderIndex: 0, itemIndex: 0 }],
+  offerComponents: overrides.offerComponents || [
+    { orderIndex: 0, itemIndex: 0 },
+  ],
+  considerationComponents: overrides.considerationComponents || [
+    { orderIndex: 0, itemIndex: 0 },
+  ],
 });
 
 const signOrder = async (overrides, signer = wallets[0]) => {
@@ -172,7 +196,6 @@ const signOrder = async (overrides, signer = wallets[0]) => {
   // UNSAFE SIGNATURE, we should prob use _signTypedData here instead..
   const sig = new eth.utils.SigningKey(signer.privateKey).signDigest(digest);
   const signature = eth.utils.hexConcat([sig.r, sig.s, sig.v]);
-  log(`Signature is ${eth.utils.hexDataLength(signature)} bytes long`);
   return { parameters: order, signature };
 };
 
@@ -203,7 +226,7 @@ const helpers = {
 
 const fulfillBasicOrder = async (overrides, signer = wallets[0]) => {
   const basicOrder = createBasicOrder(overrides);
-  await mintERC20(basicOrder.considerationAmount, signer);
+  await mintERC20(basicOrder.considerationAmount, signer.address);
   log(`Fulfilling basic order: ${JSON.stringify(basicOrder, null, 2)}`);
   Consideration.connect(signer)
     .fulfillBasicOrder(basicOrder)
@@ -216,7 +239,10 @@ const fulfillBasicOrder = async (overrides, signer = wallets[0]) => {
 
 const fulfillOrder = async (overrides, signer = wallets[0]) => {
   const order = createOrder(overrides);
-  await mintERC20(order.parameters.consideration[0].startAmount, signer);
+  await mintERC20(
+    order.parameters.consideration[0].startAmount,
+    signer.address
+  );
   log(`Fulfilling order: ${JSON.stringify(order, null, 2)}`);
   Consideration.connect(signer)
     .fulfillOrder(order, AddressZero)
@@ -238,7 +264,7 @@ const fulfillAdvancedOrder = async (overrides, signer = wallets[0]) => {
   const fulfillerConduit = overrides?.fulfillerConduit || AddressZero;
   await mintERC20(
     advancedOrder.parameters.consideration[0].startAmount,
-    signer
+    signer.address
   );
   log(
     `Fulfilling advanced order: ${JSON.stringify(
@@ -255,6 +281,9 @@ const fulfillAdvancedOrder = async (overrides, signer = wallets[0]) => {
       log(`Success`);
     });
 };
+
+// TODO
+const fulfillAvailableOrders = async (overrides, signer = wallets[0]) => {};
 
 // eg for: let nftId = 1337; run the following:
 // validate({ parameters: { offer: [{ itemType: 4, identifierOrCriteria: nftId }] } })
@@ -305,7 +334,6 @@ const fulfillAvailableAdvancedOrders = async (
     });
 };
 
-// TODO
 const matchOrders = async (overrides, signer = wallets[0]) => {
   const orders = (overrides?.orders || [{}]).map(createOrder);
   const fulfillments = (overrides?.fulfillments || [{}]).map(createFulfillment);
@@ -339,12 +367,25 @@ const cancel = async (overrides, signer = wallets[0]) => {
 // to validate an advanced order: use keccak256(nftId) for the identifierOrCriteria
 const validate = async (overrides, signer = wallets[0]) => {
   const orders = (overrides || [{}]).map(createOrder);
-  log(`Minting NFTs for orders: ${JSON.stringify(orders, null, 2)}`);
   for (let i = 0; i < orders.length; i++) {
     const order = orders[i];
     for (let i = 0; i < order.parameters.offer.length; i++) {
       const offer = order.parameters.offer[i];
-      await mintERC721(offer.identifierOrCriteria, signer);
+      const owner = order.parameters.offerer || signer.address;
+      if (offer.itemType === 2 || offer.itemType === 4) {
+        await mintERC721(offer.identifierOrCriteria, owner);
+      } else if (offer.itemType === 1) {
+        await mintERC20(offer.startAmount, owner);
+      }
+    }
+    for (let i = 0; i < order.parameters.consideration.length; i++) {
+      const consideration = order.parameters.consideration[i];
+      const owner = order.parameters.considerationer || signer.address;
+      if (consideration.itemType === 2 || consideration.itemType === 4) {
+        await mintERC721(consideration.identifierOrCriteria, owner);
+      } else if (consideration.itemType === 1) {
+        await mintERC20(consideration.startAmount, owner);
+      }
     }
   }
   log(`Validating order: ${JSON.stringify(orders, null, 2)}`);
@@ -368,7 +409,6 @@ const incrementNonce = async (signer = wallets[0]) => {
 
 const getOrderHash = async (overrides, signer = wallets[0]) => {
   const order = createOrderComponents(overrides);
-  log(`Getting order hash for: ${JSON.stringify(order, null, 2)}`);
   return await Consideration.connect(signer)
     .getOrderHash(order)
     .then((hash) => {
@@ -404,23 +444,75 @@ test.validate = async () => {
 };
 
 test.matchOrders = async () => {
-  const nftId1 = Math.round(Math.random() * 1000000);
-  const nftId2 = Math.round(Math.random() * 1000000);
+  // Validate an order to sell 1 NFT
+  const buyer = wallets[0];
   const seller = wallets[1];
-  const orders = [
+  const nftId = Math.round(Math.random() * 1000000);
+  const sellOrder = await signOrder(
     {
       parameters: {
-        offerer: seller.address,
-        offer: [
-          { itemType: 4, identifierOrCriteria: nftId1 },
-          { itemType: 4, identifierOrCriteria: nftId2 },
+        offer: [{ itemType: 2, identifierOrCriteria: nftId }],
+        consideration: [
+          {
+            startAmount: 1,
+            endAmount: 1,
+            recipient: seller.address,
+          },
         ],
-        consideration: [{ startAmount: 2, endAmount: 2 }],
       },
     },
+    seller
+  );
+  await validate([sellOrder]);
+  // Validate an order to buy the 2 NFTs for sale
+  const buyOrder = await signOrder(
+    {
+      parameters: {
+        offerer: buyer.address,
+        offer: [{ itemType: 1, startAmount: 2, endAmount: 2 }],
+        consideration: [{ itemType: 2, identifierOrCriteria: nftId }],
+      },
+    },
+    buyer
+  );
+  await validate([buyOrder]);
+  // Match the validated orders
+  const fulfillments = [
+    // 1st fulfillment: NFT #1
+    {
+      offerComponents: [
+        {
+          orderIndex: 0,
+          itemIndex: 0,
+        },
+      ],
+      considerationComponents: [
+        {
+          orderIndex: 1,
+          itemIndex: 0,
+        },
+      ],
+    },
+    // 2nd fulfillment: ERC20s
+    {
+      offerComponents: [
+        {
+          orderIndex: 1,
+          itemIndex: 0,
+        },
+      ],
+      considerationComponents: [
+        {
+          orderIndex: 0,
+          itemIndex: 0,
+        },
+      ],
+    },
   ];
-  await validate({ orders }, seller);
-  await matchOrders({ orders });
+  await matchOrders({
+    orders: [sellOrder, buyOrder],
+    fulfillments,
+  });
 };
 
 test.fulfillAvailableAdvancedOrders = async () => {
@@ -475,6 +567,7 @@ module.exports = {
   fulfillBasicOrder: fulfillBasicOrder,
   fulfillOrder: fulfillOrder,
   fulfillAdvancedOrder: fulfillAdvancedOrder,
+  fulfillAvailableOrders: fulfillAvailableOrders,
   fulfillAvailableAdvancedOrders: fulfillAvailableAdvancedOrders,
   matchOrders: matchOrders,
   matchAdvancedOrders: matchAdvancedOrders,
