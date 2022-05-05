@@ -13368,7 +13368,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0, // FULL_OPEN
           [],
           null,
-          zone // wrong signer
+          seller
         );
 
         const basicOrderParameters = getBasicOrderParameters(
@@ -13432,10 +13432,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           [],
           null,
           seller,
-          "0x".padEnd(65, "0") + "3"
+          "0x".padEnd(65, "0") + "2"
         );
-
-        order.parameters.extraData = "0x01";
 
         if (!process.env.REFERENCE) {
           await whileImpersonating(buyer.address, provider, async () => {
@@ -13455,6 +13453,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         }
 
+        order.parameters.extraData = "0x01";
+
         if (!process.env.REFERENCE) {
           await whileImpersonating(buyer.address, provider, async () => {
             await expect(
@@ -13468,7 +13468,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await expect(
               marketplaceContract
                 .connect(buyer)
-                .fulfillOrder(order, [], toKey(false), { value })
+                .fulfillAdvancedOrder(order, [], toKey(false), { value })
             ).to.be.reverted;
           });
         }
@@ -13506,7 +13506,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           [],
           null,
           seller,
-          "0x".padEnd(65, "0") + "2"
+          "0x".padEnd(65, "0") + "3"
         );
 
         if (!process.env.REFERENCE) {
@@ -13523,6 +13523,26 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               marketplaceContract
                 .connect(buyer)
                 .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+        }
+
+        order.parameters.extraData = "0x01";
+
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillAdvancedOrder(order, [], toKey(false), { value })
+            ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillAdvancedOrder(order, [], toKey(false), { value })
             ).to.be.reverted;
           });
         }
