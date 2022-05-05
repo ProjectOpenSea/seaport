@@ -3619,13 +3619,23 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           // Fails before seller contract approves the digest (note that any
           // non-standard signature length is treated as a contract signature)
-          await whileImpersonating(buyer.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(buyer)
-                .fulfillBasicOrder(basicOrderParameters)
-            ).to.be.revertedWith("BadContractSignature");
-          });
+          if (!process.env.REFERENCE) {
+            await whileImpersonating(buyer.address, provider, async () => {
+              await expect(
+                marketplaceContract
+                  .connect(buyer)
+                  .fulfillBasicOrder(basicOrderParameters)
+              ).to.be.revertedWith("BadContractSignature");
+            });
+          } else {
+            await whileImpersonating(buyer.address, provider, async () => {
+              await expect(
+                marketplaceContract
+                  .connect(buyer)
+                  .fulfillBasicOrder(basicOrderParameters)
+              ).to.be.reverted;
+            });
+          }
 
           // Compute the digest based on the order hash
           const { domainSeparator } = await marketplaceContract.information();
@@ -6159,20 +6169,37 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         // cannot fill it with no signature yet
         order.signature = "0x";
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), { value })
-          ).to.be.revertedWith("InvalidSigner");
-        });
 
-        // cannot validate it with no signature from a random account
-        await whileImpersonating(owner.address, provider, async () => {
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
-        });
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.revertedWith("InvalidSigner");
+          });
+
+          // cannot validate it with no signature from a random account
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(
+              marketplaceContract.connect(owner).validate([order])
+            ).to.be.revertedWith("InvalidSigner");
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+
+          // cannot validate it with no signature from a random account
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(marketplaceContract.connect(owner).validate([order]))
+              .to.be.reverted;
+          });
+        }
 
         // can validate it once you add the signature back
         order.signature = signature;
@@ -6261,21 +6288,38 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(initialStatus.isValidated).to.be.false;
         expect(initialStatus.isCancelled).to.be.false;
 
-        // cannot fill it with no signature yet
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), { value })
-          ).to.be.revertedWith("InvalidSigner");
-        });
+        if (!process.env.REFERENCE) {
+          // cannot fill it with no signature yet
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.revertedWith("InvalidSigner");
+          });
 
-        // cannot validate it with no signature from a random account
-        await whileImpersonating(owner.address, provider, async () => {
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
-        });
+          // cannot validate it with no signature from a random account
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(
+              marketplaceContract.connect(owner).validate([order])
+            ).to.be.revertedWith("InvalidSigner");
+          });
+        } else {
+          // cannot fill it with no signature yet
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+
+          // cannot validate it with no signature from a random account
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(marketplaceContract.connect(owner).validate([order]))
+              .to.be.reverted;
+          });
+        }
 
         // can validate it from the seller
         await whileImpersonating(seller.address, provider, async () => {
@@ -6341,21 +6385,38 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(initialStatus.isValidated).to.be.false;
         expect(initialStatus.isCancelled).to.be.false;
 
-        // cannot fill it with no signature yet
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), { value })
-          ).to.be.revertedWith("InvalidSigner");
-        });
+        if (!process.env.REFERENCE) {
+          // cannot fill it with no signature yet
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.revertedWith("InvalidSigner");
+          });
 
-        // cannot validate it with no signature from a random account
-        await whileImpersonating(owner.address, provider, async () => {
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
-        });
+          // cannot validate it with no signature from a random account
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(
+              marketplaceContract.connect(owner).validate([order])
+            ).to.be.revertedWith("InvalidSigner");
+          });
+        } else {
+          // cannot fill it with no signature yet
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+
+          // cannot validate it with no signature from a random account
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(marketplaceContract.connect(owner).validate([order]))
+              .to.be.reverted;
+          });
+        }
 
         // can cancel it
         await whileImpersonating(seller.address, provider, async () => {
@@ -6750,14 +6811,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const newNonce = await marketplaceContract.getNonce(seller.address);
         expect(newNonce).to.equal(1);
 
-        // Cannot fill order anymore
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), { value })
-          ).to.be.revertedWith("InvalidSigner");
-        });
+        if (!process.env.REFERENCE) {
+          // Cannot fill order anymore
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.revertedWith("InvalidSigner");
+          });
+        } else {
+          // Cannot fill order anymore
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+        }
 
         const newOrderDetails = await createOrder(
           seller,
@@ -6840,14 +6912,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const newNonce = await marketplaceContract.getNonce(seller.address);
         expect(newNonce).to.equal(1);
 
-        // Cannot fill order anymore
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), { value })
-          ).to.be.revertedWith("InvalidSigner");
-        });
+        if (!process.env.REFERENCE) {
+          // Cannot fill order anymore
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.revertedWith("InvalidSigner");
+          });
+        } else {
+          // Cannot fill order anymore
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+        }
 
         const newOrderDetails = await createOrder(
           seller,
@@ -6930,14 +7013,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const newNonce = await marketplaceContract.getNonce(seller.address);
         expect(newNonce).to.equal(1);
 
-        // Cannot fill order anymore
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), { value })
-          ).to.be.revertedWith("InvalidSigner");
-        });
+        if (!process.env.REFERENCE) {
+          // Cannot fill order anymore
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.revertedWith("InvalidSigner");
+          });
+        } else {
+          // Cannot fill order anymore
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+        }
 
         const newOrderDetails = await createOrder(
           seller,
@@ -12882,13 +12976,23 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(batchExecutions.length).to.equal(0);
         expect(standardExecutions.length).to.equal(4);
 
-        await whileImpersonating(owner.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(owner)
-              .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
-        });
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchOrders([order, mirrorOrder], fulfillments, { value })
+            ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+          });
+        } else {
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchOrders([order, mirrorOrder], fulfillments, { value })
+            ).to.be.reverted;
+          });
+        }
 
         await whileImpersonating(zone.address, provider, async () => {
           const tx = await marketplaceContract
@@ -13169,13 +13273,23 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           order
         );
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.revertedWith("BadContractSignature");
-        });
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters)
+            ).to.be.revertedWith("BadContractSignature");
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters)
+            ).to.be.reverted;
+          });
+        }
       });
       it("Reverts on restricted order where isValidOrder reverts with no data", async () => {
         // Seller mints nft
@@ -13213,13 +13327,23 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           "0x".padEnd(65, "0") + "2"
         );
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), { value })
-          ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
-        });
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+        }
       });
       it("Reverts on missing offer or consideration components", async () => {
         // Seller mints nft
@@ -18495,13 +18619,23 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
         await tx.wait();
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), { value })
-          ).to.be.revertedWith("NoReentrantCalls");
-        });
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.revertedWith("NoReentrantCalls");
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+        }
       });
       it.skip("Reverts on reentrancy (test all the other permutations)", async () => {});
     });

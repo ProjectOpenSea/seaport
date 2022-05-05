@@ -1672,19 +1672,11 @@ contract ReferenceConsiderationInternal is
         _assertNonZeroAmount(amount);
 
         // Declare a variable indicating whether the call was successful or not.
-        bool success;
-
-        assembly {
-            // Transfer the ETH and store if it succeeded or not.
-            success := call(gas(), to, amount, 0, 0, 0, 0)
-        }
+        (bool success, ) = to.call{ value: amount }("");
 
         // If the call fails...
         if (!success) {
-            // Revert and pass the revert reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
+            // Revert with a generic error message.
             revert EtherTransferGenericFailure(to, amount);
         }
     }
