@@ -46,8 +46,9 @@ contract FulfillOrderTest is BaseOrderTest {
     function testFulfillOrderEthToERC721(
         EthToERC721Struct memory _ethToERC721Struct
     ) public {
+        vm.record();
         _testFulfillOrderEthToERC721(consideration, _ethToERC721Struct);
-        ++_ethToERC721Struct.id;
+        _resetTokensAndEthForTestAccounts();
         _testFulfillOrderEthToERC721(
             Consideration(address(referenceConsideration)),
             _ethToERC721Struct
@@ -150,7 +151,9 @@ contract FulfillOrderTest is BaseOrderTest {
     function testFulfillOrderEthToERC1155(
         EthToERC1155Struct memory _ethToERC1155Struct
     ) public {
+        vm.record();
         _testFulfillOrderEthToERC1155(consideration, _ethToERC1155Struct);
+        _resetTokensAndEthForTestAccounts();
         _testFulfillOrderEthToERC1155(
             Consideration(address(referenceConsideration)),
             _ethToERC1155Struct
