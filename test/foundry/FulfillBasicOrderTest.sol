@@ -13,27 +13,74 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest {
-    //eth to 721
-    // alice is offering their 721 for ETH
-    function testListBasicETHto721(
-        address _zone,
-        uint256 _id,
-        uint128 _ethAmount,
-        bytes32 _zoneHash,
-        uint256 _salt
-    ) external {
+    struct TestBasicOrder {
+        address zone;
+        uint256 tokenId;
+        uint128 paymentAmount;
+        bytes32 zoneHash;
+        uint256 salt;
+    }
+
+    struct TestBasicOrder1155 {
+        address zone;
+        uint256 tokenId;
+        uint256 tokenAmount;
+        uint128 paymentAmount;
+        bytes32 zoneHash;
+        uint256 salt;
+    }
+
+    function testBasicSingleERC721(TestBasicOrder memory testBasicOrder)
+        public
+    {
+        _testListBasicEthTo721(consideration, testBasicOrder);
+        _testListBasicEthTo721(referenceConsideration, testBasicOrder);
+    }
+
+    function testListBasicEthTo1155(TestBasicOrder1155 memory testBasicOrder)
+        public
+    {
+        _testListBasicEthTo1155(consideration, testBasicOrder);
+        _testListBasicEthTo1155(referenceConsideration, testBasicOrder);
+    }
+
+    function testListBasic20to721(TestBasicOrder memory testBasicOrder) public {
+        _testListBasic20to721(consideration, testBasicOrder);
+        _testListBasic20to721(referenceConsideration, testBasicOrder);
+    }
+
+    function testListBasic20to1155(TestBasicOrder1155 memory testBasicOrder)
+        public
+    {
+        _testListBasic20to1155(consideration, testBasicOrder);
+        _testListBasic20to1155(referenceConsideration, testBasicOrder);
+    }
+
+    function _testListBasicEthTo721(
+        Consideration _consideration,
+        TestBasicOrder memory testBasicOrder
+    ) internal resetTokenBalancesBetweenRuns {
         // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
-        vm.assume(_ethAmount > 0);
+        vm.assume(testBasicOrder.paymentAmount > 0);
         // don't try to mint IDs that already exist
-        vm.assume(_id > globalTokenId || _id == 0);
+        vm.assume(
+            testBasicOrder.tokenId > globalTokenId ||
+                testBasicOrder.tokenId == 0
+        );
 
         emit log("Basic 721 Offer - Eth Consideration");
 
-        test721_1.mint(alice, _id);
+        test721_1.mint(alice, testBasicOrder.tokenId);
         emit log_named_address("Minted test721_1 token to", alice);
 
         OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItem(ItemType.ERC721, address(test721_1), _id, 1, 1);
+        offer[0] = OfferItem(
+            ItemType.ERC721,
+            address(test721_1),
+            testBasicOrder.tokenId,
+            1,
+            1
+        );
 
         ConsiderationItem[] memory considerationItem = new ConsiderationItem[](
             1
@@ -42,46 +89,46 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             ItemType.NATIVE,
             address(0),
             0,
-            _ethAmount,
-            _ethAmount,
+            testBasicOrder.paymentAmount,
+            testBasicOrder.paymentAmount,
             payable(alice)
         );
 
         // getNonce
-        uint256 nonce = consideration.getNonce(alice);
+        uint256 nonce = _consideration.getNonce(alice);
 
         // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            _zone,
+            testBasicOrder.zone,
             offer,
             considerationItem,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
-            _zoneHash,
-            _salt,
+            testBasicOrder.zoneHash,
+            testBasicOrder.salt,
             bytes32(0), // no conduit
             nonce
         );
-        bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+        bytes32 orderHash = _consideration.getOrderHash(orderComponents);
+        bytes memory signature = signOrder(_consideration, alicePk, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(0),
             0,
-            _ethAmount,
+            testBasicOrder.paymentAmount,
             payable(alice),
-            _zone,
+            testBasicOrder.zone,
             address(test721_1),
-            _id,
+            testBasicOrder.tokenId,
             1,
             BasicOrderType.ETH_TO_ERC721_FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
-            _zoneHash,
-            _salt,
+            testBasicOrder.zoneHash,
+            testBasicOrder.salt,
             bytes32(0), // no conduit
             bytes32(0), // no conduit
             0,
@@ -92,7 +139,9 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         emit log(">>>>");
 
         // simple
-        consideration.fulfillBasicOrder{ value: _ethAmount }(order);
+        _consideration.fulfillBasicOrder{ value: testBasicOrder.paymentAmount }(
+            order
+        );
 
         emit log_named_address(
             "Fulfilled Basic 721 Offer - Eth Consideration",
@@ -100,77 +149,79 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         );
     }
 
-    //TODO: add _amount param and test with varying number of 1155s
-    function testListBasicETHto1155(
-        address _zone,
-        uint256 _id,
-        uint128 _tokenAmount,
-        uint128 _ethAmount,
-        bytes32 _zoneHash,
-        uint256 _salt
-    ) external {
+    function _testListBasicEthTo1155(
+        Consideration _consideration,
+        TestBasicOrder1155 memory testBasicOrder
+    ) internal resetTokenBalancesBetweenRuns {
         // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
-        vm.assume(_ethAmount > 0);
-        vm.assume(_id > globalTokenId || _id == 0);
-        vm.assume(_tokenAmount > 0);
+        vm.assume(testBasicOrder.paymentAmount > 0);
+        vm.assume(
+            testBasicOrder.tokenId > globalTokenId ||
+                testBasicOrder.tokenId == 0
+        );
+        vm.assume(testBasicOrder.tokenAmount > 0);
 
         emit log("Basic 1155 Offer - Eth Consideration");
 
-        test1155_1.mint(alice, _id, _tokenAmount);
+        test1155_1.mint(
+            alice,
+            testBasicOrder.tokenId,
+            testBasicOrder.tokenAmount
+        );
         emit log_named_address("Minted test1155_1 token to", alice);
 
         OfferItem[] memory offer = singleOfferItem(
             ItemType.ERC1155,
             address(test1155_1),
-            _id,
-            _tokenAmount,
-            _tokenAmount
+            testBasicOrder.tokenId,
+            testBasicOrder.tokenAmount,
+            testBasicOrder.tokenAmount
         );
 
         ConsiderationItem[] memory considerationItem = singleConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            _ethAmount,
-            _ethAmount,
+            testBasicOrder.paymentAmount,
+            testBasicOrder.paymentAmount,
             alice
         );
 
         // getNonce
-        uint256 nonce = consideration.getNonce(alice);
+        uint256 nonce = _consideration.getNonce(alice);
 
         // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            _zone,
+            testBasicOrder.zone,
             offer,
             considerationItem,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
-            _zoneHash,
-            _salt,
+            testBasicOrder.zoneHash,
+            testBasicOrder.salt,
             bytes32(0), // no conduit
             nonce
         );
-        bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+        bytes32 orderHash = _consideration.getOrderHash(orderComponents);
+        bytes memory signature = signOrder(_consideration, alicePk, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(0),
             0,
-            _ethAmount,
+            testBasicOrder.paymentAmount,
             payable(alice),
-            _zone,
+            testBasicOrder.zone,
             address(test1155_1),
-            _id,
-            _tokenAmount,
+            testBasicOrder.tokenId,
+            testBasicOrder.tokenAmount,
             BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
-            _zoneHash,
-            _salt,
+            testBasicOrder.zoneHash,
+            testBasicOrder.salt,
             bytes32(0), // no conduit
             bytes32(0), // no conduit
             0,
@@ -181,7 +232,9 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         emit log(">>>>");
 
         // simple
-        consideration.fulfillBasicOrder{ value: _ethAmount }(order);
+        _consideration.fulfillBasicOrder{ value: testBasicOrder.paymentAmount }(
+            order
+        );
 
         emit log_named_address(
             "Fulfilled Basic 1155 Offer - Eth Consideration",
@@ -189,26 +242,26 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         );
     }
 
-    function testListBasic20to721(
-        address _zone,
-        uint256 _id,
-        uint128 _erc20Amount,
-        bytes32 _zoneHash,
-        uint256 _salt
-    ) external {
+    function _testListBasic20to721(
+        Consideration _consideration,
+        TestBasicOrder memory testBasicOrder
+    ) internal resetTokenBalancesBetweenRuns {
         // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
-        vm.assume(_erc20Amount > 0);
-        // vm.assume(_erc20Amount < 100); //TODO change this so we can test big numbers.
-        vm.assume(_id > globalTokenId || _id == 0);
+        vm.assume(testBasicOrder.paymentAmount > 0);
+        // vm.assume(testBasicOrder.paymentAmount < 100); //TODO change this so we can test big numbers.
+        vm.assume(
+            testBasicOrder.tokenId > globalTokenId ||
+                testBasicOrder.tokenId == 0
+        );
         emit log("Basic 721 Offer - ERC20 Consideration");
 
-        test721_1.mint(alice, _id);
+        test721_1.mint(alice, testBasicOrder.tokenId);
         emit log_named_address("Minted test721_1 token to", alice);
 
         OfferItem[] memory offer = singleOfferItem(
             ItemType.ERC721,
             address(test721_1),
-            _id,
+            testBasicOrder.tokenId,
             1,
             1
         );
@@ -217,46 +270,46 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             ItemType.ERC20,
             address(token1),
             0,
-            _erc20Amount,
-            _erc20Amount,
+            testBasicOrder.paymentAmount,
+            testBasicOrder.paymentAmount,
             payable(alice)
         );
 
         // getNonce
-        uint256 nonce = consideration.getNonce(alice);
+        uint256 nonce = _consideration.getNonce(alice);
 
         // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            _zone,
+            testBasicOrder.zone,
             offer,
             considerationItem,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
-            _zoneHash,
-            _salt,
+            testBasicOrder.zoneHash,
+            testBasicOrder.salt,
             bytes32(0), // no conduit
             nonce
         );
-        bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+        bytes32 orderHash = _consideration.getOrderHash(orderComponents);
+        bytes memory signature = signOrder(_consideration, alicePk, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(token1),
             0,
-            _erc20Amount,
+            testBasicOrder.paymentAmount,
             payable(alice),
-            _zone,
+            testBasicOrder.zone,
             address(address(test721_1)),
-            _id,
+            testBasicOrder.tokenId,
             1,
             BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
-            _zoneHash,
-            _salt,
+            testBasicOrder.zoneHash,
+            testBasicOrder.salt,
             bytes32(0), // no conduit
             bytes32(0), // no conduit
             0,
@@ -267,81 +320,84 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         emit log(">>>>");
 
         // simple
-        consideration.fulfillBasicOrder(order);
+        _consideration.fulfillBasicOrder(order);
 
         emit log("Fulfilled Basic 721 Offer - ERC20 Consideration");
     }
 
-    function testListBasic20to1155(
-        address _zone,
-        uint256 _id,
-        uint128 _tokenAmount,
-        uint128 _erc20Amount,
-        bytes32 _zoneHash,
-        uint256 _salt
-    ) external {
+    function _testListBasic20to1155(
+        Consideration _consideration,
+        TestBasicOrder1155 memory testBasicOrder
+    ) internal resetTokenBalancesBetweenRuns {
         // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
-        vm.assume(_erc20Amount > 0);
-        vm.assume(_id > globalTokenId || _id == 0);
-        vm.assume(_tokenAmount > 0);
+        vm.assume(testBasicOrder.paymentAmount > 0);
+        vm.assume(
+            testBasicOrder.tokenId > globalTokenId ||
+                testBasicOrder.tokenId == 0
+        );
+        vm.assume(testBasicOrder.tokenAmount > 0);
 
         emit log("Basic 1155 Offer - ERC20 Consideration");
 
-        test1155_1.mint(alice, _id, _tokenAmount);
+        test1155_1.mint(
+            alice,
+            testBasicOrder.tokenId,
+            testBasicOrder.tokenAmount
+        );
         emit log_named_address("Minted test1155_1 token to", alice);
 
         OfferItem[] memory offer = singleOfferItem(
             ItemType.ERC1155,
             address(test1155_1),
-            _id,
-            _tokenAmount,
-            _tokenAmount
+            testBasicOrder.tokenId,
+            testBasicOrder.tokenAmount,
+            testBasicOrder.tokenAmount
         );
         ConsiderationItem[] memory considerationItem = singleConsiderationItem(
             ItemType.ERC20,
             address(token1),
             0,
-            _erc20Amount,
-            _erc20Amount,
+            testBasicOrder.paymentAmount,
+            testBasicOrder.paymentAmount,
             payable(alice)
         );
 
         // getNonce
-        uint256 nonce = consideration.getNonce(alice);
+        uint256 nonce = _consideration.getNonce(alice);
 
         // getOrderHash
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            _zone,
+            testBasicOrder.zone,
             offer,
             considerationItem,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
-            _zoneHash,
-            _salt,
+            testBasicOrder.zoneHash,
+            testBasicOrder.salt,
             bytes32(0), // no conduit
             nonce
         );
 
-        bytes32 orderHash = consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(consideration, alicePk, orderHash);
+        bytes32 orderHash = _consideration.getOrderHash(orderComponents);
+        bytes memory signature = signOrder(_consideration, alicePk, orderHash);
 
         // fulfill
         BasicOrderParameters memory order = BasicOrderParameters(
             address(token1),
             0,
-            _erc20Amount,
+            testBasicOrder.paymentAmount,
             payable(alice),
-            _zone,
+            testBasicOrder.zone,
             address(test1155_1),
-            _id,
-            _tokenAmount,
+            testBasicOrder.tokenId,
+            testBasicOrder.tokenAmount,
             BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN,
             block.timestamp,
             block.timestamp + 5000,
-            _zoneHash,
-            _salt,
+            testBasicOrder.zoneHash,
+            testBasicOrder.salt,
             bytes32(0), // no conduit
             bytes32(0), // no conduit
             0,
@@ -352,7 +408,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         emit log(">>>>");
 
         // simple
-        consideration.fulfillBasicOrder(order);
+        _consideration.fulfillBasicOrder(order);
 
         emit log_named_address(
             "Fulfilled Basic 721 Offer - Eth Consideration",
