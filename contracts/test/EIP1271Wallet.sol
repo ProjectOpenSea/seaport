@@ -18,9 +18,16 @@ contract EIP1271Wallet {
 
     mapping(bytes32 => bool) public digestApproved;
 
+    bool public isValid;
+
     constructor(address _owner) {
         owner = _owner;
         showRevertMessage = true;
+        isValid = true;
+    }
+
+    function setValid(bool valid) external {
+        isValid = valid;
     }
 
     function revertWithMessage(bool showMessage) external {
@@ -99,6 +106,6 @@ contract EIP1271Wallet {
             revert();
         }
 
-        return _EIP_1271_MAGIC_VALUE;
+        return isValid ? _EIP_1271_MAGIC_VALUE : bytes4(0xffffffff);
     }
 }

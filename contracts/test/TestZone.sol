@@ -28,7 +28,9 @@ contract TestZone is ZoneInterface {
             }
         }
 
-        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
+        validOrderMagicValue = zoneHash != bytes32(uint256(3))
+            ? ZoneInterface.isValidOrder.selector
+            : bytes4(0xffffffff);
     }
 
     function isValidOrderIncludingExtraData(
@@ -52,6 +54,8 @@ contract TestZone is ZoneInterface {
             }
         }
 
-        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
+        validOrderMagicValue = order.parameters.zoneHash != bytes32(uint256(3))
+            ? ZoneInterface.isValidOrder.selector
+            : bytes4(0xffffffff);
     }
 }
