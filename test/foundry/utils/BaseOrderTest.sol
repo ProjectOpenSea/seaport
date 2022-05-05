@@ -63,6 +63,16 @@ contract BaseOrderTest is
         _;
     }
 
+    /**
+     * @dev hook to record storage writes and reset token balances in between differential runs
+     */
+
+    modifier resetTokenBalancesBetweenRuns() {
+        vm.record();
+        _;
+        _resetTokensAndEthForTestAccounts();
+    }
+
     function setUp() public virtual override {
         super.setUp();
 

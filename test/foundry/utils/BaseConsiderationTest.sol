@@ -16,7 +16,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     using stdStorage for StdStorage;
 
     Consideration consideration;
-    ReferenceConsideration referenceConsideration;
+    Consideration referenceConsideration;
     bytes32 conduitKeyOne;
     ConduitController conduitController;
     address conduit;
@@ -44,8 +44,8 @@ contract BaseConsiderationTest is DSTestPlusPlus {
             address(consideration)
         );
 
-        referenceConsideration = new ReferenceConsideration(
-            address(conduitController)
+        referenceConsideration = Consideration(
+            address(new ReferenceConsideration(address(conduitController)))
         );
         vm.label(address(referenceConsideration), "consideration");
         emit log_named_address(
