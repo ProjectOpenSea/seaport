@@ -81,6 +81,7 @@ contract FulfillOrderTest is BaseOrderTest {
             consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
+            consideration,
             alicePk,
             consideration.getOrderHash(orderComponents)
         );
@@ -172,6 +173,7 @@ contract FulfillOrderTest is BaseOrderTest {
             consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
+            consideration,
             alicePk,
             consideration.getOrderHash(orderComponents)
         );
