@@ -2,9 +2,6 @@
 pragma solidity 0.8.13;
 
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
-import { ERC20 } from "@rari-capital/solmate/src/tokens/ERC20.sol";
-import { ERC721 } from "@rari-capital/solmate/src/tokens/ERC721.sol";
-import { ERC1155 } from "@rari-capital/solmate/src/tokens/ERC1155.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
@@ -13,7 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { ConsiderationItem } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ConsiderationItem, OfferItem } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -45,11 +42,20 @@ contract BaseOrderTest is
     TestERC1155 internal test1155_3;
 
     address[] allTokens;
-    ERC20[] erc20s;
-
+    TestERC20[] erc20s;
+    TestERC721[] erc721s;
+    TestERC1155[] erc1155s;
     address[] accounts;
 
+    OfferItem[] offerItems;
+    ConsiderationItem[] considerationItems;
+
     uint256 internal globalTokenId;
+
+    struct RestoreERC20Balance {
+        address token;
+        address who;
+    }
 
     modifier onlyPayable(address _addr) {
         {
@@ -83,19 +89,19 @@ contract BaseOrderTest is
 
     function setUp() public virtual override {
         super.setUp();
+        offerItems = new OfferItem[](0);
+        considerationItems = new ConsiderationItem[](0);
 
         vm.label(alice, "alice");
         vm.label(bob, "bob");
         vm.label(cal, "cal");
+        vm.label(address(this), "testContract");
 
         _deployTestTokenContracts();
-
-        // allocate funds and tokens to test addresses
-        globalTokenId = 1;
-        allocateTokensAndApprovals(address(this), uint128(MAX_INT));
-        allocateTokensAndApprovals(alice, uint128(MAX_INT));
-        allocateTokensAndApprovals(bob, uint128(MAX_INT));
-        allocateTokensAndApprovals(cal, uint128(MAX_INT));
+        accounts = [alice, bob, cal, address(this)];
+        erc20s = [token1, token2, token3];
+        erc721s = [test721_1, test721_2, test721_3];
+        erc1155s = [test1155_1, test1155_2, test1155_3];
         allTokens = [
             address(token1),
             address(token2),
@@ -107,7 +113,13 @@ contract BaseOrderTest is
             address(test1155_2),
             address(test1155_3)
         ];
-        accounts = [alice, bob, cal, address(this)];
+
+        // allocate funds and tokens to test addresses
+        globalTokenId = 1;
+        allocateTokensAndApprovals(address(this), uint128(MAX_INT));
+        allocateTokensAndApprovals(alice, uint128(MAX_INT));
+        allocateTokensAndApprovals(bob, uint128(MAX_INT));
+        allocateTokensAndApprovals(cal, uint128(MAX_INT));
     }
 
     /**
@@ -125,6 +137,8 @@ contract BaseOrderTest is
         test1155_3 = new TestERC1155();
         vm.label(address(token1), "token1");
         vm.label(address(test721_1), "test721_1");
+        vm.label(address(test1155_1), "test1155_1");
+
         emit log("Deployed test token contracts");
     }
 
@@ -133,9 +147,10 @@ contract BaseOrderTest is
     */
     function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
-        token1.mint(_to, _amount);
-        token2.mint(_to, _amount);
-        token3.mint(_to, _amount);
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            erc20s[i].mint(_to, _amount);
+        }
+
         // test721_1.mint(_to, globalTokenId++);
         // test721_2.mint(_to, globalTokenId++);
         // test721_3.mint(_to, globalTokenId++);
@@ -148,35 +163,24 @@ contract BaseOrderTest is
 
     function _setApprovals(address _owner) internal {
         vm.startPrank(_owner);
-        token1.approve(address(consideration), MAX_INT);
-        token2.approve(address(consideration), MAX_INT);
-        token3.approve(address(consideration), MAX_INT);
-        test721_1.setApprovalForAll(address(consideration), true);
-        test721_2.setApprovalForAll(address(consideration), true);
-        test721_3.setApprovalForAll(address(consideration), true);
-        test1155_1.setApprovalForAll(address(consideration), true);
-        test1155_2.setApprovalForAll(address(consideration), true);
-        test1155_3.setApprovalForAll(address(consideration), true);
-
-        token1.approve(address(referenceConsideration), MAX_INT);
-        token2.approve(address(referenceConsideration), MAX_INT);
-        token3.approve(address(referenceConsideration), MAX_INT);
-        test721_1.setApprovalForAll(address(referenceConsideration), true);
-        test721_2.setApprovalForAll(address(referenceConsideration), true);
-        test721_3.setApprovalForAll(address(referenceConsideration), true);
-        test1155_1.setApprovalForAll(address(referenceConsideration), true);
-        test1155_2.setApprovalForAll(address(referenceConsideration), true);
-        test1155_3.setApprovalForAll(address(referenceConsideration), true);
-
-        token1.approve(address(conduit), MAX_INT);
-        token2.approve(address(conduit), MAX_INT);
-        token3.approve(address(conduit), MAX_INT);
-        test721_1.setApprovalForAll(address(conduit), true);
-        test721_2.setApprovalForAll(address(conduit), true);
-        test721_3.setApprovalForAll(address(conduit), true);
-        test1155_1.setApprovalForAll(address(conduit), true);
-        test1155_2.setApprovalForAll(address(conduit), true);
-        test1155_3.setApprovalForAll(address(conduit), true);
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            erc20s[i].approve(address(consideration), MAX_INT);
+            erc20s[i].approve(address(referenceConsideration), MAX_INT);
+            erc20s[i].approve(address(conduit), MAX_INT);
+        }
+        for (uint256 i = 0; i < erc721s.length; i++) {
+            erc721s[i].setApprovalForAll(address(consideration), true);
+            erc721s[i].setApprovalForAll(address(referenceConsideration), true);
+            erc721s[i].setApprovalForAll(address(conduit), true);
+        }
+        for (uint256 i = 0; i < erc1155s.length; i++) {
+            erc1155s[i].setApprovalForAll(address(consideration), true);
+            erc1155s[i].setApprovalForAll(
+                address(referenceConsideration),
+                true
+            );
+            erc1155s[i].setApprovalForAll(address(conduit), true);
+        }
 
         vm.stopPrank();
         emit log_named_address(
@@ -189,9 +193,7 @@ contract BaseOrderTest is
         );
     }
 
-    function getMaxConsiderationValue(
-        ConsiderationItem[] memory considerationItems
-    ) internal pure returns (uint256) {
+    function getMaxConsiderationValue() internal view returns (uint256) {
         uint256 value = 0;
         for (uint256 i = 0; i < considerationItems.length; i++) {
             uint256 amount = considerationItems[i].startAmount >
@@ -213,41 +215,54 @@ contract BaseOrderTest is
     }
 
     function _restoreEthBalances() internal {
-        vm.deal(address(this), uint128(MAX_INT));
-        vm.deal(alice, uint128(MAX_INT));
-        vm.deal(bob, uint128(MAX_INT));
-        vm.deal(cal, uint128(MAX_INT));
+        for (uint256 i = 0; i < accounts.length; i++) {
+            vm.deal(accounts[i], uint128(MAX_INT));
+        }
     }
 
     function _resetTokensStorage() internal {
-        _resetStorage(address(token1));
-        _resetStorage(address(token2));
-        _resetStorage(address(token3));
-        _resetStorage(address(test721_1));
-        _resetStorage(address(test721_2));
-        _resetStorage(address(test721_3));
-        _resetStorage(address(test1155_1));
-        _resetStorage(address(test1155_2));
-        _resetStorage(address(test1155_3));
+        for (uint256 i = 0; i < allTokens.length; i++) {
+            _resetStorage(AddressStruct(allTokens[i]));
+        }
+        // _resetStorage(address(token1));
+        // _resetStorage(address(token2));
+        // _resetStorage(address(token3));
+        // _resetStorage(address(test721_1));
+        // _resetStorage(address(test721_2));
+        // _resetStorage(address(test721_3));
+        // _resetStorage(address(test1155_1));
+        // _resetStorage(address(test1155_2));
+        // _resetStorage(address(test1155_3));
     }
 
     /**
      * @dev restore erc20 balances for all accounts
      */
     function _restoreERC20Balances() internal {
-        _restoreERC20BalancesForAddress(alice);
-        _restoreERC20BalancesForAddress(bob);
-        _restoreERC20BalancesForAddress(cal);
-        _restoreERC20BalancesForAddress(address(this));
+        for (uint256 i = 0; i < accounts.length; i++) {
+            _restoreERC20BalancesForAddress(AddressStruct(accounts[i]));
+        }
+        // _restoreERC20BalancesForAddress(alice);
+        // _restoreERC20BalancesForAddress(bob);
+        // _restoreERC20BalancesForAddress(cal);
+        // _restoreERC20BalancesForAddress(address(this));
     }
 
     /**
      * @dev restore all erc20 balances for a given address
      */
-    function _restoreERC20BalancesForAddress(address _who) internal {
-        _restoreERC20Balance(address(token1), _who);
-        _restoreERC20Balance(address(token2), _who);
-        _restoreERC20Balance(address(token3), _who);
+    function _restoreERC20BalancesForAddress(AddressStruct memory _who)
+        internal
+    {
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            _restoreERC20Balance(
+                RestoreERC20Balance(address(erc20s[i]), _who.addr)
+            );
+        }
+    }
+
+    struct AddressStruct {
+        address addr;
     }
 
     /**
@@ -256,22 +271,23 @@ contract BaseOrderTest is
      *
      *      note: must be called in conjunction with vm.record()
      */
-    function _resetStorage(address _addr) internal {
-        (, bytes32[] memory writeSlots) = vm.accesses(_addr);
+    function _resetStorage(AddressStruct memory resetStorage_) internal {
+        (, bytes32[] memory writeSlots) = vm.accesses(resetStorage_.addr);
         for (uint256 i = 0; i < writeSlots.length; i++) {
-            bytes32 slot = writeSlots[i];
-            vm.store(_addr, slot, bytes32(0));
+            vm.store(resetStorage_.addr, writeSlots[i], bytes32(0));
         }
     }
 
     /**
      * @dev reset token balance for an address to uint128(MAX_INT)
      */
-    function _restoreERC20Balance(address _token, address _who) internal {
+    function _restoreERC20Balance(
+        RestoreERC20Balance memory restoreErc20Balance
+    ) internal {
         stdstore
-            .target(_token)
+            .target(restoreErc20Balance.token)
             .sig("balanceOf(address)")
-            .with_key(_who)
+            .with_key(restoreErc20Balance.who)
             .checked_write(uint128(MAX_INT));
     }
 

@@ -32,314 +32,319 @@ contract FulfillOrderTest is BaseOrderTest {
         bool useConduit;
     }
 
-    function testFulfillOrderEthToERC721(ToErc721Struct memory _toErc721Struct)
-        public
-    {
-        _testFulfillOrderEthToERC721(consideration, _toErc721Struct);
-        _testFulfillOrderEthToERC721(referenceConsideration, _toErc721Struct);
+    struct ConsiderationToErc721Struct {
+        Consideration consideration;
+        ToErc721Struct args;
     }
 
-    function testFulfillOrderEthToERC1155(
-        ToErc1155Struct memory _toErc1155Struct
-    ) public {
-        _testFulfillOrderEthToERC1155(consideration, _toErc1155Struct);
-        _testFulfillOrderEthToERC1155(referenceConsideration, _toErc1155Struct);
+    struct ConsiderationToErc1155Struct {
+        Consideration consideration;
+        ToErc1155Struct args;
+    }
+
+    function testFulfillOrderEthToERC721(ToErc721Struct memory testStruct)
+        public
+    {
+        _testFulfillOrderEthToERC721(
+            ConsiderationToErc721Struct(consideration, testStruct)
+        );
+        _testFulfillOrderEthToERC721(
+            ConsiderationToErc721Struct(referenceConsideration, testStruct)
+        );
+    }
+
+    function testFulfillOrderEthToERC1155(ToErc1155Struct memory testStruct)
+        public
+    {
+        _testFulfillOrderEthToERC1155(
+            ConsiderationToErc1155Struct(consideration, testStruct)
+        );
+        _testFulfillOrderEthToERC1155(
+            ConsiderationToErc1155Struct(referenceConsideration, testStruct)
+        );
     }
 
     function _testFulfillOrderEthToERC721(
-        Consideration _consideration,
-        ToErc721Struct memory toErc721Struct
+        ConsiderationToErc721Struct memory testStruct
     )
         internal
-        onlyPayable(toErc721Struct.zone)
+        onlyPayable(testStruct.args.zone)
         topUp
         resetTokenBalancesBetweenRuns
     {
         vm.assume(
-            toErc721Struct.paymentAmts[0] > 0 &&
-                toErc721Struct.paymentAmts[1] > 0 &&
-                toErc721Struct.paymentAmts[2] > 0
+            testStruct.args.paymentAmts[0] > 0 &&
+                testStruct.args.paymentAmts[1] > 0 &&
+                testStruct.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(toErc721Struct.paymentAmts[0]) +
-                uint256(toErc721Struct.paymentAmts[1]) +
-                uint256(toErc721Struct.paymentAmts[2]) <=
+            uint256(testStruct.args.paymentAmts[0]) +
+                uint256(testStruct.args.paymentAmts[1]) +
+                uint256(testStruct.args.paymentAmts[2]) <=
                 2**128 - 1
         );
-        bytes32 conduitKey = toErc721Struct.useConduit
+        bytes32 conduitKey = testStruct.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
-        test721_1.mint(alice, toErc721Struct.id);
-        OfferItem[] memory offerItem = singleOfferItem(
+        test721_1.mint(alice, testStruct.args.id);
+        offerItems = singleOfferItem(
             ItemType.ERC721,
             address(test721_1),
-            toErc721Struct.id,
+            testStruct.args.id,
             1,
             1
         );
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            3
-        );
+        considerationItems = new ConsiderationItem[](3);
         considerationItems[0] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(toErc721Struct.paymentAmts[0]),
-            uint256(toErc721Struct.paymentAmts[0]),
+            uint256(testStruct.args.paymentAmts[0]),
+            uint256(testStruct.args.paymentAmts[0]),
             payable(alice)
         );
         considerationItems[1] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(toErc721Struct.paymentAmts[1]),
-            uint256(toErc721Struct.paymentAmts[1]),
-            payable(toErc721Struct.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+            uint256(testStruct.args.paymentAmts[1]),
+            uint256(testStruct.args.paymentAmts[1]),
+            payable(testStruct.args.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
         );
         considerationItems[2] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(toErc721Struct.paymentAmts[2]),
-            uint256(toErc721Struct.paymentAmts[2]),
+            uint256(testStruct.args.paymentAmts[2]),
+            uint256(testStruct.args.paymentAmts[2]),
             payable(cal)
         );
 
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            toErc721Struct.zone,
-            offerItem,
+            testStruct.args.zone,
+            offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            toErc721Struct.zoneHash,
-            toErc721Struct.salt,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
             conduitKey,
-            _consideration.getNonce(alice)
+            testStruct.consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
-            _consideration,
+            testStruct.consideration,
             alicePk,
-            _consideration.getOrderHash(orderComponents)
+            testStruct.consideration.getOrderHash(orderComponents)
         );
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
-            toErc721Struct.zone,
-            offerItem,
+            testStruct.args.zone,
+            offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            toErc721Struct.zoneHash,
-            toErc721Struct.salt,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
             conduitKey,
             considerationItems.length
         );
-        _consideration.fulfillOrder{
-            value: toErc721Struct.paymentAmts[0] +
-                toErc721Struct.paymentAmts[1] +
-                toErc721Struct.paymentAmts[2]
-        }(Order(orderParameters, signature), conduitKey); // TODO: over/underflow error
+        testStruct.consideration.fulfillOrder{
+            value: testStruct.args.paymentAmts[0] +
+                testStruct.args.paymentAmts[1] +
+                testStruct.args.paymentAmts[2]
+        }(Order(orderParameters, signature), conduitKey);
     }
 
     function _testFulfillOrderEthToERC1155(
-        Consideration _consideration,
-        ToErc1155Struct memory _ethToERC1155
+        ConsiderationToErc1155Struct memory testStruct
     )
         internal
-        onlyPayable(_ethToERC1155.zone)
+        onlyPayable(testStruct.args.zone)
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(_ethToERC1155.erc1155Amt > 0);
+        vm.assume(testStruct.args.erc1155Amt > 0);
         vm.assume(
-            _ethToERC1155.paymentAmts[0] > 0 &&
-                _ethToERC1155.paymentAmts[1] > 0 &&
-                _ethToERC1155.paymentAmts[2] > 0
+            testStruct.args.paymentAmts[0] > 0 &&
+                testStruct.args.paymentAmts[1] > 0 &&
+                testStruct.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(_ethToERC1155.paymentAmts[0]) +
-                uint256(_ethToERC1155.paymentAmts[1]) +
-                uint256(_ethToERC1155.paymentAmts[2]) <=
+            uint256(testStruct.args.paymentAmts[0]) +
+                uint256(testStruct.args.paymentAmts[1]) +
+                uint256(testStruct.args.paymentAmts[2]) <=
                 2**128 - 1
         );
-        bytes32 conduitKey = _ethToERC1155.useConduit
+        bytes32 conduitKey = testStruct.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
-        test1155_1.mint(alice, _ethToERC1155.id, _ethToERC1155.erc1155Amt);
-        OfferItem[] memory offerItem = singleOfferItem(
+        test1155_1.mint(alice, testStruct.args.id, testStruct.args.erc1155Amt);
+        offerItems = singleOfferItem(
             ItemType.ERC1155,
             address(test1155_1),
-            _ethToERC1155.id,
-            _ethToERC1155.erc1155Amt,
-            _ethToERC1155.erc1155Amt
+            testStruct.args.id,
+            testStruct.args.erc1155Amt,
+            testStruct.args.erc1155Amt
         );
 
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            3
-        );
+        considerationItems = new ConsiderationItem[](3);
         considerationItems[0] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(_ethToERC1155.paymentAmts[0]),
-            uint256(_ethToERC1155.paymentAmts[0]),
+            uint256(testStruct.args.paymentAmts[0]),
+            uint256(testStruct.args.paymentAmts[0]),
             payable(alice)
         );
         considerationItems[1] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(_ethToERC1155.paymentAmts[1]),
-            uint256(_ethToERC1155.paymentAmts[1]),
-            payable(_ethToERC1155.zone)
+            uint256(testStruct.args.paymentAmts[1]),
+            uint256(testStruct.args.paymentAmts[1]),
+            payable(testStruct.args.zone)
         );
         considerationItems[2] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(_ethToERC1155.paymentAmts[2]),
-            uint256(_ethToERC1155.paymentAmts[2]),
+            uint256(testStruct.args.paymentAmts[2]),
+            uint256(testStruct.args.paymentAmts[2]),
             payable(cal)
         );
 
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            _ethToERC1155.zone,
-            offerItem,
+            testStruct.args.zone,
+            offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            _ethToERC1155.zoneHash,
-            _ethToERC1155.salt,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
             conduitKey,
-            _consideration.getNonce(alice)
+            testStruct.consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
-<<<<<<< HEAD
-            consideration,
-=======
-            _consideration,
->>>>>>> f71f62e (modified test functions to take in structs)
+            testStruct.consideration,
             alicePk,
-            _consideration.getOrderHash(orderComponents)
+            testStruct.consideration.getOrderHash(orderComponents)
         );
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
-            _ethToERC1155.zone,
-            offerItem,
+            testStruct.args.zone,
+            offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            _ethToERC1155.zoneHash,
-            _ethToERC1155.salt,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
             conduitKey,
             considerationItems.length
         );
-        _consideration.fulfillOrder{
-            value: _ethToERC1155.paymentAmts[0] +
-                _ethToERC1155.paymentAmts[1] +
-                _ethToERC1155.paymentAmts[2]
+        testStruct.consideration.fulfillOrder{
+            value: testStruct.args.paymentAmts[0] +
+                testStruct.args.paymentAmts[1] +
+                testStruct.args.paymentAmts[2]
         }(Order(orderParameters, signature), conduitKey); // TODO: over/underflow error in referenceConsideration differential test
     }
 
     function _testFulfillOrderSingleERC20ToSingleERC1155(
-        Consideration _consideration,
-        ToErc1155Struct memory toErc1155Struct
-    ) internal onlyPayable(toErc1155Struct.zone) topUp {
-        vm.assume(toErc1155Struct.erc1155Amt > 0);
+        ConsiderationToErc1155Struct memory testStruct
+    ) internal onlyPayable(testStruct.args.zone) topUp {
+        vm.assume(testStruct.args.erc1155Amt > 0);
         vm.assume(
-            toErc1155Struct.paymentAmts[0] > 0 &&
-                toErc1155Struct.paymentAmts[1] > 0 &&
-                toErc1155Struct.paymentAmts[2] > 0
+            testStruct.args.paymentAmts[0] > 0 &&
+                testStruct.args.paymentAmts[1] > 0 &&
+                testStruct.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(toErc1155Struct.paymentAmts[0]) +
-                uint256(toErc1155Struct.paymentAmts[1]) +
-                uint256(toErc1155Struct.paymentAmts[2]) <=
+            uint256(testStruct.args.paymentAmts[0]) +
+                uint256(testStruct.args.paymentAmts[1]) +
+                uint256(testStruct.args.paymentAmts[2]) <=
                 2**128 - 1
         );
-        bytes32 conduitKey = toErc1155Struct.useConduit
+        bytes32 conduitKey = testStruct.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
-        test1155_1.mint(alice, toErc1155Struct.id, toErc1155Struct.erc1155Amt);
+        test1155_1.mint(alice, testStruct.args.id, testStruct.args.erc1155Amt);
 
-        OfferItem[] memory offerItem = singleOfferItem(
+        offerItems = singleOfferItem(
             ItemType.ERC1155,
             address(test1155_1),
-            toErc1155Struct.id,
-            toErc1155Struct.erc1155Amt,
-            toErc1155Struct.erc1155Amt
+            testStruct.args.id,
+            testStruct.args.erc1155Amt,
+            testStruct.args.erc1155Amt
         );
 
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            3
-        );
+        considerationItems = new ConsiderationItem[](3);
         considerationItems[0] = ConsiderationItem(
             ItemType.ERC20,
             address(token1),
             0,
-            uint256(toErc1155Struct.paymentAmts[0]),
-            uint256(toErc1155Struct.paymentAmts[0]),
+            uint256(testStruct.args.paymentAmts[0]),
+            uint256(testStruct.args.paymentAmts[0]),
             payable(alice)
         );
         considerationItems[1] = ConsiderationItem(
             ItemType.ERC20,
             address(token1),
             0,
-            uint256(toErc1155Struct.paymentAmts[1]),
-            uint256(toErc1155Struct.paymentAmts[1]),
-            payable(toErc1155Struct.zone)
+            uint256(testStruct.args.paymentAmts[1]),
+            uint256(testStruct.args.paymentAmts[1]),
+            payable(testStruct.args.zone)
         );
         considerationItems[2] = ConsiderationItem(
             ItemType.ERC20,
             address(token1),
             0,
-            uint256(toErc1155Struct.paymentAmts[2]),
-            uint256(toErc1155Struct.paymentAmts[2]),
+            uint256(testStruct.args.paymentAmts[2]),
+            uint256(testStruct.args.paymentAmts[2]),
             payable(cal)
         );
 
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            toErc1155Struct.zone,
-            offerItem,
+            testStruct.args.zone,
+            offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            toErc1155Struct.zoneHash,
-            toErc1155Struct.salt,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
             conduitKey,
-            _consideration.getNonce(alice)
+            testStruct.consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
-            _consideration,
+            testStruct.consideration,
             alicePk,
-            _consideration.getOrderHash(orderComponents)
+            testStruct.consideration.getOrderHash(orderComponents)
         );
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
-            toErc1155Struct.zone,
-            offerItem,
+            testStruct.args.zone,
+            offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            toErc1155Struct.zoneHash,
-            toErc1155Struct.salt,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
             conduitKey,
             considerationItems.length
         );
 
-        _consideration.fulfillOrder(
+        testStruct.consideration.fulfillOrder(
             Order(orderParameters, signature),
             conduitKey
         );
