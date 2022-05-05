@@ -703,7 +703,6 @@ contract ReferenceConsideration is
         external
         override
         notEntered
-        nonReentrant
         returns (bool)
     {
         address offerer;
