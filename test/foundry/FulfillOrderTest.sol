@@ -144,7 +144,7 @@ contract FulfillOrderTest is BaseOrderTest {
             value: _ethToERC721.ethAmts[0] +
                 _ethToERC721.ethAmts[1] +
                 _ethToERC721.ethAmts[2]
-        }(Order(orderParameters, signature), conduitKey);
+        }(Order(orderParameters, signature), conduitKey); // TODO: over/underflow error
     }
 
     function testFulfillOrderEthToERC1155(
@@ -203,7 +203,7 @@ contract FulfillOrderTest is BaseOrderTest {
             0,
             uint256(_ethToERC1155.ethAmts[1]),
             uint256(_ethToERC1155.ethAmts[1]),
-            payable(_ethToERC1155.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+            payable(_ethToERC1155.zone)
         );
         considerationItems[2] = ConsiderationItem(
             ItemType.NATIVE,
@@ -253,7 +253,7 @@ contract FulfillOrderTest is BaseOrderTest {
             value: _ethToERC1155.ethAmts[0] +
                 _ethToERC1155.ethAmts[1] +
                 _ethToERC1155.ethAmts[2]
-        }(Order(orderParameters, signature), conduitKey);
+        }(Order(orderParameters, signature), conduitKey); // TODO: over/underflow error in referenceConsideration differential test
     }
 
     function testFulfillOrderSingleERC20ToSingleERC1155(
