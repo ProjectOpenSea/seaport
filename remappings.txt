@@ -1,4 +1,8 @@
 ds-test=lib/ds-test/src/
 forge-std=lib/forge-std/src/
+<<<<<<< HEAD
 merkle-tree-solidity/=lib/merkle-tree-solidity/src/
 @rari-capital=node_modules/@rari-capital
+=======
+@rari-capital/=node_modules/@rari-capital/
+>>>>>>> refs/remotes/origin/foundry-tests-working
