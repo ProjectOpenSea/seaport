@@ -40,6 +40,8 @@ import { ReferenceConsiderationInternalView } from "./ReferenceConsiderationInte
 
 import "./ReferenceConsiderationConstants.sol";
 
+import { FulfillmentItemTypes, BasicFulfillmentHashes } from "./ReferenceConsiderationStructs.sol";
+
 // prettier-ignore
 import {
     ConduitTransfer,
@@ -141,8 +143,25 @@ contract ReferenceConsiderationInternal is
             parameters.totalOriginalAdditionalRecipients
         );
 
-        // Declare stack element for the order hash.
-        bytes32 orderHash;
+        BasicFulfillmentHashes memory hashes;
+
+        // Store ItemType/Token parameters in a struct in memory to avoid stack issues.
+        FulfillmentItemTypes memory fulfillmentItemTypes = FulfillmentItemTypes(
+            orderType,
+            receivedItemType,
+            additionalRecipientsItemType,
+            additionalRecipientsToken,
+            offeredItemType
+        );
+
+        // Create ReceivedItem for Primary Consideration
+        // Array of Received Items for use with OrderFulfilled Event
+        ReceivedItem[] memory consideration = new ReceivedItem[](
+            parameters.additionalRecipients.length + 1
+        );
+
+        // Write the offer to the Event SpentItem array
+        SpentItem[] memory offer = new SpentItem[](1);
 
         {
             /**
@@ -166,536 +185,206 @@ contract ReferenceConsiderationInternal is
              */
 
             // Load consideration item typehash from runtime and place on stack.
-            bytes32 typeHash = _CONSIDERATION_ITEM_TYPEHASH;
+            hashes.typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
-            // Utilize assembly to enable reuse of memory regions and use
-            // constant pointers when possible.
-            assembly {
-                /*
-                 * 1. Calculate the EIP712 ConsiderationItem hash for the
-                 * primary consideration item of the basic order.
-                 */
-
-                // Write ConsiderationItem type hash and item type to memory.
-                mstore(BasicOrder_considerationItem_typeHash_ptr, typeHash)
-                mstore(
-                    BasicOrder_considerationItem_itemType_ptr,
-                    receivedItemType
+            // Create Consideration Item
+            ConsiderationItem memory primaryConsiderationItem = (
+                ConsiderationItem(
+                    fulfillmentItemTypes.receivedItemType,
+                    parameters.considerationToken,
+                    parameters.considerationIdentifier,
+                    parameters.considerationAmount,
+                    parameters.considerationAmount,
+                    parameters.offerer
                 )
+            );
 
-                // Copy calldata region with (token, identifier, amount) from
-                // BasicOrderParameters to ConsiderationItem. The
-                // considerationAmount is written to startAmount and endAmount
-                // as basic orders do not have dynamic amounts.
-                calldatacopy(
-                    BasicOrder_considerationItem_token_ptr,
-                    BasicOrder_considerationToken_cdPtr,
-                    ThreeWords
+            // Array of all consideration item hashes
+            hashes.considerationHashes = new bytes32[](
+                parameters.totalOriginalAdditionalRecipients + 1
+            );
+
+            // Hash Contents
+            hashes.considerationHashes[0] = keccak256(
+                abi.encode(
+                    hashes.typeHash,
+                    primaryConsiderationItem.itemType,
+                    primaryConsiderationItem.token,
+                    primaryConsiderationItem.identifierOrCriteria,
+                    primaryConsiderationItem.startAmount,
+                    primaryConsiderationItem.endAmount,
+                    primaryConsiderationItem.recipient
                 )
+            );
 
-                // Copy calldata region with considerationAmount and offerer
-                // from BasicOrderParameters to endAmount and recipient in
-                // ConsiderationItem.
-                calldatacopy(
-                    BasicOrder_considerationItem_endAmount_ptr,
-                    BasicOrder_considerationAmount_cdPtr,
-                    TwoWords
-                )
+            ReceivedItem memory additionalReceivedItem;
+            ConsiderationItem memory additionalRecipientItem;
 
-                // Calculate EIP712 ConsiderationItem hash and store it in the
-                // array of EIP712 consideration hashes.
-                mstore(
-                    BasicOrder_considerationHashesArray_ptr,
-                    keccak256(
-                        BasicOrder_considerationItem_typeHash_ptr,
-                        EIP712_ConsiderationItem_size
-                    )
-                )
+            // Create Received Item
+            ReceivedItem memory primaryReceivedItem = ReceivedItem(
+                fulfillmentItemTypes.receivedItemType,
+                primaryConsiderationItem.token,
+                primaryConsiderationItem.identifierOrCriteria,
+                primaryConsiderationItem.endAmount,
+                primaryConsiderationItem.recipient
+            );
+            // Add the Received Item to the
+            // OrderFulfilled ReceivedItem[]
+            consideration[0] = primaryReceivedItem;
 
-                /*
-                 * 2. Write a ReceivedItem struct for the primary consideration
-                 * item to the consideration array in OrderFulfilled.
-                 */
+            for (
+                uint256 recipientCount = 0;
+                recipientCount < parameters.additionalRecipients.length;
+                recipientCount++
+            ) {
+                AdditionalRecipient memory additionalRecipient = (
+                    parameters.additionalRecipients[recipientCount]
+                );
 
-                // Get the length of the additional recipients array.
-                let len := calldataload(
-                    BasicOrder_additionalRecipients_length_cdPtr
-                )
+                // Create a Received Item for each additional recipients
+                additionalReceivedItem = ReceivedItem(
+                    fulfillmentItemTypes.additionalRecipientsItemType,
+                    fulfillmentItemTypes.additionalRecipientsToken,
+                    0,
+                    additionalRecipient.amount,
+                    additionalRecipient.recipient
+                );
+                // Add additonal received items to the
+                // OrderFulfilled ReceivedItem[]
+                consideration[recipientCount + 1] = additionalReceivedItem;
 
-                // Calculate pointer to length of OrderFulfilled consideration
-                // array.
-                let eventConsiderationArrPtr := add(
-                    OrderFulfilled_consideration_length_baseOffset,
-                    mul(0x20, len)
-                )
-
-                // Set the length of the consideration array to the number of
-                // additional recipients, plus one for the primary consideration
-                // item.
-                mstore(
-                    eventConsiderationArrPtr,
-                    add(
-                        calldataload(
-                            BasicOrder_additionalRecipients_length_cdPtr
-                        ),
-                        1
-                    )
-                )
-
-                // Overwrite the consideration array pointer so it points to the
-                // body of the first element
-                eventConsiderationArrPtr := add(eventConsiderationArrPtr, 0x20)
-
-                // Set itemType at start of the ReceivedItem memory region.
-                mstore(eventConsiderationArrPtr, receivedItemType)
-
-                // Copy calldata region (token, identifier, amount & recipient)
-                // from BasicOrderParameters to ReceivedItem memory.
-                calldatacopy(
-                    add(eventConsiderationArrPtr, Common_token_offset),
-                    BasicOrder_considerationToken_cdPtr,
-                    0x80
-                )
-
-                /*
-                 * 3. Calculate EIP712 ConsiderationItem hashes for original
-                 * additional recipients and add a ReceivedItem for each to the
-                 * consideration array in the OrderFulfilled event. The original
-                 * additional recipients are all the considerations signed by
-                 * the offerer aside from the primary consideration of the
-                 * order. Uses memory region from 0x80-0x160 as a buffer for
-                 * calculating EIP712 ConsiderationItem hashes.
-                 */
-
-                // Put pointer to consideration hashes array on the stack.
-                // This will be updated as each additional recipient is hashed
-                let
-                    considerationHashesPtr
-                := BasicOrder_considerationHashesArray_ptr
-
-                // Write item type, token, & identifier for additional recipient
-                // to memory region for hashing EIP712 ConsiderationItem; these
-                // values will be reused for each recipient.
-                mstore(
-                    BasicOrder_considerationItem_itemType_ptr,
-                    additionalRecipientsItemType
-                )
-                mstore(
-                    BasicOrder_considerationItem_token_ptr,
-                    additionalRecipientsToken
-                )
-                mstore(BasicOrder_considerationItem_identifier_ptr, 0)
-
-                // Read length of the additionalRecipients array from calldata
-                // and iterate.
-                len := calldataload(
-                    BasicOrder_totalOriginalAdditionalRecipients_cdPtr
-                )
-                let i := 0
-                // prettier-ignore
-                for {} lt(i, len) {
-                    i := add(i, 1)
-                } {
-                    /*
-                     * Calculate EIP712 ConsiderationItem hash for recipient.
-                     */
-
-                    // Retrieve calldata pointer for additional recipient.
-                    let additionalRecipientCdPtr := add(
-                        BasicOrder_additionalRecipients_data_cdPtr,
-                        mul(AdditionalRecipients_size, i)
-                    )
-
-                    // Copy startAmount from calldata to the ConsiderationItem
-                    // struct.
-                    calldatacopy(
-                        BasicOrder_considerationItem_startAmount_ptr,
-                        additionalRecipientCdPtr,
-                        0x20
-                    )
-
-                    // Copy endAmount and recipient from calldata to the
-                    // ConsiderationItem struct.
-                    calldatacopy(
-                        BasicOrder_considerationItem_endAmount_ptr,
-                        additionalRecipientCdPtr,
-                        AdditionalRecipients_size
-                    )
-
-                    // Add 1 word to the pointer as part of each loop to reduce
-                    // operations needed to get local offset into the array.
-                    considerationHashesPtr := add(considerationHashesPtr, 0x20)
-
-                    // Calculate EIP712 ConsiderationItem hash and store it in
-                    // the array of consideration hashes.
-                    mstore(
-                        considerationHashesPtr,
-                        keccak256(
-                            BasicOrder_considerationItem_typeHash_ptr,
-                            EIP712_ConsiderationItem_size
-                        )
-                    )
-
-                    /*
-                     * Write ReceivedItem to OrderFulfilled data.
-                     */
-
-                    // At this point, eventConsiderationArrPtr points to the
-                    // beginning of the ReceivedItem struct of the previous
-                    // element in the array. Increase it by the size of the
-                    // struct to arrive at the pointer for the current element.
-                    eventConsiderationArrPtr := add(
-                        eventConsiderationArrPtr,
-                        ReceivedItem_size
-                    )
-
-                    // Write itemType to the ReceivedItem struct.
-                    mstore(
-                        eventConsiderationArrPtr,
-                        additionalRecipientsItemType
-                    )
-
-                    // Write token to the ReceivedItem struct.
-                    mstore(
-                        add(eventConsiderationArrPtr, 0x20),
-                        additionalRecipientsToken
-                    )
-
-                    // Copy endAmount and recipient to the ReceivedItem struct.
-                    calldatacopy(
-                        add(
-                            eventConsiderationArrPtr,
-                            ReceivedItem_amount_offset
-                        ),
-                        additionalRecipientCdPtr,
-                        0x40
-                    )
+                if (
+                    recipientCount >=
+                    parameters.totalOriginalAdditionalRecipients
+                ) {
+                    continue;
                 }
 
-                /*
-                 * 4. Hash packed array of ConsiderationItem EIP712 hashes:
-                 *   `keccak256(abi.encodePacked(receivedItemHashes))`
-                 * Note that it is set at 0x60 — all other memory begins at
-                 * 0x80. 0x60 is the "zero slot" and will be restored at the end
-                 * of the assembly section and before required by the compiler.
-                 */
-                mstore(
-                    receivedItemsHash_ptr,
-                    keccak256(
-                        BasicOrder_considerationHashesArray_ptr,
-                        mul(add(len, 1), 32)
-                    )
-                )
+                // Create a new consideration Item for each Additional Recipient
+                additionalRecipientItem = ConsiderationItem(
+                    fulfillmentItemTypes.additionalRecipientsItemType,
+                    fulfillmentItemTypes.additionalRecipientsToken,
+                    0,
+                    additionalRecipient.amount,
+                    additionalRecipient.amount,
+                    additionalRecipient.recipient
+                );
 
-                /*
-                 * 5. Add a ReceivedItem for each tip to the consideration array
-                 * in the OrderFulfilled event. The tips are all the
-                 * consideration items that were not signed by the offerer and
-                 * were provided by the fulfiller.
-                 */
-
-                // Overwrite length to length of the additionalRecipients array.
-                len := calldataload(
-                    BasicOrder_additionalRecipients_length_cdPtr
-                )
-                // prettier-ignore
-                for {} lt(i, len) {
-                    i := add(i, 1)
-                } {
-                    // Retrieve calldata pointer for additional recipient.
-                    let additionalRecipientCdPtr := add(
-                        BasicOrder_additionalRecipients_data_cdPtr,
-                        mul(AdditionalRecipients_size, i)
+                // Calculate the EIP712 ConsiderationItem hash for
+                // each additional recipients
+                hashes.considerationHashes[recipientCount + 1] = keccak256(
+                    abi.encode(
+                        hashes.typeHash,
+                        additionalRecipientItem.itemType,
+                        additionalRecipientItem.token,
+                        additionalRecipientItem.identifierOrCriteria,
+                        additionalRecipientItem.startAmount,
+                        additionalRecipientItem.endAmount,
+                        additionalRecipientItem.recipient
                     )
+                );
+            }
 
-                    // At this point, eventConsiderationArrPtr points to the
-                    // beginning of the ReceivedItem struct of the previous
-                    // element in the array. Increase it by the size of the
-                    // struct to arrive at the pointer for the current element.
-                    eventConsiderationArrPtr := add(
-                        eventConsiderationArrPtr,
-                        ReceivedItem_size
-                    )
+            // The considerationItems array should now contain the
+            // Primary Received Item along with all additional recipients.
 
-                    // Write itemType to the ReceivedItem struct.
-                    mstore(
-                        eventConsiderationArrPtr,
-                        additionalRecipientsItemType
-                    )
+            // The considerationHashes array now contains
+            // all consideration Item hashes.
 
-                    // Write token to the ReceivedItem struct.
-                    mstore(
-                        add(eventConsiderationArrPtr, 0x20),
-                        additionalRecipientsToken
-                    )
+            // The consideration array now contains all receieved
+            // items for OrderFulfilled Event.
 
-                    // Copy endAmount and recipient to the ReceivedItem struct.
-                    calldatacopy(
-                        add(
-                            eventConsiderationArrPtr,
-                            ReceivedItem_amount_offset
-                        ),
-                        additionalRecipientCdPtr,
-                        0x40
-                    )
-                }
+            // Get hash of all consideration items
+            hashes.receivedItemsHash = keccak256(
+                abi.encodePacked(hashes.considerationHashes)
+            );
+
+            // Get remainder of additionalRecipients for tips
+            for (
+                uint256 additionalTips = parameters
+                    .totalOriginalAdditionalRecipients;
+                additionalTips < parameters.additionalRecipients.length;
+                additionalTips++
+            ) {
+                AdditionalRecipient memory additionalRecipient = (
+                    parameters.additionalRecipients[additionalTips]
+                );
+
+                additionalReceivedItem = ReceivedItem(
+                    fulfillmentItemTypes.additionalRecipientsItemType,
+                    fulfillmentItemTypes.additionalRecipientsToken,
+                    0,
+                    additionalRecipient.amount,
+                    additionalRecipient.recipient
+                );
+                // Add additonal received items to the
+                // OrderFulfilled ReceivedItem[]
+                consideration[additionalTips + 1] = additionalReceivedItem;
             }
         }
 
         {
-            /**
-             * Next, handle offered items. Memory Layout:
-             *  EIP712 data for OfferItem
-             *   - 0x80:  OfferItem EIP-712 typehash (constant)
-             *   - 0xa0:  itemType
-             *   - 0xc0:  token
-             *   - 0xe0:  identifier (reused for offeredItemsHash)
-             *   - 0x100: startAmount
-             *   - 0x120: endAmount
-             */
+            // Now let's handle the offer side.
 
             // Place offer item typehash on the stack.
-            bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
+            hashes.typeHash = _OFFER_ITEM_TYPEHASH;
 
-            // Utilize assembly to enable reuse of memory regions when possible.
-            assembly {
-                /*
-                 * 1. Calculate OfferItem EIP712 hash
-                 */
+            // Create Spent Item
+            SpentItem memory offerItem = SpentItem(
+                fulfillmentItemTypes.offeredItemType,
+                parameters.offerToken,
+                parameters.offerIdentifier,
+                parameters.offerAmount
+            );
 
-                // Write the OfferItem typeHash to memory.
-                mstore(BasicOrder_offerItem_typeHash_ptr, typeHash)
+            offer[0] = offerItem;
 
-                // Write the OfferItem item type to memory.
-                mstore(BasicOrder_offerItem_itemType_ptr, offeredItemType)
-
-                // Copy calldata region with (offerToken, offerIdentifier,
-                // offerAmount) from OrderParameters to (token, identifier,
-                // startAmount) in OfferItem struct. The offerAmount is written
-                // to startAmount and endAmount as basic orders do not have
-                // dynamic amounts.
-                calldatacopy(
-                    BasicOrder_offerItem_token_ptr,
-                    BasicOrder_offerToken_cdPtr,
-                    0x60
-                )
-
-                // Copy offerAmount from calldata to endAmount in OfferItem
-                // struct.
-                calldatacopy(
-                    BasicOrder_offerItem_endAmount_ptr,
-                    BasicOrder_offerAmount_cdPtr,
-                    0x20
-                )
-
-                // Compute EIP712 OfferItem hash, write result to scratch space:
-                //   `keccak256(abi.encode(offeredItem))`
-                mstore(
-                    0x00,
-                    keccak256(
-                        BasicOrder_offerItem_typeHash_ptr,
-                        EIP712_OfferItem_size
+            // Get the hash of the Spent Item, treated as an Offer Item.
+            bytes32[1] memory offerItemHashes = [
+                keccak256(
+                    abi.encode(
+                        hashes.typeHash,
+                        offerItem.itemType,
+                        offerItem.token,
+                        offerItem.identifier,
+                        offerItem.amount,
+                        offerItem.amount //Assembly uses OfferItem instead of SpentItem
                     )
                 )
+            ];
 
-                /*
-                 * 2. Calculate hash of array of EIP712 hashes and write the
-                 * result to the corresponding OfferItem struct:
-                 *   `keccak256(abi.encodePacked(offerItemHashes))`
-                 */
-                mstore(BasicOrder_order_offerHashes_ptr, keccak256(0x00, 0x20))
-
-                /*
-                 * 3. Write SpentItem to offer array in OrderFulfilled event.
-                 */
-                let eventConsiderationArrPtr := add(
-                    OrderFulfilled_offer_length_baseOffset,
-                    mul(
-                        0x20,
-                        calldataload(
-                            BasicOrder_additionalRecipients_length_cdPtr
-                        )
-                    )
-                )
-
-                // Set a length of 1 for the offer array.
-                mstore(eventConsiderationArrPtr, 1)
-
-                // Write itemType to the SpentItem struct.
-                mstore(add(eventConsiderationArrPtr, 0x20), offeredItemType)
-
-                // Copy calldata region with (offerToken, offerIdentifier,
-                // offerAmount) from OrderParameters to (token, identifier,
-                // amount) in SpentItem struct.
-                calldatacopy(
-                    add(eventConsiderationArrPtr, AdditionalRecipients_size),
-                    BasicOrder_offerToken_cdPtr,
-                    ThreeWords
-                )
-            }
+            // Get hash of all Spent Items
+            hashes.offerItemsHash = keccak256(
+                abi.encodePacked(offerItemHashes)
+            );
         }
 
         {
-            /**
-             * Once consideration items and offer items have been handled,
-             * derive the final order hash. Memory Layout:
-             *  0x80-0x1c0: EIP712 data for order
-             *   - 0x80:   Order EIP-712 typehash (constant)
-             *   - 0xa0:   orderParameters.offerer
-             *   - 0xc0:   orderParameters.zone
-             *   - 0xe0:   keccak256(abi.encodePacked(offerHashes))
-             *   - 0x100:  keccak256(abi.encodePacked(considerationHashes))
-             *   - 0x120:  orderParameters.basicOrderType (% 4 = orderType)
-             *   - 0x140:  orderParameters.startTime
-             *   - 0x160:  orderParameters.endTime
-             *   - 0x180:  orderParameters.zoneHash
-             *   - 0x1a0:  orderParameters.salt
-             *   - 0x1c0:  orderParameters.conduitKey
-             *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
-             */
-
-            // Read the offerer from calldata and place on the stack.
-            address offerer;
-            assembly {
-                offerer := calldataload(BasicOrder_offerer_cdPtr)
-            }
-
-            // Read offerer's current nonce from storage and place on the stack.
-            uint256 nonce = _nonces[offerer];
+            // Create the OrderComponent in order to derive
+            // the orderHash
 
             // Load order typehash from runtime code and place on stack.
-            bytes32 typeHash = _ORDER_TYPEHASH;
+            hashes.typeHash = _ORDER_TYPEHASH;
 
-            assembly {
-                // Set the OrderItem typeHash in memory.
-                mstore(BasicOrder_order_typeHash_ptr, typeHash)
+            hashes.orderHash = _hashOrder(
+                hashes,
+                parameters,
+                fulfillmentItemTypes
+            );
 
-                // Copy offerer and zone from OrderParameters in calldata to the
-                // Order struct.
-                calldatacopy(
-                    BasicOrder_order_offerer_ptr,
-                    BasicOrder_offerer_cdPtr,
-                    TwoWords
-                )
-
-                // Copy receivedItemsHash from zero slot to the Order struct.
-                mstore(
-                    BasicOrder_order_considerationHashes_ptr,
-                    mload(receivedItemsHash_ptr)
-                )
-
-                // Write the supplied orderType to the Order struct.
-                mstore(BasicOrder_order_orderType_ptr, orderType)
-
-                // Copy startTime, endTime, zoneHash, salt & conduit from
-                // calldata to the Order struct.
-                calldatacopy(
-                    BasicOrder_order_startTime_ptr,
-                    BasicOrder_startTime_cdPtr,
-                    0xa0
-                )
-
-                // Take offerer's nonce retrieved from storage, write to struct.
-                mstore(BasicOrder_order_nonce_ptr, nonce)
-
-                // Compute the EIP712 Order hash.
-                orderHash := keccak256(
-                    BasicOrder_order_typeHash_ptr,
-                    EIP712_Order_size
-                )
-            }
+            // Emit Event
+            emit OrderFulfilled(
+                hashes.orderHash,
+                parameters.offerer,
+                parameters.zone,
+                msg.sender,
+                offer,
+                consideration
+            );
         }
-
-        assembly {
-            /**
-             * After the order hash has been derived, emit OrderFulfilled event:
-             *   event OrderFulfilled(
-             *     bytes32 orderHash,
-             *     address indexed offerer,
-             *     address indexed zone,
-             *     address fulfiller,
-             *     SpentItem[] offer,
-             *       > (itemType, token, id, amount)
-             *     ReceivedItem[] consideration
-             *       > (itemType, token, id, amount, recipient)
-             *   )
-             * topic0 - OrderFulfilled event signature
-             * topic1 - offerer
-             * topic2 - zone
-             * data:
-             *  - 0x00: orderHash
-             *  - 0x20: fulfiller
-             *  - 0x40: offer arr ptr (0x80)
-             *  - 0x60: consideration arr ptr (0x120)
-             *  - 0x80: offer arr len (1)
-             *  - 0xa0: offer.itemType
-             *  - 0xc0: offer.token
-             *  - 0xe0: offer.identifier
-             *  - 0x100: offer.amount
-             *  - 0x120: 1 + recipients.length
-             *  - 0x140: recipient 0
-             */
-
-            // Derive pointer to start of OrderFulfilled event data
-            let eventDataPtr := add(
-                OrderFulfilled_baseOffset,
-                mul(
-                    0x20,
-                    calldataload(BasicOrder_additionalRecipients_length_cdPtr)
-                )
-            )
-
-            // Write the order hash to the head of the event's data region.
-            mstore(eventDataPtr, orderHash)
-
-            // Write the fulfiller (i.e. the caller) next.
-            mstore(add(eventDataPtr, OrderFulfilled_fulfiller_offset), caller())
-
-            // Write the SpentItem and ReceivedItem array offsets (constants).
-            mstore(
-                // SpentItem array offset
-                add(eventDataPtr, OrderFulfilled_offer_head_offset),
-                OrderFulfilled_offer_body_offset
-            )
-            mstore(
-                // ReceivedItem array offset
-                add(eventDataPtr, OrderFulfilled_consideration_head_offset),
-                OrderFulfilled_consideration_body_offset
-            )
-
-            // Derive total data size including SpentItem and ReceivedItem data.
-            // SpentItem portion is already included in the baseSize constant,
-            // as there can only be one element in the array.
-            let dataSize := add(
-                OrderFulfilled_baseSize,
-                mul(
-                    calldataload(BasicOrder_additionalRecipients_length_cdPtr),
-                    ReceivedItem_size
-                )
-            )
-
-            // Emit OrderFulfilled log with three topics (the event signature
-            // as well as the two indexed arguments, the offerer and the zone).
-            log3(
-                // Supply the pointer for event data in memory.
-                eventDataPtr,
-                // Supply the size of event data in memory.
-                dataSize,
-                // Supply the OrderFulfilled event signature.
-                OrderFulfilled_selector,
-                // Supply the first topic (the offerer).
-                calldataload(BasicOrder_offerer_cdPtr),
-                // Supply the second topic (the zone).
-                calldataload(BasicOrder_zone_cdPtr)
-            )
-
-            // Restore the zero slot.
-            mstore(0x60, 0)
-        }
-
         // Determine whether order is restricted and, if so, that it is valid.
         _assertRestrictedBasicOrderValidity(
-            orderHash,
+            hashes.orderHash,
             parameters.zoneHash,
             orderType,
             parameters.offerer,
@@ -704,9 +393,35 @@ contract ReferenceConsiderationInternal is
 
         // Verify and update the status of the derived order.
         _validateBasicOrderAndUpdateStatus(
-            orderHash,
+            hashes.orderHash,
             parameters.offerer,
             parameters.signature
+        );
+    }
+
+    function _hashOrder(
+        BasicFulfillmentHashes memory hashes,
+        BasicOrderParameters calldata parameters,
+        FulfillmentItemTypes memory fulfillmentItemTypes
+    ) internal view returns (bytes32 orderHash) {
+        // Read offerer's current nonce from storage and place on the stack.
+        uint256 nonce = _nonces[parameters.offerer];
+
+        orderHash = keccak256(
+            abi.encode(
+                hashes.typeHash,
+                parameters.offerer,
+                parameters.zone,
+                hashes.offerItemsHash,
+                hashes.receivedItemsHash,
+                fulfillmentItemTypes.orderType,
+                parameters.startTime,
+                parameters.endTime,
+                parameters.zoneHash,
+                parameters.salt,
+                parameters.offererConduitKey,
+                nonce
+            )
         );
     }
 
@@ -1081,6 +796,10 @@ contract ReferenceConsiderationInternal is
                     false
                 );
 
+                // TODO: Stack too deep
+                //offerItem.startAmount = amount;
+                //offerItem.endAmount = uint256(uint160(address(msg.sender)));
+
                 // Utilize assembly to set overloaded offerItem arguments.
                 assembly {
                     // Write derived fractional amount to startAmount as amount.
@@ -1158,6 +877,10 @@ contract ReferenceConsiderationInternal is
                     duration,
                     true
                 );
+
+                // TODO: Stack too deep
+                //considerationItem.startAmount = amount;
+                //considerationItem.endAmount = uint256(uint160(address(considerationItem.recipient)));
 
                 // Use assembly to set overloaded considerationItem arguments.
                 assembly {
@@ -1385,6 +1108,9 @@ contract ReferenceConsiderationInternal is
                         true // round up
                     )
                 );
+                // TODO: Stack too deep
+                //considerationItem.startAmount = amount;
+                //considerationItem.endAmount = uint256(uint160(address(considerationItem.recipient)));
 
                 // Utilize assembly to manually "shift" the recipient value.
                 assembly {
@@ -1403,15 +1129,10 @@ contract ReferenceConsiderationInternal is
         _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
         // Determine the fulfiller (revertOnInvalid ? address(0) : msg.sender).
-        address fulfiller;
-
-        // Utilize assembly to operate on revertOnInvalid boolean as an integer.
-        assembly {
-            // Set the fulfiller to the caller if revertOnValid is false.
-            fulfiller := mul(iszero(revertOnInvalid), caller())
-        }
+        address fulfiller = revertOnInvalid ? address(0) : msg.sender;
 
         // Emit an event for each order signifying that it has been fulfilled.
+
         // Iterate over each order.
         for (uint256 i = 0; i < totalOrders; ++i) {
             // Do not emit an event if no order hash is present.
@@ -1812,7 +1533,6 @@ contract ReferenceConsiderationInternal is
 
         // Initialize array for tracking available orders.
         availableOrders = new bool[](totalOrders);
-
         // Iterate over orders to ensure all considerations are met.
         for (uint256 i = 0; i < totalOrders; ++i) {
             // Retrieve the order in question.
