@@ -5,7 +5,10 @@ import { ConduitInterface } from "../../interfaces/ConduitInterface.sol";
 
 import { ConduitItemType } from "../../conduit/lib/ConduitEnums.sol";
 
-import { ReferenceTokenTransferrer } from "../lib/ReferenceTokenTransferrer.sol";
+// prettier-ignore
+import {
+    ReferenceTokenTransferrer
+} from "../lib/ReferenceTokenTransferrer.sol";
 
 // prettier-ignore
 import {

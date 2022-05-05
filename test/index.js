@@ -17427,6 +17427,37 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           // Transaction reverted: function returned an unexpected amount of data
         });
       });
+      it("Reverts when 721 account with no code is supplied", async () => {
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: buyer.address,
+            identifierOrCriteria: 0,
+            startAmount: amount,
+            endAmount: amount,
+          },
+        ];
+
+        const consideration = [getItemETH(10, 10, seller.address)];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
+          ).to.be.revertedWith(`NoContract("${buyer.address}")`);
+        });
+      });
       it("Reverts when 1155 account with no code is supplied", async () => {
         const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
 
