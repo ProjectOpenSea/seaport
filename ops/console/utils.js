@@ -19,7 +19,7 @@ const log = (msg) => {
   }
 };
 
-const logEvents = (hash, abi) => {
+const logEvents = async (hash, abi) => {
   return provider.getTransactionReceipt(hash).then((receipt) => {
     if (!receipt) log(`No receipt is available for ${hash}`);
     const iface = new eth.utils.Interface(abi);
@@ -41,14 +41,14 @@ const logEvents = (hash, abi) => {
   });
 };
 
-const traceStorage = (txHash) => {
-  provider.send("debug_traceTransaction", [txHash]).then((res) => {
+const traceStorage = async (txHash) => {
+  await provider.send("debug_traceTransaction", [txHash]).then((res) => {
     log(res.structLogs[res.structLogs.length - 1].storage);
   });
 };
 
-const traceTx = (txHash, filename) => {
-  provider.send("debug_traceTransaction", [txHash]).then((res) => {
+const traceTx = async (txHash, filename) => {
+  await provider.send("debug_traceTransaction", [txHash]).then((res) => {
     if (filename) {
       const indexedRes = {
         ...res,

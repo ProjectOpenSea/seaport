@@ -1,13 +1,18 @@
 const eth = require("ethers");
 
-const utils = require("./utils");
-const consideration = require("./consideration");
 const constants = require("./constants");
+const utils = require("./utils");
+const helpers = require("./helpers");
+const consideration = require("./consideration");
+const test = require("./test");
 
 // Add stuff that we want easy access to the global object
 for (const key of Object.keys(utils || {})) {
   global[key] = utils[key];
 }
+
+global.test = test;
+global.helpers = helpers;
 
 // Add consideration helper fns to the global scope
 for (const method of Object.keys(consideration || {})) {
