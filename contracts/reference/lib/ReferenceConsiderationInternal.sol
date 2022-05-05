@@ -2163,7 +2163,7 @@ contract ReferenceConsiderationInternal is
     {
         conduit = _deriveConduit(conduitKey);
 
-        if (address.code.length == 0) {
+        if (conduit.code.length == 0) {
             revert InvalidConduit(conduitKey, conduit);
         }
     }
