@@ -90,6 +90,9 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
+      - name: Install solmate
+        run: forge install Rari-Capital/solmate
+
       - name: Run tests
         run: forge test -vvv
 
