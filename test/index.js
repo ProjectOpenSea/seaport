@@ -13291,7 +13291,189 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         }
       });
+      it("Reverts on invalid contract 1271 signature and contract does not return magic value", async () => {
+        await whileImpersonating(owner.address, provider, async () => {
+          const tx = await sellerContract.connect(owner).setValid(false);
+          const receipt = await tx.wait();
+        });
+
+        // Seller mints nft to contract
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(sellerContract.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            sellerContract
+              .connect(seller)
+              .approveNFT(testERC721.address, marketplaceContract.address)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(
+              sellerContract.address,
+              marketplaceContract.address,
+              true
+            );
+        });
+
+        // Buyer mints ERC20
+        const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+        await testERC20.mint(buyer.address, tokenAmount);
+
+        // Buyer approves marketplace contract to transfer tokens
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            testERC20
+              .connect(buyer)
+              .approve(marketplaceContract.address, tokenAmount)
+          )
+            .to.emit(testERC20, "Approval")
+            .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+        });
+
+        const offer = [getTestItem721(nftId)];
+
+        const consideration = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0, // ignored for ERC20
+            startAmount: tokenAmount.sub(100),
+            endAmount: tokenAmount.sub(100),
+            recipient: sellerContract.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0, // ignored for ERC20
+            startAmount: ethers.BigNumber.from(50),
+            endAmount: ethers.BigNumber.from(50),
+            recipient: zone.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0, // ignored for ERC20
+            startAmount: ethers.BigNumber.from(50),
+            endAmount: ethers.BigNumber.from(50),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          sellerContract,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          [],
+          null,
+          zone // wrong signer
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          2, // ERC20ForERC721
+          order
+        );
+
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters)
+            ).to.be.revertedWith("InvalidSigner");
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters)
+            ).to.be.reverted;
+          });
+        }
+
+        await whileImpersonating(owner.address, provider, async () => {
+          const tx = await sellerContract.connect(owner).setValid(true);
+          const receipt = await tx.wait();
+        });
+      });
       it("Reverts on restricted order where isValidOrder reverts with no data", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [getTestItem721(nftId)];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          stubZone,
+          offer,
+          consideration,
+          2, // FULL_RESTRICTED,
+          [],
+          null,
+          seller,
+          "0x".padEnd(65, "0") + "3"
+        );
+
+        order.parameters.extraData = "0x01";
+
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, toKey(false), { value })
+            ).to.be.reverted;
+          });
+        }
+
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillAdvancedOrder(order, [], toKey(false), { value })
+            ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillOrder(order, [], toKey(false), { value })
+            ).to.be.reverted;
+          });
+        }
+      });
+      it("Reverts on restricted order where isValidOrder returns non-magic value", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
         await testERC721.mint(seller.address, nftId);
