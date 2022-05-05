@@ -14,7 +14,7 @@ import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 
 contract FulfillAdvancedOrder is BaseOrderTest {
-    struct TestAdvancedOrder {
+    struct AdvancedOrderInputs {
         uint256 tokenId;
         address zone;
         bytes32 zoneHash;
@@ -23,116 +23,111 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         bool useConduit;
     }
 
+    struct TestAdvancedOrder {
+        Consideration consideration;
+        AdvancedOrderInputs args;
+    }
+
     /**
      * TODO: actually test advanced :)
      */
-    function testAdvancedSingleERC721(
-        TestAdvancedOrder memory testAdvancedOrder
-    ) public {
-        _advancedSingleERC721(consideration, testAdvancedOrder);
-        _advancedSingleERC721(
-            Consideration(address(referenceConsideration)),
-            testAdvancedOrder
-        );
+    function testAdvancedSingleERC721(AdvancedOrderInputs memory args) public {
+        _advancedSingleERC721(TestAdvancedOrder(consideration, args));
+        _advancedSingleERC721(TestAdvancedOrder(referenceConsideration, args));
     }
 
-    function _advancedSingleERC721(
-        Consideration _consideration,
-        TestAdvancedOrder memory testAdvancedOrder
-    )
+    function _advancedSingleERC721(TestAdvancedOrder memory testAdvancedOrder)
         internal
-        onlyPayable(testAdvancedOrder.zone)
+        onlyPayable(testAdvancedOrder.args.zone)
         topUp
         resetTokenBalancesBetweenRuns
     {
         vm.assume(
-            testAdvancedOrder.ethAmts[0] > 0 &&
-                testAdvancedOrder.ethAmts[1] > 0 &&
-                testAdvancedOrder.ethAmts[2] > 0
+            testAdvancedOrder.args.ethAmts[0] > 0 &&
+                testAdvancedOrder.args.ethAmts[1] > 0 &&
+                testAdvancedOrder.args.ethAmts[2] > 0
         );
         vm.assume(
-            uint256(testAdvancedOrder.ethAmts[0]) +
-                uint256(testAdvancedOrder.ethAmts[1]) +
-                uint256(testAdvancedOrder.ethAmts[2]) <=
+            uint256(testAdvancedOrder.args.ethAmts[0]) +
+                uint256(testAdvancedOrder.args.ethAmts[1]) +
+                uint256(testAdvancedOrder.args.ethAmts[2]) <=
                 2**128 - 1
         );
 
-        // require(testAdvancedOrder.salt != 5, "bad");
-        bytes32 conduitKey = testAdvancedOrder.useConduit
+        // require(testAdvancedOrder.args.salt != 5, "bad");
+        bytes32 conduitKey = testAdvancedOrder.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
-        test721_1.mint(alice, testAdvancedOrder.tokenId);
+        test721_1.mint(alice, testAdvancedOrder.args.tokenId);
         OfferItem[] memory offerItem = singleOfferItem(
             ItemType.ERC721,
             address(test721_1),
-            testAdvancedOrder.tokenId,
+            testAdvancedOrder.args.tokenId,
             1,
             1
         );
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            3
-        );
+        considerationItems = new ConsiderationItem[](3);
         considerationItems[0] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(testAdvancedOrder.ethAmts[0]),
-            uint256(testAdvancedOrder.ethAmts[0]),
+            uint256(testAdvancedOrder.args.ethAmts[0]),
+            uint256(testAdvancedOrder.args.ethAmts[0]),
             payable(alice)
         );
         considerationItems[1] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(testAdvancedOrder.ethAmts[1]),
-            uint256(testAdvancedOrder.ethAmts[1]),
-            payable(testAdvancedOrder.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+            uint256(testAdvancedOrder.args.ethAmts[1]),
+            uint256(testAdvancedOrder.args.ethAmts[1]),
+            payable(testAdvancedOrder.args.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
         );
         considerationItems[2] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),
             0,
-            uint256(testAdvancedOrder.ethAmts[2]),
-            uint256(testAdvancedOrder.ethAmts[2]),
+            uint256(testAdvancedOrder.args.ethAmts[2]),
+            uint256(testAdvancedOrder.args.ethAmts[2]),
             payable(cal)
         );
 
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            testAdvancedOrder.zone,
+            testAdvancedOrder.args.zone,
             offerItem,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            testAdvancedOrder.zoneHash,
-            testAdvancedOrder.salt,
+            testAdvancedOrder.args.zoneHash,
+            testAdvancedOrder.args.salt,
             conduitKey,
-            _consideration.getNonce(alice)
+            testAdvancedOrder.consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
-            _consideration,
+            testAdvancedOrder.consideration,
             alicePk,
-            _consideration.getOrderHash(orderComponents)
+            testAdvancedOrder.consideration.getOrderHash(orderComponents)
         );
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
-            testAdvancedOrder.zone,
+            testAdvancedOrder.args.zone,
             offerItem,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            testAdvancedOrder.zoneHash,
-            testAdvancedOrder.salt,
+            testAdvancedOrder.args.zoneHash,
+            testAdvancedOrder.args.salt,
             conduitKey,
             considerationItems.length
         );
-        _consideration.fulfillOrder{
-            value: testAdvancedOrder.ethAmts[0] +
-                testAdvancedOrder.ethAmts[1] +
-                testAdvancedOrder.ethAmts[2]
+        testAdvancedOrder.consideration.fulfillOrder{
+            value: testAdvancedOrder.args.ethAmts[0] +
+                testAdvancedOrder.args.ethAmts[1] +
+                testAdvancedOrder.args.ethAmts[2]
         }(Order(orderParameters, signature), conduitKey);
         emit log_named_uint(
             "ending balance of this",
