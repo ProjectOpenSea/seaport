@@ -17428,15 +17428,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
       it("Reverts when 721 account with no code is supplied", async () => {
-        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
-
         const offer = [
           {
             itemType: 2, // ERC721
             token: buyer.address,
             identifierOrCriteria: 0,
-            startAmount: amount,
-            endAmount: amount,
+            startAmount: 1,
+            endAmount: 1,
           },
         ];
 
