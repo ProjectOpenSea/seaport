@@ -16596,116 +16596,121 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       });
 
-      it("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
-        const recipient = await (
-          await ethers.getContractFactory("ExcessReturnDataRecipient")
-        ).deploy();
+      // Skip this test when testing the reference contract
+      if (!process.env.REFERENCE) {
+        it("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
+          const recipient = await (
+            await ethers.getContractFactory("ExcessReturnDataRecipient")
+          ).deploy();
 
-        const setup = async () => {
-          // seller mints ERC20
-          const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
-          await testERC20.mint(seller.address, tokenAmount);
+          const setup = async () => {
+            // seller mints ERC20
+            const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+            await testERC20.mint(seller.address, tokenAmount);
 
-          // Seller approves conduit contract to transfer tokens
-          await whileImpersonating(seller.address, provider, async () => {
-            await expect(
-              testERC20.connect(seller).approve(conduitOne.address, tokenAmount)
-            )
-              .to.emit(testERC20, "Approval")
-              .withArgs(seller.address, conduitOne.address, tokenAmount);
-          });
-
-          // Buyer mints nft
-          const nftId = ethers.BigNumber.from(randomHex());
-          const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
-          await testERC1155.mint(buyer.address, nftId, amount.mul(10000));
-
-          // Buyer approves conduit contract to transfer NFTs
-          await whileImpersonating(buyer.address, provider, async () => {
-            await expect(
-              testERC1155
-                .connect(buyer)
-                .setApprovalForAll(conduitOne.address, true)
-            )
-              .to.emit(testERC1155, "ApprovalForAll")
-              .withArgs(buyer.address, conduitOne.address, true);
-          });
-
-          const offer = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0,
-              startAmount: tokenAmount,
-              endAmount: tokenAmount,
-            },
-          ];
-
-          const consideration = [
-            {
-              itemType: 3, // ERC1155
-              token: testERC1155.address,
-              identifierOrCriteria: nftId,
-              startAmount: amount.mul(10),
-              endAmount: amount.mul(10),
-              recipient: recipient.address,
-            },
-          ];
-
-          const { order, orderHash, value } = await createOrder(
-            seller,
-            zone,
-            offer,
-            consideration,
-            0, // FULL_OPEN
-            [],
-            null,
-            seller,
-            constants.HashZero,
-            conduitKeyOne
-          );
-
-          return { order, value };
-        };
-
-        let { order: initialOrder, value } = await setup();
-        const baseGas = await marketplaceContract
-          .connect(buyer)
-          .estimateGas.fulfillAdvancedOrder(initialOrder, [], conduitKeyOne, {
-            value,
-          });
-
-        // TODO: clean *this* up
-        let w = 0;
-        let ceiling = hre.__SOLIDITY_COVERAGE_RUNNING ? 1720 : 910;
-        let found = false;
-        for (; w <= ceiling; w += 5) {
-          const { order } = await setup();
-          await recipient.setRevertDataSize(w * 32);
-          try {
-            await whileImpersonating(buyer.address, provider, async () => {
-              await marketplaceContract
-                .connect(buyer)
-                .fulfillAdvancedOrder(order, [], conduitKeyOne, {
-                  value,
-                  gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
-                    ? baseGas.add(35000)
-                    : baseGas.add(2000),
-                });
+            // Seller approves conduit contract to transfer tokens
+            await whileImpersonating(seller.address, provider, async () => {
+              await expect(
+                testERC20
+                  .connect(seller)
+                  .approve(conduitOne.address, tokenAmount)
+              )
+                .to.emit(testERC20, "Approval")
+                .withArgs(seller.address, conduitOne.address, tokenAmount);
             });
-          } catch (err) {
-            if (err.message.includes("InvalidCallToConduit")) {
-              found = true;
+
+            // Buyer mints nft
+            const nftId = ethers.BigNumber.from(randomHex());
+            const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+            await testERC1155.mint(buyer.address, nftId, amount.mul(10000));
+
+            // Buyer approves conduit contract to transfer NFTs
+            await whileImpersonating(buyer.address, provider, async () => {
+              await expect(
+                testERC1155
+                  .connect(buyer)
+                  .setApprovalForAll(conduitOne.address, true)
+              )
+                .to.emit(testERC1155, "ApprovalForAll")
+                .withArgs(buyer.address, conduitOne.address, true);
+            });
+
+            const offer = [
+              {
+                itemType: 1, // ERC20
+                token: testERC20.address,
+                identifierOrCriteria: 0,
+                startAmount: tokenAmount,
+                endAmount: tokenAmount,
+              },
+            ];
+
+            const consideration = [
+              {
+                itemType: 3, // ERC1155
+                token: testERC1155.address,
+                identifierOrCriteria: nftId,
+                startAmount: amount.mul(10),
+                endAmount: amount.mul(10),
+                recipient: recipient.address,
+              },
+            ];
+
+            const { order, orderHash, value } = await createOrder(
+              seller,
+              zone,
+              offer,
+              consideration,
+              0, // FULL_OPEN
+              [],
+              null,
+              seller,
+              constants.HashZero,
+              conduitKeyOne
+            );
+
+            return { order, value };
+          };
+
+          let { order: initialOrder, value } = await setup();
+          const baseGas = await marketplaceContract
+            .connect(buyer)
+            .estimateGas.fulfillAdvancedOrder(initialOrder, [], conduitKeyOne, {
+              value,
+            });
+
+          // TODO: clean *this* up
+          let w = 0;
+          let ceiling = hre.__SOLIDITY_COVERAGE_RUNNING ? 1720 : 910;
+          let found = false;
+          for (; w <= ceiling; w += 5) {
+            const { order } = await setup();
+            await recipient.setRevertDataSize(w * 32);
+            try {
+              await whileImpersonating(buyer.address, provider, async () => {
+                await marketplaceContract
+                  .connect(buyer)
+                  .fulfillAdvancedOrder(order, [], conduitKeyOne, {
+                    value,
+                    gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
+                      ? baseGas.add(35000)
+                      : baseGas.add(2000),
+                  });
+              });
+            } catch (err) {
+              if (err.message.includes("InvalidCallToConduit")) {
+                found = true;
+              }
+            }
+
+            if (w === 0) {
+              w = hre.__SOLIDITY_COVERAGE_RUNNING ? 1715 : 905;
             }
           }
 
-          if (w === 0) {
-            w = hre.__SOLIDITY_COVERAGE_RUNNING ? 1715 : 905;
-          }
-        }
-
-        expect(found).to.be.true;
-      });
+          expect(found).to.be.true;
+        });
+      }
 
       it("Reverts when transferred item amount is zero", async () => {
         // Seller mints nft
