@@ -3,13 +3,6 @@ pragma solidity 0.8.13;
 
 // prettier-ignore
 import {
-    ERC20Interface,
-    ERC721Interface,
-    ERC1155Interface
-} from "./AbridgedTokenInterfaces.sol";
-
-// prettier-ignore
-import {
     ConduitTransfer,
     ConduitBatch1155Transfer
 } from "../conduit/lib/ConduitStructs.sol";
@@ -21,33 +14,6 @@ interface ConduitInterface {
     error ChannelClosed();
 
     error InvalidItemType();
-
-    error NoContract(address token);
-
-    error BadReturnValueFromERC20OnTransfer(
-        address token,
-        address from,
-        address to,
-        uint256 amount
-    );
-
-    error InvalidERC721TransferAmount();
-
-    error TokenTransferGenericFailure(
-        address token,
-        address from,
-        address to,
-        uint256 identifier,
-        uint256 amount
-    );
-
-    error ERC1155BatchTransferGenericFailure(
-        address token,
-        address from,
-        address to,
-        uint256[] identifiers,
-        uint256[] amounts
-    );
 
     error InvalidController();
 

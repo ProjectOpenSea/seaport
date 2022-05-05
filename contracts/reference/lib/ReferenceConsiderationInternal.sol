@@ -2159,6 +2159,7 @@ contract ReferenceConsiderationInternal is
 
     function _getConduit(bytes32 conduitKey)
         internal
+        view
         returns (address conduit)
     {
         conduit = _deriveConduit(conduitKey);
