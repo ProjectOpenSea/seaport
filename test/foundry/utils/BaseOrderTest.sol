@@ -157,5 +157,9 @@ contract BaseOrderTest is
             "Consideration approved for all tokens from",
             _owner
         );
+        emit log_named_address(
+            "referenceConsideration approved for all tokens from",
+            _owner
+        );
     }
 }
