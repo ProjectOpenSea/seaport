@@ -17469,6 +17469,35 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           // Transaction reverted: function returned an unexpected amount of data
         });
       });
+      it("Reverts when 721 account with no code is supplied", async () => {
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: buyer.address,
+            identifierOrCriteria: 0,
+            startAmount: 1,
+            endAmount: 1,
+          },
+        ];
+
+        const consideration = [getItemETH(10, 10, seller.address)];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toKey(false), { value })
+          ).to.be.revertedWith(`NoContract("${buyer.address}")`);
+        });
+      });
       it("Reverts when 1155 account with no code is supplied", async () => {
         const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
 
@@ -17675,17 +17704,27 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), { value })
-          ).to.be.revertedWith(
-            `TokenTransferGenericFailure("${marketplaceContract.address}", "${
-              seller.address
-            }", "${buyer.address}", 0, ${amount.toString()})`
-          );
-        });
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillAdvancedOrder(order, [], toKey(false), { value })
+            ).to.be.revertedWith(
+              `TokenTransferGenericFailure("${marketplaceContract.address}", "${
+                seller.address
+              }", "${buyer.address}", 0, ${amount.toString()})`
+            );
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillAdvancedOrder(order, [], toKey(false), { value })
+            ).to.be.reverted;
+          });
+        }
       });
       it("Reverts when 1155 batch non-token account is supplied as the token", async () => {
         // Seller mints first nft
@@ -17809,19 +17848,29 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        await whileImpersonating(owner.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(owner)
-              .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith(
-            `ERC1155BatchTransferGenericFailure("${
-              marketplaceContract.address
-            }", "${seller.address}", "${
-              buyer.address
-            }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
-          );
-        });
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchOrders([order, mirrorOrder], fulfillments, { value })
+            ).to.be.revertedWith(
+              `ERC1155BatchTransferGenericFailure("${
+                marketplaceContract.address
+              }", "${seller.address}", "${
+                buyer.address
+              }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
+            );
+          });
+        } else {
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchOrders([order, mirrorOrder], fulfillments, { value })
+            ).to.be.reverted;
+          });
+        }
 
         const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -17957,19 +18006,29 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        await whileImpersonating(owner.address, provider, async () => {
-          await expect(
-            marketplaceContract
-              .connect(owner)
-              .matchOrders([order, mirrorOrder], fulfillments, { value })
-          ).to.be.revertedWith(
-            `ERC1155BatchTransferGenericFailure("${
-              marketplaceContract.address
-            }", "${seller.address}", "${
-              buyer.address
-            }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
-          );
-        });
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchOrders([order, mirrorOrder], fulfillments, { value })
+            ).to.be.revertedWith(
+              `ERC1155BatchTransferGenericFailure("${
+                marketplaceContract.address
+              }", "${seller.address}", "${
+                buyer.address
+              }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
+            );
+          });
+        } else {
+          await whileImpersonating(owner.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchOrders([order, mirrorOrder], fulfillments, { value })
+            ).to.be.reverted;
+          });
+        }
 
         const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 

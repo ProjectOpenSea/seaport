@@ -3,7 +3,12 @@ pragma solidity 0.8.13;
 
 import "./ConsiderationConstants.sol";
 
-contract TokenTransferrer {
+// prettier-ignore
+import {
+    TokenTransferrerErrors
+} from "../interfaces/TokenTransferrerErrors.sol";
+
+contract TokenTransferrer is TokenTransferrerErrors {
     /**
      * @dev Internal function to transfer ERC20 tokens from a given originator
      *      to a given recipient. Sufficient approvals must be set on the
