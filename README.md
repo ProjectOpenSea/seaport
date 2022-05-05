@@ -181,10 +181,10 @@ yarn profile
 ```
 
 ### Foundry Test dependencies 
-Check out [Foundry Book installation instructions](https://book.getfoundry.sh/getting-started/installation.html).
-
-Install foundry dependencies like this:
+To install dependencies:
 
 ```
 forge install Rari-Capital/solmate
 ```
+
+For more information, see [Foundry Book installation instructions](https://book.getfoundry.sh/getting-started/installation.html).
