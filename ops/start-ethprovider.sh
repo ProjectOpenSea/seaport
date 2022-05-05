@@ -26,7 +26,7 @@ docker run \
   --env "FORKED_PROVIDER=${FORKED_PROVIDER:-}" \
   --env "FORKED_BLOCK=${FORKED_BLOCK:-}" \
   --env "CHAIN_ID=${CHAIN_ID:-1337}" \
-  --memory "2G" \
+  --memory "4G" \
   --mount "type=bind,source=$root,target=/root" \
   --name "$name" \
   --network "$project" \
