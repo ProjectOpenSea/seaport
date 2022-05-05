@@ -764,21 +764,6 @@ contract ReferenceConsiderationInternal is
 
         // Declare a nested scope to minimize stack depth.
         {
-            // Declare a virtual function pointer taking an OfferItem argument.
-            function(OfferItem memory, address, bytes32)
-                internal _transferOfferItem;
-
-            // Assign _transfer function to a new function pointer (it takes a
-            // ReceivedItem as its initial argument)
-            function(ReceivedItem memory, address, bytes32)
-                internal _transferReceivedItem = _transfer;
-
-            // Utilize assembly to override the virtual function pointer.
-            assembly {
-                // Cast initial ReceivedItem argument type to an OfferItem type.
-                _transferOfferItem := _transferReceivedItem
-            }
-
             // Iterate over each offer on the order.
             for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
                 // Retrieve the offer item.
@@ -796,20 +781,17 @@ contract ReferenceConsiderationInternal is
                     false
                 );
 
-                // TODO: Stack too deep
-                //offerItem.startAmount = amount;
-                //offerItem.endAmount = uint256(uint160(address(msg.sender)));
-
-                // Utilize assembly to set overloaded offerItem arguments.
-                assembly {
-                    // Write derived fractional amount to startAmount as amount.
-                    mstore(add(offerItem, 0x60), amount)
-                    // Write fulfiller (i.e. caller) to endAmount as recipient.
-                    mstore(add(offerItem, 0x80), caller())
-                }
+                // Create Received Item from Offer Item
+                ReceivedItem memory receivedItem = ReceivedItem(
+                    offerItem.itemType,
+                    offerItem.token,
+                    offerItem.identifierOrCriteria,
+                    amount,
+                    payable(msg.sender)
+                );
 
                 // Reduce available value if offer spent ETH or a native token.
-                if (offerItem.itemType == ItemType.NATIVE) {
+                if (receivedItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
@@ -819,8 +801,8 @@ contract ReferenceConsiderationInternal is
                 }
 
                 // Transfer the item from the offerer to the caller.
-                _transferOfferItem(
-                    offerItem,
+                _transfer(
+                    receivedItem,
                     orderParameters.offerer,
                     offererConduitKey
                 );
@@ -844,21 +826,6 @@ contract ReferenceConsiderationInternal is
 
         // Declare a nested scope to minimize stack depth.
         {
-            // Declare virtual function pointer with ConsiderationItem argument.
-            function(ConsiderationItem memory, address, bytes32)
-                internal _transferConsiderationItem;
-
-            // Reassign _transfer function to a new function pointer (it takes a
-            /// ReceivedItem as its initial argument).
-            function(ReceivedItem memory, address, bytes32)
-                internal _transferReceivedItem = _transfer;
-
-            // Utilize assembly to override the virtual function pointer.
-            assembly {
-                // Cast ReceivedItem argument type to ConsiderationItem type.
-                _transferConsiderationItem := _transferReceivedItem
-            }
-
             // Iterate over each consideration on the order.
             for (uint256 i = 0; i < orderParameters.consideration.length; ++i) {
                 // Retrieve the consideration item.
@@ -878,24 +845,17 @@ contract ReferenceConsiderationInternal is
                     true
                 );
 
-                // TODO: Stack too deep
-                //considerationItem.startAmount = amount;
-                //considerationItem.endAmount = uint256(uint160(address(considerationItem.recipient)));
-
-                // Use assembly to set overloaded considerationItem arguments.
-                assembly {
-                    // Write derived fractional amount to startAmount as amount.
-                    mstore(add(considerationItem, 0x60), amount)
-
-                    // Write original recipient to endAmount as recipient.
-                    mstore(
-                        add(considerationItem, 0x80),
-                        mload(add(considerationItem, 0xa0))
-                    )
-                }
+                // Create Received Item from Offer Item
+                ReceivedItem memory receivedItem = ReceivedItem(
+                    considerationItem.itemType,
+                    considerationItem.token,
+                    considerationItem.identifierOrCriteria,
+                    amount,
+                    considerationItem.recipient
+                );
 
                 // Reduce available value if offer spent ETH or a native token.
-                if (considerationItem.itemType == ItemType.NATIVE) {
+                if (receivedItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
@@ -905,8 +865,8 @@ contract ReferenceConsiderationInternal is
                 }
 
                 // Transfer item from caller to recipient specified by the item.
-                _transferConsiderationItem(
-                    considerationItem,
+                _transfer(
+                    receivedItem,
                     msg.sender,
                     fulfillerConduitKey
                 );
@@ -952,10 +912,11 @@ contract ReferenceConsiderationInternal is
         // Track the order hash for each order being fulfilled.
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
 
-        // Override orderHashes length to zero after memory has been allocated.
-        assembly {
-            mstore(orderHashes, 0)
-        }
+        // Array of Spent Items of Each Order
+        SpentItem[][] memory spentItemsByOrder = new SpentItem[][](totalOrders);
+
+        // Array of Received Items of Each Order
+        ReceivedItem[][] memory receivedItemsByOrder = new ReceivedItem[][](totalOrders);
 
         // Iterate over each order.
         for (uint256 i = 0; i < totalOrders; ++i) {
@@ -966,11 +927,6 @@ contract ReferenceConsiderationInternal is
             if (maximumFulfilled == 0) {
                 // Mark fill fraction as zero as the order will not be used.
                 advancedOrder.numerator = 0;
-
-                // Update the length of the orderHashes array.
-                assembly {
-                    mstore(orderHashes, add(i, 1))
-                }
 
                 // Continue iterating through the remaining orders.
                 continue;
@@ -987,11 +943,6 @@ contract ReferenceConsiderationInternal is
                     revertOnInvalid,
                     orderHashes
                 );
-
-            // Update the length of the orderHashes array.
-            assembly {
-                mstore(orderHashes, add(i, 1))
-            }
 
             // Do not track hash or adjust prices if order is not fulfilled.
             if (numerator == 0) {
@@ -1022,6 +973,11 @@ contract ReferenceConsiderationInternal is
 
             // Retrieve array of offer items for the order in question.
             OfferItem[] memory offer = advancedOrder.parameters.offer;
+
+            // Spent Items
+            SpentItem[] memory spentItems = new SpentItem[](
+                offer.length
+            );
 
             // Iterate over each offer item on the order.
             for (uint256 j = 0; j < offer.length; ++j) {
@@ -1060,11 +1016,27 @@ contract ReferenceConsiderationInternal is
                     duration,
                     false // round down
                 );
+
+                // Create Spent Item for Event 
+                SpentItem memory spentItem = SpentItem(
+                    offerItem.itemType,
+                    offerItem.token,
+                    offerItem.identifierOrCriteria,
+                    offerItem.startAmount
+                );
+
+                // Add to array of Received Items
+                spentItems[j] = spentItem;
             }
+            spentItemsByOrder[i] = spentItems;
 
             // Retrieve array of consideration items for order in question.
             ConsiderationItem[] memory consideration = (
                 advancedOrder.parameters.consideration
+            );
+
+            ReceivedItem[] memory receivedItems = new ReceivedItem[](
+                consideration.length
             );
 
             // Iterate over each consideration item on the order.
@@ -1108,21 +1080,20 @@ contract ReferenceConsiderationInternal is
                         true // round up
                     )
                 );
-                // TODO: Stack too deep
-                //considerationItem.startAmount = amount;
-                //considerationItem.endAmount = uint256(uint160(address(considerationItem.recipient)));
 
-                // Utilize assembly to manually "shift" the recipient value.
-                assembly {
-                    // Write recipient to endAmount, as endAmount is not
-                    // used from this point on and can be repurposed to fit
-                    // the layout of a ReceivedItem.
-                    mstore(
-                        add(considerationItem, 0x80), // endAmount
-                        mload(add(considerationItem, 0xa0)) // recipient
-                    )
-                }
+                // Create Received Item for Event 
+                ReceivedItem memory receivedItem = ReceivedItem(
+                    considerationItem.itemType,
+                    considerationItem.token,
+                    considerationItem.identifierOrCriteria,
+                    considerationItem.startAmount,
+                    considerationItem.recipient
+                );
+
+                // Add to array of Received Items
+                receivedItems[j] = receivedItem;
             }
+            receivedItemsByOrder[i] = receivedItems;
         }
 
         // Apply criteria resolvers to each order as applicable.
@@ -1145,14 +1116,17 @@ contract ReferenceConsiderationInternal is
                 advancedOrders[i].parameters
             );
 
-            // Emit an OrderFulfilled event.
-            _emitOrderFulfilledEvent(
+            SpentItem[] memory spentItems = spentItemsByOrder[i];
+
+            ReceivedItem[] memory receivedItems = receivedItemsByOrder[i];
+
+            emit OrderFulfilled(
                 orderHashes[i],
                 orderParameters.offerer,
                 orderParameters.zone,
                 fulfiller,
-                orderParameters.offer,
-                orderParameters.consideration
+                spentItems,
+                receivedItems
             );
         }
     }
