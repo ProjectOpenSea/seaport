@@ -30,7 +30,10 @@ import {
     BatchExecution
 } from "../lib/ConsiderationStructs.sol";
 
-import { ReferenceConsiderationInternal } from "./lib/ReferenceConsiderationInternal.sol";
+// prettier-ignore
+import {
+    ReferenceConsiderationInternal
+} from "./lib/ReferenceConsiderationInternal.sol";
 
 /**
  * @title ReferenceConsideration
@@ -695,54 +698,47 @@ contract ReferenceConsideration is
         address offerer;
         address zone;
 
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Read length of the orders array from memory and place on stack.
-            uint256 totalOrders = orders.length;
+        // Read length of the orders array from memory and place on stack.
+        uint256 totalOrders = orders.length;
 
-            // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ) {
-                // Retrieve the order.
-                OrderComponents calldata order = orders[i];
+        // Iterate over each order.
+        for (uint256 i = 0; i < totalOrders; ++i) {
+            // Retrieve the order.
+            OrderComponents calldata order = orders[i];
 
-                offerer = order.offerer;
-                zone = order.zone;
+            offerer = order.offerer;
+            zone = order.zone;
 
-                // Ensure caller is either offerer or zone of the order.
-                if (msg.sender != offerer && msg.sender != zone) {
-                    revert InvalidCanceller();
-                }
-
-                // Derive order hash using the order parameters and the nonce.
-                bytes32 orderHash = _getOrderHash(
-                    OrderParameters(
-                        offerer,
-                        zone,
-                        order.offer,
-                        order.consideration,
-                        order.orderType,
-                        order.startTime,
-                        order.endTime,
-                        order.zoneHash,
-                        order.salt,
-                        order.conduitKey,
-                        order.consideration.length
-                    ),
-                    order.nonce
-                );
-
-                // Update the order status as not valid and cancelled.
-                _orderStatus[orderHash].isValidated = false;
-                _orderStatus[orderHash].isCancelled = true;
-
-                // Emit an event signifying that the order has been cancelled.
-                emit OrderCancelled(orderHash, offerer, zone);
-
-                // Increment counter inside body of loop for gas efficiency.
-                ++i;
+            // Ensure caller is either offerer or zone of the order.
+            if (msg.sender != offerer && msg.sender != zone) {
+                revert InvalidCanceller();
             }
-        }
 
+            // Derive order hash using the order parameters and the nonce.
+            bytes32 orderHash = _getOrderHash(
+                OrderParameters(
+                    offerer,
+                    zone,
+                    order.offer,
+                    order.consideration,
+                    order.orderType,
+                    order.startTime,
+                    order.endTime,
+                    order.zoneHash,
+                    order.salt,
+                    order.conduitKey,
+                    order.consideration.length
+                ),
+                order.nonce
+            );
+
+            // Update the order status as not valid and cancelled.
+            _orderStatus[orderHash].isValidated = false;
+            _orderStatus[orderHash].isCancelled = true;
+
+            // Emit an event signifying that the order has been cancelled.
+            emit OrderCancelled(orderHash, offerer, zone);
+        }
         return true;
     }
 
@@ -769,56 +765,46 @@ contract ReferenceConsideration is
         bytes32 orderHash;
         address offerer;
 
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Read length of the orders array from memory and place on stack.
-            uint256 totalOrders = orders.length;
+        // Read length of the orders array from memory and place on stack.
+        uint256 totalOrders = orders.length;
 
-            // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ) {
-                // Retrieve the order.
-                Order calldata order = orders[i];
+        // Iterate over each order.
+        for (uint256 i = 0; i < totalOrders; ++i) {
+            // Retrieve the order.
+            Order calldata order = orders[i];
 
-                // Retrieve the order parameters.
-                OrderParameters calldata orderParameters = order.parameters;
+            // Retrieve the order parameters.
+            OrderParameters calldata orderParameters = order.parameters;
 
-                // Move offerer from memory to the stack.
-                offerer = orderParameters.offerer;
+            // Move offerer from memory to the stack.
+            offerer = orderParameters.offerer;
 
-                // Get current nonce and use it w/ params to derive order hash.
-                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
-                    orderParameters
-                );
+            // Get current nonce and use it w/ params to derive order hash.
+            orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+                orderParameters
+            );
 
-                // Retrieve the order status using the derived order hash.
-                OrderStatus memory orderStatus = _orderStatus[orderHash];
+            // Retrieve the order status using the derived order hash.
+            OrderStatus memory orderStatus = _orderStatus[orderHash];
 
-                // Ensure order is fillable and retrieve the filled amount.
-                _verifyOrderStatus(
-                    orderHash,
-                    orderStatus,
-                    false, // Signifies that partially filled orders are valid.
-                    true // Signifies to revert if the order is invalid.
-                );
+            // Ensure order is fillable and retrieve the filled amount.
+            _verifyOrderStatus(
+                orderHash,
+                orderStatus,
+                false, // Signifies that partially filled orders are valid.
+                true // Signifies to revert if the order is invalid.
+            );
 
-                // If the order has not already been validated...
-                if (!orderStatus.isValidated) {
-                    // Verify the supplied signature.
-                    _verifySignature(offerer, orderHash, order.signature);
+            // If the order has not already been validated...
+            if (!orderStatus.isValidated) {
+                // Verify the supplied signature.
+                _verifySignature(offerer, orderHash, order.signature);
 
-                    // Update order status to mark the order as valid.
-                    _orderStatus[orderHash].isValidated = true;
+                // Update order status to mark the order as valid.
+                _orderStatus[orderHash].isValidated = true;
 
-                    // Emit an event signifying the order has been validated.
-                    emit OrderValidated(
-                        orderHash,
-                        offerer,
-                        orderParameters.zone
-                    );
-                }
-
-                // Increment counter inside body of the loop for gas efficiency.
-                ++i;
+                // Emit an event signifying the order has been validated.
+                emit OrderValidated(orderHash, offerer, orderParameters.zone);
             }
         }
 
@@ -836,11 +822,8 @@ contract ReferenceConsideration is
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
-        // No need to check for overflow; nonce cannot be incremented that far.
-        unchecked {
-            // Increment current nonce for the supplied offerer.
-            newNonce = ++_nonces[msg.sender];
-        }
+        // Increment current nonce for the supplied offerer.
+        newNonce = ++_nonces[msg.sender];
 
         // Emit an event containing the new nonce.
         emit NonceIncremented(newNonce, msg.sender);
