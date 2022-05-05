@@ -179,3 +179,12 @@ To profile gas usage (note that gas usage is mildly non-deterministic at the mom
 ```bash
 yarn profile
 ```
+
+### Foundry Test dependencies 
+To install dependencies:
+
+```
+forge install Rari-Capital/solmate
+```
+
+For more information, see [Foundry Book installation instructions](https://book.getfoundry.sh/getting-started/installation.html).
