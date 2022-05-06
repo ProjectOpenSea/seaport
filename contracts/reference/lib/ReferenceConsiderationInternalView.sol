@@ -175,60 +175,12 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         bytes32 digest,
         bytes memory signature
     ) internal view {
-        // Attempt an EIP-1271 staticcall to the offerer.
-        bool success = _staticcall(
-            offerer,
-            abi.encodeWithSelector(
-                EIP1271Interface.isValidSignature.selector,
-                digest,
-                signature
-            )
-        );
-
-        // If the call fails...
-        if (!success) {
-            // Revert and pass reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert BadContractSignature();
-        }
-
-        // Extract result from returndata buffer in case of memory overflow.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        // Ensure result was extracted and matches EIP-1271 magic value.
-        if (result != EIP1271Interface.isValidSignature.selector) {
+        if (
+            EIP1271Interface(offerer).isValidSignature(digest, signature) !=
+            EIP1271Interface.isValidSignature.selector
+        ) {
             revert InvalidSigner();
         }
-    }
-
-    /**
-     * @dev Internal view function to staticcall an arbitrary target with given
-     *      calldata. Note that no data is written to memory and no contract
-     *      size check is performed.
-     *
-     * @param target   The account to staticcall.
-     * @param callData The calldata to supply when staticcalling the target.
-     *
-     * @return success The status of the staticcall to the target.
-     */
-    function _staticcall(address target, bytes memory callData)
-        internal
-        view
-        returns (bool success)
-    {
-        (success, ) = target.staticcall(callData);
     }
 
     /**
@@ -398,20 +350,16 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             msg.sender != zone &&
             msg.sender != offerer
         ) {
-            // Perform minimal staticcall to the zone.
-            bool success = _staticcall(
-                zone,
-                abi.encodeWithSelector(
-                    ZoneInterface.isValidOrder.selector,
+            if (
+                ZoneInterface(zone).isValidOrder(
                     orderHash,
                     msg.sender,
                     offerer,
                     zoneHash
-                )
-            );
-
-            // Ensure call was successful and returned the correct magic value.
-            _assertIsValidOrderStaticcallSuccess(success, orderHash);
+                ) != ZoneInterface.isValidOrder.selector
+            ) {
+                revert InvalidRestrictedOrder(orderHash);
+            }
         }
     }
 
@@ -455,43 +403,34 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             msg.sender != zone &&
             msg.sender != offerer
         ) {
-            // Declare a variable for the status of the staticcall to the zone.
-            bool success;
-
             // If no extraData or criteria resolvers are supplied...
             if (
                 advancedOrder.extraData.length == 0 &&
                 criteriaResolvers.length == 0
             ) {
-                // Perform minimal staticcall to the zone.
-                success = _staticcall(
-                    zone,
-                    abi.encodeWithSelector(
-                        ZoneInterface.isValidOrder.selector,
+                if (
+                    ZoneInterface(zone).isValidOrder(
                         orderHash,
                         msg.sender,
                         offerer,
                         zoneHash
-                    )
-                );
+                    ) != ZoneInterface.isValidOrder.selector
+                ) {
+                    revert InvalidRestrictedOrder(orderHash);
+                }
             } else {
-                // Otherwise, extra data or criteria resolvers were supplied; in
-                // that event, perform a more verbose staticcall to the zone.
-                success = _staticcall(
-                    zone,
-                    abi.encodeWithSelector(
-                        ZoneInterface.isValidOrderIncludingExtraData.selector,
+                if (
+                    ZoneInterface(zone).isValidOrderIncludingExtraData(
                         orderHash,
                         msg.sender,
                         advancedOrder,
                         priorOrderHashes,
                         criteriaResolvers
-                    )
-                );
+                    ) != ZoneInterface.isValidOrder.selector
+                ) {
+                    revert InvalidRestrictedOrder(orderHash);
+                }
             }
-
-            // Ensure call was successful and returned the correct magic value.
-            _assertIsValidOrderStaticcallSuccess(success, orderHash);
         }
     }
 
@@ -856,100 +795,6 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to ensure that a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` as part of validating a
-     *      restricted order that was not submitted by the named offerer or zone
-     *      was successful and returned the required magic value.
-     *
-     * @param success   A boolean indicating the status of the staticcall.
-     * @param orderHash The order hash of the order in question.
-     */
-    function _assertIsValidOrderStaticcallSuccess(
-        bool success,
-        bytes32 orderHash
-    ) internal view {
-        // If the call failed...
-        if (!success) {
-            // Revert and pass reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert InvalidRestrictedOrder(orderHash);
-        }
-
-        // Extract result from returndata buffer in case of memory overflow.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        // Ensure result was extracted and matches isValidOrder magic value.
-        if (result != ZoneInterface.isValidOrder.selector) {
-            revert InvalidRestrictedOrder(orderHash);
-        }
-    }
-
-    /**
-     * @dev Internal view function to revert and pass along the revert reason if
-     *      data was returned by the last call and that the size of that data
-     *      does not exceed the currently allocated memory size.
-     */
-    function _revertWithReasonIfOneIsReturned() internal view {
-        assembly {
-            // If it returned a message, bubble it up as long as sufficient gas
-            // remains to do so:
-            if returndatasize() {
-                // Ensure that sufficient gas is available to copy returndata
-                // while expanding memory where necessary. Start by computing
-                // the word size of returndata and allocated memory.
-                let returnDataWords := div(returndatasize(), 0x20)
-
-                // Note: use the free memory pointer in place of msize() to work
-                // around a Yul warning that prevents accessing msize directly
-                // when the IR pipeline is activated.
-                let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
-
-                // Next, compute the cost of the returndatacopy.
-                let cost := mul(3, returnDataWords)
-
-                // Then, compute cost of new memory allocation.
-                if gt(returnDataWords, msizeWords) {
-                    cost := add(
-                        cost,
-                        add(
-                            mul(sub(returnDataWords, msizeWords), 3),
-                            div(
-                                sub(
-                                    mul(returnDataWords, returnDataWords),
-                                    mul(msizeWords, msizeWords)
-                                ),
-                                0x200
-                            )
-                        )
-                    )
-                }
-
-                // Finally, add a small constant and compare to gas remaining;
-                // bubble up the revert data if enough gas is still available.
-                if lt(add(cost, 0x20), gas()) {
-                    // Copy returndata to memory; overwrite existing memory.
-                    returndatacopy(0, 0, returndatasize())
-
-                    // Revert, specifying memory region with copied returndata.
-                    revert(0, returndatasize())
-                }
-            }
-        }
-    }
-
-    /**
      * @dev Internal view function to derive the address of a given conduit
      *      using a corresponding conduit key.
      *
@@ -966,41 +811,20 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         view
         returns (address conduit)
     {
-        // Read conduit controller address from runtime and place on the stack.
-        address conduitController = address(_CONDUIT_CONTROLLER);
-
-        // Read conduit creation code hash from runtime and place on the stack.
-        bytes32 conduitCreationCodeHash = _CONDUIT_CREATION_CODE_HASH;
-
-        // Leverage scratch space to perform an efficient hash.
-        assembly {
-            // Retrieve the free memory pointer; it will be replaced afterwards.
-            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
-
-            // Place the control character and the conduit controller in scratch
-            // space; note that eleven bytes at the beginning are left unused.
-            mstore(
-                0x00,
-                or(
-                    0x0000000000000000000000ff0000000000000000000000000000000000000000, // solhint-disable-line max-line-length
-                    conduitController
+        // Derive the address of the conduit.
+        conduit = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff),
+                            address(_CONDUIT_CONTROLLER),
+                            conduitKey,
+                            _CONDUIT_CREATION_CODE_HASH
+                        )
+                    )
                 )
             )
-
-            // Place the conduit key in the next region of scratch space.
-            mstore(0x20, conduitKey)
-
-            // Place conduit creation code hash in free memory pointer location.
-            mstore(0x40, conduitCreationCodeHash)
-
-            // Derive conduit by hashing and applying a mask over last 20 bytes.
-            conduit := and(
-                keccak256(0x0b, 0x55), // Hash the relevant region.
-                0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff // solhint-disable-line max-line-length
-            )
-
-            // Restore the free memory pointer.
-            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
-        }
+        );
     }
 }

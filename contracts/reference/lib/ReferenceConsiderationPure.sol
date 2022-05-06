@@ -901,9 +901,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
     {
         // ERC721WithCriteria is item type 4. ERC1155WithCriteria is item type
         // 5.
-        assembly {
-            withCriteria := gt(itemType, 3)
-        }
+        withCriteria = uint256(itemType) > 3;
     }
 
     /**
@@ -922,11 +920,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         returns (bool isFullOrder)
     {
         // The "full" order types are even, while "partial" order types are odd.
-        // Bitwise and by 1 is equivalent to modulo by 2, but 2 gas cheaper.
-        assembly {
-            // Same thing as uint256(orderType) & 1 == 0
-            isFullOrder := iszero(and(orderType, 1))
-        }
+        isFullOrder = uint256(orderType) & 1 == 0;
     }
 
     /**
@@ -1004,36 +998,20 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
 
             if (computedHash <= proofElement) {
                 // Hash(current computed hash + current element of proof)
-                computedHash = _efficientHash(computedHash, proofElement);
+                computedHash = keccak256(
+                    abi.encodePacked(computedHash, proofElement)
+                );
             } else {
                 // Hash(current element of proof + current computed hash)
-                computedHash = _efficientHash(proofElement, computedHash);
+                computedHash = keccak256(
+                    abi.encodePacked(proofElement, computedHash)
+                );
             }
         }
 
         // Ensure that the final derived hash matches the expected root.
         if (computedHash != bytes32(root)) {
             revert InvalidProof();
-        }
-    }
-
-    /**
-     * @dev Internal pure function to efficiently hash two bytes32 values.
-     *
-     * @param a The first component of the hash.
-     * @param b The second component of the hash.
-     *
-     * @return value The hash.
-     */
-    function _efficientHash(bytes32 a, bytes32 b)
-        internal
-        pure
-        returns (bytes32 value)
-    {
-        assembly {
-            mstore(0x00, a) // Place element a in first word of scratch space.
-            mstore(0x20, b) // Place element b in second word of scratch space.
-            value := keccak256(0x00, 0x40) // Hash scratch space region.
         }
     }
 
@@ -1072,38 +1050,22 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
     /**
      * @dev Internal pure function to validate calldata offsets for dynamic
      *      types in BasicOrderParameters. This ensures that functions using the
-     *      calldata object normally will be using the same data as the assembly
+     *      calldata object normally will be using the same data as optimized
      *      functions. Note that no parameters are supplied as all basic order
      *      functions use the same calldata encoding.
      */
     function _assertValidBasicOrderParameterOffsets() internal pure {
+        /*
+         * Checks:
+         * 1. Order parameters struct offset == 0x20
+         * 2. Additional recipients arr offset == 0x200
+         * 3. Signature offset == 0x240 + (recipients.length * 0x40)
+         */
         // Declare a boolean designating basic order parameter offset validity.
-        bool validOffsets;
-
-        // Utilize assembly in order to read offset data directly from calldata.
-        assembly {
-            /*
-             * Checks:
-             * 1. Order parameters struct offset == 0x20
-             * 2. Additional recipients arr offset == 0x200
-             * 3. Signature offset == 0x240 + (recipients.length * 0x40)
-             */
-            validOffsets := and(
-                // Order parameters have offset of 0x20
-                eq(calldataload(0x04), 0x20),
-                // Additional recipients have offset of 0x200
-                eq(calldataload(0x224), 0x240)
-            )
-            validOffsets := and(
-                validOffsets,
-                eq(
-                    // Load signature offset from calldata
-                    calldataload(0x244),
-                    // Calculate expected offset: start of recipients + len * 64
-                    add(0x260, mul(calldataload(0x264), 0x40))
-                )
-            )
-        }
+        bool validOffsets = (abi.decode(msg.data[4:36], (uint256)) == 32 &&
+            abi.decode(msg.data[548:580], (uint256)) == 576 &&
+            abi.decode(msg.data[580:612], (uint256)) ==
+            608 + 64 * abi.decode(msg.data[612:644], (uint256)));
 
         // Revert with an error if basic order parameter offsets are invalid.
         if (!validOffsets) {
