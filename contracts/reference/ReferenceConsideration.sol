@@ -95,6 +95,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (bool)
     {
         // Declare enums for order type & route to extract from basicOrderType.
@@ -330,6 +332,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (bool)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
@@ -381,7 +385,7 @@ contract ReferenceConsideration is
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) external payable override returns (bool) {
+    ) external payable override notEntered nonReentrant returns (bool) {
         // Validate and fulfill the order.
         return
             _validateAndFulfillAdvancedOrder(
@@ -447,6 +451,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (
             bool[] memory availableOrders,
             Execution[] memory standardExecutions,
@@ -540,6 +546,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (
             bool[] memory availableOrders,
             Execution[] memory standardExecutions,
@@ -592,6 +600,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
@@ -661,6 +671,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
@@ -690,11 +702,9 @@ contract ReferenceConsideration is
     function cancel(OrderComponents[] calldata orders)
         external
         override
+        notEntered
         returns (bool)
     {
-        // Ensure that the reentrancy guard is not currently set.
-        _assertNonReentrant();
-
         address offerer;
         address zone;
 
@@ -756,11 +766,9 @@ contract ReferenceConsideration is
     function validate(Order[] calldata orders)
         external
         override
+        notEntered
         returns (bool)
     {
-        // Ensure that the reentrancy guard is not currently set.
-        _assertNonReentrant();
-
         // Declare variables outside of the loop.
         bytes32 orderHash;
         address offerer;
@@ -818,10 +826,12 @@ contract ReferenceConsideration is
      *
      * @return newNonce The new nonce.
      */
-    function incrementNonce() external override returns (uint256 newNonce) {
-        // Ensure that the reentrancy guard is not currently set.
-        _assertNonReentrant();
-
+    function incrementNonce()
+        external
+        override
+        notEntered
+        returns (uint256 newNonce)
+    {
         // Increment current nonce for the supplied offerer.
         newNonce = ++_nonces[msg.sender];
 

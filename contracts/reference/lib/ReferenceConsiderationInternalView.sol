@@ -46,17 +46,6 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
     {}
 
     /**
-     * @dev Internal view function to ensure that the sentinel value for the
-            reentrancy guard is not currently set.
-     */
-    function _assertNonReentrant() internal view {
-        // Ensure that the reentrancy guard is not currently set.
-        if (_reentrancyGuard != _NOT_ENTERED) {
-            revert NoReentrantCalls();
-        }
-    }
-
-    /**
      * @dev Internal view function to ensure that the current time falls within
      *      an order's valid timespan.
      *

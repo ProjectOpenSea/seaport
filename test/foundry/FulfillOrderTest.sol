@@ -400,9 +400,7 @@ contract FulfillOrderTest is BaseOrderTest {
             1,
             1
         );
-        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
-            4
-        );
+        considerationItems = new ConsiderationItem[](4);
         considerationItems[0] = ConsiderationItem(
             ItemType.NATIVE,
             address(0),

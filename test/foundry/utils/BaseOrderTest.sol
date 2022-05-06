@@ -222,7 +222,7 @@ contract BaseOrderTest is
 
     function _resetTokensStorage() internal {
         for (uint256 i = 0; i < allTokens.length; i++) {
-            _resetStorage(AddressStruct(allTokens[i]));
+            _resetStorage(allTokens[i]);
         }
         // _resetStorage(address(token1));
         // _resetStorage(address(token2));
@@ -240,7 +240,7 @@ contract BaseOrderTest is
      */
     function _restoreERC20Balances() internal {
         for (uint256 i = 0; i < accounts.length; i++) {
-            _restoreERC20BalancesForAddress(AddressStruct(accounts[i]));
+            _restoreERC20BalancesForAddress(accounts[i]);
         }
         // _restoreERC20BalancesForAddress(alice);
         // _restoreERC20BalancesForAddress(bob);
@@ -251,18 +251,10 @@ contract BaseOrderTest is
     /**
      * @dev restore all erc20 balances for a given address
      */
-    function _restoreERC20BalancesForAddress(AddressStruct memory _who)
-        internal
-    {
+    function _restoreERC20BalancesForAddress(address _who) internal {
         for (uint256 i = 0; i < erc20s.length; i++) {
-            _restoreERC20Balance(
-                RestoreERC20Balance(address(erc20s[i]), _who.addr)
-            );
+            _restoreERC20Balance(RestoreERC20Balance(address(erc20s[i]), _who));
         }
-    }
-
-    struct AddressStruct {
-        address addr;
     }
 
     /**
@@ -271,10 +263,10 @@ contract BaseOrderTest is
      *
      *      note: must be called in conjunction with vm.record()
      */
-    function _resetStorage(AddressStruct memory resetStorage_) internal {
-        (, bytes32[] memory writeSlots) = vm.accesses(resetStorage_.addr);
+    function _resetStorage(address _addr) internal {
+        (, bytes32[] memory writeSlots) = vm.accesses(_addr);
         for (uint256 i = 0; i < writeSlots.length; i++) {
-            vm.store(resetStorage_.addr, writeSlots[i], bytes32(0));
+            vm.store(_addr, writeSlots[i], bytes32(0));
         }
     }
 
