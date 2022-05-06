@@ -14442,8 +14442,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ],
         ];
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          const tx = await marketplaceContract
+        let success = false;
+
+        try {
+          await whileImpersonating(buyer.address, provider, async () => {
+            const tx = await marketplaceContract
               .connect(buyer)
               .fulfillAvailableOrders(
                 [order],
@@ -14454,9 +14457,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 { value }
               );
 
-          const receipt = await tx.wait();
-          expect(receipt.status).to.be.false; // TODO: fix out-of-gas
-        });
+            const receipt = await tx.wait();
+            success = receipt.status;
+          });
+        } catch (err) {}
+
+        expect(success).to.be.false; // TODO: fix out-of-gas
       });
       it("Reverts on fulfillment component with out-of-range subsequent offer item on fulfillAvailableOrders", async () => {
         // Seller mints nft
