@@ -13509,6 +13509,29 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           "0x".padEnd(65, "0") + "3"
         );
 
+        const basicOrderParameters = getBasicOrderParameters(
+          0, // EthForERC721
+          order
+        );
+
+        if (!process.env.REFERENCE) {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters, { value })
+            ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+          });
+        } else {
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters, { value })
+            ).to.be.reverted;
+          });
+        }
+
         if (!process.env.REFERENCE) {
           await whileImpersonating(buyer.address, provider, async () => {
             await expect(
