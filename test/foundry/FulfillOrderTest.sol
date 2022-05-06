@@ -32,7 +32,7 @@ contract FulfillOrderTest is BaseOrderTest {
         bool useConduit;
     }
 
-    struct ToErc721StructWithSingleTip {
+    struct ToErc721WithSingleTipStruct {
         address zone;
         uint256 id;
         bytes32 zoneHash;
@@ -42,7 +42,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint128 tipAmt;
     }
 
-    struct ToErc1155StructWithSingleTip {
+    struct ToErc1155WithSingleTipStruct {
         address zone;
         uint256 id;
         uint256 erc1155Amt;
@@ -61,6 +61,16 @@ contract FulfillOrderTest is BaseOrderTest {
     struct ConsiderationToErc1155Struct {
         Consideration consideration;
         ToErc1155Struct args;
+    }
+
+    struct ConsiderationToErc721WithSingleTipStruct {
+        Consideration consideration;
+        ToErc721WithSingleTipStruct args;
+    }
+
+    struct ConsiderationToErc1155WithSingleTipStruct {
+        Consideration consideration;
+        ToErc1155WithSingleTipStruct args;
     }
 
     function testFulfillOrderEthToERC721(ToErc721Struct memory testStruct)
