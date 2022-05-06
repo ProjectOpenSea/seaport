@@ -85,12 +85,14 @@ contract BaseOrderTest is
         vm.record();
         _;
         _resetTokensAndEthForTestAccounts();
+        delete offerItems;
+        delete considerationItems;
     }
 
     function setUp() public virtual override {
         super.setUp();
-        offerItems = new OfferItem[](0);
-        considerationItems = new ConsiderationItem[](0);
+        delete offerItems;
+        delete considerationItems;
 
         vm.label(alice, "alice");
         vm.label(bob, "bob");

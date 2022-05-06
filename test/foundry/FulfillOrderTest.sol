@@ -66,7 +66,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
     function testFulfillOrderEthToERC721WithSingleTip(
         ToErc721Struct memory _toErc721Struct,
-        uint256 _tipAmt
+        uint128 _tipAmt
     ) public {
         _testFulfillOrderEthToERC721WithSingleTip(
             consideration,
@@ -104,37 +104,44 @@ contract FulfillOrderTest is BaseOrderTest {
             : bytes32(0);
 
         test721_1.mint(alice, testStruct.args.id);
-        offerItems = singleOfferItem(
-            ItemType.ERC721,
-            address(test721_1),
-            testStruct.args.id,
-            1,
-            1
+        offerItems.push(
+            OfferItem(
+                ItemType.ERC721,
+                address(test721_1),
+                testStruct.args.id,
+                1,
+                1
+            )
         );
-        considerationItems = new ConsiderationItem[](3);
-        considerationItems[0] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testStruct.args.paymentAmts[0]),
-            uint256(testStruct.args.paymentAmts[0]),
-            payable(alice)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[0]),
+                uint256(testStruct.args.paymentAmts[0]),
+                payable(alice)
+            )
         );
-        considerationItems[1] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testStruct.args.paymentAmts[1]),
-            uint256(testStruct.args.paymentAmts[1]),
-            payable(testStruct.args.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[1]),
+                uint256(testStruct.args.paymentAmts[1]),
+                payable(testStruct.args.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+            )
         );
-        considerationItems[2] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testStruct.args.paymentAmts[2]),
-            uint256(testStruct.args.paymentAmts[2]),
-            payable(cal)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[2]),
+                uint256(testStruct.args.paymentAmts[2]),
+                payable(cal)
+            )
         );
 
         OrderComponents memory orderComponents = OrderComponents(
@@ -200,38 +207,45 @@ contract FulfillOrderTest is BaseOrderTest {
             : bytes32(0);
 
         test1155_1.mint(alice, testStruct.args.id, testStruct.args.erc1155Amt);
-        offerItems = singleOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            testStruct.args.id,
-            testStruct.args.erc1155Amt,
-            testStruct.args.erc1155Amt
+        offerItems.push(
+            OfferItem(
+                ItemType.ERC1155,
+                address(test1155_1),
+                testStruct.args.id,
+                testStruct.args.erc1155Amt,
+                testStruct.args.erc1155Amt
+            )
         );
 
-        considerationItems = new ConsiderationItem[](3);
-        considerationItems[0] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testStruct.args.paymentAmts[0]),
-            uint256(testStruct.args.paymentAmts[0]),
-            payable(alice)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[0]),
+                uint256(testStruct.args.paymentAmts[0]),
+                payable(alice)
+            )
         );
-        considerationItems[1] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testStruct.args.paymentAmts[1]),
-            uint256(testStruct.args.paymentAmts[1]),
-            payable(testStruct.args.zone)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[1]),
+                uint256(testStruct.args.paymentAmts[1]),
+                payable(testStruct.args.zone)
+            )
         );
-        considerationItems[2] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testStruct.args.paymentAmts[2]),
-            uint256(testStruct.args.paymentAmts[2]),
-            payable(cal)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[2]),
+                uint256(testStruct.args.paymentAmts[2]),
+                payable(cal)
+            )
         );
 
         OrderComponents memory orderComponents = OrderComponents(
@@ -293,38 +307,45 @@ contract FulfillOrderTest is BaseOrderTest {
 
         test1155_1.mint(alice, testStruct.args.id, testStruct.args.erc1155Amt);
 
-        offerItems = singleOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            testStruct.args.id,
-            testStruct.args.erc1155Amt,
-            testStruct.args.erc1155Amt
+        offerItems.push(
+            OfferItem(
+                ItemType.ERC1155,
+                address(test1155_1),
+                testStruct.args.id,
+                testStruct.args.erc1155Amt,
+                testStruct.args.erc1155Amt
+            )
         );
 
-        considerationItems = new ConsiderationItem[](3);
-        considerationItems[0] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testStruct.args.paymentAmts[0]),
-            uint256(testStruct.args.paymentAmts[0]),
-            payable(alice)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[0]),
+                uint256(testStruct.args.paymentAmts[0]),
+                payable(alice)
+            )
         );
-        considerationItems[1] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testStruct.args.paymentAmts[1]),
-            uint256(testStruct.args.paymentAmts[1]),
-            payable(testStruct.args.zone)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[1]),
+                uint256(testStruct.args.paymentAmts[1]),
+                payable(testStruct.args.zone)
+            )
         );
-        considerationItems[2] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testStruct.args.paymentAmts[2]),
-            uint256(testStruct.args.paymentAmts[2]),
-            payable(cal)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[2]),
+                uint256(testStruct.args.paymentAmts[2]),
+                payable(cal)
+            )
         );
 
         OrderComponents memory orderComponents = OrderComponents(
@@ -393,43 +414,50 @@ contract FulfillOrderTest is BaseOrderTest {
             : bytes32(0);
 
         test721_1.mint(alice, toErc721Struct.id);
-        OfferItem[] memory offerItem = singleOfferItem(
-            ItemType.ERC721,
-            address(test721_1),
-            toErc721Struct.id,
-            1,
-            1
+        offerItems.push(
+            OfferItem(
+                ItemType.ERC721,
+                address(test721_1),
+                toErc721Struct.id,
+                1,
+                1
+            )
         );
-        considerationItems = new ConsiderationItem[](4);
-        considerationItems[0] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(toErc721Struct.paymentAmts[0]),
-            uint256(toErc721Struct.paymentAmts[0]),
-            payable(alice)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(toErc721Struct.paymentAmts[0]),
+                uint256(toErc721Struct.paymentAmts[0]),
+                payable(alice)
+            )
         );
-        considerationItems[1] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(toErc721Struct.paymentAmts[1]),
-            uint256(toErc721Struct.paymentAmts[1]),
-            payable(toErc721Struct.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(toErc721Struct.paymentAmts[1]),
+                uint256(toErc721Struct.paymentAmts[1]),
+                payable(toErc721Struct.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+            )
         );
-        considerationItems[2] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(toErc721Struct.paymentAmts[2]),
-            uint256(toErc721Struct.paymentAmts[2]),
-            payable(cal)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(toErc721Struct.paymentAmts[2]),
+                uint256(toErc721Struct.paymentAmts[2]),
+                payable(cal)
+            )
         );
 
         OrderComponents memory orderComponents = OrderComponents(
             alice,
             toErc721Struct.zone,
-            offerItem,
+            offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
@@ -446,19 +474,21 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         // Add tip
-        considerationItems[3] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            tipAmt,
-            tipAmt,
-            payable(bob)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                tipAmt,
+                tipAmt,
+                payable(bob)
+            )
         );
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             toErc721Struct.zone,
-            offerItem,
+            offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
@@ -499,41 +529,41 @@ contract FulfillOrderTest is BaseOrderTest {
 
     //     test1155_1.mint(alice, toErc1155Struct.id, toErc1155Struct.erc1155Amt);
 
-    //     OfferItem[] memory offerItem = singleOfferItem(
+    //     OfferItem[] memory offerItem.push(OfferItem(
     //         ItemType.ERC1155,
     //         address(test1155_1),
     //         toErc1155Struct.id,
     //         toErc1155Struct.erc1155Amt,
     //         toErc1155Struct.erc1155Amt
-    //     );
+    //     ));
 
     //     ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
     //         3
     //     );
-    //     considerationItems[0] = ConsiderationItem(
+    //     considerationItems.push(ConsiderationItem(
     //         ItemType.ERC20,
     //         address(token1),
     //         0,
     //         uint256(toErc1155Struct.paymentAmts[0]),
     //         uint256(toErc1155Struct.paymentAmts[0]),
     //         payable(alice)
-    //     );
-    //     considerationItems[1] = ConsiderationItem(
+    //     ));
+    //     considerationItems.push(ConsiderationItem(
     //         ItemType.ERC20,
     //         address(token1),
     //         0,
     //         uint256(toErc1155Struct.paymentAmts[1]),
     //         uint256(toErc1155Struct.paymentAmts[1]),
     //         payable(toErc1155Struct.zone)
-    //     );
-    //     considerationItems[2] = ConsiderationItem(
+    //     ));
+    //     considerationItems.push(ConsiderationItem(
     //         ItemType.ERC20,
     //         address(token1),
     //         0,
     //         uint256(toErc1155Struct.paymentAmts[2]),
     //         uint256(toErc1155Struct.paymentAmts[2]),
     //         payable(cal)
-    //     );
+    //     ));
 
     //     OrderComponents memory orderComponents = OrderComponents(
     //         alice,

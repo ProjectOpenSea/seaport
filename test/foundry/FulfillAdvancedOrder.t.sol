@@ -67,30 +67,35 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             1,
             1
         );
-        considerationItems = new ConsiderationItem[](3);
-        considerationItems[0] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testAdvancedOrder.args.ethAmts[0]),
-            uint256(testAdvancedOrder.args.ethAmts[0]),
-            payable(alice)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testAdvancedOrder.args.ethAmts[0]),
+                uint256(testAdvancedOrder.args.ethAmts[0]),
+                payable(alice)
+            )
         );
-        considerationItems[1] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testAdvancedOrder.args.ethAmts[1]),
-            uint256(testAdvancedOrder.args.ethAmts[1]),
-            payable(testAdvancedOrder.args.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testAdvancedOrder.args.ethAmts[1]),
+                uint256(testAdvancedOrder.args.ethAmts[1]),
+                payable(testAdvancedOrder.args.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+            )
         );
-        considerationItems[2] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            uint256(testAdvancedOrder.args.ethAmts[2]),
-            uint256(testAdvancedOrder.args.ethAmts[2]),
-            payable(cal)
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testAdvancedOrder.args.ethAmts[2]),
+                uint256(testAdvancedOrder.args.ethAmts[2]),
+                payable(cal)
+            )
         );
 
         OrderComponents memory orderComponents = OrderComponents(
