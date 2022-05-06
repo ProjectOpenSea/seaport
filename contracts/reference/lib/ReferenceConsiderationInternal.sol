@@ -16,6 +16,8 @@ import { Side, OrderType, ItemType } from "../../lib/ConsiderationEnums.sol";
 
 import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
 
+import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
+
 // prettier-ignore
 import {
     AdditionalRecipient,
@@ -676,7 +678,7 @@ contract ReferenceConsiderationInternal is
         advancedOrders[0] = advancedOrder;
 
         // Apply criteria resolvers using generated orders and details arrays.
-        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
+        _applyCriteriaResolversAdvanced(advancedOrders, criteriaResolvers);
 
         // Retrieve the order parameters after applying criteria resolvers.
         OrderParameters memory orderParameters = advancedOrders[0].parameters;
@@ -691,7 +693,7 @@ contract ReferenceConsiderationInternal is
         );
 
         // Emit an event signifying that the order has been fulfilled.
-        _emitOrderFulfilledEvent(
+        _emitOrderFulfilledEvent( 
             orderHash,
             orderParameters.offerer,
             orderParameters.zone,
@@ -699,9 +701,101 @@ contract ReferenceConsiderationInternal is
             orderParameters.offer,
             orderParameters.consideration
         );
+       /*emit OrderFulfilled(
+            orderHash,
+            orderParameters.offerer,
+            orderParameters.zone,
+            msg.sender,
+            ordersToExecute[0].spentItems,
+            ordersToExecute[0].receivedItems
+        );*/
 
         return true;
     }
+
+    /**
+     * @dev Internal function to validate an order and update its status, adjust
+     *      prices based on current time, apply criteria resolvers, determine
+     *      what portion to fill, and transfer relevant tokens.
+     *
+     * @param orderToExecute      The order to fulfill as well as the fraction
+     *                            to fill. Note that all offer and consideration
+     *                            components must divide with no remainder for
+     *                            the partial fill to be valid.
+     * @param criteriaResolvers   An array where each element contains a
+     *                            reference to a specific offer or
+     *                            consideration, a token identifier, and a proof
+     *                            that the supplied token identifier is
+     *                            contained in the order's merkle root. Note
+     *                            that a criteria of zero indicates that any
+     *                            (transferrable) token identifier is valid and
+     *                            that no proof needs to be supplied.
+     * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
+     *                            any, to source the fulfiller's token approvals
+     *                            from. The zero hash signifies that no conduit
+     *                            should be used (and direct approvals set on
+     *                            Consideration) and `bytes32(uint256(1)))`
+     *                            signifies to utilize the legacy user proxy for
+     *                            the fulfiller.
+     *
+     * @return A boolean indicating whether the order has been fulfilled.
+     */
+   /* function _validateAndFulfillOrderToExecute(
+        AdvancedOrder memory advancedOrder,
+        OrderToExecute memory orderToExecute,
+        CriteriaResolver[] memory criteriaResolvers,
+        bytes32 fulfillerConduitKey
+    ) internal returns (bool) {
+        // Declare empty bytes32 array (unused, will remain empty).
+        bytes32[] memory priorOrderHashes;
+
+        // Validate order, update status, and determine fraction to fill.
+        (
+            bytes32 orderHash,
+            uint256 fillNumerator,
+            uint256 fillDenominator
+        ) = _validateOrderAndUpdateStatus(
+                advancedOrder,
+                criteriaResolvers,
+                true,
+                priorOrderHashes
+            );
+
+        // Create an array with length 1 containing the order.
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
+        advancedOrders[0] = advancedOrder;
+
+        // Create an array with length 1 containing the order.
+        OrderToExecute[] memory ordersToExecute = new OrderToExecute[](1);
+        ordersToExecute[0] = orderToExecute;
+
+        // Apply criteria resolvers using generated orders and details arrays.
+        _applyCriteriaResolvers(ordersToExecute, criteriaResolvers);
+
+        // Retrieve the order parameters after applying criteria resolvers.
+        OrderParameters memory orderParameters = advancedOrders[0].parameters;
+
+        // Perform each item transfer with the appropriate fractional amount.
+        _applyFractionsAndTransferEach(
+            orderParameters,
+            fillNumerator,
+            fillDenominator,
+            orderParameters.conduitKey,
+            fulfillerConduitKey
+        );
+
+        // Emit an event signifying that the order has been fulfilled.
+       emit OrderFulfilled(
+            orderHash,
+            orderParameters.offerer,
+            orderParameters.zone,
+            msg.sender,
+            ordersToExecute[0].spentItems,
+            ordersToExecute[0].receivedItems
+        );
+
+        return true;
+    }*/
 
     /**
      * @dev Internal function to transfer each item contained in a given single
@@ -727,7 +821,7 @@ contract ReferenceConsiderationInternal is
      *                            signifies to utilize the legacy user proxy for
      *                            the fulfiller.
      */
-    function _applyFractionsAndTransferEach(
+   function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
@@ -764,8 +858,23 @@ contract ReferenceConsiderationInternal is
 
         // Declare a nested scope to minimize stack depth.
         {
+            // Declare a virtual function pointer taking an OfferItem argument.
+            function(OfferItem memory, address, bytes32)
+                internal _transferOfferItem;
+
+            // Assign _transfer function to a new function pointer (it takes a
+            // ReceivedItem as its initial argument)
+            function(ReceivedItem memory, address, bytes32)
+                internal _transferReceivedItem = _transfer;
+
+            // Utilize assembly to override the virtual function pointer.
+            assembly {
+                // Cast initial ReceivedItem argument type to an OfferItem type.
+                _transferOfferItem := _transferReceivedItem
+            }
+
             // Iterate over each offer on the order.
-            for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
+            for (uint256 i = 0; i < orderParameters.offer.length; ) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
 
@@ -781,31 +890,38 @@ contract ReferenceConsiderationInternal is
                     false
                 );
 
-                // Create Received Item from Offer Item
-                ReceivedItem memory receivedItem = ReceivedItem(
-                    offerItem.itemType,
-                    offerItem.token,
-                    offerItem.identifierOrCriteria,
-                    amount,
-                    payable(msg.sender)
-                );
+                // Utilize assembly to set overloaded offerItem arguments.
+                assembly {
+                    // Write derived fractional amount to startAmount as amount.
+                    mstore(add(offerItem, 0x60), amount)
+                    // Write fulfiller (i.e. caller) to endAmount as recipient.
+                    mstore(add(offerItem, 0x80), caller())
+                }
 
                 // Reduce available value if offer spent ETH or a native token.
-                if (receivedItem.itemType == ItemType.NATIVE) {
+                if (offerItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
                     }
 
-                    etherRemaining -= amount;
+                    // Skip underflow check as a comparison has just been made.
+                    unchecked {
+                        etherRemaining -= amount;
+                    }
                 }
 
                 // Transfer the item from the offerer to the caller.
-                _transfer(
-                    receivedItem,
+                _transferOfferItem(
+                    offerItem,
                     orderParameters.offerer,
                     offererConduitKey
                 );
+
+                // Skip overflow check as for loop is indexed starting at zero.
+                unchecked {
+                    ++i;
+                }
             }
         }
 
@@ -826,8 +942,23 @@ contract ReferenceConsiderationInternal is
 
         // Declare a nested scope to minimize stack depth.
         {
+            // Declare virtual function pointer with ConsiderationItem argument.
+            function(ConsiderationItem memory, address, bytes32)
+                internal _transferConsiderationItem;
+
+            // Reassign _transfer function to a new function pointer (it takes a
+            /// ReceivedItem as its initial argument).
+            function(ReceivedItem memory, address, bytes32)
+                internal _transferReceivedItem = _transfer;
+
+            // Utilize assembly to override the virtual function pointer.
+            assembly {
+                // Cast ReceivedItem argument type to ConsiderationItem type.
+                _transferConsiderationItem := _transferReceivedItem
+            }
+
             // Iterate over each consideration on the order.
-            for (uint256 i = 0; i < orderParameters.consideration.length; ++i) {
+            for (uint256 i = 0; i < orderParameters.consideration.length; ) {
                 // Retrieve the consideration item.
                 ConsiderationItem memory considerationItem = (
                     orderParameters.consideration[i]
@@ -845,31 +976,42 @@ contract ReferenceConsiderationInternal is
                     true
                 );
 
-                // Create Received Item from Offer Item
-                ReceivedItem memory receivedItem = ReceivedItem(
-                    considerationItem.itemType,
-                    considerationItem.token,
-                    considerationItem.identifierOrCriteria,
-                    amount,
-                    considerationItem.recipient
-                );
+                // Use assembly to set overloaded considerationItem arguments.
+                assembly {
+                    // Write derived fractional amount to startAmount as amount.
+                    mstore(add(considerationItem, 0x60), amount)
+
+                    // Write original recipient to endAmount as recipient.
+                    mstore(
+                        add(considerationItem, 0x80),
+                        mload(add(considerationItem, 0xa0))
+                    )
+                }
 
                 // Reduce available value if offer spent ETH or a native token.
-                if (receivedItem.itemType == ItemType.NATIVE) {
+                if (considerationItem.itemType == ItemType.NATIVE) {
                     // Ensure that sufficient native tokens are still available.
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
                     }
 
-                    etherRemaining -= amount;
+                    // Skip underflow check as a comparison has just been made.
+                    unchecked {
+                        etherRemaining -= amount;
+                    }
                 }
 
                 // Transfer item from caller to recipient specified by the item.
-                _transfer(
-                    receivedItem,
+                _transferConsiderationItem(
+                    considerationItem,
                     msg.sender,
                     fulfillerConduitKey
                 );
+
+                // Skip overflow check as for loop is indexed starting at zero.
+                unchecked {
+                    ++i;
+                }
             }
         }
 
@@ -879,7 +1021,7 @@ contract ReferenceConsiderationInternal is
             _transferEth(payable(msg.sender), etherRemaining);
         }
     }
-
+    
     /**
      * @dev Internal function to validate a group of orders, update their
      *      statuses, reduce amounts by their previously filled fractions, apply
@@ -887,6 +1029,7 @@ contract ReferenceConsiderationInternal is
      *
      * @param advancedOrders    The advanced orders to validate and reduce by
      *                          their previously filled amounts.
+     * @param ordersToExecute   The orders to validate and execute.
      * @param criteriaResolvers An array where each element contains a reference
      *                          to a specific order as well as that order's
      *                          offer or consideration, a token identifier, and
@@ -902,6 +1045,7 @@ contract ReferenceConsiderationInternal is
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid,
         uint256 maximumFulfilled
@@ -912,21 +1056,20 @@ contract ReferenceConsiderationInternal is
         // Track the order hash for each order being fulfilled.
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
 
-        // Array of Spent Items of Each Order
-        SpentItem[][] memory spentItemsByOrder = new SpentItem[][](totalOrders);
-
-        // Array of Received Items of Each Order
-        ReceivedItem[][] memory receivedItemsByOrder = new ReceivedItem[][](totalOrders);
-
         // Iterate over each order.
         for (uint256 i = 0; i < totalOrders; ++i) {
             // Retrieve the current order.
             AdvancedOrder memory advancedOrder = advancedOrders[i];
+            // Retreive the order to Execute
+            OrderToExecute memory orderToExecute = ordersToExecute[i];
 
             // Determine if max number orders have already been fulfilled.
             if (maximumFulfilled == 0) {
                 // Mark fill fraction as zero as the order will not be used.
                 advancedOrder.numerator = 0;
+
+                // Mark fill fraction as zero as the order will not be used.
+                orderToExecute.numerator = 0;
 
                 // Continue iterating through the remaining orders.
                 continue;
@@ -948,6 +1091,9 @@ contract ReferenceConsiderationInternal is
             if (numerator == 0) {
                 // Mark fill fraction as zero if the order is not fulfilled.
                 advancedOrder.numerator = 0;
+
+                 // Mark fill fraction as zero as the order will not be used.
+                orderToExecute.numerator = 0;
 
                 // Continue iterating through the remaining orders.
                 continue;
@@ -973,11 +1119,6 @@ contract ReferenceConsiderationInternal is
 
             // Retrieve array of offer items for the order in question.
             OfferItem[] memory offer = advancedOrder.parameters.offer;
-
-            // Spent Items
-            SpentItem[] memory spentItems = new SpentItem[](
-                offer.length
-            );
 
             // Iterate over each offer item on the order.
             for (uint256 j = 0; j < offer.length; ++j) {
@@ -1017,26 +1158,13 @@ contract ReferenceConsiderationInternal is
                     false // round down
                 );
 
-                // Create Spent Item for Event 
-                SpentItem memory spentItem = SpentItem(
-                    offerItem.itemType,
-                    offerItem.token,
-                    offerItem.identifierOrCriteria,
-                    offerItem.startAmount
-                );
-
-                // Add to array of Received Items
-                spentItems[j] = spentItem;
+                // Modify the OrderToExecute Spent Item Amount
+                orderToExecute.spentItems[j].amount = offerItem.startAmount;
             }
-            spentItemsByOrder[i] = spentItems;
 
             // Retrieve array of consideration items for order in question.
             ConsiderationItem[] memory consideration = (
                 advancedOrder.parameters.consideration
-            );
-
-            ReceivedItem[] memory receivedItems = new ReceivedItem[](
-                consideration.length
             );
 
             // Iterate over each consideration item on the order.
@@ -1081,24 +1209,13 @@ contract ReferenceConsiderationInternal is
                     )
                 );
 
-                // Create Received Item for Event 
-                ReceivedItem memory receivedItem = ReceivedItem(
-                    considerationItem.itemType,
-                    considerationItem.token,
-                    considerationItem.identifierOrCriteria,
-                    considerationItem.startAmount,
-                    considerationItem.recipient
-                );
-
-                // Add to array of Received Items
-                receivedItems[j] = receivedItem;
+                 // Modify the OrderToExecute Received Item Amount
+                orderToExecute.receivedItems[j].amount = considerationItem.startAmount;          
             }
-            receivedItemsByOrder[i] = receivedItems;
         }
 
         // Apply criteria resolvers to each order as applicable.
-        _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
-
+        _applyCriteriaResolvers(ordersToExecute, criteriaResolvers);
         // Determine the fulfiller (revertOnInvalid ? address(0) : msg.sender).
         address fulfiller = revertOnInvalid ? address(0) : msg.sender;
 
@@ -1116,10 +1233,10 @@ contract ReferenceConsiderationInternal is
                 advancedOrders[i].parameters
             );
 
-            SpentItem[] memory spentItems = spentItemsByOrder[i];
+            SpentItem[] memory spentItems = ordersToExecute[i].spentItems;
 
-            ReceivedItem[] memory receivedItems = receivedItemsByOrder[i];
-
+            ReceivedItem[] memory receivedItems = ordersToExecute[i].receivedItems;
+            
             emit OrderFulfilled(
                 orderHashes[i],
                 orderParameters.offerer,
@@ -1131,12 +1248,12 @@ contract ReferenceConsiderationInternal is
         }
     }
 
-    /**
+     /**
      * @dev Internal function to fulfill an arbitrary number of orders, either
      *      full or partial, after validating, adjusting amounts, and applying
      *      criteria resolvers.
      *
-     * @param advancedOrders     The orders to match, including a fraction to
+     * @param ordersToExecute    The orders to match, including a fraction to
      *                           attempt to fill for each order.
      * @param fulfillments       An array of elements allocating offer
      *                           components to consideration components. Note
@@ -1152,7 +1269,7 @@ contract ReferenceConsiderationInternal is
      *                            matching the given orders.
      */
     function _fulfillAdvancedOrders(
-        AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         Fulfillment[] calldata fulfillments
     )
         internal
@@ -1177,7 +1294,7 @@ contract ReferenceConsiderationInternal is
 
             // Derive the execution corresponding with the fulfillment.
             Execution memory execution = _applyFulfillment(
-                advancedOrders,
+                ordersToExecute,
                 fulfillment.offerComponents,
                 fulfillment.considerationComponents
             );
@@ -1208,13 +1325,13 @@ contract ReferenceConsiderationInternal is
             ,
             standardExecutions,
             batchExecutions
-        ) = _performFinalChecksAndExecuteOrders(advancedOrders, executions);
+        ) = _performFinalChecksAndExecuteOrders(ordersToExecute, executions);
 
         // Return both standard and batch ERC1155 executions.
         return (standardExecutions, batchExecutions);
     }
 
-    /**
+     /**
      * @notice Internal function to attempt to fill a group of orders, fully or
      *         partially, with an arbitrary number of items for offer and
      *         consideration per order alongside criteria resolvers containing
@@ -1243,6 +1360,9 @@ contract ReferenceConsiderationInternal is
      *                                  with the supplied fraction for an
      *                                  order's partial fill amount to be
      *                                  considered valid.
+     *
+     * @param ordersToExecute           The orders to execute
+     *                                  
      * @param criteriaResolvers         An array where each element contains a
      *                                  reference to a specific offer or
      *                                  consideration, a token identifier, and a
@@ -1280,6 +1400,7 @@ contract ReferenceConsiderationInternal is
      */
     function _fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         CriteriaResolver[] memory criteriaResolvers,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
@@ -1293,9 +1414,10 @@ contract ReferenceConsiderationInternal is
             BatchExecution[] memory batchExecutions
         )
     {
-        // Validate orders, apply amounts, & determine if they utilize conduits.
+        // Validate orders, apply amounts, & determine if they utilize conduits
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
+            ordersToExecute,
             criteriaResolvers,
             false, // Signifies that invalid orders should NOT revert.
             maximumFulfilled
@@ -1307,7 +1429,7 @@ contract ReferenceConsiderationInternal is
             standardExecutions,
             batchExecutions
         ) = _executeAvailableFulfillments(
-            advancedOrders,
+            ordersToExecute,
             offerFulfillments,
             considerationFulfillments,
             fulfillerConduitKey
@@ -1316,6 +1438,7 @@ contract ReferenceConsiderationInternal is
         // Return order fulfillment details and executions.
         return (availableOrders, standardExecutions, batchExecutions);
     }
+
 
     /**
      * @dev Internal function to fulfill a group of validated orders, fully or
@@ -1329,7 +1452,7 @@ contract ReferenceConsiderationInternal is
      *      respectively. Note that a failing item transfer or an issue with
      *      order formatting will cause the entire batch to fail.
      *
-     * @param advancedOrders            The orders to fulfill along with the
+     * @param ordersToExecute           The orders to fulfill along with the
      *                                  fraction of those orders to attempt to
      *                                  fill. Note that both the offerer and the
      *                                  fulfiller must first approve this
@@ -1372,7 +1495,7 @@ contract ReferenceConsiderationInternal is
      *                            matching the given orders.
      */
     function _executeAvailableFulfillments(
-        AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
         bytes32 fulfillerConduitKey
@@ -1407,7 +1530,7 @@ contract ReferenceConsiderationInternal is
 
             // Derive aggregated execution corresponding with fulfillment.
             Execution memory execution = _aggregateAvailable(
-                advancedOrders,
+                ordersToExecute,
                 Side.OFFER,
                 components,
                 fulfillerConduitKey
@@ -1432,7 +1555,7 @@ contract ReferenceConsiderationInternal is
 
             // Derive aggregated execution corresponding with fulfillment.
             Execution memory execution = _aggregateAvailable(
-                advancedOrders,
+                ordersToExecute,
                 Side.CONSIDERATION,
                 components,
                 fulfillerConduitKey
@@ -1467,16 +1590,16 @@ contract ReferenceConsiderationInternal is
         }
 
         // Perform final checks, compress executions, and return.
-        return _performFinalChecksAndExecuteOrders(advancedOrders, executions);
+        return _performFinalChecksAndExecuteOrders(ordersToExecute, executions);
     }
 
-    /**
+     /**
      * @dev Internal function to perform a final check that each consideration
      *      item for an arbitrary number of fulfilled orders has been met and to
      *      compress and trigger associated execututions, transferring the
      *      respective items.
      *
-     * @param advancedOrders     The orders to check and perform executions for.
+     * @param ordersToExecute    The orders to check and perform executions for.
      * @param executions         An array of uncompressed elements indicating
      *                           the sequence of transfers to perform when
      *                           fulfilling the given orders.
@@ -1492,7 +1615,7 @@ contract ReferenceConsiderationInternal is
      *                            fulfilling the given orders.
      */
     function _performFinalChecksAndExecuteOrders(
-        AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         Execution[] memory executions
     )
         internal
@@ -1503,17 +1626,17 @@ contract ReferenceConsiderationInternal is
         )
     {
         // Retrieve the length of the advanced orders array and place on stack.
-        uint256 totalOrders = advancedOrders.length;
+        uint256 totalOrders = ordersToExecute.length;
 
         // Initialize array for tracking available orders.
         availableOrders = new bool[](totalOrders);
         // Iterate over orders to ensure all considerations are met.
         for (uint256 i = 0; i < totalOrders; ++i) {
             // Retrieve the order in question.
-            AdvancedOrder memory advancedOrder = advancedOrders[i];
+            OrderToExecute memory orderToExecute = ordersToExecute[i];
 
             // Skip consideration item checks for order if not fulfilled.
-            if (advancedOrder.numerator == 0) {
+            if (orderToExecute.numerator == 0) {
                 // Note: orders do not need to be marked as unavailable as a
                 // new memory region has been allocated. Review carefully if
                 // altering compiler version or managing memory manually.
@@ -1524,14 +1647,19 @@ contract ReferenceConsiderationInternal is
             availableOrders[i] = true;
 
             // Retrieve consideration items to ensure they are fulfilled.
-            ConsiderationItem[] memory consideration = (
+            /*ConsiderationItem[] memory consideration = (
                 advancedOrder.parameters.consideration
+            );*/
+
+            ReceivedItem[] memory consideration  = (
+                orderToExecute.receivedItems
             );
+
 
             // Iterate over each consideration item to ensure it is met.
             for (uint256 j = 0; j < consideration.length; ++j) {
                 // Retrieve remaining amount on the consideration item.
-                uint256 unmetAmount = consideration[j].startAmount;
+                uint256 unmetAmount = consideration[j].amount;
 
                 // Revert if the remaining amount is not zero.
                 if (unmetAmount != 0) {
