@@ -87,11 +87,6 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 continue;
             }
 
-            // Retrieve the parameters for the order.
-            //OrderParameters memory orderParameters = (
-            //   advancedOrders[orderIndex].parameters
-            //);
-
             // Read component index from memory and place it on the stack.
             uint256 componentIndex = criteriaResolver.index;
 
