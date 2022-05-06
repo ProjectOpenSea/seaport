@@ -12,6 +12,9 @@ const { contracts, deployments } = constants;
 const { Consideration } = contracts;
 const { AddressZero } = eth.constants;
 
+const txOpts = { gasLimit: "5000000" };
+const { getDumpTrace, stringify } = helpers;
+
 // NOTE: offer = what's being sold, consideration = what's being paid
 
 /// /////////////////////////////////////
@@ -28,15 +31,16 @@ const { AddressZero } = eth.constants;
 
 const fulfillBasicOrder = async (overrides, signer = wallets[0]) => {
   const basicOrder = helpers.createBasicOrder(overrides);
-  await helpers.mintERC20(basicOrder.considerationAmount, signer.address);
-  log(`Fulfilling basic order: ${JSON.stringify(basicOrder, null, 2)}`);
-  Consideration.connect(signer)
-    .fulfillBasicOrder(basicOrder)
+  log(`Fulfilling basic order: ${stringify(basicOrder)}`);
+  return await Consideration.connect(signer)
+    .fulfillBasicOrder(basicOrder, txOpts)
     .then(async (tx) => {
       global.hash = tx.hash;
       await logEvents(tx.hash, deployments.Consideration.abi);
       log(`Success`);
-    });
+      return tx.hash;
+    })
+    .catch(helpers.getDumpTrace(`fulfillBasicOrder(${stringify(basicOrder)})`));
 };
 
 const fulfillOrder = async (overrides, signer = wallets[0]) => {
@@ -45,14 +49,16 @@ const fulfillOrder = async (overrides, signer = wallets[0]) => {
     order.parameters.consideration[0].startAmount,
     signer.address
   );
-  log(`Fulfilling order: ${JSON.stringify(order, null, 2)}`);
-  Consideration.connect(signer)
+  log(`Fulfilling order: ${stringify(order)}`);
+  return await Consideration.connect(signer)
     .fulfillOrder(order, AddressZero)
     .then(async (tx) => {
       global.hash = tx.hash;
       await logEvents(tx.hash, deployments.Consideration.abi);
       log(`Success`);
-    });
+      return tx.hash;
+    })
+    .catch(helpers.getDumpTrace(`fulfillOrder(${stringify(order)})`));
 };
 
 // eg for: let nftId = 1337; run the following:
@@ -69,19 +75,27 @@ const fulfillAdvancedOrder = async (overrides, signer = wallets[0]) => {
     signer.address
   );
   log(
-    `Fulfilling advanced order: ${JSON.stringify(
-      { advancedOrder, criteriaResolvers, fulfillerConduit },
-      null,
-      2
-    )}`
+    `Fulfilling advanced order: ${stringify({
+      advancedOrder,
+      criteriaResolvers,
+      fulfillerConduit,
+    })}`
   );
-  await Consideration.connect(signer)
+  return await Consideration.connect(signer)
     .fulfillAdvancedOrder(advancedOrder, criteriaResolvers, fulfillerConduit)
     .then(async (tx) => {
       global.hash = tx.hash;
       await logEvents(tx.hash, deployments.Consideration.abi);
       log(`Success`);
-    });
+      return tx.hash;
+    })
+    .catch(
+      helpers.getDumpTrace(
+        `fulfillAdvancedOrder(${stringify(advancedOrder)}, ${stringify(
+          criteriaResolvers
+        )}, ${stringify(fulfillerConduit)})`
+      )
+    );
 };
 
 // TODO
@@ -104,17 +118,13 @@ const fulfillAvailableAdvancedOrders = async (
   const considerationFulfillments = overrides?.considerationFulfillments || [];
   const fulfillerConduit = overrides?.fulfillerConduit || AddressZero;
   log(
-    `Fulfilling Available Advanced Orders: ${JSON.stringify(
-      {
-        advancedOrders,
-        criteriaResolvers,
-        offerFulfillments,
-        considerationFulfillments,
-        fulfillerConduit,
-      },
-      null,
-      2
-    )}`
+    `Fulfilling Available Advanced Orders: ${stringify({
+      advancedOrders,
+      criteriaResolvers,
+      offerFulfillments,
+      considerationFulfillments,
+      fulfillerConduit,
+    })}`
   );
   return await Consideration.connect(signer)
     .fulfillAvailableAdvancedOrders(
@@ -131,7 +141,7 @@ const fulfillAvailableAdvancedOrders = async (
       return tx.hash;
     })
     .catch((e) => {
-      log(e.message);
+      log(e);
       log(`Failure`);
     });
 };
@@ -141,7 +151,7 @@ const matchOrders = async (overrides, signer = wallets[0]) => {
   const fulfillments = (overrides?.fulfillments || [{}]).map(
     helpers.createFulfillment
   );
-  log(`Matching orders: ${JSON.stringify({ orders, fulfillments }, null, 2)}`);
+  log(`Matching orders: ${stringify({ orders, fulfillments })}`);
   return await Consideration.connect(signer)
     .matchOrders(orders, fulfillments)
     .then(async (tx) => {
@@ -149,7 +159,12 @@ const matchOrders = async (overrides, signer = wallets[0]) => {
       await logEvents(tx.hash, deployments.Consideration.abi);
       log(`Success`);
       return tx.hash;
-    });
+    })
+    .catch(
+      getDumpTrace(
+        `matchOrders(${stringify(orders)}, ${stringify(fulfillments)})`
+      )
+    );
 };
 
 // TODO
@@ -162,15 +177,11 @@ const matchAdvancedOrders = async (overrides, signer = wallets[0]) => {
     helpers.createCriteriaResolver
   );
   log(
-    `Matching orders: ${JSON.stringify(
-      {
-        orders,
-        fulfillments,
-        resolvers,
-      },
-      null,
-      2
-    )}`
+    `Matching orders: ${stringify({
+      orders,
+      fulfillments,
+      resolvers,
+    })}`
   );
   await Consideration.connect(signer)
     .matchAdvancedOrders(orders, resolvers, fulfillments)
@@ -178,19 +189,26 @@ const matchAdvancedOrders = async (overrides, signer = wallets[0]) => {
       global.hash = tx.hash;
       await logEvents(tx.hash, deployments.Consideration.abi);
       log(`Success`);
-    });
+    })
+    .catch(
+      getDumpTrace(
+        `(matchAdvancedOrders(${orders}, ${resolvers}, ${fulfillments}))`
+      )
+    );
 };
 
 const cancel = async (overrides, signer = wallets[0]) => {
   const order = helpers.createOrderComponents(overrides);
-  log(`Cancelling order: ${JSON.stringify(order, null, 2)}`);
-  await Consideration.connect(signer)
+  log(`Cancelling order: ${stringify(order)}`);
+  return await Consideration.connect(signer)
     .cancel([order])
     .then(async (tx) => {
       global.hash = tx.hash;
       await logEvents(tx.hash, deployments.Consideration.abi);
       log(`Success`);
-    });
+      return tx.hash;
+    })
+    .catch(getDumpTrace(`cancel(${stringify([order])})`));
 };
 
 // Only one offer & consideration supported (for now)
@@ -211,31 +229,37 @@ const validate = async (overrides, signer = wallets[0]) => {
     }
     for (let i = 0; i < order.parameters.consideration.length; i++) {
       const consideration = order.parameters.consideration[i];
-      const owner = order.parameters.considerationer || signer.address;
       if (consideration.itemType === 2 || consideration.itemType === 4) {
-        await helpers.mintERC721(consideration.identifierOrCriteria, owner);
+        await helpers.mintERC721(
+          consideration.identifierOrCriteria,
+          signer.address
+        );
       } else if (consideration.itemType === 1) {
-        await helpers.mintERC20(consideration.startAmount, owner);
+        await helpers.mintERC20(consideration.startAmount, signer.address);
       }
     }
   }
-  log(`Validating order: ${JSON.stringify(orders, null, 2)}`);
-  await Consideration.connect(signer)
+  log(`Validating order: ${stringify(orders)}`);
+  return await Consideration.connect(signer)
     .validate(orders)
     .then(async (tx) => {
       global.hash = tx.hash;
       await logEvents(tx.hash, deployments.Consideration.abi);
       log(`Success`);
-    });
+      return tx.hash;
+    })
+    .catch(getDumpTrace(`validate(${stringify(orders)})`));
 };
 
 const incrementNonce = async (signer = wallets[0]) => {
-  await Consideration.connect(signer)
+  return await Consideration.connect(signer)
     .incrementNonce()
     .then(async (tx) => {
       global.hash = tx.hash;
       await logEvents(tx.hash, deployments.Consideration.abi);
-    });
+      return tx.hash;
+    })
+    .catch(getDumpTrace(`incrementNonce()`));
 };
 
 module.exports = {

@@ -13,10 +13,29 @@ const { AddressZero, HashZero } = eth.constants;
 
 const day = 60 * 60 * 24; // seconds in a day
 
+const txOpts = { gasLimit: "5000000" };
+
 // NOTE: offer = what's being sold, consideration = what's being paid
 
 /// /////////////////////////////////////
 /// Helper Utility Methods
+
+const stringify = (obj) => JSON.stringify(obj, null, 2);
+
+const getDumpTrace = (fnCall) => (err) => {
+  const txHash = err.error.data.txHash || HashZero;
+  if (txHash !== HashZero) {
+    log(err.message);
+    log(``);
+    log(`!!!!! REVERT !!!!!`);
+    log(``);
+    const file = "latest.trace.json";
+    log(`Saving tx trace to ${file} for fn call:`);
+    log(fnCall);
+    utils.traceTx(txHash, file);
+  }
+  return txHash;
+};
 
 const getWallet = (address) => {
   return wallets.find((w) => w.address === address);
@@ -26,15 +45,16 @@ const mintERC20 = async (amount, address) => {
   log(`Minting ${amount} tokens for ${address}`);
   const signer = getWallet(address);
   const token = TestERC20.connect(signer);
-  await token.mint(signer.address, amount).then(async (tx) => {
+  await token.mint(signer.address, amount, txOpts).then(async (tx) => {
     return await logEvents(tx.hash, deployments.TestERC20.abi);
   });
   log(`Approving ${amount} tokens..`);
   await TestERC20.connect(signer)
-    .approve(Consideration.address, amount)
+    .approve(Consideration.address, amount, txOpts)
     .then(async (tx) => {
       return await logEvents(tx.hash, deployments.TestERC20.abi);
-    });
+    })
+    .catch(getDumpTrace(`approve(${Consideration.address}, ${amount})`));
 };
 
 const mintERC721 = async (nftId, address) => {
@@ -46,15 +66,19 @@ const mintERC721 = async (nftId, address) => {
     log(`${address} already owns NFT #${nftId}, skipping mint..`);
     return;
   }
-  await token.mint(signer.address, nftId).then(async (tx) => {
-    return await logEvents(tx.hash, deployments.TestERC721.abi);
-  });
-  log(`Approving NFT #${nftId}`);
-  await TestERC721.connect(signer)
-    .approve(Consideration.address, nftId)
+  await token
+    .mint(signer.address, nftId, txOpts)
     .then(async (tx) => {
       return await logEvents(tx.hash, deployments.TestERC721.abi);
-    });
+    })
+    .catch(getDumpTrace(`mint(${signer.address}, ${nftId})`));
+  log(`Approving NFT #${nftId}`);
+  await TestERC721.connect(signer)
+    .approve(Consideration.address, nftId, txOpts)
+    .then(async (tx) => {
+      return await logEvents(tx.hash, deployments.TestERC721.abi);
+    })
+    .catch(getDumpTrace(`approve(${Consideration.address}, ${nftId})`));
 };
 
 // By default, offer 1 NFT up for sale
@@ -183,7 +207,8 @@ const getOrderHash = async (overrides, signer = wallets[0]) => {
     .then((hash) => {
       log(`Order Hash: ${hash}`);
       return hash;
-    });
+    })
+    .catch(getDumpTrace(`getOrderHash(${stringify(order)})`));
 };
 
 const signOrder = async (overrides, signer = wallets[0]) => {
@@ -205,7 +230,9 @@ const signOrder = async (overrides, signer = wallets[0]) => {
 };
 
 module.exports = {
+  getDumpTrace,
   mintERC20,
+  stringify,
   mintERC721,
   createOfferItem,
   createConsiderationItem,

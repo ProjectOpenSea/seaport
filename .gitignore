@@ -4,6 +4,7 @@ coverage
 coverage.json
 typechain-types
 yarn-error.log
+latest.trace.json
 
 #Hardhat files
 hh-cache
