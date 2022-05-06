@@ -1011,6 +1011,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
+        bytes memory accumulator = new bytes(32);
+
         // As of solidity 0.6.0, inline assembly can not directly access function
         // definitions, but can still access locally scoped function variables.
         // This means that in order to recast the type of a function, we need to
@@ -1034,18 +1036,20 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         // Declare a nested scope to minimize stack depth.
         {
             // Declare a virtual function pointer taking an OfferItem argument.
-            function(OfferItem memory, address, bytes32)
+            function(OfferItem memory, address, bytes32, bytes memory)
                 internal _transferOfferItem;
 
-            // Assign _transfer function to a new function pointer (it takes a
-            // ReceivedItem as its initial argument)
-            function(ReceivedItem memory, address, bytes32)
-                internal _transferReceivedItem = _transfer;
+            {
+                // Assign _transfer function to a new function pointer (it takes a
+                // ReceivedItem as its initial argument)
+                function(ReceivedItem memory, address, bytes32, bytes memory)
+                    internal _transferReceivedItem = _transfer;
 
-            // Utilize assembly to override the virtual function pointer.
-            assembly {
-                // Cast initial ReceivedItem argument type to an OfferItem type.
-                _transferOfferItem := _transferReceivedItem
+                // Utilize assembly to override the virtual function pointer.
+                assembly {
+                    // Cast initial ReceivedItem argument type to an OfferItem type.
+                    _transferOfferItem := _transferReceivedItem
+                }
             }
 
             // Iterate over each offer on the order.
@@ -1090,7 +1094,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 _transferOfferItem(
                     offerItem,
                     orderParameters.offerer,
-                    offererConduitKey
+                    offererConduitKey,
+                    accumulator
                 );
 
                 // Skip overflow check as for loop is indexed starting at zero.
@@ -1118,18 +1123,19 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         // Declare a nested scope to minimize stack depth.
         {
             // Declare virtual function pointer with ConsiderationItem argument.
-            function(ConsiderationItem memory, address, bytes32)
+            function(ConsiderationItem memory, address, bytes32, bytes memory)
                 internal _transferConsiderationItem;
+            {
+                // Reassign _transfer function to a new function pointer (it takes a
+                /// ReceivedItem as its initial argument).
+                function(ReceivedItem memory, address, bytes32, bytes memory)
+                    internal _transferReceivedItem = _transfer;
 
-            // Reassign _transfer function to a new function pointer (it takes a
-            /// ReceivedItem as its initial argument).
-            function(ReceivedItem memory, address, bytes32)
-                internal _transferReceivedItem = _transfer;
-
-            // Utilize assembly to override the virtual function pointer.
-            assembly {
-                // Cast ReceivedItem argument type to ConsiderationItem type.
-                _transferConsiderationItem := _transferReceivedItem
+                // Utilize assembly to override the virtual function pointer.
+                assembly {
+                    // Cast ReceivedItem argument type to ConsiderationItem type.
+                    _transferConsiderationItem := _transferReceivedItem
+                }
             }
 
             // Iterate over each consideration on the order.
@@ -1180,7 +1186,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 _transferConsiderationItem(
                     considerationItem,
                     msg.sender,
-                    fulfillerConduitKey
+                    fulfillerConduitKey,
+                    accumulator
                 );
 
                 // Skip overflow check as for loop is indexed starting at zero.
@@ -1189,6 +1196,9 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 }
             }
         }
+
+        // Trigger any remaining accumulated transfers via call to the conduit.
+        _triggerIfArmed(accumulator);
 
         // If any ether remains after fulfillments...
         if (etherRemaining != 0) {
@@ -1875,6 +1885,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
+        bytes memory accumulator = new bytes(32);
+
         // Iterate over each standard execution.
         for (uint256 i = 0; i < standardExecutions.length; ) {
             // Retrieve the execution and the associated received item.
@@ -1895,13 +1907,21 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             }
 
             // Transfer the item specified by the execution.
-            _transfer(item, execution.offerer, execution.conduitKey);
+            _transfer(
+                item,
+                execution.offerer,
+                execution.conduitKey,
+                accumulator
+            );
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
                 ++i;
             }
         }
+
+        // Trigger any remaining accumulated transfers via call to the conduit.
+        _triggerIfArmed(accumulator);
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
@@ -1924,6 +1944,43 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         return (availableOrders, standardExecutions, batchExecutions);
     }
 
+    function _triggerIfArmed(bytes memory accumulator) internal {
+        // Exit if the accumulator is not "armed".
+        if (accumulator.length != 64) {
+            return;
+        }
+
+        // Retrieve the current conduit key from the accumulator.
+        bytes32 accumulatorConduitKey = _getAccumulatorConduitKey(accumulator);
+
+        // Perform conduit call.
+        _trigger(accumulatorConduitKey, accumulator);
+    }
+
+    function _getAccumulatorConduitKey(bytes memory accumulator)
+        internal
+        pure
+        returns (bytes32 accumulatorConduitKey)
+    {
+        // Retrieve the current conduit key from the accumulator.
+        assembly {
+            accumulatorConduitKey := mload(add(accumulator, 0x20))
+        }
+    }
+
+    function _triggerIfArmedAndNotAccumulatable(
+        bytes memory accumulator,
+        bytes32 conduitKey
+    ) internal {
+        // Retrieve the current conduit key from the accumulator.
+        bytes32 accumulatorConduitKey = _getAccumulatorConduitKey(accumulator);
+
+        // Perform conduit call if the set key does not match the supplied key.
+        if (accumulatorConduitKey != conduitKey) {
+            _triggerIfArmed(accumulator);
+        }
+    }
+
     /**
      * @dev Internal function to transfer a given item.
      *
@@ -1939,7 +1996,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
     function _transfer(
         ReceivedItem memory item,
         address offerer,
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        bytes memory accumulator
     ) internal {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
@@ -1952,7 +2010,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 offerer,
                 item.recipient,
                 item.amount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
         } else if (item.itemType == ItemType.ERC721) {
             // Transfer ERC721 token from the offerer to the recipient.
@@ -1962,7 +2021,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 item.recipient,
                 item.identifier,
                 item.amount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
         } else {
             // Transfer ERC1155 token from the offerer to the recipient.
@@ -1972,7 +2032,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 item.recipient,
                 item.identifier,
                 item.amount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
         }
     }
@@ -2028,30 +2089,30 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         address from,
         address to,
         uint256 amount,
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        bytes memory accumulator
     ) internal {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
+
+        // Trigger accumulated transfers if the conduits differ.
+        _triggerIfArmedAndNotAccumulatable(accumulator, conduitKey);
 
         // If no conduit has been specified...
         if (conduitKey == bytes32(0)) {
             // Perform the token transfer directly.
             _performERC20Transfer(token, from, to, amount);
         } else {
-            // Perform the call to the conduit.
-            _callConduit(
+            // Insert the call to the conduit into the accumulator.
+            _insert(
                 conduitKey,
-                abi.encodeWithSelector(
-                    ConduitInterface.execute.selector,
-                    uint256(0x20), // array offset
-                    uint256(1), // number
-                    uint256(1), // ConduitItemType.ERC20
-                    token,
-                    from,
-                    to,
-                    uint256(0), // no identifier
-                    amount
-                )
+                accumulator,
+                uint256(1),
+                token,
+                from,
+                to,
+                uint256(0),
+                amount
             );
         }
     }
@@ -2079,8 +2140,12 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         address to,
         uint256 identifier,
         uint256 amount,
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        bytes memory accumulator
     ) internal {
+        // Trigger accumulated transfers if the conduits differ.
+        _triggerIfArmedAndNotAccumulatable(accumulator, conduitKey);
+
         // If no conduit has been specified...
         if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
@@ -2091,20 +2156,16 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
             // Perform transfer via the token contract directly.
             _performERC721Transfer(token, from, to, identifier);
         } else {
-            // Perform the call to the conduit.
-            _callConduit(
+            // Insert the call to the conduit into the accumulator.
+            _insert(
                 conduitKey,
-                abi.encodeWithSelector(
-                    ConduitInterface.execute.selector,
-                    uint256(0x20), // array offset
-                    uint256(1), // number
-                    uint256(2), // ConduitItemType.ERC721
-                    token,
-                    from,
-                    to,
-                    identifier,
-                    amount
-                )
+                accumulator,
+                uint256(2),
+                token,
+                from,
+                to,
+                identifier,
+                amount
             );
         }
     }
@@ -2132,31 +2193,151 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         address to,
         uint256 identifier,
         uint256 amount,
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        bytes memory accumulator
     ) internal {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
+
+        // Trigger accumulated transfers if the conduits differ.
+        _triggerIfArmedAndNotAccumulatable(accumulator, conduitKey);
 
         // If no conduit has been specified...
         if (conduitKey == bytes32(0)) {
             // Perform transfer via the token contract directly.
             _performERC1155Transfer(token, from, to, identifier, amount);
         } else {
-            // Perform the call to the conduit.
-            _callConduit(
+            // Insert the call to the conduit into the accumulator.
+            _insert(
                 conduitKey,
-                abi.encodeWithSelector(
-                    ConduitInterface.execute.selector,
-                    uint256(0x20), // array offset
-                    uint256(1), // number
-                    uint256(3), // ConduitItemType.ERC1155
-                    token,
-                    from,
-                    to,
-                    identifier,
-                    amount
-                )
+                accumulator,
+                uint256(3),
+                token,
+                from,
+                to,
+                identifier,
+                amount
             );
+        }
+    }
+
+    function _callConduitUsingOffsets(
+        bytes32 conduitKey,
+        uint256 callDataOffset,
+        uint256 callDataSize
+    ) internal {
+        // Derive the address of the conduit using the conduit key.
+        address conduit = _deriveConduit(conduitKey);
+
+        bool success;
+
+        // call the conduit.
+        assembly {
+            // Ensure first word of scratch space is empty.
+            mstore(0, 0)
+
+            // Perform the call, placing return data into scratch space.
+            success := call(
+                gas(),
+                conduit,
+                0,
+                callDataOffset,
+                callDataSize,
+                0,
+                0x20
+            )
+        }
+
+        // If the call failed...
+        if (!success) {
+            // Pass along whatever revert reason was given by the conduit.
+            _revertWithReasonIfOneIsReturned();
+
+            // Otherwise, revert with a generic error.
+            revert InvalidCallToConduit(conduit);
+        }
+
+        // Ensure that the conduit returned the correct magic value.
+        bytes4 result;
+        assembly {
+            // Take value from scratch space and place it on the stack.
+            result := mload(0)
+        }
+
+        // Ensure result was extracted and matches EIP-1271 magic value.
+        if (result != ConduitInterface.execute.selector) {
+            revert InvalidConduit(conduitKey, conduit);
+        }
+    }
+
+    function _trigger(bytes32 accumulatedConduitKey, bytes memory accumulator)
+        internal
+    {
+        uint256 callDataOffset;
+        uint256 callDataSize;
+
+        // Call the conduit with all the accumulated transfers.
+        assembly {
+            // Call begins at third word; the first is length or "armed" status,
+            // and the second is the current conduit key.
+            callDataOffset := add(accumulator, 0x40)
+
+            // 68 + items * 192
+            callDataSize := add(0x44, mul(mload(add(accumulator, 0x64)), 0xc0))
+        }
+
+        // Call conduit derived from conduit key & supply accumulated transfers.
+        _callConduitUsingOffsets(
+            accumulatedConduitKey,
+            callDataOffset,
+            callDataSize
+        );
+
+        // Reset accumulator length to signal that it is now "disarmed".
+        assembly {
+            mstore(accumulator, 0x20)
+        }
+    }
+
+    function _insert(
+        bytes32 conduitKey,
+        bytes memory accumulator,
+        uint256 itemType,
+        address token,
+        address from,
+        address to,
+        uint256 identifier,
+        uint256 amount
+    ) internal pure {
+        uint256 elements;
+        // "Arm" and prime accumulator if it's not already armed.
+        if (accumulator.length == 32) {
+            elements = 1;
+            bytes4 selector = ConduitInterface.execute.selector;
+            assembly {
+                mstore(accumulator, 0x40) // "arm" the accumulator.
+                mstore(add(accumulator, 0x20), conduitKey)
+                mstore(add(accumulator, 0x40), selector) // NOTE: may be set
+                mstore(add(accumulator, 0x44), 0x20) // NOTE: may be set
+                mstore(add(accumulator, 0x64), elements)
+            }
+        } else {
+            // Otherwise, increase the number of elements by one.
+            assembly {
+                elements := add(mload(add(accumulator, 0x64)), 1)
+                mstore(add(accumulator, 0x64), elements)
+            }
+        }
+
+        // Insert the item.
+        assembly {
+            let itemPointer := sub(add(accumulator, mul(elements, 0xc0)), 0x3c)
+            mstore(itemPointer, itemType)
+            mstore(add(itemPointer, 0x20), token)
+            mstore(add(itemPointer, 0x40), from)
+            mstore(add(itemPointer, 0x60), to)
+            mstore(add(itemPointer, 0x80), identifier)
+            mstore(add(itemPointer, 0xa0), amount)
         }
     }
 
@@ -2187,7 +2368,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         } else {
             uint256 totalTokenIds = tokenIds.length;
             uint256 tokenWords = totalTokenIds * 32;
-            bytes memory callData = new bytes(388 + 64 * totalTokenIds);
+            uint256 callDataSize = 388 + 64 * totalTokenIds;
+            bytes memory callData = new bytes(callDataSize);
             bytes4 selector = ConduitInterface.executeWithBatch1155.selector;
             assembly {
                 mstore(add(callData, 0x20), selector)
@@ -2219,102 +2401,13 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 }
             }
 
-            // Perform the call to the conduit.
-            _callConduit(conduitKey, callData);
-        }
-    }
-
-    /**
-     * @dev Internal function to trigger a call to a conduit contract. This call
-     *      will transfer a single ERC20, ERC721, or ERC1155 item.
-     *
-     * @param conduitKey A bytes32 value indicating what corresponding conduit,
-     *                   if any, to source token approvals from.
-     * @param callData   The calldata to supply when calling the conduit.
-     *
-     * @return success The status of the call to the proxy.
-     */
-    function _callConduit(bytes32 conduitKey, bytes memory callData)
-        internal
-        returns (bool success)
-    {
-        // Derive the address of the conduit using the conduit key.
-        address conduit = _deriveConduit(conduitKey);
-
-        // Perform the call to the conduit.
-        (success, ) = conduit.call(callData);
-
-        // If the call failed...
-        if (!success) {
-            // Pass along whatever revert reason was given by the conduit. Note
-            // that the conduit will not return unreasonably large returndata.
+            uint256 callDataOffset;
             assembly {
-                // If it returned a message, bubble it up as long as sufficient
-                // gas remains to do so:
-                if returndatasize() {
-                    // Ensure that sufficient gas is available to copy
-                    // returndata while expanding memory where necessary. Start
-                    // by computing word size of returndata & allocated memory.
-                    let returnDataWords := div(returndatasize(), 0x20)
-
-                    // Note: use the free memory pointer in place of msize() to
-                    // work around a Yul warning that prevents accessing msize
-                    // directly when the IR pipeline is activated.
-                    let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
-
-                    // Next, compute the cost of the returndatacopy.
-                    let cost := mul(3, returnDataWords)
-
-                    // Then, compute cost of new memory allocation.
-                    if gt(returnDataWords, msizeWords) {
-                        cost := add(
-                            cost,
-                            add(
-                                mul(sub(returnDataWords, msizeWords), 3),
-                                div(
-                                    sub(
-                                        mul(returnDataWords, returnDataWords),
-                                        mul(msizeWords, msizeWords)
-                                    ),
-                                    0x200
-                                )
-                            )
-                        )
-                    }
-
-                    // Finally, add a small constant and compare to gas
-                    // remaining; bubble up the revert data if enough gas is
-                    // still available.
-                    if lt(add(cost, 0x20), gas()) {
-                        // Copy returndata to memory; overwrite existing memory.
-                        returndatacopy(0, 0, returndatasize())
-
-                        // Revert, giving memory region with copied returndata.
-                        revert(0, returndatasize())
-                    }
-                }
+                callDataOffset := add(callData, 0x20)
             }
 
-            // Otherwise, revert with a generic error.
-            revert InvalidCallToConduit(conduit);
-        }
-
-        // Ensure that the conduit returned the correct magic value.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        // Ensure result was extracted and matches EIP-1271 magic value.
-        if (result != ConduitInterface.execute.selector) {
-            revert InvalidConduit(conduitKey, conduit);
+            // Perform the call to the conduit.
+            _callConduitUsingOffsets(conduitKey, callDataOffset, callDataSize);
         }
     }
 
@@ -2406,7 +2499,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         address erc20Token,
         uint256 amount,
         BasicOrderParameters calldata parameters,
-        bool fromOfferer
+        bool fromOfferer,
+        bytes memory accumulator
     ) internal {
         // Determine the appropriate conduit to utilize.
         bytes32 conduitKey = fromOfferer
@@ -2431,7 +2525,8 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
                 from,
                 additionalRecipient.recipient,
                 additionalRecipient.amount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Skip overflow check as for loop is indexed starting at zero.
@@ -2441,7 +2536,7 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
         }
 
         // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(erc20Token, from, to, amount, conduitKey);
+        _transferERC20(erc20Token, from, to, amount, conduitKey, accumulator);
 
         // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;

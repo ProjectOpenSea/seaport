@@ -17180,7 +17180,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Skip this test when testing the reference contract
       if (!process.env.REFERENCE) {
-        it("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
+        it.skip("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
           const recipient = await (
             await ethers.getContractFactory("ExcessReturnDataRecipient")
           ).deploy();
