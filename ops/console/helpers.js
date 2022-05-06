@@ -23,7 +23,7 @@ const yield = async () => {
 const stringify = (obj) => JSON.stringify(obj, null, 2);
 
 const trace = (err) => {
-  const txHash = err.error.data.txHash || HashZero;
+  const txHash = err?.error?.data?.txHash || HashZero;
   if (txHash !== HashZero) {
     let realMessage = err.message;
     try {
@@ -91,16 +91,16 @@ const createOfferItem = (overrides) => ({
 
 // By default, consider a payment of one ERC20 token
 const createConsiderationItem = (overrides) => ({
-  itemType: 1, // ERC20
+  itemType: overrides.itemType || 1, // ERC20
   token:
-    overrides.itemType === 2 || overrides.itemType === 4
+    overrides.token ||
+    (overrides.itemType === 2 || overrides.itemType === 4
       ? TestERC721.address
-      : TestERC20.address,
-  identifierOrCriteria: 0,
-  startAmount: 1,
-  endAmount: 1,
-  recipient: wallets[0].address,
-  ...(overrides || {}),
+      : TestERC20.address),
+  identifierOrCriteria: overrides.identifierOrCriteria || 0,
+  startAmount: overrides.startAmount || 1,
+  endAmount: overrides.endAmount || 1,
+  recipient: overrides.recipient || wallets[0].address || AddressZero,
 });
 
 const createCriteriaResolver = (overrides) => ({
@@ -230,7 +230,6 @@ const basicOrderToOrder = (basicOrder) =>
     salt: HashZero,
     conduit: AddressZero,
     nonce: 0,
-    ...(basicOrder || {}),
     offer: [
       createOfferItem({
         itemType: basicOrder.offerToken === nftAddress ? 2 : 1,

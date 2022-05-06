@@ -19,7 +19,6 @@ const fulfillBasicOrder = async () => {
   );
   await helpers.mintERC20(1, buyer);
   await helpers.mintERC721(nftId, seller);
-  /*
   await consideration.validate(
     [
       {
@@ -46,19 +45,14 @@ const fulfillBasicOrder = async () => {
     ],
     seller
   );
-  */
   const txHash = await consideration.fulfillBasicOrder(
-    await helpers.signBasicOrder(
-      {
-        basicOrderType: 8,
-        offerer: seller.address,
-        offerIdentifier: 0,
-        offerToken: constants.tokenAddress,
-        considerationIdentifier: nftId,
-        considerationToken: constants.nftAddress,
-      },
-      seller
-    ),
+    {
+      basicOrderType: 8,
+      offerToken: constants.tokenAddress,
+      offerIdentifier: 1,
+      considerationToken: constants.nftAddress,
+      considerationIdentifier: nftId,
+    },
     buyer
   );
   log(`fulfillBasicOrder tx hash: ${txHash}`);
