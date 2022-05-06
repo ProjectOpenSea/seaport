@@ -32,6 +32,27 @@ contract FulfillOrderTest is BaseOrderTest {
         bool useConduit;
     }
 
+    struct ToErc721StructWithSingleTip {
+        address zone;
+        uint256 id;
+        bytes32 zoneHash;
+        uint256 salt;
+        uint128[3] paymentAmts;
+        bool useConduit;
+        uint128 tipAmt;
+    }
+
+    struct ToErc1155StructWithSingleTip {
+        address zone;
+        uint256 id;
+        uint256 erc1155Amt;
+        bytes32 zoneHash;
+        uint256 salt;
+        uint128[3] paymentAmts;
+        bool useConduit;
+        uint128 tipAmt;
+    }
+
     struct ConsiderationToErc721Struct {
         Consideration consideration;
         ToErc721Struct args;
