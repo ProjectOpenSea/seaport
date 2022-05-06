@@ -53,6 +53,17 @@ contract FulfillOrderTest is BaseOrderTest {
         uint128 tipAmt;
     }
 
+    struct ToErc1155WithMultipleTipsStruct {
+        address zone;
+        uint256 id;
+        uint256 erc1155Amt;
+        bytes32 zoneHash;
+        uint256 salt;
+        uint128[3] paymentAmts;
+        bool useConduit;
+        uint16 numberOfTips;
+    }
+
     struct ConsiderationToErc721Struct {
         Consideration consideration;
         ToErc721Struct args;
@@ -556,6 +567,7 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
+        vm.assume(testStruct.args.erc1155Amt > 0);
         vm.assume(
             testStruct.args.paymentAmts[0] > 0 &&
                 testStruct.args.paymentAmts[1] > 0 &&
@@ -658,13 +670,15 @@ contract FulfillOrderTest is BaseOrderTest {
             testStruct.args.zoneHash,
             testStruct.args.salt,
             conduitKey,
-            considerationItems.length
+            considerationItems.length - 1
         );
 
-        testStruct.consideration.fulfillOrder(
-            Order(orderParameters, signature),
-            conduitKey
-        );
+        testStruct.consideration.fulfillOrder{
+            value: testStruct.args.paymentAmts[0] +
+                testStruct.args.paymentAmts[1] +
+                testStruct.args.paymentAmts[2] +
+                testStruct.args.tipAmt
+        }(Order(orderParameters, signature), conduitKey);
     }
 
     // function _testFulfillOrderSingleERC20ToSingleERC1155(
