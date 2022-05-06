@@ -89,7 +89,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
 
             // Retrieve the parameters for the order.
             //OrderParameters memory orderParameters = (
-             //   advancedOrders[orderIndex].parameters
+            //   advancedOrders[orderIndex].parameters
             //);
 
             // Read component index from memory and place it on the stack.
@@ -101,17 +101,15 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
 
             // If the criteria resolver refers to an offer item...
             if (criteriaResolver.side == Side.OFFER) {
-
-                SpentItem[] memory spentItems = ordersToExecute[orderIndex].spentItems;
+                SpentItem[] memory spentItems = ordersToExecute[orderIndex]
+                    .spentItems;
                 // Ensure that the component index is in range.
                 if (componentIndex >= spentItems.length) {
                     revert OfferCriteriaResolverOutOfRange();
                 }
 
                 // Retrieve relevant item using order and component index.
-                SpentItem memory offer = (
-                    spentItems[componentIndex]
-                );
+                SpentItem memory offer = (spentItems[componentIndex]);
 
                 // Read item type and criteria from memory & place on stack.
                 itemType = offer.itemType;
@@ -125,8 +123,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 // Optimistically update identifier w/ supplied identifier.
                 offer.identifier = criteriaResolver.identifier;
             } else {
-
-                ReceivedItem[] memory receivedItems = ordersToExecute[orderIndex].receivedItems;
+                ReceivedItem[] memory receivedItems = ordersToExecute[
+                    orderIndex
+                ].receivedItems;
                 // Otherwise, the resolver refers to a consideration item.
                 // Ensure that the component index is in range.
                 if (componentIndex >= receivedItems.length) {
@@ -149,9 +148,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                     : ItemType.ERC1155;
 
                 // Optimistically update identifier w/ supplied identifier.
-                consideration.identifier = (
-                    criteriaResolver.identifier
-                );
+                consideration.identifier = (criteriaResolver.identifier);
             }
 
             // Ensure the specified item type indicates criteria usage.
@@ -180,7 +177,6 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             //SpentItem[] memory spentItems = spentItemsByOrder[i];
             OrderToExecute memory orderToExecute = ordersToExecute[i];
 
-
             // Read offer length from memory and place on stack.
             uint256 totalItems = orderToExecute.spentItems.length;
 
@@ -193,18 +189,14 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             for (uint256 j = 0; j < totalItems; ++j) {
                 // Ensure item type no longer indicates criteria usage.
                 if (
-                    _isItemWithCriteria(
-                        orderToExecute.spentItems[j].itemType
-                    )
+                    _isItemWithCriteria(orderToExecute.spentItems[j].itemType)
                 ) {
                     revert UnresolvedOfferCriteria();
                 }
             }
-        
+
             // Read consideration length from memory and place on stack.
-            totalItems = (
-                orderToExecute.receivedItems.length
-            );
+            totalItems = (orderToExecute.receivedItems.length);
 
             // Iterate over each consideration item on the order.
             for (uint256 j = 0; j < totalItems; ++j) {
@@ -234,7 +226,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
      *                           any transferrable token identifier is valid and
      *                           that no proof needs to be supplied.
      */
-     // TODO: Remove this functon after Advanced Orders are no longer used here.
+    // TODO: Remove this functon after Advanced Orders are no longer used here.
     function _applyCriteriaResolversAdvanced(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers
@@ -848,7 +840,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             .itemIndex;
         potentialCandidate.invalidFulfillment = (potentialCandidate
             .orderIndex >= ordersToExecute.length);
-            
+
         if (!potentialCandidate.invalidFulfillment) {
             OrderToExecute memory orderToExecute = ordersToExecute[
                 potentialCandidate.orderIndex
@@ -859,7 +851,8 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 (potentialCandidate.itemIndex >=
                     orderToExecute.receivedItems.length);
             if (!potentialCandidate.invalidFulfillment) {
-                ReceivedItem memory consideration = orderToExecute.receivedItems[potentialCandidate.itemIndex];
+                ReceivedItem memory consideration = orderToExecute
+                    .receivedItems[potentialCandidate.itemIndex];
 
                 receivedItem = ReceivedItem(
                     consideration.itemType,
@@ -889,13 +882,14 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                     if (potentialCandidate.invalidFulfillment) {
                         break;
                     }
-                    orderToExecute = ordersToExecute[potentialCandidate.orderIndex];
+                    orderToExecute = ordersToExecute[
+                        potentialCandidate.orderIndex
+                    ];
                     if (orderToExecute.numerator != 0) {
                         // Ensure that the item index is not out of range.
                         potentialCandidate
                             .invalidFulfillment = (potentialCandidate
-                            .itemIndex >=
-                            orderToExecute.receivedItems.length);
+                            .itemIndex >= orderToExecute.receivedItems.length);
                         // Break if invalid
                         if (potentialCandidate.invalidFulfillment) {
                             break;
@@ -1146,7 +1140,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         return advancedOrders;
     }
 
-     /**
+    /**
      * @dev Internal pure function to convert an order to an order to execute with
      *      numerator.
      *
@@ -1162,16 +1156,14 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         // Convert to partial order (1/1 or full fill) and return new value.
         OfferItem[] memory offer = order.parameters.offer;
 
-        SpentItem[] memory spentItems = new SpentItem[](
-                offer.length
-            );
+        SpentItem[] memory spentItems = new SpentItem[](offer.length);
 
         // Iterate over each offer item on the order.
         for (uint256 i = 0; i < offer.length; ++i) {
             // Retrieve the offer item.
             OfferItem memory offerItem = offer[i];
 
-                // Create Spent Item for Event 
+            // Create Spent Item for Event
             SpentItem memory spentItem = SpentItem(
                 offerItem.itemType,
                 offerItem.token,
@@ -1179,22 +1171,24 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 offerItem.startAmount
             );
 
-             // Add to array of Received Items
+            // Add to array of Received Items
             spentItems[i] = spentItem;
         }
 
-         ConsiderationItem[] memory consideration = order.parameters.consideration;
-       
-         ReceivedItem[] memory receivedItems = new ReceivedItem[](
-                consideration.length
-            );
+        ConsiderationItem[] memory consideration = order
+            .parameters
+            .consideration;
 
-         // Iterate over each consideration item on the order.
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            consideration.length
+        );
+
+        // Iterate over each consideration item on the order.
         for (uint256 i = 0; i < consideration.length; ++i) {
             // Retrieve the consideration item.
             ConsiderationItem memory considerationItem = (consideration[i]);
 
-            // Create Received Item for Event 
+            // Create Received Item for Event
             ReceivedItem memory receivedItem = ReceivedItem(
                 considerationItem.itemType,
                 considerationItem.token,
@@ -1203,7 +1197,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 considerationItem.recipient
             );
 
-             // Add to array of Received Items
+            // Add to array of Received Items
             receivedItems[i] = receivedItem;
         }
 
@@ -1218,7 +1212,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         return orderToExecute;
     }
 
-     /**
+    /**
      * @dev Internal pure function to convert an advanced order to an order to execute with
      *      numerator of 1.
      *
@@ -1233,16 +1227,14 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
     {
         OfferItem[] memory offer = advancedOrder.parameters.offer;
 
-        SpentItem[] memory spentItems = new SpentItem[](
-                offer.length
-            );
+        SpentItem[] memory spentItems = new SpentItem[](offer.length);
 
         // Iterate over each offer item on the order.
         for (uint256 i = 0; i < offer.length; ++i) {
             // Retrieve the offer item.
             OfferItem memory offerItem = offer[i];
 
-                // Create Spent Item for Event 
+            // Create Spent Item for Event
             SpentItem memory spentItem = SpentItem(
                 offerItem.itemType,
                 offerItem.token,
@@ -1250,22 +1242,24 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 offerItem.startAmount
             );
 
-             // Add to array of Received Items
+            // Add to array of Received Items
             spentItems[i] = spentItem;
         }
 
-         ConsiderationItem[] memory consideration = advancedOrder.parameters.consideration;
-       
-         ReceivedItem[] memory receivedItems = new ReceivedItem[](
-                consideration.length
-            );
+        ConsiderationItem[] memory consideration = advancedOrder
+            .parameters
+            .consideration;
 
-         // Iterate over each consideration item on the order.
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            consideration.length
+        );
+
+        // Iterate over each consideration item on the order.
         for (uint256 i = 0; i < consideration.length; ++i) {
             // Retrieve the consideration item.
             ConsiderationItem memory considerationItem = (consideration[i]);
 
-            // Create Received Item for Event 
+            // Create Received Item for Event
             ReceivedItem memory receivedItem = ReceivedItem(
                 considerationItem.itemType,
                 considerationItem.token,
@@ -1274,7 +1268,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
                 considerationItem.recipient
             );
 
-             // Add to array of Received Items
+            // Add to array of Received Items
             receivedItems[i] = receivedItem;
         }
 
@@ -1297,11 +1291,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
      *
      * @return ordersToExecute The new array of partial orders.
      */
-    function _convertAdvancedtoOrdersToExecute(AdvancedOrder[] memory advancedOrders)
-        internal
-        pure
-        returns (OrderToExecute[] memory ordersToExecute)
-    {
+    function _convertAdvancedtoOrdersToExecute(
+        AdvancedOrder[] memory advancedOrders
+    ) internal pure returns (OrderToExecute[] memory ordersToExecute) {
         // Read the number of orders from calldata and place on the stack.
         uint256 totalOrders = advancedOrders.length;
 
@@ -1317,7 +1309,6 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         // Return the array of orders to Execute
         return ordersToExecute;
     }
-    
 
     /**
      * @dev Internal pure function to ensure that a given element is contained
