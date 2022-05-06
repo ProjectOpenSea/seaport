@@ -64,6 +64,22 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
+    function testFulfillOrderEthToERC721WithSingleTip(
+        ToErc721Struct memory _toErc721Struct,
+        uint256 _tipAmt
+    ) public {
+        _testFulfillOrderEthToERC721WithSingleTip(
+            consideration,
+            _tipAmt,
+            _toErc721Struct
+        );
+        _testFulfillOrderEthToERC721WithSingleTip(
+            referenceConsideration,
+            _tipAmt,
+            _toErc721Struct
+        );
+    }
+
     function _testFulfillOrderEthToERC721(
         ConsiderationToErc721Struct memory testStruct
     )
@@ -287,24 +303,24 @@ contract FulfillOrderTest is BaseOrderTest {
 
         considerationItems = new ConsiderationItem[](3);
         considerationItems[0] = ConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
+            ItemType.NATIVE,
+            address(0),
             0,
             uint256(testStruct.args.paymentAmts[0]),
             uint256(testStruct.args.paymentAmts[0]),
             payable(alice)
         );
         considerationItems[1] = ConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
+            ItemType.NATIVE,
+            address(0),
             0,
             uint256(testStruct.args.paymentAmts[1]),
             uint256(testStruct.args.paymentAmts[1]),
             payable(testStruct.args.zone)
         );
         considerationItems[2] = ConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
+            ItemType.NATIVE,
+            address(0),
             0,
             uint256(testStruct.args.paymentAmts[2]),
             uint256(testStruct.args.paymentAmts[2]),
@@ -329,7 +345,6 @@ contract FulfillOrderTest is BaseOrderTest {
             alicePk,
             testStruct.consideration.getOrderHash(orderComponents)
         );
-
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             testStruct.args.zone,
@@ -349,4 +364,215 @@ contract FulfillOrderTest is BaseOrderTest {
             conduitKey
         );
     }
+
+    function _testFulfillOrderEthToERC721WithSingleTip(
+        Consideration _consideration,
+        uint256 tipAmt,
+        ToErc721Struct memory toErc721Struct
+    )
+        internal
+        onlyPayable(toErc721Struct.zone)
+        topUp
+        resetTokenBalancesBetweenRuns
+    {
+        vm.assume(
+            toErc721Struct.paymentAmts[0] > 0 &&
+                toErc721Struct.paymentAmts[1] > 0 &&
+                toErc721Struct.paymentAmts[2] > 0 &&
+                tipAmt > 0
+        );
+        vm.assume(
+            uint256(toErc721Struct.paymentAmts[0]) +
+                uint256(toErc721Struct.paymentAmts[1]) +
+                uint256(toErc721Struct.paymentAmts[2]) +
+                uint256(tipAmt) <=
+                2**128 - 1
+        );
+        bytes32 conduitKey = toErc721Struct.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test721_1.mint(alice, toErc721Struct.id);
+        OfferItem[] memory offerItem = singleOfferItem(
+            ItemType.ERC721,
+            address(test721_1),
+            toErc721Struct.id,
+            1,
+            1
+        );
+        ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
+            4
+        );
+        considerationItems[0] = ConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            uint256(toErc721Struct.paymentAmts[0]),
+            uint256(toErc721Struct.paymentAmts[0]),
+            payable(alice)
+        );
+        considerationItems[1] = ConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            uint256(toErc721Struct.paymentAmts[1]),
+            uint256(toErc721Struct.paymentAmts[1]),
+            payable(toErc721Struct.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+        );
+        considerationItems[2] = ConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            uint256(toErc721Struct.paymentAmts[2]),
+            uint256(toErc721Struct.paymentAmts[2]),
+            payable(cal)
+        );
+
+        OrderComponents memory orderComponents = OrderComponents(
+            alice,
+            toErc721Struct.zone,
+            offerItem,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            toErc721Struct.zoneHash,
+            toErc721Struct.salt,
+            conduitKey,
+            _consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            _consideration,
+            alicePk,
+            _consideration.getOrderHash(orderComponents)
+        );
+
+        // Add tip
+        considerationItems[3] = ConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            tipAmt,
+            tipAmt,
+            payable(bob)
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            toErc721Struct.zone,
+            offerItem,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            toErc721Struct.zoneHash,
+            toErc721Struct.salt,
+            conduitKey,
+            considerationItems.length
+        );
+
+        _consideration.fulfillOrder{
+            value: toErc721Struct.paymentAmts[0] +
+                toErc721Struct.paymentAmts[1] +
+                toErc721Struct.paymentAmts[2] +
+                tipAmt
+        }(Order(orderParameters, signature), conduitKey);
+    }
+
+    // function _testFulfillOrderSingleERC20ToSingleERC1155(
+    //     Consideration _consideration,
+    //     ToErc1155Struct memory toErc1155Struct
+    // ) internal onlyPayable(toErc1155Struct.zone) topUp {
+    //     vm.assume(toErc1155Struct.erc1155Amt > 0);
+    //     vm.assume(
+    //         toErc1155Struct.paymentAmts[0] > 0 &&
+    //             toErc1155Struct.paymentAmts[1] > 0 &&
+    //             toErc1155Struct.paymentAmts[2] > 0
+    //     );
+    //     vm.assume(
+    //         uint256(toErc1155Struct.paymentAmts[0]) +
+    //             uint256(toErc1155Struct.paymentAmts[1]) +
+    //             uint256(toErc1155Struct.paymentAmts[2]) <=
+    //             2**128 - 1
+    //     );
+    //     bytes32 conduitKey = toErc1155Struct.useConduit
+    //         ? conduitKeyOne
+    //         : bytes32(0);
+
+    //     test1155_1.mint(alice, toErc1155Struct.id, toErc1155Struct.erc1155Amt);
+
+    //     OfferItem[] memory offerItem = singleOfferItem(
+    //         ItemType.ERC1155,
+    //         address(test1155_1),
+    //         toErc1155Struct.id,
+    //         toErc1155Struct.erc1155Amt,
+    //         toErc1155Struct.erc1155Amt
+    //     );
+
+    //     ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
+    //         3
+    //     );
+    //     considerationItems[0] = ConsiderationItem(
+    //         ItemType.ERC20,
+    //         address(token1),
+    //         0,
+    //         uint256(toErc1155Struct.paymentAmts[0]),
+    //         uint256(toErc1155Struct.paymentAmts[0]),
+    //         payable(alice)
+    //     );
+    //     considerationItems[1] = ConsiderationItem(
+    //         ItemType.ERC20,
+    //         address(token1),
+    //         0,
+    //         uint256(toErc1155Struct.paymentAmts[1]),
+    //         uint256(toErc1155Struct.paymentAmts[1]),
+    //         payable(toErc1155Struct.zone)
+    //     );
+    //     considerationItems[2] = ConsiderationItem(
+    //         ItemType.ERC20,
+    //         address(token1),
+    //         0,
+    //         uint256(toErc1155Struct.paymentAmts[2]),
+    //         uint256(toErc1155Struct.paymentAmts[2]),
+    //         payable(cal)
+    //     );
+
+    //     OrderComponents memory orderComponents = OrderComponents(
+    //         alice,
+    //         toErc1155Struct.zone,
+    //         offerItem,
+    //         considerationItems,
+    //         OrderType.FULL_OPEN,
+    //         block.timestamp,
+    //         block.timestamp + 1,
+    //         toErc1155Struct.zoneHash,
+    //         toErc1155Struct.salt,
+    //         conduitKey,
+    //         _consideration.getNonce(alice)
+    //     );
+    //     bytes memory signature = signOrder(
+    //         _consideration,
+    //         alicePk,
+    //         _consideration.getOrderHash(orderComponents)
+    //     );
+
+    //     OrderParameters memory orderParameters = OrderParameters(
+    //         address(alice),
+    //         toErc1155Struct.zone,
+    //         offerItem,
+    //         considerationItems,
+    //         OrderType.FULL_OPEN,
+    //         block.timestamp,
+    //         block.timestamp + 1,
+    //         toErc1155Struct.zoneHash,
+    //         toErc1155Struct.salt,
+    //         conduitKey,
+    //         considerationItems.length
+    //     );
+
+    //     _consideration.fulfillOrder(
+    //         Order(orderParameters, signature),
+    //         conduitKey
+    //     );
+    // }
 }
