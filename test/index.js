@@ -14443,8 +14443,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ];
 
         await whileImpersonating(buyer.address, provider, async () => {
-          await expect(
-            marketplaceContract
+          const tx = await marketplaceContract
               .connect(buyer)
               .fulfillAvailableOrders(
                 [order],
@@ -14453,8 +14452,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 toKey(false),
                 100,
                 { value }
-              )
-          ).to.be.reverted; // TODO: fix out-of-gas
+              );
+
+          const receipt = await tx.wait();
+          expect(receipt.status).to.be.false; // TODO: fix out-of-gas
         });
       });
       it("Reverts on fulfillment component with out-of-range subsequent offer item on fulfillAvailableOrders", async () => {
