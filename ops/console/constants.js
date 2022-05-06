@@ -42,9 +42,24 @@ const contracts = Object.entries(deployments).reduce((acc, cur) => {
   return acc;
 }, {});
 
+const tokenAddress = contracts.TestERC20.address || eth.constants.AddressZero;
+const nftAddress = contracts.TestERC721.address || eth.constants.AddressZero;
+
+// Declare these once so they're constant throughout the execution
+const day = 60 * 60 * 24; // seconds in a day
+const startTime = Math.round(Date.now() / 1000) - day; // 1 day ago
+const endTime = Math.round(Date.now() / 1000) + day; // 1 day from now
+
+const txOpts = { gasLimit: "5000000" };
+
 module.exports = {
-  deployments: deployments,
-  contracts: contracts,
-  provider: provider,
-  wallets: wallets,
+  tokenAddress,
+  nftAddress,
+  deployments,
+  contracts,
+  provider,
+  wallets,
+  startTime,
+  endTime,
+  txOpts,
 };

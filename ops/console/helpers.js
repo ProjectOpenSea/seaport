@@ -4,81 +4,76 @@ const utils = require("./utils");
 const constants = require("./constants");
 
 const log = utils.log;
-const logEvents = utils.logEvents;
 const wallets = constants.wallets;
 
-const { contracts, deployments } = constants;
+const { contracts, txOpts, startTime, endTime, nftAddress } = constants;
 const { Consideration, TestERC20, TestERC721 } = contracts;
 const { AddressZero, HashZero } = eth.constants;
-
-const day = 60 * 60 * 24; // seconds in a day
-
-const txOpts = { gasLimit: "5000000" };
 
 // NOTE: offer = what's being sold, consideration = what's being paid
 
 /// /////////////////////////////////////
 /// Helper Utility Methods
 
+const yield = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 1));
+  log("");
+};
+
 const stringify = (obj) => JSON.stringify(obj, null, 2);
 
-const getDumpTrace = (fnCall) => (err) => {
+const trace = (err) => {
   const txHash = err.error.data.txHash || HashZero;
   if (txHash !== HashZero) {
-    log(err.message);
+    let realMessage = err.message;
+    try {
+      realMessage = JSON.parse(
+        JSON.parse(
+          err.message
+            .replace(`\n`, "")
+            .replace(`\r`, "")
+            .replace("processing response error (body=", "")
+            .replace(/, error=.*/, "")
+        )
+      ).error.message;
+    } catch (e) {
+      log(`Couldn't cleanly parse error message: ${e.message}`);
+    }
     log(``);
     log(`!!!!! REVERT !!!!!`);
+    log(realMessage);
     log(``);
     const file = "latest.trace.json";
-    log(`Saving tx trace to ${file} for fn call:`);
-    log(fnCall);
+    log(`Saving tx trace to ${file}`);
     utils.traceTx(txHash, file);
   }
   return txHash;
 };
 
-const getWallet = (address) => {
-  return wallets.find((w) => w.address === address);
-};
-
-const mintERC20 = async (amount, address) => {
-  log(`Minting ${amount} tokens for ${address}`);
-  const signer = getWallet(address);
-  const token = TestERC20.connect(signer);
-  await token.mint(signer.address, amount, txOpts).then(async (tx) => {
-    return await logEvents(tx.hash, deployments.TestERC20.abi);
-  });
-  log(`Approving ${amount} tokens..`);
+const mintERC20 = async (amount, signer = wallets[0]) => {
+  log(`ERC20.mint(${signer.address}, ${amount})`);
+  await TestERC20.connect(signer)
+    .mint(signer.address, amount, txOpts)
+    .catch(trace);
+  log(`ERC20.approve(${Consideration.address}, ${amount})`);
   await TestERC20.connect(signer)
     .approve(Consideration.address, amount, txOpts)
-    .then(async (tx) => {
-      return await logEvents(tx.hash, deployments.TestERC20.abi);
-    })
-    .catch(getDumpTrace(`approve(${Consideration.address}, ${amount})`));
+    .catch(trace);
 };
 
-const mintERC721 = async (nftId, address) => {
-  log(`Minting NFT #${nftId} for ${address}`);
-  const signer = getWallet(address);
+const mintERC721 = async (nftId, signer) => {
   const token = TestERC721.connect(signer);
   const owner = await token.ownerOf(nftId);
-  if (owner >= address) {
-    log(`${address} already owns NFT #${nftId}, skipping mint..`);
+  if (owner === signer.address) {
+    log(`${signer.address} already owns NFT #${nftId}, skipping mint..`);
     return;
   }
-  await token
-    .mint(signer.address, nftId, txOpts)
-    .then(async (tx) => {
-      return await logEvents(tx.hash, deployments.TestERC721.abi);
-    })
-    .catch(getDumpTrace(`mint(${signer.address}, ${nftId})`));
-  log(`Approving NFT #${nftId}`);
+  log(`ERC721.mint(${signer.address}, ${nftId})`);
+  await token.mint(signer.address, nftId, txOpts).catch(trace);
+  log(`ERC721.approve(${Consideration.address}, ${nftId})`);
   await TestERC721.connect(signer)
     .approve(Consideration.address, nftId, txOpts)
-    .then(async (tx) => {
-      return await logEvents(tx.hash, deployments.TestERC721.abi);
-    })
-    .catch(getDumpTrace(`approve(${Consideration.address}, ${nftId})`));
+    .catch(trace);
 };
 
 // By default, offer 1 NFT up for sale
@@ -122,8 +117,8 @@ const createOrderParameters = (overrides) => ({
   offerer: wallets[0].address,
   zone: AddressZero,
   orderType: 0, // FULL_OPEN
-  startTime: Math.round(Date.now() / 1000) - day, // 1 day ago
-  endTime: Math.round(Date.now() / 1000) + day, // 1 day from now
+  startTime,
+  endTime,
   zoneHash: HashZero,
   salt: HashZero,
   conduit: AddressZero,
@@ -140,8 +135,8 @@ const createOrderComponents = (overrides) => ({
   offerer: wallets[0].address,
   zone: AddressZero,
   orderType: 0, // FULL_OPEN
-  startTime: Math.round(Date.now() / 1000) - day, // 1 day ago
-  endTime: Math.round(Date.now() / 1000) + day, // 1 day from now
+  startTime,
+  endTime,
   zoneHash: HashZero,
   salt: HashZero,
   conduit: AddressZero,
@@ -169,8 +164,8 @@ const createBasicOrder = (overrides) => ({
   offerIdentifier: 0,
   offerAmount: 1,
   basicOrderType: 16, // ERC721_TO_ERC20_FULL_OPEN
-  startTime: Math.round(Date.now() / 1000) - day, // 1 day ago
-  endTime: Math.round(Date.now() / 1000) + day, // 1 day from now
+  startTime,
+  endTime,
   zoneHash: HashZero,
   salt: HashZero,
   offererConduit: AddressZero,
@@ -202,17 +197,12 @@ const createFulfillment = (overrides) => ({
 
 const getOrderHash = async (overrides, signer = wallets[0]) => {
   const order = createOrderComponents(overrides);
-  return await Consideration.connect(signer)
-    .getOrderHash(order)
-    .then((hash) => {
-      log(`Order Hash: ${hash}`);
-      return hash;
-    })
-    .catch(getDumpTrace(`getOrderHash(${stringify(order)})`));
+  log(`getOrderHash(${stringify(order)})`);
+  return await Consideration.connect(signer).getOrderHash(order).catch(trace);
 };
 
 const signOrder = async (overrides, signer = wallets[0]) => {
-  const order = createOrderComponents(overrides.parameters);
+  const order = createOrderComponents(overrides.parameters || overrides);
   order.offerer = signer.address;
   const domain = await Consideration.DOMAIN_SEPARATOR();
   const hash = await getOrderHash(order);
@@ -229,8 +219,64 @@ const signOrder = async (overrides, signer = wallets[0]) => {
   return { parameters: order, signature };
 };
 
+const basicOrderToOrder = (basicOrder) =>
+  createOrderComponents({
+    offerer: basicOrder.offerer,
+    zone: AddressZero,
+    orderType: 0, // FULL_OPEN
+    startTime,
+    endTime,
+    zoneHash: HashZero,
+    salt: HashZero,
+    conduit: AddressZero,
+    nonce: 0,
+    ...(basicOrder || {}),
+    offer: [
+      createOfferItem({
+        itemType: basicOrder.offerToken === nftAddress ? 2 : 1,
+        token: basicOrder.offerToken,
+        identifierOrCriteria: basicOrder.offerIdentifier,
+        startAmount: 1,
+        endAmount: 1,
+      }),
+    ],
+    consideration: [
+      createConsiderationItem({
+        itemType: basicOrder.considerationToken === nftAddress ? 2 : 1,
+        token: basicOrder.considerationToken,
+        identifierOrCriteria: basicOrder.considerationIdentifier,
+        recipient: basicOrder.offerer,
+        endAmount: 1,
+        startAmount: 1,
+      }),
+    ],
+  });
+
+const orderToBasicOrder = (order) =>
+  createBasicOrder({
+    considerationToken: order.parameters.consideration[0].token,
+    considerationIdentifier:
+      order.parameters.consideration[0].identifierOrCriteria,
+    considerationAmount: order.parameters.consideration[0].startAmount,
+    offerer: order.parameters.offerer,
+    offerToken: order.parameters.offer[0].token,
+    offerIdentifier: order.parameters.offer[0].identifierOrCriteria,
+    offerAmount: order.parameters.offer[0].startAmount,
+    basicOrderType: order.parameters.offer[0].token === nftAddress ? 16 : 8,
+    totalOriginalAdditionalRecipients: 1,
+    signature: order.signature,
+  });
+
+const signBasicOrder = async (basicOrder, signer = wallets[0]) => {
+  let order = basicOrderToOrder(basicOrder);
+  order.offerer = signer.address;
+  order = await signOrder(order);
+  return orderToBasicOrder(order);
+};
+
 module.exports = {
-  getDumpTrace,
+  yield,
+  trace,
   mintERC20,
   stringify,
   mintERC721,
@@ -245,4 +291,5 @@ module.exports = {
   createFulfillment,
   getOrderHash,
   signOrder,
+  signBasicOrder,
 };

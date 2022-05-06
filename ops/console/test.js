@@ -10,26 +10,56 @@ const wallets = constants.wallets;
 /// Wrapper Methods for easy testing
 
 const fulfillBasicOrder = async () => {
+  await helpers.yield(); // give the console a ms to flush
+  const nftId = Math.round(Math.random() * 1000000);
   const buyer = wallets[0];
   const seller = wallets[1];
-  const nftId = Math.round(Math.random() * 1000000);
   log(
     `Testing fulfillBasicOrder with buyer=${buyer.address} seller=${seller.address} nftId=${nftId}`
   );
+  await helpers.mintERC20(1, buyer);
+  await helpers.mintERC721(nftId, seller);
+  /*
   await consideration.validate(
     [
       {
         parameters: {
           offerer: seller.address,
-          offer: [{ itemType: 2, identifierOrCriteria: nftId }],
+          offer: [
+            {
+              itemType: 2,
+              token: constants.nftAddress,
+              identifierOrCriteria: nftId,
+            },
+          ],
+          consideration: [
+            {
+              itemType: 1,
+              token: constants.tokenAddress,
+              startAmount: 1,
+              endAmount: 1,
+              recipient: seller.address,
+            },
+          ],
         },
       },
     ],
     seller
   );
+  */
   const txHash = await consideration.fulfillBasicOrder(
-    { offerer: seller.address, offerIdentifier: nftId },
-    seller
+    await helpers.signBasicOrder(
+      {
+        basicOrderType: 8,
+        offerer: seller.address,
+        offerIdentifier: 0,
+        offerToken: constants.tokenAddress,
+        considerationIdentifier: nftId,
+        considerationToken: constants.nftAddress,
+      },
+      seller
+    ),
+    buyer
   );
   log(`fulfillBasicOrder tx hash: ${txHash}`);
 };
@@ -158,9 +188,7 @@ const matchOrders = async () => {
     orders: [sellOrder, buyOrder],
     fulfillments,
   });
-  if (txHash) {
-    log(`matchOrders tx hash: ${txHash}`);
-  }
+  log(`matchOrders tx hash: ${txHash}`);
 };
 
 const matchAdvancedOrders = async () => {};
