@@ -96,18 +96,16 @@ contract FulfillOrderTest is BaseOrderTest {
     }
 
     function testFulfillOrderEthToERC721WithSingleTip(
-        ToErc721Struct memory _toErc721Struct,
-        uint128 _tipAmt
+        ToErc721WithSingleTipStruct memory testStruct
     ) public {
         _testFulfillOrderEthToERC721WithSingleTip(
-            consideration,
-            _tipAmt,
-            _toErc721Struct
+            ConsiderationToErc721WithSingleTipStruct(consideration, testStruct)
         );
         _testFulfillOrderEthToERC721WithSingleTip(
-            referenceConsideration,
-            _tipAmt,
-            _toErc721Struct
+            ConsiderationToErc721WithSingleTipStruct(
+                referenceConsideration,
+                testStruct
+            )
         );
     }
 
@@ -418,38 +416,36 @@ contract FulfillOrderTest is BaseOrderTest {
     }
 
     function _testFulfillOrderEthToERC721WithSingleTip(
-        Consideration _consideration,
-        uint128 tipAmt,
-        ToErc721Struct memory toErc721Struct
+        ConsiderationToErc721WithSingleTipStruct memory testStruct
     )
         internal
-        onlyPayable(toErc721Struct.zone)
+        onlyPayable(testStruct.args.zone)
         topUp
         resetTokenBalancesBetweenRuns
     {
         vm.assume(
-            toErc721Struct.paymentAmts[0] > 0 &&
-                toErc721Struct.paymentAmts[1] > 0 &&
-                toErc721Struct.paymentAmts[2] > 0 &&
-                tipAmt > 0
+            testStruct.args.paymentAmts[0] > 0 &&
+                testStruct.args.paymentAmts[1] > 0 &&
+                testStruct.args.paymentAmts[2] > 0 &&
+                testStruct.args.tipAmt > 0
         );
         vm.assume(
-            uint256(toErc721Struct.paymentAmts[0]) +
-                uint256(toErc721Struct.paymentAmts[1]) +
-                uint256(toErc721Struct.paymentAmts[2]) +
-                uint256(tipAmt) <=
+            uint256(testStruct.args.paymentAmts[0]) +
+                uint256(testStruct.args.paymentAmts[1]) +
+                uint256(testStruct.args.paymentAmts[2]) +
+                uint256(testStruct.args.tipAmt) <=
                 2**128 - 1
         );
-        bytes32 conduitKey = toErc721Struct.useConduit
+        bytes32 conduitKey = testStruct.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
-        test721_1.mint(alice, toErc721Struct.id);
+        test721_1.mint(alice, testStruct.args.id);
         offerItems.push(
             OfferItem(
                 ItemType.ERC721,
                 address(test721_1),
-                toErc721Struct.id,
+                testStruct.args.id,
                 1,
                 1
             )
@@ -459,8 +455,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(toErc721Struct.paymentAmts[0]),
-                uint256(toErc721Struct.paymentAmts[0]),
+                uint256(testStruct.args.paymentAmts[0]),
+                uint256(testStruct.args.paymentAmts[0]),
                 payable(alice)
             )
         );
@@ -469,9 +465,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(toErc721Struct.paymentAmts[1]),
-                uint256(toErc721Struct.paymentAmts[1]),
-                payable(toErc721Struct.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+                uint256(testStruct.args.paymentAmts[1]),
+                uint256(testStruct.args.paymentAmts[1]),
+                payable(testStruct.args.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
             )
         );
         considerationItems.push(
@@ -479,29 +475,29 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(toErc721Struct.paymentAmts[2]),
-                uint256(toErc721Struct.paymentAmts[2]),
+                uint256(testStruct.args.paymentAmts[2]),
+                uint256(testStruct.args.paymentAmts[2]),
                 payable(cal)
             )
         );
 
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            toErc721Struct.zone,
+            testStruct.args.zone,
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            toErc721Struct.zoneHash,
-            toErc721Struct.salt,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
             conduitKey,
-            _consideration.getNonce(alice)
+            testStruct.consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
-            _consideration,
+            testStruct.consideration,
             alicePk,
-            _consideration.getOrderHash(orderComponents)
+            testStruct.consideration.getOrderHash(orderComponents)
         );
 
         // Add tip
@@ -510,31 +506,31 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                tipAmt,
-                tipAmt,
+                testStruct.args.tipAmt,
+                testStruct.args.tipAmt,
                 payable(bob)
             )
         );
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
-            toErc721Struct.zone,
+            testStruct.args.zone,
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            toErc721Struct.zoneHash,
-            toErc721Struct.salt,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
             conduitKey,
             considerationItems.length - 1
         );
 
-        _consideration.fulfillOrder{
-            value: toErc721Struct.paymentAmts[0] +
-                toErc721Struct.paymentAmts[1] +
-                toErc721Struct.paymentAmts[2] +
-                tipAmt
+        testStruct.consideration.fulfillOrder{
+            value: testStruct.args.paymentAmts[0] +
+                testStruct.args.paymentAmts[1] +
+                testStruct.args.paymentAmts[2] +
+                testStruct.args.tipAmt
         }(Order(orderParameters, signature), conduitKey);
     }
 
