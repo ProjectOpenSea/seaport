@@ -6,39 +6,12 @@ import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.so
 import { Consideration } from "../../contracts/Consideration.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+import { ReentrantContract } from "./utils/reentrancy/ReentrantContract.sol";
+import { EntryPoint, ReentrancyPoint } from "./utils/reentrancy/ReentrantEnums.sol";
+import { FulfillBasicOrderParameters, FulfillOrderParameters, FulfillAdvancedOrderParameters, FulfillAvailableOrdersParameters, FulfillAvailableAdvancedOrdersParameters, MatchOrdersParameters, MatchAdvancedOrdersParameters, CancelParameters, ValidateParameters, ReentrantCallParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
 
 contract NonReentrantTest is BaseOrderTest {
-    /**
-     * @dev Enum of functions that set the reentrancy guard
-     */
-    enum EntryPoint {
-        FULFILL_BASIC_ORDER,
-        FULFILL_ORDER,
-        FULFILL_ADVANCED_ORDER,
-        FULFILL_AVAILABLE_ORDERS,
-        FULFILL_AVAILABLE_ADVANCED_ORDERS,
-        MATCH_ORDERS,
-        MATCH_ADVANCED_ORDERS
-    }
-
-    /**
-     * @dev Enum of functions that check the reentrancy guard
-     */
-    enum ReentrancyPoint {
-        FULFILL_BASIC_ORDER,
-        FULFILL_ORDER,
-        FULFILL_ADVANCED_ORDER,
-        FULFILL_AVAILABLE_ORDERS,
-        FULFILL_AVAILABLE_ADVANCED_ORDERS,
-        MATCH_ORDERS,
-        MATCH_ADVANCED_ORDERS,
-        CANCEL,
-        VALIDATE,
-        INCREMENT_NONCE
-    }
+    ReentrantContract reenterer;
 
     /**
      * @dev struct to test combinations of entrypoints and reentrancy points
@@ -53,17 +26,51 @@ contract NonReentrantTest is BaseOrderTest {
         NonReentrantInputs args;
     }
 
-    // function testNonReentrant(NonReentrantInputs memory inputs) public {
-    //     _testNonReentrant(
-    //         NonReentrantDifferentialInputs(consideration, inputs)
-    //     );
-    //     _testNonReentrant(
-    //         NonReentrantDifferentialInputs(referenceConsideration, inputs)
-    //     );
+    function setUp() public virtual override {
+        super.setUp();
+        // reenterer = new ReentrantContract();
+    }
+
+    function testNonReentrant(NonReentrantInputs memory inputs) public {
+        _testNonReentrant(
+            NonReentrantDifferentialInputs(consideration, inputs)
+        );
+        _testNonReentrant(
+            NonReentrantDifferentialInputs(referenceConsideration, inputs)
+        );
+    }
+
+    // function constructReentrantContract(
+    //     Consideration _consideration,
+    //     ReentrancyPoint _reentrancyPoint
+    // ) internal {
+    //     if (_reentrancyPoint == ReentrancyPoint.FulfillBasicOrder) {} else if (
+    //         _reentrancyPoint == ReentrancyPoint.FulfillOrder
+    //     ) {
+
+    //     } else if (
+    //         _reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder
+    //     ) {} else if (
+    //         _reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders
+    //     ) {} else if (
+    //         _reentrancyPoint == ReentrancyPoint.FulfillAvailableAdvancedOrders
+    //     ) {} else if (
+    //         _reentrancyPoint == ReentrancyPoint.MatchOrders
+    //     ) {} else if (
+    //         _reentrancyPoint == ReentrancyPoint.MatchAdvancedOrders
+    //     ) {} else if (_reentrancyPoint == ReentrancyPoint.Cancel) {} else if (
+    //         _reentrancyPoint == ReentrancyPoint.Validate
+    //     ) {}
+    //     reenterer = new ReentrantContract(consideration, _reentrancyPoint);
     // }
 
     function _testNonReentrant(NonReentrantDifferentialInputs memory inputs)
         internal
         resetTokenBalancesBetweenRuns
-    {}
+    {
+        reenterer = new ReentrantContract(
+            inputs.consideration,
+            inputs.args.reentrancyPoint
+        );
+    }
 }
