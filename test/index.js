@@ -13453,7 +13453,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         }
 
-        order.parameters.extraData = "0x01";
+        order.extraData = "0x01";
 
         if (!process.env.REFERENCE) {
           await whileImpersonating(buyer.address, provider, async () => {
@@ -13527,7 +13527,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         }
 
-        order.parameters.extraData = "0x01";
+        order.extraData = "0x01";
 
         if (!process.env.REFERENCE) {
           await whileImpersonating(buyer.address, provider, async () => {
