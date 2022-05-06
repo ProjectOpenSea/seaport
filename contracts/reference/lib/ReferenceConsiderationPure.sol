@@ -826,7 +826,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory considerationComponents,
         uint256 startIndex
-    ) internal view returns (ReceivedItem memory receivedItem) {
+    ) internal pure returns (ReceivedItem memory receivedItem) {
         // Declare struct in memory to avoid declaring multiple local variables
         ConsiderationItemIndicesAndValidity memory potentialCandidate;
         potentialCandidate.orderIndex = considerationComponents[startIndex]
