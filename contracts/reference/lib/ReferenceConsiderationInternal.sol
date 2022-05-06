@@ -693,7 +693,7 @@ contract ReferenceConsiderationInternal is
         );
 
         // Emit an event signifying that the order has been fulfilled.
-        _emitOrderFulfilledEvent( 
+        _emitOrderFulfilledEvent(
             orderHash,
             orderParameters.offerer,
             orderParameters.zone,
@@ -701,7 +701,7 @@ contract ReferenceConsiderationInternal is
             orderParameters.offer,
             orderParameters.consideration
         );
-       /*emit OrderFulfilled(
+        /*emit OrderFulfilled(
             orderHash,
             orderParameters.offerer,
             orderParameters.zone,
@@ -740,7 +740,7 @@ contract ReferenceConsiderationInternal is
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-   /* function _validateAndFulfillOrderToExecute(
+    /* function _validateAndFulfillOrderToExecute(
         AdvancedOrder memory advancedOrder,
         OrderToExecute memory orderToExecute,
         CriteriaResolver[] memory criteriaResolvers,
@@ -821,7 +821,7 @@ contract ReferenceConsiderationInternal is
      *                            signifies to utilize the legacy user proxy for
      *                            the fulfiller.
      */
-   function _applyFractionsAndTransferEach(
+    function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
@@ -1021,7 +1021,7 @@ contract ReferenceConsiderationInternal is
             _transferEth(payable(msg.sender), etherRemaining);
         }
     }
-    
+
     /**
      * @dev Internal function to validate a group of orders, update their
      *      statuses, reduce amounts by their previously filled fractions, apply
@@ -1092,7 +1092,7 @@ contract ReferenceConsiderationInternal is
                 // Mark fill fraction as zero if the order is not fulfilled.
                 advancedOrder.numerator = 0;
 
-                 // Mark fill fraction as zero as the order will not be used.
+                // Mark fill fraction as zero as the order will not be used.
                 orderToExecute.numerator = 0;
 
                 // Continue iterating through the remaining orders.
@@ -1209,8 +1209,9 @@ contract ReferenceConsiderationInternal is
                     )
                 );
 
-                 // Modify the OrderToExecute Received Item Amount
-                orderToExecute.receivedItems[j].amount = considerationItem.startAmount;          
+                // Modify the OrderToExecute Received Item Amount
+                orderToExecute.receivedItems[j].amount = considerationItem
+                    .startAmount;
             }
         }
 
@@ -1235,8 +1236,9 @@ contract ReferenceConsiderationInternal is
 
             SpentItem[] memory spentItems = ordersToExecute[i].spentItems;
 
-            ReceivedItem[] memory receivedItems = ordersToExecute[i].receivedItems;
-            
+            ReceivedItem[] memory receivedItems = ordersToExecute[i]
+                .receivedItems;
+
             emit OrderFulfilled(
                 orderHashes[i],
                 orderParameters.offerer,
@@ -1248,7 +1250,7 @@ contract ReferenceConsiderationInternal is
         }
     }
 
-     /**
+    /**
      * @dev Internal function to fulfill an arbitrary number of orders, either
      *      full or partial, after validating, adjusting amounts, and applying
      *      criteria resolvers.
@@ -1331,7 +1333,7 @@ contract ReferenceConsiderationInternal is
         return (standardExecutions, batchExecutions);
     }
 
-     /**
+    /**
      * @notice Internal function to attempt to fill a group of orders, fully or
      *         partially, with an arbitrary number of items for offer and
      *         consideration per order alongside criteria resolvers containing
@@ -1362,7 +1364,7 @@ contract ReferenceConsiderationInternal is
      *                                  considered valid.
      *
      * @param ordersToExecute           The orders to execute
-     *                                  
+     *
      * @param criteriaResolvers         An array where each element contains a
      *                                  reference to a specific offer or
      *                                  consideration, a token identifier, and a
@@ -1438,7 +1440,6 @@ contract ReferenceConsiderationInternal is
         // Return order fulfillment details and executions.
         return (availableOrders, standardExecutions, batchExecutions);
     }
-
 
     /**
      * @dev Internal function to fulfill a group of validated orders, fully or
@@ -1593,7 +1594,7 @@ contract ReferenceConsiderationInternal is
         return _performFinalChecksAndExecuteOrders(ordersToExecute, executions);
     }
 
-     /**
+    /**
      * @dev Internal function to perform a final check that each consideration
      *      item for an arbitrary number of fulfilled orders has been met and to
      *      compress and trigger associated execututions, transferring the
@@ -1651,10 +1652,9 @@ contract ReferenceConsiderationInternal is
                 advancedOrder.parameters.consideration
             );*/
 
-            ReceivedItem[] memory consideration  = (
+            ReceivedItem[] memory consideration = (
                 orderToExecute.receivedItems
             );
-
 
             // Iterate over each consideration item to ensure it is met.
             for (uint256 j = 0; j < consideration.length; ++j) {

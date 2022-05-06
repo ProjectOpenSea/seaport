@@ -7,10 +7,7 @@ import {
     ItemType
 } from "../../lib/ConsiderationEnums.sol";
 
-import {
-    SpentItem,
-    ReceivedItem
-} from "../../lib/ConsiderationStructs.sol";
+import { SpentItem, ReceivedItem } from "../../lib/ConsiderationStructs.sol";
 
 // This file should only be used by the Reference Implementation
 
@@ -48,7 +45,7 @@ struct BasicFulfillmentHashes {
 struct OrderToExecute {
     address offerer;
     SpentItem[] spentItems; // Offer
-    ReceivedItem[]  receivedItems; // Consideration
+    ReceivedItem[] receivedItems; // Consideration
     bytes32 conduitKey;
     uint120 numerator;
 }

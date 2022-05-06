@@ -324,8 +324,6 @@ contract ReferenceConsideration is
             new CriteriaResolver[](0), // No criteria resolvers supplied.
             fulfillerConduitKey
         );*/
-
-     
     }
 
     /**
@@ -369,7 +367,6 @@ contract ReferenceConsideration is
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
     ) external payable override notEntered nonReentrant returns (bool) {
-        
         // Validate and fulfill the order.
         return
             _validateAndFulfillAdvancedOrder(
@@ -453,25 +450,27 @@ contract ReferenceConsideration is
             BatchExecution[] memory batchExecutions
         )
     {
-        
         // Convert orders to "advanced" orders.
         AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
             orders
         );
         // Convert Advanced Orders to Orders To Execute
-        OrderToExecute[] memory ordersToExecute = _convertAdvancedtoOrdersToExecute(advancedOrders);
+        OrderToExecute[]
+            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+                advancedOrders
+            );
 
         // Fulfill all available orders.
         return
-        _fulfillAvailableAdvancedOrders(
-            advancedOrders,
-            ordersToExecute, 
-            new CriteriaResolver[](0), // No criteria resolvers supplied.
-            offerFulfillments,
-            considerationFulfillments,
-            fulfillerConduitKey,
-            maximumFulfilled
-        );
+            _fulfillAvailableAdvancedOrders(
+                advancedOrders,
+                ordersToExecute,
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                offerFulfillments,
+                considerationFulfillments,
+                fulfillerConduitKey,
+                maximumFulfilled
+            );
     }
 
     /**
@@ -557,23 +556,23 @@ contract ReferenceConsideration is
             BatchExecution[] memory batchExecutions
         )
     {
-        
         // Convert Advanced Orders to Orders to Execute
-        OrderToExecute[] memory ordersToExecute = _convertAdvancedtoOrdersToExecute(advancedOrders);
-    
+        OrderToExecute[]
+            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+                advancedOrders
+            );
+
         // Fulfill all available orders.
         return
-        _fulfillAvailableAdvancedOrders(
-            advancedOrders,
-            ordersToExecute,
-            criteriaResolvers,
-            offerFulfillments,
-            considerationFulfillments,
-            fulfillerConduitKey,
-            maximumFulfilled
-        );
-
-            
+            _fulfillAvailableAdvancedOrders(
+                advancedOrders,
+                ordersToExecute,
+                criteriaResolvers,
+                offerFulfillments,
+                considerationFulfillments,
+                fulfillerConduitKey,
+                maximumFulfilled
+            );
     }
 
     /**
@@ -621,10 +620,13 @@ contract ReferenceConsideration is
         AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
             orders
         );
- 
+
         // Convert advanced orders to orders to execute.
-        OrderToExecute[] memory ordersToExecute = _convertAdvancedtoOrdersToExecute(advancedOrders);
-        
+        OrderToExecute[]
+            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+                advancedOrders
+            );
+
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             ordersToExecute,
@@ -633,7 +635,7 @@ contract ReferenceConsideration is
             advancedOrders.length
         );
 
-        // Fulfill the orders using the supplied fulfillments.    
+        // Fulfill the orders using the supplied fulfillments.
         return _fulfillAdvancedOrders(ordersToExecute, fulfillments);
     }
 
@@ -692,7 +694,10 @@ contract ReferenceConsideration is
         )
     {
         // Convert Advanced Orders to Orders to Execute
-        OrderToExecute[] memory ordersToExecute = _convertAdvancedtoOrdersToExecute(advancedOrders);
+        OrderToExecute[]
+            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+                advancedOrders
+            );
 
         // Validate orders, apply amounts, & determine if they utilize conduits.
         _validateOrdersAndPrepareToFulfill(

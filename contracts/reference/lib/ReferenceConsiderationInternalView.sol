@@ -26,7 +26,8 @@ import { ReferenceConsiderationPure } from "./ReferenceConsiderationPure.sol";
 
 import "./ReferenceConsiderationConstants.sol";
 
-import { OrderToExecute }from "./ReferenceConsiderationStructs.sol";
+import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
+
 /**
  * @title ReferenceConsiderationInternalView
  * @author 0age
@@ -530,7 +531,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         return execution; // Execution(considerationItem, offerer, conduitKey);
     }
 
-     /**
+    /**
      * @dev Internal view function to aggregate offer or consideration items
      *      from a group of orders into a single execution via a supplied array
      *      of fulfillment components. Items that are not available to aggregate
@@ -569,7 +570,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
 
         // _validateOrdersAndPrepareToFulfill should have only filled
         // ordersToExecute withe fulfillable orders, so we shouldn't
-        // have to check 
+        // have to check
 
         // Determine component index after first available (0 implies none).
         uint256 nextComponentIndex = 0;
@@ -634,7 +635,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         }
     }
 
-     /**
+    /**
      * @dev Internal pure function to check the indicated offer item matches original item.
      *
      * @param orderToExecute  The order to compare.
@@ -656,7 +657,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             execution.item.token != offer.token;
     }
 
-     /**
+    /**
      * @dev Internal pure function to aggregate a group of offer items using
      *      supplied directives on which component items are candidates for
      *      aggregation, skipping items on orders that are not available.
