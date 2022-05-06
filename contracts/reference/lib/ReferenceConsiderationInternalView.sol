@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.7;
 
 import { EIP1271Interface } from "../../interfaces/EIP1271Interface.sol";
 
@@ -195,7 +195,9 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         // prettier-ignore
         return block.chainid == _CHAIN_ID
             ? _DOMAIN_SEPARATOR
-            : _deriveDomainSeparator();
+            : _deriveDomainSeparator(_EIP_712_DOMAIN_TYPEHASH,
+                _NAME_HASH,
+                _VERSION_HASH);
     }
 
     /// @dev Internal view function to derive the EIP-712 hash for an offer item.

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.7;
 
 // prettier-ignore
 import {
@@ -1855,7 +1855,7 @@ contract ReferenceConsiderationInternal is
         uint256[] memory amounts = batchExecution.amounts;
 
         // If no conduit has been specified...
-        if (conduitKey == bytes32(0)) {
+        if (batchExecution.conduitKey == bytes32(0)) {
             // Perform transfer via the token contract directly.
             _performERC1155BatchTransfer(token, from, to, tokenIds, amounts);
         } else {
