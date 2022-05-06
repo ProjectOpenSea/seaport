@@ -318,12 +318,6 @@ contract ReferenceConsideration is
         );
 
         // TODO: Make these work with Orders To Execute
-        /*return _validateAndFulfillOrderToExecute(
-            _convertOrderToAdvanced(order),
-            _convertOrderToOrderToExecute(order),
-            new CriteriaResolver[](0), // No criteria resolvers supplied.
-            fulfillerConduitKey
-        );*/
     }
 
     /**
@@ -376,14 +370,6 @@ contract ReferenceConsideration is
             );
 
         // TODO: Make these work with Orders To Execute
-        /*
-                 return
-            _validateAndFulfillOrderToExecute(
-                advancedOrder,
-                _convertAdvancedToOrder(advancedOrder),
-                criteriaResolvers,
-                fulfillerConduitKey
-            );*/
     }
 
     /**
