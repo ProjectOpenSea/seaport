@@ -819,7 +819,11 @@ contract ReferenceConsiderationInternal is
                 }
 
                 // Transfer the item from the offerer to the caller.
-                _transfer(receivedItem, orderParameters.offerer, offererConduitKey);
+                _transfer(
+                    receivedItem,
+                    orderParameters.offerer,
+                    offererConduitKey
+                );
             }
         }
 
