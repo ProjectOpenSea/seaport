@@ -388,7 +388,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
     function _testFulfillOrderEthToERC721WithSingleTip(
         Consideration _consideration,
-        uint256 tipAmt,
+        uint128 tipAmt,
         ToErc721Struct memory toErc721Struct
     )
         internal
