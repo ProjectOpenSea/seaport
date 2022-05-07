@@ -68,6 +68,8 @@
     "prepare": "husky install"
   },
   "lint-staged": {
-    "*": "yarn lint:fix"
+    "*.sol": "prettier --write",
+    "*.js": "prettier --write",
+    "*.ts": "prettier --write"
   }
 }
