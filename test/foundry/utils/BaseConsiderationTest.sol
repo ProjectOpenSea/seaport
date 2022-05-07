@@ -45,7 +45,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
 
         bytes memory bytecode = abi.encodePacked(
             vm.getCode(
-                "reference-precompiled/ReferenceConsideration.sol/ReferenceConsideration.json"
+                "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json"
             ),
             abi.encode(address(conduitController))
         );

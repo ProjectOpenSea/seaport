@@ -90,8 +90,8 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
-      - name: Install solmate
-        run: forge install Rari-Capital/solmate
+      - name: Precompile reference using 0.8.7 and via-ir=false
+        run: FOUNDRY_PROFILE=reference forge build
 
       - name: Run tests
         run: forge test -vvv

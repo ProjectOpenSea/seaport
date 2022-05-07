@@ -15,6 +15,7 @@ hh-cache-ref/
 #foundry test compilation files
 cache
 out
+reference-out
 
 .DS_Store
 

@@ -36,6 +36,7 @@
     "eslint-plugin-promise": "^6.0.0",
     "ethereum-waffle": "^3.4.0",
     "hardhat-gas-reporter": "^1.0.7",
+    "pre-commit": "^1.2.2",
     "prettier": "^2.5.1",
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "solhint": "^3.3.6",
@@ -61,6 +62,10 @@
     "coverage": "hardhat coverage --config hardhat-coverage.config.ts",
     "coverage:ref": "REFERENCE=true hardhat coverage --config hardhat-reference-coverage.config.ts --solcoverjs ./.solcover-reference.js",
     "lint:check": "prettier --check **.sol && prettier --check **.js && prettier --check **.ts && hardhat compile && npx solhint 'contracts/**/*.sol'",
-    "lint:fix": "prettier --write **.sol && prettier --write **.js && prettier --write **.ts"
-  }
+    "lint:fix": "prettier --write **.sol && prettier --write **.js && prettier --write **.ts",
+    "test:forge": "FOUNDRY_PROFILE=reference forge build; forge test -vvv"
+  },
+  "pre-commit": [
+    "lint:fix"
+  ]
 }
