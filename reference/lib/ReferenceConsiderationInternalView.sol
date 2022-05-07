@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-import { EIP1271Interface } from "../../interfaces/EIP1271Interface.sol";
+import { EIP1271Interface } from "contracts/interfaces/EIP1271Interface.sol";
 
-import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
 
-import { OrderType, ItemType, Side } from "../../lib/ConsiderationEnums.sol";
+import { OrderType, ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -20,7 +20,7 @@ import {
     OrderStatus,
     Execution,
     FulfillmentComponent
-} from "../../lib/ConsiderationStructs.sol";
+} from "contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceConsiderationPure } from "./ReferenceConsiderationPure.sol";
 

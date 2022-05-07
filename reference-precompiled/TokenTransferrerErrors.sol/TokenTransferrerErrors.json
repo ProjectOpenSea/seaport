@@ -1,0 +1,706 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "BadReturnValueFromERC20OnTransfer",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "identifiers",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "amounts",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "ERC1155BatchTransferGenericFailure",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidERC721TransferAmount",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "NoContract",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "identifier",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "TokenTransferGenericFailure",
+      "type": "error"
+    }
+  ],
+  "bytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "ast": {
+    "absolutePath": "/Users/jameswenzel/dev/consideration/contracts/interfaces/TokenTransferrerErrors.sol",
+    "id": 824,
+    "exportedSymbols": {
+      "TokenTransferrerErrors": [
+        823
+      ]
+    },
+    "nodeType": "SourceUnit",
+    "src": "32:2324:9",
+    "nodes": [
+      {
+        "id": 774,
+        "nodeType": "PragmaDirective",
+        "src": "32:24:9",
+        "literals": [
+          "solidity",
+          ">=",
+          "0.8",
+          ".7"
+        ]
+      },
+      {
+        "id": 823,
+        "nodeType": "ContractDefinition",
+        "src": "99:2256:9",
+        "nodes": [
+          {
+            "id": 778,
+            "nodeType": "ErrorDefinition",
+            "src": "264:36:9",
+            "documentation": {
+              "id": 776,
+              "nodeType": "StructuredDocumentation",
+              "src": "138:121:9",
+              "text": " @dev Revert with an error when an ERC721 transfer with amount other than\n      one is attempted."
+            },
+            "name": "InvalidERC721TransferAmount",
+            "nameLocation": "270:27:9",
+            "parameters": {
+              "id": 777,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "297:2:9"
+            }
+          },
+          {
+            "id": 791,
+            "nodeType": "ErrorDefinition",
+            "src": "766:157:9",
+            "documentation": {
+              "id": 779,
+              "nodeType": "StructuredDocumentation",
+              "src": "306:455:9",
+              "text": " @dev Revert with an error when an ERC20, ERC721, or ERC1155 token\n      transfer reverts.\n @param token      The token for which the transfer was attempted.\n @param from       The source of the attempted transfer.\n @param to         The recipient of the attempted transfer.\n @param identifier The identifier for the attempted transfer.\n @param amount     The amount for the attempted transfer."
+            },
+            "name": "TokenTransferGenericFailure",
+            "nameLocation": "772:27:9",
+            "parameters": {
+              "id": 790,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 781,
+                  "mutability": "mutable",
+                  "name": "token",
+                  "nameLocation": "817:5:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 791,
+                  "src": "809:13:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 780,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "809:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 783,
+                  "mutability": "mutable",
+                  "name": "from",
+                  "nameLocation": "840:4:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 791,
+                  "src": "832:12:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 782,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "832:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 785,
+                  "mutability": "mutable",
+                  "name": "to",
+                  "nameLocation": "862:2:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 791,
+                  "src": "854:10:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 784,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "854:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 787,
+                  "mutability": "mutable",
+                  "name": "identifier",
+                  "nameLocation": "882:10:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 791,
+                  "src": "874:18:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 786,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "874:7:9",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 789,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "910:6:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 791,
+                  "src": "902:14:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 788,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "902:7:9",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "799:123:9"
+            }
+          },
+          {
+            "id": 806,
+            "nodeType": "ErrorDefinition",
+            "src": "1371:170:9",
+            "documentation": {
+              "id": 792,
+              "nodeType": "StructuredDocumentation",
+              "src": "929:437:9",
+              "text": " @dev Revert with an error when a batch ERC1155 token transfer reverts.\n @param token       The token for which the transfer was attempted.\n @param from        The source of the attempted transfer.\n @param to          The recipient of the attempted transfer.\n @param identifiers The identifiers for the attempted transfer.\n @param amounts     The amounts for the attempted transfer."
+            },
+            "name": "ERC1155BatchTransferGenericFailure",
+            "nameLocation": "1377:34:9",
+            "parameters": {
+              "id": 805,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 794,
+                  "mutability": "mutable",
+                  "name": "token",
+                  "nameLocation": "1429:5:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 806,
+                  "src": "1421:13:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 793,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1421:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 796,
+                  "mutability": "mutable",
+                  "name": "from",
+                  "nameLocation": "1452:4:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 806,
+                  "src": "1444:12:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 795,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1444:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 798,
+                  "mutability": "mutable",
+                  "name": "to",
+                  "nameLocation": "1474:2:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 806,
+                  "src": "1466:10:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 797,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1466:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 801,
+                  "mutability": "mutable",
+                  "name": "identifiers",
+                  "nameLocation": "1496:11:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 806,
+                  "src": "1486:21:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_uint256_$dyn_memory_ptr",
+                    "typeString": "uint256[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 799,
+                      "name": "uint256",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "1486:7:9",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "id": 800,
+                    "nodeType": "ArrayTypeName",
+                    "src": "1486:9:9",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+                      "typeString": "uint256[]"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 804,
+                  "mutability": "mutable",
+                  "name": "amounts",
+                  "nameLocation": "1527:7:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 806,
+                  "src": "1517:17:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_array$_t_uint256_$dyn_memory_ptr",
+                    "typeString": "uint256[]"
+                  },
+                  "typeName": {
+                    "baseType": {
+                      "id": 802,
+                      "name": "uint256",
+                      "nodeType": "ElementaryTypeName",
+                      "src": "1517:7:9",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "id": 803,
+                    "nodeType": "ArrayTypeName",
+                    "src": "1517:9:9",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_array$_t_uint256_$dyn_storage_ptr",
+                      "typeString": "uint256[]"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1411:129:9"
+            }
+          },
+          {
+            "id": 817,
+            "nodeType": "ErrorDefinition",
+            "src": "1958:135:9",
+            "documentation": {
+              "id": 807,
+              "nodeType": "StructuredDocumentation",
+              "src": "1547:406:9",
+              "text": " @dev Revert with an error when an ERC20 token transfer returns a falsey\n      value.\n @param token      The token for which the ERC20 transfer was attempted.\n @param from       The source of the attempted ERC20 transfer.\n @param to         The recipient of the attempted ERC20 transfer.\n @param amount     The amount for the attempted ERC20 transfer."
+            },
+            "name": "BadReturnValueFromERC20OnTransfer",
+            "nameLocation": "1964:33:9",
+            "parameters": {
+              "id": 816,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 809,
+                  "mutability": "mutable",
+                  "name": "token",
+                  "nameLocation": "2015:5:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 817,
+                  "src": "2007:13:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 808,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2007:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 811,
+                  "mutability": "mutable",
+                  "name": "from",
+                  "nameLocation": "2038:4:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 817,
+                  "src": "2030:12:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 810,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2030:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 813,
+                  "mutability": "mutable",
+                  "name": "to",
+                  "nameLocation": "2060:2:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 817,
+                  "src": "2052:10:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 812,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2052:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 815,
+                  "mutability": "mutable",
+                  "name": "amount",
+                  "nameLocation": "2080:6:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 817,
+                  "src": "2072:14:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 814,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2072:7:9",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1997:95:9"
+            }
+          },
+          {
+            "id": 822,
+            "nodeType": "ErrorDefinition",
+            "src": "2319:34:9",
+            "documentation": {
+              "id": 818,
+              "nodeType": "StructuredDocumentation",
+              "src": "2099:215:9",
+              "text": " @dev Revert with an error when an account being called as an assumed\n      contract does not have code and returns no data.\n @param account The account that should contain code."
+            },
+            "name": "NoContract",
+            "nameLocation": "2325:10:9",
+            "parameters": {
+              "id": 821,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 820,
+                  "mutability": "mutable",
+                  "name": "account",
+                  "nameLocation": "2344:7:9",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 822,
+                  "src": "2336:15:9",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 819,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2336:7:9",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2335:17:9"
+            }
+          }
+        ],
+        "abstract": false,
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "interface",
+        "documentation": {
+          "id": 775,
+          "nodeType": "StructuredDocumentation",
+          "src": "58:40:9",
+          "text": " @title TokenTransferrerErrors"
+        },
+        "fullyImplemented": true,
+        "linearizedBaseContracts": [
+          823
+        ],
+        "name": "TokenTransferrerErrors",
+        "nameLocation": "109:22:9",
+        "scope": 824,
+        "usedErrors": [
+          778,
+          791,
+          806,
+          817,
+          822
+        ]
+      }
+    ],
+    "license": "MIT"
+  }
+}

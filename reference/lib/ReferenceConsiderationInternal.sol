@@ -6,13 +6,13 @@ import {
     ERC20Interface,
     ERC721Interface,
     ERC1155Interface
-} from "../../interfaces/AbridgedTokenInterfaces.sol";
+} from "contracts/interfaces/AbridgedTokenInterfaces.sol";
 
-import { ConduitInterface } from "../../interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
 
-import { ProxyInterface } from "../../interfaces/AbridgedProxyInterfaces.sol";
+import { ProxyInterface } from "contracts/interfaces/AbridgedProxyInterfaces.sol";
 
-import { Side, OrderType, ItemType } from "../../lib/ConsiderationEnums.sol";
+import { Side, OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
 import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
 
@@ -36,7 +36,7 @@ import {
     CriteriaResolver,
     Batch,
     BatchExecution
-} from "../../lib/ConsiderationStructs.sol";
+} from "contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceConsiderationInternalView } from "./ReferenceConsiderationInternalView.sol";
 
@@ -48,9 +48,9 @@ import { FulfillmentItemTypes, BasicFulfillmentHashes } from "./ReferenceConside
 import {
     ConduitTransfer,
     ConduitBatch1155Transfer
-} from "../../conduit/lib/ConduitStructs.sol";
+} from "contracts/conduit/lib/ConduitStructs.sol";
 
-import { ConduitItemType } from "../../conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "contracts/conduit/lib/ConduitEnums.sol";
 
 /**
  * @title ReferenceConsiderationInternal
