@@ -12,5 +12,4 @@ contract ERC721Recipient is ERC721TokenReceiver {
     ) public virtual override returns (bytes4) {
         return ERC721TokenReceiver.onERC721Received.selector;
     }
-    // cool!
 }
