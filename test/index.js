@@ -23,7 +23,7 @@ const {
 const { eip712DomainType } = require("../eip-712-types/domain");
 const { orderType } = require("../eip-712-types/order");
 
-const VERSION = "1";
+const VERSION = !process.env.REFERENCE ? "1" : "rc.1";
 
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
