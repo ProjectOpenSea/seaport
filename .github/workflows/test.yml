@@ -73,6 +73,28 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: yarn test:ref
+  
+  forge:
+    name: Run Forge Tests (no IR)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Precompile reference using 0.8.7 and via-ir=false
+        run: FOUNDRY_PROFILE=reference forge build
+
+      - name: Run tests
+        run: FOUNDRY_PROFILE=quick forge test -vvv
 
   forge:
     name: Run Forge Tests

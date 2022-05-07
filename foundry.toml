@@ -19,4 +19,7 @@ out = 'reference-out'
 # specify something so it doesn't try to compile the 0.8.13 files in test/foundry
 test = 'reference'
 
+[quick]
+via_ir = false
+
 # See more config options https://github.com/gakonst/foundry/tree/master/config
