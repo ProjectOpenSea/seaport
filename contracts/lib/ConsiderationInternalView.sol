@@ -239,7 +239,16 @@ contract ConsiderationInternalView is ConsiderationPure {
         view
         returns (bool success)
     {
-        (success, ) = target.staticcall(callData);
+        assembly {
+            success := staticcall(
+                gas(),
+                target,
+                add(callData, 0x20),
+                mload(callData),
+                0,
+                0
+            )
+        }
     }
 
     /**
