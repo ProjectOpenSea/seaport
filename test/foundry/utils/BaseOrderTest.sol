@@ -10,7 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { ConsiderationItem, OfferItem } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ConsiderationItem, OfferItem, FulfillmentComponent } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -50,6 +50,14 @@ contract BaseOrderTest is
     OfferItem[] offerItems;
     ConsiderationItem[] considerationItems;
 
+    FulfillmentComponent[][] offerFulfillments;
+    FulfillmentComponent[][] considerationFulfillments;
+
+    FulfillmentComponent[] firstOfferFulfillment;
+    FulfillmentComponent[] firstConsiderationFulfillment;
+    FulfillmentComponent[] secondConsiderationFulfillment;
+    FulfillmentComponent[] thirdConsiderationFulfillment;
+
     uint256 internal globalTokenId;
 
     struct RestoreERC20Balance {
@@ -87,12 +95,16 @@ contract BaseOrderTest is
         _resetTokensAndEthForTestAccounts();
         delete offerItems;
         delete considerationItems;
+        delete offerFulfillments;
+        delete considerationFulfillments;
     }
 
     function setUp() public virtual override {
         super.setUp();
         delete offerItems;
         delete considerationItems;
+        delete offerFulfillments;
+        delete considerationFulfillments;
 
         vm.label(alice, "alice");
         vm.label(bob, "bob");
