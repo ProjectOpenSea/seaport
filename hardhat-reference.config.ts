@@ -51,6 +51,7 @@ const config: HardhatUserConfig = {
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
   paths: {
+    sources: "./reference",
     cache: "hh-cache-ref",
     artifacts: "./artifacts-ref",
   },

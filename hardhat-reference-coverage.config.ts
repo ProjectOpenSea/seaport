@@ -35,6 +35,11 @@ const config: HardhatUserConfig = {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
   },
+  paths: {
+    sources: "./reference",
+    cache: "hh-cache-ref",
+    artifacts: "./artifacts-ref",
+  },
 };
 
 export default config;

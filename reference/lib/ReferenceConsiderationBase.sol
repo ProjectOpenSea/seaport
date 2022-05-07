@@ -5,19 +5,19 @@ pragma solidity 0.8.7;
 import {
     ProxyRegistryInterface,
     TokenTransferProxyInterface
-} from "../../interfaces/AbridgedProxyInterfaces.sol";
+} from "contracts/interfaces/AbridgedProxyInterfaces.sol";
 
 // prettier-ignore
 import {
     ConduitControllerInterface
-} from "../../interfaces/ConduitControllerInterface.sol";
+} from "contracts/interfaces/ConduitControllerInterface.sol";
 
 // prettier-ignore
 import {
     ConsiderationEventsAndErrors
-} from "../../interfaces/ConsiderationEventsAndErrors.sol";
+} from "contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
-import { OrderStatus } from "../../lib/ConsiderationStructs.sol";
+import { OrderStatus } from "contracts/lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationBase

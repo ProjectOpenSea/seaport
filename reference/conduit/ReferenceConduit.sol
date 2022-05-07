@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-import { ConduitInterface } from "../../interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
 
-import { ConduitItemType } from "../../conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "contracts/conduit/lib/ConduitEnums.sol";
 
 // prettier-ignore
 import {
@@ -14,7 +14,7 @@ import {
 import {
     ConduitTransfer,
     ConduitBatch1155Transfer
-} from "../../conduit/lib/ConduitStructs.sol";
+} from "contracts/conduit/lib/ConduitStructs.sol";
 
 /**
  * @title ReferenceConduit

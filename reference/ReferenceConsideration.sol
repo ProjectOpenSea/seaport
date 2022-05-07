@@ -4,14 +4,14 @@ pragma solidity 0.8.7;
 // prettier-ignore
 import {
     ConsiderationInterface
-} from "../interfaces/ConsiderationInterface.sol";
+} from "contracts/interfaces/ConsiderationInterface.sol";
 
 // prettier-ignore
 import {
     OrderType,
     ItemType,
     BasicOrderRouteType
-} from "../lib/ConsiderationEnums.sol";
+} from "contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -28,7 +28,7 @@ import {
     OrderStatus,
     CriteriaResolver,
     BatchExecution
-} from "../lib/ConsiderationStructs.sol";
+} from "contracts/lib/ConsiderationStructs.sol";
 
 // prettier-ignore
 import {
