@@ -27,8 +27,8 @@ import { OrderStatus } from "./ConsiderationStructs.sol";
  */
 contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Declare constants for name, version, and reentrancy sentinel values.
-    string internal constant _NAME = "Consideration";
-    string internal constant _VERSION = "rc.1";
+    uint256 internal constant _NAME = uint256(0x436F6E73696465726174696F6E00000000000000000000000000000000000000);
+    uint256 internal constant _VERSION = uint256(0x3100000000000000000000000000000000000000000000000000000000000000);
     uint256 internal constant _NOT_ENTERED = 1;
     uint256 internal constant _ENTERED = 2;
 
@@ -68,8 +68,8 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      */
     constructor(address conduitController) {
         // Derive hashes, reference chainId, and associated domain separator.
-        _NAME_HASH = keccak256(bytes(_NAME));
-        _VERSION_HASH = keccak256(bytes(_VERSION));
+        _NAME_HASH = keccak256(bytes("Consideration"));
+        _VERSION_HASH = keccak256(bytes("1"));
 
         // prettier-ignore
         bytes memory offerItemTypeString = abi.encodePacked(

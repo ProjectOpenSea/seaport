@@ -966,9 +966,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             address conduitController
         )
     {
-        version = _VERSION;
+        uint256 versionBytes = _VERSION;
         domainSeparator = _domainSeparator();
         conduitController = address(_CONDUIT_CONTROLLER);
+        version = new string(1);
+        assembly {
+            mstore(add(version, 0x20), versionBytes)
+        }
     }
 
     /**
@@ -977,7 +981,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return The name of this contract.
      */
     function name() external pure override returns (string memory) {
+        uint256 nameBytes = _NAME;
         // Return the name of the contract.
-        return _NAME;
+        assembly {
+            mstore(0x00, 0x20)
+            mstore(0x20, 13)
+            mstore(0x40, nameBytes)
+            return(0, 0x60)
+        }
     }
 }
