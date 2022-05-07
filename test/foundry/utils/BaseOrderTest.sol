@@ -296,4 +296,6 @@ contract BaseOrderTest is
             .with_key(restoreErc20Balance.who)
             .checked_write(uint128(MAX_INT));
     }
+
+    receive() external payable {}
 }

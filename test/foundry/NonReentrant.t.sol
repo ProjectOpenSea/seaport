@@ -14,6 +14,15 @@ contract NonReentrantTest is BaseOrderTest {
     ReentrantContract reenterer;
 
     /**
+     * @dev Foundry fuzzes enums as uints, so we need to manually fuzz on uints and use vm.assume
+     * to filter out invalid values
+     */
+    struct NonReentrantIntermediaryInputs {
+        uint8 entryPoint;
+        uint8 reentrancyPoint;
+    }
+
+    /**
      * @dev struct to test combinations of entrypoints and reentrancy points
      */
     struct NonReentrantInputs {
@@ -31,7 +40,14 @@ contract NonReentrantTest is BaseOrderTest {
         // reenterer = new ReentrantContract();
     }
 
-    function testNonReentrant(NonReentrantInputs memory inputs) public {
+    function testNonReentrant(NonReentrantIntermediaryInputs memory _inputs)
+        public
+    {
+        vm.assume(_inputs.entryPoint < 7 && _inputs.reentrancyPoint < 10);
+        NonReentrantInputs memory inputs = NonReentrantInputs(
+            EntryPoint(_inputs.entryPoint),
+            ReentrancyPoint(_inputs.reentrancyPoint)
+        );
         _testNonReentrant(
             NonReentrantDifferentialInputs(consideration, inputs)
         );
@@ -40,37 +56,35 @@ contract NonReentrantTest is BaseOrderTest {
         );
     }
 
-    // function constructReentrantContract(
-    //     Consideration _consideration,
-    //     ReentrancyPoint _reentrancyPoint
-    // ) internal {
-    //     if (_reentrancyPoint == ReentrancyPoint.FulfillBasicOrder) {} else if (
-    //         _reentrancyPoint == ReentrancyPoint.FulfillOrder
-    //     ) {
-
-    //     } else if (
-    //         _reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder
-    //     ) {} else if (
-    //         _reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders
-    //     ) {} else if (
-    //         _reentrancyPoint == ReentrancyPoint.FulfillAvailableAdvancedOrders
-    //     ) {} else if (
-    //         _reentrancyPoint == ReentrancyPoint.MatchOrders
-    //     ) {} else if (
-    //         _reentrancyPoint == ReentrancyPoint.MatchAdvancedOrders
-    //     ) {} else if (_reentrancyPoint == ReentrancyPoint.Cancel) {} else if (
-    //         _reentrancyPoint == ReentrancyPoint.Validate
-    //     ) {}
-    //     reenterer = new ReentrantContract(consideration, _reentrancyPoint);
-    // }
+    function constructReentrantContract(
+        Consideration _consideration,
+        ReentrancyPoint _reentrancyPoint
+    ) internal {
+        if (_reentrancyPoint == ReentrancyPoint.FulfillBasicOrder) {} else if (
+            _reentrancyPoint == ReentrancyPoint.FulfillOrder
+        ) {} else if (
+            _reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder
+        ) {} else if (
+            _reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders
+        ) {} else if (
+            _reentrancyPoint == ReentrancyPoint.FulfillAvailableAdvancedOrders
+        ) {} else if (
+            _reentrancyPoint == ReentrancyPoint.MatchOrders
+        ) {} else if (
+            _reentrancyPoint == ReentrancyPoint.MatchAdvancedOrders
+        ) {} else if (_reentrancyPoint == ReentrancyPoint.Cancel) {} else if (
+            _reentrancyPoint == ReentrancyPoint.Validate
+        ) {}
+        reenterer = new ReentrantContract(_consideration, _reentrancyPoint);
+    }
 
     function _testNonReentrant(NonReentrantDifferentialInputs memory inputs)
         internal
         resetTokenBalancesBetweenRuns
     {
-        reenterer = new ReentrantContract(
-            inputs.consideration,
-            inputs.args.reentrancyPoint
-        );
+        // reenterer = new ReentrantContract(
+        //     inputs.consideration,
+        //     inputs.args.reentrancyPoint
+        // );
     }
 }
