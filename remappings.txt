@@ -1,2 +1,3 @@
 ds-test=lib/ds-test/src/
 forge-std=lib/forge-std/src/
+@rari-capital/solmate/=lib/solmate/
