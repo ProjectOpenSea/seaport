@@ -36,14 +36,15 @@
     "eslint-plugin-promise": "^6.0.0",
     "ethereum-waffle": "^3.4.0",
     "hardhat-gas-reporter": "^1.0.7",
-    "pre-commit": "^1.2.2",
+    "husky": ">=6",
     "prettier": "^2.5.1",
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "solhint": "^3.3.6",
     "solidity-coverage": "^0.7.0",
     "ts-node": "^10.4.0",
     "typechain": "^8.0.0",
-    "typescript": "^4.5.4"
+    "typescript": "^4.5.4",
+    "lint-staged": ">=10"
   },
   "resolutions": {
     "async": ">=2.6.4",
@@ -63,9 +64,10 @@
     "coverage:ref": "REFERENCE=true hardhat coverage --config hardhat-reference-coverage.config.ts --solcoverjs ./.solcover-reference.js",
     "lint:check": "prettier --check **.sol && prettier --check **.js && prettier --check **.ts && hardhat compile && npx solhint 'contracts/**/*.sol'",
     "lint:fix": "prettier --write **.sol && prettier --write **.js && prettier --write **.ts",
-    "test:forge": "FOUNDRY_PROFILE=reference forge build; forge test -vvv"
+    "test:forge": "FOUNDRY_PROFILE=reference forge build; forge test -vvv",
+    "prepare": "husky install"
   },
-  "pre-commit": [
-    "lint:fix"
-  ]
+  "lint-staged": {
+    "*": "yarn lint:fix"
+  }
 }
