@@ -205,21 +205,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             revert BadContractSignature();
         }
 
-        // Extract result from returndata buffer in case of memory overflow.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
         // Ensure result was extracted and matches EIP-1271 magic value.
-        if (result != EIP1271Interface.isValidSignature.selector) {
+        if (_doesNotMatchMagic(EIP1271Interface.isValidSignature.selector)) {
             revert InvalidSigner();
         }
     }
@@ -1109,21 +1096,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             revert InvalidRestrictedOrder(orderHash);
         }
 
-        // Extract result from returndata buffer in case of memory overflow.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
         // Ensure result was extracted and matches isValidOrder magic value.
-        if (result != ZoneInterface.isValidOrder.selector) {
+        if (_doesNotMatchMagic(ZoneInterface.isValidOrder.selector)) {
             revert InvalidRestrictedOrder(orderHash);
         }
     }
