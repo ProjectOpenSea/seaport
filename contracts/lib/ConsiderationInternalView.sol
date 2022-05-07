@@ -463,20 +463,30 @@ contract ConsiderationInternalView is ConsiderationPure {
             msg.sender != offerer
         ) {
             // Perform minimal staticcall to the zone.
-            bool success = _staticcall(
-                zone,
-                abi.encodeWithSelector(
-                    ZoneInterface.isValidOrder.selector,
-                    orderHash,
-                    msg.sender,
-                    offerer,
-                    zoneHash
-                )
-            );
-
-            // Ensure call was successful and returned the correct magic value.
-            _assertIsValidOrderStaticcallSuccess(success, orderHash);
+            _callIsValidOrder(zone, orderHash, offerer, zoneHash);
         }
+    }
+
+    function _callIsValidOrder(
+        address zone,
+        bytes32 orderHash,
+        address offerer,
+        bytes32 zoneHash
+    ) internal view {
+        // Perform minimal staticcall to the zone.
+        bool success = _staticcall(
+            zone,
+            abi.encodeWithSelector(
+                ZoneInterface.isValidOrder.selector,
+                orderHash,
+                msg.sender,
+                offerer,
+                zoneHash
+            )
+        );
+
+        // Ensure call was successful and returned the correct magic value.
+        _assertIsValidOrderStaticcallSuccess(success, orderHash);
     }
 
     /**
@@ -519,29 +529,17 @@ contract ConsiderationInternalView is ConsiderationPure {
             msg.sender != zone &&
             msg.sender != offerer
         ) {
-            // Declare a variable for the status of the staticcall to the zone.
-            bool success;
-
             // If no extraData or criteria resolvers are supplied...
             if (
                 advancedOrder.extraData.length == 0 &&
                 criteriaResolvers.length == 0
             ) {
                 // Perform minimal staticcall to the zone.
-                success = _staticcall(
-                    zone,
-                    abi.encodeWithSelector(
-                        ZoneInterface.isValidOrder.selector,
-                        orderHash,
-                        msg.sender,
-                        offerer,
-                        zoneHash
-                    )
-                );
+                _callIsValidOrder(zone, orderHash, offerer, zoneHash);
             } else {
                 // Otherwise, extra data or criteria resolvers were supplied; in
                 // that event, perform a more verbose staticcall to the zone.
-                success = _staticcall(
+                bool success = _staticcall(
                     zone,
                     abi.encodeWithSelector(
                         ZoneInterface.isValidOrderIncludingExtraData.selector,
@@ -552,10 +550,10 @@ contract ConsiderationInternalView is ConsiderationPure {
                         criteriaResolvers
                     )
                 );
-            }
 
-            // Ensure call was successful and returned the correct magic value.
-            _assertIsValidOrderStaticcallSuccess(success, orderHash);
+                // Ensure call was successful and returned correct magic value.
+                _assertIsValidOrderStaticcallSuccess(success, orderHash);
+            }
         }
     }
 

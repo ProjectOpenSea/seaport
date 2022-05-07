@@ -866,7 +866,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @return The order hash.
      */
-    function getOrderHash(OrderComponents memory order)
+    function getOrderHash(OrderComponents calldata order)
         external
         view
         override
