@@ -74,7 +74,7 @@ jobs:
       - run: yarn install
       - run: yarn test:ref
   
-  forge:
+  forge-quick:
     name: Run Forge Tests (no IR)
     runs-on: ubuntu-latest
     steps:

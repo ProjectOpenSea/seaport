@@ -161,15 +161,15 @@ contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
      * @return The derived domain separator.
      */
     function _deriveInitialDomainSeparator(
-        bytes32 _EIP_712_DOMAIN_TYPEHASH,
-        bytes32 _NAME_HASH,
-        bytes32 _VERSION_HASH
+        bytes32 _eip712DomainTypeHash,
+        bytes32 _nameHash,
+        bytes32 _versionHash
     ) internal view virtual returns (bytes32) {
         return
             _deriveDomainSeparator(
-                _EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH
+                _eip712DomainTypeHash,
+                _nameHash,
+                _versionHash
             );
     }
 
@@ -179,16 +179,16 @@ contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
      * @return The derived domain separator.
      */
     function _deriveDomainSeparator(
-        bytes32 _EIP_712_DOMAIN_TYPEHASH,
-        bytes32 _NAME_HASH,
-        bytes32 _VERSION_HASH
+        bytes32 _eip712DomainTypeHash,
+        bytes32 _nameHash,
+        bytes32 _versionHash
     ) internal view virtual returns (bytes32) {
         // prettier-ignore
         return keccak256(
             abi.encode(
-                _EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH,
+                _eip712DomainTypeHash,
+                _nameHash,
+                _versionHash,
                 block.chainid,
                 address(this)
             )
