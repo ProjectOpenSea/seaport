@@ -1863,7 +1863,7 @@ contract ReferenceConsiderationInternal is
             _performERC721Transfer(token, from, to, identifier);
         } else {
             // Insert the call to the conduit into the accumulator.
-            (
+            _insert(
                 conduitKey,
                 accumulator,
                 uint256(2),
