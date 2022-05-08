@@ -17335,7 +17335,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                     ? baseGas.add(35000)
                     : baseGas.add(2000),
                 })
-            ).to.be.revertedWith('InvalidCallToConduit')
+            ).to.be.revertedWith("InvalidCallToConduit");
           });
         });
       }
