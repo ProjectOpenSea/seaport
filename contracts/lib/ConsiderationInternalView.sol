@@ -205,21 +205,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             revert BadContractSignature();
         }
 
-        // Extract result from returndata buffer in case of memory overflow.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
         // Ensure result was extracted and matches EIP-1271 magic value.
-        if (result != EIP1271Interface.isValidSignature.selector) {
+        if (_doesNotMatchMagic(EIP1271Interface.isValidSignature.selector)) {
             revert InvalidSigner();
         }
     }
@@ -239,7 +226,16 @@ contract ConsiderationInternalView is ConsiderationPure {
         view
         returns (bool success)
     {
-        (success, ) = target.staticcall(callData);
+        assembly {
+            success := staticcall(
+                gas(),
+                target,
+                add(callData, 0x20),
+                mload(callData),
+                0,
+                0
+            )
+        }
     }
 
     /**
@@ -463,20 +459,30 @@ contract ConsiderationInternalView is ConsiderationPure {
             msg.sender != offerer
         ) {
             // Perform minimal staticcall to the zone.
-            bool success = _staticcall(
-                zone,
-                abi.encodeWithSelector(
-                    ZoneInterface.isValidOrder.selector,
-                    orderHash,
-                    msg.sender,
-                    offerer,
-                    zoneHash
-                )
-            );
-
-            // Ensure call was successful and returned the correct magic value.
-            _assertIsValidOrderStaticcallSuccess(success, orderHash);
+            _callIsValidOrder(zone, orderHash, offerer, zoneHash);
         }
+    }
+
+    function _callIsValidOrder(
+        address zone,
+        bytes32 orderHash,
+        address offerer,
+        bytes32 zoneHash
+    ) internal view {
+        // Perform minimal staticcall to the zone.
+        bool success = _staticcall(
+            zone,
+            abi.encodeWithSelector(
+                ZoneInterface.isValidOrder.selector,
+                orderHash,
+                msg.sender,
+                offerer,
+                zoneHash
+            )
+        );
+
+        // Ensure call was successful and returned the correct magic value.
+        _assertIsValidOrderStaticcallSuccess(success, orderHash);
     }
 
     /**
@@ -519,29 +525,17 @@ contract ConsiderationInternalView is ConsiderationPure {
             msg.sender != zone &&
             msg.sender != offerer
         ) {
-            // Declare a variable for the status of the staticcall to the zone.
-            bool success;
-
             // If no extraData or criteria resolvers are supplied...
             if (
                 advancedOrder.extraData.length == 0 &&
                 criteriaResolvers.length == 0
             ) {
                 // Perform minimal staticcall to the zone.
-                success = _staticcall(
-                    zone,
-                    abi.encodeWithSelector(
-                        ZoneInterface.isValidOrder.selector,
-                        orderHash,
-                        msg.sender,
-                        offerer,
-                        zoneHash
-                    )
-                );
+                _callIsValidOrder(zone, orderHash, offerer, zoneHash);
             } else {
                 // Otherwise, extra data or criteria resolvers were supplied; in
                 // that event, perform a more verbose staticcall to the zone.
-                success = _staticcall(
+                bool success = _staticcall(
                     zone,
                     abi.encodeWithSelector(
                         ZoneInterface.isValidOrderIncludingExtraData.selector,
@@ -552,10 +546,10 @@ contract ConsiderationInternalView is ConsiderationPure {
                         criteriaResolvers
                     )
                 );
-            }
 
-            // Ensure call was successful and returned the correct magic value.
-            _assertIsValidOrderStaticcallSuccess(success, orderHash);
+                // Ensure call was successful and returned correct magic value.
+                _assertIsValidOrderStaticcallSuccess(success, orderHash);
+            }
         }
     }
 
@@ -1102,21 +1096,8 @@ contract ConsiderationInternalView is ConsiderationPure {
             revert InvalidRestrictedOrder(orderHash);
         }
 
-        // Extract result from returndata buffer in case of memory overflow.
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
         // Ensure result was extracted and matches isValidOrder magic value.
-        if (result != ZoneInterface.isValidOrder.selector) {
+        if (_doesNotMatchMagic(ZoneInterface.isValidOrder.selector)) {
             revert InvalidRestrictedOrder(orderHash);
         }
     }
