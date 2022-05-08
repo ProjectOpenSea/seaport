@@ -21,5 +21,6 @@ test = 'reference'
 
 [quick]
 via_ir = false
+fuzz_runs = 1000
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config
