@@ -49,3 +49,12 @@ struct OrderToExecute {
     bytes32 conduitKey;
     uint120 numerator;
 }
+
+struct FractionData {
+    uint256 numerator;
+    uint256 denominator;
+    bytes32 offererConduitKey;
+    bytes32 fulfillerConduitKey;
+    uint256 duration;
+    uint256 elapsed;
+}

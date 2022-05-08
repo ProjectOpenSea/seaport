@@ -1123,6 +1123,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
 
     reenterer = await deployContract("Reenterer", owner);
+
     if (process.env.REFERENCE) {
       conduitImplementation = await ethers.getContractFactory(
         "ReferenceConduit"
@@ -1639,7 +1640,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             });
           });
         });
-        it("ERC721 <=> ETH (standard via conduit)", async () => {
+        it.only("ERC721 <=> ETH (standard via conduit)", async () => {
           // Seller mints nft
           const nftId = ethers.BigNumber.from(randomHex());
           await testERC721.mint(seller.address, nftId);

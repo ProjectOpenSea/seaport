@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
+import "hardhat/console.sol";
+
 // prettier-ignore
 import {
     ConsiderationInterface
@@ -166,6 +168,9 @@ contract ReferenceConsideration is
             ? parameters.fulfillerConduitKey
             : parameters.offererConduitKey;
 
+        // Declare transfer accumulator — it will extend memory where needed.
+        bytes memory accumulator = new bytes(32);
+
         // Transfer tokens based on the route.
         if (route == BasicOrderRouteType.ETH_TO_ERC721) {
             // Transfer ERC721 to caller using offerer's conduit if applicable.
@@ -175,7 +180,8 @@ contract ReferenceConsideration is
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
@@ -188,7 +194,8 @@ contract ReferenceConsideration is
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
@@ -201,7 +208,8 @@ contract ReferenceConsideration is
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -211,7 +219,8 @@ contract ReferenceConsideration is
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
-                false // Send full amount indicated by all consideration items.
+                false, // Send full amount indicated by all consideration items.
+                accumulator
             );
         } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
             // Transfer ERC1155 to caller using offerer's conduit if applicable.
@@ -221,7 +230,8 @@ contract ReferenceConsideration is
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -231,7 +241,8 @@ contract ReferenceConsideration is
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
-                false // Send full amount indicated by all consideration items.
+                false, // Send full amount indicated by all consideration items.
+                accumulator
             );
         } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
             // Transfer ERC721 to offerer using caller's conduit if applicable.
@@ -241,7 +252,8 @@ contract ReferenceConsideration is
                 offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -251,7 +263,8 @@ contract ReferenceConsideration is
                 parameters.offerToken,
                 parameters.offerAmount,
                 parameters,
-                true // Reduce amount sent to fulfiller by additional amounts.
+                true, // Reduce amount sent to fulfiller by additional amounts.
+                accumulator
             );
         } else {
             // route == BasicOrderRouteType.ERC1155_TO_ERC20
@@ -263,7 +276,8 @@ contract ReferenceConsideration is
                 offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -273,9 +287,13 @@ contract ReferenceConsideration is
                 parameters.offerToken,
                 parameters.offerAmount,
                 parameters,
-                true // Reduce amount sent to fulfiller by additional amounts.
+                true, // Reduce amount sent to fulfiller by additional amounts.
+                accumulator
             );
         }
+
+        // Trigger any remaining accumulated transfers via call to the conduit.
+        _triggerIfArmed(accumulator);
 
         return true;
     }
@@ -854,7 +872,7 @@ contract ReferenceConsideration is
      *
      * @return The order hash.
      */
-    function getOrderHash(OrderComponents memory order)
+    function getOrderHash(OrderComponents calldata order)
         external
         view
         override
