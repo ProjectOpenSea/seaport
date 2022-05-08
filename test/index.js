@@ -16956,47 +16956,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
         // TODO: clean *this* up
-        let w = 0;
-        let ceiling = hre.__SOLIDITY_COVERAGE_RUNNING ? 130 : 80;
-        let found = false;
-        for (; w <= ceiling; w += ceiling) {
-          basicOrderParameters = await setup();
-          await recipient.setRevertDataSize(w * 32);
-          try {
-            await whileImpersonating(buyer.address, provider, async () => {
-              await marketplaceContract
-                .connect(buyer)
-                .fulfillBasicOrder(basicOrderParameters, {
-                  value: ethers.utils.parseEther("12"),
-                  gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
-                    ? baseGas.add(35000)
-                    : baseGas.add(1000),
-                });
-            });
-          } catch (err) {
-            if (err.message.includes("EtherTransferGenericFailure")) {
-              found = true;
-            }
-          }
-        }
-
-        expect(found).to.be.true;
-
-        // await recipient.setRevertDataSize(hre.__SOLIDITY_COVERAGE_RUNNING ? (130 * 32) : (80 * 32));
-        // await whileImpersonating(buyer.address, provider, async () => {
-        //   await expect(
-        //     marketplaceContract
-        //       .connect(buyer)
-        //       .fulfillBasicOrder(basicOrderParameters, {
-        //         value: ethers.utils.parseEther("12"),
-        //         gasLimit: baseGas.add(1000),
-        //       })
-        //   ).to.be.revertedWith(
-        //     `EtherTransferGenericFailure("${recipient.address}", ${ethers.utils
-        //       .parseEther("1")
-        //       .toString()})`
-        //   );
-        // });
+        basicOrderParameters = await setup();
+        await recipient.setRevertDataSize(1);
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, {
+                value: ethers.utils.parseEther("12"),
+                gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
+                  ? baseGas.add(35000)
+                  : baseGas.add(1000),
+              })
+          ).to.be.revertedWith("EtherTransferGenericFailure");
+        });
       });
 
       it("Reverts when ether transfer fails (basic)", async () => {
@@ -17268,86 +17241,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Skip this test when testing the reference contract
       if (!process.env.REFERENCE) {
-        it("Reverts when passing in a massive amount of items", async () => {
-          // Buyer mints nft
-          const nftId = ethers.BigNumber.from(randomHex());
-          await testERC721.mint(buyer.address, nftId);
-
-          // Buyer approves marketplace contract to transfer NFT
-          await whileImpersonating(buyer.address, provider, async () => {
-            await expect(
-              testERC721
-                .connect(buyer)
-                .setApprovalForAll(marketplaceContract.address, true)
-            )
-              .to.emit(testERC721, "ApprovalForAll")
-              .withArgs(buyer.address, marketplaceContract.address, true);
-          });
-
-          // Seller mints ERC20
-          const tokenAmount = ethers.BigNumber.from(randomLarge());
-          await testERC20.mint(seller.address, tokenAmount);
-
-          // Seller approves conduit contract to transfer tokens
-          await whileImpersonating(seller.address, provider, async () => {
-            await expect(
-              testERC20.connect(seller).approve(conduitOne.address, tokenAmount)
-            )
-              .to.emit(testERC20, "Approval")
-              .withArgs(seller.address, conduitOne.address, tokenAmount);
-          });
-
-          // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
-
-          const offer = [
-            {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              identifierOrCriteria: 0, // ignored for ERC20
-              startAmount: tokenAmount,
-              endAmount: tokenAmount,
-            },
-          ];
-
-          let consideration = [
-            getTestItem721(nftId, 1, 1, seller.address),
-            getTestItem20(1, 1, zone.address),
-          ];
-
-          for (let i = 1; i <= 1500; ++i) {
-            consideration.push(
-              getTestItem20(i, i, toAddress(parseInt(i) + 10000))
-            );
-          }
-
-          const { order, orderHash, value } = await createOrder(
-            seller,
-            zone,
-            offer,
-            consideration,
-            0, // FULL_OPEN
-            [],
-            null,
-            seller,
-            constants.HashZero,
-            conduitKeyOne
-          );
-
-          const basicOrderParameters = getBasicOrderParameters(
-            4, // ERC721ForERC20
-            order
-          );
-
-          await whileImpersonating(buyer.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(buyer)
-                .fulfillBasicOrder(basicOrderParameters)
-            ).to.be.revertedWith(`InvalidCallToConduit`, conduitOne);
-          });
-        });
-
-        it.skip("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
+        it("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
           const recipient = await (
             await ethers.getContractFactory("ExcessReturnDataRecipient")
           ).deploy();
@@ -17429,35 +17323,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             });
 
           // TODO: clean *this* up
-          let w = 0;
-          let ceiling = hre.__SOLIDITY_COVERAGE_RUNNING ? 1720 : 910;
-          let found = false;
-          for (; w <= ceiling; w += 5) {
-            const { order } = await setup();
-            await recipient.setRevertDataSize(w * 32);
-            try {
-              await whileImpersonating(buyer.address, provider, async () => {
-                await marketplaceContract
-                  .connect(buyer)
-                  .fulfillAdvancedOrder(order, [], conduitKeyOne, {
-                    value,
-                    gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
-                      ? baseGas.add(35000)
-                      : baseGas.add(2000),
-                  });
-              });
-            } catch (err) {
-              if (err.message.includes("InvalidCallToConduit")) {
-                found = true;
-              }
-            }
-
-            if (w === 0) {
-              w = hre.__SOLIDITY_COVERAGE_RUNNING ? 1715 : 905;
-            }
-          }
-
-          expect(found).to.be.true;
+          const { order } = await setup();
+          await recipient.setRevertDataSize(1);
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillAdvancedOrder(order, [], conduitKeyOne, {
+                  value,
+                  gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
+                    ? baseGas.add(35000)
+                    : baseGas.add(2000),
+                })
+            ).to.be.revertedWith('InvalidCallToConduit')
+          });
         });
       }
 
