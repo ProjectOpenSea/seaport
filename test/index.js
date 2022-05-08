@@ -4224,6 +4224,94 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             );
           });
         });
+        it("ERC721 <=> ERC20 (basic, many via conduit)", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(buyer.address, nftId);
+
+          // Buyer approves marketplace contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(buyer)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(buyer.address, marketplaceContract.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge());
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves conduit contract to transfer tokens
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC20.connect(seller).approve(conduitOne.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(seller.address, conduitOne.address, tokenAmount);
+          });
+
+          // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount,
+              endAmount: tokenAmount,
+            },
+          ];
+
+          let consideration = [
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(1, 1, zone.address),
+          ];
+
+          for (let i = 1; i <= 100; ++i) {
+            consideration.push(
+              getTestItem20(i, i, toAddress(parseInt(i) + 10000))
+            );
+          }
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            4, // ERC721ForERC20
+            order
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks(
+              [order],
+              ethers.BigNumber.from(0),
+              null,
+              async () => {
+                const tx = await marketplaceContract
+                  .connect(buyer)
+                  .fulfillBasicOrder(basicOrderParameters);
+                const receipt = await tx.wait();
+                await checkExpectedEvents(receipt, [
+                  { order, orderHash, fulfiller: buyer.address },
+                ]);
+                return receipt;
+              }
+            );
+          });
+        });
         it("ERC721 <=> ERC20 (basic, fulfilled via conduit)", async () => {
           // Buyer mints nft
           const nftId = ethers.BigNumber.from(randomHex());
@@ -17180,6 +17268,85 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Skip this test when testing the reference contract
       if (!process.env.REFERENCE) {
+        it("Reverts when passing in a massive amount of items", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(buyer.address, nftId);
+
+          // Buyer approves marketplace contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(buyer)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(buyer.address, marketplaceContract.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge());
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves conduit contract to transfer tokens
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC20.connect(seller).approve(conduitOne.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(seller.address, conduitOne.address, tokenAmount);
+          });
+
+          // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount,
+              endAmount: tokenAmount,
+            },
+          ];
+
+          let consideration = [
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(1, 1, zone.address),
+          ];
+
+          for (let i = 1; i <= 1500; ++i) {
+            consideration.push(
+              getTestItem20(i, i, toAddress(parseInt(i) + 10000))
+            );
+          }
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            4, // ERC721ForERC20
+            order
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillBasicOrder(basicOrderParameters)
+            ).to.be.revertedWith(`InvalidCallToConduit`, conduitOne);
+          });
+        });
+
         it.skip("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
           const recipient = await (
             await ethers.getContractFactory("ExcessReturnDataRecipient")
