@@ -1123,10 +1123,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
 
     reenterer = await deployContract("Reenterer", owner);
-
-    conduitImplementation = await ethers.getContractFactory("Conduit");
-
-    conduitController = await deployContract("ConduitController", owner);
+    if (process.env.REFERENCE) {
+      conduitImplementation = await ethers.getContractFactory(
+        "ReferenceConduit"
+      );
+      conduitController = await deployContract(
+        "ReferenceConduitController",
+        owner
+      );
+    } else {
+      conduitImplementation = await ethers.getContractFactory("Conduit");
+      conduitController = await deployContract("ConduitController", owner);
+    }
 
     conduitKeyOne = `0x000000000000000000000000${owner.address.slice(2)}`;
 
