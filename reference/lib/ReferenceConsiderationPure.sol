@@ -211,7 +211,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
      * @dev Internal pure function to apply criteria resolvers containing
      *      specific token identifiers and associated proofs to order items.
      *
-     * @param advancedOrders     The orders to apply criteria resolvers to.
+     * @param advancedOrder      The order to apply criteria resolvers to.
      * @param criteriaResolvers  An array where each element contains a
      *                           reference to a specific order as well as that
      *                           order's offer or consideration, a token
@@ -223,11 +223,14 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
      */
     // TODO: Remove this functon after Advanced Orders are no longer used here.
     function _applyCriteriaResolversAdvanced(
-        AdvancedOrder[] memory advancedOrders,
+        AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure {
         // Retrieve length of criteria resolvers array and place on stack.
         uint256 arraySize = criteriaResolvers.length;
+
+        // Retrieve the parameters for the order.
+        OrderParameters memory orderParameters = (advancedOrder.parameters);
 
         // Iterate over each criteria resolver.
         for (uint256 i = 0; i < arraySize; ++i) {
@@ -237,20 +240,9 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             // Read the order index from memory and place it on the stack.
             uint256 orderIndex = criteriaResolver.orderIndex;
 
-            // Ensure that the order index is in range.
-            if (orderIndex >= advancedOrders.length) {
+            if (orderIndex != 0) {
                 revert OrderCriteriaResolverOutOfRange();
             }
-
-            // Skip criteria resolution for order if not fulfilled.
-            if (advancedOrders[orderIndex].numerator == 0) {
-                continue;
-            }
-
-            // Retrieve the parameters for the order.
-            OrderParameters memory orderParameters = (
-                advancedOrders[orderIndex].parameters
-            );
 
             // Read component index from memory and place it on the stack.
             uint256 componentIndex = criteriaResolver.index;
@@ -326,49 +318,33 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             }
         }
 
-        // Retrieve length of advanced orders array and place on stack.
-        arraySize = advancedOrders.length;
+        // Validate Criteria on order has been resolved
 
-        // Iterate over each advanced order.
-        for (uint256 i = 0; i < arraySize; ++i) {
-            // Retrieve the advanced order.
-            AdvancedOrder memory advancedOrder = advancedOrders[i];
+        // Read consideration length from memory and place on stack.
+        uint256 totalItems = (advancedOrder.parameters.consideration.length);
 
-            // Skip criteria resolution for order if not fulfilled.
-            if (advancedOrder.numerator == 0) {
-                continue;
+        // Iterate over each consideration item on the order.
+        for (uint256 i = 0; i < totalItems; ++i) {
+            // Ensure item type no longer indicates criteria usage.
+            if (
+                _isItemWithCriteria(
+                    advancedOrder.parameters.consideration[i].itemType
+                )
+            ) {
+                revert UnresolvedConsiderationCriteria();
             }
+        }
 
-            // Read consideration length from memory and place on stack.
-            uint256 totalItems = (
-                advancedOrder.parameters.consideration.length
-            );
+        // Read offer length from memory and place on stack.
+        totalItems = advancedOrder.parameters.offer.length;
 
-            // Iterate over each consideration item on the order.
-            for (uint256 j = 0; j < totalItems; ++j) {
-                // Ensure item type no longer indicates criteria usage.
-                if (
-                    _isItemWithCriteria(
-                        advancedOrder.parameters.consideration[j].itemType
-                    )
-                ) {
-                    revert UnresolvedConsiderationCriteria();
-                }
-            }
-
-            // Read offer length from memory and place on stack.
-            totalItems = advancedOrder.parameters.offer.length;
-
-            // Iterate over each offer item on the order.
-            for (uint256 j = 0; j < totalItems; ++j) {
-                // Ensure item type no longer indicates criteria usage.
-                if (
-                    _isItemWithCriteria(
-                        advancedOrder.parameters.offer[j].itemType
-                    )
-                ) {
-                    revert UnresolvedOfferCriteria();
-                }
+        // Iterate over each offer item on the order.
+        for (uint256 i = 0; i < totalItems; ++i) {
+            // Ensure item type no longer indicates criteria usage.
+            if (
+                _isItemWithCriteria(advancedOrder.parameters.offer[i].itemType)
+            ) {
+                revert UnresolvedOfferCriteria();
             }
         }
     }

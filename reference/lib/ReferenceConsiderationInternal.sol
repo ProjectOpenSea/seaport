@@ -674,14 +674,14 @@ contract ReferenceConsiderationInternal is
             );
 
         // Create an array with length 1 containing the order.
-        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
-        advancedOrders[0] = advancedOrder;
+        //AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
+        //advancedOrders[0] = advancedOrder;
 
         // Apply criteria resolvers using generated orders and details arrays.
-        _applyCriteriaResolversAdvanced(advancedOrders, criteriaResolvers);
+        _applyCriteriaResolversAdvanced(advancedOrder, criteriaResolvers);
 
         // Retrieve the order parameters after applying criteria resolvers.
-        OrderParameters memory orderParameters = advancedOrders[0].parameters;
+        OrderParameters memory orderParameters = advancedOrder.parameters; //advancedOrders[0].parameters;
 
         // Perform each item transfer with the appropriate fractional amount.
         OrderToExecute memory orderToExecute = _applyFractionsAndTransferEach(
