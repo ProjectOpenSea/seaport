@@ -202,12 +202,6 @@ interface ConsiderationEventsAndErrors {
     error BadFraction();
 
     /**
-     * @dev Revert with an error when attempting to apply a fraction as part of
-     *      a partial fill that does not divide the target amount cleanly.
-     */
-    error InexactFraction();
-
-    /**
      * @dev Revert with an error when a caller attempts to reenter a protected
      *      function.
      */

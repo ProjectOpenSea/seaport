@@ -34,6 +34,11 @@ import {
     CriteriaResolutionErrors
 } from "contracts/interfaces/CriteriaResolutionErrors.sol";
 
+// prettier-ignore
+import {
+    AmountDerivationErrors
+} from "contracts/interfaces/AmountDerivationErrors.sol";
+
 /**
  * @title ReferenceConsiderationPure
  * @author 0age
@@ -41,7 +46,8 @@ import {
  */
 contract ReferenceConsiderationPure is
     ReferenceConsiderationBase,
-    CriteriaResolutionErrors
+    CriteriaResolutionErrors,
+    AmountDerivationErrors
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain

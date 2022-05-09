@@ -47,6 +47,8 @@ import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
 
 import { CriteriaResolution } from "./CriteriaResolution.sol";
 
+import { AmountDeriver } from "./AmountDeriver.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -57,7 +59,8 @@ import "./ConsiderationConstants.sol";
 contract ConsiderationInternal is
     ConsiderationInternalView,
     TokenTransferrer,
-    CriteriaResolution
+    CriteriaResolution,
+    AmountDeriver
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
