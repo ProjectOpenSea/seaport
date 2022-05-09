@@ -674,14 +674,14 @@ contract ReferenceConsiderationInternal is
             );
 
         // Create an array with length 1 containing the order.
-        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
-        advancedOrders[0] = advancedOrder;
+        //AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
+        //advancedOrders[0] = advancedOrder;
 
         // Apply criteria resolvers using generated orders and details arrays.
-        _applyCriteriaResolversAdvanced(advancedOrders, criteriaResolvers);
+        _applyCriteriaResolversAdvanced(advancedOrder, criteriaResolvers);
 
         // Retrieve the order parameters after applying criteria resolvers.
-        OrderParameters memory orderParameters = advancedOrders[0].parameters;
+        OrderParameters memory orderParameters = advancedOrder.parameters; //advancedOrders[0].parameters;
 
         // Perform each item transfer with the appropriate fractional amount.
         OrderToExecute memory orderToExecute = _applyFractionsAndTransferEach(
@@ -760,26 +760,6 @@ contract ReferenceConsiderationInternal is
         bytes memory accumulator = new bytes(32);
 
         address offerer = orderParameters.offerer;
-
-        // As of solidity 0.6.0, inline assembly can not directly access function
-        // definitions, but can still access locally scoped function variables.
-        // This means that in order to recast the type of a function, we need to
-        // create a local variable to reference the internal function definition
-        // (using the same type) and a local variable with the desired type,
-        // and then cast the original function pointer to the desired type.
-
-        /**
-         * Repurpose existing OfferItem memory regions on the offer array for
-         * the order by overriding the _transfer function pointer to accept a
-         * modified OfferItem argument in place of the usual ReceivedItem:
-         *
-         *   ========= OfferItem ==========   ====== ReceivedItem ======
-         *   ItemType itemType; ------------> ItemType itemType;
-         *   address token; ----------------> address token;
-         *   uint256 identifierOrCriteria; -> uint256 identifier;
-         *   uint256 startAmount; ----------> uint256 amount;
-         *   uint256 endAmount; ------------> address recipient;
-         */
 
         // Create the array to store the spent items for event
         orderToExecute.spentItems = new SpentItem[](
@@ -1500,28 +1480,15 @@ contract ReferenceConsiderationInternal is
             for (uint256 i = 0; i < executionLength; ++i) {
                 filteredExecutions[i] = executions[i];
             }
-            // Revert if no orders are available.
-            if (filteredExecutions.length == 0) {
-                revert NoSpecifiedOrdersAvailable();
-            }
-            // Perform final checks and compress executions into standard and batch.
-            return
-                _performFinalChecksAndExecuteOrders(
-                    ordersToExecute,
-                    filteredExecutions
-                );
-        } else {
-            // Revert if no orders are available.
-            if (executions.length == 0) {
-                revert NoSpecifiedOrdersAvailable();
-            }
-            // Perform final checks and compress executions into standard and batch.
-            return
-                _performFinalChecksAndExecuteOrders(
-                    ordersToExecute,
-                    executions
-                );
+
+            executions = filteredExecutions;
         }
+        // Revert if no orders are available.
+        if (executions.length == 0) {
+            revert NoSpecifiedOrdersAvailable();
+        }
+        // Perform final checks and compress executions into standard and batch.
+        return _performFinalChecksAndExecuteOrders(ordersToExecute, executions);
     }
 
     /**
