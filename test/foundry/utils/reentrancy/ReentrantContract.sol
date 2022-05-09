@@ -2,7 +2,6 @@
 pragma solidity 0.8.13;
 
 import { Consideration } from "../../../../contracts/Consideration.sol";
-import { ERC1155TokenReceiver } from "@rari-capital/solmate/src/tokens/ERC1155.sol";
 import { ReentrancyPoint } from "./ReentrantEnums.sol";
 import { FulfillBasicOrderParameters, FulfillOrderParameters, FulfillAdvancedOrderParameters, FulfillAvailableOrdersParameters, FulfillAvailableAdvancedOrdersParameters, MatchOrdersParameters, MatchAdvancedOrdersParameters, CancelParameters, ValidateParameters, ReentrantCallParameters } from "./ReentrantStructs.sol";
 import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution } from "../../../../contracts/lib/ConsiderationStructs.sol";
@@ -12,14 +11,17 @@ contract ReentrantContract {
     ReentrancyPoint reentrancyPoint;
     bool reenter;
 
-    constructor(Consideration _consideration, ReentrancyPoint _reentrancyPoint)
-    {
-        consideration = _consideration;
-        reentrancyPoint = _reentrancyPoint;
-    }
-
+    ///@dev use setters since etching code at an address won't copy storage
     function setReenter(bool _reenter) public {
         reenter = _reenter;
+    }
+
+    function setConsideration(Consideration _consideration) external {
+        consideration = _consideration;
+    }
+
+    function setReentrancyPoint(ReentrancyPoint _reentrancyPoint) external {
+        reentrancyPoint = _reentrancyPoint;
     }
 
     /**
@@ -94,29 +96,9 @@ contract ReentrantContract {
         }
     }
 
-    function onERC1155Received(
-        address,
-        address,
-        uint256,
-        uint256,
-        bytes calldata
-    ) public returns (bytes4) {
+    receive() external payable {
         if (reenter) {
             _doReenter();
         }
-        return ERC1155TokenReceiver.onERC1155Received.selector;
-    }
-
-    function onERC1155BatchReceived(
-        address,
-        address,
-        uint256[] calldata,
-        uint256[] calldata,
-        bytes calldata
-    ) external returns (bytes4) {
-        if (reenter) {
-            _doReenter();
-        }
-        return ERC1155TokenReceiver.onERC1155BatchReceived.selector;
     }
 }
