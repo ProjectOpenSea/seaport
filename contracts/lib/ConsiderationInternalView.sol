@@ -1209,4 +1209,57 @@ contract ConsiderationInternalView is ConsiderationPure {
             mstore(FreeMemoryPointerSlot, freeMemoryPointer)
         }
     }
+
+    /**
+     * @dev Internal view function to retrieve configuration information for
+     *      this contract.
+     *
+     * @return version           The contract version.
+     * @return domainSeparator   The domain separator for this contract.
+     * @return conduitController The conduit Controller set for this contract.
+     */
+    function _information()
+        internal
+        view
+        returns (
+            string memory version,
+            bytes32 domainSeparator,
+            address conduitController
+        )
+    {
+        // Declare variable as immutables cannot be accessed within assembly.
+        uint256 versionBytes = _VERSION;
+
+        // Derive the domain separator.
+        domainSeparator = _domainSeparator();
+
+        // Declare variable as immutables cannot be accessed within assembly.
+        conduitController = address(_CONDUIT_CONTROLLER);
+
+        // Allocate a string with length one.
+        version = new string(1);
+
+        // Set the version as data on the newly allocated string.
+        assembly {
+            mstore(add(version, OneWord), versionBytes)
+        }
+    }
+
+    /**
+     * @dev Internal pure function to retrieve the name of this contract.
+     *
+     * @return The name of this contract.
+     */
+    function _name() internal pure returns (string memory) {
+        // Declare variable as immutables cannot be accessed within assembly.
+        uint256 nameBytes = _NAME;
+
+        // Return the name of the contract.
+        assembly {
+            mstore(0, OneWord) // First element is the offset.
+            mstore(OneWord, 13) // Second element is the length.
+            mstore(TwoWords, nameBytes) // Third element is the data.
+            return(0, ThreeWords) // Return all three words.
+        }
+    }
 }
