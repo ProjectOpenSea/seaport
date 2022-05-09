@@ -397,7 +397,12 @@ contract FulfillOrderTest is BaseOrderTest {
 
     function _testFulfillOrderSingleErc20ToSingleErc1155(
         ConsiderationToErc1155Struct memory testStruct
-    ) internal onlyPayable(testStruct.args.zone) topUp {
+    )
+        internal
+        onlyPayable(testStruct.args.zone)
+        topUp
+        resetTokenBalancesBetweenRuns
+    {
         vm.assume(testStruct.args.erc1155Amt > 0);
         vm.assume(
             testStruct.args.paymentAmts[0] > 0 &&
