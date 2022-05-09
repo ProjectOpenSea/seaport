@@ -1477,28 +1477,19 @@ contract ReferenceConsiderationInternal is
             for (uint256 i = 0; i < executionLength; ++i) {
                 filteredExecutions[i] = executions[i];
             }
-            // Revert if no orders are available.
-            if (filteredExecutions.length == 0) {
-                revert NoSpecifiedOrdersAvailable();
-            }
-            // Perform final checks and compress executions into standard and batch.
-            return
-                _performFinalChecksAndExecuteOrders(
-                    ordersToExecute,
-                    filteredExecutions
-                );
-        } else {
-            // Revert if no orders are available.
-            if (executions.length == 0) {
-                revert NoSpecifiedOrdersAvailable();
-            }
-            // Perform final checks and compress executions into standard and batch.
-            return
-                _performFinalChecksAndExecuteOrders(
-                    ordersToExecute,
-                    executions
-                );
+
+            executions = filteredExecutions;
         }
+         // Revert if no orders are available.
+        if (executions.length == 0) {
+            revert NoSpecifiedOrdersAvailable();
+        }
+        // Perform final checks and compress executions into standard and batch.
+        return
+            _performFinalChecksAndExecuteOrders(
+                ordersToExecute,
+                executions
+            );
     }
 
     /**
