@@ -45,6 +45,8 @@ import {
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
 
+import { CriteriaResolution } from "./CriteriaResolution.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -52,7 +54,11 @@ import "./ConsiderationConstants.sol";
  * @author 0age
  * @notice ConsiderationInternal contains all internal functions.
  */
-contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
+contract ConsiderationInternal is
+    ConsiderationInternalView,
+    TokenTransferrer,
+    CriteriaResolution
+{
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.

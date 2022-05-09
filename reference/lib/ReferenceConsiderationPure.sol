@@ -29,12 +29,20 @@ import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
 
 import "./ReferenceConsiderationConstants.sol";
 
+// prettier-ignore
+import {
+    CriteriaResolutionErrors
+} from "contracts/interfaces/CriteriaResolutionErrors.sol";
+
 /**
  * @title ReferenceConsiderationPure
  * @author 0age
  * @notice ConsiderationPure contains all pure functions.
  */
-contract ReferenceConsiderationPure is ReferenceConsiderationBase {
+contract ReferenceConsiderationPure is
+    ReferenceConsiderationBase,
+    CriteriaResolutionErrors
+{
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
