@@ -129,7 +129,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @param advancedOrder       The order to fulfill along with the fraction
      *                            of the order to attempt to fill. Note that
      *                            both the offerer and the fulfiller must first
-     *                            approve this contract (or their proxy if
+     *                            approve this contract (or their conduit if
      *                            indicated by the order) to transfer any
      *                            relevant tokens on their behalf and that
      *                            contracts must implement `onERC1155Received`
@@ -262,8 +262,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  fraction of those orders to attempt to
      *                                  fill. Note that both the offerer and the
      *                                  fulfiller must first approve this
-     *                                  contract (or their proxy if indicated by
-     *                                  the order) to transfer any relevant
+     *                                  contract (or their conduit if indicated
+     *                                  by the order) to transfer any relevant
      *                                  tokens on their behalf and that
      *                                  contracts must implement
      *                                  `onERC1155Received` in order to receive
@@ -348,7 +348,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @param orders            The orders to match. Note that both the offerer
      *                          and fulfiller on each order must first approve
-     *                          this contract (or their proxy if indicated by
+     *                          this contract (or their conduit if indicated by
      *                          the order) to transfer any relevant tokens on
      *                          their behalf and each consideration recipient
      *                          must implement `onERC1155Received` in order to
@@ -403,7 +403,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @param advancedOrders    The advanced orders to match. Note that both the
      *                          offerer and fulfiller on each order must first
-     *                          approve this contract (or their proxy if
+     *                          approve this contract (or their conduit if
      *                          indicated by the order) to transfer any relevant
      *                          tokens on their behalf and each consideration
      *                          recipient must implement `onERC1155Received` in

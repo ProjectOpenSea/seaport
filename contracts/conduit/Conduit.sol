@@ -17,31 +17,48 @@ import {
  * @title Conduit
  * @author 0age
  * @notice This contract serves as an originator for "proxied" transfers. Each
- *         conduit contract will be deployed and controlled by a "conduit
- *         controller" that can add and remove "channels" or contracts that can
- *         instruct the conduit to transfer approved ERC20/721/1155 tokens.
+ *         conduit is deployed and controlled by a "conduit controller" that can
+ *         add and remove "channels" or contracts that can instruct the conduit
+ *         to transfer approved ERC20/721/1155 tokens.
  */
 contract Conduit is ConduitInterface, TokenTransferrer {
+    // Set deployer as an immutable controller that can update channel statuses.
     address private immutable _controller;
 
+    // Track the status of each channel.
     mapping(address => bool) private _channels;
 
+    /**
+     * @notice In the constructor, set the deployer as the controller.
+     */
     constructor() {
+        // Set the deployer as the controller.
         _controller = msg.sender;
     }
 
+    /**
+     * @notice Execute a sequence of ERC20/721/1155 transfers. Only a caller
+     *         with an open channel can call this function.
+     *
+     * @param standardTransfers The standard transfers to perform.
+     *
+     * @return magicValue A magic value indicating that the transfers were
+     *                    performed successfully.
+     */
     function execute(ConduitTransfer[] calldata transfers)
         external
         override
         returns (bytes4 magicValue)
     {
+        // Ensure that the caller has an open channel.
         if (!_channels[msg.sender]) {
             revert ChannelClosed();
         }
 
+        // Retrieve the total number of transfers and place on the stack.
         uint256 totalStandardTransfers = transfers.length;
 
-        // Iterate over each standard execution.
+        // Iterate over each transfer.
         for (uint256 i = 0; i < totalStandardTransfers; ) {
             // Retrieve the transfer in question.
             ConduitTransfer calldata standardTransfer = transfers[i];
@@ -55,17 +72,30 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             }
         }
 
+        // Return a magic value indicating that the transfers were performed.
         return this.execute.selector;
     }
 
+    /**
+     * @notice Execute a sequence of transfers, both standard and batch 1155.
+     *         Only a caller with an open channel can call this function.
+     *
+     * @param standardTransfers The standard transfers to perform.
+     * @param batchTransfers    The 1155 batch transfers to perform.
+     *
+     * @return magicValue A magic value indicating that the transfers were
+     *                    performed successfully.
+     */
     function executeWithBatch1155(
         ConduitTransfer[] calldata standardTransfers,
         ConduitBatch1155Transfer[] calldata batchTransfers
     ) external override returns (bytes4 magicValue) {
+        // Ensure that the caller has an open channel.
         if (!_channels[msg.sender]) {
             revert ChannelClosed();
         }
 
+        // Retrieve the total number of transfers and place on the stack.
         uint256 totalStandardTransfers = standardTransfers.length;
 
         // Iterate over each standard transfer.
@@ -82,6 +112,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             }
         }
 
+        // Retrieve the total number of batch transfers and place on the stack.
         uint256 totalBatchTransfers = batchTransfers.length;
 
         // Iterate over each batch transfer.
@@ -98,23 +129,33 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             }
         }
 
+        // Return a magic value indicating that the transfers were performed.
         return this.execute.selector;
     }
 
+    /**
+     * @notice Open or close a given channel. Only callable by the controller.
+     *
+     * @param channel The channel to open or close.
+     * @param isOpen  The status of the channel (either open or closed).
+     */
     function updateChannel(address channel, bool isOpen) external override {
+        // Ensure that the caller is the controller of this contract.
         if (msg.sender != _controller) {
             revert InvalidController();
         }
 
+        // Update the status of the channel.
         _channels[channel] = isOpen;
 
+        // Emit a corresponding event.
         emit ChannelUpdated(channel, isOpen);
     }
 
     /**
-     * @dev Internal function to transfer a given item.
+     * @dev Internal function to transfer a given ERC20/721/1155 item.
      *
-     * @param item     The item to transfer, including an amount and recipient.
+     * @param item The ERC20/721/1155 item to transfer.
      */
     function _transfer(ConduitTransfer calldata item) internal {
         // If the item type indicates Ether or a native token...
@@ -151,24 +192,21 @@ contract Conduit is ConduitInterface, TokenTransferrer {
 
     /**
      * @dev Internal function to transfer a batch of ERC1155 tokens from a given
-     *      originator to a given recipient. Sufficient approvals must be set,
-     *      either on the respective proxy or on this contract itself.
+     *      originator to a given recipient. Sufficient approvals must be set on
+     *      this contract.
      *
      * @param batchTransfer The batch of 1155 tokens to be transferred.
      */
     function _batchTransferERC1155(
         ConduitBatch1155Transfer calldata batchTransfer
     ) internal {
-        // Place elements of the batch execution in memory onto the stack.
-        address token = batchTransfer.token;
-        address from = batchTransfer.from;
-        address to = batchTransfer.to;
-
-        // Retrieve the tokenIds and amounts.
-        uint256[] calldata ids = batchTransfer.ids;
-        uint256[] calldata amounts = batchTransfer.amounts;
-
         // Perform optimized batch 1155 transfer.
-        _performERC1155BatchTransfer(token, from, to, ids, amounts);
+        _performERC1155BatchTransfer(
+            batchTransfer.token,
+            batchTransfer.from,
+            batchTransfer.to,
+            batchTransfer.ids,
+            batchTransfer.amounts
+        );
     }
 }
