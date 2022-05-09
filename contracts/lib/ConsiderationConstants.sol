@@ -321,3 +321,7 @@ uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x64;
 
 // 4 + 32 * 4 == 132
 uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84;
+
+uint256 constant EIP_712_PREFIX = (
+    0x1901000000000000000000000000000000000000000000000000000000000000
+);

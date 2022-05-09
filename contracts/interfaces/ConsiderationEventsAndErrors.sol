@@ -120,32 +120,6 @@ interface ConsiderationEventsAndErrors {
     error OfferAndConsiderationRequiredOnFulfillment();
 
     /**
-     * @dev Revert with an error when a signature that does not contain a v
-     *      value of 27 or 28 has been supplied.
-     *
-     * @param v The invalid v value.
-     */
-    error BadSignatureV(uint8 v);
-
-    /**
-     * @dev Revert with an error when the signer recovered by the supplied
-     *      signature does not match the offerer or an allowed EIP-1271 signer
-     *      as specified by the offerer in the event they are a contract.
-     */
-    error InvalidSigner();
-
-    /**
-     * @dev Revert with an error when a signer cannot be recovered from the
-     *      supplied signature.
-     */
-    error InvalidSignature();
-
-    /**
-     * @dev Revert with an error when an EIP-1271 call to an account fails.
-     */
-    error BadContractSignature();
-
-    /**
      * @dev Revert with an error when the initial offer item named by a
      *      fulfillment component does not match the type, token, identifier,
      *      or conduit preference of the initial consideration item.
@@ -289,12 +263,6 @@ interface ConsiderationEventsAndErrors {
      *      payable basic order route.
      */
     error InvalidMsgValue(uint256 value);
-
-    /**
-     * @dev Revert with an error when the implementation of the respective
-     *      legacy user proxy does not match the expected proxy implementation.
-     */
-    error InvalidProxyImplementation();
 
     /**
      * @dev Revert with an error when attempting to fill a basic order using

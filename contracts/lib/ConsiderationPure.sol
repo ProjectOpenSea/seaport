@@ -352,7 +352,7 @@ contract ConsiderationPure is ConsiderationBase {
             uint256[] memory indexBy1155 = new uint256[](totalExecutions);
 
             // Iterate over each execution.
-            for (uint256 i = 0; i < executions.length; ++i) {
+            for (uint256 i = 0; i < totalExecutions; ++i) {
                 // If the item specified by the execution is an ERC1155 item...
                 if (executions[i].item.itemType == ItemType.ERC1155) {
                     // Set index of 1155 execution in memory, then increment it.
@@ -952,22 +952,6 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    function _doesNotMatchMagic(bytes4 expected) internal pure returns (bool) {
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        return result != expected;
-    }
-
     /**
      * @dev Internal pure function to validate that a given order is fillable
      *      and not cancelled based on the order status.
@@ -1088,43 +1072,6 @@ contract ConsiderationPure is ConsiderationBase {
 
             // Restore the free memory pointer.
             mstore(FreeMemoryPointerSlot, freeMemoryPointer)
-        }
-    }
-
-    /**
-     * @dev Internal pure function to efficiently derive an digest to sign for
-     *      an order in accordance with EIP-712.
-     *
-     * @param domainSeparator The domain separator.
-     * @param orderHash       The order hash.
-     *
-     * @return value The hash.
-     */
-    function _hashDigest(bytes32 domainSeparator, bytes32 orderHash)
-        internal
-        pure
-        returns (bytes32 value)
-    {
-        // Leverage scratch space to perform an efficient hash.
-        assembly {
-            // Place the EIP-712 prefix at the start of scratch space.
-            mstore(
-                0x00,
-                0x1901000000000000000000000000000000000000000000000000000000000000 // solhint-disable-line max-line-length
-            )
-
-            // Place the domain separator in the next region of scratch space.
-            mstore(0x02, domainSeparator)
-
-            // Place the order hash in scratch space, spilling into the first
-            // two bytes of the free memory pointer — this should never be set
-            // as memory cannot be expanded to that size, and will be zeroed out
-            // after the hash is performed.
-            mstore(0x22, orderHash)
-
-            value := keccak256(0x00, 0x42) // Hash the relevant region.
-
-            mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
         }
     }
 
@@ -1359,6 +1306,40 @@ contract ConsiderationPure is ConsiderationBase {
         // Revert with an error if basic order parameter offsets are invalid.
         if (!validOffsets) {
             revert InvalidBasicOrderParameterEncoding();
+        }
+    }
+
+    /**
+     * @dev Internal pure function to efficiently derive an digest to sign for
+     *      an order in accordance with EIP-712.
+     *
+     * @param domainSeparator The domain separator.
+     * @param orderHash       The order hash.
+     *
+     * @return value The hash.
+     */
+    function _hashDigest(bytes32 domainSeparator, bytes32 orderHash)
+        internal
+        pure
+        returns (bytes32 value)
+    {
+        // Leverage scratch space to perform an efficient hash.
+        assembly {
+            // Place the EIP-712 prefix at the start of scratch space.
+            mstore(0x00, EIP_712_PREFIX)
+
+            // Place the domain separator in the next region of scratch space.
+            mstore(0x02, domainSeparator)
+
+            // Place the order hash in scratch space, spilling into the first
+            // two bytes of the free memory pointer — this should never be set
+            // as memory cannot be expanded to that size, and will be zeroed out
+            // after the hash is performed.
+            mstore(0x22, orderHash)
+
+            value := keccak256(0x00, 0x42) // Hash the relevant region.
+
+            mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
         }
     }
 }
