@@ -325,3 +325,7 @@ uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84;
 uint256 constant EIP_712_PREFIX = (
     0x1901000000000000000000000000000000000000000000000000000000000000
 );
+
+uint256 constant ExtraGasBuffer = 0x20;
+uint256 constant CostPerWord = 3;
+uint256 constant MemoryExpansionCoefficient = 0x200;

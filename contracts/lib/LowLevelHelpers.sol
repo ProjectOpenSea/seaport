@@ -58,20 +58,20 @@ contract LowLevelHelpers {
                 let msizeWords := div(mload(FreeMemoryPointerSlot), OneWord)
 
                 // Next, compute the cost of the returndatacopy.
-                let cost := mul(3, returnDataWords)
+                let cost := mul(CostPerWord, returnDataWords)
 
                 // Then, compute cost of new memory allocation.
                 if gt(returnDataWords, msizeWords) {
                     cost := add(
                         cost,
                         add(
-                            mul(sub(returnDataWords, msizeWords), 3),
+                            mul(sub(returnDataWords, msizeWords), CostPerWord),
                             div(
                                 sub(
                                     mul(returnDataWords, returnDataWords),
                                     mul(msizeWords, msizeWords)
                                 ),
-                                0x200
+                                MemoryExpansionCoefficient
                             )
                         )
                     )
@@ -79,7 +79,7 @@ contract LowLevelHelpers {
 
                 // Finally, add a small constant and compare to gas remaining;
                 // bubble up the revert data if enough gas is still available.
-                if lt(add(cost, 0x20), gas()) {
+                if lt(add(cost, ExtraGasBuffer), gas()) {
                     // Copy returndata to memory; overwrite existing memory.
                     returndatacopy(0, 0, returndatasize())
 
@@ -105,10 +105,10 @@ contract LowLevelHelpers {
 
         // Utilize assembly in order to read directly from returndata buffer.
         assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
+            // Only put result on stack if return data is exactly one word.
+            if eq(returndatasize(), OneWord) {
+                // Copy the word directly from return data into scratch space.
+                returndatacopy(0, 0, OneWord)
 
                 // Take value from scratch space and place it on the stack.
                 result := mload(0)

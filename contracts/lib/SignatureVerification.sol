@@ -22,17 +22,17 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
      *      is not 32 or 33 bytes or if the recovered signer does not match the
-     *      supplied offerer. Note that in cases where a 32 or 33 byte signature
+     *      supplied signer. Note that in cases where a 32 or 33 byte signature
      *      is supplied, only standard ECDSA signatures that recover to a
      *      non-zero address are supported.
      *
-     * @param offerer   The offerer for the order.
+     * @param signer    The signer for the order.
      * @param digest    The digest to verify the signature against.
-     * @param signature A signature from the offerer indicating that the order
+     * @param signature A signature from the signer indicating that the order
      *                  has been approved.
      */
     function _verifySignatureUsingDigest(
-        address offerer,
+        address signer,
         bytes32 digest,
         bytes memory signature
     ) internal view {
@@ -49,10 +49,10 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             // Read each parameter directly from the signature's memory region.
             assembly {
                 // Put the first word from the signature onto the stack as r.
-                r := mload(add(signature, 0x20))
+                r := mload(add(signature, OneWord))
 
                 // Put the second word from the signature onto the stack as vs.
-                vs := mload(add(signature, 0x40))
+                vs := mload(add(signature, TwoWords))
 
                 // Extract canonical s from vs (all but the highest bit).
                 s := and(vs, EIP2098_allButHighestBitMask)
@@ -64,9 +64,14 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         } else if (signature.length == 65) {
             // Read each parameter directly from the signature's memory region.
             assembly {
-                r := mload(add(signature, 0x20)) // Put first word on stack at r
-                s := mload(add(signature, 0x40)) // Put next word on stack at s
-                v := byte(0, mload(add(signature, 0x60))) // Put last byte at v
+                // Place first word on the stack at r.
+                r := mload(add(signature, OneWord))
+
+                // Place second word on the stack at s.
+                s := mload(add(signature, TwoWords))
+
+                // Place final byte on the stack at v.
+                v := byte(0, mload(add(signature, ThreeWords)))
             }
 
             // Ensure v value is properly formatted.
@@ -75,23 +80,23 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             }
             // For all other signature lengths, try verification via EIP-1271.
         } else {
-            // Attempt EIP-1271 static call to offerer in case it's a contract.
-            _verifySignatureViaERC1271(offerer, digest, signature);
+            // Attempt EIP-1271 static call to signer in case it's a contract.
+            _verifySignatureViaERC1271(signer, digest, signature);
 
             // Return early if the ERC-1271 signature check succeeded.
             return;
         }
 
         // Attempt to recover signer using the digest and signature parameters.
-        address signer = ecrecover(digest, v, r, s);
+        address recoveredSigner = ecrecover(digest, v, r, s);
 
         // Disallow invalid signers.
-        if (signer == address(0)) {
+        if (recoveredSigner == address(0)) {
             revert InvalidSignature();
-            // Should a signer be recovered, but it doesn't match the offerer...
-        } else if (signer != offerer) {
-            // Attempt EIP-1271 static call to offerer in case it's a contract.
-            _verifySignatureViaERC1271(offerer, digest, signature);
+            // Should a signer be recovered, but it doesn't match the signer...
+        } else if (recoveredSigner != signer) {
+            // Attempt EIP-1271 static call to signer in case it's a contract.
+            _verifySignatureViaERC1271(signer, digest, signature);
         }
     }
 
@@ -99,19 +104,19 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
      * @dev Internal view function to verify the signature of an order using
      *      ERC-1271 (i.e. contract signatures via `isValidSignature`).
      *
-     * @param offerer   The offerer for the order.
+     * @param signer    The signer for the order.
      * @param digest    The signature digest, derived from the domain separator
      *                  and the order hash.
      * @param signature A signature (or other data) used to validate the digest.
      */
     function _verifySignatureViaERC1271(
-        address offerer,
+        address signer,
         bytes32 digest,
         bytes memory signature
     ) internal view {
-        // Attempt an EIP-1271 staticcall to the offerer.
+        // Attempt an EIP-1271 staticcall to the signer.
         bool success = _staticcall(
-            offerer,
+            signer,
             abi.encodeWithSelector(
                 EIP1271Interface.isValidSignature.selector,
                 digest,
