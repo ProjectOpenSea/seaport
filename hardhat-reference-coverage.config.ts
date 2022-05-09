@@ -15,7 +15,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.13",
+        version: "0.8.7",
         settings: {
           viaIR: false,
           optimizer: {
@@ -34,6 +34,11 @@ const config: HardhatUserConfig = {
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
+  },
+  paths: {
+    sources: "./reference",
+    cache: "hh-cache-ref",
+    artifacts: "./artifacts-ref",
   },
 };
 

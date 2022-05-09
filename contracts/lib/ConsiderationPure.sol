@@ -952,6 +952,22 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
+    function _doesNotMatchMagic(bytes4 expected) internal pure returns (bool) {
+        bytes4 result;
+        assembly {
+            // Only put result on stack if return data is exactly 32 bytes.
+            if eq(returndatasize(), 0x20) {
+                // Copy directly from return data into scratch space.
+                returndatacopy(0, 0, 0x20)
+
+                // Take value from scratch space and place it on the stack.
+                result := mload(0)
+            }
+        }
+
+        return result != expected;
+    }
+
     /**
      * @dev Internal pure function to validate that a given order is fillable
      *      and not cancelled based on the order status.

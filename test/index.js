@@ -23,7 +23,7 @@ const {
 const { eip712DomainType } = require("../eip-712-types/domain");
 const { orderType } = require("../eip-712-types/order");
 
-const VERSION = "rc.1";
+const VERSION = !process.env.REFERENCE ? "1" : "rc.1";
 
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
@@ -1123,10 +1123,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
 
     reenterer = await deployContract("Reenterer", owner);
-
-    conduitImplementation = await ethers.getContractFactory("Conduit");
-
-    conduitController = await deployContract("ConduitController", owner);
+    if (process.env.REFERENCE) {
+      conduitImplementation = await ethers.getContractFactory(
+        "ReferenceConduit"
+      );
+      conduitController = await deployContract(
+        "ReferenceConduitController",
+        owner
+      );
+    } else {
+      conduitImplementation = await ethers.getContractFactory("Conduit");
+      conduitController = await deployContract("ConduitController", owner);
+    }
 
     conduitKeyOne = `0x000000000000000000000000${owner.address.slice(2)}`;
 
@@ -4199,6 +4207,94 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             offer,
             consideration,
             0 // FULL_OPEN
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            4, // ERC721ForERC20
+            order
+          );
+
+          await whileImpersonating(buyer.address, provider, async () => {
+            await withBalanceChecks(
+              [order],
+              ethers.BigNumber.from(0),
+              null,
+              async () => {
+                const tx = await marketplaceContract
+                  .connect(buyer)
+                  .fulfillBasicOrder(basicOrderParameters);
+                const receipt = await tx.wait();
+                await checkExpectedEvents(receipt, [
+                  { order, orderHash, fulfiller: buyer.address },
+                ]);
+                return receipt;
+              }
+            );
+          });
+        });
+        it("ERC721 <=> ERC20 (basic, many via conduit)", async () => {
+          // Buyer mints nft
+          const nftId = ethers.BigNumber.from(randomHex());
+          await testERC721.mint(buyer.address, nftId);
+
+          // Buyer approves marketplace contract to transfer NFT
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(buyer)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(buyer.address, marketplaceContract.address, true);
+          });
+
+          // Seller mints ERC20
+          const tokenAmount = ethers.BigNumber.from(randomLarge());
+          await testERC20.mint(seller.address, tokenAmount);
+
+          // Seller approves conduit contract to transfer tokens
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC20.connect(seller).approve(conduitOne.address, tokenAmount)
+            )
+              .to.emit(testERC20, "Approval")
+              .withArgs(seller.address, conduitOne.address, tokenAmount);
+          });
+
+          // NOTE: Buyer does not need to approve marketplace for ERC20 tokens
+
+          const offer = [
+            {
+              itemType: 1, // ERC20
+              token: testERC20.address,
+              identifierOrCriteria: 0, // ignored for ERC20
+              startAmount: tokenAmount,
+              endAmount: tokenAmount,
+            },
+          ];
+
+          let consideration = [
+            getTestItem721(nftId, 1, 1, seller.address),
+            getTestItem20(1, 1, zone.address),
+          ];
+
+          for (let i = 1; i <= 100; ++i) {
+            consideration.push(
+              getTestItem20(i, i, toAddress(parseInt(i) + 10000))
+            );
+          }
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            conduitKeyOne
           );
 
           const basicOrderParameters = getBasicOrderParameters(
@@ -15607,6 +15703,146 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         });
       });
+      if (process.env.REFERENCE) {
+        it("Reverts on out-of-range criteria resolver (match)", async () => {
+          // Seller mints nfts
+          const nftId = ethers.BigNumber.from(randomHex());
+
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves marketplace contract to transfer NFTs
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          const { root, proofs } = merkleTree([nftId]);
+
+          const offer = [
+            {
+              itemType: 4, // ERC721WithCriteria
+              token: testERC721.address,
+              identifierOrCriteria: root,
+              startAmount: ethers.BigNumber.from(1),
+              endAmount: ethers.BigNumber.from(1),
+            },
+          ];
+
+          const consideration = [
+            getItemETH(10, 10, seller.address),
+            getItemETH(1, 1, zone.address),
+            getItemETH(1, 1, owner.address),
+          ];
+
+          let criteriaResolvers = [
+            {
+              orderIndex: 3,
+              side: 0, // offer
+              index: 0,
+              identifier: nftId,
+              criteriaProof: proofs[nftId.toString()],
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            criteriaResolvers
+          );
+
+          const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+            await createMirrorAcceptOfferOrder(
+              buyer,
+              zone,
+              order,
+              criteriaResolvers
+            );
+
+          const fulfillments = [
+            {
+              offerComponents: [
+                {
+                  orderIndex: 1,
+                  itemIndex: 0,
+                },
+              ],
+              considerationComponents: [
+                {
+                  orderIndex: 0,
+                  itemIndex: 0,
+                },
+              ],
+            },
+          ];
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchAdvancedOrders(
+                  [order, mirrorOrder],
+                  criteriaResolvers,
+                  fulfillments,
+                  { value }
+                )
+            ).to.be.revertedWith("OrderCriteriaResolverOutOfRange");
+          });
+
+          criteriaResolvers = [
+            {
+              orderIndex: 0,
+              side: 0, // offer
+              index: 5,
+              identifier: nftId,
+              criteriaProof: proofs[nftId.toString()],
+            },
+          ];
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchAdvancedOrders(
+                  [order, mirrorOrder],
+                  criteriaResolvers,
+                  fulfillments,
+                  { value }
+                )
+            ).to.be.revertedWith("OfferCriteriaResolverOutOfRange");
+          });
+
+          criteriaResolvers = [
+            {
+              orderIndex: 0,
+              side: 1, // consideration
+              index: 5,
+              identifier: nftId,
+              criteriaProof: proofs[nftId.toString()],
+            },
+          ];
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchAdvancedOrders(
+                  [order, mirrorOrder],
+                  criteriaResolvers,
+                  fulfillments,
+                  { value }
+                )
+            ).to.be.revertedWith("ConsiderationCriteriaResolverOutOfRange");
+          });
+        });
+      }
       it("Reverts on unresolved criteria items", async () => {
         // Seller and buyer both mints nfts
         const nftId = ethers.BigNumber.from(randomHex());
@@ -15764,6 +16000,166 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         });
       });
+      if (process.env.REFERENCE) {
+        it("Reverts on unresolved criteria items (match)", async () => {
+          // Seller mints nfts
+          const nftId = ethers.BigNumber.from(randomHex());
+          const secondNFTId = ethers.BigNumber.from(randomHex());
+
+          await testERC721.mint(seller.address, nftId);
+          await testERC721.mint(seller.address, secondNFTId);
+
+          const tokenIds = [nftId, secondNFTId];
+
+          // Seller approves marketplace contract to transfer NFTs
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          const { root, proofs } = merkleTree(tokenIds);
+
+          const offer = [
+            {
+              itemType: 4, // ERC721WithCriteria
+              token: testERC721.address,
+              identifierOrCriteria: root,
+              startAmount: ethers.BigNumber.from(1),
+              endAmount: ethers.BigNumber.from(1),
+            },
+          ];
+
+          const consideration = [
+            {
+              itemType: 4, // ERC721WithCriteria
+              token: testERC721.address,
+              identifierOrCriteria: root,
+              startAmount: ethers.BigNumber.from(1),
+              endAmount: ethers.BigNumber.from(1),
+              recipient: owner.address,
+            },
+          ];
+
+          let criteriaResolvers = [
+            {
+              orderIndex: 0,
+              side: 0, // offer
+              index: 0,
+              identifier: nftId,
+              criteriaProof: proofs[nftId.toString()],
+            },
+            {
+              orderIndex: 0,
+              side: 1, // consideration
+              index: 0,
+              identifier: secondNFTId,
+              criteriaProof: proofs[secondNFTId.toString()],
+            },
+          ];
+
+          let { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            criteriaResolvers
+          );
+
+          criteriaResolvers = [
+            {
+              orderIndex: 0,
+              side: 0, // offer
+              index: 0,
+              identifier: nftId,
+              criteriaProof: proofs[nftId.toString()],
+            },
+          ];
+
+          const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+            await createMirrorAcceptOfferOrder(
+              buyer,
+              zone,
+              order,
+              criteriaResolvers
+            );
+
+          const fulfillments = [
+            {
+              offerComponents: [
+                {
+                  orderIndex: 1,
+                  itemIndex: 0,
+                },
+              ],
+              considerationComponents: [
+                {
+                  orderIndex: 0,
+                  itemIndex: 0,
+                },
+              ],
+            },
+          ];
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchAdvancedOrders(
+                  [order, mirrorOrder],
+                  criteriaResolvers,
+                  fulfillments,
+                  { value }
+                )
+            ).to.be.revertedWith("UnresolvedConsiderationCriteria");
+          });
+
+          criteriaResolvers = [
+            {
+              orderIndex: 0,
+              side: 1, // consideration
+              index: 0,
+              identifier: secondNFTId,
+              criteriaProof: proofs[secondNFTId.toString()],
+            },
+          ];
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchAdvancedOrders(
+                  [order, mirrorOrder],
+                  criteriaResolvers,
+                  fulfillments,
+                  { value }
+                )
+            ).to.be.revertedWith("UnresolvedOfferCriteria");
+          });
+
+          criteriaResolvers = [
+            {
+              orderIndex: 0,
+              side: 0, // offer
+              index: 0,
+              identifier: nftId,
+              criteriaProof: proofs[nftId.toString()],
+            },
+            {
+              orderIndex: 0,
+              side: 1, // consideration
+              index: 0,
+              identifier: secondNFTId,
+              criteriaProof: proofs[secondNFTId.toString()],
+            },
+          ];
+        });
+      }
       it("Reverts on attempts to resolve criteria for non-criteria item", async () => {
         // Seller mints nfts
         const nftId = ethers.BigNumber.from(randomHex());
@@ -15834,6 +16230,100 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.revertedWith("CriteriaNotEnabledForItem");
         });
       });
+      if (process.env.REFERENCE) {
+        it("Reverts on attempts to resolve criteria for non-criteria item (match)", async () => {
+          // Seller mints nfts
+          const nftId = ethers.BigNumber.from(randomHex());
+
+          await testERC721.mint(seller.address, nftId);
+
+          // Seller approves marketplace contract to transfer NFTs
+          await whileImpersonating(seller.address, provider, async () => {
+            await expect(
+              testERC721
+                .connect(seller)
+                .setApprovalForAll(marketplaceContract.address, true)
+            )
+              .to.emit(testERC721, "ApprovalForAll")
+              .withArgs(seller.address, marketplaceContract.address, true);
+          });
+
+          const { root, proofs } = merkleTree([nftId]);
+
+          const offer = [
+            {
+              itemType: 2, // ERC721
+              token: testERC721.address,
+              identifierOrCriteria: root,
+              startAmount: ethers.BigNumber.from(1),
+              endAmount: ethers.BigNumber.from(1),
+            },
+          ];
+
+          const consideration = [
+            getItemETH(10, 10, seller.address),
+            getItemETH(1, 1, zone.address),
+            getItemETH(1, 1, owner.address),
+          ];
+
+          const criteriaResolvers = [
+            {
+              orderIndex: 0,
+              side: 0, // offer
+              index: 0,
+              identifier: nftId,
+              criteriaProof: proofs[nftId.toString()],
+            },
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            criteriaResolvers
+          );
+
+          const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+            await createMirrorAcceptOfferOrder(
+              buyer,
+              zone,
+              order,
+              criteriaResolvers
+            );
+
+          const fulfillments = [
+            {
+              offerComponents: [
+                {
+                  orderIndex: 1,
+                  itemIndex: 0,
+                },
+              ],
+              considerationComponents: [
+                {
+                  orderIndex: 0,
+                  itemIndex: 0,
+                },
+              ],
+            },
+          ];
+
+          await whileImpersonating(owner.address, provider, async () => {
+            const tx = await expect(
+              marketplaceContract
+                .connect(owner)
+                .matchAdvancedOrders(
+                  [order, mirrorOrder],
+                  criteriaResolvers,
+                  fulfillments,
+                  { value }
+                )
+            ).to.be.revertedWith("CriteriaNotEnabledForItem");
+          });
+        });
+      }
       it("Reverts on invalid criteria proof", async () => {
         // Seller mints nfts
         const nftId = ethers.BigNumber.from(randomHex());
@@ -16868,47 +17358,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
 
         // TODO: clean *this* up
-        let w = 0;
-        let ceiling = hre.__SOLIDITY_COVERAGE_RUNNING ? 130 : 80;
-        let found = false;
-        for (; w <= ceiling; w += ceiling) {
-          basicOrderParameters = await setup();
-          await recipient.setRevertDataSize(w * 32);
-          try {
-            await whileImpersonating(buyer.address, provider, async () => {
-              await marketplaceContract
-                .connect(buyer)
-                .fulfillBasicOrder(basicOrderParameters, {
-                  value: ethers.utils.parseEther("12"),
-                  gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
-                    ? baseGas.add(35000)
-                    : baseGas.add(1000),
-                });
-            });
-          } catch (err) {
-            if (err.message.includes("EtherTransferGenericFailure")) {
-              found = true;
-            }
-          }
-        }
-
-        expect(found).to.be.true;
-
-        // await recipient.setRevertDataSize(hre.__SOLIDITY_COVERAGE_RUNNING ? (130 * 32) : (80 * 32));
-        // await whileImpersonating(buyer.address, provider, async () => {
-        //   await expect(
-        //     marketplaceContract
-        //       .connect(buyer)
-        //       .fulfillBasicOrder(basicOrderParameters, {
-        //         value: ethers.utils.parseEther("12"),
-        //         gasLimit: baseGas.add(1000),
-        //       })
-        //   ).to.be.revertedWith(
-        //     `EtherTransferGenericFailure("${recipient.address}", ${ethers.utils
-        //       .parseEther("1")
-        //       .toString()})`
-        //   );
-        // });
+        basicOrderParameters = await setup();
+        await recipient.setRevertDataSize(1);
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, {
+                value: ethers.utils.parseEther("12"),
+                gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
+                  ? baseGas.add(35000)
+                  : baseGas.add(1000),
+              })
+          ).to.be.revertedWith("EtherTransferGenericFailure");
+        });
       });
 
       it("Reverts when ether transfer fails (basic)", async () => {
@@ -17262,35 +17725,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             });
 
           // TODO: clean *this* up
-          let w = 0;
-          let ceiling = hre.__SOLIDITY_COVERAGE_RUNNING ? 1720 : 910;
-          let found = false;
-          for (; w <= ceiling; w += 5) {
-            const { order } = await setup();
-            await recipient.setRevertDataSize(w * 32);
-            try {
-              await whileImpersonating(buyer.address, provider, async () => {
-                await marketplaceContract
-                  .connect(buyer)
-                  .fulfillAdvancedOrder(order, [], conduitKeyOne, {
-                    value,
-                    gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
-                      ? baseGas.add(35000)
-                      : baseGas.add(2000),
-                  });
-              });
-            } catch (err) {
-              if (err.message.includes("InvalidCallToConduit")) {
-                found = true;
-              }
-            }
-
-            if (w === 0) {
-              w = hre.__SOLIDITY_COVERAGE_RUNNING ? 1715 : 905;
-            }
-          }
-
-          expect(found).to.be.true;
+          const { order } = await setup();
+          await recipient.setRevertDataSize(1);
+          await whileImpersonating(buyer.address, provider, async () => {
+            await expect(
+              marketplaceContract
+                .connect(buyer)
+                .fulfillAdvancedOrder(order, [], conduitKeyOne, {
+                  value,
+                  gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
+                    ? baseGas.add(35000)
+                    : baseGas.add(2000),
+                })
+            ).to.be.revertedWith("InvalidCallToConduit");
+          });
         });
       }
 

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.7;
 
-import { EIP1271Interface } from "../../interfaces/EIP1271Interface.sol";
+import { EIP1271Interface } from "contracts/interfaces/EIP1271Interface.sol";
 
-import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
 
-import { OrderType, ItemType, Side } from "../../lib/ConsiderationEnums.sol";
+import { OrderType, ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -20,11 +20,13 @@ import {
     OrderStatus,
     Execution,
     FulfillmentComponent
-} from "../../lib/ConsiderationStructs.sol";
+} from "contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceConsiderationPure } from "./ReferenceConsiderationPure.sol";
 
 import "./ReferenceConsiderationConstants.sol";
+
+import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceConsiderationInternalView
@@ -112,35 +114,21 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
 
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                // Put the first word from the signature onto the stack as r.
-                r := mload(add(signature, 0x20))
+            (r, vs) = abi.decode(signature, (bytes32, bytes32));
 
-                // Put the second word from the signature onto the stack as vs.
-                vs := mload(add(signature, 0x40))
+            s = vs & EIP2098_allButHighestBitMask;
 
-                // Extract canonical s from vs (all but the highest bit).
-                s := and(vs, EIP2098_allButHighestBitMask)
-
-                // Extract yParity from highest bit of vs and add 27 to get v.
-                v := add(shr(255, vs), 27)
-            }
-            // If signature is 65 bytes, parse as a standard signature. (r+s+v)
+            v = uint8(uint256(vs >> 255)) + 27;
         } else if (signature.length == 65) {
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                r := mload(add(signature, 0x20)) // Put first word on stack at r
-                s := mload(add(signature, 0x40)) // Put next word on stack at s
-                v := byte(0, mload(add(signature, 0x60))) // Put last byte at v
-            }
+            (r, s) = abi.decode(signature, (bytes32, bytes32));
+            v = uint8(signature[64]);
 
             // Ensure v value is properly formatted.
             if (v != 27 && v != 28) {
                 revert BadSignatureV(v);
             }
-            // For all other signature lengths, try verification via EIP-1271.
         } else {
+            // For all other signature lengths, try verification via EIP-1271.
             // Attempt EIP-1271 static call to offerer in case it's a contract.
             _verifySignatureViaERC1271(offerer, digest, signature);
 
@@ -193,7 +181,9 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         // prettier-ignore
         return block.chainid == _CHAIN_ID
             ? _DOMAIN_SEPARATOR
-            : _deriveDomainSeparator();
+            : _deriveDomainSeparator(_EIP_712_DOMAIN_TYPEHASH,
+                _NAME_HASH,
+                _VERSION_HASH);
     }
 
     /// @dev Internal view function to derive the EIP-712 hash for an offer item.
@@ -438,7 +428,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
      * @dev Internal view function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
      *
-     * @param advancedOrders          The orders to match.
+     * @param ordersToExecute         The orders to match.
      * @param offerComponents         An array designating offer components to
      *                                match to consideration components.
      * @param considerationComponents An array designating consideration
@@ -450,7 +440,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
      * @return execution The transfer performed as a result of the fulfillment.
      */
     function _applyFulfillment(
-        AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] calldata offerComponents,
         FulfillmentComponent[] calldata considerationComponents
     ) internal view returns (Execution memory execution) {
@@ -465,7 +455,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         // ReceivedItem.
         ReceivedItem memory considerationItem = (
             _aggregateValidFulfillmentConsiderationItems(
-                advancedOrders,
+                ordersToExecute,
                 considerationComponents,
                 0
             )
@@ -483,7 +473,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
              * uint256 offerAmount
              */
         ) = _aggregateValidFulfillmentOfferItems(
-            advancedOrders,
+            ordersToExecute,
             offerComponents,
             0
         );
@@ -505,10 +495,9 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             );
 
             // Add excess consideration item amount to original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .consideration[targetComponent.itemIndex]
-                .startAmount = considerationItem.amount - execution.item.amount;
+            ordersToExecute[targetComponent.orderIndex]
+                .receivedItems[targetComponent.itemIndex]
+                .amount = considerationItem.amount - execution.item.amount;
 
             // Reduce total consideration amount to equal the offer amount.
             considerationItem.amount = execution.item.amount;
@@ -517,10 +506,9 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             FulfillmentComponent memory targetComponent = (offerComponents[0]);
 
             // Add excess offer item amount to the original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .offer[targetComponent.itemIndex]
-                .startAmount = execution.item.amount - considerationItem.amount;
+            ordersToExecute[targetComponent.orderIndex]
+                .spentItems[targetComponent.itemIndex]
+                .amount = execution.item.amount - considerationItem.amount;
         }
 
         // Reuse execution struct with consideration amount and recipient.
@@ -537,7 +525,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
      *      of fulfillment components. Items that are not available to aggregate
      *      will not be included in the aggregated execution.
      *
-     * @param advancedOrders        The orders to aggregate.
+     * @param ordersToExecute       The orders to aggregate.
      * @param side                  The side (i.e. offer or consideration).
      * @param fulfillmentComponents An array designating item components to
      *                              aggregate if part of an available order.
@@ -552,13 +540,13 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
      * @return execution The transfer performed as a result of the fulfillment.
      */
     function _aggregateAvailable(
-        AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         Side side,
         FulfillmentComponent[] memory fulfillmentComponents,
         bytes32 fulfillerConduitKey
     ) internal view returns (Execution memory execution) {
-        // Retrieve advanced orders array length and place on the stack.
-        uint256 totalOrders = advancedOrders.length;
+        // Retrieve orders array length and place on the stack.
+        uint256 totalOrders = ordersToExecute.length;
 
         // Retrieve fulfillment components array length and place on stack.
         uint256 totalFulfillmentComponents = fulfillmentComponents.length;
@@ -567,6 +555,10 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         if (totalFulfillmentComponents == 0) {
             revert MissingFulfillmentComponentOnAggregation(side);
         }
+
+        // _validateOrdersAndPrepareToFulfill should have only filled
+        // ordersToExecute withe fulfillable orders, so we shouldn't
+        // have to check
 
         // Determine component index after first available (0 implies none).
         uint256 nextComponentIndex = 0;
@@ -582,7 +574,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             }
 
             // If order is being fulfilled (i.e. it is still available)...
-            if (advancedOrders[orderIndex].numerator != 0) {
+            if (ordersToExecute[orderIndex].numerator != 0) {
                 // Update the next potential component index.
                 nextComponentIndex = i + 1;
 
@@ -613,7 +605,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             // Return execution for aggregated items provided by offerer.
             // prettier-ignore
             return _aggregateValidFulfillmentOfferItems(
-                advancedOrders,
+                ordersToExecute,
                 fulfillmentComponents,
                 nextComponentIndex - 1
             );
@@ -623,7 +615,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             // the fulfiller.
             // prettier-ignore
             return _aggregateConsiderationItems(
-                advancedOrders,
+                ordersToExecute,
                 fulfillmentComponents,
                 nextComponentIndex - 1,
                 fulfillerConduitKey
@@ -634,21 +626,21 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
     /**
      * @dev Internal pure function to check the indicated offer item matches original item.
      *
-     * @param aOrder  The advanced order to compare.
+     * @param orderToExecute  The order to compare.
      * @param offer The offer to compare
      * @param execution  The aggregated offer item
      *
      * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
      */
     function _checkMatchingOffer(
-        AdvancedOrder memory aOrder,
-        OfferItem memory offer,
+        OrderToExecute memory orderToExecute,
+        SpentItem memory offer,
         Execution memory execution
     ) internal pure returns (bool invalidFulfillment) {
         return
-            execution.item.identifier != offer.identifierOrCriteria ||
-            execution.offerer != aOrder.parameters.offerer ||
-            execution.conduitKey != aOrder.parameters.conduitKey ||
+            execution.item.identifier != offer.identifier ||
+            execution.offerer != orderToExecute.offerer ||
+            execution.conduitKey != orderToExecute.conduitKey ||
             execution.item.itemType != offer.itemType ||
             execution.item.token != offer.token;
     }
@@ -658,7 +650,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
      *      supplied directives on which component items are candidates for
      *      aggregation, skipping items on orders that are not available.
      *
-     * @param advancedOrders  The orders to aggregate offer items from.
+     * @param ordersToExecute The orders to aggregate offer items from.
      * @param offerComponents An array of FulfillmentComponent structs
      *                        indicating the order index and item index of each
      *                        candidate offer item for aggregation.
@@ -668,7 +660,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
      * @return execution The aggregated offer items.
      */
     function _aggregateValidFulfillmentOfferItems(
-        AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory offerComponents,
         uint256 startIndex
     ) internal view returns (Execution memory execution) {
@@ -677,30 +669,30 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
 
         // Declare a variable indicating whether the aggregation is invalid.
         // Ensure that the order index is not out of range.
-        bool invalidFulfillment = (orderIndex >= advancedOrders.length);
+        bool invalidFulfillment = (orderIndex >= ordersToExecute.length);
         if (!invalidFulfillment) {
-            AdvancedOrder memory aOrder = advancedOrders[orderIndex];
+            OrderToExecute memory orderToExecute = ordersToExecute[orderIndex];
             // Ensure that the item index is not out of range.
             invalidFulfillment =
                 invalidFulfillment ||
-                (itemIndex >= aOrder.parameters.offer.length);
+                (itemIndex >= orderToExecute.spentItems.length);
             if (!invalidFulfillment) {
-                OfferItem memory offer = aOrder.parameters.offer[itemIndex];
+                SpentItem memory offer = orderToExecute.spentItems[itemIndex];
 
                 execution = Execution(
                     ReceivedItem(
                         offer.itemType,
                         offer.token,
-                        offer.identifierOrCriteria,
-                        offer.startAmount,
+                        offer.identifier,
+                        offer.amount,
                         payable(msg.sender)
                     ),
-                    aOrder.parameters.offerer,
-                    aOrder.parameters.conduitKey
+                    orderToExecute.offerer,
+                    orderToExecute.conduitKey
                 );
 
                 // Zero out amount on original offerItem to indicate it is spent
-                offer.startAmount = 0;
+                offer.amount = 0;
 
                 for (
                     uint256 i = startIndex + 1;
@@ -711,30 +703,30 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
                     itemIndex = offerComponents[i].itemIndex;
 
                     // Ensure that the order index is not out of range.
-                    invalidFulfillment = orderIndex >= advancedOrders.length;
+                    invalidFulfillment = orderIndex >= ordersToExecute.length;
                     // Break if invalid
                     if (invalidFulfillment) {
                         break;
                     }
-                    aOrder = advancedOrders[orderIndex];
-                    if (aOrder.numerator != 0) {
+                    orderToExecute = ordersToExecute[orderIndex];
+                    if (orderToExecute.numerator != 0) {
                         // Ensure that the item index is not out of range.
                         invalidFulfillment = (itemIndex >=
-                            aOrder.parameters.offer.length);
+                            orderToExecute.spentItems.length);
                         // Break if invalid
                         if (invalidFulfillment) {
                             break;
                         }
-                        offer = aOrder.parameters.offer[itemIndex];
+                        offer = orderToExecute.spentItems[itemIndex];
                         // Updating Received Item Amount
                         execution.item.amount =
                             execution.item.amount +
-                            offer.startAmount;
+                            offer.amount;
                         // Zero out amount on original offerItem to indicate it is spent
-                        offer.startAmount = 0;
+                        offer.amount = 0;
                         // Ensure the indicated offer item matches original item.
                         invalidFulfillment = _checkMatchingOffer(
-                            aOrder,
+                            orderToExecute,
                             offer,
                             execution
                         );
@@ -754,7 +746,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
      *      Consideration items that are not available to aggregate will not be
      *      included in the aggregated execution.
      *
-     * @param advancedOrders          The orders to aggregate.
+     * @param ordersToExecute         The orders to aggregate.
      * @param considerationComponents An array designating consideration
      *                                components to aggregate if part of an
      *                                available order.
@@ -771,7 +763,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
      * @return execution The transfer performed as a result of the fulfillment.
      */
     function _aggregateConsiderationItems(
-        AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory considerationComponents,
         uint256 nextComponentIndex,
         bytes32 fulfillerConduitKey
@@ -780,7 +772,7 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
         // store result as a ReceivedItem.
         ReceivedItem memory receiveConsiderationItem = (
             _aggregateValidFulfillmentConsiderationItems(
-                advancedOrders,
+                ordersToExecute,
                 considerationComponents,
                 nextComponentIndex
             )

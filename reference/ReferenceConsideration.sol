@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.7;
 
 // prettier-ignore
 import {
     ConsiderationInterface
-} from "../interfaces/ConsiderationInterface.sol";
+} from "contracts/interfaces/ConsiderationInterface.sol";
 
 // prettier-ignore
 import {
     OrderType,
     ItemType,
     BasicOrderRouteType
-} from "../lib/ConsiderationEnums.sol";
+} from "contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -28,12 +28,14 @@ import {
     OrderStatus,
     CriteriaResolver,
     BatchExecution
-} from "../lib/ConsiderationStructs.sol";
+} from "contracts/lib/ConsiderationStructs.sol";
 
 // prettier-ignore
 import {
     ReferenceConsiderationInternal
 } from "./lib/ReferenceConsiderationInternal.sol";
+
+import { OrderToExecute } from "./lib/ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceConsideration
@@ -314,6 +316,8 @@ contract ReferenceConsideration is
             new CriteriaResolver[](0), // No criteria resolvers supplied.
             fulfillerConduitKey
         );
+
+        // TODO: Make these work with Orders To Execute
     }
 
     /**
@@ -364,6 +368,8 @@ contract ReferenceConsideration is
                 criteriaResolvers,
                 fulfillerConduitKey
             );
+
+        // TODO: Make these work with Orders To Execute
     }
 
     /**
@@ -430,10 +436,21 @@ contract ReferenceConsideration is
             BatchExecution[] memory batchExecutions
         )
     {
-        // Convert orders to "advanced" orders and fulfill all available orders.
+        // Convert orders to "advanced" orders.
+        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
+            orders
+        );
+        // Convert Advanced Orders to Orders To Execute
+        OrderToExecute[]
+            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+                advancedOrders
+            );
+
+        // Fulfill all available orders.
         return
             _fulfillAvailableAdvancedOrders(
-                _convertOrdersToAdvanced(orders), // Convert to advanced orders.
+                advancedOrders,
+                ordersToExecute,
                 new CriteriaResolver[](0), // No criteria resolvers supplied.
                 offerFulfillments,
                 considerationFulfillments,
@@ -525,10 +542,17 @@ contract ReferenceConsideration is
             BatchExecution[] memory batchExecutions
         )
     {
+        // Convert Advanced Orders to Orders to Execute
+        OrderToExecute[]
+            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+                advancedOrders
+            );
+
         // Fulfill all available orders.
         return
             _fulfillAvailableAdvancedOrders(
                 advancedOrders,
+                ordersToExecute,
                 criteriaResolvers,
                 offerFulfillments,
                 considerationFulfillments,
@@ -583,16 +607,22 @@ contract ReferenceConsideration is
             orders
         );
 
-        // Validate orders, apply amounts, & determine if they utilize proxies.
+        // Convert advanced orders to orders to execute.
+        OrderToExecute[]
+            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+                advancedOrders
+            );
+
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
+            ordersToExecute,
             new CriteriaResolver[](0), // No criteria resolvers supplied.
             true, // Signifies that invalid orders should revert.
             advancedOrders.length
         );
 
         // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
+        return _fulfillAdvancedOrders(ordersToExecute, fulfillments);
     }
 
     /**
@@ -649,16 +679,23 @@ contract ReferenceConsideration is
             BatchExecution[] memory batchExecutions
         )
     {
+        // Convert Advanced Orders to Orders to Execute
+        OrderToExecute[]
+            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+                advancedOrders
+            );
+
         // Validate orders, apply amounts, & determine if they utilize conduits.
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
+            ordersToExecute,
             criteriaResolvers,
             true, // Signifies that invalid orders should revert.
             advancedOrders.length
         );
 
         // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
+        return _fulfillAdvancedOrders(ordersToExecute, fulfillments);
     }
 
     /**

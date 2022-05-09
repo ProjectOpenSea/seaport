@@ -185,6 +185,9 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             conduitKey := calldataload(add(0x1c4, mul(gt(route, 3), 0x20)))
         }
 
+        // Declare transfer accumulator — it will extend memory where needed.
+        bytes memory accumulator = new bytes(32);
+
         // Transfer tokens based on the route.
         if (route == BasicOrderRouteType.ETH_TO_ERC721) {
             // Transfer ERC721 to caller using offerer's conduit if applicable.
@@ -194,7 +197,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
@@ -207,7 +211,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
@@ -220,7 +225,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -230,7 +236,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
-                false // Send full amount indicated by all consideration items.
+                false, // Send full amount indicated by all consideration items.
+                accumulator
             );
         } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
             // Transfer ERC1155 to caller using offerer's conduit if applicable.
@@ -240,7 +247,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -250,7 +258,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.considerationToken,
                 parameters.considerationAmount,
                 parameters,
-                false // Send full amount indicated by all consideration items.
+                false, // Send full amount indicated by all consideration items.
+                accumulator
             );
         } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
             // Transfer ERC721 to offerer using caller's conduit if applicable.
@@ -260,7 +269,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -270,7 +280,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.offerToken,
                 parameters.offerAmount,
                 parameters,
-                true // Reduce amount sent to fulfiller by additional amounts.
+                true, // Reduce amount sent to fulfiller by additional amounts.
+                accumulator
             );
         } else {
             // route == BasicOrderRouteType.ERC1155_TO_ERC20
@@ -282,7 +293,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 offerer,
                 parameters.considerationIdentifier,
                 parameters.considerationAmount,
-                conduitKey
+                conduitKey,
+                accumulator
             );
 
             // Transfer ERC20 tokens to all recipients and wrap up.
@@ -292,9 +304,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
                 parameters.offerToken,
                 parameters.offerAmount,
                 parameters,
-                true // Reduce amount sent to fulfiller by additional amounts.
+                true, // Reduce amount sent to fulfiller by additional amounts.
+                accumulator
             );
         }
+
+        // Trigger any remaining accumulated transfers via call to the conduit.
+        _triggerIfArmed(accumulator);
 
         return true;
     }
@@ -850,7 +866,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @return The order hash.
      */
-    function getOrderHash(OrderComponents memory order)
+    function getOrderHash(OrderComponents calldata order)
         external
         view
         override
@@ -950,9 +966,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             address conduitController
         )
     {
-        version = _VERSION;
+        uint256 versionBytes = _VERSION;
         domainSeparator = _domainSeparator();
         conduitController = address(_CONDUIT_CONTROLLER);
+        version = new string(1);
+        assembly {
+            mstore(add(version, 0x20), versionBytes)
+        }
     }
 
     /**
@@ -961,7 +981,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return The name of this contract.
      */
     function name() external pure override returns (string memory) {
+        uint256 nameBytes = _NAME;
         // Return the name of the contract.
-        return _NAME;
+        assembly {
+            mstore(0x00, 0x20)
+            mstore(0x20, 13)
+            mstore(0x40, nameBytes)
+            return(0, 0x60)
+        }
     }
 }

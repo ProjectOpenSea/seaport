@@ -4,7 +4,6 @@ pragma solidity 0.8.13;
 import "../../../contracts/conduit/ConduitController.sol";
 
 import { Consideration } from "../../../contracts/Consideration.sol";
-import { ReferenceConsideration } from "../../../contracts/reference/ReferenceConsideration.sol";
 import { OrderType, BasicOrderType, ItemType, Side } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 
@@ -44,15 +43,24 @@ contract BaseConsiderationTest is DSTestPlusPlus {
             address(consideration)
         );
 
-        referenceConsideration = Consideration(
-            address(new ReferenceConsideration(address(conduitController)))
+        bytes memory bytecode = abi.encodePacked(
+            vm.getCode(
+                "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json"
+            ),
+            abi.encode(address(conduitController))
         );
-        vm.label(address(referenceConsideration), "consideration");
+        assembly {
+            sstore(
+                referenceConsideration.slot,
+                create(0, add(bytecode, 0x20), mload(bytecode))
+            )
+        }
+
+        vm.label(address(referenceConsideration), "reference");
         emit log_named_address(
-            "Deployed referenceConsideration at",
+            "Deployed Reference Consideration at",
             address(referenceConsideration)
         );
-
         conduitController.updateChannel(conduit, address(consideration), true);
         conduitController.updateChannel(
             conduit,
