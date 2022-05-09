@@ -116,14 +116,14 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    function testFulfillOrderEthToErc1155(testStruct.args memory testStruct)
+    function testFulfillOrderEthToErc1155(ToErc1155Struct memory testStruct)
         public
     {
         _testFulfillOrderEthToErc1155(
-            ConsiderationtestStruct.args(consideration, testStruct)
+            ConsiderationToErc1155Struct(consideration, testStruct)
         );
         _testFulfillOrderEthToErc1155(
-            ConsiderationtestStruct.args(referenceConsideration, testStruct)
+            ConsiderationToErc1155Struct(referenceConsideration, testStruct)
         );
     }
 
@@ -292,7 +292,7 @@ contract FulfillOrderTest is BaseOrderTest {
     }
 
     function _testFulfillOrderEthToErc1155(
-        ConsiderationtestStruct.args memory testStruct
+        ConsiderationToErc1155Struct memory testStruct
     )
         internal
         onlyPayable(testStruct.args.zone)
@@ -396,7 +396,7 @@ contract FulfillOrderTest is BaseOrderTest {
     }
 
     function _testFulfillOrderSingleErc20ToSingleErc1155(
-        ConsiderationtestStruct.args memory testStruct
+        ConsiderationToErc1155Struct memory testStruct
     ) internal onlyPayable(testStruct.args.zone) topUp {
         vm.assume(testStruct.args.erc1155Amt > 0);
         vm.assume(
