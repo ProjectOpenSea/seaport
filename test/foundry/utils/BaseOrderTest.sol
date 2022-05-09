@@ -2,7 +2,6 @@
 pragma solidity 0.8.13;
 
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
-import { ERC20 } from "@rari-capital/solmate/src/tokens/ERC20.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
@@ -11,6 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
+import { ConsiderationItem, OfferItem, FulfillmentComponent } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -41,7 +41,29 @@ contract BaseOrderTest is
     TestERC1155 internal test1155_2;
     TestERC1155 internal test1155_3;
 
+    address[] allTokens;
+    TestERC20[] erc20s;
+    TestERC721[] erc721s;
+    TestERC1155[] erc1155s;
+    address[] accounts;
+
+    OfferItem[] offerItems;
+    ConsiderationItem[] considerationItems;
+
+    FulfillmentComponent[][] offerFulfillments;
+    FulfillmentComponent[][] considerationFulfillments;
+
+    FulfillmentComponent[] firstOfferFulfillment;
+    FulfillmentComponent[] firstConsiderationFulfillment;
+    FulfillmentComponent[] secondConsiderationFulfillment;
+    FulfillmentComponent[] thirdConsiderationFulfillment;
+
     uint256 internal globalTokenId;
+
+    struct RestoreERC20Balance {
+        address token;
+        address who;
+    }
 
     modifier onlyPayable(address _addr) {
         {
@@ -63,14 +85,48 @@ contract BaseOrderTest is
         _;
     }
 
+    /**
+     * @dev hook to record storage writes and reset token balances in between differential runs
+     */
+
+    modifier resetTokenBalancesBetweenRuns() {
+        vm.record();
+        _;
+        _resetTokensAndEthForTestAccounts();
+        delete offerItems;
+        delete considerationItems;
+        delete offerFulfillments;
+        delete considerationFulfillments;
+    }
+
     function setUp() public virtual override {
         super.setUp();
+        delete offerItems;
+        delete considerationItems;
+        delete offerFulfillments;
+        delete considerationFulfillments;
 
         vm.label(alice, "alice");
         vm.label(bob, "bob");
         vm.label(cal, "cal");
+        vm.label(address(this), "testContract");
 
         _deployTestTokenContracts();
+        accounts = [alice, bob, cal, address(this)];
+        erc20s = [token1, token2, token3];
+        erc721s = [test721_1, test721_2, test721_3];
+        erc1155s = [test1155_1, test1155_2, test1155_3];
+        allTokens = [
+            address(token1),
+            address(token2),
+            address(token3),
+            address(test721_1),
+            address(test721_2),
+            address(test721_3),
+            address(test1155_1),
+            address(test1155_2),
+            address(test1155_3)
+        ];
 
         // allocate funds and tokens to test addresses
         globalTokenId = 1;
@@ -95,6 +151,8 @@ contract BaseOrderTest is
         test1155_3 = new TestERC1155();
         vm.label(address(token1), "token1");
         vm.label(address(test721_1), "test721_1");
+        vm.label(address(test1155_1), "test1155_1");
+
         emit log("Deployed test token contracts");
     }
 
@@ -103,40 +161,36 @@ contract BaseOrderTest is
     */
     function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
-        token1.mint(_to, _amount);
-        token2.mint(_to, _amount);
-        token3.mint(_to, _amount);
-        // test721_1.mint(_to, globalTokenId++);
-        // test721_2.mint(_to, globalTokenId++);
-        // test721_3.mint(_to, globalTokenId++);
-        // test1155_1.mint(_to, globalTokenId++, 1);
-        // test1155_2.mint(_to, globalTokenId++, 5);
-        // test1155_3.mint(_to, globalTokenId++, 10);
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            erc20s[i].mint(_to, _amount);
+        }
         emit log_named_address("Allocated tokens to", _to);
         _setApprovals(_to);
     }
 
     function _setApprovals(address _owner) internal {
         vm.startPrank(_owner);
-        token1.approve(address(consideration), MAX_INT);
-        token2.approve(address(consideration), MAX_INT);
-        token3.approve(address(consideration), MAX_INT);
-        test721_1.setApprovalForAll(address(consideration), true);
-        test721_2.setApprovalForAll(address(consideration), true);
-        test721_3.setApprovalForAll(address(consideration), true);
-        test1155_1.setApprovalForAll(address(consideration), true);
-        test1155_2.setApprovalForAll(address(consideration), true);
-        test1155_3.setApprovalForAll(address(consideration), true);
-
-        token1.approve(address(conduit), MAX_INT);
-        token2.approve(address(conduit), MAX_INT);
-        token3.approve(address(conduit), MAX_INT);
-        test721_1.setApprovalForAll(address(conduit), true);
-        test721_2.setApprovalForAll(address(conduit), true);
-        test721_3.setApprovalForAll(address(conduit), true);
-        test1155_1.setApprovalForAll(address(conduit), true);
-        test1155_2.setApprovalForAll(address(conduit), true);
-        test1155_3.setApprovalForAll(address(conduit), true);
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            erc20s[i].approve(address(consideration), MAX_INT);
+            erc20s[i].approve(address(referenceConsideration), MAX_INT);
+            erc20s[i].approve(address(conduit), MAX_INT);
+            erc20s[i].approve(address(referenceConduit), MAX_INT);
+        }
+        for (uint256 i = 0; i < erc721s.length; i++) {
+            erc721s[i].setApprovalForAll(address(consideration), true);
+            erc721s[i].setApprovalForAll(address(referenceConsideration), true);
+            erc721s[i].setApprovalForAll(address(conduit), true);
+            erc721s[i].setApprovalForAll(address(referenceConduit), true);
+        }
+        for (uint256 i = 0; i < erc1155s.length; i++) {
+            erc1155s[i].setApprovalForAll(address(consideration), true);
+            erc1155s[i].setApprovalForAll(
+                address(referenceConsideration),
+                true
+            );
+            erc1155s[i].setApprovalForAll(address(conduit), true);
+            erc1155s[i].setApprovalForAll(address(referenceConduit), true);
+        }
 
         vm.stopPrank();
         emit log_named_address(
@@ -148,4 +202,83 @@ contract BaseOrderTest is
             _owner
         );
     }
+
+    function getMaxConsiderationValue() internal view returns (uint256) {
+        uint256 value = 0;
+        for (uint256 i = 0; i < considerationItems.length; i++) {
+            uint256 amount = considerationItems[i].startAmount >
+                considerationItems[i].endAmount
+                ? considerationItems[i].startAmount
+                : considerationItems[i].endAmount;
+            value += amount;
+        }
+        return value;
+    }
+
+    /**
+     * @dev reset written token storage slots to 0 and reinitialize uint128(MAX_INT) erc20 balances for 3 test accounts and this
+     */
+    function _resetTokensAndEthForTestAccounts() internal {
+        _resetTokensStorage();
+        _restoreERC20Balances();
+        _restoreEthBalances();
+    }
+
+    function _restoreEthBalances() internal {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            vm.deal(accounts[i], uint128(MAX_INT));
+        }
+    }
+
+    function _resetTokensStorage() internal {
+        for (uint256 i = 0; i < allTokens.length; i++) {
+            _resetStorage(allTokens[i]);
+        }
+    }
+
+    /**
+     * @dev restore erc20 balances for all accounts
+     */
+    function _restoreERC20Balances() internal {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            _restoreERC20BalancesForAddress(accounts[i]);
+        }
+    }
+
+    /**
+     * @dev restore all erc20 balances for a given address
+     */
+    function _restoreERC20BalancesForAddress(address _who) internal {
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            _restoreERC20Balance(RestoreERC20Balance(address(erc20s[i]), _who));
+        }
+    }
+
+    /**
+     * @dev reset all storage written at an address thus far to 0; will overwrite totalSupply()for ERC20s but that should be fine
+     *      with the goal of resetting the balances and owners of tokens - but note: should be careful about approvals, etc
+     *
+     *      note: must be called in conjunction with vm.record()
+     */
+    function _resetStorage(address _addr) internal {
+        (, bytes32[] memory writeSlots) = vm.accesses(_addr);
+        for (uint256 i = 0; i < writeSlots.length; i++) {
+            vm.store(_addr, writeSlots[i], bytes32(0));
+        }
+    }
+
+    /**
+     * @dev reset token balance for an address to uint128(MAX_INT)
+     */
+    function _restoreERC20Balance(
+        RestoreERC20Balance memory restoreErc20Balance
+    ) internal {
+        stdstore
+            .target(restoreErc20Balance.token)
+            .sig("balanceOf(address)")
+            .with_key(restoreErc20Balance.who)
+            .checked_write(uint128(MAX_INT));
+    }
+
+    receive() external payable {}
 }
