@@ -33,6 +33,18 @@ pragma solidity >=0.8.7;
  *      codebase but have been left in for readability.
  */
 
+// Declare constants for name, version, and reentrancy sentinel values.
+uint256 constant _NAME = (
+    0x436F6E73696465726174696F6E00000000000000000000000000000000000000
+);
+
+uint256 constant _VERSION = (
+    0x3100000000000000000000000000000000000000000000000000000000000000
+);
+
+uint256 constant _NOT_ENTERED = 1;
+uint256 constant _ENTERED = 2;
+
 // Common Offsets
 // Offsets for identically positioned fields shared by:
 // OfferItem, ConsiderationItem, SpentItem, ReceivedItem
@@ -309,3 +321,11 @@ uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x64;
 
 // 4 + 32 * 4 == 132
 uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84;
+
+uint256 constant EIP_712_PREFIX = (
+    0x1901000000000000000000000000000000000000000000000000000000000000
+);
+
+uint256 constant ExtraGasBuffer = 0x20;
+uint256 constant CostPerWord = 3;
+uint256 constant MemoryExpansionCoefficient = 0x200;

@@ -24,6 +24,8 @@ import {
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
 
+import { SignatureVerification } from "./SignatureVerification.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -31,15 +33,14 @@ import "./ConsiderationConstants.sol";
  * @author 0age
  * @notice ConsiderationInternal contains all internal view functions.
  */
-contract ConsiderationInternalView is ConsiderationPure {
+contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
-     * @param conduitController           A contract that deploys conduits, or
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC20+721+1155
-     *                                    tokens.
+     * @param conduitController A contract that deploys conduits, or proxies
+     *                          that may optionally be used to transfer approved
+     *                          ERC20/721/1155 tokens.
      */
     constructor(address conduitController)
         ConsiderationPure(conduitController)
@@ -113,129 +114,8 @@ contract ConsiderationInternalView is ConsiderationPure {
         // Derive EIP-712 digest using the domain separator and the order hash.
         bytes32 digest = _hashDigest(_domainSeparator(), orderHash);
 
-        // Declare r, s, and v signature parameters.
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-
-        // If signature contains 64 bytes, parse as EIP-2098 signature. (r+s&v)
-        if (signature.length == 64) {
-            // Declare temporary vs that will be decomposed into s and v.
-            bytes32 vs;
-
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                // Put the first word from the signature onto the stack as r.
-                r := mload(add(signature, 0x20))
-
-                // Put the second word from the signature onto the stack as vs.
-                vs := mload(add(signature, 0x40))
-
-                // Extract canonical s from vs (all but the highest bit).
-                s := and(vs, EIP2098_allButHighestBitMask)
-
-                // Extract yParity from highest bit of vs and add 27 to get v.
-                v := add(shr(255, vs), 27)
-            }
-            // If signature is 65 bytes, parse as a standard signature. (r+s+v)
-        } else if (signature.length == 65) {
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                r := mload(add(signature, 0x20)) // Put first word on stack at r
-                s := mload(add(signature, 0x40)) // Put next word on stack at s
-                v := byte(0, mload(add(signature, 0x60))) // Put last byte at v
-            }
-
-            // Ensure v value is properly formatted.
-            if (v != 27 && v != 28) {
-                revert BadSignatureV(v);
-            }
-            // For all other signature lengths, try verification via EIP-1271.
-        } else {
-            // Attempt EIP-1271 static call to offerer in case it's a contract.
-            _verifySignatureViaERC1271(offerer, digest, signature);
-
-            // Return early if the ERC-1271 signature check succeeded.
-            return;
-        }
-
-        // Attempt to recover signer using the digest and signature parameters.
-        address signer = ecrecover(digest, v, r, s);
-
-        // Disallow invalid signers.
-        if (signer == address(0)) {
-            revert InvalidSignature();
-            // Should a signer be recovered, but it doesn't match the offerer...
-        } else if (signer != offerer) {
-            // Attempt EIP-1271 static call to offerer in case it's a contract.
-            _verifySignatureViaERC1271(offerer, digest, signature);
-        }
-    }
-
-    /**
-     * @dev Internal view function to verify the signature of an order using
-     *      ERC-1271 (i.e. contract signatures via `isValidSignature`).
-     *
-     * @param offerer   The offerer for the order.
-     * @param digest    The signature digest, derived from the domain separator
-     *                  and the order hash.
-     * @param signature A signature (or other data) used to validate the digest.
-     */
-    function _verifySignatureViaERC1271(
-        address offerer,
-        bytes32 digest,
-        bytes memory signature
-    ) internal view {
-        // Attempt an EIP-1271 staticcall to the offerer.
-        bool success = _staticcall(
-            offerer,
-            abi.encodeWithSelector(
-                EIP1271Interface.isValidSignature.selector,
-                digest,
-                signature
-            )
-        );
-
-        // If the call fails...
-        if (!success) {
-            // Revert and pass reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert BadContractSignature();
-        }
-
-        // Ensure result was extracted and matches EIP-1271 magic value.
-        if (_doesNotMatchMagic(EIP1271Interface.isValidSignature.selector)) {
-            revert InvalidSigner();
-        }
-    }
-
-    /**
-     * @dev Internal view function to staticcall an arbitrary target with given
-     *      calldata. Note that no data is written to memory and no contract
-     *      size check is performed.
-     *
-     * @param target   The account to staticcall.
-     * @param callData The calldata to supply when staticcalling the target.
-     *
-     * @return success The status of the staticcall to the target.
-     */
-    function _staticcall(address target, bytes memory callData)
-        internal
-        view
-        returns (bool success)
-    {
-        assembly {
-            success := staticcall(
-                gas(),
-                target,
-                add(callData, 0x20),
-                mload(callData),
-                0,
-                0
-            )
-        }
+        // Verify the signature using the digest.
+        _verifySignatureUsingDigest(offerer, digest, signature);
     }
 
     /**
@@ -486,11 +366,14 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to determine if a proxy should be utilized
-     *      for a given order and to ensure that the submitter is allowed by the
-     *      order type.
+     * @dev Internal view function to determine whether an order is a restricted
+     *      order and, if so, to ensure that it was either submitted by the
+     *      offerer or the zone for the order, or that the zone returns the
+     *      expected magic value upon performing a staticcall to `isValidOrder`
+     *      or `isValidOrderIncludingExtraData` depending on whether the order
+     *      fulfillment specifies extra data or criteria resolvers.
      *
-     * @param advancedOrder     The order in question.
+     * @param advancedOrder     The advanced order in question.
      * @param criteriaResolvers An array where each element contains a reference
      *                          to a specific offer or consideration, a token
      *                          identifier, and a proof that the supplied token
@@ -507,7 +390,6 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param orderType         The type of the order.
      * @param offerer           The offerer in question.
      * @param zone              The zone in question.
-
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
@@ -663,10 +545,8 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param fulfillerConduitKey   A bytes32 value indicating what conduit, if
      *                              any, to source the fulfiller's token
      *                              approvals from. The zero hash signifies that
-     *                              no conduit should be used (and direct
-     *                              approvals set on Consideration) and
-     *                              `bytes32(1)` signifies to utilize the legacy
-     *                               user proxy for the fulfiller.
+     *                              no conduit should be used, with approvals
+     *                              set directly on this contract.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -1043,10 +923,8 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param fulfillerConduitKey     A bytes32 value indicating what conduit,
      *                                if any, to source the fulfiller's token
      *                                approvals from. The zero hash signifies
-     *                                that no conduit should be used (and direct
-     *                                approvals set on Consideration) and
-     *                                `bytes32(1)` signifies to utilize the
-     *                                legacy user proxy for the fulfiller.
+     *                                that no conduit should be used, with
+     *                                approvals set directly on this contract.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -1103,59 +981,6 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to revert and pass along the revert reason if
-     *      data was returned by the last call and that the size of that data
-     *      does not exceed the currently allocated memory size.
-     */
-    function _revertWithReasonIfOneIsReturned() internal view {
-        assembly {
-            // If it returned a message, bubble it up as long as sufficient gas
-            // remains to do so:
-            if returndatasize() {
-                // Ensure that sufficient gas is available to copy returndata
-                // while expanding memory where necessary. Start by computing
-                // the word size of returndata and allocated memory.
-                let returnDataWords := div(returndatasize(), 0x20)
-
-                // Note: use the free memory pointer in place of msize() to work
-                // around a Yul warning that prevents accessing msize directly
-                // when the IR pipeline is activated.
-                let msizeWords := div(mload(FreeMemoryPointerSlot), 0x20)
-
-                // Next, compute the cost of the returndatacopy.
-                let cost := mul(3, returnDataWords)
-
-                // Then, compute cost of new memory allocation.
-                if gt(returnDataWords, msizeWords) {
-                    cost := add(
-                        cost,
-                        add(
-                            mul(sub(returnDataWords, msizeWords), 3),
-                            div(
-                                sub(
-                                    mul(returnDataWords, returnDataWords),
-                                    mul(msizeWords, msizeWords)
-                                ),
-                                0x200
-                            )
-                        )
-                    )
-                }
-
-                // Finally, add a small constant and compare to gas remaining;
-                // bubble up the revert data if enough gas is still available.
-                if lt(add(cost, 0x20), gas()) {
-                    // Copy returndata to memory; overwrite existing memory.
-                    returndatacopy(0, 0, returndatasize())
-
-                    // Revert, specifying memory region with copied returndata.
-                    revert(0, returndatasize())
-                }
-            }
-        }
-    }
-
-    /**
      * @dev Internal view function to derive the address of a given conduit
      *      using a corresponding conduit key.
      *
@@ -1207,6 +1032,59 @@ contract ConsiderationInternalView is ConsiderationPure {
 
             // Restore the free memory pointer.
             mstore(FreeMemoryPointerSlot, freeMemoryPointer)
+        }
+    }
+
+    /**
+     * @dev Internal view function to retrieve configuration information for
+     *      this contract.
+     *
+     * @return version           The contract version.
+     * @return domainSeparator   The domain separator for this contract.
+     * @return conduitController The conduit Controller set for this contract.
+     */
+    function _information()
+        internal
+        view
+        returns (
+            string memory version,
+            bytes32 domainSeparator,
+            address conduitController
+        )
+    {
+        // Declare variable as immutables cannot be accessed within assembly.
+        uint256 versionBytes = _VERSION;
+
+        // Derive the domain separator.
+        domainSeparator = _domainSeparator();
+
+        // Declare variable as immutables cannot be accessed within assembly.
+        conduitController = address(_CONDUIT_CONTROLLER);
+
+        // Allocate a string with length one.
+        version = new string(1);
+
+        // Set the version as data on the newly allocated string.
+        assembly {
+            mstore(add(version, OneWord), versionBytes)
+        }
+    }
+
+    /**
+     * @dev Internal pure function to retrieve the name of this contract.
+     *
+     * @return The name of this contract.
+     */
+    function _name() internal pure returns (string memory) {
+        // Declare variable as immutables cannot be accessed within assembly.
+        uint256 nameBytes = _NAME;
+
+        // Return the name of the contract.
+        assembly {
+            mstore(0, OneWord) // First element is the offset.
+            mstore(OneWord, 13) // Second element is the length.
+            mstore(TwoWords, nameBytes) // Third element is the data.
+            return(0, ThreeWords) // Return all three words.
         }
     }
 }

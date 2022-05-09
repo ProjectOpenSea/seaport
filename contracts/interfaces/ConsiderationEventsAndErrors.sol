@@ -120,32 +120,6 @@ interface ConsiderationEventsAndErrors {
     error OfferAndConsiderationRequiredOnFulfillment();
 
     /**
-     * @dev Revert with an error when a signature that does not contain a v
-     *      value of 27 or 28 has been supplied.
-     *
-     * @param v The invalid v value.
-     */
-    error BadSignatureV(uint8 v);
-
-    /**
-     * @dev Revert with an error when the signer recovered by the supplied
-     *      signature does not match the offerer or an allowed EIP-1271 signer
-     *      as specified by the offerer in the event they are a contract.
-     */
-    error InvalidSigner();
-
-    /**
-     * @dev Revert with an error when a signer cannot be recovered from the
-     *      supplied signature.
-     */
-    error InvalidSignature();
-
-    /**
-     * @dev Revert with an error when an EIP-1271 call to an account fails.
-     */
-    error BadContractSignature();
-
-    /**
      * @dev Revert with an error when the initial offer item named by a
      *      fulfillment component does not match the type, token, identifier,
      *      or conduit preference of the initial consideration item.
@@ -215,50 +189,6 @@ interface ConsiderationEventsAndErrors {
     error OrderPartiallyFilled(bytes32 orderHash);
 
     /**
-     * @dev Revert with an error when providing a criteria resolver that refers
-     *      to an order that has not been supplied.
-     */
-    error OrderCriteriaResolverOutOfRange();
-
-    /**
-     * @dev Revert with an error if an offer item still has unresolved criteria
-     *      after applying all criteria resolvers.
-     */
-    error UnresolvedOfferCriteria();
-
-    /**
-     * @dev Revert with an error if a consideration item still has unresolved
-     *      criteria after applying all criteria resolvers.
-     */
-    error UnresolvedConsiderationCriteria();
-
-    /**
-     * @dev Revert with an error when providing a criteria resolver that refers
-     *      to an order with an offer item that has not been supplied.
-     */
-    error OfferCriteriaResolverOutOfRange();
-
-    /**
-     * @dev Revert with an error when providing a criteria resolver that refers
-     *      to an order with a consideration item that has not been supplied.
-     */
-    error ConsiderationCriteriaResolverOutOfRange();
-
-    /**
-     * @dev Revert with an error when providing a criteria resolver that refers
-     *      to an order with an item that does not expect a criteria to be
-     *      resolved.
-     */
-    error CriteriaNotEnabledForItem();
-
-    /**
-     * @dev Revert with an error when providing a criteria resolver that
-     *      contains an invalid proof with respect to the given item and
-     *      chosen identifier.
-     */
-    error InvalidProof();
-
-    /**
      * @dev Revert with an error when attempting to cancel an order as a caller
      *      other than the indicated offerer or zone.
      */
@@ -272,12 +202,6 @@ interface ConsiderationEventsAndErrors {
     error BadFraction();
 
     /**
-     * @dev Revert with an error when attempting to apply a fraction as part of
-     *      a partial fill that does not divide the target amount cleanly.
-     */
-    error InexactFraction();
-
-    /**
      * @dev Revert with an error when a caller attempts to reenter a protected
      *      function.
      */
@@ -289,12 +213,6 @@ interface ConsiderationEventsAndErrors {
      *      payable basic order route.
      */
     error InvalidMsgValue(uint256 value);
-
-    /**
-     * @dev Revert with an error when the implementation of the respective
-     *      legacy user proxy does not match the expected proxy implementation.
-     */
-    error InvalidProxyImplementation();
 
     /**
      * @dev Revert with an error when attempting to fill a basic order using

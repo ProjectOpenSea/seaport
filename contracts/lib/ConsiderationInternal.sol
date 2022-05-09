@@ -12,7 +12,13 @@ import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
 
-import { Side, OrderType, ItemType } from "./ConsiderationEnums.sol";
+// prettier-ignore
+import {
+    Side,
+    OrderType,
+    ItemType,
+    BasicOrderRouteType
+} from "./ConsiderationEnums.sol";
 
 import { TokenTransferrer } from "./TokenTransferrer.sol";
 
@@ -30,6 +36,7 @@ import {
     Execution,
     Order,
     AdvancedOrder,
+    OrderComponents,
     OrderStatus,
     CriteriaResolver,
     Batch,
@@ -38,6 +45,10 @@ import {
 
 import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
 
+import { CriteriaResolution } from "./CriteriaResolution.sol";
+
+import { AmountDeriver } from "./AmountDeriver.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -45,7 +56,12 @@ import "./ConsiderationConstants.sol";
  * @author 0age
  * @notice ConsiderationInternal contains all internal functions.
  */
-contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
+contract ConsiderationInternal is
+    ConsiderationInternalView,
+    TokenTransferrer,
+    CriteriaResolution,
+    AmountDeriver
+{
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
@@ -58,6 +74,258 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
     constructor(address conduitController)
         ConsiderationInternalView(conduitController)
     {}
+
+    /**
+     * @dev Internal function to fulfill an order offering an ERC20, ERC721, or
+     *      ERC1155 item by supplying Ether (or other native tokens), ERC20
+     *      tokens, an ERC721 item, or an ERC1155 item as consideration. Six
+     *      permutations are supported: Native token to ERC721, Native token to
+     *      ERC1155, ERC20 to ERC721, ERC20 to ERC1155, ERC721 to ERC20, and
+     *      ERC1155 to ERC20 (with native tokens supplied as msg.value). For an
+     *      order to be eligible for fulfillment via this method, it must
+     *      contain a single offer item (though that item may have a greater
+     *      amount if the item is not an ERC721). An arbitrary number of
+     *      "additional recipients" may also be supplied which will each receive
+     *      native tokens or ERC20 items from the fulfiller as consideration.
+     *      Refer to the documentation for a more comprehensive summary of how
+     *      to utilize with this method and what orders are compatible with it.
+     *
+     * @param parameters Additional information on the fulfilled order. Note
+     *                   that the offerer and the fulfiller must first approve
+     *                   this contract (or their chosen conduit if indicated)
+     *                   before any tokens can be transferred. Also note that
+     *                   contract recipients of ERC1155 consideration items must
+     *                   implement `onERC1155Received` in order to receive those
+     *                   items.
+     *
+     * @return A boolean indicating whether the order has been fulfilled.
+     */
+    function _validateAndFulfillBasicOrder(
+        BasicOrderParameters calldata parameters
+    ) internal returns (bool) {
+        // Declare enums for order type & route to extract from basicOrderType.
+        BasicOrderRouteType route;
+        OrderType orderType;
+
+        // Declare additional recipient item type to derive from the route type.
+        ItemType additionalRecipientsItemType;
+
+        // Utilize assembly to extract the order type and the basic order route.
+        assembly {
+            // Mask all but 2 least-significant bits to derive the order type.
+            orderType := and(calldataload(0x124), 3)
+
+            // Divide basicOrderType by four to derive the route.
+            route := div(calldataload(0x124), 4)
+
+            // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
+            additionalRecipientsItemType := gt(route, 1)
+        }
+
+        {
+            // Declare temporary variable for enforcing payable status.
+            bool correctPayableStatus;
+
+            // Utilize assembly to compare the route to the callvalue.
+            assembly {
+                // route 0 and 1 are payable, otherwise route is not payable.
+                correctPayableStatus := eq(
+                    additionalRecipientsItemType,
+                    iszero(callvalue())
+                )
+            }
+
+            // Revert if msg.value has not been supplied as part of payable
+            // routes or has been supplied as part of non-payable routes.
+            if (!correctPayableStatus) {
+                revert InvalidMsgValue(msg.value);
+            }
+        }
+
+        // Declare more arguments that will be derived from route and calldata.
+        address additionalRecipientsToken;
+        ItemType receivedItemType;
+        ItemType offeredItemType;
+
+        // Utilize assembly to retrieve function arguments and cast types.
+        assembly {
+            // Determine if offered item type == additional recipient item type.
+            let offerTypeIsAdditionalRecipientsType := gt(route, 3)
+
+            // If route > 3 additionalRecipientsToken is at 0xc4 else 0x24
+            additionalRecipientsToken := calldataload(
+                add(0x24, mul(0xa0, offerTypeIsAdditionalRecipientsType))
+            )
+
+            // If route > 2, receivedItemType is route - 2. If route is 2, then
+            // receivedItemType is ERC20 (1). Otherwise, it is Eth (0).
+            receivedItemType := add(
+                mul(sub(route, 2), gt(route, 2)),
+                eq(route, 2)
+            )
+
+            // If route > 3, offeredItemType is ERC20 (1). If route is 2 or 3,
+            // offeredItemType = route. If route is 0 or 1, it is route + 2.
+            offeredItemType := sub(
+                add(route, mul(iszero(additionalRecipientsItemType), 2)),
+                mul(
+                    offerTypeIsAdditionalRecipientsType,
+                    add(receivedItemType, 1)
+                )
+            )
+        }
+
+        // Derive & validate order using parameters and update order status.
+        _prepareBasicFulfillmentFromCalldata(
+            parameters,
+            orderType,
+            receivedItemType,
+            additionalRecipientsItemType,
+            additionalRecipientsToken,
+            offeredItemType
+        );
+
+        // Read offerer from calldata and place on the stack.
+        address payable offerer = parameters.offerer;
+
+        // Declare conduitKey argument used by transfer functions.
+        bytes32 conduitKey;
+
+        // Utilize assembly to derive conduit (if relevant) based on route.
+        assembly {
+            // use offerer conduit for routes 0-3, fulfiller conduit otherwise.
+            conduitKey := calldataload(add(0x1c4, mul(gt(route, 3), 0x20)))
+        }
+
+        // Declare transfer accumulator — it will extend memory where needed.
+        bytes memory accumulator = new bytes(32);
+
+        // Transfer tokens based on the route.
+        if (route == BasicOrderRouteType.ETH_TO_ERC721) {
+            // Transfer ERC721 to caller using offerer's conduit if applicable.
+            _transferERC721(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                parameters.offerAmount,
+                conduitKey,
+                accumulator
+            );
+
+            // Transfer native to recipients, return excess to caller & wrap up.
+            _transferEthAndFinalize(parameters.considerationAmount, parameters);
+        } else if (route == BasicOrderRouteType.ETH_TO_ERC1155) {
+            // Transfer ERC1155 to caller using offerer's conduit if applicable.
+            _transferERC1155(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                parameters.offerAmount,
+                conduitKey,
+                accumulator
+            );
+
+            // Transfer native to recipients, return excess to caller & wrap up.
+            _transferEthAndFinalize(parameters.considerationAmount, parameters);
+        } else if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
+            // Transfer ERC721 to caller using offerer's conduit if applicable.
+            _transferERC721(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                parameters.offerAmount,
+                conduitKey,
+                accumulator
+            );
+
+            // Transfer ERC20 tokens to all recipients and wrap up.
+            _transferERC20AndFinalize(
+                msg.sender,
+                offerer,
+                parameters.considerationToken,
+                parameters.considerationAmount,
+                parameters,
+                false, // Send full amount indicated by all consideration items.
+                accumulator
+            );
+        } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
+            // Transfer ERC1155 to caller using offerer's conduit if applicable.
+            _transferERC1155(
+                parameters.offerToken,
+                offerer,
+                msg.sender,
+                parameters.offerIdentifier,
+                parameters.offerAmount,
+                conduitKey,
+                accumulator
+            );
+
+            // Transfer ERC20 tokens to all recipients and wrap up.
+            _transferERC20AndFinalize(
+                msg.sender,
+                offerer,
+                parameters.considerationToken,
+                parameters.considerationAmount,
+                parameters,
+                false, // Send full amount indicated by all consideration items.
+                accumulator
+            );
+        } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
+            // Transfer ERC721 to offerer using caller's conduit if applicable.
+            _transferERC721(
+                parameters.considerationToken,
+                msg.sender,
+                offerer,
+                parameters.considerationIdentifier,
+                parameters.considerationAmount,
+                conduitKey,
+                accumulator
+            );
+
+            // Transfer ERC20 tokens to all recipients and wrap up.
+            _transferERC20AndFinalize(
+                offerer,
+                msg.sender,
+                parameters.offerToken,
+                parameters.offerAmount,
+                parameters,
+                true, // Reduce amount sent to fulfiller by additional amounts.
+                accumulator
+            );
+        } else {
+            // route == BasicOrderRouteType.ERC1155_TO_ERC20
+
+            // Transfer ERC1155 to offerer using caller's conduit if applicable.
+            _transferERC1155(
+                parameters.considerationToken,
+                msg.sender,
+                offerer,
+                parameters.considerationIdentifier,
+                parameters.considerationAmount,
+                conduitKey,
+                accumulator
+            );
+
+            // Transfer ERC20 tokens to all recipients and wrap up.
+            _transferERC20AndFinalize(
+                offerer,
+                msg.sender,
+                parameters.offerToken,
+                parameters.offerAmount,
+                parameters,
+                true, // Reduce amount sent to fulfiller by additional amounts.
+                accumulator
+            );
+        }
+
+        // Trigger any remaining accumulated transfers via call to the conduit.
+        _triggerIfArmed(accumulator);
+
+        return true;
+    }
 
     /**
      * @dev Internal function to prepare fulfillment of a basic order with
@@ -2540,6 +2808,151 @@ contract ConsiderationInternal is ConsiderationInternalView, TokenTransferrer {
 
         // Clear the reentrancy guard.
         _reentrancyGuard = _NOT_ENTERED;
+    }
+
+    /**
+     * @dev Internal function to cancel an arbitrary number of orders. Note that
+     *      only the offerer or the zone of a given order may cancel it.
+     *
+     * @param orders The orders to cancel.
+     *
+     * @return A boolean indicating whether the supplied orders were
+     *         successfully cancelled.
+     */
+    function _cancel(OrderComponents[] calldata orders)
+        internal
+        returns (bool)
+    {
+        // Ensure that the reentrancy guard is not currently set.
+        _assertNonReentrant();
+
+        address offerer;
+        address zone;
+
+        // Skip overflow check as for loop is indexed starting at zero.
+        unchecked {
+            // Read length of the orders array from memory and place on stack.
+            uint256 totalOrders = orders.length;
+
+            // Iterate over each order.
+            for (uint256 i = 0; i < totalOrders; ) {
+                // Retrieve the order.
+                OrderComponents calldata order = orders[i];
+
+                offerer = order.offerer;
+                zone = order.zone;
+
+                // Ensure caller is either offerer or zone of the order.
+                if (msg.sender != offerer && msg.sender != zone) {
+                    revert InvalidCanceller();
+                }
+
+                // Derive order hash using the order parameters and the nonce.
+                bytes32 orderHash = _getOrderHash(
+                    OrderParameters(
+                        offerer,
+                        zone,
+                        order.offer,
+                        order.consideration,
+                        order.orderType,
+                        order.startTime,
+                        order.endTime,
+                        order.zoneHash,
+                        order.salt,
+                        order.conduitKey,
+                        order.consideration.length
+                    ),
+                    order.nonce
+                );
+
+                // Update the order status as not valid and cancelled.
+                _orderStatus[orderHash].isValidated = false;
+                _orderStatus[orderHash].isCancelled = true;
+
+                // Emit an event signifying that the order has been cancelled.
+                emit OrderCancelled(orderHash, offerer, zone);
+
+                // Increment counter inside body of loop for gas efficiency.
+                ++i;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @dev Internal function to validate an arbitrary number of orders, thereby
+     *      registering them as valid and allowing the fulfiller to skip
+     *      verification. Note that anyone can validate a signed order but only
+     *      the offerer can validate an order without supplying a signature.
+     *
+     * @param orders The orders to validate.
+     *
+     * @return A boolean indicating whether the supplied orders were
+     *         successfully validated.
+     */
+    function _validate(Order[] calldata orders) internal returns (bool) {
+        // Ensure that the reentrancy guard is not currently set.
+        _assertNonReentrant();
+
+        // Declare variables outside of the loop.
+        bytes32 orderHash;
+        address offerer;
+
+        // Skip overflow check as for loop is indexed starting at zero.
+        unchecked {
+            // Read length of the orders array from memory and place on stack.
+            uint256 totalOrders = orders.length;
+
+            // Iterate over each order.
+            for (uint256 i = 0; i < totalOrders; ) {
+                // Retrieve the order.
+                Order calldata order = orders[i];
+
+                // Retrieve the order parameters.
+                OrderParameters calldata orderParameters = order.parameters;
+
+                // Move offerer from memory to the stack.
+                offerer = orderParameters.offerer;
+
+                // Get current nonce and use it w/ params to derive order hash.
+                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+                    orderParameters
+                );
+
+                // Retrieve the order status using the derived order hash.
+                OrderStatus memory orderStatus = _orderStatus[orderHash];
+
+                // Ensure order is fillable and retrieve the filled amount.
+                _verifyOrderStatus(
+                    orderHash,
+                    orderStatus,
+                    false, // Signifies that partially filled orders are valid.
+                    true // Signifies to revert if the order is invalid.
+                );
+
+                // If the order has not already been validated...
+                if (!orderStatus.isValidated) {
+                    // Verify the supplied signature.
+                    _verifySignature(offerer, orderHash, order.signature);
+
+                    // Update order status to mark the order as valid.
+                    _orderStatus[orderHash].isValidated = true;
+
+                    // Emit an event signifying the order has been validated.
+                    emit OrderValidated(
+                        orderHash,
+                        offerer,
+                        orderParameters.zone
+                    );
+                }
+
+                // Increment counter inside body of the loop for gas efficiency.
+                ++i;
+            }
+        }
+
+        return true;
     }
 
     /**

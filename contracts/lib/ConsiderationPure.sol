@@ -47,274 +47,6 @@ contract ConsiderationPure is ConsiderationBase {
     {}
 
     /**
-     * @dev Internal pure function to apply criteria resolvers containing
-     *      specific token identifiers and associated proofs to order items.
-     *
-     * @param advancedOrders     The orders to apply criteria resolvers to.
-     * @param criteriaResolvers  An array where each element contains a
-     *                           reference to a specific order as well as that
-     *                           order's offer or consideration, a token
-     *                           identifier, and a proof that the supplied token
-     *                           identifier is contained in the order's merkle
-     *                           root. Note that a root of zero indicates that
-     *                           any transferrable token identifier is valid and
-     *                           that no proof needs to be supplied.
-     */
-    function _applyCriteriaResolvers(
-        AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers
-    ) internal pure {
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Retrieve length of criteria resolvers array and place on stack.
-            uint256 arraySize = criteriaResolvers.length;
-
-            // Iterate over each criteria resolver.
-            for (uint256 i = 0; i < arraySize; ++i) {
-                // Retrieve the criteria resolver.
-                CriteriaResolver memory criteriaResolver = (
-                    criteriaResolvers[i]
-                );
-
-                // Read the order index from memory and place it on the stack.
-                uint256 orderIndex = criteriaResolver.orderIndex;
-
-                // Ensure that the order index is in range.
-                if (orderIndex >= advancedOrders.length) {
-                    revert OrderCriteriaResolverOutOfRange();
-                }
-
-                // Skip criteria resolution for order if not fulfilled.
-                if (advancedOrders[orderIndex].numerator == 0) {
-                    continue;
-                }
-
-                // Retrieve the parameters for the order.
-                OrderParameters memory orderParameters = (
-                    advancedOrders[orderIndex].parameters
-                );
-
-                // Read component index from memory and place it on the stack.
-                uint256 componentIndex = criteriaResolver.index;
-
-                // Declare values for item's type and criteria.
-                ItemType itemType;
-                uint256 identifierOrCriteria;
-
-                // If the criteria resolver refers to an offer item...
-                if (criteriaResolver.side == Side.OFFER) {
-                    // Ensure that the component index is in range.
-                    if (componentIndex >= orderParameters.offer.length) {
-                        revert OfferCriteriaResolverOutOfRange();
-                    }
-
-                    // Retrieve relevant item using order and component index.
-                    OfferItem memory offer = (
-                        orderParameters.offer[componentIndex]
-                    );
-
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = offer.itemType;
-                    identifierOrCriteria = offer.identifierOrCriteria;
-
-                    // Optimistically update item type to remove criteria usage.
-                    ItemType newItemType;
-                    assembly {
-                        newItemType := sub(3, eq(itemType, 4))
-                    }
-                    offer.itemType = newItemType;
-
-                    // Optimistically update identifier w/ supplied identifier.
-                    offer.identifierOrCriteria = criteriaResolver.identifier;
-                } else {
-                    // Otherwise, the resolver refers to a consideration item.
-                    // Ensure that the component index is in range.
-                    if (
-                        componentIndex >= orderParameters.consideration.length
-                    ) {
-                        revert ConsiderationCriteriaResolverOutOfRange();
-                    }
-
-                    // Retrieve relevant item using order and component index.
-                    ConsiderationItem memory consideration = (
-                        orderParameters.consideration[componentIndex]
-                    );
-
-                    // Read item type and criteria from memory & place on stack.
-                    itemType = consideration.itemType;
-                    identifierOrCriteria = consideration.identifierOrCriteria;
-
-                    // Optimistically update item type to remove criteria usage.
-                    ItemType newItemType;
-                    assembly {
-                        newItemType := sub(3, eq(itemType, 4))
-                    }
-                    consideration.itemType = newItemType;
-
-                    // Optimistically update identifier w/ supplied identifier.
-                    consideration.identifierOrCriteria = (
-                        criteriaResolver.identifier
-                    );
-                }
-
-                // Ensure the specified item type indicates criteria usage.
-                if (!_isItemWithCriteria(itemType)) {
-                    revert CriteriaNotEnabledForItem();
-                }
-
-                // If criteria is not 0 (i.e. a collection-wide offer)...
-                if (identifierOrCriteria != uint256(0)) {
-                    // Verify identifier inclusion in criteria root using proof.
-                    _verifyProof(
-                        criteriaResolver.identifier,
-                        identifierOrCriteria,
-                        criteriaResolver.criteriaProof
-                    );
-                }
-            }
-
-            // Retrieve length of advanced orders array and place on stack.
-            arraySize = advancedOrders.length;
-
-            // Iterate over each advanced order.
-            for (uint256 i = 0; i < arraySize; ++i) {
-                // Retrieve the advanced order.
-                AdvancedOrder memory advancedOrder = advancedOrders[i];
-
-                // Skip criteria resolution for order if not fulfilled.
-                if (advancedOrder.numerator == 0) {
-                    continue;
-                }
-
-                // Read consideration length from memory and place on stack.
-                uint256 totalItems = (
-                    advancedOrder.parameters.consideration.length
-                );
-
-                // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < totalItems; ++j) {
-                    // Ensure item type no longer indicates criteria usage.
-                    if (
-                        _isItemWithCriteria(
-                            advancedOrder.parameters.consideration[j].itemType
-                        )
-                    ) {
-                        revert UnresolvedConsiderationCriteria();
-                    }
-                }
-
-                // Read offer length from memory and place on stack.
-                totalItems = advancedOrder.parameters.offer.length;
-
-                // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < totalItems; ++j) {
-                    // Ensure item type no longer indicates criteria usage.
-                    if (
-                        _isItemWithCriteria(
-                            advancedOrder.parameters.offer[j].itemType
-                        )
-                    ) {
-                        revert UnresolvedOfferCriteria();
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * @dev Internal pure function to derive the current amount of a given item
-     *      based on the current price, the starting price, and the ending
-     *      price. If the start and end prices differ, the current price will be
-     *      extrapolated on a linear basis.
-     *
-     * @param startAmount The starting amount of the item.
-     * @param endAmount   The ending amount of the item.
-     * @param elapsed     The time elapsed since the order's start time.
-     * @param remaining   The time left until the order's end time.
-     * @param duration    The total duration of the order.
-     * @param roundUp     A boolean indicating whether the resultant amount
-     *                    should be rounded up or down.
-     *
-     * @return The current amount.
-     */
-    function _locateCurrentAmount(
-        uint256 startAmount,
-        uint256 endAmount,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration,
-        bool roundUp
-    ) internal pure returns (uint256) {
-        // Only modify end amount if it doesn't already equal start amount.
-        if (startAmount != endAmount) {
-            // Leave extra amount to add for rounding at zero (i.e. round down).
-            uint256 extraCeiling = 0;
-
-            // If rounding up, set rounding factor to one less than denominator.
-            if (roundUp) {
-                // Skip underflow check: duration cannot be zero.
-                unchecked {
-                    extraCeiling = duration - 1;
-                }
-            }
-
-            // Aggregate new amounts weighted by time with rounding factor
-            uint256 totalBeforeDivision = ((startAmount * remaining) +
-                (endAmount * elapsed) +
-                extraCeiling);
-
-            // Division is performed without zero check as it cannot be zero.
-            uint256 newAmount;
-            assembly {
-                newAmount := div(totalBeforeDivision, duration)
-            }
-
-            // Return the current amount (expressed as endAmount internally).
-            return newAmount;
-        }
-
-        // Return the original amount (now expressed as endAmount internally).
-        return endAmount;
-    }
-
-    /**
-     * @dev Internal pure function to return a fraction of a given value and to
-     *      ensure the resultant value does not have any fractional component.
-     *
-     * @param numerator   A value indicating the portion of the order that
-     *                    should be filled.
-     * @param denominator A value indicating the total size of the order.
-     * @param value       The value for which to compute the fraction.
-     *
-     * @return newValue The value after applying the fraction.
-     */
-    function _getFraction(
-        uint256 numerator,
-        uint256 denominator,
-        uint256 value
-    ) internal pure returns (uint256 newValue) {
-        // Return value early in cases where the fraction resolves to 1.
-        if (numerator == denominator) {
-            return value;
-        }
-
-        // Multiply the numerator by the value and ensure no overflow occurs.
-        uint256 valueTimesNumerator = value * numerator;
-
-        // Divide (Note: denominator must not be zero!) and check for remainder.
-        bool exact;
-        assembly {
-            newValue := div(valueTimesNumerator, denominator)
-            exact := iszero(mulmod(value, numerator, denominator))
-        }
-
-        // Ensure that division gave a final result with no remainder.
-        if (!exact) {
-            revert InexactFraction();
-        }
-    }
-
-    /**
      * @dev Internal pure function to "compress" executions, splitting them into
      *      "standard" (or unbatched) executions and "batch" executions. Note
      *      that there may be additional compression that could be performed,
@@ -352,7 +84,7 @@ contract ConsiderationPure is ConsiderationBase {
             uint256[] memory indexBy1155 = new uint256[](totalExecutions);
 
             // Iterate over each execution.
-            for (uint256 i = 0; i < executions.length; ++i) {
+            for (uint256 i = 0; i < totalExecutions; ++i) {
                 // If the item specified by the execution is an ERC1155 item...
                 if (executions[i].item.itemType == ItemType.ERC1155) {
                     // Set index of 1155 execution in memory, then increment it.
@@ -609,47 +341,6 @@ contract ConsiderationPure is ConsiderationBase {
 
             // Return both the standard and batch execution arrays.
             return (standardExecutions, batchExecutions);
-        }
-    }
-
-    /**
-     * @dev Internal pure function to apply a fraction to a consideration
-     * or offer item.
-     *
-     * @param startAmount     The starting amount of the item.
-     * @param endAmount       The ending amount of the item.
-     * @param numerator       A value indicating the portion of the order that
-     *                        should be filled.
-     * @param denominator     A value indicating the total size of the order.
-     * @param elapsed         The time elapsed since the order's start time.
-     * @param remaining       The time left until the order's end time.
-     * @param duration        The total duration of the order.
-     *
-     * @return amount The received item to transfer with the final amount.
-     */
-    function _applyFraction(
-        uint256 startAmount,
-        uint256 endAmount,
-        uint256 numerator,
-        uint256 denominator,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration,
-        bool roundUp
-    ) internal pure returns (uint256 amount) {
-        // If start amount equals end amount, apply fraction to end amount.
-        if (startAmount == endAmount) {
-            amount = _getFraction(numerator, denominator, endAmount);
-        } else {
-            // Otherwise, apply fraction to both to extrapolate final amount.
-            amount = _locateCurrentAmount(
-                _getFraction(numerator, denominator, startAmount),
-                _getFraction(numerator, denominator, endAmount),
-                elapsed,
-                remaining,
-                duration,
-                roundUp
-            );
         }
     }
 
@@ -952,22 +643,6 @@ contract ConsiderationPure is ConsiderationBase {
         }
     }
 
-    function _doesNotMatchMagic(bytes4 expected) internal pure returns (bool) {
-        bytes4 result;
-        assembly {
-            // Only put result on stack if return data is exactly 32 bytes.
-            if eq(returndatasize(), 0x20) {
-                // Copy directly from return data into scratch space.
-                returndatacopy(0, 0, 0x20)
-
-                // Take value from scratch space and place it on the stack.
-                result := mload(0)
-            }
-        }
-
-        return result != expected;
-    }
-
     /**
      * @dev Internal pure function to validate that a given order is fillable
      *      and not cancelled based on the order status.
@@ -1092,66 +767,6 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to efficiently derive an digest to sign for
-     *      an order in accordance with EIP-712.
-     *
-     * @param domainSeparator The domain separator.
-     * @param orderHash       The order hash.
-     *
-     * @return value The hash.
-     */
-    function _hashDigest(bytes32 domainSeparator, bytes32 orderHash)
-        internal
-        pure
-        returns (bytes32 value)
-    {
-        // Leverage scratch space to perform an efficient hash.
-        assembly {
-            // Place the EIP-712 prefix at the start of scratch space.
-            mstore(
-                0x00,
-                0x1901000000000000000000000000000000000000000000000000000000000000 // solhint-disable-line max-line-length
-            )
-
-            // Place the domain separator in the next region of scratch space.
-            mstore(0x02, domainSeparator)
-
-            // Place the order hash in scratch space, spilling into the first
-            // two bytes of the free memory pointer — this should never be set
-            // as memory cannot be expanded to that size, and will be zeroed out
-            // after the hash is performed.
-            mstore(0x22, orderHash)
-
-            value := keccak256(0x00, 0x42) // Hash the relevant region.
-
-            mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
-        }
-    }
-
-    /**
-     * @dev Internal pure function to check whether a given item type represents
-     *      a criteria-based ERC721 or ERC1155 item (e.g. an item that can be
-     *      resolved to one of a number of different identifiers at the time of
-     *      order fulfillment).
-     *
-     * @param itemType The item type in question.
-     *
-     * @return withCriteria A boolean indicating that the item type in question
-     *                      represents a criteria-based item.
-     */
-    function _isItemWithCriteria(ItemType itemType)
-        internal
-        pure
-        returns (bool withCriteria)
-    {
-        // ERC721WithCriteria is item type 4. ERC1155WithCriteria is item type
-        // 5.
-        assembly {
-            withCriteria := gt(itemType, 3)
-        }
-    }
-
-    /**
      * @dev Internal pure function to check whether a given order type indicates
      *      that partial fills are not supported (e.g. only "full fills" are
      *      allowed for the order in question).
@@ -1230,65 +845,6 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to ensure that a given element is contained
-     *      in a merkle root via a supplied proof.
-     *
-     * @param leaf  The element for which to prove inclusion.
-     * @param root  The merkle root that inclusion will be proved against.
-     * @param proof The merkle proof.
-     */
-    function _verifyProof(
-        uint256 leaf,
-        uint256 root,
-        bytes32[] memory proof
-    ) internal pure {
-        // Convert the supplied leaf element from uint256 to bytes32.
-        bytes32 computedHash = bytes32(leaf);
-
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Iterate over each proof element.
-            for (uint256 i = 0; i < proof.length; ++i) {
-                // Retrieve the proof element.
-                bytes32 proofElement = proof[i];
-
-                if (computedHash <= proofElement) {
-                    // Hash(current computed hash + current element of proof)
-                    computedHash = _efficientHash(computedHash, proofElement);
-                } else {
-                    // Hash(current element of proof + current computed hash)
-                    computedHash = _efficientHash(proofElement, computedHash);
-                }
-            }
-        }
-
-        // Ensure that the final derived hash matches the expected root.
-        if (computedHash != bytes32(root)) {
-            revert InvalidProof();
-        }
-    }
-
-    /**
-     * @dev Internal pure function to efficiently hash two bytes32 values.
-     *
-     * @param a The first component of the hash.
-     * @param b The second component of the hash.
-     *
-     * @return value The hash.
-     */
-    function _efficientHash(bytes32 a, bytes32 b)
-        internal
-        pure
-        returns (bytes32 value)
-    {
-        assembly {
-            mstore(0x00, a) // Place element a in first word of scratch space.
-            mstore(0x20, b) // Place element b in second word of scratch space.
-            value := keccak256(0x00, 0x40) // Hash scratch space region.
-        }
-    }
-
-    /**
      * @dev Internal pure function to ensure that the supplied consideration
      *      array length for an order to be fulfilled is not less than the
      *      original consideration array length for that order.
@@ -1309,7 +865,7 @@ contract ConsiderationPure is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to ensure that a given item amount in not
+     * @dev Internal pure function to ensure that a given item amount is not
      *      zero.
      *
      * @param amount The amount to check.
@@ -1359,6 +915,40 @@ contract ConsiderationPure is ConsiderationBase {
         // Revert with an error if basic order parameter offsets are invalid.
         if (!validOffsets) {
             revert InvalidBasicOrderParameterEncoding();
+        }
+    }
+
+    /**
+     * @dev Internal pure function to efficiently derive an digest to sign for
+     *      an order in accordance with EIP-712.
+     *
+     * @param domainSeparator The domain separator.
+     * @param orderHash       The order hash.
+     *
+     * @return value The hash.
+     */
+    function _hashDigest(bytes32 domainSeparator, bytes32 orderHash)
+        internal
+        pure
+        returns (bytes32 value)
+    {
+        // Leverage scratch space to perform an efficient hash.
+        assembly {
+            // Place the EIP-712 prefix at the start of scratch space.
+            mstore(0x00, EIP_712_PREFIX)
+
+            // Place the domain separator in the next region of scratch space.
+            mstore(0x02, domainSeparator)
+
+            // Place the order hash in scratch space, spilling into the first
+            // two bytes of the free memory pointer — this should never be set
+            // as memory cannot be expanded to that size, and will be zeroed out
+            // after the hash is performed.
+            mstore(0x22, orderHash)
+
+            value := keccak256(0x00, 0x42) // Hash the relevant region.
+
+            mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
         }
     }
 }
