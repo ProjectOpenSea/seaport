@@ -382,7 +382,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             orders
         );
 
-        // Validate orders, apply amounts, & determine if they utilize proxies.
+        // Validate orders, update order status, and determine item amounts.
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             new CriteriaResolver[](0), // No criteria resolvers supplied.
@@ -446,7 +446,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             BatchExecution[] memory batchExecutions
         )
     {
-        // Validate orders, apply amounts, & determine if they utilize conduits.
+        // Validate orders, update order status, and determine item amounts.
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             criteriaResolvers,

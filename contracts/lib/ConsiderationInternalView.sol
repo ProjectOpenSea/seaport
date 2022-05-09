@@ -36,10 +36,9 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
-     * @param conduitController           A contract that deploys conduits, or
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC20+721+1155
-     *                                    tokens.
+     * @param conduitController A contract that deploys conduits, or proxies
+     *                          that may optionally be used to transfer approved
+     *                          ERC20/721/1155 tokens.
      */
     constructor(address conduitController)
         ConsiderationPure(conduitController)
@@ -486,11 +485,14 @@ contract ConsiderationInternalView is ConsiderationPure {
     }
 
     /**
-     * @dev Internal view function to determine if a proxy should be utilized
-     *      for a given order and to ensure that the submitter is allowed by the
-     *      order type.
+     * @dev Internal view function to determine whether an order is a restricted
+     *      order and, if so, to ensure that it was either submitted by the
+     *      offerer or the zone for the order, or that the zone returns the
+     *      expected magic value upon performing a staticcall to `isValidOrder`
+     *      or `isValidOrderIncludingExtraData` depending on whether the order
+     *      fulfillment specifies extra data or criteria resolvers.
      *
-     * @param advancedOrder     The order in question.
+     * @param advancedOrder     The advanced order in question.
      * @param criteriaResolvers An array where each element contains a reference
      *                          to a specific offer or consideration, a token
      *                          identifier, and a proof that the supplied token
@@ -507,7 +509,6 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param orderType         The type of the order.
      * @param offerer           The offerer in question.
      * @param zone              The zone in question.
-
      */
     function _assertRestrictedAdvancedOrderValidity(
         AdvancedOrder memory advancedOrder,
@@ -663,10 +664,8 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param fulfillerConduitKey   A bytes32 value indicating what conduit, if
      *                              any, to source the fulfiller's token
      *                              approvals from. The zero hash signifies that
-     *                              no conduit should be used (and direct
-     *                              approvals set on Consideration) and
-     *                              `bytes32(1)` signifies to utilize the legacy
-     *                               user proxy for the fulfiller.
+     *                              no conduit should be used, with approvals
+     *                              set directly on this contract.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -1043,10 +1042,8 @@ contract ConsiderationInternalView is ConsiderationPure {
      * @param fulfillerConduitKey     A bytes32 value indicating what conduit,
      *                                if any, to source the fulfiller's token
      *                                approvals from. The zero hash signifies
-     *                                that no conduit should be used (and direct
-     *                                approvals set on Consideration) and
-     *                                `bytes32(1)` signifies to utilize the
-     *                                legacy user proxy for the fulfiller.
+     *                                that no conduit should be used, with
+     *                                approvals set directly on this contract.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */

@@ -18,8 +18,8 @@ import "./ConsiderationConstants.sol";
 /**
  * @title ConsiderationBase
  * @author 0age
- * @notice ConsiderationBase contains all storage, constants, and constructor
- *         logic.
+ * @notice ConsiderationBase contains all storage, immutable constants, and
+ *         constructor logic.
  */
 contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Precompute hashes, original chainId, and domain separator on deployment.
