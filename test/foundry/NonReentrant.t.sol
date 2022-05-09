@@ -217,34 +217,22 @@ contract NonReentrantTest is BaseOrderTest {
         )
     {}
 
-    function _testNonReentrant(NonReentrant memory context)
-        internal
-        resetTokenBalancesBetweenRuns
-    {
+    function _setUpReenterer(NonReentrant memory context) internal {
         reenterer = new ReentrantContract();
         vm.etch(alice, address(reenterer).code);
         reenterer = ReentrantContract(payable(alice));
         reenterer.setConsideration(context.consideration);
         reenterer.setReentrancyPoint(context.args.reentrancyPoint);
         reenterer.setReenter(true);
+    }
+
+    function _testNonReentrant(NonReentrant memory context)
+        internal
+        resetTokenBalancesBetweenRuns
+    {
+        _setUpReenterer(context);
         if (context.args.entryPoint == EntryPoint.FulfillBasicOrder) {
             BasicOrderParameters memory params = prepareBasicOrder(context);
-            // vm.expectRevert(
-            //     // abi.encodeWithSignature(
-            //     //     "EtherTransferGenericFailure(address,uint256)",
-            //     //     alice,
-            //     //     1
-            //     // )
-            //     abi.encodeWithSignature("NoReentrantCalls()")
-            // );
-            // vm.expectRevert(
-            //     abi.encodeWithSignature(
-            //         "EtherTransferGenericFailure(address,uint256)",
-            //         alice,
-            //         1
-            //     )
-            //     // abi.encodeWithSignature("NoReentrantCalls()")
-            // );
             vm.expectEmit(true, false, false, false, alice);
             emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             context.consideration.fulfillBasicOrder{ value: 1 }(params);
