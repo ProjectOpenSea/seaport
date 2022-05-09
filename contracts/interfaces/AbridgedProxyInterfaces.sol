@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.7;
 
 interface ProxyRegistryInterface {
     function proxies(address user) external view returns (address proxy);

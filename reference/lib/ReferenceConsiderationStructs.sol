@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.7;
 
 // prettier-ignore
 import {
     OrderType,
     ItemType
-} from "../../lib/ConsiderationEnums.sol";
+} from "contracts/lib/ConsiderationEnums.sol";
+
+import { SpentItem, ReceivedItem } from "contracts/lib/ConsiderationStructs.sol";
 
 // This file should only be used by the Reference Implementation
 
@@ -38,4 +40,12 @@ struct BasicFulfillmentHashes {
     bytes32 receivedItemsHash;
     bytes32 receivedItemHash;
     bytes32 offerItemHash;
+}
+
+struct OrderToExecute {
+    address offerer;
+    SpentItem[] spentItems; // Offer
+    ReceivedItem[] receivedItems; // Consideration
+    bytes32 conduitKey;
+    uint120 numerator;
 }

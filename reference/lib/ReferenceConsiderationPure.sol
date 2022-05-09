@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.7;
 
-import { OrderType, ItemType, Side } from "../../lib/ConsiderationEnums.sol";
+import { OrderType, ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -19,11 +19,11 @@ import {
     CriteriaResolver,
     Batch,
     BatchExecution
-} from "../../lib/ConsiderationStructs.sol";
+} from "contracts/lib/ConsiderationStructs.sol";
 
-import { ConsiderationItemIndicesAndValidity } from "./ReferenceConsiderationStructs.sol";
+import { ConsiderationItemIndicesAndValidity, OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
-import { ZoneInterface } from "../../interfaces/ZoneInterface.sol";
+import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
 
 import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
 
@@ -52,7 +52,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
      * @dev Internal pure function to apply criteria resolvers containing
      *      specific token identifiers and associated proofs to order items.
      *
-     * @param advancedOrders     The orders to apply criteria resolvers to.
+     * @param ordersToExecute    The orders to apply criteria resolvers to.
      * @param criteriaResolvers  An array where each element contains a
      *                           reference to a specific order as well as that
      *                           order's offer or consideration, a token
@@ -63,7 +63,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
      *                           that no proof needs to be supplied.
      */
     function _applyCriteriaResolvers(
-        AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         CriteriaResolver[] memory criteriaResolvers
     ) internal pure {
         // Retrieve length of criteria resolvers array and place on stack.
@@ -78,19 +78,171 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             uint256 orderIndex = criteriaResolver.orderIndex;
 
             // Ensure that the order index is in range.
-            if (orderIndex >= advancedOrders.length) {
+            if (orderIndex >= ordersToExecute.length) {
                 revert OrderCriteriaResolverOutOfRange();
             }
 
             // Skip criteria resolution for order if not fulfilled.
-            if (advancedOrders[orderIndex].numerator == 0) {
+            if (ordersToExecute[orderIndex].numerator == 0) {
                 continue;
             }
 
-            // Retrieve the parameters for the order.
-            OrderParameters memory orderParameters = (
-                advancedOrders[orderIndex].parameters
-            );
+            // Read component index from memory and place it on the stack.
+            uint256 componentIndex = criteriaResolver.index;
+
+            // Declare values for item's type and criteria.
+            ItemType itemType;
+            uint256 identifierOrCriteria;
+
+            // If the criteria resolver refers to an offer item...
+            if (criteriaResolver.side == Side.OFFER) {
+                SpentItem[] memory spentItems = ordersToExecute[orderIndex]
+                    .spentItems;
+                // Ensure that the component index is in range.
+                if (componentIndex >= spentItems.length) {
+                    revert OfferCriteriaResolverOutOfRange();
+                }
+
+                // Retrieve relevant item using order and component index.
+                SpentItem memory offer = (spentItems[componentIndex]);
+
+                // Read item type and criteria from memory & place on stack.
+                itemType = offer.itemType;
+                identifierOrCriteria = offer.identifier;
+
+                // Optimistically update item type to remove criteria usage.
+                offer.itemType = (itemType == ItemType.ERC721_WITH_CRITERIA)
+                    ? ItemType.ERC721
+                    : ItemType.ERC1155;
+
+                // Optimistically update identifier w/ supplied identifier.
+                offer.identifier = criteriaResolver.identifier;
+            } else {
+                ReceivedItem[] memory receivedItems = ordersToExecute[
+                    orderIndex
+                ].receivedItems;
+                // Otherwise, the resolver refers to a consideration item.
+                // Ensure that the component index is in range.
+                if (componentIndex >= receivedItems.length) {
+                    revert ConsiderationCriteriaResolverOutOfRange();
+                }
+
+                // Retrieve relevant item using order and component index.
+                ReceivedItem memory consideration = (
+                    receivedItems[componentIndex]
+                );
+
+                // Read item type and criteria from memory & place on stack.
+                itemType = consideration.itemType;
+                identifierOrCriteria = consideration.identifier;
+
+                // Optimistically update item type to remove criteria usage.
+                consideration.itemType = (itemType ==
+                    ItemType.ERC721_WITH_CRITERIA)
+                    ? ItemType.ERC721
+                    : ItemType.ERC1155;
+
+                // Optimistically update identifier w/ supplied identifier.
+                consideration.identifier = (criteriaResolver.identifier);
+            }
+
+            // Ensure the specified item type indicates criteria usage.
+            if (!_isItemWithCriteria(itemType)) {
+                revert CriteriaNotEnabledForItem();
+            }
+
+            // If criteria is not 0 (i.e. a collection-wide offer)...
+            if (identifierOrCriteria != uint256(0)) {
+                // Verify identifier inclusion in criteria root using proof.
+                _verifyProof(
+                    criteriaResolver.identifier,
+                    identifierOrCriteria,
+                    criteriaResolver.criteriaProof
+                );
+            }
+        }
+
+        // Retrieve length of orders array and place on stack.
+        arraySize = ordersToExecute.length;
+
+        // Iterate over each advanced order.
+        for (uint256 i = 0; i < arraySize; ++i) {
+            // Retrieve the advanced order.
+            //AdvancedOrder memory advancedOrder = advancedOrders[i];
+            //SpentItem[] memory spentItems = spentItemsByOrder[i];
+            OrderToExecute memory orderToExecute = ordersToExecute[i];
+
+            // Read offer length from memory and place on stack.
+            uint256 totalItems = orderToExecute.spentItems.length;
+
+            // Skip criteria resolution for order if not fulfilled.
+            if (orderToExecute.numerator == 0) {
+                continue;
+            }
+
+            // Iterate over each offer item on the order.
+            for (uint256 j = 0; j < totalItems; ++j) {
+                // Ensure item type no longer indicates criteria usage.
+                if (
+                    _isItemWithCriteria(orderToExecute.spentItems[j].itemType)
+                ) {
+                    revert UnresolvedOfferCriteria();
+                }
+            }
+
+            // Read consideration length from memory and place on stack.
+            totalItems = (orderToExecute.receivedItems.length);
+
+            // Iterate over each consideration item on the order.
+            for (uint256 j = 0; j < totalItems; ++j) {
+                // Ensure item type no longer indicates criteria usage.
+                if (
+                    _isItemWithCriteria(
+                        orderToExecute.receivedItems[j].itemType
+                    )
+                ) {
+                    revert UnresolvedConsiderationCriteria();
+                }
+            }
+        }
+    }
+
+    /**
+     * @dev Internal pure function to apply criteria resolvers containing
+     *      specific token identifiers and associated proofs to order items.
+     *
+     * @param advancedOrder      The order to apply criteria resolvers to.
+     * @param criteriaResolvers  An array where each element contains a
+     *                           reference to a specific order as well as that
+     *                           order's offer or consideration, a token
+     *                           identifier, and a proof that the supplied token
+     *                           identifier is contained in the order's merkle
+     *                           root. Note that a root of zero indicates that
+     *                           any transferrable token identifier is valid and
+     *                           that no proof needs to be supplied.
+     */
+    // TODO: Remove this functon after Advanced Orders are no longer used here.
+    function _applyCriteriaResolversAdvanced(
+        AdvancedOrder memory advancedOrder,
+        CriteriaResolver[] memory criteriaResolvers
+    ) internal pure {
+        // Retrieve length of criteria resolvers array and place on stack.
+        uint256 arraySize = criteriaResolvers.length;
+
+        // Retrieve the parameters for the order.
+        OrderParameters memory orderParameters = (advancedOrder.parameters);
+
+        // Iterate over each criteria resolver.
+        for (uint256 i = 0; i < arraySize; ++i) {
+            // Retrieve the criteria resolver.
+            CriteriaResolver memory criteriaResolver = (criteriaResolvers[i]);
+
+            // Read the order index from memory and place it on the stack.
+            uint256 orderIndex = criteriaResolver.orderIndex;
+
+            if (orderIndex != 0) {
+                revert OrderCriteriaResolverOutOfRange();
+            }
 
             // Read component index from memory and place it on the stack.
             uint256 componentIndex = criteriaResolver.index;
@@ -166,49 +318,33 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
             }
         }
 
-        // Retrieve length of advanced orders array and place on stack.
-        arraySize = advancedOrders.length;
+        // Validate Criteria on order has been resolved
 
-        // Iterate over each advanced order.
-        for (uint256 i = 0; i < arraySize; ++i) {
-            // Retrieve the advanced order.
-            AdvancedOrder memory advancedOrder = advancedOrders[i];
+        // Read consideration length from memory and place on stack.
+        uint256 totalItems = (advancedOrder.parameters.consideration.length);
 
-            // Skip criteria resolution for order if not fulfilled.
-            if (advancedOrder.numerator == 0) {
-                continue;
+        // Iterate over each consideration item on the order.
+        for (uint256 i = 0; i < totalItems; ++i) {
+            // Ensure item type no longer indicates criteria usage.
+            if (
+                _isItemWithCriteria(
+                    advancedOrder.parameters.consideration[i].itemType
+                )
+            ) {
+                revert UnresolvedConsiderationCriteria();
             }
+        }
 
-            // Read consideration length from memory and place on stack.
-            uint256 totalItems = (
-                advancedOrder.parameters.consideration.length
-            );
+        // Read offer length from memory and place on stack.
+        totalItems = advancedOrder.parameters.offer.length;
 
-            // Iterate over each consideration item on the order.
-            for (uint256 j = 0; j < totalItems; ++j) {
-                // Ensure item type no longer indicates criteria usage.
-                if (
-                    _isItemWithCriteria(
-                        advancedOrder.parameters.consideration[j].itemType
-                    )
-                ) {
-                    revert UnresolvedConsiderationCriteria();
-                }
-            }
-
-            // Read offer length from memory and place on stack.
-            totalItems = advancedOrder.parameters.offer.length;
-
-            // Iterate over each offer item on the order.
-            for (uint256 j = 0; j < totalItems; ++j) {
-                // Ensure item type no longer indicates criteria usage.
-                if (
-                    _isItemWithCriteria(
-                        advancedOrder.parameters.offer[j].itemType
-                    )
-                ) {
-                    revert UnresolvedOfferCriteria();
-                }
+        // Iterate over each offer item on the order.
+        for (uint256 i = 0; i < totalItems; ++i) {
+            // Ensure item type no longer indicates criteria usage.
+            if (
+                _isItemWithCriteria(advancedOrder.parameters.offer[i].itemType)
+            ) {
+                revert UnresolvedOfferCriteria();
             }
         }
     }
@@ -629,20 +765,20 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
     /**
      * @dev Internal pure function to check the indicated consideration item matches original item.
      *
-     * @param consideration The consideration to compare
+     * @param consideration  The consideration to compare
      * @param receievedItem  The aggregated receieved item
      *
      * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
      */
     function _checkMatchingConsideration(
-        ConsiderationItem memory consideration,
+        ReceivedItem memory consideration,
         ReceivedItem memory receievedItem
     ) internal pure returns (bool invalidFulfillment) {
         return
             receievedItem.recipient != consideration.recipient ||
             receievedItem.itemType != consideration.itemType ||
             receievedItem.token != consideration.token ||
-            receievedItem.identifier != consideration.identifierOrCriteria;
+            receievedItem.identifier != consideration.identifier;
     }
 
     /**
@@ -650,7 +786,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
      *      using supplied directives on which component items are candidates
      *      for aggregation, skipping items on orders that are not available.
      *
-     * @param advancedOrders          The orders to aggregate consideration
+     * @param ordersToExecute         The orders to aggregate consideration
      *                                items from.
      * @param considerationComponents An array of FulfillmentComponent structs
      *                                indicating the order index and item index
@@ -663,7 +799,7 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
      * @return receivedItem The aggregated consideration items.
      */
     function _aggregateValidFulfillmentConsiderationItems(
-        AdvancedOrder[] memory advancedOrders,
+        OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory considerationComponents,
         uint256 startIndex
     ) internal pure returns (ReceivedItem memory receivedItem) {
@@ -674,32 +810,31 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
         potentialCandidate.itemIndex = considerationComponents[startIndex]
             .itemIndex;
         potentialCandidate.invalidFulfillment = (potentialCandidate
-            .orderIndex >= advancedOrders.length);
+            .orderIndex >= ordersToExecute.length);
 
         if (!potentialCandidate.invalidFulfillment) {
-            AdvancedOrder memory aOrder = advancedOrders[
+            OrderToExecute memory orderToExecute = ordersToExecute[
                 potentialCandidate.orderIndex
             ];
             // Ensure that the item index is not out of range.
             potentialCandidate.invalidFulfillment =
                 potentialCandidate.invalidFulfillment ||
                 (potentialCandidate.itemIndex >=
-                    aOrder.parameters.consideration.length);
+                    orderToExecute.receivedItems.length);
             if (!potentialCandidate.invalidFulfillment) {
-                ConsiderationItem memory consideration = aOrder
-                    .parameters
-                    .consideration[potentialCandidate.itemIndex];
+                ReceivedItem memory consideration = orderToExecute
+                    .receivedItems[potentialCandidate.itemIndex];
 
                 receivedItem = ReceivedItem(
                     consideration.itemType,
                     consideration.token,
-                    consideration.identifierOrCriteria,
-                    consideration.startAmount,
+                    consideration.identifier,
+                    consideration.amount,
                     consideration.recipient
                 );
 
                 // Zero out amount on original offerItem to indicate it is spent
-                consideration.startAmount = 0;
+                consideration.amount = 0;
 
                 for (
                     uint256 i = startIndex + 1;
@@ -713,31 +848,32 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
 
                     /// Ensure that the order index is not out of range.
                     potentialCandidate.invalidFulfillment =
-                        potentialCandidate.orderIndex >= advancedOrders.length;
+                        potentialCandidate.orderIndex >= ordersToExecute.length;
                     // Break if invalid
                     if (potentialCandidate.invalidFulfillment) {
                         break;
                     }
-                    aOrder = advancedOrders[potentialCandidate.orderIndex];
-                    if (aOrder.numerator != 0) {
+                    orderToExecute = ordersToExecute[
+                        potentialCandidate.orderIndex
+                    ];
+                    if (orderToExecute.numerator != 0) {
                         // Ensure that the item index is not out of range.
                         potentialCandidate
                             .invalidFulfillment = (potentialCandidate
-                            .itemIndex >=
-                            aOrder.parameters.consideration.length);
+                            .itemIndex >= orderToExecute.receivedItems.length);
                         // Break if invalid
                         if (potentialCandidate.invalidFulfillment) {
                             break;
                         }
-                        consideration = aOrder.parameters.consideration[
+                        consideration = orderToExecute.receivedItems[
                             potentialCandidate.itemIndex
                         ];
                         // Updating Received Item Amount
                         receivedItem.amount =
                             receivedItem.amount +
-                            consideration.startAmount;
+                            consideration.amount;
                         // Zero out amount on original offerItem to indicate it is spent
-                        consideration.startAmount = 0;
+                        consideration.amount = 0;
                         // Ensure the indicated offer item matches original item.
                         potentialCandidate
                             .invalidFulfillment = _checkMatchingConsideration(
@@ -973,6 +1109,104 @@ contract ReferenceConsiderationPure is ReferenceConsiderationBase {
 
         // Return the array of advanced orders.
         return advancedOrders;
+    }
+
+    /**
+     * @dev Internal pure function to convert an advanced order to an order to execute with
+     *      numerator of 1.
+     *
+     * @param advancedOrder The advanced order to convert.
+     *
+     * @return orderToExecute The new order to execute.
+     */
+    function _convertAdvancedToOrder(AdvancedOrder memory advancedOrder)
+        internal
+        pure
+        returns (OrderToExecute memory orderToExecute)
+    {
+        OfferItem[] memory offer = advancedOrder.parameters.offer;
+
+        SpentItem[] memory spentItems = new SpentItem[](offer.length);
+
+        // Iterate over each offer item on the order.
+        for (uint256 i = 0; i < offer.length; ++i) {
+            // Retrieve the offer item.
+            OfferItem memory offerItem = offer[i];
+
+            // Create Spent Item for Event
+            SpentItem memory spentItem = SpentItem(
+                offerItem.itemType,
+                offerItem.token,
+                offerItem.identifierOrCriteria,
+                offerItem.startAmount
+            );
+
+            // Add to array of Received Items
+            spentItems[i] = spentItem;
+        }
+
+        ConsiderationItem[] memory consideration = advancedOrder
+            .parameters
+            .consideration;
+
+        ReceivedItem[] memory receivedItems = new ReceivedItem[](
+            consideration.length
+        );
+
+        // Iterate over each consideration item on the order.
+        for (uint256 i = 0; i < consideration.length; ++i) {
+            // Retrieve the consideration item.
+            ConsiderationItem memory considerationItem = (consideration[i]);
+
+            // Create Received Item for Event
+            ReceivedItem memory receivedItem = ReceivedItem(
+                considerationItem.itemType,
+                considerationItem.token,
+                considerationItem.identifierOrCriteria,
+                considerationItem.startAmount,
+                considerationItem.recipient
+            );
+
+            // Add to array of Received Items
+            receivedItems[i] = receivedItem;
+        }
+
+        orderToExecute = OrderToExecute(
+            advancedOrder.parameters.offerer,
+            spentItems,
+            receivedItems,
+            advancedOrder.parameters.conduitKey,
+            advancedOrder.numerator
+        );
+
+        return orderToExecute;
+    }
+
+    /**
+     * @dev Internal pure function to convert an array of advanced orders to an array of
+     *      orders to execute.
+     *
+     * @param advancedOrders The advanced orders to convert.
+     *
+     * @return ordersToExecute The new array of partial orders.
+     */
+    function _convertAdvancedtoOrdersToExecute(
+        AdvancedOrder[] memory advancedOrders
+    ) internal pure returns (OrderToExecute[] memory ordersToExecute) {
+        // Read the number of orders from calldata and place on the stack.
+        uint256 totalOrders = advancedOrders.length;
+
+        // Allocate new empty array for each partial order in memory.
+        ordersToExecute = new OrderToExecute[](totalOrders);
+
+        // Iterate over the given orders.
+        for (uint256 i = 0; i < totalOrders; ++i) {
+            // Convert to partial order (1/1 or full fill) and update array.
+            ordersToExecute[i] = _convertAdvancedToOrder(advancedOrders[i]);
+        }
+
+        // Return the array of orders to Execute
+        return ordersToExecute;
     }
 
     /**

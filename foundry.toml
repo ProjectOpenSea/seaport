@@ -1,8 +1,5 @@
 [default]
-# specified so solc compiles legacy wyvern contracts using 0.4.13, for use with getCode cheatcode
-auto_detect_solc = true
-optimizer = true
-optimizer_runs = 200
+solc = '0.8.13'
 via_ir = true
 fuzz_runs = 5000
 src = 'contracts'
@@ -14,5 +11,16 @@ remappings = [
     'forge-std=lib/forge-std/src/',
 ]
 
+[reference]
+solc = '0.8.7'
+via_ir = false
+src = 'reference'
+out = 'reference-out'
+# specify something so it doesn't try to compile the 0.8.13 files in test/foundry
+test = 'reference'
+
+[quick]
+via_ir = false
+fuzz_runs = 1000
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config

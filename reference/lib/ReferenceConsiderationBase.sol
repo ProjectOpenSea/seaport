@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.7;
 
 // prettier-ignore
 import {
     ProxyRegistryInterface,
     TokenTransferProxyInterface
-} from "../../interfaces/AbridgedProxyInterfaces.sol";
+} from "contracts/interfaces/AbridgedProxyInterfaces.sol";
 
 // prettier-ignore
 import {
     ConduitControllerInterface
-} from "../../interfaces/ConduitControllerInterface.sol";
+} from "contracts/interfaces/ConduitControllerInterface.sol";
 
 // prettier-ignore
 import {
     ConsiderationEventsAndErrors
-} from "../../interfaces/ConsiderationEventsAndErrors.sol";
+} from "contracts/interfaces/ConsiderationEventsAndErrors.sol";
 
-import { OrderStatus } from "../../lib/ConsiderationStructs.sol";
+import { OrderStatus } from "contracts/lib/ConsiderationStructs.sol";
 
 /**
  * @title ConsiderationBase
@@ -68,8 +68,8 @@ contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
      */
     constructor(address conduitController) {
         // Derive hashes, reference chainId, and associated domain separator.
-        _NAME_HASH = keccak256(bytes(_NAME));
-        _VERSION_HASH = keccak256(bytes(_VERSION));
+        bytes32 tempNameHash = keccak256(bytes(_NAME));
+        bytes32 tempVersionHash = keccak256(bytes(_VERSION));
 
         // prettier-ignore
         bytes memory offerItemTypeString = abi.encodePacked(
@@ -110,7 +110,7 @@ contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
         );
 
         // prettier-ignore
-        _EIP_712_DOMAIN_TYPEHASH = keccak256(
+        bytes32 tempEIP712Domain = keccak256(
             abi.encodePacked(
                 "EIP712Domain(",
                     "string name,",
@@ -130,12 +130,24 @@ contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
             )
         );
         _CHAIN_ID = block.chainid;
-        _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator();
 
-        _CONDUIT_CONTROLLER = ConduitControllerInterface(conduitController);
+        _EIP_712_DOMAIN_TYPEHASH = tempEIP712Domain;
+        _NAME_HASH = tempNameHash;
+        _VERSION_HASH = tempVersionHash;
+
+        _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator(
+            tempEIP712Domain,
+            tempNameHash,
+            tempVersionHash
+        );
+
+        ConduitControllerInterface tempConduitController = ConduitControllerInterface(
+                conduitController
+            );
+        _CONDUIT_CONTROLLER = tempConduitController;
 
         (_CONDUIT_CREATION_CODE_HASH, ) = (
-            _CONDUIT_CONTROLLER.getConduitCodeHashes()
+            tempConduitController.getConduitCodeHashes()
         );
 
         // Initialize the reentrancy guard in a cleared state.
@@ -148,13 +160,17 @@ contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
      *
      * @return The derived domain separator.
      */
-    function _deriveInitialDomainSeparator()
-        internal
-        view
-        virtual
-        returns (bytes32)
-    {
-        return _deriveDomainSeparator();
+    function _deriveInitialDomainSeparator(
+        bytes32 _eip712DomainTypeHash,
+        bytes32 _nameHash,
+        bytes32 _versionHash
+    ) internal view virtual returns (bytes32) {
+        return
+            _deriveDomainSeparator(
+                _eip712DomainTypeHash,
+                _nameHash,
+                _versionHash
+            );
     }
 
     /**
@@ -162,13 +178,17 @@ contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
      *
      * @return The derived domain separator.
      */
-    function _deriveDomainSeparator() internal view virtual returns (bytes32) {
+    function _deriveDomainSeparator(
+        bytes32 _eip712DomainTypeHash,
+        bytes32 _nameHash,
+        bytes32 _versionHash
+    ) internal view virtual returns (bytes32) {
         // prettier-ignore
         return keccak256(
             abi.encode(
-                _EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH,
+                _eip712DomainTypeHash,
+                _nameHash,
+                _versionHash,
                 block.chainid,
                 address(this)
             )

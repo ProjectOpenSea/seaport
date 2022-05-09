@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.7;
 
 import { ReferenceConduit } from "./ReferenceConduit.sol";
 
 // prettier-ignore
 import {
 	ConduitControllerInterface
-} from "../../interfaces/ConduitControllerInterface.sol";
+} from "contracts/interfaces/ConduitControllerInterface.sol";
 
-import { ConduitInterface } from "../../interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
 
 contract ReferenceConduitController is ConduitControllerInterface {
     struct ConduitProperties {

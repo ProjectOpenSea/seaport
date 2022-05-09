@@ -1,12 +1,23 @@
 import * as dotenv from "dotenv";
 
-import { HardhatUserConfig, task } from "hardhat/config";
+import { HardhatUserConfig, subtask } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 
 dotenv.config();
+
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
+
+// Filter Reference Contracts
+subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
+  async (_, __, runSuper) => {
+    const paths = await runSuper();
+
+    return paths.filter((p: any) => !p.includes("contracts/reference/"));
+  }
+);
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more

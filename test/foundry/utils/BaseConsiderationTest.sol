@@ -15,6 +15,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     using stdStorage for StdStorage;
 
     Consideration consideration;
+    Consideration referenceConsideration;
     bytes32 conduitKeyOne;
     ConduitController conduitController;
     address conduit;
@@ -42,6 +43,24 @@ contract BaseConsiderationTest is DSTestPlusPlus {
             address(consideration)
         );
 
+        bytes memory bytecode = abi.encodePacked(
+            vm.getCode(
+                "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json"
+            ),
+            abi.encode(address(conduitController))
+        );
+        assembly {
+            sstore(
+                referenceConsideration.slot,
+                create(0, add(bytecode, 0x20), mload(bytecode))
+            )
+        }
+
+        vm.label(address(referenceConsideration), "reference");
+        emit log_named_address(
+            "Deployed Reference Consideration at",
+            address(referenceConsideration)
+        );
         conduitController.updateChannel(conduit, address(consideration), true);
     }
 
