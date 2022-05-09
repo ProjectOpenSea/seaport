@@ -1480,16 +1480,12 @@ contract ReferenceConsiderationInternal is
 
             executions = filteredExecutions;
         }
-         // Revert if no orders are available.
+        // Revert if no orders are available.
         if (executions.length == 0) {
             revert NoSpecifiedOrdersAvailable();
         }
         // Perform final checks and compress executions into standard and batch.
-        return
-            _performFinalChecksAndExecuteOrders(
-                ordersToExecute,
-                executions
-            );
+        return _performFinalChecksAndExecuteOrders(ordersToExecute, executions);
     }
 
     /**
