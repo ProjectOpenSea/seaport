@@ -50,9 +50,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 salt;
         uint128[3] paymentAmts;
         bool useConduit;
-        uint128[] tips;
         uint16 numberOfTips;
-        uint128 tipAmt;
     }
 
     struct ToErc1155WithSingleTipStruct {
@@ -151,6 +149,23 @@ contract FulfillOrderTest is BaseOrderTest {
         );
         _testFulfillOrderEthToErc1155WithSingleTip(
             ConsiderationToErc1155WithSingleTipStruct(
+                referenceConsideration,
+                testStruct
+            )
+        );
+    }
+
+    function testFulfillOrderEthToErc721WithMultipleTips(
+        ToErc721WithMultipleTipsStruct memory testStruct
+    ) public {
+        _testFulfillOrderEthToErc721WithMultipleTips(
+            ConsiderationToErc721WithMultipleTipsStruct(
+                consideration,
+                testStruct
+            )
+        );
+        _testFulfillOrderEthToErc721WithMultipleTips(
+            ConsiderationToErc721WithMultipleTipsStruct(
                 referenceConsideration,
                 testStruct
             )
@@ -730,19 +745,25 @@ contract FulfillOrderTest is BaseOrderTest {
         resetTokenBalancesBetweenRuns
     {
         vm.assume(
+            testStruct.args.numberOfTips > 1 &&
+                testStruct.args.numberOfTips < 256
+        );
+        vm.assume(
             testStruct.args.paymentAmts[0] > 0 &&
                 testStruct.args.paymentAmts[1] > 0 &&
-                testStruct.args.paymentAmts[2] > 0 &&
-                testStruct.args.numberOfTips > 0 &&
-                testStruct.args.tipAmt > 0
+                testStruct.args.paymentAmts[2] > 0
         );
         vm.assume(
             uint256(testStruct.args.paymentAmts[0]) +
                 uint256(testStruct.args.paymentAmts[1]) +
                 uint256(testStruct.args.paymentAmts[2]) +
-                uint256(testStruct.args.tipAmt) <=
+                uint256(
+                    testStruct.args.numberOfTips *
+                        ((1 + testStruct.args.numberOfTips) / 2) // avg of tip amounts from 1 to numberOfTips eth
+                ) <=
                 2**128 - 1
         );
+
         bytes32 conduitKey = testStruct.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -807,17 +828,22 @@ contract FulfillOrderTest is BaseOrderTest {
             testStruct.consideration.getOrderHash(orderComponents)
         );
 
-        // Add tip
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                testStruct.args.tipAmt,
-                testStruct.args.tipAmt,
-                payable(bob)
-            )
-        );
+        uint128 sumOfTips;
+        for (uint128 i = 1; i < testStruct.args.numberOfTips + 1; i++) {
+            uint256 tipPk = 0xb0b + i;
+            address tipAddr = vm.addr(tipPk);
+            sumOfTips += i;
+            considerationItems.push(
+                ConsiderationItem(
+                    ItemType.NATIVE,
+                    address(0),
+                    0,
+                    i,
+                    i,
+                    payable(tipAddr)
+                )
+            );
+        }
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -830,14 +856,14 @@ contract FulfillOrderTest is BaseOrderTest {
             testStruct.args.zoneHash,
             testStruct.args.salt,
             conduitKey,
-            considerationItems.length - 1
+            considerationItems.length - testStruct.args.numberOfTips
         );
 
         testStruct.consideration.fulfillOrder{
             value: testStruct.args.paymentAmts[0] +
                 testStruct.args.paymentAmts[1] +
                 testStruct.args.paymentAmts[2] +
-                testStruct.args.tipAmt
+                sumOfTips
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -849,7 +875,10 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(testStruct.args.numberOfTips > 0);
+        vm.assume(
+            testStruct.args.numberOfTips > 1 &&
+                testStruct.args.numberOfTips < 256
+        );
         vm.assume(testStruct.args.erc1155Amt > 0);
         vm.assume(
             testStruct.args.paymentAmts[0] > 0 &&
@@ -861,9 +890,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 uint256(testStruct.args.paymentAmts[1]) +
                 uint256(testStruct.args.paymentAmts[2]) +
                 uint256(
-                    (testStruct.args.numberOfTips *
-                        (1 + testStruct.args.numberOfTips)) / 2
-                ) <= // avg of tip amounts from 1 to numberOfTips eth
+                    testStruct.args.numberOfTips *
+                        ((1 + testStruct.args.numberOfTips) / 2) // avg of tip amounts from 1 to numberOfTips eth
+                ) <=
                 2**128 - 1
         );
         bytes32 conduitKey = testStruct.args.useConduit
@@ -932,29 +961,24 @@ contract FulfillOrderTest is BaseOrderTest {
             testStruct.consideration.getOrderHash(orderComponents)
         );
 
+        uint128 sumOfTips;
         // add tip amount of i eth
-        for (uint128 i = 0; i < testStruct.args.numberOfTips; i++) {
-            emit log_named_uint("tip number: ", i + 1);
-            emit log_named_uint("tip amount: ", i + 1);
+        for (uint128 i = 1; i < testStruct.args.numberOfTips + 1; i++) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
-            emit log_named_address("tipper address: ", tipAddr);
+            sumOfTips += i;
             considerationItems.push(
                 ConsiderationItem(
                     ItemType.NATIVE,
                     address(0),
                     0,
-                    i + 1,
-                    i + 1,
+                    i,
+                    i,
                     payable(tipAddr)
                 )
             );
         }
 
-        emit log_named_uint(
-            "considerationItems.length - testStruct.args.numberOfTips",
-            considerationItems.length - testStruct.args.numberOfTips
-        );
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             testStruct.args.zone,
@@ -973,8 +997,7 @@ contract FulfillOrderTest is BaseOrderTest {
             value: testStruct.args.paymentAmts[0] +
                 testStruct.args.paymentAmts[1] +
                 testStruct.args.paymentAmts[2] +
-                ((testStruct.args.numberOfTips *
-                    (1 + testStruct.args.numberOfTips)) / 2)
+                sumOfTips
         }(Order(orderParameters, signature), conduitKey);
     }
 
