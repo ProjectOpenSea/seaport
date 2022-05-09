@@ -64,11 +64,8 @@
     "coverage:ref": "REFERENCE=true hardhat coverage --config hardhat-reference-coverage.config.ts --solcoverjs ./.solcover-reference.js",
     "lint:check": "prettier --check **.sol && prettier --check **.js && prettier --check **.ts && hardhat compile && npx solhint 'contracts/**/*.sol'",
     "lint:fix": "prettier --write **.sol && prettier --write **.js && prettier --write **.ts",
-<<<<<<< HEAD
     "test:forge": "FOUNDRY_PROFILE=reference forge build; forge test -vvv",
     "test:quick": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=quick forge test -vvv",
-=======
->>>>>>> 14a80e9 (add lint-staged deps)
     "prepare": "husky install"
   },
   "lint-staged": {
