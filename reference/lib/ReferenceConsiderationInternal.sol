@@ -747,26 +747,6 @@ contract ReferenceConsiderationInternal is
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
-        // As of solidity 0.6.0, inline assembly can not directly access function
-        // definitions, but can still access locally scoped function variables.
-        // This means that in order to recast the type of a function, we need to
-        // create a local variable to reference the internal function definition
-        // (using the same type) and a local variable with the desired type,
-        // and then cast the original function pointer to the desired type.
-
-        /**
-         * Repurpose existing OfferItem memory regions on the offer array for
-         * the order by overriding the _transfer function pointer to accept a
-         * modified OfferItem argument in place of the usual ReceivedItem:
-         *
-         *   ========= OfferItem ==========   ====== ReceivedItem ======
-         *   ItemType itemType; ------------> ItemType itemType;
-         *   address token; ----------------> address token;
-         *   uint256 identifierOrCriteria; -> uint256 identifier;
-         *   uint256 startAmount; ----------> uint256 amount;
-         *   uint256 endAmount; ------------> address recipient;
-         */
-
         // Create the array to store the spent items for event
         orderToExecute.spentItems = new SpentItem[](
             orderParameters.offer.length

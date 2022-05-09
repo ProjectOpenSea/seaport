@@ -114,35 +114,21 @@ contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
 
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                // Put the first word from the signature onto the stack as r.
-                r := mload(add(signature, 0x20))
+            (r, vs) = abi.decode(signature, (bytes32, bytes32));
 
-                // Put the second word from the signature onto the stack as vs.
-                vs := mload(add(signature, 0x40))
+            s = vs & EIP2098_allButHighestBitMask;
 
-                // Extract canonical s from vs (all but the highest bit).
-                s := and(vs, EIP2098_allButHighestBitMask)
-
-                // Extract yParity from highest bit of vs and add 27 to get v.
-                v := add(shr(255, vs), 27)
-            }
-            // If signature is 65 bytes, parse as a standard signature. (r+s+v)
+            v = uint8(uint256(vs >> 255)) + 27;
         } else if (signature.length == 65) {
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                r := mload(add(signature, 0x20)) // Put first word on stack at r
-                s := mload(add(signature, 0x40)) // Put next word on stack at s
-                v := byte(0, mload(add(signature, 0x60))) // Put last byte at v
-            }
+            (r, s) = abi.decode(signature, (bytes32, bytes32));
+            v = uint8(signature[64]);
 
             // Ensure v value is properly formatted.
             if (v != 27 && v != 28) {
                 revert BadSignatureV(v);
             }
-            // For all other signature lengths, try verification via EIP-1271.
         } else {
+            // For all other signature lengths, try verification via EIP-1271.
             // Attempt EIP-1271 static call to offerer in case it's a contract.
             _verifySignatureViaERC1271(offerer, digest, signature);
 
