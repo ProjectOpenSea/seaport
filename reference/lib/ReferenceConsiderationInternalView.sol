@@ -3,6 +3,8 @@ pragma solidity 0.8.7;
 
 import { EIP1271Interface } from "contracts/interfaces/EIP1271Interface.sol";
 
+import { SignatureVerificationErrors } from "contracts/interfaces/SignatureVerificationErrors.sol";
+
 import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
 
 import { OrderType, ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
@@ -33,7 +35,10 @@ import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
  * @author 0age
  * @notice ConsiderationInternal contains all internal view functions.
  */
-contract ReferenceConsiderationInternalView is ReferenceConsiderationPure {
+contract ReferenceConsiderationInternalView is
+    ReferenceConsiderationPure,
+    SignatureVerificationErrors
+{
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
