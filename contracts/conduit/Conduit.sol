@@ -40,7 +40,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
      * @notice Execute a sequence of ERC20/721/1155 transfers. Only a caller
      *         with an open channel can call this function.
      *
-     * @param standardTransfers The standard transfers to perform.
+     * @param transfers The ERC20/721/1155 transfers to perform.
      *
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
@@ -77,10 +77,10 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     }
 
     /**
-     * @notice Execute a sequence of transfers, both standard and batch 1155.
-     *         Only a caller with an open channel can call this function.
+     * @notice Execute a sequence of transfers, both single and batch 1155. Only
+     *         a caller with an open channel can call this function.
      *
-     * @param standardTransfers The standard transfers to perform.
+     * @param standardTransfers The ERC20/721/1155 transfers to perform.
      * @param batchTransfers    The 1155 batch transfers to perform.
      *
      * @return magicValue A magic value indicating that the transfers were

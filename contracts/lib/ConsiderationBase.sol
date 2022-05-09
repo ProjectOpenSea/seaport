@@ -3,12 +3,6 @@ pragma solidity 0.8.13;
 
 // prettier-ignore
 import {
-    ProxyRegistryInterface,
-    TokenTransferProxyInterface
-} from "../interfaces/AbridgedProxyInterfaces.sol";
-
-// prettier-ignore
-import {
     ConduitControllerInterface
 } from "../interfaces/ConduitControllerInterface.sol";
 
@@ -19,6 +13,8 @@ import {
 
 import { OrderStatus } from "./ConsiderationStructs.sol";
 
+import "./ConsiderationConstants.sol";
+
 /**
  * @title ConsiderationBase
  * @author 0age
@@ -26,18 +22,6 @@ import { OrderStatus } from "./ConsiderationStructs.sol";
  *         logic.
  */
 contract ConsiderationBase is ConsiderationEventsAndErrors {
-    // Declare constants for name, version, and reentrancy sentinel values.
-    uint256 internal constant _NAME =
-        uint256(
-            0x436F6E73696465726174696F6E00000000000000000000000000000000000000
-        );
-    uint256 internal constant _VERSION =
-        uint256(
-            0x3100000000000000000000000000000000000000000000000000000000000000
-        );
-    uint256 internal constant _NOT_ENTERED = 1;
-    uint256 internal constant _ENTERED = 2;
-
     // Precompute hashes, original chainId, and domain separator on deployment.
     bytes32 internal immutable _NAME_HASH;
     bytes32 internal immutable _VERSION_HASH;
@@ -67,79 +51,29 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
-     * @param conduitController           A contract that deploys conduits, or
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC20+721+1155
-     *                                    tokens.
+     * @param conduitController A contract that deploys conduits, or proxies
+     *                          that may optionally be used to transfer approved
+     *                          ERC20/721/1155 tokens.
      */
     constructor(address conduitController) {
-        // Derive hashes, reference chainId, and associated domain separator.
-        _NAME_HASH = keccak256(bytes("Consideration"));
-        _VERSION_HASH = keccak256(bytes("1"));
+        // Derive name and version hashes alongside required EIP-712 typehashes.
+        (
+            _NAME_HASH,
+            _VERSION_HASH,
+            _EIP_712_DOMAIN_TYPEHASH,
+            _OFFER_ITEM_TYPEHASH,
+            _CONSIDERATION_ITEM_TYPEHASH,
+            _ORDER_TYPEHASH
+        ) = _deriveTypehashes();
 
-        // prettier-ignore
-        bytes memory offerItemTypeString = abi.encodePacked(
-            "OfferItem(",
-                "uint8 itemType,",
-                "address token,",
-                "uint256 identifierOrCriteria,",
-                "uint256 startAmount,",
-                "uint256 endAmount",
-            ")"
-        );
-        // prettier-ignore
-        bytes memory considerationItemTypeString = abi.encodePacked(
-            "ConsiderationItem(",
-                "uint8 itemType,",
-                "address token,",
-                "uint256 identifierOrCriteria,",
-                "uint256 startAmount,",
-                "uint256 endAmount,",
-                "address recipient",
-            ")"
-        );
-        // prettier-ignore
-        bytes memory orderComponentsPartialTypeString = abi.encodePacked(
-            "OrderComponents(",
-                "address offerer,",
-                "address zone,",
-                "OfferItem[] offer,",
-                "ConsiderationItem[] consideration,",
-                "uint8 orderType,",
-                "uint256 startTime,",
-                "uint256 endTime,",
-                "bytes32 zoneHash,",
-                "uint256 salt,",
-                "bytes32 conduitKey,",
-                "uint256 nonce",
-            ")"
-        );
-
-        // prettier-ignore
-        _EIP_712_DOMAIN_TYPEHASH = keccak256(
-            abi.encodePacked(
-                "EIP712Domain(",
-                    "string name,",
-                    "string version,",
-                    "uint256 chainId,",
-                    "address verifyingContract",
-                ")"
-            )
-        );
-        _OFFER_ITEM_TYPEHASH = keccak256(offerItemTypeString);
-        _CONSIDERATION_ITEM_TYPEHASH = keccak256(considerationItemTypeString);
-        _ORDER_TYPEHASH = keccak256(
-            abi.encodePacked(
-                orderComponentsPartialTypeString,
-                considerationItemTypeString,
-                offerItemTypeString
-            )
-        );
+        // Store the current chainId and derive the current domain separator.
         _CHAIN_ID = block.chainid;
         _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator();
 
+        // Set the supplied conduit controller.
         _CONDUIT_CONTROLLER = ConduitControllerInterface(conduitController);
 
+        // Retrieve the conduit creation code hash from the supplied controller.
         (_CONDUIT_CREATION_CODE_HASH, ) = (
             _CONDUIT_CONTROLLER.getConduitCodeHashes()
         );
@@ -177,6 +111,110 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
                 _VERSION_HASH,
                 block.chainid,
                 address(this)
+            )
+        );
+    }
+
+    /**
+     * @dev Internal pure function to derive required EIP-712 typehashes and
+     *      other hashes during contract creation.
+     *
+     * @return nameHash                  The hash of the name of the contract.
+     * @return versionHash               The hash of the version string of the
+     *                                   contract.
+     * @return eip712DomainTypehash      The primary EIP-712 domain typehash.
+     * @return offerItemTypehash         The EIP-712 typehash for OfferItem
+     *                                   types.
+     * @return considerationItemTypehash The EIP-712 typehash for
+     *                                   ConsiderationItem types.
+     * @return orderTypehash             The EIP-712 typehash for Order types.
+     */
+    function _deriveTypehashes()
+        internal
+        pure
+        returns (
+            bytes32 nameHash,
+            bytes32 versionHash,
+            bytes32 eip712DomainTypehash,
+            bytes32 offerItemTypehash,
+            bytes32 considerationItemTypehash,
+            bytes32 orderTypehash
+        )
+    {
+        // Derive hash of the name of the contract.
+        nameHash = keccak256(bytes("Consideration"));
+
+        // Derive hash of the version string of the contract.
+        versionHash = keccak256(bytes("1"));
+
+        // Construct the OfferItem type string.
+        // prettier-ignore
+        bytes memory offerItemTypeString = abi.encodePacked(
+            "OfferItem(",
+                "uint8 itemType,",
+                "address token,",
+                "uint256 identifierOrCriteria,",
+                "uint256 startAmount,",
+                "uint256 endAmount",
+            ")"
+        );
+
+        // Construct the ConsiderationItem type string.
+        // prettier-ignore
+        bytes memory considerationItemTypeString = abi.encodePacked(
+            "ConsiderationItem(",
+                "uint8 itemType,",
+                "address token,",
+                "uint256 identifierOrCriteria,",
+                "uint256 startAmount,",
+                "uint256 endAmount,",
+                "address recipient",
+            ")"
+        );
+
+        // Construct the OrderComponents type string, not including the above.
+        // prettier-ignore
+        bytes memory orderComponentsPartialTypeString = abi.encodePacked(
+            "OrderComponents(",
+                "address offerer,",
+                "address zone,",
+                "OfferItem[] offer,",
+                "ConsiderationItem[] consideration,",
+                "uint8 orderType,",
+                "uint256 startTime,",
+                "uint256 endTime,",
+                "bytes32 zoneHash,",
+                "uint256 salt,",
+                "bytes32 conduitKey,",
+                "uint256 nonce",
+            ")"
+        );
+
+        // Construct the primary EIP-712 domain type string.
+        // prettier-ignore
+        eip712DomainTypehash = keccak256(
+            abi.encodePacked(
+                "EIP712Domain(",
+                    "string name,",
+                    "string version,",
+                    "uint256 chainId,",
+                    "address verifyingContract",
+                ")"
+            )
+        );
+
+        // Derive the OfferItem type hash using the corresponding type string.
+        offerItemTypehash = keccak256(offerItemTypeString);
+
+        // Derive ConsiderationItem type hash using corresponding type string.
+        considerationItemTypehash = keccak256(considerationItemTypeString);
+
+        // Derive OrderItem type hash via combination of relevant type strings.
+        orderTypehash = keccak256(
+            abi.encodePacked(
+                orderComponentsPartialTypeString,
+                considerationItemTypeString,
+                offerItemTypeString
             )
         );
     }
