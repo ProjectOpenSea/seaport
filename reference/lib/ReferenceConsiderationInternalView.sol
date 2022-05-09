@@ -3,11 +3,19 @@ pragma solidity 0.8.7;
 
 import { EIP1271Interface } from "contracts/interfaces/EIP1271Interface.sol";
 
-import { SignatureVerificationErrors } from "contracts/interfaces/SignatureVerificationErrors.sol";
+// prettier-ignore
+import {
+    SignatureVerificationErrors
+} from "contracts/interfaces/SignatureVerificationErrors.sol";
 
 import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
 
-import { OrderType, ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
+// prettier-ignore
+import {
+    OrderType,
+    ItemType,
+    Side
+} from "contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
