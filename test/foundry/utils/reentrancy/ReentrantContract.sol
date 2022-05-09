@@ -11,6 +11,8 @@ contract ReentrantContract {
     ReentrancyPoint reentrancyPoint;
     bool reenter;
 
+    event BytesReason(bytes data);
+
     ///@dev use setters since etching code at an address won't copy storage
     function setReenter(bool _reenter) public {
         reenter = _reenter;
@@ -30,7 +32,11 @@ contract ReentrantContract {
     function _doReenter() internal {
         if (reentrancyPoint == ReentrancyPoint.FulfillBasicOrder) {
             BasicOrderParameters memory params;
-            consideration.fulfillBasicOrder(params);
+            try consideration.fulfillBasicOrder(params) {} catch (
+                bytes memory reason
+            ) {
+                emit BytesReason(reason);
+            }
         }
         // else if (reentrancyPoint == ReentrancyPoint.FulfillOrder) {
         //     Order memory order;

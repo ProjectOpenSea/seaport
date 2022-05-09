@@ -40,6 +40,8 @@ contract NonReentrantTest is BaseOrderTest {
         NonReentrantInputs args;
     }
 
+    event BytesReason(bytes data);
+
     function setUp() public virtual override {
         super.setUp();
         // todo: don't do this all in setup. see if can use memory structs
@@ -235,14 +237,16 @@ contract NonReentrantTest is BaseOrderTest {
             //     // )
             //     abi.encodeWithSignature("NoReentrantCalls()")
             // );
-            vm.expectRevert(
-                abi.encodeWithSignature(
-                    "EtherTransferGenericFailure(address,uint256)",
-                    alice,
-                    1
-                )
-                // abi.encodeWithSignature("NoReentrantCalls()")
-            );
+            // vm.expectRevert(
+            //     abi.encodeWithSignature(
+            //         "EtherTransferGenericFailure(address,uint256)",
+            //         alice,
+            //         1
+            //     )
+            //     // abi.encodeWithSignature("NoReentrantCalls()")
+            // );
+            vm.expectEmit(true, false, false, false, alice);
+            emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             context.consideration.fulfillBasicOrder{ value: 1 }(params);
         }
         /**  else if (context.args.entryPoint == EntryPoint.FulfillOrder) {
