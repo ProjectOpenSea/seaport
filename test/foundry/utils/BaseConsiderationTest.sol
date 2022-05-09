@@ -18,36 +18,55 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     Consideration referenceConsideration;
     bytes32 conduitKeyOne;
     ConduitController conduitController;
+    ConduitController referenceConduitController;
+    address referenceConduit;
     address conduit;
 
-    function setUp() public virtual {
-        vm.label(address(this), "testContract");
-
+    function _deployAndConfigureConsideration() public {
         conduitController = new ConduitController();
+        consideration = new Consideration(address(conduitController));
+        conduit = conduitController.createConduit(conduitKeyOne, address(this));
+        conduitController.updateChannel(conduit, address(consideration), true);
+
         vm.label(address(conduitController), "conduitController");
+        vm.label(address(consideration), "consideration");
+        vm.label(conduit, "conduit");
+
         emit log_named_address(
             "Deployed conduitController at",
             address(conduitController)
         );
-
-        conduitKeyOne = bytes32(uint256(uint160(address(this))));
-
-        conduit = conduitController.createConduit(conduitKeyOne, address(this));
-        vm.label(conduit, "conduit");
-        emit log_named_address("Deployed conduit at", conduit);
-
-        consideration = new Consideration(address(conduitController));
-        vm.label(address(consideration), "reference");
         emit log_named_address(
             "Deployed Consideration at",
             address(consideration)
         );
+        emit log_named_address("Deployed conduit at", conduit);
+    }
 
-        bytes memory bytecode = abi.encodePacked(
+    ///@dev deploy reference consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
+    function _deployAndConfigureReferenceConsideration() public {
+        // deploy reference conduit
+        bytes memory bytecode = vm.getCode(
+            "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
+        );
+        assembly {
+            sstore(
+                referenceConduitController.slot,
+                create(0, add(bytecode, 0x20), mload(bytecode))
+            )
+        }
+
+        emit log_named_address(
+            "Deployed ReferenceConduitController at",
+            address(referenceConduitController)
+        );
+
+        // deploy reference consideration
+        bytecode = abi.encodePacked(
             vm.getCode(
                 "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json"
             ),
-            abi.encode(address(conduitController))
+            abi.encode(address(referenceConduitController))
         );
         assembly {
             sstore(
@@ -56,17 +75,39 @@ contract BaseConsiderationTest is DSTestPlusPlus {
             )
         }
 
+        //create conduit, update channel
+        referenceConduit = referenceConduitController.createConduit(
+            conduitKeyOne,
+            address(this)
+        );
+        referenceConduitController.updateChannel(
+            referenceConduit,
+            address(referenceConsideration),
+            true
+        );
+
+        vm.label(
+            address(referenceConduitController),
+            "referenceConduitController"
+        );
         vm.label(address(referenceConsideration), "reference");
+        vm.label(referenceConduit, "referenceConduit");
+
         emit log_named_address(
             "Deployed Reference Consideration at",
             address(referenceConsideration)
         );
-        conduitController.updateChannel(conduit, address(consideration), true);
-        conduitController.updateChannel(
-            conduit,
-            address(referenceConsideration),
-            true
+        emit log_named_address(
+            "Deployed reference conduit at",
+            address(referenceConduit)
         );
+    }
+
+    function setUp() public virtual {
+        conduitKeyOne = bytes32(uint256(uint160(address(this))));
+        vm.label(address(this), "testContract");
+        _deployAndConfigureConsideration();
+        _deployAndConfigureReferenceConsideration();
     }
 
     function singleOfferItem(
