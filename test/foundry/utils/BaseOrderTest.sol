@@ -164,13 +164,6 @@ contract BaseOrderTest is
         for (uint256 i = 0; i < erc20s.length; i++) {
             erc20s[i].mint(_to, _amount);
         }
-
-        // test721_1.mint(_to, globalTokenId++);
-        // test721_2.mint(_to, globalTokenId++);
-        // test721_3.mint(_to, globalTokenId++);
-        // test1155_1.mint(_to, globalTokenId++, 1);
-        // test1155_2.mint(_to, globalTokenId++, 5);
-        // test1155_3.mint(_to, globalTokenId++, 10);
         emit log_named_address("Allocated tokens to", _to);
         _setApprovals(_to);
     }
@@ -238,15 +231,6 @@ contract BaseOrderTest is
         for (uint256 i = 0; i < allTokens.length; i++) {
             _resetStorage(allTokens[i]);
         }
-        // _resetStorage(address(token1));
-        // _resetStorage(address(token2));
-        // _resetStorage(address(token3));
-        // _resetStorage(address(test721_1));
-        // _resetStorage(address(test721_2));
-        // _resetStorage(address(test721_3));
-        // _resetStorage(address(test1155_1));
-        // _resetStorage(address(test1155_2));
-        // _resetStorage(address(test1155_3));
     }
 
     /**
@@ -256,10 +240,6 @@ contract BaseOrderTest is
         for (uint256 i = 0; i < accounts.length; i++) {
             _restoreERC20BalancesForAddress(accounts[i]);
         }
-        // _restoreERC20BalancesForAddress(alice);
-        // _restoreERC20BalancesForAddress(bob);
-        // _restoreERC20BalancesForAddress(cal);
-        // _restoreERC20BalancesForAddress(address(this));
     }
 
     /**
