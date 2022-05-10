@@ -1,25 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
-
-import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
-
-import { OrderType, ItemType, Side } from "./ConsiderationEnums.sol";
-
 // prettier-ignore
 import {
     OfferItem,
     ConsiderationItem,
-    SpentItem,
-    ReceivedItem,
     OrderParameters,
     Order,
-    AdvancedOrder,
-    CriteriaResolver,
-    OrderStatus,
-    Execution,
-    FulfillmentComponent
+    AdvancedOrder
 } from "./ConsiderationStructs.sol";
 
 import { ConsiderationPure } from "./ConsiderationPure.sol";
@@ -114,8 +102,8 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
         // Derive EIP-712 digest using the domain separator and the order hash.
         bytes32 digest = _hashDigest(_domainSeparator(), orderHash);
 
-        // Verify the signature using the digest.
-        _verifySignatureUsingDigest(offerer, digest, signature);
+        // Ensure that the signature for the digest is valid for the offerer.
+        _assertValidSignature(offerer, digest, signature);
     }
 
     /**
@@ -170,22 +158,22 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
             let hashArrPtr := mload(FreeMemoryPointerSlot)
 
             // Get the pointer to the offers array.
-            let offerArrPtr := mload(add(orderParameters, 0x40))
+            let offerArrPtr := mload(add(orderParameters, TwoWords))
 
             // Load the length.
             let offerLength := mload(offerArrPtr)
 
             // Set the pointer to the first offer's head.
-            offerArrPtr := add(offerArrPtr, 0x20)
+            offerArrPtr := add(offerArrPtr, OneWord)
 
             // Iterate over the offer items.
             // prettier-ignore
             for { let i := 0 } lt(i, offerLength) {
                 i := add(i, 1)
             } {
-                // Read the pointer to the offer data and subtract 32
+                // Read the pointer to the offer data and subtract one word
                 // to get typeHash pointer.
-                let ptr := sub(mload(offerArrPtr), 0x20)
+                let ptr := sub(mload(offerArrPtr), OneWord)
 
                 // Read the current value before the offer data.
                 let value := mload(ptr)
@@ -194,20 +182,20 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
                 mstore(ptr, typeHash)
 
                 // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, 0xc0))
+                mstore(hashArrPtr, keccak256(ptr, EIP712_OfferItem_size))
 
                 // Restore the previous word.
                 mstore(ptr, value)
 
-                // Increment the array pointers.
-                offerArrPtr := add(offerArrPtr, 0x20)
-                hashArrPtr := add(hashArrPtr, 0x20)
+                // Increment the array pointers by one word.
+                offerArrPtr := add(offerArrPtr, OneWord)
+                hashArrPtr := add(hashArrPtr, OneWord)
             }
 
-            // Derive the offer hash.
+            // Derive the offer hash using the hashes of each item.
             offerHash := keccak256(
                 mload(FreeMemoryPointerSlot),
-                mul(offerLength, 0x20)
+                mul(offerLength, OneWord)
             )
         }
 
@@ -224,18 +212,23 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
 
             // Get the pointer to the consideration array.
             let considerationArrPtr := add(
-                mload(add(orderParameters, 0x60)),
-                0x20
+                mload(
+                    add(
+                        orderParameters,
+                        OrderParameters_consideration_head_offset
+                    )
+                ),
+                OneWord
             )
 
-            // Iterate over the offer items.
+            // Iterate over the offer items (not including tips).
             // prettier-ignore
             for { let i := 0 } lt(i, originalConsiderationLength) {
                 i := add(i, 1)
             } {
-                // Read the pointer to the consideration data and subtract 32
-                // to get typeHash pointer.
-                let ptr := sub(mload(considerationArrPtr), 0x20)
+                // Read the pointer to the consideration data and subtract one
+                // word to get typeHash pointer.
+                let ptr := sub(mload(considerationArrPtr), OneWord)
 
                 // Read the current value before the consideration data.
                 let value := mload(ptr)
@@ -244,20 +237,20 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
                 mstore(ptr, typeHash)
 
                 // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, 0xe0))
+                mstore(hashArrPtr, keccak256(ptr, EIP712_ConsiderationItem_size))
 
                 // Restore the previous word.
                 mstore(ptr, value)
 
-                // Increment the array pointers.
-                considerationArrPtr := add(considerationArrPtr, 0x20)
-                hashArrPtr := add(hashArrPtr, 0x20)
+                // Increment the array pointers by one word.
+                considerationArrPtr := add(considerationArrPtr, OneWord)
+                hashArrPtr := add(hashArrPtr, OneWord)
             }
 
-            // Derive the offer hash.
+            // Derive the consideration hash using the hashes of each item.
             considerationHash := keccak256(
                 mload(FreeMemoryPointerSlot),
-                mul(originalConsiderationLength, 0x20)
+                mul(originalConsiderationLength, OneWord)
             )
         }
 
@@ -266,25 +259,58 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
 
         // Utilize assembly to access derived hashes & other arguments directly.
         assembly {
-            let typeHashPtr := sub(orderParameters, 0x20)
+            // Retrieve pointer to the region located just behind parameters.
+            let typeHashPtr := sub(orderParameters, OneWord)
+
+            // Store the value at that pointer location to restore later.
             let previousValue := mload(typeHashPtr)
+
+            // Store the order item EIP-712 typehash at the typehash location.
             mstore(typeHashPtr, typeHash)
 
-            let offerHeadPtr := add(orderParameters, 0x40)
+            // Retrieve the pointer for the offer array head.
+            let offerHeadPtr := add(
+                orderParameters,
+                OrderParameters_offer_head_offset
+            )
+
+            // Retrieve the data pointer referenced by the offer head.
             let offerDataPtr := mload(offerHeadPtr)
+
+            // Store the offer hash at the retrieved memory location.
             mstore(offerHeadPtr, offerHash)
 
-            let considerationHeadPtr := add(orderParameters, 0x60)
+            // Retrieve the pointer for the consideration array head.
+            let considerationHeadPtr := add(
+                orderParameters,
+                OrderParameters_consideration_head_offset
+            )
+
+            // Retrieve the data pointer referenced by the consideration head.
             let considerationDataPtr := mload(considerationHeadPtr)
+
+            // Store the consideration hash at the retrieved memory location.
             mstore(considerationHeadPtr, considerationHash)
 
-            let noncePtr := add(orderParameters, 0x140)
+            // Retrieve the pointer for the nonce.
+            let noncePtr := add(orderParameters, OrderParameters_nonce_offset)
+
+            // Store the nonce at the retrieved memory location.
             mstore(noncePtr, nonce)
 
-            orderHash := keccak256(typeHashPtr, 0x180)
+            // Derive the order hash using the full range of order parameters.
+            orderHash := keccak256(typeHashPtr, EIP712_Order_size)
+
+            // Restore the value previously held at typehash pointer location.
             mstore(typeHashPtr, previousValue)
+
+            // Restore offer data pointer at the offer head pointer location.
             mstore(offerHeadPtr, offerDataPtr)
+
+            // Restore consideration data pointer at the consideration head ptr.
             mstore(considerationHeadPtr, considerationDataPtr)
+
+            // Restore original consideration item length at the nonce pointer.
             mstore(noncePtr, originalConsiderationLength)
         }
     }
@@ -311,673 +337,6 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
 
         // Derive and return order hash using current nonce for the offerer.
         return _getOrderHash(orderParameters, _nonces[orderParameters.offerer]);
-    }
-
-    /**
-     * @dev Internal view function to determine if an order has a restricted
-     *      order type and, if so, to ensure that either the offerer or the zone
-     *      are the fulfiller or that a staticcall to `isValidOrder` on the zone
-     *      returns a magic value indicating that the order is currently valid.
-     *
-     * @param orderHash The hash of the order.
-     * @param zoneHash  The hash to provide upon calling the zone.
-     * @param orderType The type of the order.
-     * @param offerer   The offerer in question.
-     * @param zone      The zone in question.
-     */
-    function _assertRestrictedBasicOrderValidity(
-        bytes32 orderHash,
-        bytes32 zoneHash,
-        OrderType orderType,
-        address offerer,
-        address zone
-    ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        if (
-            uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
-        ) {
-            // Perform minimal staticcall to the zone.
-            _callIsValidOrder(zone, orderHash, offerer, zoneHash);
-        }
-    }
-
-    function _callIsValidOrder(
-        address zone,
-        bytes32 orderHash,
-        address offerer,
-        bytes32 zoneHash
-    ) internal view {
-        // Perform minimal staticcall to the zone.
-        bool success = _staticcall(
-            zone,
-            abi.encodeWithSelector(
-                ZoneInterface.isValidOrder.selector,
-                orderHash,
-                msg.sender,
-                offerer,
-                zoneHash
-            )
-        );
-
-        // Ensure call was successful and returned the correct magic value.
-        _assertIsValidOrderStaticcallSuccess(success, orderHash);
-    }
-
-    /**
-     * @dev Internal view function to determine whether an order is a restricted
-     *      order and, if so, to ensure that it was either submitted by the
-     *      offerer or the zone for the order, or that the zone returns the
-     *      expected magic value upon performing a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` depending on whether the order
-     *      fulfillment specifies extra data or criteria resolvers.
-     *
-     * @param advancedOrder     The advanced order in question.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the order's merkle
-     *                          root. Note that a criteria of zero indicates
-     *                          that any (transferrable) token identifier is
-     *                          valid and that no proof needs to be supplied.
-     * @param priorOrderHashes  The order hashes of each order supplied prior to
-     *                          the current order as part of a "match" variety
-     *                          of order fulfillment (e.g. this array will be
-     *                          empty for single or "fulfill available").
-     * @param orderHash         The hash of the order.
-     * @param zoneHash          The hash to provide upon calling the zone.
-     * @param orderType         The type of the order.
-     * @param offerer           The offerer in question.
-     * @param zone              The zone in question.
-     */
-    function _assertRestrictedAdvancedOrderValidity(
-        AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
-        bytes32[] memory priorOrderHashes,
-        bytes32 orderHash,
-        bytes32 zoneHash,
-        OrderType orderType,
-        address offerer,
-        address zone
-    ) internal view {
-        // Order type 2-3 require zone or offerer be caller or zone to approve.
-        if (
-            uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
-        ) {
-            // If no extraData or criteria resolvers are supplied...
-            if (
-                advancedOrder.extraData.length == 0 &&
-                criteriaResolvers.length == 0
-            ) {
-                // Perform minimal staticcall to the zone.
-                _callIsValidOrder(zone, orderHash, offerer, zoneHash);
-            } else {
-                // Otherwise, extra data or criteria resolvers were supplied; in
-                // that event, perform a more verbose staticcall to the zone.
-                bool success = _staticcall(
-                    zone,
-                    abi.encodeWithSelector(
-                        ZoneInterface.isValidOrderIncludingExtraData.selector,
-                        orderHash,
-                        msg.sender,
-                        advancedOrder,
-                        priorOrderHashes,
-                        criteriaResolvers
-                    )
-                );
-
-                // Ensure call was successful and returned correct magic value.
-                _assertIsValidOrderStaticcallSuccess(success, orderHash);
-            }
-        }
-    }
-
-    /**
-     * @dev Internal view function to match offer items to consideration items
-     *      on a group of orders via a supplied fulfillment.
-     *
-     * @param advancedOrders          The orders to match.
-     * @param offerComponents         An array designating offer components to
-     *                                match to consideration components.
-     * @param considerationComponents An array designating consideration
-     *                                components to match to offer components.
-     *                                Note that each consideration amount must
-     *                                be zero in order for the match operation
-     *                                to be valid.
-     *
-     * @return execution The transfer performed as a result of the fulfillment.
-     */
-    function _applyFulfillment(
-        AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] calldata offerComponents,
-        FulfillmentComponent[] calldata considerationComponents
-    ) internal view returns (Execution memory execution) {
-        // Ensure 1+ of both offer and consideration components are supplied.
-        if (
-            offerComponents.length == 0 || considerationComponents.length == 0
-        ) {
-            revert OfferAndConsiderationRequiredOnFulfillment();
-        }
-
-        // Validate and aggregate consideration items and store the result as a
-        // ReceivedItem.
-        ReceivedItem memory considerationItem = (
-            _aggregateValidFulfillmentConsiderationItems(
-                advancedOrders,
-                considerationComponents,
-                0
-            )
-        );
-
-        // Validate & aggregate offer items and store result as an Execution.
-        (
-            execution
-            /**
-             * ItemType itemType,
-             * address token,
-             * uint256 identifier,
-             * address offerer,
-             * bytes32 conduitKey,
-             * uint256 offerAmount
-             */
-        ) = _aggregateValidFulfillmentOfferItems(
-            advancedOrders,
-            offerComponents,
-            0
-        );
-
-        // Ensure offer and consideration share types, tokens and identifiers.
-        if (
-            execution.item.itemType != considerationItem.itemType ||
-            execution.item.token != considerationItem.token ||
-            execution.item.identifier != considerationItem.identifier
-        ) {
-            revert MismatchedFulfillmentOfferAndConsiderationComponents();
-        }
-
-        // If total consideration amount exceeds the offer amount...
-        if (considerationItem.amount > execution.item.amount) {
-            // Retrieve the first consideration component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (
-                considerationComponents[0]
-            );
-
-            // Add excess consideration item amount to original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .consideration[targetComponent.itemIndex]
-                .startAmount = considerationItem.amount - execution.item.amount;
-
-            // Reduce total consideration amount to equal the offer amount.
-            considerationItem.amount = execution.item.amount;
-        } else {
-            // Retrieve the first offer component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (offerComponents[0]);
-
-            // Add excess offer item amount to the original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .offer[targetComponent.itemIndex]
-                .startAmount = execution.item.amount - considerationItem.amount;
-        }
-
-        // Reuse execution struct with consideration amount and recipient.
-        execution.item.amount = considerationItem.amount;
-        execution.item.recipient = considerationItem.recipient;
-
-        // Return the final execution that will be triggered for relevant items.
-        return execution; // Execution(considerationItem, offerer, conduitKey);
-    }
-
-    /**
-     * @dev Internal view function to aggregate offer or consideration items
-     *      from a group of orders into a single execution via a supplied array
-     *      of fulfillment components. Items that are not available to aggregate
-     *      will not be included in the aggregated execution.
-     *
-     * @param advancedOrders        The orders to aggregate.
-     * @param side                  The side (i.e. offer or consideration).
-     * @param fulfillmentComponents An array designating item components to
-     *                              aggregate if part of an available order.
-     * @param fulfillerConduitKey   A bytes32 value indicating what conduit, if
-     *                              any, to source the fulfiller's token
-     *                              approvals from. The zero hash signifies that
-     *                              no conduit should be used, with approvals
-     *                              set directly on this contract.
-     *
-     * @return execution The transfer performed as a result of the fulfillment.
-     */
-    function _aggregateAvailable(
-        AdvancedOrder[] memory advancedOrders,
-        Side side,
-        FulfillmentComponent[] memory fulfillmentComponents,
-        bytes32 fulfillerConduitKey
-    ) internal view returns (Execution memory execution) {
-        // Skip overflow / underflow checks; conditions checked or unreachable.
-        unchecked {
-            // Retrieve advanced orders array length and place on the stack.
-            uint256 totalOrders = advancedOrders.length;
-
-            // Retrieve fulfillment components array length and place on stack.
-            uint256 totalFulfillmentComponents = fulfillmentComponents.length;
-
-            // Ensure at least one fulfillment component has been supplied.
-            if (totalFulfillmentComponents == 0) {
-                revert MissingFulfillmentComponentOnAggregation(side);
-            }
-
-            // Determine component index after first available (0 implies none).
-            uint256 nextComponentIndex = 0;
-
-            // Iterate over components until finding one with a fulfilled order.
-            for (uint256 i = 0; i < totalFulfillmentComponents; ++i) {
-                // Retrieve the fulfillment component index.
-                uint256 orderIndex = fulfillmentComponents[i].orderIndex;
-
-                // Ensure that the order index is in range.
-                if (orderIndex >= totalOrders) {
-                    revert InvalidFulfillmentComponentData();
-                }
-
-                // If order is being fulfilled (i.e. it is still available)...
-                if (advancedOrders[orderIndex].numerator != 0) {
-                    // Update the next potential component index.
-                    nextComponentIndex = i + 1;
-
-                    // Exit the loop.
-                    break;
-                }
-            }
-
-            // If no available order was located...
-            if (nextComponentIndex == 0) {
-                // Return with an empty execution element that will be filtered.
-                // prettier-ignore
-                return Execution(
-                    ReceivedItem(
-                        ItemType.NATIVE,
-                        address(0),
-                        0,
-                        0,
-                        payable(address(0))
-                    ),
-                    address(0),
-                    bytes32(0)
-                );
-            }
-
-            // If the fulfillment components are offer components...
-            if (side == Side.OFFER) {
-                // Return execution for aggregated items provided by offerer.
-                // prettier-ignore
-                return _aggregateValidFulfillmentOfferItems(
-                    advancedOrders,
-                    fulfillmentComponents,
-                    nextComponentIndex - 1
-                );
-            } else {
-                // Otherwise, fulfillment components are consideration
-                // components. Return execution for aggregated items provided by
-                // the fulfiller.
-                // prettier-ignore
-                return _aggregateConsiderationItems(
-                    advancedOrders,
-                    fulfillmentComponents,
-                    nextComponentIndex - 1,
-                    fulfillerConduitKey
-                );
-            }
-        }
-    }
-
-    /**
-     * @dev Internal pure function to aggregate a group of offer items using
-     *      supplied directives on which component items are candidates for
-     *      aggregation, skipping items on orders that are not available.
-     *
-     * @param advancedOrders  The orders to aggregate offer items from.
-     * @param offerComponents An array of FulfillmentComponent structs
-     *                        indicating the order index and item index of each
-     *                        candidate offer item for aggregation.
-     * @param startIndex      The initial order index to begin iteration on when
-     *                        searching for offer items to aggregate.
-     *
-     * @return execution The aggregated offer items.
-     */
-    function _aggregateValidFulfillmentOfferItems(
-        AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] memory offerComponents,
-        uint256 startIndex
-    ) internal view returns (Execution memory execution) {
-        // Declare a variable for the final aggregated item amount.
-        uint256 amount;
-
-        // Declare a variable indicating whether the aggregation is invalid.
-        bool invalidFulfillment;
-
-        // Utilize assembly in order to efficiently aggregate the items.
-        assembly {
-            // Retrieve fulfillment pointer from offer component & start index.
-            let fulfillmentPtr := mload(
-                add(add(offerComponents, 0x20), mul(startIndex, 0x20))
-            )
-
-            // Retrieve the order index using the fulfillment pointer.
-            let orderIndex := mload(fulfillmentPtr)
-
-            // Retrieve item index using an offset of the fulfillment pointer.
-            let itemIndex := mload(
-                add(fulfillmentPtr, Fulfillment_itemIndex_offset)
-            )
-
-            // Ensure that the order index is not out of range.
-            invalidFulfillment := iszero(lt(orderIndex, mload(advancedOrders)))
-
-            // Retrieve the initial order pointer from the order index.
-            let orderPtr := mload(
-                mload(
-                    add(
-                        // Calculate pointer to start of advancedOrders head.
-                        add(advancedOrders, 0x20),
-                        // Calculate offset to pointer for desired order.
-                        mul(orderIndex, 0x20)
-                    )
-                )
-            )
-            // Retrieve offer array pointer using offset of the order pointer.
-            let offerArrPtr := mload(
-                add(orderPtr, OrderParameters_offer_head_offset)
-            )
-
-            // Ensure that the item index is not out of range.
-            invalidFulfillment := or(
-                iszero(lt(itemIndex, mload(offerArrPtr))),
-                invalidFulfillment
-            )
-
-            // Retrieve the offer item pointer using offset of the item index.
-            let offerItemPtr := mload(
-                add(
-                    // Get pointer to beginning of OfferItem.
-                    add(offerArrPtr, 0x20),
-                    // Calculate offset to pointer for desired order.
-                    mul(itemIndex, 0x20)
-                )
-            )
-
-            // Retrieve the received item pointer.
-            let receivedItemPtr := mload(execution)
-
-            // Set itemType located at the offerItem pointer on receivedItem.
-            mstore(receivedItemPtr, mload(offerItemPtr))
-
-            // Set token located at offset of offerItem pointer on receivedItem.
-            mstore(
-                add(receivedItemPtr, Common_token_offset),
-                mload(add(offerItemPtr, Common_token_offset))
-            )
-
-            // Set identifier located at offset of offerItem pointer as well.
-            mstore(
-                add(receivedItemPtr, 0x40),
-                mload(add(offerItemPtr, Common_identifier_offset))
-            )
-
-            // Set amount on received item and additionaly place on the stack.
-            let amountPtr := add(offerItemPtr, Common_amount_offset)
-            amount := mload(amountPtr)
-
-            // Set the caller as the recipient on the received item.
-            mstore(
-                add(receivedItemPtr, ReceivedItem_recipient_offset),
-                caller()
-            )
-
-            // Zero out amount on original offerItem to indicate it is spent.
-            mstore(amountPtr, 0)
-
-            // Set the offerer on returned execution using order pointer.
-            mstore(add(execution, Execution_offerer_offset), mload(orderPtr))
-
-            // Set conduitKey on returned execution via offset of order pointer.
-            mstore(
-                add(execution, Execution_conduit_offset),
-                mload(add(orderPtr, OrderParameters_conduit_offset))
-            )
-        }
-
-        // Declare new assembly scope to avoid stack too deep errors.
-        assembly {
-            // Retrieve the received item pointer using the execution.
-            let receivedItemPtr := mload(execution)
-
-            // Iterate over offer components as long as fulfillment is valid.
-            // prettier-ignore
-            for {
-                let i := add(startIndex, 1)
-            } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
-                i := add(i, 1)
-            } {
-                // Retrieve fulfillment pointer for the current offer component.
-                let fulfillmentPtr := mload(
-                    add(add(offerComponents, 0x20), mul(i, 0x20))
-                )
-
-                // Retrieve the order index using the fulfillment pointer.
-                let orderIndex := mload(fulfillmentPtr)
-
-                // Retrieve the item index using offset of fulfillment pointer.
-                let itemIndex := mload(
-                    add(fulfillmentPtr, Fulfillment_itemIndex_offset)
-                )
-
-                // Ensure that the order index is in range.
-                invalidFulfillment := iszero(
-                    lt(orderIndex, mload(advancedOrders))
-                )
-
-                // Exit iteration if it is out of range.
-                if invalidFulfillment {
-                    break
-                }
-
-                // Retrieve the order pointer using the order index. Note that
-                // advancedOrders[orderIndex].OrderParameters pointer is first
-                // word of AdvancedOrder struct, so mload again in a moment.
-                let orderPtr := mload(
-                    add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
-                )
-
-                // If the order is available (i.e. has a numerator != 0)...
-                if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
-                    // Retrieve the order pointer (i.e. the second mload).
-                    orderPtr := mload(orderPtr)
-
-                    // Load offer item array pointer.
-                    let offerArrPtr := mload(
-                        add(orderPtr, OrderParameters_offer_head_offset)
-                    )
-
-                    // Ensure that the offer item index is in range.
-                    invalidFulfillment := iszero(
-                        lt(itemIndex, mload(offerArrPtr))
-                    )
-
-                    // Exit iteration if it is out of range.
-                    if invalidFulfillment {
-                        break
-                    }
-
-                    // Retrieve the offer item pointer using the item index.
-                    let offerItemPtr := mload(
-                        add(
-                            // Get pointer to beginning of OfferItem
-                            add(offerArrPtr, 0x20),
-                            // Calculate offset to pointer for desired order
-                            mul(itemIndex, 0x20)
-                        )
-                    )
-
-                    // Retrieve the amount using the offer item pointer.
-                    let amountPtr := add(offerItemPtr, Common_amount_offset)
-
-                    // Increment the amount.
-                    amount := add(amount, mload(amountPtr))
-
-                    // Zero out amount on original item to indicate it is spent.
-                    mstore(amountPtr, 0)
-
-                    // Ensure the indicated offer item matches original item.
-                    invalidFulfillment := iszero(
-                        and(
-                            // The identifier must match on both items.
-                            eq(
-                                mload(
-                                    add(offerItemPtr, Common_identifier_offset)
-                                ),
-                                mload(
-                                    add(
-                                        receivedItemPtr,
-                                        Common_identifier_offset
-                                    )
-                                )
-                            ),
-                            and(
-                                and(
-                                    // The offerer must match on both items.
-                                    eq(
-                                        mload(orderPtr),
-                                        mload(
-                                            add(execution, Common_token_offset)
-                                        )
-                                    ),
-                                    // The conduit key must match on both items.
-                                    eq(
-                                        mload(
-                                            add(
-                                                orderPtr,
-                                                OrderParameters_conduit_offset
-                                            )
-                                        ),
-                                        mload(
-                                            add(
-                                                execution,
-                                                Execution_conduit_offset
-                                            )
-                                        )
-                                    )
-                                ),
-                                and(
-                                    // The item type must match on both items.
-                                    eq(
-                                        mload(offerItemPtr),
-                                        mload(receivedItemPtr)
-                                    ),
-                                    // The token must match on both items.
-                                    eq(
-                                        mload(
-                                            add(
-                                                offerItemPtr,
-                                                Common_token_offset
-                                            )
-                                        ),
-                                        mload(
-                                            add(
-                                                receivedItemPtr,
-                                                Common_token_offset
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                }
-            }
-
-            // Update the final amount on the returned received item.
-            mstore(add(receivedItemPtr, Common_amount_offset), amount)
-        }
-
-        // Revert if an order/item was out of range or was not aggregatable.
-        if (invalidFulfillment) {
-            revert InvalidFulfillmentComponentData();
-        }
-    }
-
-    /**
-     * @dev Internal view function to aggregate consideration items from a group
-     *      of orders into a single execution via a supplied components array.
-     *      Consideration items that are not available to aggregate will not be
-     *      included in the aggregated execution.
-     *
-     * @param advancedOrders          The orders to aggregate.
-     * @param considerationComponents An array designating consideration
-     *                                components to aggregate if part of an
-     *                                available order.
-     * @param nextComponentIndex      The index of the next potential
-     *                                consideration component.
-     * @param fulfillerConduitKey     A bytes32 value indicating what conduit,
-     *                                if any, to source the fulfiller's token
-     *                                approvals from. The zero hash signifies
-     *                                that no conduit should be used, with
-     *                                approvals set directly on this contract.
-     *
-     * @return execution The transfer performed as a result of the fulfillment.
-     */
-    function _aggregateConsiderationItems(
-        AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] memory considerationComponents,
-        uint256 nextComponentIndex,
-        bytes32 fulfillerConduitKey
-    ) internal view returns (Execution memory execution) {
-        // Validate and aggregate consideration items on available orders and
-        // store result as a ReceivedItem.
-        ReceivedItem memory receiveConsiderationItem = (
-            _aggregateValidFulfillmentConsiderationItems(
-                advancedOrders,
-                considerationComponents,
-                nextComponentIndex
-            )
-        );
-
-        // Return execution for aggregated items provided by the fulfiller.
-        execution = Execution(
-            receiveConsiderationItem,
-            msg.sender,
-            fulfillerConduitKey
-        );
-    }
-
-    /**
-     * @dev Internal view function to ensure that a staticcall to `isValidOrder`
-     *      or `isValidOrderIncludingExtraData` as part of validating a
-     *      restricted order that was not submitted by the named offerer or zone
-     *      was successful and returned the required magic value.
-     *
-     * @param success   A boolean indicating the status of the staticcall.
-     * @param orderHash The order hash of the order in question.
-     */
-    function _assertIsValidOrderStaticcallSuccess(
-        bool success,
-        bytes32 orderHash
-    ) internal view {
-        // If the call failed...
-        if (!success) {
-            // Revert and pass reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert InvalidRestrictedOrder(orderHash);
-        }
-
-        // Ensure result was extracted and matches isValidOrder magic value.
-        if (_doesNotMatchMagic(ZoneInterface.isValidOrder.selector)) {
-            revert InvalidRestrictedOrder(orderHash);
-        }
     }
 
     /**
@@ -1010,24 +369,25 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
 
             // Place the control character and the conduit controller in scratch
             // space; note that eleven bytes at the beginning are left unused.
-            mstore(
-                0x00,
-                or(
-                    0x0000000000000000000000ff0000000000000000000000000000000000000000, // solhint-disable-line max-line-length
-                    conduitController
-                )
-            )
+            mstore(0, or(MaskOverByteTwelve, conduitController))
 
             // Place the conduit key in the next region of scratch space.
-            mstore(0x20, conduitKey)
+            mstore(OneWord, conduitKey)
 
             // Place conduit creation code hash in free memory pointer location.
-            mstore(0x40, conduitCreationCodeHash)
+            mstore(TwoWords, conduitCreationCodeHash)
 
             // Derive conduit by hashing and applying a mask over last 20 bytes.
             conduit := and(
-                keccak256(0x0b, 0x55), // Hash the relevant region.
-                0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff // solhint-disable-line max-line-length
+                // Hash the relevant region.
+                keccak256(
+                    // The region starts at memory pointer 11.
+                    Create2AddressDerivation_ptr,
+                    // The region is 85 bytes long (1 + 20 + 32 + 32).
+                    Create2AddressDerivation_length
+                ),
+                // The address equals the last twenty bytes of the hash.
+                MaskOverLastTwentyBytes
             )
 
             // Restore the free memory pointer.
@@ -1052,21 +412,18 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
             address conduitController
         )
     {
-        // Declare variable as immutables cannot be accessed within assembly.
-        uint256 versionBytes = _VERSION;
-
         // Derive the domain separator.
         domainSeparator = _domainSeparator();
 
         // Declare variable as immutables cannot be accessed within assembly.
         conduitController = address(_CONDUIT_CONTROLLER);
 
-        // Allocate a string with length one.
-        version = new string(1);
+        // Allocate a string with the intended length.
+        version = new string(Version_length);
 
         // Set the version as data on the newly allocated string.
         assembly {
-            mstore(add(version, OneWord), versionBytes)
+            mstore(add(version, OneWord), Version)
         }
     }
 
@@ -1076,14 +433,11 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
      * @return The name of this contract.
      */
     function _name() internal pure returns (string memory) {
-        // Declare variable as immutables cannot be accessed within assembly.
-        uint256 nameBytes = _NAME;
-
         // Return the name of the contract.
         assembly {
             mstore(0, OneWord) // First element is the offset.
-            mstore(OneWord, 13) // Second element is the length.
-            mstore(TwoWords, nameBytes) // Third element is the data.
+            mstore(OneWord, Name_length) // Second element is the length.
+            mstore(TwoWords, Name) // Third element is the data.
             return(0, ThreeWords) // Return all three words.
         }
     }

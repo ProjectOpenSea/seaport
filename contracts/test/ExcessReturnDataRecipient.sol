@@ -121,7 +121,7 @@ contract ExcessReturnDataRecipient {
         }
     }
 
-    fallback() external payable {
+    receive() external payable {
         if (revertDataSize > 0) {
             uint256 gasToCalculateSqrt = (54 * ln(gasleft())) + 1200;
             uint256 w = (sqrt(

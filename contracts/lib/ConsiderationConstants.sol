@@ -34,13 +34,15 @@ pragma solidity >=0.8.7;
  */
 
 // Declare constants for name, version, and reentrancy sentinel values.
-uint256 constant _NAME = (
+uint256 constant Name = (
     0x436F6E73696465726174696F6E00000000000000000000000000000000000000
 );
+uint256 constant Name_length = 13;
 
-uint256 constant _VERSION = (
+uint256 constant Version = (
     0x3100000000000000000000000000000000000000000000000000000000000000
 );
+uint256 constant Version_length = 1;
 
 uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;
@@ -67,6 +69,7 @@ uint256 constant Execution_conduit_offset = 0x40;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
 uint256 constant OrderParameters_conduit_offset = 0x120;
+uint256 constant OrderParameters_nonce_offset = 0x140;
 
 uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
@@ -329,3 +332,18 @@ uint256 constant EIP_712_PREFIX = (
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
 uint256 constant MemoryExpansionCoefficient = 0x200;
+
+uint256 constant Create2AddressDerivation_ptr = 0x0b;
+uint256 constant Create2AddressDerivation_length = 0x55;
+
+uint256 constant MaskOverByteTwelve = (
+    0x0000000000000000000000ff0000000000000000000000000000000000000000
+);
+
+uint256 constant MaskOverLastTwentyBytes = (
+    0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
+);
+
+uint256 constant Conduit_executeWithBatch1155_signature = (
+    0x899e104c00000000000000000000000000000000000000000000000000000000
+);

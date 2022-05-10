@@ -38,6 +38,11 @@ import "./ReferenceConsiderationConstants.sol";
 
 import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
+// prettier-ignore
+import {
+    ZoneInteractionErrors
+} from "contracts/interfaces/ZoneInteractionErrors.sol";
+
 /**
  * @title ReferenceConsiderationInternalView
  * @author 0age
@@ -45,7 +50,8 @@ import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
  */
 contract ReferenceConsiderationInternalView is
     ReferenceConsiderationPure,
-    SignatureVerificationErrors
+    SignatureVerificationErrors,
+    ZoneInteractionErrors
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain

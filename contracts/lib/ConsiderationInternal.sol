@@ -49,6 +49,12 @@ import { CriteriaResolution } from "./CriteriaResolution.sol";
 
 import { AmountDeriver } from "./AmountDeriver.sol";
 
+import { FulfillmentApplier } from "./FulfillmentApplier.sol";
+
+import { ZoneInteraction } from "./ZoneInteraction.sol";
+
+import { ExecutionCompression } from "./ExecutionCompression.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -60,7 +66,10 @@ contract ConsiderationInternal is
     ConsiderationInternalView,
     TokenTransferrer,
     CriteriaResolution,
-    AmountDeriver
+    AmountDeriver,
+    FulfillmentApplier,
+    ZoneInteraction,
+    ExecutionCompression
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
@@ -214,7 +223,11 @@ contract ConsiderationInternal is
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
-            _transferEthAndFinalize(parameters.considerationAmount, parameters);
+            _transferEthAndFinalize(
+                parameters.considerationAmount,
+                offerer,
+                parameters.additionalRecipients
+            );
         } else if (route == BasicOrderRouteType.ETH_TO_ERC1155) {
             // Transfer ERC1155 to caller using offerer's conduit if applicable.
             _transferERC1155(
@@ -228,7 +241,11 @@ contract ConsiderationInternal is
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
-            _transferEthAndFinalize(parameters.considerationAmount, parameters);
+            _transferEthAndFinalize(
+                parameters.considerationAmount,
+                offerer,
+                parameters.additionalRecipients
+            );
         } else if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
             // Transfer ERC721 to caller using offerer's conduit if applicable.
             _transferERC721(
@@ -247,7 +264,7 @@ contract ConsiderationInternal is
                 offerer,
                 parameters.considerationToken,
                 parameters.considerationAmount,
-                parameters,
+                parameters.additionalRecipients,
                 false, // Send full amount indicated by all consideration items.
                 accumulator
             );
@@ -269,7 +286,7 @@ contract ConsiderationInternal is
                 offerer,
                 parameters.considerationToken,
                 parameters.considerationAmount,
-                parameters,
+                parameters.additionalRecipients,
                 false, // Send full amount indicated by all consideration items.
                 accumulator
             );
@@ -291,7 +308,7 @@ contract ConsiderationInternal is
                 msg.sender,
                 parameters.offerToken,
                 parameters.offerAmount,
-                parameters,
+                parameters.additionalRecipients,
                 true, // Reduce amount sent to fulfiller by additional amounts.
                 accumulator
             );
@@ -315,7 +332,7 @@ contract ConsiderationInternal is
                 msg.sender,
                 parameters.offerToken,
                 parameters.offerAmount,
-                parameters,
+                parameters.additionalRecipients,
                 true, // Reduce amount sent to fulfiller by additional amounts.
                 accumulator
             );
@@ -2193,8 +2210,10 @@ contract ConsiderationInternal is
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
+            uint256 totalBatchExecutions = batchExecutions.length;
+
             // Iterate over each batch execution.
-            for (uint256 i = 0; i < batchExecutions.length; ++i) {
+            for (uint256 i = 0; i < totalBatchExecutions; ++i) {
                 // Perform the batch transfer.
                 _batchTransferERC1155(batchExecutions[i]);
             }
@@ -2548,7 +2567,7 @@ contract ConsiderationInternal is
         assembly {
             // Call begins at third word; the first is length or "armed" status,
             // and the second is the current conduit key.
-            callDataOffset := add(accumulator, 0x40)
+            callDataOffset := add(accumulator, TwoWords)
 
             // 68 + items * 192
             callDataSize := add(0x44, mul(mload(add(accumulator, 0x64)), 0xc0))
@@ -2639,8 +2658,10 @@ contract ConsiderationInternal is
             uint256 callDataSize = 388 + 64 * totalTokenIds;
             bytes memory callData = new bytes(callDataSize);
             bytes4 selector = ConduitInterface.executeWithBatch1155.selector;
+            uint256 callDataOffset;
             assembly {
-                mstore(add(callData, 0x20), selector)
+                callDataOffset := add(callData, 0x20)
+                mstore(callDataOffset, selector)
                 mstore(add(callData, 0x24), 0x40)
                 mstore(add(callData, 0x44), 0x60)
                 mstore(add(callData, 0x64), 0)
@@ -2669,11 +2690,6 @@ contract ConsiderationInternal is
                 }
             }
 
-            uint256 callDataOffset;
-            assembly {
-                callDataOffset := add(callData, 0x20)
-            }
-
             // Perform the call to the conduit.
             _callConduitUsingOffsets(conduitKey, callDataOffset, callDataSize);
         }
@@ -2685,21 +2701,26 @@ contract ConsiderationInternal is
      *      proxies are not utilized for native tokens as the transferred amount
      *      must be provided as msg.value.
      *
-     * @param amount      The amount to transfer.
-     * @param parameters  The parameters of the basic order in question.
+     * @param amount               The amount to transfer.
+     * @param to                   The recipient of the native token transfer.
+     * @param additionalRecipients The additional recipients of the order.
      */
     function _transferEthAndFinalize(
         uint256 amount,
-        BasicOrderParameters calldata parameters
+        address payable to,
+        AdditionalRecipient[] calldata additionalRecipients
     ) internal {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
+        // Retrieve total number of additional recipients and place on stack.
+        uint256 totalAdditionalRecipients = additionalRecipients.length;
+
         // Iterate over each additional recipient.
-        for (uint256 i = 0; i < parameters.additionalRecipients.length; ) {
+        for (uint256 i = 0; i < totalAdditionalRecipients; ) {
             // Retrieve the additional recipient.
             AdditionalRecipient calldata additionalRecipient = (
-                parameters.additionalRecipients[i]
+                additionalRecipients[i]
             );
 
             // Read ether amount to transfer to recipient and place on stack.
@@ -2734,7 +2755,7 @@ contract ConsiderationInternal is
         }
 
         // Transfer Ether to the offerer.
-        _transferEth(parameters.offerer, amount);
+        _transferEth(to, amount);
 
         // If any Ether remains after transfers, return it to the caller.
         if (etherRemaining > amount) {
@@ -2754,37 +2775,47 @@ contract ConsiderationInternal is
      *      part of basic order fulfillment. Note that proxies are not utilized
      *      for ERC20 tokens.
      *
-     * @param from        The originator of the ERC20 token transfer.
-     * @param to          The recipient of the ERC20 token transfer.
-     * @param erc20Token  The ERC20 token to transfer.
-     * @param amount      The amount of ERC20 tokens to transfer.
-     * @param parameters  The parameters of the order.
-     * @param fromOfferer Whether to decrement amount from the offered amount.
+     * @param from                 The originator of the ERC20 token transfer.
+     * @param to                   The recipient of the ERC20 token transfer.
+     * @param erc20Token           The ERC20 token to transfer.
+     * @param amount               The amount of ERC20 tokens to transfer.
+     * @param additionalRecipients The additional recipients of the order.
+     * @param fromOfferer          A boolean indicating whether to decrement
+     *                             amount from the offered amount.
      */
     function _transferERC20AndFinalize(
         address from,
         address to,
         address erc20Token,
         uint256 amount,
-        BasicOrderParameters calldata parameters,
+        AdditionalRecipient[] calldata additionalRecipients,
         bool fromOfferer,
         bytes memory accumulator
     ) internal {
         // Determine the appropriate conduit to utilize.
-        bytes32 conduitKey = fromOfferer
-            ? parameters.offererConduitKey
-            : parameters.fulfillerConduitKey;
+        bytes32 conduitKey;
+
+        // Utilize assembly to derive conduit (if relevant) based on route.
+        assembly {
+            // use offerer conduit if fromOfferer, fulfiller conduit otherwise.
+            conduitKey := calldataload(sub(0x1e4, mul(fromOfferer, 0x20)))
+        }
+
+        // Retrieve total number of additional recipients and place on stack.
+        uint256 totalAdditionalRecipients = additionalRecipients.length;
 
         // Iterate over each additional recipient.
-        for (uint256 i = 0; i < parameters.additionalRecipients.length; ) {
+        for (uint256 i = 0; i < totalAdditionalRecipients; ) {
             // Retrieve the additional recipient.
             AdditionalRecipient calldata additionalRecipient = (
-                parameters.additionalRecipients[i]
+                additionalRecipients[i]
             );
+
+            uint256 additionalRecipientAmount = additionalRecipient.amount;
 
             // Decrement the amount to transfer to fulfiller if indicated.
             if (fromOfferer) {
-                amount -= additionalRecipient.amount;
+                amount -= additionalRecipientAmount;
             }
 
             // Transfer ERC20 tokens to additional recipient given approval.
@@ -2792,7 +2823,7 @@ contract ConsiderationInternal is
                 erc20Token,
                 from,
                 additionalRecipient.recipient,
-                additionalRecipient.amount,
+                additionalRecipientAmount,
                 conduitKey,
                 accumulator
             );
