@@ -114,8 +114,11 @@ contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
                 ")"
             )
         );
+        // Set Offer Item Typehash
         _OFFER_ITEM_TYPEHASH = keccak256(offerItemTypeString);
+        // Set Consideration Item Typehash
         _CONSIDERATION_ITEM_TYPEHASH = keccak256(considerationItemTypeString);
+        // Set Order Typehash
         _ORDER_TYPEHASH = keccak256(
             abi.encodePacked(
                 orderComponentsPartialTypeString,
@@ -123,23 +126,30 @@ contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
                 offerItemTypeString
             )
         );
+        // Set ChainId
         _CHAIN_ID = block.chainid;
 
+        // Assign temp values to immutable
         _EIP_712_DOMAIN_TYPEHASH = tempEIP712Domain;
         _NAME_HASH = tempNameHash;
         _VERSION_HASH = tempVersionHash;
 
+        // Set Domain Separator
         _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator(
             tempEIP712Domain,
             tempNameHash,
             tempVersionHash
         );
 
+        // Assign Conduit Controller to temp variable
         ConduitControllerInterface tempConduitController = ConduitControllerInterface(
                 conduitController
             );
+
+        // Assign temp variable to immutable
         _CONDUIT_CONTROLLER = tempConduitController;
 
+        // Get Conduit creation code hash
         (_CONDUIT_CREATION_CODE_HASH, ) = (
             tempConduitController.getConduitCodeHashes()
         );
