@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "../../../contracts/conduit/ConduitController.sol";
-
+import { ConduitController } from "../../../contracts/conduit/ConduitController.sol";
 import { Consideration } from "../../../contracts/Consideration.sol";
 import { OrderType, BasicOrderType, ItemType, Side } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
-
 import { DSTestPlusPlus } from "./DSTestPlusPlus.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
+
+// import { ReferenceConduitController } from "../../../reference/conduit/ReferenceConduitController.sol";
+// import { ReferenceConsideration } from "../../../reference/ReferenceConsideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DSTestPlusPlus {
@@ -43,97 +44,48 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         emit log_named_address("Deployed conduit at", conduit);
     }
 
-    ///@dev deploy reference consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
-    function _deployAndConfigurePrecompiledConsideration(string memory option)
-        public
-        returns (
-            Consideration _consideration,
-            ConduitController _conduitController,
-            address _conduit
-        )
-    {
-        emit log(
-            string.concat(
-                option,
-                "-out/ReferenceConduitController.sol/ReferenceConduitController.json"
-            )
-        );
-        // deploy reference conduit
-        bytes memory bytecode = vm.getCode(
-            string.concat(
-                option,
-                "-out/ReferenceConduitController.sol/ReferenceConduitController.json"
-            )
-        );
-        assembly {
-            _conduitController := create(
-                0,
-                add(bytecode, 0x20),
-                mload(bytecode)
-            )
+    // function _deployAndConfigureReferenceConsideration() public {
+    //     referenceConduitController = ConduitController(
+    //         address(new ReferenceConduitController())
+    //     );
+    //     referenceConsideration = Consideration(
+    //         address(
+    //             new ReferenceConsideration(address(referenceConduitController))
+    //         )
+    //     );
+    //     referenceConduit = referenceConduitController.createConduit(
+    //         conduitKeyOne,
+    //         address(this)
+    //     );
+    //     referenceConduitController.updateChannel(
+    //         referenceConduit,
+    //         address(referenceConsideration),
+    //         true
+    //     );
 
-            // sstore(
-            //     conduitController.slot,
-            //     create(0, add(bytecode, 0x20), mload(bytecode))
-            // )
-        }
+    //     vm.label(
+    //         address(referenceConduitController),
+    //         "referenceConduitController"
+    //     );
+    //     vm.label(address(referenceConsideration), "referenceConsideration");
+    //     vm.label(referenceConduit, "referenceConduit");
 
-        emit log_named_address(
-            string.concat(option, ": Deployed ConduitController at"),
-            address(_conduitController)
-        );
-
-        // deploy reference consideration
-        bytecode = abi.encodePacked(
-            vm.getCode(
-                string.concat(
-                    option,
-                    "-out/ReferenceConsideration.sol/ReferenceConsideration.json"
-                )
-            ),
-            abi.encode(address(_conduitController))
-        );
-        assembly {
-            _consideration := create(0, add(bytecode, 0x20), mload(bytecode))
-            // sstore(
-            //     consideration.slot,
-            //     create(0, add(bytecode, 0x20), mload(bytecode))
-            // )
-        }
-
-        //create conduit, update channel
-        _conduit = _conduitController.createConduit(
-            conduitKeyOne,
-            address(this)
-        );
-        _conduitController.updateChannel(
-            _conduit,
-            address(_consideration),
-            true
-        );
-
-        vm.label(
-            address(_conduitController),
-            string.concat(option, "ConduitController")
-        );
-        vm.label(
-            address(_consideration),
-            string.concat(option, "Consideration")
-        );
-        vm.label(_conduit, string.concat(option, "Conduit"));
-
-        emit log_named_address(
-            string.concat(option, ": Deployed Consideration at"),
-            address(_consideration)
-        );
-        emit log_named_address(
-            string.concat(option, ": Deployed conduit at"),
-            address(_conduit)
-        );
-    }
+    //     emit log_named_address(
+    //         "Deployed referenceConduitController at",
+    //         address(referenceConduitController)
+    //     );
+    //     emit log_named_address(
+    //         "Deployed referenceConsideration at",
+    //         address(referenceConsideration)
+    //     );
+    //     emit log_named_address(
+    //         "Deployed referenceConduit at",
+    //         referenceConduit
+    //     );
+    // }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
-    function _deployAndConfigureOptimizedConsideration() public {
+    function _deployAndConfigurePrecompiledOptimizedConsideration() public {
         // deploy optimized conduit
         bytes memory bytecode = vm.getCode(
             "optimized-out/ConduitController.sol/ConduitController.json"
@@ -181,7 +133,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     }
 
     ///@dev deploy reference consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
-    function _deployAndConfigureReferenceConsideration() public {
+    function _deployAndConfigurePrecompiledReferenceConsideration() public {
         // deploy reference conduit
         bytes memory bytecode = vm.getCode(
             "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
@@ -243,18 +195,10 @@ contract BaseConsiderationTest is DSTestPlusPlus {
     function setUp() public virtual {
         conduitKeyOne = bytes32(uint256(uint160(address(this))));
         vm.label(address(this), "testContract");
-        _deployAndConfigureOptimizedConsideration();
-        _deployAndConfigureReferenceConsideration();
-        // (
-        //     referenceConsideration,
-        //     referenceConduitController,
-        //     referenceConduit
-        // ) = _deployAndConfigurePrecompiledConsideration("reference");
-        // (
-        //     consideration,
-        //     conduitController,
-        //     conduit
-        // ) = _deployAndConfigurePrecompiledConsideration("optimized");
+        _deployAndConfigurePrecompiledOptimizedConsideration();
+        _deployAndConfigurePrecompiledReferenceConsideration();
+        // for local testing with stacktraces
+        // _deployAndConfigureReferenceConsideration();
     }
 
     function singleOfferItem(

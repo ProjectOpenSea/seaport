@@ -17,6 +17,7 @@ cache
 out
 reference-out
 optimized-out
+reference-working
 
 .DS_Store
 
