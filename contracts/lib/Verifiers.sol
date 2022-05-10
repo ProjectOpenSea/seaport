@@ -21,9 +21,7 @@ contract Verifiers is Assertions, SignatureVerification {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        Assertions(conduitController)
-    {}
+    constructor(address conduitController) Assertions(conduitController) {}
 
     /**
      * @dev Internal view function to ensure that the current time falls within

@@ -60,7 +60,8 @@ contract Assertions is GettersAndDerivers, TokenTransferrerErrors {
         );
 
         // Derive and return order hash using current nonce for the offerer.
-        return _deriveOrderHash(orderParameters, _nonces[orderParameters.offerer]);
+        return
+            _deriveOrderHash(orderParameters, _nonces[orderParameters.offerer]);
     }
 
     /**

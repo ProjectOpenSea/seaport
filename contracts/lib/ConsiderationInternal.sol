@@ -80,9 +80,7 @@ contract ConsiderationInternal is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        Verifiers(conduitController)
-    {}
+    constructor(address conduitController) Verifiers(conduitController) {}
 
     /**
      * @dev Internal function to fulfill an order offering an ERC20, ERC721, or
