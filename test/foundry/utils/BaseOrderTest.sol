@@ -25,9 +25,9 @@ contract BaseOrderTest is
     uint256 internal alicePk = 0xa11ce;
     uint256 internal bobPk = 0xb0b;
     uint256 internal calPk = 0xca1;
-    address internal alice = vm.addr(alicePk);
-    address internal bob = vm.addr(bobPk);
-    address internal cal = vm.addr(calPk);
+    address payable internal alice = payable(vm.addr(alicePk));
+    address payable internal bob = payable(vm.addr(bobPk));
+    address payable internal cal = payable(vm.addr(calPk));
 
     TestERC20 internal token1;
     TestERC20 internal token2;
@@ -93,6 +93,7 @@ contract BaseOrderTest is
         vm.record();
         _;
         _resetTokensAndEthForTestAccounts();
+        // todo: don't delete these between runs, do setup outside of test logic
         delete offerItems;
         delete considerationItems;
         delete offerFulfillments;

@@ -16,6 +16,7 @@ hh-cache-ref/
 cache
 out
 reference-out
+optimized-out
 
 .DS_Store
 
