@@ -54,6 +54,11 @@ import {
     FulfillmentApplicationErrors
 } from "contracts/interfaces/FulfillmentApplicationErrors.sol";
 
+// prettier-ignore
+import {
+    TokenTransferrerErrors
+} from "contracts/interfaces/TokenTransferrerErrors.sol";
+
 /**
  * @title ReferenceConsiderationPure
  * @author 0age
@@ -63,7 +68,8 @@ contract ReferenceConsiderationPure is
     ReferenceConsiderationBase,
     CriteriaResolutionErrors,
     AmountDerivationErrors,
-    FulfillmentApplicationErrors
+    FulfillmentApplicationErrors,
+    TokenTransferrerErrors
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
