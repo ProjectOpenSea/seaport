@@ -18248,8 +18248,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             itemType: 3, // ERC1155
             token: testERC1155.address,
             identifierOrCriteria: nftId,
-            startAmount: 0,
-            endAmount: 0,
+            startAmount: ethers.BigNumber.from(0),
+            endAmount: ethers.BigNumber.from(0),
           },
           {
             itemType: 3, // ERC1155
