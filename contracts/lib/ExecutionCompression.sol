@@ -52,7 +52,7 @@ contract ExecutionCompression is TokenTransferrerErrors {
             uint256 totalExecutions = executions.length;
 
             // Return early if less than two executions are provided.
-            if (totalExecutions <= 1) {
+            if (totalExecutions < 2) {
                 return (executions, new BatchExecution[](0));
             }
 
@@ -72,7 +72,7 @@ contract ExecutionCompression is TokenTransferrerErrors {
             }
 
             // Return early if less than two ERC1155 executions are located.
-            if (total1155Executions <= 1) {
+            if (total1155Executions < 2) {
                 return (executions, new BatchExecution[](0));
             }
 
@@ -186,7 +186,7 @@ contract ExecutionCompression is TokenTransferrerErrors {
                 uint256 indicesLength = indices.length;
 
                 // if more than one execution applies to a potential batch...
-                if (indicesLength >= 2) {
+                if (indicesLength > 1) {
                     // Increment the total number of batches.
                     ++totals[1];
 
