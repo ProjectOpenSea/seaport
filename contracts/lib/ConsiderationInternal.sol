@@ -53,6 +53,8 @@ import { ExecutionCompression } from "./ExecutionCompression.sol";
 
 import { GenericHelpers } from "./GenericHelpers.sol";
 
+import { ReentrancyGuard } from "./ReentrancyGuard.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -67,7 +69,8 @@ contract ConsiderationInternal is
     FulfillmentApplier,
     ZoneInteraction,
     ExecutionCompression,
-    GenericHelpers
+    GenericHelpers,
+    ReentrancyGuard
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
@@ -2505,19 +2508,6 @@ contract ConsiderationInternal is
         }
 
         return true;
-    }
-
-    /**
-     * @dev Internal function to ensure that the sentinel value for the
-     *      reentrancy guard is not currently set and, if not, to set the
-     *      sentinel value for the reentrancy guard.
-     */
-    function _setReentrancyGuard() internal {
-        // Ensure that the reentrancy guard is not already set.
-        _assertNonReentrant();
-
-        // Set the reentrancy guard.
-        _reentrancyGuard = _ENTERED;
     }
 
     /**

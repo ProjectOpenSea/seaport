@@ -29,17 +29,6 @@ contract Assertions is GettersAndDerivers, TokenTransferrerErrors {
     {}
 
     /**
-     * @dev Internal view function to ensure that the sentinel value for the
-            reentrancy guard is not currently set.
-     */
-    function _assertNonReentrant() internal view {
-        // Ensure that the reentrancy guard is not currently set.
-        if (_reentrancyGuard != _NOT_ENTERED) {
-            revert NoReentrantCalls();
-        }
-    }
-
-    /**
      * @dev Internal view function to to ensure that the supplied consideration
      *      array length on a given set of order parameters is not less than the
      *      original consideration array length for that order and to retrieve
