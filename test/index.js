@@ -18248,6 +18248,132 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             itemType: 3, // ERC1155
             token: testERC1155.address,
             identifierOrCriteria: nftId,
+            startAmount: 0,
+            endAmount: 0,
+          },
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: secondNftId,
+            startAmount: secondAmount,
+            endAmount: secondAmount,
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+          await createMirrorBuyNowOrder(buyer, zone, order);
+
+        const fulfillments = [
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 2,
+              },
+            ],
+          },
+        ];
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments, { value })
+          ).to.be.revertedWith("MissingItemAmount");
+        });
+      });
+      it("Reverts when 1155 batch tokens are not approved", async () => {
+        // Seller mints first nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller mints second nft
+        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, secondNftId, secondAmount);
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
             startAmount: amount,
             endAmount: amount,
           },

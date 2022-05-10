@@ -113,11 +113,10 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
      *      scratch.
      */
     function _domainSeparator() internal view returns (bytes32) {
-        if (block.chainid == _CHAIN_ID) {
-            return _DOMAIN_SEPARATOR;
-        }
-
-        return _deriveDomainSeparator();
+        return
+            block.chainid == _CHAIN_ID
+                ? _DOMAIN_SEPARATOR
+                : _deriveDomainSeparator();
     }
 
     /**
