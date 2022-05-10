@@ -10,7 +10,6 @@ import { Side } from "../lib/ConsiderationEnums.sol";
  *         application and aggregation.
  */
 interface FulfillmentApplicationErrors {
-
     /**
      * @dev Revert with an error when a fulfillment is provided as part of an
      *      call to fulfill available orders that does not declare at least one

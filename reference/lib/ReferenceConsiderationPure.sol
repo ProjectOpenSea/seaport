@@ -54,7 +54,6 @@ import {
     FulfillmentApplicationErrors
 } from "contracts/interfaces/FulfillmentApplicationErrors.sol";
 
-
 /**
  * @title ReferenceConsiderationPure
  * @author 0age
