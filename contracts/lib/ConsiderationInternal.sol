@@ -2203,7 +2203,7 @@ contract ConsiderationInternal is
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
             uint256 totalBatchExecutions = batchExecutions.length;
-            
+
             // Iterate over each batch execution.
             for (uint256 i = 0; i < totalBatchExecutions; ++i) {
                 // Perform the batch transfer.
