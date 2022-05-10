@@ -999,6 +999,151 @@ contract ConsiderationInternal is
     }
 
     /**
+     * @dev Internal function to transfer Ether (or other native tokens) to a
+     *      given recipient as part of basic order fulfillment. Note that
+     *      conduits are not utilized for native tokens as the transferred
+     *      amount must be provided as msg.value.
+     *
+     * @param amount               The amount to transfer.
+     * @param to                   The recipient of the native token transfer.
+     * @param additionalRecipients The additional recipients of the order.
+     */
+    function _transferEthAndFinalize(
+        uint256 amount,
+        address payable to,
+        AdditionalRecipient[] calldata additionalRecipients
+    ) internal {
+        // Put ether value supplied by the caller on the stack.
+        uint256 etherRemaining = msg.value;
+
+        // Retrieve total number of additional recipients and place on stack.
+        uint256 totalAdditionalRecipients = additionalRecipients.length;
+
+        // Iterate over each additional recipient.
+        for (uint256 i = 0; i < totalAdditionalRecipients; ) {
+            // Retrieve the additional recipient.
+            AdditionalRecipient calldata additionalRecipient = (
+                additionalRecipients[i]
+            );
+
+            // Read ether amount to transfer to recipient and place on stack.
+            uint256 additionalRecipientAmount = additionalRecipient.amount;
+
+            // Ensure that sufficient Ether is available.
+            if (additionalRecipientAmount > etherRemaining) {
+                revert InsufficientEtherSupplied();
+            }
+
+            // Transfer Ether to the additional recipient.
+            _transferEth(
+                additionalRecipient.recipient,
+                additionalRecipientAmount
+            );
+
+            // Skip underflow check as subtracted value is less than remaining.
+            unchecked {
+                // Reduce ether value available.
+                etherRemaining -= additionalRecipientAmount;
+            }
+
+            // Skip overflow check as for loop is indexed starting at zero.
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Ensure that sufficient Ether is still available.
+        if (amount > etherRemaining) {
+            revert InsufficientEtherSupplied();
+        }
+
+        // Transfer Ether to the offerer.
+        _transferEth(to, amount);
+
+        // If any Ether remains after transfers, return it to the caller.
+        if (etherRemaining > amount) {
+            // Skip underflow check as etherRemaining > amount.
+            unchecked {
+                // Transfer remaining Ether to the caller.
+                _transferEth(payable(msg.sender), etherRemaining - amount);
+            }
+        }
+
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
+    }
+
+    /**
+     * @dev Internal function to transfer ERC20 tokens to a given recipient as
+     *      part of basic order fulfillment.
+     *
+     * @param from                 The originator of the ERC20 token transfer.
+     * @param to                   The recipient of the ERC20 token transfer.
+     * @param erc20Token           The ERC20 token to transfer.
+     * @param amount               The amount of ERC20 tokens to transfer.
+     * @param additionalRecipients The additional recipients of the order.
+     * @param fromOfferer          A boolean indicating whether to decrement
+     *                             amount from the offered amount.
+     */
+    function _transferERC20AndFinalize(
+        address from,
+        address to,
+        address erc20Token,
+        uint256 amount,
+        AdditionalRecipient[] calldata additionalRecipients,
+        bool fromOfferer,
+        bytes memory accumulator
+    ) internal {
+        // Determine the appropriate conduit to utilize.
+        bytes32 conduitKey;
+
+        // Utilize assembly to derive conduit (if relevant) based on route.
+        assembly {
+            // use offerer conduit if fromOfferer, fulfiller conduit otherwise.
+            conduitKey := calldataload(sub(0x1e4, mul(fromOfferer, 0x20)))
+        }
+
+        // Retrieve total number of additional recipients and place on stack.
+        uint256 totalAdditionalRecipients = additionalRecipients.length;
+
+        // Iterate over each additional recipient.
+        for (uint256 i = 0; i < totalAdditionalRecipients; ) {
+            // Retrieve the additional recipient.
+            AdditionalRecipient calldata additionalRecipient = (
+                additionalRecipients[i]
+            );
+
+            uint256 additionalRecipientAmount = additionalRecipient.amount;
+
+            // Decrement the amount to transfer to fulfiller if indicated.
+            if (fromOfferer) {
+                amount -= additionalRecipientAmount;
+            }
+
+            // Transfer ERC20 tokens to additional recipient given approval.
+            _transferERC20(
+                erc20Token,
+                from,
+                additionalRecipient.recipient,
+                additionalRecipientAmount,
+                conduitKey,
+                accumulator
+            );
+
+            // Skip overflow check as for loop is indexed starting at zero.
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Transfer ERC20 token amount (from account must have proper approval).
+        _transferERC20(erc20Token, from, to, amount, conduitKey, accumulator);
+
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
+    }
+
+    /**
      * @dev Internal function to validate an order, determine what portion to
      *      fill, and update its status. The desired fill amount is supplied as
      *      a fraction, as is the returned amount to fill.
@@ -1077,7 +1222,7 @@ contract ConsiderationInternal is
             orderParameters
         );
 
-        // Determine if a proxy should be utilized and ensure a valid submitter.
+        // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(
             advancedOrder,
             criteriaResolvers,
@@ -1163,7 +1308,7 @@ contract ConsiderationInternal is
             _orderStatus[orderHash].denominator = uint120(denominator);
         }
 
-        // Return order hash, new numerator and denominator, and proxy boolean.
+        // Return order hash, a modified numerator, and a modified denominator.
         return (orderHash, numerator, denominator);
     }
 
@@ -1187,10 +1332,8 @@ contract ConsiderationInternal is
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
-     *                            should be used (and direct approvals set on
-     *                            Consideration) and `bytes32(uint256(1)))`
-     *                            signifies to utilize the legacy user proxy for
-     *                            the fulfiller.
+     *                            should be used, with direct approvals set on
+     *                            Consideration.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -1264,17 +1407,13 @@ contract ConsiderationInternal is
      * @param offererConduitKey   An address indicating what conduit, if any, to
      *                            source the offerer's token approvals from. The
      *                            zero hash signifies that no conduit should be
-     *                            used (and direct approvals set on
-     *                            Consideration) and `bytes32(uint256(1)))`
-     *                            signifies to utilize the legacy user proxy for
-     *                            the offerer.
+     *                            used, with direct approvals set on
+     *                            Consideration.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
-     *                            should be used (and direct approvals set on
-     *                            Consideration) and `bytes32(uint256(1)))`
-     *                            signifies to utilize the legacy user proxy for
-     *                            the fulfiller.
+     *                            should be used, with direct approvals set on
+     *                            Consideration.
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
@@ -1841,7 +1980,7 @@ contract ConsiderationInternal is
      *                                  fraction of those orders to attempt to
      *                                  fill. Note that both the offerer and the
      *                                  fulfiller must first approve this
-     *                                  contract (or their proxy if indicated by
+     *                                  contract (or a conduit if indicated by
      *                                  the order) to transfer any relevant
      *                                  tokens on their behalf and that
      *                                  contracts must implement
@@ -1965,11 +2104,8 @@ contract ConsiderationInternal is
      * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used (and
-     *                                  direct approvals set on Consideration)
-     *                                  and `bytes32(uint256(1))` signifies to
-     *                                  utilize the legacy user proxy for the
-     *                                  fulfiller.
+     *                                  that no conduit should be used, with
+     *                                  direct approvals set on Consideration.
      *
      * @return availableOrders    An array of booleans indicating if each order
      *                            with an index corresponding to the index of
@@ -2224,152 +2360,6 @@ contract ConsiderationInternal is
 
         // Return arrays with available orders and triggered executions.
         return (availableOrders, standardExecutions, batchExecutions);
-    }
-
-    /**
-     * @dev Internal function to transfer Ether (or other native tokens) to a
-     *      given recipient as part of basic order fulfillment. Note that
-     *      proxies are not utilized for native tokens as the transferred amount
-     *      must be provided as msg.value.
-     *
-     * @param amount               The amount to transfer.
-     * @param to                   The recipient of the native token transfer.
-     * @param additionalRecipients The additional recipients of the order.
-     */
-    function _transferEthAndFinalize(
-        uint256 amount,
-        address payable to,
-        AdditionalRecipient[] calldata additionalRecipients
-    ) internal {
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
-
-        // Retrieve total number of additional recipients and place on stack.
-        uint256 totalAdditionalRecipients = additionalRecipients.length;
-
-        // Iterate over each additional recipient.
-        for (uint256 i = 0; i < totalAdditionalRecipients; ) {
-            // Retrieve the additional recipient.
-            AdditionalRecipient calldata additionalRecipient = (
-                additionalRecipients[i]
-            );
-
-            // Read ether amount to transfer to recipient and place on stack.
-            uint256 additionalRecipientAmount = additionalRecipient.amount;
-
-            // Ensure that sufficient Ether is available.
-            if (additionalRecipientAmount > etherRemaining) {
-                revert InsufficientEtherSupplied();
-            }
-
-            // Transfer Ether to the additional recipient.
-            _transferEth(
-                additionalRecipient.recipient,
-                additionalRecipientAmount
-            );
-
-            // Skip underflow check as subtracted value is less than remaining.
-            unchecked {
-                // Reduce ether value available.
-                etherRemaining -= additionalRecipientAmount;
-            }
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Ensure that sufficient Ether is still available.
-        if (amount > etherRemaining) {
-            revert InsufficientEtherSupplied();
-        }
-
-        // Transfer Ether to the offerer.
-        _transferEth(to, amount);
-
-        // If any Ether remains after transfers, return it to the caller.
-        if (etherRemaining > amount) {
-            // Skip underflow check as etherRemaining > amount.
-            unchecked {
-                // Transfer remaining Ether to the caller.
-                _transferEth(payable(msg.sender), etherRemaining - amount);
-            }
-        }
-
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
-    }
-
-    /**
-     * @dev Internal function to transfer ERC20 tokens to a given recipient as
-     *      part of basic order fulfillment. Note that proxies are not utilized
-     *      for ERC20 tokens.
-     *
-     * @param from                 The originator of the ERC20 token transfer.
-     * @param to                   The recipient of the ERC20 token transfer.
-     * @param erc20Token           The ERC20 token to transfer.
-     * @param amount               The amount of ERC20 tokens to transfer.
-     * @param additionalRecipients The additional recipients of the order.
-     * @param fromOfferer          A boolean indicating whether to decrement
-     *                             amount from the offered amount.
-     */
-    function _transferERC20AndFinalize(
-        address from,
-        address to,
-        address erc20Token,
-        uint256 amount,
-        AdditionalRecipient[] calldata additionalRecipients,
-        bool fromOfferer,
-        bytes memory accumulator
-    ) internal {
-        // Determine the appropriate conduit to utilize.
-        bytes32 conduitKey;
-
-        // Utilize assembly to derive conduit (if relevant) based on route.
-        assembly {
-            // use offerer conduit if fromOfferer, fulfiller conduit otherwise.
-            conduitKey := calldataload(sub(0x1e4, mul(fromOfferer, 0x20)))
-        }
-
-        // Retrieve total number of additional recipients and place on stack.
-        uint256 totalAdditionalRecipients = additionalRecipients.length;
-
-        // Iterate over each additional recipient.
-        for (uint256 i = 0; i < totalAdditionalRecipients; ) {
-            // Retrieve the additional recipient.
-            AdditionalRecipient calldata additionalRecipient = (
-                additionalRecipients[i]
-            );
-
-            uint256 additionalRecipientAmount = additionalRecipient.amount;
-
-            // Decrement the amount to transfer to fulfiller if indicated.
-            if (fromOfferer) {
-                amount -= additionalRecipientAmount;
-            }
-
-            // Transfer ERC20 tokens to additional recipient given approval.
-            _transferERC20(
-                erc20Token,
-                from,
-                additionalRecipient.recipient,
-                additionalRecipientAmount,
-                conduitKey,
-                accumulator
-            );
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
-        }
-
-        // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(erc20Token, from, to, amount, conduitKey, accumulator);
-
-        // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
     }
 
     /**
