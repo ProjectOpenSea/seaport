@@ -309,13 +309,12 @@ contract ReferenceConsiderationInternal is
                 consideration[additionalTips + 1] = additionalReceivedItem;
             }
         }
+        // Now let's handle the offer side.
+
+        // Write the offer to the Event SpentItem array
+        SpentItem[] memory offer = new SpentItem[](1);
 
         {
-            // Now let's handle the offer side.
-
-            // Write the offer to the Event SpentItem array
-            SpentItem[] memory offer = new SpentItem[](1);
-
             // Place offer item typehash on the stack.
             hashes.typeHash = _OFFER_ITEM_TYPEHASH;
 
