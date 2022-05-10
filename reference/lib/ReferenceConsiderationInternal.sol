@@ -16,7 +16,7 @@ import { Side, OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol"
 
 import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
 
-import { OrderToExecute } from "./ReferenceConsiderationStructs.sol";
+import { OrderToExecute, FractionData, AccumulatorStruct } from "./ReferenceConsiderationStructs.sol";
 
 // prettier-ignore
 import {
@@ -673,15 +673,11 @@ contract ReferenceConsiderationInternal is
                 priorOrderHashes
             );
 
-        // Create an array with length 1 containing the order.
-        //AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
-        //advancedOrders[0] = advancedOrder;
-
         // Apply criteria resolvers using generated orders and details arrays.
         _applyCriteriaResolversAdvanced(advancedOrder, criteriaResolvers);
 
         // Retrieve the order parameters after applying criteria resolvers.
-        OrderParameters memory orderParameters = advancedOrder.parameters; //advancedOrders[0].parameters;
+        OrderParameters memory orderParameters = advancedOrder.parameters;
 
         // Perform each item transfer with the appropriate fractional amount.
         OrderToExecute memory orderToExecute = _applyFractionsAndTransferEach(
@@ -740,12 +736,26 @@ contract ReferenceConsiderationInternal is
         bytes32 fulfillerConduitKey
     ) internal returns (OrderToExecute memory orderToExecute) {
         // Derive order duration, time elapsed, and time remaining.
-        uint256 duration = orderParameters.endTime - orderParameters.startTime;
-        uint256 elapsed = block.timestamp - orderParameters.startTime;
-        uint256 remaining = duration - elapsed;
+        // Store in memory to avoid stack too deep issues
+        FractionData memory fractionData = FractionData(
+            numerator,
+            denominator,
+            offererConduitKey,
+            fulfillerConduitKey,
+            (orderParameters.endTime - orderParameters.startTime),
+            (block.timestamp - orderParameters.startTime),
+            ((orderParameters.endTime - orderParameters.startTime) -
+                (block.timestamp - orderParameters.startTime))
+        );
 
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
+
+        // Create the accumulator
+        AccumulatorStruct memory accumulatorStruct;
+
+        // Get the offerer
+        address offerer = orderParameters.offerer;
 
         // Create the array to store the spent items for event
         orderToExecute.spentItems = new SpentItem[](
@@ -763,11 +773,7 @@ contract ReferenceConsiderationInternal is
                 uint256 amount = _applyFraction(
                     offerItem.startAmount,
                     offerItem.endAmount,
-                    numerator,
-                    denominator,
-                    elapsed,
-                    remaining,
-                    duration,
+                    fractionData,
                     false
                 );
 
@@ -801,8 +807,9 @@ contract ReferenceConsiderationInternal is
                 // Transfer the item from the offerer to the caller.
                 _transfer(
                     receivedItem,
-                    orderParameters.offerer,
-                    offererConduitKey
+                    offerer,
+                    fractionData.offererConduitKey,
+                    accumulatorStruct
                 );
             }
         }
@@ -840,11 +847,7 @@ contract ReferenceConsiderationInternal is
                 uint256 amount = _applyFraction(
                     considerationItem.startAmount,
                     considerationItem.endAmount,
-                    numerator,
-                    denominator,
-                    elapsed,
-                    remaining,
-                    duration,
+                    fractionData,
                     true
                 );
 
@@ -868,9 +871,17 @@ contract ReferenceConsiderationInternal is
                 }
 
                 // Transfer item from caller to recipient specified by the item.
-                _transfer(receivedItem, msg.sender, fulfillerConduitKey);
+                _transfer(
+                    receivedItem,
+                    msg.sender,
+                    fractionData.fulfillerConduitKey,
+                    accumulatorStruct
+                );
             }
         }
+
+        // Trigger any remaining accumulated transfers via call to the conduit.
+        _triggerIfArmed(accumulatorStruct);
 
         // If any ether remains after fulfillments...
         if (etherRemaining != 0) {
@@ -1544,6 +1555,9 @@ contract ReferenceConsiderationInternal is
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
+        // Create the accumulator
+        AccumulatorStruct memory accumulatorStruct;
+
         // Iterate over each standard execution.
         for (uint256 i = 0; i < standardExecutions.length; ++i) {
             // Retrieve the execution and the associated received item.
@@ -1561,8 +1575,16 @@ contract ReferenceConsiderationInternal is
             }
 
             // Transfer the item specified by the execution.
-            _transfer(item, execution.offerer, execution.conduitKey);
+            _transfer(
+                item,
+                execution.offerer,
+                execution.conduitKey,
+                accumulatorStruct
+            );
         }
+
+        // Trigger any remaining accumulated transfers via call to the conduit.
+        _triggerIfArmed(accumulatorStruct);
 
         // Iterate over each batch execution.
         for (uint256 i = 0; i < batchExecutions.length; ++i) {
@@ -1577,6 +1599,28 @@ contract ReferenceConsiderationInternal is
 
         // Return arrays with available orders and triggered executions.
         return (availableOrders, standardExecutions, batchExecutions);
+    }
+
+    function _triggerIfArmed(AccumulatorStruct memory accumulatorStruct)
+        internal
+    {
+        // Exit if the accumulator is not "armed".
+        if (accumulatorStruct.transfers.length == 0) {
+            return;
+        }
+
+        // Perform conduit call.
+        _trigger(accumulatorStruct);
+    }
+
+    function _triggerIfArmedAndNotAccumulatable(
+        AccumulatorStruct memory accumulatorStruct,
+        bytes32 conduitKey
+    ) internal {
+        // Perform conduit call if the set key does not match the supplied key.
+        if (accumulatorStruct.conduitKey != conduitKey) {
+            _triggerIfArmed(accumulatorStruct);
+        }
     }
 
     /**
@@ -1594,7 +1638,8 @@ contract ReferenceConsiderationInternal is
     function _transfer(
         ReceivedItem memory item,
         address offerer,
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        AccumulatorStruct memory accumulatorStruct
     ) internal {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
@@ -1607,7 +1652,8 @@ contract ReferenceConsiderationInternal is
                 offerer,
                 item.recipient,
                 item.amount,
-                conduitKey
+                conduitKey,
+                accumulatorStruct
             );
         } else if (item.itemType == ItemType.ERC721) {
             // Transfer ERC721 token from the offerer to the recipient.
@@ -1617,7 +1663,8 @@ contract ReferenceConsiderationInternal is
                 item.recipient,
                 item.identifier,
                 item.amount,
-                conduitKey
+                conduitKey,
+                accumulatorStruct
             );
         } else {
             // Transfer ERC1155 token from the offerer to the recipient.
@@ -1627,7 +1674,8 @@ contract ReferenceConsiderationInternal is
                 item.recipient,
                 item.identifier,
                 item.amount,
-                conduitKey
+                conduitKey,
+                accumulatorStruct
             );
         }
     }
@@ -1675,29 +1723,31 @@ contract ReferenceConsiderationInternal is
         address from,
         address to,
         uint256 amount,
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        AccumulatorStruct memory accumulatorStruct
     ) internal {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
+
+        // Trigger accumulated transfers if the conduits differ.
+        _triggerIfArmedAndNotAccumulatable(accumulatorStruct, conduitKey);
 
         // If no conduit has been specified...
         if (conduitKey == bytes32(0)) {
             // Perform the token transfer directly.
             _performERC20Transfer(token, from, to, amount);
         } else {
-            ConduitTransfer[] memory transfers = (new ConduitTransfer[](1));
-
-            transfers[0] = ConduitTransfer(
-                ConduitItemType.ERC20,
+            // Insert the call to the conduit into the accumulator.
+            _insert(
+                conduitKey,
+                accumulatorStruct,
+                uint256(1),
                 token,
                 from,
                 to,
-                0,
+                uint256(0),
                 amount
             );
-
-            // Perform the call to the conduit.
-            ConduitInterface(_getConduit(conduitKey)).execute(transfers);
         }
     }
 
@@ -1724,8 +1774,12 @@ contract ReferenceConsiderationInternal is
         address to,
         uint256 identifier,
         uint256 amount,
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        AccumulatorStruct memory accumulatorStruct
     ) internal {
+        // Trigger accumulated transfers if the conduits differ.
+        _triggerIfArmedAndNotAccumulatable(accumulatorStruct, conduitKey);
+
         // If no conduit has been specified...
         if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
@@ -1736,19 +1790,17 @@ contract ReferenceConsiderationInternal is
             // Perform transfer via the token contract directly.
             _performERC721Transfer(token, from, to, identifier);
         } else {
-            ConduitTransfer[] memory transfers = (new ConduitTransfer[](1));
-
-            transfers[0] = ConduitTransfer(
-                ConduitItemType.ERC721,
+            // Insert the call to the conduit into the accumulator.
+            _insert(
+                conduitKey,
+                accumulatorStruct,
+                uint256(2),
                 token,
                 from,
                 to,
                 identifier,
                 amount
             );
-
-            // Perform the call to the conduit.
-            ConduitInterface(_getConduit(conduitKey)).execute(transfers);
         }
     }
 
@@ -1775,30 +1827,89 @@ contract ReferenceConsiderationInternal is
         address to,
         uint256 identifier,
         uint256 amount,
-        bytes32 conduitKey
+        bytes32 conduitKey,
+        AccumulatorStruct memory accumulatorStruct
     ) internal {
         // Ensure that the supplied amount is non-zero.
         _assertNonZeroAmount(amount);
+
+        // Trigger accumulated transfers if the conduits differ.
+        _triggerIfArmedAndNotAccumulatable(accumulatorStruct, conduitKey);
 
         // If no conduit has been specified...
         if (conduitKey == bytes32(0)) {
             // Perform transfer via the token contract directly.
             _performERC1155Transfer(token, from, to, identifier, amount);
         } else {
-            ConduitTransfer[] memory transfers = (new ConduitTransfer[](1));
-
-            transfers[0] = ConduitTransfer(
-                ConduitItemType.ERC1155,
+            // Insert the call to the conduit into the accumulator.
+            _insert(
+                conduitKey,
+                accumulatorStruct,
+                uint256(3),
                 token,
                 from,
                 to,
                 identifier,
                 amount
             );
-
-            // Perform the call to the conduit.
-            ConduitInterface(_getConduit(conduitKey)).execute(transfers);
         }
+    }
+
+    function _trigger(AccumulatorStruct memory accumulatorStruct) internal {
+        // Call the conduit with all the accumulated transfers.
+        ConduitInterface(_getConduit(accumulatorStruct.conduitKey)).execute(
+            accumulatorStruct.transfers
+        );
+
+        // Reset accumulator length to signal that it is now "disarmed".
+        delete accumulatorStruct.transfers;
+    }
+
+    function _insert(
+        bytes32 conduitKey,
+        AccumulatorStruct memory accumulatorStruct,
+        uint256 itemType,
+        address token,
+        address from,
+        address to,
+        uint256 identifier,
+        uint256 amount
+    ) internal view {
+        uint256 currentTransferLength = accumulatorStruct.transfers.length;
+
+        ConduitTransfer[] memory newTransfers = (
+            new ConduitTransfer[](currentTransferLength + 1)
+        );
+
+        // Fill New Array with old Transfers
+        for (uint256 i = 0; i < currentTransferLength; ++i) {
+            // Get Old Transfers
+            ConduitTransfer memory oldTransfer = accumulatorStruct.transfers[i];
+            // Add to New Transfer
+            newTransfers[i] = ConduitTransfer(
+                oldTransfer.itemType,
+                oldTransfer.token,
+                oldTransfer.from,
+                oldTransfer.to,
+                oldTransfer.identifier,
+                oldTransfer.amount
+            );
+        }
+
+        // Insert new Transfer
+        newTransfers[currentTransferLength] = ConduitTransfer(
+            ConduitItemType(itemType),
+            token,
+            from,
+            to,
+            identifier,
+            amount
+        );
+
+        // Set Accumulator Struct transfers to new Transfers
+        accumulatorStruct.transfers = newTransfers;
+        // Set the conduitKey
+        accumulatorStruct.conduitKey = conduitKey;
     }
 
     /**
@@ -1820,7 +1931,6 @@ contract ReferenceConsiderationInternal is
         // Retrieve the tokenIds and amounts.
         uint256[] memory tokenIds = batchExecution.tokenIds;
         uint256[] memory amounts = batchExecution.amounts;
-
         // If no conduit has been specified...
         if (batchExecution.conduitKey == bytes32(0)) {
             // Perform transfer via the token contract directly.
@@ -1932,7 +2042,8 @@ contract ReferenceConsiderationInternal is
         address erc20Token,
         uint256 amount,
         BasicOrderParameters calldata parameters,
-        bool fromOfferer
+        bool fromOfferer,
+        AccumulatorStruct memory accumulatorStruct
     ) internal {
         // Determine the appropriate conduit to utilize.
         bytes32 conduitKey = fromOfferer
@@ -1957,11 +2068,19 @@ contract ReferenceConsiderationInternal is
                 from,
                 additionalRecipient.recipient,
                 additionalRecipient.amount,
-                conduitKey
+                conduitKey,
+                accumulatorStruct
             );
         }
 
         // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(erc20Token, from, to, amount, conduitKey);
+        _transferERC20(
+            erc20Token,
+            from,
+            to,
+            amount,
+            conduitKey,
+            accumulatorStruct
+        );
     }
 }

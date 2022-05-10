@@ -9,6 +9,8 @@ import {
 
 import { SpentItem, ReceivedItem } from "contracts/lib/ConsiderationStructs.sol";
 
+import { ConduitTransfer } from "contracts/conduit/lib/ConduitStructs.sol";
+
 // This file should only be used by the Reference Implementation
 
 /**
@@ -48,4 +50,19 @@ struct OrderToExecute {
     ReceivedItem[] receivedItems; // Consideration
     bytes32 conduitKey;
     uint120 numerator;
+}
+
+struct FractionData {
+    uint256 numerator;
+    uint256 denominator;
+    bytes32 offererConduitKey;
+    bytes32 fulfillerConduitKey;
+    uint256 duration;
+    uint256 elapsed;
+    uint256 remaining;
+}
+
+struct AccumulatorStruct {
+    bytes32 conduitKey;
+    ConduitTransfer[] transfers;
 }
