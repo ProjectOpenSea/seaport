@@ -213,7 +213,7 @@ contract ReferenceConsiderationInternal is
             consideration[0] = primaryReceivedItem;
 
             // Loop through all additionalRecipients, to generate
-            // ReceivedItems for OrderFulfilled Event and 
+            // ReceivedItems for OrderFulfilled Event and
             // ConsiderationItems for hashing
             for (
                 uint256 recipientCount = 0;
@@ -237,7 +237,7 @@ contract ReferenceConsiderationInternal is
                 // OrderFulfilled ReceivedItem[]
                 consideration[recipientCount + 1] = additionalReceivedItem;
 
-                // Skip hashing items not contained in the 
+                // Skip hashing items not contained in the
                 // Original Recipients.
                 if (
                     recipientCount >=
@@ -271,13 +271,13 @@ contract ReferenceConsiderationInternal is
                 );
             }
 
-            /** 
-            *  The considerationHashes array now contains
-            *  all consideration Item hashes.
-            *
-            *  The consideration array now contains all receieved
-            *  items excluding tips for OrderFulfilled Event.
-            */
+            /**
+             *  The considerationHashes array now contains
+             *  all consideration Item hashes.
+             *
+             *  The consideration array now contains all receieved
+             *  items excluding tips for OrderFulfilled Event.
+             */
 
             // Get hash of all consideration items.
             hashes.receivedItemsHash = keccak256(
@@ -312,7 +312,7 @@ contract ReferenceConsiderationInternal is
 
         {
             // Now let's handle the offer side.
-                    
+
             // Write the offer to the Event SpentItem array
             SpentItem[] memory offer = new SpentItem[](1);
 
@@ -391,7 +391,7 @@ contract ReferenceConsiderationInternal is
     }
 
     /**
-     * @dev Internal function to calculate the order hash    
+     * @dev Internal function to calculate the order hash
      *
      * @param hashes                       The array of offerItems and
      *                                     receivedItems hashes.
@@ -1235,7 +1235,7 @@ contract ReferenceConsiderationInternal is
      *                                  order's partial fill amount to be
      *                                  considered valid.
      *
-     * @param ordersToExecute           The orders to execute.  This is an 
+     * @param ordersToExecute           The orders to execute.  This is an
      *                                  explicit version of advancedOrders without
      *                                  memory optimization, that provides
      *                                  an array of spentItems and receivedItems
@@ -1329,7 +1329,7 @@ contract ReferenceConsiderationInternal is
      *      respectively. Note that a failing item transfer or an issue with
      *      order formatting will cause the entire batch to fail.
      *
-     * @param ordersToExecute           The orders to execute.  This is an 
+     * @param ordersToExecute           The orders to execute.  This is an
      *                                  explicit version of advancedOrders without
      *                                  memory optimization, that provides
      *                                  an array of spentItems and receivedItems
@@ -1455,12 +1455,11 @@ contract ReferenceConsiderationInternal is
 
         // If some number of executions have been filtered...
         if (totalFilteredExecutions != 0) {
-
-            /** 
-            *   The following is highly inefficient, but written this way 
-            *   to show in the most simplest form what the optimized
-            *   contract is performing inside it's assembly.
-            */
+            /**
+             *   The following is highly inefficient, but written this way
+             *   to show in the most simplest form what the optimized
+             *   contract is performing inside it's assembly.
+             */
 
             // Get the total execution length.
             uint256 executionLength = (totalOfferFulfillments +
@@ -1643,8 +1642,8 @@ contract ReferenceConsiderationInternal is
      *                              approvals set on Consideration) and
      *                              `bytes32(uint256(1))` signifies to utilize the legacy
      *                              user proxy for the transfer.
-     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
-     *                              corresponding conduitKey.                             
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's
+     *                              corresponding conduitKey.
      */
     function _transfer(
         ReceivedItem memory item,
@@ -1728,8 +1727,8 @@ contract ReferenceConsiderationInternal is
      *                              approvals set on Consideration) and
      *                              `bytes32(uint256(1))` signifies to utilize the legacy
      *                              user proxy for the transfer.
-     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
-     *                              corresponding conduitKey.    
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's
+     *                              corresponding conduitKey.
      */
     function _transferERC20(
         address token,
@@ -1780,8 +1779,8 @@ contract ReferenceConsiderationInternal is
      *                              approvals set on Consideration) and
      *                              `bytes32(uint256(1))` signifies to utilize the legacy
      *                              user proxy for the transfer.
-     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
-     *                              corresponding conduitKey.    
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's
+     *                              corresponding conduitKey.
      */
     function _transferERC721(
         address token,
@@ -1835,8 +1834,8 @@ contract ReferenceConsiderationInternal is
      *                              approvals set on Consideration) and
      *                              `bytes32(uint256(1))` signifies to utilize the legacy
      *                              user proxy for the transfer.
-     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
-     *                              corresponding conduitKey.    
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's
+     *                              corresponding conduitKey.
      */
     function _transferERC1155(
         address token,
@@ -1892,12 +1891,11 @@ contract ReferenceConsiderationInternal is
         uint256 identifier,
         uint256 amount
     ) internal view {
-        
-        /** 
-        *   The following is highly inefficient, but written this way 
-        *   to show in the most simplest form what the optimized
-        *   contract is performing inside it's assembly.
-        */
+        /**
+         *   The following is highly inefficient, but written this way
+         *   to show in the most simplest form what the optimized
+         *   contract is performing inside it's assembly.
+         */
 
         // Get the current length of the accumulator's transfers.
         uint256 currentTransferLength = accumulatorStruct.transfers.length;
@@ -2063,8 +2061,8 @@ contract ReferenceConsiderationInternal is
      * @param amount                The amount of ERC20 tokens to transfer.
      * @param parameters            The parameters of the order.
      * @param fromOfferer           Whether to decrement amount from the offered amount.
-     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
-     *                              corresponding conduitKey.   
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's
+     *                              corresponding conduitKey.
      */
     function _transferERC20AndFinalize(
         address from,

@@ -153,14 +153,14 @@ contract ReferenceConsiderationPure is
 
                 // Optimistically update identifier w/ supplied identifier.
                 offer.identifier = criteriaResolver.identifier;
-            } else { 
+            } else {
                 // Otherwise, the resolver refers to a consideration item.
 
                 // Retrieve relevant item using order index.
                 ReceivedItem[] memory receivedItems = ordersToExecute[
                     orderIndex
                 ].receivedItems;
-               
+
                 // Ensure that the component index is in range.
                 if (componentIndex >= receivedItems.length) {
                     revert ConsiderationCriteriaResolverOutOfRange();
@@ -764,7 +764,7 @@ contract ReferenceConsiderationPure is
      * @param startAmount     The starting amount of the item.
      * @param endAmount       The ending amount of the item.
      * @param fractionData    A struct containing the data used to apply a
-     *                        fraction to an order. 
+     *                        fraction to an order.
      * @return amount The received item to transfer with the final amount.
      */
     function _applyFraction(
@@ -1223,7 +1223,7 @@ contract ReferenceConsiderationPure is
             // Add to array of received items
             receivedItems[i] = receivedItem;
         }
-    
+
         // Create the order to execute from the advanced order data.
         orderToExecute = OrderToExecute(
             advancedOrder.parameters.offerer,

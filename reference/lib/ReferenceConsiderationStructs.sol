@@ -48,11 +48,11 @@ struct BasicFulfillmentHashes {
     bytes32 offerItemHash;
 }
 
-/**    
-* @dev A struct that is an explicit version of advancedOrders without
-*       memory optimization, that provides an array of spentItems
-*       and receivedItems for fulfillment and event emission.       
-*/
+/**
+ * @dev A struct that is an explicit version of advancedOrders without
+ *       memory optimization, that provides an array of spentItems
+ *       and receivedItems for fulfillment and event emission.
+ */
 struct OrderToExecute {
     address offerer;
     SpentItem[] spentItems; // Offer
@@ -62,11 +62,11 @@ struct OrderToExecute {
 }
 
 /**
-* @dev  A struct containing the data used to apply a
-*       fraction to an order.  
-*/
+ * @dev  A struct containing the data used to apply a
+ *       fraction to an order.
+ */
 struct FractionData {
-    uint256 numerator; // The portion of the order that should be filled.             
+    uint256 numerator; // The portion of the order that should be filled.
     uint256 denominator; // The total size of the order
     bytes32 offererConduitKey; // The offerer's conduit key.
     bytes32 fulfillerConduitKey; // The fulfiller's conduit key.
@@ -77,7 +77,7 @@ struct FractionData {
 
 /**
  * @dev A struct containing conduit transfer data and it's
- *      corresponding conduitKey.   
+ *      corresponding conduitKey.
  */
 struct AccumulatorStruct {
     bytes32 conduitKey;

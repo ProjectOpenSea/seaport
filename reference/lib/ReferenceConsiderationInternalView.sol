@@ -206,10 +206,10 @@ contract ReferenceConsiderationInternalView is
     }
 
     /**
-    * @dev Internal view function to derive the EIP-712 hash for an offer item.
-    * @param offerItem The offered item to hash.
-    * @return The hash.
-    */
+     * @dev Internal view function to derive the EIP-712 hash for an offer item.
+     * @param offerItem The offered item to hash.
+     * @return The hash.
+     */
     function _hashOfferItem(OfferItem memory offerItem)
         internal
         view
@@ -228,11 +228,11 @@ contract ReferenceConsiderationInternalView is
             );
     }
 
-    /** 
-    * @dev Internal view function to derive the EIP-712 hash for a consideration item.
-    * @param considerationItem The consideration item to hash.
-    * @return The hash.
-    */
+    /**
+     * @dev Internal view function to derive the EIP-712 hash for a consideration item.
+     * @param considerationItem The consideration item to hash.
+     * @return The hash.
+     */
     function _hashConsiderationItem(ConsiderationItem memory considerationItem)
         internal
         view
@@ -734,7 +734,7 @@ contract ReferenceConsiderationInternalView is
                     if (invalidFulfillment) {
                         break;
                     }
-                     // Get the order based on offer components order index.
+                    // Get the order based on offer components order index.
                     orderToExecute = ordersToExecute[orderIndex];
                     if (orderToExecute.numerator != 0) {
                         // Ensure that the item index is not out of range.
