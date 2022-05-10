@@ -10,8 +10,6 @@ import {
 
 import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
 
-import { ProxyInterface } from "contracts/interfaces/AbridgedProxyInterfaces.sol";
-
 import { Side, OrderType, ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
 import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
