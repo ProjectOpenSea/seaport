@@ -76,7 +76,7 @@ struct FractionData {
 }
 
 /**
- * @dev A struct containing conduit transfer data and it's
+ * @dev A struct containing conduit transfer data and its
  *      corresponding conduitKey.
  */
 struct AccumulatorStruct {

@@ -207,7 +207,9 @@ contract ReferenceConsiderationInternalView is
 
     /**
      * @dev Internal view function to derive the EIP-712 hash for an offer item.
+     *
      * @param offerItem The offered item to hash.
+     *
      * @return The hash.
      */
     function _hashOfferItem(OfferItem memory offerItem)
@@ -230,7 +232,9 @@ contract ReferenceConsiderationInternalView is
 
     /**
      * @dev Internal view function to derive the EIP-712 hash for a consideration item.
+     *
      * @param considerationItem The consideration item to hash.
+     *
      * @return The hash.
      */
     function _hashConsiderationItem(ConsiderationItem memory considerationItem)
@@ -556,9 +560,7 @@ contract ReferenceConsiderationInternalView is
      *                              any, to source the fulfiller's token
      *                              approvals from. The zero hash signifies that
      *                              no conduit should be used (and direct
-     *                              approvals set on Consideration) and
-     *                              `bytes32(1)` signifies to utilize the legacy
-     *                               user proxy for the fulfiller.
+     *                              approvals set on Consideration)
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -784,9 +786,7 @@ contract ReferenceConsiderationInternalView is
      *                                if any, to source the fulfiller's token
      *                                approvals from. The zero hash signifies
      *                                that no conduit should be used (and direct
-     *                                approvals set on Consideration) and
-     *                                `bytes32(1)` signifies to utilize the
-     *                                legacy user proxy for the fulfiller.
+     *                                approvals set on Consideration)
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */

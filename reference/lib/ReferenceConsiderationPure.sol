@@ -524,7 +524,7 @@ contract ReferenceConsiderationPure is
         // Read initial execution index from memory and place on the stack.
         uint256 initialExecutionIndex = indexBy1155[0];
 
-        // Get hash from initial token, offerer, recipient, & proxy usage.
+        // Get hash from initial token, offerer, recipient.
         bytes32 hash = _getHashByExecutionIndex(
             executions,
             initialExecutionIndex
@@ -1014,7 +1014,7 @@ contract ReferenceConsiderationPure is
         // Retrieve the received item for the given execution element.
         ReceivedItem memory item = execution.item;
 
-        // Derive hash based on token, offerer, recipient, and proxy usage.
+        // Derive hash based on token, offerer, recipient.
         // prettier-ignore
         return _hashBatchableItemIdentifier(
             item.token,
@@ -1034,9 +1034,7 @@ contract ReferenceConsiderationPure is
      * @param conduitKey A bytes32 value indicating what corresponding conduit,
      *                   if any, to source token approvals from. The zero hash
      *                   signifies that no conduit should be used (and direct
-     *                   approvals set on Consideration) and `bytes32(1)`
-     *                   signifies to utilize the legacy user proxy for the
-     *                   transfer.
+     *                   approvals set on Consideration)
      *
      * @return value The hash.
      */
