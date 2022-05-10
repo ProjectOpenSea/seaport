@@ -113,8 +113,8 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
         // Derive EIP-712 digest using the domain separator and the order hash.
         bytes32 digest = _hashDigest(_domainSeparator(), orderHash);
 
-        // Verify the signature using the digest.
-        _verifySignatureUsingDigest(offerer, digest, signature);
+        // Ensure that the signature for the digest is valid for the offerer.
+        _assertValidSignature(offerer, digest, signature);
     }
 
     /**
@@ -169,22 +169,22 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
             let hashArrPtr := mload(FreeMemoryPointerSlot)
 
             // Get the pointer to the offers array.
-            let offerArrPtr := mload(add(orderParameters, 0x40))
+            let offerArrPtr := mload(add(orderParameters, TwoWords))
 
             // Load the length.
             let offerLength := mload(offerArrPtr)
 
             // Set the pointer to the first offer's head.
-            offerArrPtr := add(offerArrPtr, 0x20)
+            offerArrPtr := add(offerArrPtr, OneWord)
 
             // Iterate over the offer items.
             // prettier-ignore
             for { let i := 0 } lt(i, offerLength) {
                 i := add(i, 1)
             } {
-                // Read the pointer to the offer data and subtract 32
+                // Read the pointer to the offer data and subtract one word
                 // to get typeHash pointer.
-                let ptr := sub(mload(offerArrPtr), 0x20)
+                let ptr := sub(mload(offerArrPtr), OneWord)
 
                 // Read the current value before the offer data.
                 let value := mload(ptr)
@@ -193,20 +193,20 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
                 mstore(ptr, typeHash)
 
                 // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, 0xc0))
+                mstore(hashArrPtr, keccak256(ptr, EIP712_OfferItem_size))
 
                 // Restore the previous word.
                 mstore(ptr, value)
 
-                // Increment the array pointers.
-                offerArrPtr := add(offerArrPtr, 0x20)
-                hashArrPtr := add(hashArrPtr, 0x20)
+                // Increment the array pointers by one word.
+                offerArrPtr := add(offerArrPtr, OneWord)
+                hashArrPtr := add(hashArrPtr, OneWord)
             }
 
-            // Derive the offer hash.
+            // Derive the offer hash using the hashes of each item.
             offerHash := keccak256(
                 mload(FreeMemoryPointerSlot),
-                mul(offerLength, 0x20)
+                mul(offerLength, OneWord)
             )
         }
 
@@ -223,18 +223,23 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
 
             // Get the pointer to the consideration array.
             let considerationArrPtr := add(
-                mload(add(orderParameters, 0x60)),
-                0x20
+                mload(
+                    add(
+                        orderParameters,
+                        OrderParameters_consideration_head_offset
+                    )
+                ),
+                OneWord
             )
 
-            // Iterate over the offer items.
+            // Iterate over the offer items (not including tips).
             // prettier-ignore
             for { let i := 0 } lt(i, originalConsiderationLength) {
                 i := add(i, 1)
             } {
-                // Read the pointer to the consideration data and subtract 32
-                // to get typeHash pointer.
-                let ptr := sub(mload(considerationArrPtr), 0x20)
+                // Read the pointer to the consideration data and subtract one
+                // word to get typeHash pointer.
+                let ptr := sub(mload(considerationArrPtr), OneWord)
 
                 // Read the current value before the consideration data.
                 let value := mload(ptr)
@@ -243,20 +248,20 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
                 mstore(ptr, typeHash)
 
                 // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, 0xe0))
+                mstore(hashArrPtr, keccak256(ptr, EIP712_ConsiderationItem_size))
 
                 // Restore the previous word.
                 mstore(ptr, value)
 
-                // Increment the array pointers.
-                considerationArrPtr := add(considerationArrPtr, 0x20)
-                hashArrPtr := add(hashArrPtr, 0x20)
+                // Increment the array pointers by one word.
+                considerationArrPtr := add(considerationArrPtr, OneWord)
+                hashArrPtr := add(hashArrPtr, OneWord)
             }
 
-            // Derive the offer hash.
+            // Derive the consideration hash using the hashes of each item.
             considerationHash := keccak256(
                 mload(FreeMemoryPointerSlot),
-                mul(originalConsiderationLength, 0x20)
+                mul(originalConsiderationLength, OneWord)
             )
         }
 
@@ -265,25 +270,58 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
 
         // Utilize assembly to access derived hashes & other arguments directly.
         assembly {
-            let typeHashPtr := sub(orderParameters, 0x20)
+            // Retrieve pointer to the region located just behind parameters.
+            let typeHashPtr := sub(orderParameters, OneWord)
+
+            // Store the value at that pointer location to restore later.
             let previousValue := mload(typeHashPtr)
+
+            // Store the order item EIP-712 typehash at the typehash location.
             mstore(typeHashPtr, typeHash)
 
-            let offerHeadPtr := add(orderParameters, 0x40)
+            // Retrieve the pointer for the offer array head.
+            let offerHeadPtr := add(
+                orderParameters,
+                OrderParameters_offer_head_offset
+            )
+
+            // Retrieve the data pointer referenced by the offer head.
             let offerDataPtr := mload(offerHeadPtr)
+
+            // Store the offer hash at the retrieved memory location.
             mstore(offerHeadPtr, offerHash)
 
-            let considerationHeadPtr := add(orderParameters, 0x60)
+            // Retrieve the pointer for the consideration array head.
+            let considerationHeadPtr := add(
+                orderParameters,
+                OrderParameters_consideration_head_offset
+            )
+
+            // Retrieve the data pointer referenced by the consideration head.
             let considerationDataPtr := mload(considerationHeadPtr)
+
+            // Store the consideration hash at the retrieved memory location.
             mstore(considerationHeadPtr, considerationHash)
 
-            let noncePtr := add(orderParameters, 0x140)
+            // Retrieve the pointer for the nonce.
+            let noncePtr := add(orderParameters, OrderParameters_nonce_offset)
+
+            // Store the nonce at the retrieved memory location.
             mstore(noncePtr, nonce)
 
-            orderHash := keccak256(typeHashPtr, 0x180)
+            // Derive the order hash using the full range of order parameters.
+            orderHash := keccak256(typeHashPtr, EIP712_Order_size)
+
+            // Restore the value previously held at typehash pointer location.
             mstore(typeHashPtr, previousValue)
+
+            // Restore offer data pointer at the offer head pointer location.
             mstore(offerHeadPtr, offerDataPtr)
+
+            // Restore consideration data pointer at the consideration head ptr.
             mstore(considerationHeadPtr, considerationDataPtr)
+
+            // Restore original consideration item length at the nonce pointer.
             mstore(noncePtr, originalConsiderationLength)
         }
     }
@@ -492,24 +530,25 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
 
             // Place the control character and the conduit controller in scratch
             // space; note that eleven bytes at the beginning are left unused.
-            mstore(
-                0x00,
-                or(
-                    0x0000000000000000000000ff0000000000000000000000000000000000000000, // solhint-disable-line max-line-length
-                    conduitController
-                )
-            )
+            mstore(0, or(MaskOverByteTwelve, conduitController))
 
             // Place the conduit key in the next region of scratch space.
-            mstore(0x20, conduitKey)
+            mstore(FirstWord, conduitKey)
 
             // Place conduit creation code hash in free memory pointer location.
-            mstore(0x40, conduitCreationCodeHash)
+            mstore(SecondWord, conduitCreationCodeHash)
 
             // Derive conduit by hashing and applying a mask over last 20 bytes.
             conduit := and(
-                keccak256(0x0b, 0x55), // Hash the relevant region.
-                0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff // solhint-disable-line max-line-length
+                // Hash the relevant region.
+                keccak256(
+                    // The region starts at memory pointer 11.
+                    Create2AddressDerivation_ptr,
+                    // The region is 85 bytes long (1 + 20 + 32 + 32).
+                    Create2AddressDerivation_length
+                ),
+                // The address equals the last twenty bytes of the hash.
+                MaskOverLastTwentyBytes
             )
 
             // Restore the free memory pointer.

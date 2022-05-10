@@ -67,6 +67,7 @@ uint256 constant Execution_conduit_offset = 0x40;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
 uint256 constant OrderParameters_conduit_offset = 0x120;
+uint256 constant OrderParameters_nonce_offset = 0x140;
 
 uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
@@ -329,3 +330,14 @@ uint256 constant EIP_712_PREFIX = (
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
 uint256 constant MemoryExpansionCoefficient = 0x200;
+
+uint256 constant Create2AddressDerivation_ptr = 0x0b;
+uint256 constant Create2AddressDerivation_length = 0x55;
+
+uint256 constant MaskOverByteTwelve = (
+    0x0000000000000000000000ff0000000000000000000000000000000000000000
+);
+
+uint256 constant MaskOverLastTwentyBytes = (
+    0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
+);
