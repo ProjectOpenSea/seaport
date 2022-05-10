@@ -34,13 +34,15 @@ pragma solidity >=0.8.7;
  */
 
 // Declare constants for name, version, and reentrancy sentinel values.
-uint256 constant _NAME = (
+uint256 constant Name = (
     0x436F6E73696465726174696F6E00000000000000000000000000000000000000
 );
+uint256 constant Name_length = 13;
 
-uint256 constant _VERSION = (
+uint256 constant Version = (
     0x3100000000000000000000000000000000000000000000000000000000000000
 );
+uint256 constant Version_length = 1;
 
 uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;

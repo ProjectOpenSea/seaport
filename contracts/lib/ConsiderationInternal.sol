@@ -51,6 +51,8 @@ import { AmountDeriver } from "./AmountDeriver.sol";
 
 import { FulfillmentApplier } from "./FulfillmentApplier.sol";
 
+import { ZoneInteraction } from "./ZoneInteraction.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -63,7 +65,8 @@ contract ConsiderationInternal is
     TokenTransferrer,
     CriteriaResolution,
     AmountDeriver,
-    FulfillmentApplier
+    FulfillmentApplier,
+    ZoneInteraction
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
