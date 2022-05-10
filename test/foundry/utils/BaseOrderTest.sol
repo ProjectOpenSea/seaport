@@ -10,7 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { ConsiderationItem, OfferItem, FulfillmentComponent } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -57,6 +57,12 @@ contract BaseOrderTest is
     FulfillmentComponent[] firstConsiderationFulfillment;
     FulfillmentComponent[] secondConsiderationFulfillment;
     FulfillmentComponent[] thirdConsiderationFulfillment;
+
+    Fulfillment[] fulfillments;
+    FulfillmentComponent[] firstOrderFirstItemArray;
+    FulfillmentComponent[] firstOrderSecondItemArray;
+    FulfillmentComponent[] firstOrderThirdItemArray;
+    FulfillmentComponent[] secondOrderFirstItemArray;
 
     uint256 internal globalTokenId;
 
