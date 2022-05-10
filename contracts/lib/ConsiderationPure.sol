@@ -229,36 +229,22 @@ contract ConsiderationPure is ConsiderationBase, TokenTransferrerErrors {
             /*
              * Checks:
              * 1. Order parameters struct offset == 0x20
-             * 2. Additional recipients arr offset == 0x240
-             * 3. Signature offset == 0x260 + (recipients.length * 0x40)
+             * 2. Additional recipients arr offset == 0x200
+             * 3. Signature offset == 0x240 + (recipients.length * 0x40)
              */
             validOffsets := and(
                 // Order parameters have offset of 0x20
-                eq(
-                    calldataload(BasicOrder_parameters_cdPtr),
-                    BasicOrder_parameters_ptr
-                ),
-                // Additional recipients have offset of 0x240
-                eq(
-                    calldataload(BasicOrder_additionalRecipients_head_cdPtr),
-                    BasicOrder_additionalRecipients_head_ptr
-                )
+                eq(calldataload(0x04), 0x20),
+                // Additional recipients have offset of 0x200
+                eq(calldataload(0x224), 0x240)
             )
             validOffsets := and(
                 validOffsets,
                 eq(
                     // Load signature offset from calldata
-                    calldataload(BasicOrder_signature_cdPtr),
+                    calldataload(0x244),
                     // Calculate expected offset: start of recipients + len * 64
-                    add(
-                        BasicOrder_signature_ptr,
-                        mul(
-                            calldataload(
-                                BasicOrder_additionalRecipients_length_cdPtr
-                            ),
-                            AdditionalRecipients_size
-                        )
-                    )
+                    add(0x260, mul(calldataload(0x264), 0x40))
                 )
             )
         }
@@ -286,22 +272,20 @@ contract ConsiderationPure is ConsiderationBase, TokenTransferrerErrors {
         // Leverage scratch space to perform an efficient hash.
         assembly {
             // Place the EIP-712 prefix at the start of scratch space.
-            mstore(0, EIP_712_PREFIX)
+            mstore(0x00, EIP_712_PREFIX)
 
             // Place the domain separator in the next region of scratch space.
-            mstore(EIP712_DomainSeparator_offset, domainSeparator)
+            mstore(0x02, domainSeparator)
 
             // Place the order hash in scratch space, spilling into the first
             // two bytes of the free memory pointer — this should never be set
             // as memory cannot be expanded to that size, and will be zeroed out
             // after the hash is performed.
-            mstore(EIP712_OrderHash_offset, orderHash)
+            mstore(0x22, orderHash)
 
-            // Hash the relevant region (65 bytes).
-            value := keccak256(0, EIP712_DigestPayload_size)
+            value := keccak256(0x00, 0x42) // Hash the relevant region.
 
-            // Clear out the dirtied bits in the memory pointer.
-            mstore(EIP712_OrderHash_offset, 0)
+            mstore(0x22, 0) // Clear out the dirtied bits in the memory pointer.
         }
     }
 }

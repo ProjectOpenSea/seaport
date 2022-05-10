@@ -92,10 +92,6 @@ uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
 uint256 constant AdditionalRecipients_size = 0x40;
 
-uint256 constant EIP712_DomainSeparator_offset = 0x02;
-uint256 constant EIP712_OrderHash_offset = 0x22;
-uint256 constant EIP712_DigestPayload_size = 0x42;
-
 uint256 constant receivedItemsHash_ptr = 0x60;
 
 /*
@@ -154,7 +150,6 @@ uint256 constant OrderFulfilled_consideration_head_offset = 0x60;
 uint256 constant OrderFulfilled_consideration_body_offset = 0x120;
 
 // BasicOrderParameters
-uint256 constant BasicOrder_parameters_cdPtr = 0x04;
 uint256 constant BasicOrder_considerationToken_cdPtr = 0x24;
 // uint256 constant BasicOrder_considerationIdentifier_cdPtr = 0x44;
 uint256 constant BasicOrder_considerationAmount_cdPtr = 0x64;
@@ -171,12 +166,10 @@ uint256 constant BasicOrder_startTime_cdPtr = 0x144;
 // uint256 constant BasicOrder_offererConduit_cdPtr = 0x1c4;
 // uint256 constant BasicOrder_fulfillerConduit_cdPtr = 0x1e4;
 uint256 constant BasicOrder_totalOriginalAdditionalRecipients_cdPtr = 0x204;
-uint256 constant BasicOrder_additionalRecipients_head_cdPtr = 0x224;
-uint256 constant BasicOrder_signature_cdPtr = 0x244;
+// uint256 constant BasicOrder_additionalRecipients_head_cdPtr = 0x224;
+// uint256 constant BasicOrder_signature_cdPtr = 0x244;
 uint256 constant BasicOrder_additionalRecipients_length_cdPtr = 0x264;
 uint256 constant BasicOrder_additionalRecipients_data_cdPtr = 0x284;
-
-uint256 constant BasicOrder_parameters_ptr = 0x20;
 
 /*
  *  Memory layout in _prepareBasicFulfillmentFromCalldata of
@@ -242,8 +235,6 @@ uint256 constant BasicOrder_order_startTime_ptr = 0x140;
 // uint256 constant BasicOrder_order_salt_ptr = 0x1a0;
 // uint256 constant BasicOrder_order_conduit_ptr = 0x1c0;
 uint256 constant BasicOrder_order_nonce_ptr = 0x1e0;
-uint256 constant BasicOrder_additionalRecipients_head_ptr = 0x240;
-uint256 constant BasicOrder_signature_ptr = 0x260;
 
 // Signature-related
 bytes32 constant EIP2098_allButHighestBitMask = (
