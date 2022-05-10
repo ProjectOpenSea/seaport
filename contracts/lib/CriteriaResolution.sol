@@ -109,7 +109,8 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     offerItem.itemType = newItemType;
 
                     // Optimistically update identifier w/ supplied identifier.
-                    offerItem.identifierOrCriteria = criteriaResolver.identifier;
+                    offerItem.identifierOrCriteria = criteriaResolver
+                        .identifier;
                 } else {
                     // Otherwise, the resolver refers to a consideration item.
                     ConsiderationItem[] memory consideration = (
@@ -117,9 +118,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     );
 
                     // Ensure that the component index is in range.
-                    if (
-                        componentIndex >= consideration.length
-                    ) {
+                    if (componentIndex >= consideration.length) {
                         revert ConsiderationCriteriaResolverOutOfRange();
                     }
 
@@ -200,9 +199,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 for (uint256 j = 0; j < totalItems; ++j) {
                     // Ensure item type no longer indicates criteria usage.
                     if (
-                        _isItemWithCriteria(
-                            orderParameters.offer[j].itemType
-                        )
+                        _isItemWithCriteria(orderParameters.offer[j].itemType)
                     ) {
                         revert UnresolvedOfferCriteria();
                     }
