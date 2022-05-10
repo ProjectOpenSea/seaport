@@ -16,7 +16,7 @@ import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 contract FulfillOrderTest is BaseOrderTest {
     struct ToErc721Struct {
         address zone;
-        uint256 id;
+        uint128 id;
         bytes32 zoneHash;
         uint256 salt;
         uint128[3] paymentAmts;
@@ -25,7 +25,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
     struct ToErc1155Struct {
         address zone;
-        uint256 id;
+        uint128 id;
         uint256 erc1155Amt;
         bytes32 zoneHash;
         uint256 salt;
@@ -35,7 +35,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
     struct ToErc721WithSingleTipStruct {
         address zone;
-        uint256 id;
+        uint128 id;
         bytes32 zoneHash;
         uint256 salt;
         uint128[3] paymentAmts;
@@ -45,7 +45,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
     struct ToErc721WithMultipleTipsStruct {
         address zone;
-        uint256 id;
+        uint128 id;
         bytes32 zoneHash;
         uint256 salt;
         uint128[3] paymentAmts;
@@ -55,7 +55,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
     struct ToErc1155WithSingleTipStruct {
         address zone;
-        uint256 id;
+        uint128 id;
         uint256 erc1155Amt;
         bytes32 zoneHash;
         uint256 salt;
@@ -66,7 +66,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
     struct ToErc1155WithMultipleTipsStruct {
         address zone;
-        uint256 id;
+        uint128 id;
         uint256 erc1155Amt;
         bytes32 zoneHash;
         uint256 salt;
@@ -814,7 +814,7 @@ contract FulfillOrderTest is BaseOrderTest {
     {
         vm.assume(
             testStruct.args.numberOfTips > 1 &&
-                testStruct.args.numberOfTips < 256
+                testStruct.args.numberOfTips < 64
         );
         vm.assume(
             testStruct.args.paymentAmts[0] > 0 &&
@@ -945,7 +945,7 @@ contract FulfillOrderTest is BaseOrderTest {
     {
         vm.assume(
             testStruct.args.numberOfTips > 1 &&
-                testStruct.args.numberOfTips < 256
+                testStruct.args.numberOfTips < 64
         );
         vm.assume(testStruct.args.erc1155Amt > 0);
         vm.assume(
@@ -1079,7 +1079,7 @@ contract FulfillOrderTest is BaseOrderTest {
     {
         vm.assume(
             testStruct.args.numberOfTips > 0 &&
-                testStruct.args.numberOfTips < 256
+                testStruct.args.numberOfTips < 64
         );
         vm.assume(
             testStruct.args.paymentAmts[0] > 0 &&
@@ -1204,7 +1204,7 @@ contract FulfillOrderTest is BaseOrderTest {
     {
         vm.assume(
             testStruct.args.numberOfTips > 1 &&
-                testStruct.args.numberOfTips < 256
+                testStruct.args.numberOfTips < 64
         );
         vm.assume(testStruct.args.erc1155Amt > 0);
         vm.assume(
@@ -1331,7 +1331,7 @@ contract FulfillOrderTest is BaseOrderTest {
     {
         vm.assume(
             testStruct.args.numberOfTips > 0 &&
-                testStruct.args.numberOfTips < 256
+                testStruct.args.numberOfTips < 64
         );
         vm.assume(
             testStruct.args.paymentAmts[0] > 0 &&
@@ -1409,15 +1409,19 @@ contract FulfillOrderTest is BaseOrderTest {
             testStruct.consideration.getOrderHash(orderComponents)
         );
 
-        for (uint128 i = 1; i < testStruct.args.numberOfTips + 1; i++) {
+        for (
+            uint256 i = 1;
+            i < testStruct.args.numberOfTips + uint256(1);
+            i++
+        ) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
-            test1155_1.mint(address(this), testStruct.args.id + i, i);
+            test1155_1.mint(address(this), testStruct.args.id + uint256(i), i);
             considerationItems.push(
                 ConsiderationItem(
                     ItemType.ERC1155,
                     address(test1155_1),
-                    testStruct.args.id + i,
+                    testStruct.args.id + uint256(i),
                     i,
                     i,
                     payable(tipAddr)
