@@ -8,8 +8,8 @@ import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } f
 import { DSTestPlusPlus } from "./DSTestPlusPlus.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 
-import { ReferenceConduitController } from "../../../reference-working/conduit/ReferenceConduitController.sol";
-import { ReferenceConsideration } from "../../../reference-working/ReferenceConsideration.sol";
+// import { ReferenceConduitController } from "../../../reference-working/conduit/ReferenceConduitController.sol";
+// import { ReferenceConsideration } from "../../../reference-working/ReferenceConsideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is DSTestPlusPlus {
@@ -44,45 +44,45 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         emit log_named_address("Deployed conduit at", conduit);
     }
 
-    function _deployAndConfigureReferenceConsideration() public {
-        referenceConduitController = ConduitController(
-            address(new ReferenceConduitController())
-        );
-        referenceConsideration = Consideration(
-            address(
-                new ReferenceConsideration(address(referenceConduitController))
-            )
-        );
-        referenceConduit = referenceConduitController.createConduit(
-            conduitKeyOne,
-            address(this)
-        );
-        referenceConduitController.updateChannel(
-            referenceConduit,
-            address(referenceConsideration),
-            true
-        );
+    // function _deployAndConfigureReferenceConsideration() public {
+    //     referenceConduitController = ConduitController(
+    //         address(new ReferenceConduitController())
+    //     );
+    //     referenceConsideration = Consideration(
+    //         address(
+    //             new ReferenceConsideration(address(referenceConduitController))
+    //         )
+    //     );
+    //     referenceConduit = referenceConduitController.createConduit(
+    //         conduitKeyOne,
+    //         address(this)
+    //     );
+    //     referenceConduitController.updateChannel(
+    //         referenceConduit,
+    //         address(referenceConsideration),
+    //         true
+    //     );
 
-        vm.label(
-            address(referenceConduitController),
-            "referenceConduitController"
-        );
-        vm.label(address(referenceConsideration), "referenceConsideration");
-        vm.label(referenceConduit, "referenceConduit");
+    //     vm.label(
+    //         address(referenceConduitController),
+    //         "referenceConduitController"
+    //     );
+    //     vm.label(address(referenceConsideration), "referenceConsideration");
+    //     vm.label(referenceConduit, "referenceConduit");
 
-        emit log_named_address(
-            "Deployed referenceConduitController at",
-            address(referenceConduitController)
-        );
-        emit log_named_address(
-            "Deployed referenceConsideration at",
-            address(referenceConsideration)
-        );
-        emit log_named_address(
-            "Deployed referenceConduit at",
-            referenceConduit
-        );
-    }
+    //     emit log_named_address(
+    //         "Deployed referenceConduitController at",
+    //         address(referenceConduitController)
+    //     );
+    //     emit log_named_address(
+    //         "Deployed referenceConsideration at",
+    //         address(referenceConsideration)
+    //     );
+    //     emit log_named_address(
+    //         "Deployed referenceConduit at",
+    //         referenceConduit
+    //     );
+    // }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
     function _deployAndConfigurePrecompiledOptimizedConsideration() public {
@@ -196,9 +196,9 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         conduitKeyOne = bytes32(uint256(uint160(address(this))));
         vm.label(address(this), "testContract");
         _deployAndConfigurePrecompiledOptimizedConsideration();
-        // _deployAndConfigurePrecompiledReferenceConsideration();
+        _deployAndConfigurePrecompiledReferenceConsideration();
         // for local testing with stacktraces
-        _deployAndConfigureReferenceConsideration();
+        // _deployAndConfigureReferenceConsideration();
     }
 
     function singleOfferItem(
