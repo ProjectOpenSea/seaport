@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-import { OrderType, ItemType, Side } from "contracts/lib/ConsiderationEnums.sol";
+// prettier-ignore
+import {
+    OrderType,
+    ItemType,
+    Side
+} from "contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -21,7 +26,12 @@ import {
     BatchExecution
 } from "contracts/lib/ConsiderationStructs.sol";
 
-import { ConsiderationItemIndicesAndValidity, OrderToExecute, FractionData } from "./ReferenceConsiderationStructs.sol";
+// prettier-ignore
+import {
+    ConsiderationItemIndicesAndValidity,
+    OrderToExecute,
+    FractionData
+} from "./ReferenceConsiderationStructs.sol";
 
 import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
 
@@ -39,6 +49,12 @@ import {
     AmountDerivationErrors
 } from "contracts/interfaces/AmountDerivationErrors.sol";
 
+// prettier-ignore
+import {
+    FulfillmentApplicationErrors
+} from "contracts/interfaces/FulfillmentApplicationErrors.sol";
+
+
 /**
  * @title ReferenceConsiderationPure
  * @author 0age
@@ -47,7 +63,8 @@ import {
 contract ReferenceConsiderationPure is
     ReferenceConsiderationBase,
     CriteriaResolutionErrors,
-    AmountDerivationErrors
+    AmountDerivationErrors,
+    FulfillmentApplicationErrors
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
