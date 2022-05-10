@@ -1,27 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-// prettier-ignore
-import {
-    OfferItem,
-    ConsiderationItem,
-    OrderParameters,
-    Order,
-    AdvancedOrder
-} from "./ConsiderationStructs.sol";
+import { OrderParameters } from "./ConsiderationStructs.sol";
 
-import { ConsiderationPure } from "./ConsiderationPure.sol";
-
-import { SignatureVerification } from "./SignatureVerification.sol";
+import { ConsiderationBase } from "./ConsiderationBase.sol";
 
 import "./ConsiderationConstants.sol";
 
 /**
- * @title ConsiderationInternalView
+ * @title GettersAndDerivers
  * @author 0age
- * @notice ConsiderationInternal contains all internal view functions.
+ * @notice ConsiderationInternal contains pure and internal view functions
+ *         related to getting or deriving various values.
  */
-contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
+contract GettersAndDerivers is ConsiderationBase {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
@@ -31,93 +23,8 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
      *                          ERC20/721/1155 tokens.
      */
     constructor(address conduitController)
-        ConsiderationPure(conduitController)
+        ConsiderationBase(conduitController)
     {}
-
-    /**
-     * @dev Internal view function to ensure that the sentinel value for the
-            reentrancy guard is not currently set.
-     */
-    function _assertNonReentrant() internal view {
-        // Ensure that the reentrancy guard is not currently set.
-        if (_reentrancyGuard != _NOT_ENTERED) {
-            revert NoReentrantCalls();
-        }
-    }
-
-    /**
-     * @dev Internal view function to ensure that the current time falls within
-     *      an order's valid timespan.
-     *
-     * @param startTime       The time at which the order becomes active.
-     * @param endTime         The time at which the order becomes inactive.
-     * @param revertOnInvalid A boolean indicating whether to revert if the
-     *                        order is not active.
-     *
-     * @return valid A boolean indicating whether the order is active.
-     */
-    function _verifyTime(
-        uint256 startTime,
-        uint256 endTime,
-        bool revertOnInvalid
-    ) internal view returns (bool valid) {
-        // Revert if order's timespan hasn't started yet or has already ended.
-        if (startTime > block.timestamp || endTime <= block.timestamp) {
-            // Only revert if revertOnInvalid has been supplied as true.
-            if (revertOnInvalid) {
-                revert InvalidTime();
-            }
-
-            // Return false as the order is invalid.
-            return false;
-        }
-
-        // Return true as the order time is valid.
-        valid = true;
-    }
-
-    /**
-     * @dev Internal view function to verify the signature of an order. An
-     *      ERC-1271 fallback will be attempted if either the signature length
-     *      is not 32 or 33 bytes or if the recovered signer does not match the
-     *      supplied offerer. Note that in cases where a 32 or 33 byte signature
-     *      is supplied, only standard ECDSA signatures that recover to a
-     *      non-zero address are supported.
-     *
-     * @param offerer   The offerer for the order.
-     * @param orderHash The order hash.
-     * @param signature A signature from the offerer indicating that the order
-     *                  has been approved.
-     */
-    function _verifySignature(
-        address offerer,
-        bytes32 orderHash,
-        bytes memory signature
-    ) internal view {
-        // Skip signature verification if the offerer is the caller.
-        if (offerer == msg.sender) {
-            return;
-        }
-
-        // Derive EIP-712 digest using the domain separator and the order hash.
-        bytes32 digest = _hashDigest(_domainSeparator(), orderHash);
-
-        // Ensure that the signature for the digest is valid for the offerer.
-        _assertValidSignature(offerer, digest, signature);
-    }
-
-    /**
-     * @dev Internal view function to get the EIP-712 domain separator. If the
-     *      chainId matches the chainId set on deployment, the cached domain
-     *      separator will be returned; otherwise, it will be derived from
-     *      scratch.
-     */
-    function _domainSeparator() internal view returns (bytes32) {
-        // prettier-ignore
-        return block.chainid == _CHAIN_ID
-            ? _DOMAIN_SEPARATOR
-            : _deriveDomainSeparator();
-    }
 
     /**
      * @dev Internal view function to derive the order hash for a given order.
@@ -130,7 +37,7 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
      *
      * @return orderHash The hash.
      */
-    function _getOrderHash(
+    function _deriveOrderHash(
         OrderParameters memory orderParameters,
         uint256 nonce
     ) internal view returns (bytes32 orderHash) {
@@ -316,30 +223,6 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
     }
 
     /**
-     * @dev Internal view function to to ensure that the supplied consideration
-     *      array length on a given set of order parameters is not less than the
-     *      original consideration array length for that order and to retrieve
-     *      the current nonce for a given order's offerer and zone and use it to
-     *      derive the order hash.
-     *
-     * @param orderParameters The parameters of the order to hash.
-     *
-     * @return The hash.
-     */
-    function _assertConsiderationLengthAndGetNoncedOrderHash(
-        OrderParameters memory orderParameters
-    ) internal view returns (bytes32) {
-        // Ensure supplied consideration array length is not less than original.
-        _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
-            orderParameters.consideration.length,
-            orderParameters.totalOriginalConsiderationItems
-        );
-
-        // Derive and return order hash using current nonce for the offerer.
-        return _getOrderHash(orderParameters, _nonces[orderParameters.offerer]);
-    }
-
-    /**
      * @dev Internal view function to derive the address of a given conduit
      *      using a corresponding conduit key.
      *
@@ -396,6 +279,19 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
     }
 
     /**
+     * @dev Internal view function to get the EIP-712 domain separator. If the
+     *      chainId matches the chainId set on deployment, the cached domain
+     *      separator will be returned; otherwise, it will be derived from
+     *      scratch.
+     */
+    function _domainSeparator() internal view returns (bytes32) {
+        // prettier-ignore
+        return block.chainid == _CHAIN_ID
+            ? _DOMAIN_SEPARATOR
+            : _deriveDomainSeparator();
+    }
+
+    /**
      * @dev Internal view function to retrieve configuration information for
      *      this contract.
      *
@@ -439,6 +335,42 @@ contract ConsiderationInternalView is ConsiderationPure, SignatureVerification {
             mstore(OneWord, Name_length) // Second element is the length.
             mstore(TwoWords, Name) // Third element is the data.
             return(0, ThreeWords) // Return all three words.
+        }
+    }
+
+    /**
+     * @dev Internal pure function to efficiently derive an digest to sign for
+     *      an order in accordance with EIP-712.
+     *
+     * @param domainSeparator The domain separator.
+     * @param orderHash       The order hash.
+     *
+     * @return value The hash.
+     */
+    function _deriveEIP712Digest(bytes32 domainSeparator, bytes32 orderHash)
+        internal
+        pure
+        returns (bytes32 value)
+    {
+        // Leverage scratch space to perform an efficient hash.
+        assembly {
+            // Place the EIP-712 prefix at the start of scratch space.
+            mstore(0, EIP_712_PREFIX)
+
+            // Place the domain separator in the next region of scratch space.
+            mstore(EIP712_DomainSeparator_offset, domainSeparator)
+
+            // Place the order hash in scratch space, spilling into the first
+            // two bytes of the free memory pointer — this should never be set
+            // as memory cannot be expanded to that size, and will be zeroed out
+            // after the hash is performed.
+            mstore(EIP712_OrderHash_offset, orderHash)
+
+            // Hash the relevant region (65 bytes).
+            value := keccak256(0, EIP712_DigestPayload_size)
+
+            // Clear out the dirtied bits in the memory pointer.
+            mstore(EIP712_OrderHash_offset, 0)
         }
     }
 }
