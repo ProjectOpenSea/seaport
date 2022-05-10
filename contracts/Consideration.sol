@@ -532,7 +532,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     {
         // Derive order hash by supplying order parameters along with the nonce.
         // prettier-ignore
-        return _getOrderHash(
+        return _deriveOrderHash(
             OrderParameters(
                 order.offerer,
                 order.zone,

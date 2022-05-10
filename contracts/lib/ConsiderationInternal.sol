@@ -10,8 +10,6 @@ import {
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
-import { ProxyInterface } from "../interfaces/AbridgedProxyInterfaces.sol";
-
 // prettier-ignore
 import {
     Side,
@@ -19,8 +17,6 @@ import {
     ItemType,
     BasicOrderRouteType
 } from "./ConsiderationEnums.sol";
-
-import { TokenTransferrer } from "./TokenTransferrer.sol";
 
 // prettier-ignore
 import {
@@ -43,7 +39,9 @@ import {
     BatchExecution
 } from "./ConsiderationStructs.sol";
 
-import { ConsiderationInternalView } from "./ConsiderationInternalView.sol";
+import { Verifiers } from "./Verifiers.sol";
+
+import { TokenTransferrer } from "./TokenTransferrer.sol";
 
 import { CriteriaResolution } from "./CriteriaResolution.sol";
 
@@ -55,6 +53,8 @@ import { ZoneInteraction } from "./ZoneInteraction.sol";
 
 import { ExecutionCompression } from "./ExecutionCompression.sol";
 
+import { GenericHelpers } from "./GenericHelpers.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -63,25 +63,25 @@ import "./ConsiderationConstants.sol";
  * @notice ConsiderationInternal contains all internal functions.
  */
 contract ConsiderationInternal is
-    ConsiderationInternalView,
+    Verifiers,
     TokenTransferrer,
     CriteriaResolution,
     AmountDeriver,
     FulfillmentApplier,
     ZoneInteraction,
-    ExecutionCompression
+    ExecutionCompression,
+    GenericHelpers
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
-     * @param conduitController           A contract that deploys conduits, or
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC20+721+1155
-     *                                    tokens.
+     * @param conduitController A contract that deploys conduits, or proxies
+     *                          that may optionally be used to transfer approved
+     *                          ERC20/721/1155 tokens.
      */
     constructor(address conduitController)
-        ConsiderationInternalView(conduitController)
+        Verifiers(conduitController)
     {}
 
     /**
@@ -2879,7 +2879,7 @@ contract ConsiderationInternal is
                 }
 
                 // Derive order hash using the order parameters and the nonce.
-                bytes32 orderHash = _getOrderHash(
+                bytes32 orderHash = _deriveOrderHash(
                     OrderParameters(
                         offerer,
                         zone,
