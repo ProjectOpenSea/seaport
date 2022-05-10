@@ -162,12 +162,6 @@ interface ConsiderationEventsAndErrors {
     error BadFraction();
 
     /**
-     * @dev Revert with an error when a caller attempts to reenter a protected
-     *      function.
-     */
-    error NoReentrantCalls();
-
-    /**
      * @dev Revert with an error when a caller attempts to supply callvalue to a
      *      non-payable basic order route or does not supply any callvalue to a
      *      payable basic order route.

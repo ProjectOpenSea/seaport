@@ -13,13 +13,18 @@ import {
 
 import { OrderStatus } from "contracts/lib/ConsiderationStructs.sol";
 
+import { ReentrancyErrors } from "contracts/interfaces/ReentrancyErrors.sol";
+
 /**
  * @title ConsiderationBase
  * @author 0age
  * @notice ConsiderationBase contains all storage, constants, and constructor
  *         logic.
  */
-contract ReferenceConsiderationBase is ConsiderationEventsAndErrors {
+contract ReferenceConsiderationBase is
+    ConsiderationEventsAndErrors,
+    ReentrancyErrors
+{
     // Declare constants for name, version, and reentrancy sentinel values.
     string internal constant _NAME = "Consideration";
     string internal constant _VERSION = "rc.1";

@@ -579,15 +579,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         )
     {
         // Retrieve the order status using the order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-        // Return the fields on the order status.
-        return (
-            orderStatus.isValidated,
-            orderStatus.isCancelled,
-            orderStatus.numerator,
-            orderStatus.denominator
-        );
+        return _getOrderStatus(orderHash);
     }
 
     /**
