@@ -343,3 +343,7 @@ uint256 constant MaskOverByteTwelve = (
 uint256 constant MaskOverLastTwentyBytes = (
     0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
 );
+
+uint256 constant Conduit_executeWithBatch1155_signature = (
+    0x899e104c00000000000000000000000000000000000000000000000000000000
+);

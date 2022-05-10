@@ -12,6 +12,12 @@ interface TokenTransferrerErrors {
     error InvalidERC721TransferAmount();
 
     /**
+     * @dev Revert with an error when attempting to fulfill an order where an
+     *      item has an amount of zero.
+     */
+    error MissingItemAmount();
+
+    /**
      * @dev Revert with an error when an ERC20, ERC721, or ERC1155 token
      *      transfer reverts.
      *

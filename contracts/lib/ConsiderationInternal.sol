@@ -53,6 +53,8 @@ import { FulfillmentApplier } from "./FulfillmentApplier.sol";
 
 import { ZoneInteraction } from "./ZoneInteraction.sol";
 
+import { ExecutionCompression } from "./ExecutionCompression.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -66,7 +68,8 @@ contract ConsiderationInternal is
     CriteriaResolution,
     AmountDeriver,
     FulfillmentApplier,
-    ZoneInteraction
+    ZoneInteraction,
+    ExecutionCompression
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
@@ -2199,8 +2202,10 @@ contract ConsiderationInternal is
 
         // Skip overflow check as for loop is indexed starting at zero.
         unchecked {
+            uint256 totalBatchExecutions = batchExecutions.length;
+            
             // Iterate over each batch execution.
-            for (uint256 i = 0; i < batchExecutions.length; ++i) {
+            for (uint256 i = 0; i < totalBatchExecutions; ++i) {
                 // Perform the batch transfer.
                 _batchTransferERC1155(batchExecutions[i]);
             }
@@ -2554,7 +2559,7 @@ contract ConsiderationInternal is
         assembly {
             // Call begins at third word; the first is length or "armed" status,
             // and the second is the current conduit key.
-            callDataOffset := add(accumulator, 0x40)
+            callDataOffset := add(accumulator, TwoWords)
 
             // 68 + items * 192
             callDataSize := add(0x44, mul(mload(add(accumulator, 0x64)), 0xc0))

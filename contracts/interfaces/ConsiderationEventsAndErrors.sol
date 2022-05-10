@@ -185,10 +185,4 @@ interface ConsiderationEventsAndErrors {
      *      available orders when none are fulfillable.
      */
     error NoSpecifiedOrdersAvailable();
-
-    /**
-     * @dev Revert with an error when attempting to fulfill an order where an
-     *      item has an amount of zero.
-     */
-    error MissingItemAmount();
 }
