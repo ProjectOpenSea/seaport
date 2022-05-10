@@ -39,15 +39,13 @@ import {
     BatchExecution
 } from "./ConsiderationStructs.sol";
 
-import { Executor } from "./Executor.sol";
+import { OrderValidator } from "./OrderValidator.sol";
 
 import { CriteriaResolution } from "./CriteriaResolution.sol";
 
 import { AmountDeriver } from "./AmountDeriver.sol";
 
 import { FulfillmentApplier } from "./FulfillmentApplier.sol";
-
-import { ZoneInteraction } from "./ZoneInteraction.sol";
 
 import { ExecutionCompression } from "./ExecutionCompression.sol";
 
@@ -63,14 +61,12 @@ import "./ConsiderationConstants.sol";
  * @notice ConsiderationInternal contains all internal functions.
  */
 contract ConsiderationInternal is
-    Executor,
+    OrderValidator,
     CriteriaResolution,
     AmountDeriver,
     FulfillmentApplier,
-    ZoneInteraction,
     ExecutionCompression,
-    GenericHelpers,
-    ReentrancyGuard
+    GenericHelpers
 {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
@@ -80,7 +76,7 @@ contract ConsiderationInternal is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) Executor(conduitController) {}
+    constructor(address conduitController) OrderValidator(conduitController) {}
 
     /**
      * @dev Internal function to fulfill an order offering an ERC20, ERC721, or
@@ -963,211 +959,6 @@ contract ConsiderationInternal is
             parameters.offerer,
             parameters.signature
         );
-    }
-
-    /**
-     * @dev Internal function to verify and update the status of a basic order.
-     *
-     * @param orderHash The hash of the order.
-     * @param offerer   The offerer of the order.
-     * @param signature A signature from the offerer indicating that the order
-     *                  has been approved.
-     */
-    function _validateBasicOrderAndUpdateStatus(
-        bytes32 orderHash,
-        address offerer,
-        bytes memory signature
-    ) internal {
-        // Retrieve the order status for the given order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-        // Ensure order is fillable and is not cancelled.
-        _verifyOrderStatus(
-            orderHash,
-            orderStatus,
-            true, // Only allow unused orders when fulfilling basic orders.
-            true // Signifies to revert if the order is invalid.
-        );
-
-        // If the order is not already validated, verify the supplied signature.
-        if (!orderStatus.isValidated) {
-            _verifySignature(offerer, orderHash, signature);
-        }
-
-        // Update order status as fully filled, packing struct values.
-        _orderStatus[orderHash].isValidated = true;
-        _orderStatus[orderHash].isCancelled = false;
-        _orderStatus[orderHash].numerator = 1;
-        _orderStatus[orderHash].denominator = 1;
-    }
-
-    /**
-     * @dev Internal function to validate an order, determine what portion to
-     *      fill, and update its status. The desired fill amount is supplied as
-     *      a fraction, as is the returned amount to fill.
-     *
-     * @param advancedOrder    The order to fulfill as well as the fraction to
-     *                         fill. Note that all offer and consideration
-     *                         amounts must divide with no remainder in order
-     *                         for a partial fill to be valid.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific offer or consideration, a token
-     *                          identifier, and a proof that the supplied token
-     *                          identifier is contained in the order's merkle
-     *                          root. Note that a criteria of zero indicates
-     *                          that any (transferrable) token identifier is
-     *                          valid and that no proof needs to be supplied.
-     * @param revertOnInvalid  A boolean indicating whether to revert if the
-     *                         order is invalid due to the time or order status.
-     * @param priorOrderHashes The order hashes of each order supplied prior to
-     *                         the current order as part of a "match" variety of
-     *                         order fulfillment (e.g. this array will be empty
-     *                         for single or "fulfill available").
-     *
-     * @return orderHash      The order hash.
-     * @return newNumerator   A value indicating the portion of the order that
-     *                        will be filled.
-     * @return newDenominator A value indicating the total size of the order.
-     */
-    function _validateOrderAndUpdateStatus(
-        AdvancedOrder memory advancedOrder,
-        CriteriaResolver[] memory criteriaResolvers,
-        bool revertOnInvalid,
-        bytes32[] memory priorOrderHashes
-    )
-        internal
-        returns (
-            bytes32 orderHash,
-            uint256 newNumerator,
-            uint256 newDenominator
-        )
-    {
-        // Retrieve the parameters for the order.
-        OrderParameters memory orderParameters = advancedOrder.parameters;
-
-        // Ensure current timestamp falls between order start time and end time.
-        if (
-            !_verifyTime(
-                orderParameters.startTime,
-                orderParameters.endTime,
-                revertOnInvalid
-            )
-        ) {
-            // Assuming an invalid time and no revert, return zeroed out values.
-            return (bytes32(0), 0, 0);
-        }
-
-        // Read numerator and denominator from memory and place on the stack.
-        uint256 numerator = uint256(advancedOrder.numerator);
-        uint256 denominator = uint256(advancedOrder.denominator);
-
-        // Ensure that the supplied numerator and denominator are valid.
-        if (numerator > denominator || numerator == 0) {
-            revert BadFraction();
-        }
-
-        // If attempting partial fill (n < d) check order type & ensure support.
-        if (
-            numerator < denominator &&
-            _doesNotSupportPartialFills(orderParameters.orderType)
-        ) {
-            // Revert if partial fill was attempted on an unsupported order.
-            revert PartialFillsNotEnabledForOrder();
-        }
-
-        // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
-            orderParameters
-        );
-
-        // Ensure restricted orders have a valid submitter or pass a zone check.
-        _assertRestrictedAdvancedOrderValidity(
-            advancedOrder,
-            criteriaResolvers,
-            priorOrderHashes,
-            orderHash,
-            orderParameters.zoneHash,
-            orderParameters.orderType,
-            orderParameters.offerer,
-            orderParameters.zone
-        );
-
-        // Retrieve the order status using the derived order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-        // Ensure order is fillable and is not cancelled.
-        if (
-            !_verifyOrderStatus(
-                orderHash,
-                orderStatus,
-                false, // Allow partially used orders to be filled.
-                revertOnInvalid
-            )
-        ) {
-            // Assuming an invalid order status and no revert, return zero fill.
-            return (orderHash, 0, 0);
-        }
-
-        // If the order is not already validated, verify the supplied signature.
-        if (!orderStatus.isValidated) {
-            _verifySignature(
-                orderParameters.offerer,
-                orderHash,
-                advancedOrder.signature
-            );
-        }
-
-        // Read filled amount as numerator and denominator and put on the stack.
-        uint256 filledNumerator = orderStatus.numerator;
-        uint256 filledDenominator = orderStatus.denominator;
-
-        // If order currently has a non-zero denominator it is partially filled.
-        if (filledDenominator != 0) {
-            // If denominator of 1 supplied, fill all remaining amount on order.
-            if (denominator == 1) {
-                // Scale numerator & denominator to match current denominator.
-                numerator = filledDenominator;
-                denominator = filledDenominator;
-            }
-            // Otherwise, if supplied denominator differs from current one...
-            else if (filledDenominator != denominator) {
-                // scale current numerator by the supplied denominator, then...
-                filledNumerator *= denominator;
-
-                // the supplied numerator & denominator by current denominator.
-                numerator *= filledDenominator;
-                denominator *= filledDenominator;
-            }
-
-            // Once adjusted, if current+supplied numerator exceeds denominator:
-            if (filledNumerator + numerator > denominator) {
-                // Skip underflow check: denominator >= orderStatus.numerator
-                unchecked {
-                    // Reduce current numerator so it + supplied = denominator.
-                    numerator = denominator - filledNumerator;
-                }
-            }
-
-            // Skip overflow check: checked above unless numerator is reduced.
-            unchecked {
-                // Update order status and fill amount, packing struct values.
-                _orderStatus[orderHash].isValidated = true;
-                _orderStatus[orderHash].isCancelled = false;
-                _orderStatus[orderHash].numerator = uint120(
-                    filledNumerator + numerator
-                );
-                _orderStatus[orderHash].denominator = uint120(denominator);
-            }
-        } else {
-            // Update order status and fill amount, packing struct values.
-            _orderStatus[orderHash].isValidated = true;
-            _orderStatus[orderHash].isCancelled = false;
-            _orderStatus[orderHash].numerator = uint120(numerator);
-            _orderStatus[orderHash].denominator = uint120(denominator);
-        }
-
-        // Return order hash, a modified numerator, and a modified denominator.
-        return (orderHash, numerator, denominator);
     }
 
     /**
@@ -2363,151 +2154,6 @@ contract ConsiderationInternal is
 
         // Clear the reentrancy guard.
         _clearReentrancyGuard();
-    }
-
-    /**
-     * @dev Internal function to cancel an arbitrary number of orders. Note that
-     *      only the offerer or the zone of a given order may cancel it.
-     *
-     * @param orders The orders to cancel.
-     *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully cancelled.
-     */
-    function _cancel(OrderComponents[] calldata orders)
-        internal
-        returns (bool)
-    {
-        // Ensure that the reentrancy guard is not currently set.
-        _assertNonReentrant();
-
-        address offerer;
-        address zone;
-
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Read length of the orders array from memory and place on stack.
-            uint256 totalOrders = orders.length;
-
-            // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ) {
-                // Retrieve the order.
-                OrderComponents calldata order = orders[i];
-
-                offerer = order.offerer;
-                zone = order.zone;
-
-                // Ensure caller is either offerer or zone of the order.
-                if (msg.sender != offerer && msg.sender != zone) {
-                    revert InvalidCanceller();
-                }
-
-                // Derive order hash using the order parameters and the nonce.
-                bytes32 orderHash = _deriveOrderHash(
-                    OrderParameters(
-                        offerer,
-                        zone,
-                        order.offer,
-                        order.consideration,
-                        order.orderType,
-                        order.startTime,
-                        order.endTime,
-                        order.zoneHash,
-                        order.salt,
-                        order.conduitKey,
-                        order.consideration.length
-                    ),
-                    order.nonce
-                );
-
-                // Update the order status as not valid and cancelled.
-                _orderStatus[orderHash].isValidated = false;
-                _orderStatus[orderHash].isCancelled = true;
-
-                // Emit an event signifying that the order has been cancelled.
-                emit OrderCancelled(orderHash, offerer, zone);
-
-                // Increment counter inside body of loop for gas efficiency.
-                ++i;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * @dev Internal function to validate an arbitrary number of orders, thereby
-     *      registering them as valid and allowing the fulfiller to skip
-     *      verification. Note that anyone can validate a signed order but only
-     *      the offerer can validate an order without supplying a signature.
-     *
-     * @param orders The orders to validate.
-     *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully validated.
-     */
-    function _validate(Order[] calldata orders) internal returns (bool) {
-        // Ensure that the reentrancy guard is not currently set.
-        _assertNonReentrant();
-
-        // Declare variables outside of the loop.
-        bytes32 orderHash;
-        address offerer;
-
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Read length of the orders array from memory and place on stack.
-            uint256 totalOrders = orders.length;
-
-            // Iterate over each order.
-            for (uint256 i = 0; i < totalOrders; ) {
-                // Retrieve the order.
-                Order calldata order = orders[i];
-
-                // Retrieve the order parameters.
-                OrderParameters calldata orderParameters = order.parameters;
-
-                // Move offerer from memory to the stack.
-                offerer = orderParameters.offerer;
-
-                // Get current nonce and use it w/ params to derive order hash.
-                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
-                    orderParameters
-                );
-
-                // Retrieve the order status using the derived order hash.
-                OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-                // Ensure order is fillable and retrieve the filled amount.
-                _verifyOrderStatus(
-                    orderHash,
-                    orderStatus,
-                    false, // Signifies that partially filled orders are valid.
-                    true // Signifies to revert if the order is invalid.
-                );
-
-                // If the order has not already been validated...
-                if (!orderStatus.isValidated) {
-                    // Verify the supplied signature.
-                    _verifySignature(offerer, orderHash, order.signature);
-
-                    // Update order status to mark the order as valid.
-                    _orderStatus[orderHash].isValidated = true;
-
-                    // Emit an event signifying the order has been validated.
-                    emit OrderValidated(
-                        orderHash,
-                        offerer,
-                        orderParameters.zone
-                    );
-                }
-
-                // Increment counter inside body of the loop for gas efficiency.
-                ++i;
-            }
-        }
-
-        return true;
     }
 
     /**

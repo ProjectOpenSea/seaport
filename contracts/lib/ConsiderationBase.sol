@@ -38,9 +38,6 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Cache the conduit creation code hash used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
 
-    // Track status of each order (validated, cancelled, and fraction filled).
-    mapping(bytes32 => OrderStatus) internal _orderStatus;
-
     // Cancel all of a given offerer's orders signed with their current nonce.
     mapping(address => uint256) internal _nonces;
 
