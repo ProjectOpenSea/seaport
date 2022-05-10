@@ -21,7 +21,7 @@ import {
     BatchExecution
 } from "contracts/lib/ConsiderationStructs.sol";
 
-import { ConsiderationItemIndicesAndValidity, OrderToExecute } from "./ReferenceConsiderationStructs.sol";
+import { ConsiderationItemIndicesAndValidity, OrderToExecute, FractionData } from "./ReferenceConsiderationStructs.sol";
 
 import { ZoneInterface } from "contracts/interfaces/ZoneInterface.sol";
 
@@ -741,36 +741,44 @@ contract ReferenceConsiderationPure is
      *
      * @param startAmount     The starting amount of the item.
      * @param endAmount       The ending amount of the item.
-     * @param numerator       A value indicating the portion of the order that
+     * @param fractionData    A value indicating the portion of the order that
      *                        should be filled.
-     * @param denominator     A value indicating the total size of the order.
-     * @param elapsed         The time elapsed since the order's start time.
-     * @param remaining       The time left until the order's end time.
-     * @param duration        The total duration of the order.
+     *  denominator           A value indicating the total size of the order.
+     *  elapsed               The time elapsed since the order's start time.
+     *  remaining             The time left until the order's end time.
+     *  duration              The total duration of the order.
      *
      * @return amount The received item to transfer with the final amount.
      */
     function _applyFraction(
         uint256 startAmount,
         uint256 endAmount,
-        uint256 numerator,
-        uint256 denominator,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration,
+        FractionData memory fractionData,
         bool roundUp
     ) internal pure returns (uint256 amount) {
         // If start amount equals end amount, apply fraction to end amount.
         if (startAmount == endAmount) {
-            amount = _getFraction(numerator, denominator, endAmount);
+            amount = _getFraction(
+                fractionData.numerator,
+                fractionData.denominator,
+                endAmount
+            );
         } else {
             // Otherwise, apply fraction to both to extrapolate final amount.
             amount = _locateCurrentAmount(
-                _getFraction(numerator, denominator, startAmount),
-                _getFraction(numerator, denominator, endAmount),
-                elapsed,
-                remaining,
-                duration,
+                _getFraction(
+                    fractionData.numerator,
+                    fractionData.denominator,
+                    startAmount
+                ),
+                _getFraction(
+                    fractionData.numerator,
+                    fractionData.denominator,
+                    endAmount
+                ),
+                fractionData.elapsed,
+                fractionData.remaining,
+                fractionData.duration,
                 roundUp
             );
         }

@@ -1123,6 +1123,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
 
     reenterer = await deployContract("Reenterer", owner);
+
     if (process.env.REFERENCE) {
       conduitImplementation = await ethers.getContractFactory(
         "ReferenceConduit"
@@ -4278,7 +4279,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             getTestItem20(1, 1, zone.address),
           ];
 
-          for (let i = 1; i <= 100; ++i) {
+          for (let i = 1; i <= 50; ++i) {
             consideration.push(
               getTestItem20(i, i, toAddress(parseInt(i) + 10000))
             );
