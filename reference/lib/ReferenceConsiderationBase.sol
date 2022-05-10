@@ -3,12 +3,6 @@ pragma solidity 0.8.7;
 
 // prettier-ignore
 import {
-    ProxyRegistryInterface,
-    TokenTransferProxyInterface
-} from "contracts/interfaces/AbridgedProxyInterfaces.sol";
-
-// prettier-ignore
-import {
     ConduitControllerInterface
 } from "contracts/interfaces/ConduitControllerInterface.sol";
 

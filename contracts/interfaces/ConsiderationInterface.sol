@@ -37,7 +37,7 @@ interface ConsiderationInterface {
      *
      * @param parameters Additional information on the fulfilled order. Note
      *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
+     *                   their preferred conduit if indicated by the order) for
      *                   their offered ERC721 token to be transferred.
      *
      * @return A boolean indicating whether the order has been fulfilled.
@@ -63,10 +63,8 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
-     *                            should be used (and direct approvals set on
-     *                            Consideration) and `bytes32(1)` signifies to
-     *                            utilize the legacy user proxy for the
-     *                            fulfiller.
+     *                            should be used, with direct approvals set on
+     *                            Consideration.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -83,9 +81,9 @@ interface ConsiderationInterface {
      * @param advancedOrder       The order to fulfill along with the fraction
      *                            of the order to attempt to fill. Note that
      *                            both the offerer and the fulfiller must first
-     *                            approve this contract (or their proxy if
-     *                            indicated by the order) to transfer any
-     *                            relevant tokens on their behalf and that
+     *                            approve this contract (or their preferred
+     *                            conduit if indicated by the order) to transfer
+     *                            any relevant tokens on their behalf and that
      *                            contracts must implement `onERC1155Received`
      *                            to receive ERC1155 tokens as consideration.
      *                            Also note that all offer and consideration
@@ -106,10 +104,8 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
-     *                            should be used (and direct approvals set on
-     *                            Consideration) and `bytes32(1)` signifies to
-     *                            utilize the legacy user proxy for the
-     *                            fulfiller.
+     *                            should be used, with direct approvals set on
+     *                            Consideration.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
@@ -151,8 +147,8 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used (and
-     *                                  direct approvals set on Consideration).
+     *                                  that no conduit should be used, with
+     *                                  direct approvals set on this contract.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders    An array of booleans indicating if each order
@@ -197,11 +193,11 @@ interface ConsiderationInterface {
      *                                  fraction of those orders to attempt to
      *                                  fill. Note that both the offerer and the
      *                                  fulfiller must first approve this
-     *                                  contract (or their proxy if indicated by
-     *                                  the order) to transfer any relevant
-     *                                  tokens on their behalf and that
+     *                                  contract (or their preferred conduit if
+     *                                  indicated by the order) to transfer any
+     *                                  relevant tokens on their behalf and that
      *                                  contracts must implement
-     *                                  `onERC1155Received` in order to receive
+     *                                  `onERC1155Received` to enable receipt of
      *                                  ERC1155 tokens as consideration. Also
      *                                  note that all offer and consideration
      *                                  components must have no remainder after
@@ -230,10 +226,8 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used (and
-     *                                  direct approvals set on Consideration)
-     *                                  and `bytes32(1)` signifies to utilize
-     *                                  the legacy user proxy for the fulfiller.
+     *                                  that no conduit should be used, with
+     *                                  direct approvals set on this contract.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders    An array of booleans indicating if each order
@@ -270,17 +264,16 @@ interface ConsiderationInterface {
      *         criteria-based or partial filling of orders (though filling the
      *         remainder of a partially-filled order is supported).
      *
-     * @param orders            The orders to match. Note that both the offerer
-     *                          and fulfiller on each order must first approve
-     *                          this contract (or their proxy if indicated by
-     *                          the order) to transfer any relevant tokens on
-     *                          their behalf and each consideration recipient
-     *                          must implement `onERC1155Received` in order to
-     *                          receive ERC1155 tokens.
-     * @param fulfillments      An array of elements allocating offer components
-     *                          to consideration components. Note that each
-     *                          consideration component must be fully met in
-     *                          order for the match operation to be valid.
+     * @param orders       The orders to match. Note that both the offerer and
+     *                     fulfiller on each order must first approve this
+     *                     contract (or their conduit if indicated by the order)
+     *                     to transfer any relevant tokens on their behalf and
+     *                     each consideration recipient must implement
+     *                     `onERC1155Received` to enable ERC1155 token receipt.
+     * @param fulfillments An array of elements allocating offer components to
+     *                     consideration components. Note that each
+     *                     consideration component must be fully met for the
+     *                     match operation to be valid.
      *
      * @return standardExecutions An array of elements indicating the sequence
      *                            of non-batch transfers performed as part of
@@ -309,7 +302,7 @@ interface ConsiderationInterface {
      *
      * @param orders            The advanced orders to match. Note that both the
      *                          offerer and fulfiller on each order must first
-     *                          approve this contract (or their proxy if
+     *                          approve this contract (or a preferred conduit if
      *                          indicated by the order) to transfer any relevant
      *                          tokens on their behalf and each consideration
      *                          recipient must implement `onERC1155Received` in
