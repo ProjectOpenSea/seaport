@@ -34,6 +34,10 @@ struct FulfillmentItemTypes {
     ItemType offeredItemType;
 }
 
+/**
+ * @dev A struct used to hold all the hashes of a Basic Order Fulfillment
+ *       used in _prepareBasicFulfillmentFromCalldata and _hashOrder
+ */
 struct BasicFulfillmentHashes {
     bytes32 typeHash;
     bytes32 orderHash;
@@ -44,6 +48,11 @@ struct BasicFulfillmentHashes {
     bytes32 offerItemHash;
 }
 
+/**    
+* @dev A struct that is an explicit version of advancedOrders without
+*       memory optimization, that provides an array of spentItems
+*       and receivedItems for fulfillment and event emission.       
+*/
 struct OrderToExecute {
     address offerer;
     SpentItem[] spentItems; // Offer
@@ -52,16 +61,24 @@ struct OrderToExecute {
     uint120 numerator;
 }
 
+/**
+* @dev  A struct containing the data used to apply a
+*       fraction to an order.  
+*/
 struct FractionData {
-    uint256 numerator;
-    uint256 denominator;
-    bytes32 offererConduitKey;
-    bytes32 fulfillerConduitKey;
-    uint256 duration;
-    uint256 elapsed;
-    uint256 remaining;
+    uint256 numerator; // The portion of the order that should be filled.             
+    uint256 denominator; // The total size of the order
+    bytes32 offererConduitKey; // The offerer's conduit key.
+    bytes32 fulfillerConduitKey; // The fulfiller's conduit key.
+    uint256 duration; // The total duration of the order.
+    uint256 elapsed; // The time elapsed since the order's start time.
+    uint256 remaining; // The time left until the order's end time.
 }
 
+/**
+ * @dev A struct containing conduit transfer data and it's
+ *      corresponding conduitKey.   
+ */
 struct AccumulatorStruct {
     bytes32 conduitKey;
     ConduitTransfer[] transfers;

@@ -333,8 +333,6 @@ contract ReferenceConsideration is
             new CriteriaResolver[](0), // No criteria resolvers supplied.
             fulfillerConduitKey
         );
-
-        // TODO: Make these work with Orders To Execute
     }
 
     /**
@@ -385,8 +383,6 @@ contract ReferenceConsideration is
                 criteriaResolvers,
                 fulfillerConduitKey
             );
-
-        // TODO: Make these work with Orders To Execute
     }
 
     /**

@@ -145,6 +145,7 @@ contract ReferenceConsiderationInternal is
             parameters.totalOriginalAdditionalRecipients
         );
 
+        // Memory to store hashes
         BasicFulfillmentHashes memory hashes;
 
         // Store ItemType/Token parameters in a struct in memory to avoid stack issues.
@@ -156,36 +157,12 @@ contract ReferenceConsiderationInternal is
             offeredItemType
         );
 
-        // Create ReceivedItem for Primary Consideration
         // Array of Received Items for use with OrderFulfilled Event
         ReceivedItem[] memory consideration = new ReceivedItem[](
             parameters.additionalRecipients.length + 1
         );
 
-        // Write the offer to the Event SpentItem array
-        SpentItem[] memory offer = new SpentItem[](1);
-
         {
-            /**
-             * First, handle consideration items. Memory Layout:
-             *  0x60: final hash of the array of consideration item hashes
-             *  0x80-0x160: reused space for EIP712 hashing of each item
-             *   - 0x80: ConsiderationItem EIP-712 typehash (constant)
-             *   - 0xa0: itemType
-             *   - 0xc0: token
-             *   - 0xe0: identifier
-             *   - 0x100: startAmount
-             *   - 0x120: endAmount
-             *   - 0x140: recipient
-             *  0x160-END_ARR: array of consideration item hashes
-             *   - 0x160: primary consideration item EIP712 hash
-             *   - 0x180-END_ARR: additional recipient item EIP712 hashes
-             *  END_ARR: beginning of data for OrderFulfilled event
-             *   - END_ARR + 0x120: length of ReceivedItem array
-             *   - END_ARR + 0x140: beginning of data for first ReceivedItem
-             * (Note: END_ARR = 0x180 + RECIPIENTS_LENGTH * 0x20)
-             */
-
             // Load consideration item typehash from runtime and place on stack.
             hashes.typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
@@ -219,10 +196,11 @@ contract ReferenceConsiderationInternal is
                 )
             );
 
+            // Declare memory for additionalReceivedItem, additionalRecipientItem
             ReceivedItem memory additionalReceivedItem;
             ConsiderationItem memory additionalRecipientItem;
 
-            // Create Received Item
+            // Create Received Item.
             ReceivedItem memory primaryReceivedItem = ReceivedItem(
                 fulfillmentItemTypes.receivedItemType,
                 primaryConsiderationItem.token,
@@ -234,16 +212,20 @@ contract ReferenceConsiderationInternal is
             // OrderFulfilled ReceivedItem[]
             consideration[0] = primaryReceivedItem;
 
+            // Loop through all additionalRecipients, to generate
+            // ReceivedItems for OrderFulfilled Event and 
+            // ConsiderationItems for hashing
             for (
                 uint256 recipientCount = 0;
                 recipientCount < parameters.additionalRecipients.length;
                 recipientCount++
             ) {
+                // Get the next additionalRecipient.
                 AdditionalRecipient memory additionalRecipient = (
                     parameters.additionalRecipients[recipientCount]
                 );
 
-                // Create a Received Item for each additional recipients
+                // Create a Received Item for each additional recipients.
                 additionalReceivedItem = ReceivedItem(
                     fulfillmentItemTypes.additionalRecipientsItemType,
                     fulfillmentItemTypes.additionalRecipientsToken,
@@ -255,6 +237,8 @@ contract ReferenceConsiderationInternal is
                 // OrderFulfilled ReceivedItem[]
                 consideration[recipientCount + 1] = additionalReceivedItem;
 
+                // Skip hashing items not contained in the 
+                // Original Recipients.
                 if (
                     recipientCount >=
                     parameters.totalOriginalAdditionalRecipients
@@ -262,7 +246,7 @@ contract ReferenceConsiderationInternal is
                     continue;
                 }
 
-                // Create a new consideration Item for each Additional Recipient
+                // Create a new consideration Item for each Additional Recipient.
                 additionalRecipientItem = ConsiderationItem(
                     fulfillmentItemTypes.additionalRecipientsItemType,
                     fulfillmentItemTypes.additionalRecipientsToken,
@@ -273,7 +257,7 @@ contract ReferenceConsiderationInternal is
                 );
 
                 // Calculate the EIP712 ConsiderationItem hash for
-                // each additional recipients
+                // each additional recipients.
                 hashes.considerationHashes[recipientCount + 1] = keccak256(
                     abi.encode(
                         hashes.typeHash,
@@ -287,31 +271,32 @@ contract ReferenceConsiderationInternal is
                 );
             }
 
-            // The considerationItems array should now contain the
-            // Primary Received Item along with all additional recipients.
+            /** 
+            *  The considerationHashes array now contains
+            *  all consideration Item hashes.
+            *
+            *  The consideration array now contains all receieved
+            *  items excluding tips for OrderFulfilled Event.
+            */
 
-            // The considerationHashes array now contains
-            // all consideration Item hashes.
-
-            // The consideration array now contains all receieved
-            // items for OrderFulfilled Event.
-
-            // Get hash of all consideration items
+            // Get hash of all consideration items.
             hashes.receivedItemsHash = keccak256(
                 abi.encodePacked(hashes.considerationHashes)
             );
 
-            // Get remainder of additionalRecipients for tips
+            // Get remainder of additionalRecipients for tips.
             for (
                 uint256 additionalTips = parameters
                     .totalOriginalAdditionalRecipients;
                 additionalTips < parameters.additionalRecipients.length;
                 additionalTips++
             ) {
+                // Get the next additionalRecipient.
                 AdditionalRecipient memory additionalRecipient = (
                     parameters.additionalRecipients[additionalTips]
                 );
 
+                // Create the ReceivedItem.
                 additionalReceivedItem = ReceivedItem(
                     fulfillmentItemTypes.additionalRecipientsItemType,
                     fulfillmentItemTypes.additionalRecipientsToken,
@@ -327,6 +312,9 @@ contract ReferenceConsiderationInternal is
 
         {
             // Now let's handle the offer side.
+                    
+            // Write the offer to the Event SpentItem array
+            SpentItem[] memory offer = new SpentItem[](1);
 
             // Place offer item typehash on the stack.
             hashes.typeHash = _OFFER_ITEM_TYPEHASH;
@@ -338,7 +326,7 @@ contract ReferenceConsiderationInternal is
                 parameters.offerIdentifier,
                 parameters.offerAmount
             );
-
+            // Add the offer item to the SpentItem Array
             offer[0] = offerItem;
 
             // Get the hash of the Spent Item, treated as an Offer Item.
@@ -368,6 +356,7 @@ contract ReferenceConsiderationInternal is
             // Load order typehash from runtime code and place on stack.
             hashes.typeHash = _ORDER_TYPEHASH;
 
+            // Derive the order hash
             hashes.orderHash = _hashOrder(
                 hashes,
                 parameters,
@@ -401,6 +390,14 @@ contract ReferenceConsiderationInternal is
         );
     }
 
+    /**
+     * @dev Internal function to calculate the order hash    
+     *
+     * @param hashes                       The array of offerItems and
+     *                                     receivedItems hashes.
+     * @param parameters                   The parameters of the basic order.
+     * @param fulfillmentItemTypes         The fulfillment's item type.
+     */
     function _hashOrder(
         BasicFulfillmentHashes memory hashes,
         BasicOrderParameters calldata parameters,
@@ -409,6 +406,7 @@ contract ReferenceConsiderationInternal is
         // Read offerer's current nonce from storage and place on the stack.
         uint256 nonce = _nonces[parameters.offerer];
 
+        // Hash the contents to get the orderHash
         orderHash = keccak256(
             abi.encode(
                 hashes.typeHash,
@@ -725,7 +723,7 @@ contract ReferenceConsiderationInternal is
      *                            signifies to utilize the legacy user proxy for
      *                            the fulfiller.
      *
-     * @return orderToExecute     Returns the order that's items are being transferred.
+     * @return orderToExecute     Returns the order of items that are being transferred.
      *                            This will be used for the OrderFulfilled Event.
      */
     function _applyFractionsAndTransferEach(
@@ -751,10 +749,10 @@ contract ReferenceConsiderationInternal is
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
-        // Create the accumulator
+        // Create the accumulator struct.
         AccumulatorStruct memory accumulatorStruct;
 
-        // Get the offerer
+        // Get the offerer of the order.
         address offerer = orderParameters.offerer;
 
         // Create the array to store the spent items for event
@@ -786,7 +784,7 @@ contract ReferenceConsiderationInternal is
                     payable(msg.sender)
                 );
 
-                // Create Spent Item for Event
+                // Create Spent Item for the OrderFulfilled Event.
                 orderToExecute.spentItems[i] = SpentItem(
                     receivedItem.itemType,
                     receivedItem.token,
@@ -800,7 +798,7 @@ contract ReferenceConsiderationInternal is
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
                     }
-
+                    // Reduce ether remaining by amount.
                     etherRemaining -= amount;
                 }
 
@@ -813,21 +811,6 @@ contract ReferenceConsiderationInternal is
                 );
             }
         }
-
-        /**
-         * Repurpose existing ConsiderationItem memory regions on the
-         * consideration array for the order by overriding the _transfer
-         * function pointer to accept a modified ConsiderationItem argument in
-         * place of the usual ReceivedItem:
-         *
-         *   ====== ConsiderationItem =====   ====== ReceivedItem ======
-         *   ItemType itemType; ------------> ItemType itemType;
-         *   address token; ----------------> address token;
-         *   uint256 identifierOrCriteria;--> uint256 identifier;
-         *   uint256 startAmount; ----------> uint256 amount;
-         *   uint256 endAmount;        /----> address recipient;
-         *   address recipient; ------/
-         */
 
         // Create the array to store the received items for event
         orderToExecute.receivedItems = new ReceivedItem[](
@@ -859,6 +842,7 @@ contract ReferenceConsiderationInternal is
                     amount,
                     considerationItem.recipient
                 );
+                // Add ReceivedItem to Structs array.
                 orderToExecute.receivedItems[i] = receivedItem;
 
                 // Reduce available value if offer spent ETH or a native token.
@@ -867,6 +851,7 @@ contract ReferenceConsiderationInternal is
                     if (amount > etherRemaining) {
                         revert InsufficientEtherSupplied();
                     }
+                    // Reduce ether remaining by amount.
                     etherRemaining -= amount;
                 }
 
@@ -888,6 +873,7 @@ contract ReferenceConsiderationInternal is
             // return it to the caller.
             _transferEth(payable(msg.sender), etherRemaining);
         }
+        // Return the order to execute.
         return orderToExecute;
     }
 
@@ -1027,7 +1013,7 @@ contract ReferenceConsiderationInternal is
                     false // round down
                 );
 
-                // Modify the OrderToExecute Spent Item Amount
+                // Modify the OrderToExecute Spent Item Amount.
                 orderToExecute.spentItems[j].amount = offerItem.startAmount;
             }
 
@@ -1078,7 +1064,7 @@ contract ReferenceConsiderationInternal is
                     )
                 );
 
-                // Modify the OrderToExecute Received Item Amount
+                // Modify the OrderToExecute Received Item Amount.
                 orderToExecute.receivedItems[j].amount = considerationItem
                     .startAmount;
             }
@@ -1103,11 +1089,14 @@ contract ReferenceConsiderationInternal is
                 advancedOrders[i].parameters
             );
 
+            // Get the array of spentItems from the orderToExecute struct.
             SpentItem[] memory spentItems = ordersToExecute[i].spentItems;
 
+            // Get the array of spentIreceivedItemstems from the orderToExecute struct.
             ReceivedItem[] memory receivedItems = ordersToExecute[i]
                 .receivedItems;
 
+            // Emit the event.
             emit OrderFulfilled(
                 orderHashes[i],
                 orderParameters.offerer,
@@ -1246,7 +1235,11 @@ contract ReferenceConsiderationInternal is
      *                                  order's partial fill amount to be
      *                                  considered valid.
      *
-     * @param ordersToExecute           The orders to execute
+     * @param ordersToExecute           The orders to execute.  This is an 
+     *                                  explicit version of advancedOrders without
+     *                                  memory optimization, that provides
+     *                                  an array of spentItems and receivedItems
+     *                                  for fulfillment and event emission.
      *
      * @param criteriaResolvers         An array where each element contains a
      *                                  reference to a specific offer or
@@ -1336,9 +1329,12 @@ contract ReferenceConsiderationInternal is
      *      respectively. Note that a failing item transfer or an issue with
      *      order formatting will cause the entire batch to fail.
      *
-     * @param ordersToExecute           The orders to fulfill along with the
-     *                                  fraction of those orders to attempt to
-     *                                  fill. Note that both the offerer and the
+     * @param ordersToExecute           The orders to execute.  This is an 
+     *                                  explicit version of advancedOrders without
+     *                                  memory optimization, that provides
+     *                                  an array of spentItems and receivedItems
+     *                                  for fulfillment and event emission.
+     *                                  Note that both the offerer and the
      *                                  fulfiller must first approve this
      *                                  contract (or the conduit if indicated by
      *                                  the order) to transfer any relevant
@@ -1459,16 +1455,28 @@ contract ReferenceConsiderationInternal is
 
         // If some number of executions have been filtered...
         if (totalFilteredExecutions != 0) {
+
+            /** 
+            *   The following is highly inefficient, but written this way 
+            *   to show in the most simplest form what the optimized
+            *   contract is performing inside it's assembly.
+            */
+
+            // Get the total execution length.
             uint256 executionLength = (totalOfferFulfillments +
                 totalConsiderationFulfillments) - totalFilteredExecutions;
+
+            // Create an array of executions that will be executed.
             Execution[] memory filteredExecutions = new Execution[](
                 executionLength
             );
-            // Create new array from Executions
+
+            // Create new array from the exsiting Executions
             for (uint256 i = 0; i < executionLength; ++i) {
                 filteredExecutions[i] = executions[i];
             }
 
+            // Set the executions array to the newly created array.
             executions = filteredExecutions;
         }
         // Revert if no orders are available.
@@ -1485,7 +1493,7 @@ contract ReferenceConsiderationInternal is
      *      compress and trigger associated execututions, transferring the
      *      respective items.
      *
-     * @param ordersToExecute    The orders to check and perform executions for.
+     * @param ordersToExecute    The orders to check and perform executions.
      * @param executions         An array of uncompressed elements indicating
      *                           the sequence of transfers to perform when
      *                           fulfilling the given orders.
@@ -1555,7 +1563,7 @@ contract ReferenceConsiderationInternal is
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
-        // Create the accumulator
+        // Create the accumulator struct.
         AccumulatorStruct memory accumulatorStruct;
 
         // Iterate over each standard execution.
@@ -1571,6 +1579,7 @@ contract ReferenceConsiderationInternal is
                     revert InsufficientEtherSupplied();
                 }
 
+                // Reduce ether remaining by amount.
                 etherRemaining -= item.amount;
             }
 
@@ -1626,14 +1635,16 @@ contract ReferenceConsiderationInternal is
     /**
      * @dev Internal function to transfer a given item.
      *
-     * @param item       The item to transfer including an amount and recipient.
-     * @param offerer    The account offering the item, i.e. the from address.
-     * @param conduitKey A bytes32 value indicating what corresponding conduit,
-     *                   if any, to source token approvals from. The zero hash
-     *                   signifies that no conduit should be used (and direct
-     *                   approvals set on Consideration) and
-     *                   `bytes32(uint256(1))` signifies to utilize the legacy
-     *                   user proxy for the transfer.
+     * @param item                  The item to transfer including an amount and recipient.
+     * @param offerer               The account offering the item, i.e. the from address.
+     * @param conduitKey            A bytes32 value indicating what corresponding conduit,
+     *                              if any, to source token approvals from. The zero hash
+     *                              signifies that no conduit should be used (and direct
+     *                              approvals set on Consideration) and
+     *                              `bytes32(uint256(1))` signifies to utilize the legacy
+     *                              user proxy for the transfer.
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
+     *                              corresponding conduitKey.                             
      */
     function _transfer(
         ReceivedItem memory item,
@@ -1707,16 +1718,18 @@ contract ReferenceConsiderationInternal is
      *      approvals must be set on this contract, the conduit, or the token
      *      transfer proxy in cases where the conduit is set to `address(1)`.
      *
-     * @param token      The ERC20 token to transfer.
-     * @param from       The originator of the transfer.
-     * @param to         The recipient of the transfer.
-     * @param amount     The amount to transfer.
-     * @param conduitKey A bytes32 value indicating what corresponding conduit,
-     *                   if any, to source token approvals from. The zero hash
-     *                   signifies that no conduit should be used (and direct
-     *                   approvals set on Consideration) and
-     *                   `bytes32(uint256(1))` signifies to utilize the legacy
-     *                   user proxy for the transfer.
+     * @param token                 The ERC20 token to transfer.
+     * @param from                  The originator of the transfer.
+     * @param to                    The recipient of the transfer.
+     * @param amount                The amount to transfer.
+     * @param conduitKey            A bytes32 value indicating what corresponding conduit,
+     *                              if any, to source token approvals from. The zero hash
+     *                              signifies that no conduit should be used (and direct
+     *                              approvals set on Consideration) and
+     *                              `bytes32(uint256(1))` signifies to utilize the legacy
+     *                              user proxy for the transfer.
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
+     *                              corresponding conduitKey.    
      */
     function _transferERC20(
         address token,
@@ -1756,17 +1769,19 @@ contract ReferenceConsiderationInternal is
      *      originator to a given recipient. Sufficient approvals must be set,
      *      either on the respective conduit or on this contract itself.
      *
-     * @param token      The ERC721 token to transfer.
-     * @param from       The originator of the transfer.
-     * @param to         The recipient of the transfer.
-     * @param identifier The tokenId to transfer.
-     * @param amount     The "amount" (this value must be equal to one).
-     * @param conduitKey A bytes32 value indicating what corresponding conduit,
-     *                   if any, to source token approvals from. The zero hash
-     *                   signifies that no conduit should be used (and direct
-     *                   approvals set on Consideration) and
-     *                   `bytes32(uint256(1))` signifies to utilize the legacy
-     *                   user proxy for the transfer.
+     * @param token                 The ERC721 token to transfer.
+     * @param from                  The originator of the transfer.
+     * @param to                    The recipient of the transfer.
+     * @param identifier            The tokenId to transfer.
+     * @param amount                The "amount" (this value must be equal to one).
+     * @param conduitKey            A bytes32 value indicating what corresponding conduit,
+     *                              if any, to source token approvals from. The zero hash
+     *                              signifies that no conduit should be used (and direct
+     *                              approvals set on Consideration) and
+     *                              `bytes32(uint256(1))` signifies to utilize the legacy
+     *                              user proxy for the transfer.
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
+     *                              corresponding conduitKey.    
      */
     function _transferERC721(
         address token,
@@ -1809,17 +1824,19 @@ contract ReferenceConsiderationInternal is
      *      to a given recipient. Sufficient approvals must be set, either on
      *      the respective conduit or on this contract itself.
      *
-     * @param token      The ERC1155 token to transfer.
-     * @param from       The originator of the transfer.
-     * @param to         The recipient of the transfer.
-     * @param identifier The tokenId to transfer.
-     * @param amount     The amount to transfer.
-     * @param conduitKey A bytes32 value indicating what corresponding conduit,
-     *                   if any, to source token approvals from. The zero hash
-     *                   signifies that no conduit should be used (and direct
-     *                   approvals set on Consideration) and
-     *                   `bytes32(uint256(1))` signifies to utilize the legacy
-     *                   user proxy for the transfer.
+     * @param token                 The ERC1155 token to transfer.
+     * @param from                  The originator of the transfer.
+     * @param to                    The recipient of the transfer.
+     * @param identifier            The tokenId to transfer.
+     * @param amount                The amount to transfer.
+     * @param conduitKey            A bytes32 value indicating what corresponding conduit,
+     *                              if any, to source token approvals from. The zero hash
+     *                              signifies that no conduit should be used (and direct
+     *                              approvals set on Consideration) and
+     *                              `bytes32(uint256(1))` signifies to utilize the legacy
+     *                              user proxy for the transfer.
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
+     *                              corresponding conduitKey.    
      */
     function _transferERC1155(
         address token,
@@ -1875,17 +1892,26 @@ contract ReferenceConsiderationInternal is
         uint256 identifier,
         uint256 amount
     ) internal view {
+        
+        /** 
+        *   The following is highly inefficient, but written this way 
+        *   to show in the most simplest form what the optimized
+        *   contract is performing inside it's assembly.
+        */
+
+        // Get the current length of the accumulator's transfers.
         uint256 currentTransferLength = accumulatorStruct.transfers.length;
 
+        // Create a new array to "insert" the new transfer.
         ConduitTransfer[] memory newTransfers = (
             new ConduitTransfer[](currentTransferLength + 1)
         );
 
-        // Fill New Array with old Transfers
+        // Fill new array with old transfers.
         for (uint256 i = 0; i < currentTransferLength; ++i) {
-            // Get Old Transfers
+            // Get the old transfer.
             ConduitTransfer memory oldTransfer = accumulatorStruct.transfers[i];
-            // Add to New Transfer
+            // Add the old transfer into the new array.
             newTransfers[i] = ConduitTransfer(
                 oldTransfer.itemType,
                 oldTransfer.token,
@@ -1896,7 +1922,7 @@ contract ReferenceConsiderationInternal is
             );
         }
 
-        // Insert new Transfer
+        // Insert new transfer into array.
         newTransfers[currentTransferLength] = ConduitTransfer(
             ConduitItemType(itemType),
             token,
@@ -1906,9 +1932,9 @@ contract ReferenceConsiderationInternal is
             amount
         );
 
-        // Set Accumulator Struct transfers to new Transfers
+        // Set accumulator struct transfers to new transfers.
         accumulatorStruct.transfers = newTransfers;
-        // Set the conduitKey
+        // Set the conduitkey of the current transfers.
         accumulatorStruct.conduitKey = conduitKey;
     }
 
@@ -1936,10 +1962,12 @@ contract ReferenceConsiderationInternal is
             // Perform transfer via the token contract directly.
             _performERC1155BatchTransfer(token, from, to, tokenIds, amounts);
         } else {
+            // Create an array of 1155 transfers.
             ConduitBatch1155Transfer[] memory batchTransfers = (
                 new ConduitBatch1155Transfer[](1)
             );
 
+            // Add a ConduitBatch1155Transfer into the array.
             batchTransfers[0] = ConduitBatch1155Transfer(
                 token,
                 from,
@@ -2029,12 +2057,14 @@ contract ReferenceConsiderationInternal is
      *      part of basic order fulfillment. Note that proxies are not utilized
      *      for ERC20 tokens.
      *
-     * @param from        The originator of the ERC20 token transfer.
-     * @param to          The recipient of the ERC20 token transfer.
-     * @param erc20Token  The ERC20 token to transfer.
-     * @param amount      The amount of ERC20 tokens to transfer.
-     * @param parameters  The parameters of the order.
-     * @param fromOfferer Whether to decrement amount from the offered amount.
+     * @param from                  The originator of the ERC20 token transfer.
+     * @param to                    The recipient of the ERC20 token transfer.
+     * @param erc20Token            The ERC20 token to transfer.
+     * @param amount                The amount of ERC20 tokens to transfer.
+     * @param parameters            The parameters of the order.
+     * @param fromOfferer           Whether to decrement amount from the offered amount.
+     * @param accumulatorStruct     A struct containing conduit transfer data and it's 
+     *                              corresponding conduitKey.   
      */
     function _transferERC20AndFinalize(
         address from,

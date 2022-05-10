@@ -205,9 +205,11 @@ contract ReferenceConsiderationInternalView is
                 _VERSION_HASH);
     }
 
-    /// @dev Internal view function to derive the EIP-712 hash for an offer item.
-    /// @param offerItem The offered item to hash.
-    /// @return The hash.
+    /**
+    * @dev Internal view function to derive the EIP-712 hash for an offer item.
+    * @param offerItem The offered item to hash.
+    * @return The hash.
+    */
     function _hashOfferItem(OfferItem memory offerItem)
         internal
         view
@@ -226,9 +228,11 @@ contract ReferenceConsiderationInternalView is
             );
     }
 
-    /// @dev Internal view function to derive the EIP-712 hash for a consideration item.
-    /// @param considerationItem The consideration item to hash.
-    /// @return The hash.
+    /** 
+    * @dev Internal view function to derive the EIP-712 hash for a consideration item.
+    * @param considerationItem The consideration item to hash.
+    * @return The hash.
+    */
     function _hashConsiderationItem(ConsiderationItem memory considerationItem)
         internal
         view
@@ -575,10 +579,6 @@ contract ReferenceConsiderationInternalView is
             revert MissingFulfillmentComponentOnAggregation(side);
         }
 
-        // _validateOrdersAndPrepareToFulfill should have only filled
-        // ordersToExecute withe fulfillable orders, so we shouldn't
-        // have to check
-
         // Determine component index after first available (0 implies none).
         uint256 nextComponentIndex = 0;
 
@@ -683,6 +683,7 @@ contract ReferenceConsiderationInternalView is
         FulfillmentComponent[] memory offerComponents,
         uint256 startIndex
     ) internal view returns (Execution memory execution) {
+        // Get the order index and item index of the offer component.
         uint256 orderIndex = offerComponents[startIndex].orderIndex;
         uint256 itemIndex = offerComponents[startIndex].itemIndex;
 
@@ -690,14 +691,18 @@ contract ReferenceConsiderationInternalView is
         // Ensure that the order index is not out of range.
         bool invalidFulfillment = (orderIndex >= ordersToExecute.length);
         if (!invalidFulfillment) {
+            // Get the order based on offer components order index.
             OrderToExecute memory orderToExecute = ordersToExecute[orderIndex];
             // Ensure that the item index is not out of range.
             invalidFulfillment =
                 invalidFulfillment ||
                 (itemIndex >= orderToExecute.spentItems.length);
+
             if (!invalidFulfillment) {
+                // Get the spent item based on the offer components item index.
                 SpentItem memory offer = orderToExecute.spentItems[itemIndex];
 
+                // Create the Executio0n.
                 execution = Execution(
                     ReceivedItem(
                         offer.itemType,
@@ -713,11 +718,13 @@ contract ReferenceConsiderationInternalView is
                 // Zero out amount on original offerItem to indicate it is spent
                 offer.amount = 0;
 
+                // Loop through the offer components, checking for validity.
                 for (
                     uint256 i = startIndex + 1;
                     i < offerComponents.length;
                     ++i
                 ) {
+                    // Get the order index and item index of the offer component.
                     orderIndex = offerComponents[i].orderIndex;
                     itemIndex = offerComponents[i].itemIndex;
 
@@ -727,6 +734,7 @@ contract ReferenceConsiderationInternalView is
                     if (invalidFulfillment) {
                         break;
                     }
+                     // Get the order based on offer components order index.
                     orderToExecute = ordersToExecute[orderIndex];
                     if (orderToExecute.numerator != 0) {
                         // Ensure that the item index is not out of range.
@@ -736,12 +744,13 @@ contract ReferenceConsiderationInternalView is
                         if (invalidFulfillment) {
                             break;
                         }
+                        // Get the spent item based on the offer components item index.
                         offer = orderToExecute.spentItems[itemIndex];
-                        // Updating Received Item Amount
+                        // Update the Received Item Amount.
                         execution.item.amount =
                             execution.item.amount +
                             offer.amount;
-                        // Zero out amount on original offerItem to indicate it is spent
+                        // Zero out amount on original offerItem to indicate it is spent,
                         offer.amount = 0;
                         // Ensure the indicated offer item matches original item.
                         invalidFulfillment = _checkMatchingOffer(
