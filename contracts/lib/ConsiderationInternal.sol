@@ -1248,7 +1248,7 @@ contract ConsiderationInternal is
         );
 
         // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
+        _clearReentrancyGuard();
 
         return true;
     }
@@ -2214,7 +2214,7 @@ contract ConsiderationInternal is
         }
 
         // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
+        _clearReentrancyGuard();
 
         // Return arrays with available orders and triggered executions.
         return (availableOrders, standardExecutions, batchExecutions);
@@ -2292,7 +2292,7 @@ contract ConsiderationInternal is
         }
 
         // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
+        _clearReentrancyGuard();
     }
 
     /**
@@ -2362,7 +2362,7 @@ contract ConsiderationInternal is
         _transferERC20(erc20Token, from, to, amount, conduitKey, accumulator);
 
         // Clear the reentrancy guard.
-        _reentrancyGuard = _NOT_ENTERED;
+        _clearReentrancyGuard();
     }
 
     /**

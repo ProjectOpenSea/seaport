@@ -13,7 +13,7 @@ import "./ConsiderationConstants.sol";
  */
 contract ReentrancyGuard is ReentrancyErrors {
     // Prevent reentrant calls on protected functions.
-    uint256 internal _reentrancyGuard;
+    uint256 private _reentrancyGuard;
 
     /**
      * @dev Initialize the reentrancy guard during deployment.
@@ -34,6 +34,14 @@ contract ReentrancyGuard is ReentrancyErrors {
 
         // Set the reentrancy guard.
         _reentrancyGuard = _ENTERED;
+    }
+
+    /**
+     * @dev Internal function to unset the reentrancy guard sentinel value.
+     */
+    function _clearReentrancyGuard() internal {
+        // Clear the reentrancy guard.
+        _reentrancyGuard = _NOT_ENTERED;
     }
 
     /**
