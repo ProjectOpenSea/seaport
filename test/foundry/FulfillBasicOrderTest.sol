@@ -16,8 +16,6 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest {
-    OfferItem offerItem;
-    ConsiderationItem considerationItem;
     BasicOrderParameters basicOrderParameters;
     OrderComponents orderComponents;
 
@@ -268,76 +266,6 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         basicOrderParameters.considerationToken = address(token1);
         basicOrderParameters.basicOrderType = BasicOrderType
             .ERC20_TO_ERC721_FULL_OPEN;
-    }
-
-    function _configureOfferItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        offerItem.itemType = itemType;
-        offerItem.token = token;
-        offerItem.identifierOrCriteria = identifier;
-        offerItem.startAmount = startAmount;
-        offerItem.endAmount = endAmount;
-        offerItems.push(offerItem);
-    }
-
-    function _configureERC721OfferItem(uint256 tokenId) internal {
-        _configureOfferItem(ItemType.ERC721, address(test721_1), tokenId, 1, 1);
-    }
-
-    function _configureERC1155OfferItem(uint256 tokenId, uint128 amount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            amount,
-            amount
-        );
-    }
-
-    function _configureConsiderationItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount,
-        address payable recipient
-    ) internal {
-        considerationItem.itemType = itemType;
-        considerationItem.token = token;
-        considerationItem.identifierOrCriteria = identifier;
-        considerationItem.startAmount = startAmount;
-        considerationItem.endAmount = endAmount;
-        considerationItem.recipient = recipient;
-        considerationItems.push(considerationItem);
-    }
-
-    function _configureEthConsiderationItem(uint128 paymentAmount) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            paymentAmount,
-            paymentAmount,
-            alice
-        );
-    }
-
-    function _configureErc20ConsiderationItem(uint128 paymentAmount) internal {
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            paymentAmount,
-            paymentAmount,
-            alice
-        );
     }
 
     function _configureOrderComponents(

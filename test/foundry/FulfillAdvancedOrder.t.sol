@@ -14,143 +14,111 @@ import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 
 contract FulfillAdvancedOrder is BaseOrderTest {
-    OrderInfo orderInfo;
     // todo: add numer/denom, swap if numer > denom
-    struct AdvancedOrderInputs {
+    struct FuzzInputs {
         uint256 tokenId;
         address zone;
         bytes32 zoneHash;
         uint256 salt;
         uint16 offerAmt;
         // uint16 fulfillAmt;
-        uint128[3] ethAmts;
+        uint120[3] paymentAmounts;
         bool useConduit;
+        uint8 numer;
+        uint8 denom;
     }
 
-    struct TestAdvancedOrder {
+    struct Context {
         Consideration consideration;
-        AdvancedOrderInputs args;
+        FuzzInputs args;
     }
 
-    struct OrderInfo {
-        bytes32 signature;
-        bytes32 orderHash;
-        bool isValidated;
-        bool isCancelled;
+    modifier validateInputs(FuzzInputs memory args) {
+        vm.assume(
+            args.paymentAmounts[0] > 0 &&
+                args.paymentAmounts[1] > 0 &&
+                args.paymentAmounts[2] > 0
+        );
+        vm.assume(
+            uint256(args.paymentAmounts[0]) +
+                uint256(args.paymentAmounts[1]) +
+                uint256(args.paymentAmounts[2]) <=
+                2**120 - 1
+        );
+        vm.assume(args.offerAmt > 0);
+        vm.assume(args.numer <= args.denom);
+        vm.assume(args.numer > 0);
+        _;
     }
 
-    function setUp() public virtual override {
-        super.setUp();
-        delete orderInfo;
+    function testAdvancedPartial1155(FuzzInputs memory args) public {
+        _advancedPartial1155(Context(consideration, args));
+        _advancedPartial1155(Context(referenceConsideration, args));
     }
 
-    function testAdvancedPartial1155(AdvancedOrderInputs memory args) public {
-        _advancedPartial1155(TestAdvancedOrder(consideration, args));
-        delete orderInfo;
-        _advancedPartial1155(TestAdvancedOrder(referenceConsideration, args));
-    }
-
-    function _advancedPartial1155(TestAdvancedOrder memory testAdvancedOrder)
+    function _advancedPartial1155(Context memory context)
         internal
-        onlyPayable(testAdvancedOrder.args.zone)
+        validateInputs(context.args)
+        onlyPayable(context.args.zone)
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(
-            testAdvancedOrder.args.ethAmts[0] > 0 &&
-                testAdvancedOrder.args.ethAmts[1] > 0 &&
-                testAdvancedOrder.args.ethAmts[2] > 0
-        );
-        vm.assume(
-            uint256(testAdvancedOrder.args.ethAmts[0]) +
-                uint256(testAdvancedOrder.args.ethAmts[1]) +
-                uint256(testAdvancedOrder.args.ethAmts[2]) <=
-                2**128 - 1
-        );
-        vm.assume(testAdvancedOrder.args.offerAmt > 0);
-        // vm.assume(testAdvancedOrder.args.fulfillAmt > 0);
+        // vm.assume(context.args.fulfillAmt > 0);
         // vm.assume(
-        //     testAdvancedOrder.args.offerAmt > testAdvancedOrder.args.fulfillAmt
+        //     context.args.offerAmt > context.args.fulfillAmt
         // );
         // todo: swap fulfillment and tokenAmount if we exceed global rejects with above assume
-        // if (testAdvancedOrder.args.offerAmt < testAdvancedOrder.args.fulfillAmt) {
-        //     uint256 temp = testAdvancedOrder.args.fulfillAmt;
-        //     testAdvancedOrder.args.fulfillAmt = testAdvancedOrder.args.offerAmt;
-        //     testAdvancedOrder.args.offerAmt = temp;
+        // if (context.args.offerAmt < context.args.fulfillAmt) {
+        //     uint256 temp = context.args.fulfillAmt;
+        //     context.args.fulfillAmt = context.args.offerAmt;
+        //     context.args.offerAmt = temp;
         // }
 
-        // require(testAdvancedOrder.args.salt != 5, "bad");
-        bytes32 conduitKey = testAdvancedOrder.args.useConduit
+        bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
         // mint offerAmt tokens
         test1155_1.mint(
             alice,
-            testAdvancedOrder.args.tokenId,
-            testAdvancedOrder.args.offerAmt * uint256(10) // mint 10x as many
+            context.args.tokenId,
+            context.args.denom // mint 256x as many
         );
 
-        offerItems.push(
-            OfferItem(
-                ItemType.ERC1155,
-                address(test1155_1),
-                testAdvancedOrder.args.tokenId,
-                testAdvancedOrder.args.offerAmt * uint256(10),
-                testAdvancedOrder.args.offerAmt * uint256(10)
-            )
+        _configureERC1155OfferItem(
+            context.args.tokenId,
+            uint256(context.args.denom)
         );
-
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                testAdvancedOrder.args.offerAmt * uint256(100),
-                testAdvancedOrder.args.offerAmt * uint256(100),
-                payable(alice)
-            )
+        _configureEthConsiderationItem(
+            alice,
+            context.args.paymentAmounts[0] * uint256(context.args.denom)
         );
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                testAdvancedOrder.args.offerAmt * uint256(10),
-                testAdvancedOrder.args.offerAmt * uint256(10),
-                payable(testAdvancedOrder.args.zone)
-            )
+        _configureEthConsiderationItem(
+            payable(context.args.zone),
+            context.args.paymentAmounts[1] * uint256(context.args.denom)
         );
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                testAdvancedOrder.args.offerAmt * uint256(20),
-                testAdvancedOrder.args.offerAmt * uint256(20),
-                payable(cal)
-            )
+        _configureEthConsiderationItem(
+            cal,
+            context.args.paymentAmounts[2] * uint256(context.args.denom)
         );
 
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            testAdvancedOrder.args.zone,
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            testAdvancedOrder.args.zoneHash,
-            testAdvancedOrder.args.salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
-            testAdvancedOrder.consideration.getNonce(alice)
+            context.consideration.getNonce(alice)
         );
-        bytes32 orderHash = testAdvancedOrder.consideration.getOrderHash(
-            orderComponents
-        );
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
 
         bytes memory signature = signOrder(
-            testAdvancedOrder.consideration,
+            context.consideration,
             alicePk,
             orderHash
         );
@@ -161,7 +129,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 bool isCancelled,
                 uint256 totalFilled,
                 uint256 totalSize
-            ) = testAdvancedOrder.consideration.getOrderStatus(orderHash);
+            ) = context.consideration.getOrderStatus(orderHash);
             assertFalse(isValidated);
             assertFalse(isCancelled);
             assertEq(totalFilled, 0);
@@ -169,23 +137,34 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         }
 
         OrderParameters memory orderParameters = OrderParameters(
-            address(alice),
-            testAdvancedOrder.args.zone,
+            alice,
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            testAdvancedOrder.args.zoneHash,
-            testAdvancedOrder.args.salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length
         );
-        uint256 value = testAdvancedOrder.args.offerAmt * uint128(130);
-        uint120 numer = uint120(testAdvancedOrder.args.offerAmt) * 2;
-        uint120 denom = uint120(testAdvancedOrder.args.offerAmt) * 10;
-        testAdvancedOrder.consideration.fulfillAdvancedOrder{ value: value }(
-            AdvancedOrder(orderParameters, numer, denom, signature, ""),
+        uint256 value = uint128(context.args.numer) *
+            (uint128(context.args.paymentAmounts[0]) +
+                context.args.paymentAmounts[1] +
+                context.args.paymentAmounts[2]);
+        emit log_named_uint("numer", context.args.numer);
+        emit log_named_uint("denom", context.args.denom);
+        emit log_named_uint("value", value);
+        // uint120 numer = uint120(context.args.offerAmt) * 2;
+        context.consideration.fulfillAdvancedOrder{ value: value }(
+            AdvancedOrder(
+                orderParameters,
+                context.args.numer,
+                context.args.denom,
+                signature,
+                ""
+            ),
             new CriteriaResolver[](0),
             conduitKey
         );
@@ -196,11 +175,11 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 bool isCancelled,
                 uint256 totalFilled,
                 uint256 totalSize
-            ) = testAdvancedOrder.consideration.getOrderStatus(orderHash);
+            ) = context.consideration.getOrderStatus(orderHash);
             assertTrue(isValidated);
             assertFalse(isCancelled);
-            assertEq(totalFilled, numer);
-            assertEq(totalSize, denom);
+            assertEq(totalFilled, context.args.numer);
+            assertEq(totalSize, context.args.denom);
         }
     }
 }

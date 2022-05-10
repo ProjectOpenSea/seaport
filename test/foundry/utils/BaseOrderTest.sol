@@ -10,7 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { ConsiderationItem, OfferItem, FulfillmentComponent } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ConsiderationItem, OfferItem, FulfillmentComponent, ItemType } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -47,6 +47,8 @@ contract BaseOrderTest is
     TestERC1155[] erc1155s;
     address[] accounts;
 
+    OfferItem offerItem;
+    ConsiderationItem considerationItem;
     OfferItem[] offerItems;
     ConsiderationItem[] considerationItems;
 
@@ -135,6 +137,147 @@ contract BaseOrderTest is
         allocateTokensAndApprovals(alice, uint128(MAX_INT));
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
+    }
+
+    function _configureConsiderationItem(
+        ItemType itemType,
+        address token,
+        uint256 identifier,
+        uint256 startAmount,
+        uint256 endAmount,
+        address payable recipient
+    ) internal {
+        considerationItem.itemType = itemType;
+        considerationItem.token = token;
+        considerationItem.identifierOrCriteria = identifier;
+        considerationItem.startAmount = startAmount;
+        considerationItem.endAmount = endAmount;
+        considerationItem.recipient = recipient;
+        considerationItems.push(considerationItem);
+    }
+
+    function _configureOfferItem(
+        ItemType itemType,
+        address token,
+        uint256 identifier,
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal {
+        offerItem.itemType = itemType;
+        offerItem.token = token;
+        offerItem.identifierOrCriteria = identifier;
+        offerItem.startAmount = startAmount;
+        offerItem.endAmount = endAmount;
+        offerItems.push(offerItem);
+    }
+
+    function _configureERC721OfferItem(uint256 tokenId) internal {
+        _configureOfferItem(ItemType.ERC721, address(test721_1), tokenId, 1, 1);
+    }
+
+    function _configureERC1155OfferItem(uint256 tokenId, uint256 amount)
+        internal
+    {
+        _configureOfferItem(
+            ItemType.ERC1155,
+            address(test1155_1),
+            tokenId,
+            amount,
+            amount
+        );
+    }
+
+    function _configureERC1155OfferItem(
+        uint256 tokenId,
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal {
+        _configureOfferItem(
+            ItemType.ERC1155,
+            address(test1155_1),
+            tokenId,
+            startAmount,
+            endAmount
+        );
+    }
+
+    function _configureEthConsiderationItem(uint256 paymentAmount) internal {
+        _configureConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            paymentAmount,
+            paymentAmount,
+            alice
+        );
+    }
+
+    function _configureEthConsiderationItem(
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal {
+        _configureConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            startAmount,
+            endAmount,
+            alice
+        );
+    }
+
+    function _configureEthConsiderationItem(
+        address payable recipient,
+        uint256 paymentAmount
+    ) internal {
+        _configureConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            paymentAmount,
+            paymentAmount,
+            recipient
+        );
+    }
+
+    function _configureEthConsiderationItem(
+        address payable recipient,
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal {
+        _configureConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            startAmount,
+            endAmount,
+            recipient
+        );
+    }
+
+    function _configureErc20ConsiderationItem(uint256 paymentAmount) internal {
+        _configureConsiderationItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            paymentAmount,
+            paymentAmount,
+            alice
+        );
+    }
+
+    function _configureErc20ConsiderationItem(
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal {
+        _configureConsiderationItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            startAmount,
+            endAmount,
+            alice
+        );
     }
 
     /**
