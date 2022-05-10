@@ -773,7 +773,7 @@ contract BasicOrderFulfiller is OrderValidator {
             }
 
             // Read offerer's current nonce from storage and place on the stack.
-            uint256 nonce = _nonces[offerer];
+            uint256 nonce = _getNonce(offerer);
 
             // Load order typehash from runtime code and place on stack.
             bytes32 typeHash = _ORDER_TYPEHASH;

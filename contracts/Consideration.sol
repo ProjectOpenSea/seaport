@@ -491,17 +491,8 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @return newNonce The new nonce.
      */
     function incrementNonce() external override returns (uint256 newNonce) {
-        // Ensure that the reentrancy guard is not currently set.
-        _assertNonReentrant();
-
-        // No need to check for overflow; nonce cannot be incremented that far.
-        unchecked {
-            // Increment current nonce for the supplied offerer.
-            newNonce = ++_nonces[msg.sender];
-        }
-
-        // Emit an event containing the new nonce.
-        emit NonceIncremented(newNonce, msg.sender);
+        // Increment current nonce for the supplied offerer.
+        return _incrementNonce();
     }
 
     /**
@@ -583,7 +574,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         returns (uint256)
     {
         // Return the nonce for the supplied offerer.
-        return _nonces[offerer];
+        return _getNonce(offerer);
     }
 
     /**

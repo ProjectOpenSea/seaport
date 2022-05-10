@@ -17,15 +17,13 @@ import { Executor } from "./Executor.sol";
 
 import { ZoneInteraction } from "./ZoneInteraction.sol";
 
-import { ReentrancyGuard } from "./ReentrancyGuard.sol";
-
 /**
  * @title OrderValidator
  * @author 0age
  * @notice OrderValidator contains functionality related to validating orders
  *         and updating their status.
  */
-contract OrderValidator is Executor, ZoneInteraction, ReentrancyGuard {
+contract OrderValidator is Executor, ZoneInteraction {
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping(bytes32 => OrderStatus) private _orderStatus;
 
