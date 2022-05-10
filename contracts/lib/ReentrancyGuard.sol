@@ -8,7 +8,8 @@ import "./ConsiderationConstants.sol";
 /**
  * @title ReentrancyGuard
  * @author 0age
- * @notice ReentrancyGuard contains all internal functions.
+ * @notice ReentrancyGuard contains a storage variable and related functionality
+ *         for protecting against reentrancy.
  */
 contract ReentrancyGuard is ReentrancyErrors {
     // Prevent reentrant calls on protected functions.
