@@ -51,37 +51,62 @@ contract OrderCombiner is
     constructor(address conduitController) OrderFulfiller(conduitController) {}
 
     /**
-     * @dev Internal function to match an arbitrary number of full or partial
-     *      orders, each with an arbitrary number of items for offer and
-     *      consideration, supplying criteria resolvers containing specific
-     *      token identifiers and associated proofs as well as fulfillments
-     *      allocating offer components to consideration components.
+     * @notice Internal function to attempt to fill a group of orders, fully or
+     *         partially, with an arbitrary number of items for offer and
+     *         consideration per order alongside criteria resolvers containing
+     *         specific token identifiers and associated proofs. Any order that
+     *         is not currently active, has already been fully filled, or has
+     *         been cancelled will be omitted. Remaining offer and consideration
+     *         items will then be aggregated where possible as indicated by the
+     *         supplied offer and consideration component arrays and aggregated
+     *         items will be transferred to the fulfiller or to each intended
+     *         recipient, respectively. Note that a failing item transfer or an
+     *         issue with order formatting will cause the entire batch to fail.
      *
-     * @param advancedOrders    The advanced orders to match. Note that both the
-     *                          offerer and fulfiller on each order must first
-     *                          approve this contract (or their conduit if
-     *                          indicated by the order) to transfer any relevant
-     *                          tokens on their behalf and each consideration
-     *                          recipient must implement `onERC1155Received` in
-     *                          order toreceive ERC1155 tokens. Also note that
-     *                          the offer and consideration components for each
-     *                          order must have no remainder after multiplying
-     *                          the respective amount with the supplied fraction
-     *                          in order for the group of partial fills to be
-     *                          considered valid.
-     * @param criteriaResolvers An array where each element contains a reference
-     *                          to a specific order as well as that order's
-     *                          offer or consideration, a token identifier, and
-     *                          a proof that the supplied token identifier is
-     *                          contained in the order's merkle root. Note that
-     *                          an empty root indicates that any (transferrable)
-     *                          token identifier is valid and that no associated
-     *                          proof needs to be supplied.
-     * @param fulfillments      An array of elements allocating offer components
-     *                          to consideration components. Note that each
-     *                          consideration component must be fully met in
-     *                          order for the match operation to be valid.
+     * @param advancedOrders            The orders to fulfill along with the
+     *                                  fraction of those orders to attempt to
+     *                                  fill. Note that both the offerer and the
+     *                                  fulfiller must first approve this
+     *                                  contract (or a conduit if indicated by
+     *                                  the order) to transfer any relevant
+     *                                  tokens on their behalf and that
+     *                                  contracts must implement
+     *                                  `onERC1155Received` in order to receive
+     *                                  ERC1155 tokens as consideration. Also
+     *                                  note that all offer and consideration
+     *                                  components must have no remainder after
+     *                                  multiplication of the respective amount
+     *                                  with the supplied fraction for an
+     *                                  order's partial fill amount to be
+     *                                  considered valid.
+     * @param criteriaResolvers         An array where each element contains a
+     *                                  reference to a specific offer or
+     *                                  consideration, a token identifier, and a
+     *                                  proof that the supplied token identifier
+     *                                  is contained in the merkle root held by
+     *                                  the item in question's criteria element.
+     *                                  Note that an empty criteria indicates
+     *                                  that any (transferrable) token
+     *                                  identifier on the token in question is
+     *                                  valid and that no associated proof needs
+     *                                  to be supplied.
+     * @param offerFulfillments         An array of FulfillmentComponent arrays
+     *                                  indicating which offer items to attempt
+     *                                  to aggregate when preparing executions.
+     * @param considerationFulfillments An array of FulfillmentComponent arrays
+     *                                  indicating which consideration items to
+     *                                  attempt to aggregate when preparing
+     *                                  executions.
+     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
+     *                                  if any, to source the fulfiller's token
+     *                                  approvals from. The zero hash signifies
+     *                                  that no conduit should be used (and
+     *                                  direct approvals set on Consideration).
+     * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
+     * @return availableOrders    An array of booleans indicating if each order
+     *                            with an index corresponding to the index of
+     *                            the returned boolean was fulfillable or not.
      * @return standardExecutions An array of elements indicating the sequence
      *                            of non-batch transfers performed as part of
      *                            matching the given orders.
@@ -89,27 +114,43 @@ contract OrderCombiner is
      *                            of batch transfers performed as part of
      *                            matching the given orders.
      */
-    function _matchAdvancedOrders(
+    function _fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
-        Fulfillment[] calldata fulfillments
+        FulfillmentComponent[][] calldata offerFulfillments,
+        FulfillmentComponent[][] calldata considerationFulfillments,
+        bytes32 fulfillerConduitKey,
+        uint256 maximumFulfilled
     )
         internal
         returns (
+            bool[] memory availableOrders,
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
         )
     {
-        // Validate orders, update order status, and determine item amounts.
+        // Validate orders, apply amounts, & determine if they utilize conduits.
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
             criteriaResolvers,
-            true, // Signifies that invalid orders should revert.
-            advancedOrders.length
+            false, // Signifies that invalid orders should NOT revert.
+            maximumFulfilled
         );
 
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
+        // Aggregate used offer and consideration items and execute transfers.
+        (
+            availableOrders,
+            standardExecutions,
+            batchExecutions
+        ) = _executeAvailableFulfillments(
+            advancedOrders,
+            offerFulfillments,
+            considerationFulfillments,
+            fulfillerConduitKey
+        );
+
+        // Return order fulfillment details and executions.
+        return (availableOrders, standardExecutions, batchExecutions);
     }
 
     /**
@@ -361,195 +402,6 @@ contract OrderCombiner is
                 );
             }
         }
-    }
-
-    /**
-     * @dev Internal function to fulfill an arbitrary number of orders, either
-     *      full or partial, after validating, adjusting amounts, and applying
-     *      criteria resolvers.
-     *
-     * @param advancedOrders     The orders to match, including a fraction to
-     *                           attempt to fill for each order.
-     * @param fulfillments       An array of elements allocating offer
-     *                           components to consideration components. Note
-     *                           that the final amount of each consideration
-     *                           component must be zero for a match operation to
-     *                           be considered valid.
-     *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
-     */
-    function _fulfillAdvancedOrders(
-        AdvancedOrder[] memory advancedOrders,
-        Fulfillment[] calldata fulfillments
-    )
-        internal
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-    {
-        // Retrieve fulfillments array length and place on the stack.
-        uint256 totalFulfillments = fulfillments.length;
-
-        // Allocate executions by fulfillment and apply them to each execution.
-        Execution[] memory executions = new Execution[](totalFulfillments);
-
-        // Skip overflow checks as all for loops are indexed starting at zero.
-        unchecked {
-            // Track number of filtered executions.
-            uint256 totalFilteredExecutions = 0;
-
-            // Iterate over each fulfillment.
-            for (uint256 i = 0; i < totalFulfillments; ++i) {
-                /// Retrieve the fulfillment in question.
-                Fulfillment calldata fulfillment = fulfillments[i];
-
-                // Derive the execution corresponding with the fulfillment.
-                Execution memory execution = _applyFulfillment(
-                    advancedOrders,
-                    fulfillment.offerComponents,
-                    fulfillment.considerationComponents
-                );
-
-                // If offerer and recipient on the execution are the same...
-                if (execution.item.recipient == execution.offerer) {
-                    // increment total filtered executions.
-                    totalFilteredExecutions += 1;
-                } else {
-                    // Otherwise, assign the execution to the executions array.
-                    executions[i - totalFilteredExecutions] = execution;
-                }
-            }
-
-            // If some number of executions have been filtered...
-            if (totalFilteredExecutions != 0) {
-                // reduce the total length of the executions array.
-                assembly {
-                    mstore(
-                        executions,
-                        sub(mload(executions), totalFilteredExecutions)
-                    )
-                }
-            }
-        }
-
-        // Perform final checks and compress executions into standard and batch.
-        (
-            ,
-            standardExecutions,
-            batchExecutions
-        ) = _performFinalChecksAndExecuteOrders(advancedOrders, executions);
-
-        // Return both standard and batch ERC1155 executions.
-        return (standardExecutions, batchExecutions);
-    }
-
-    /**
-     * @notice Internal function to attempt to fill a group of orders, fully or
-     *         partially, with an arbitrary number of items for offer and
-     *         consideration per order alongside criteria resolvers containing
-     *         specific token identifiers and associated proofs. Any order that
-     *         is not currently active, has already been fully filled, or has
-     *         been cancelled will be omitted. Remaining offer and consideration
-     *         items will then be aggregated where possible as indicated by the
-     *         supplied offer and consideration component arrays and aggregated
-     *         items will be transferred to the fulfiller or to each intended
-     *         recipient, respectively. Note that a failing item transfer or an
-     *         issue with order formatting will cause the entire batch to fail.
-     *
-     * @param advancedOrders            The orders to fulfill along with the
-     *                                  fraction of those orders to attempt to
-     *                                  fill. Note that both the offerer and the
-     *                                  fulfiller must first approve this
-     *                                  contract (or a conduit if indicated by
-     *                                  the order) to transfer any relevant
-     *                                  tokens on their behalf and that
-     *                                  contracts must implement
-     *                                  `onERC1155Received` in order to receive
-     *                                  ERC1155 tokens as consideration. Also
-     *                                  note that all offer and consideration
-     *                                  components must have no remainder after
-     *                                  multiplication of the respective amount
-     *                                  with the supplied fraction for an
-     *                                  order's partial fill amount to be
-     *                                  considered valid.
-     * @param criteriaResolvers         An array where each element contains a
-     *                                  reference to a specific offer or
-     *                                  consideration, a token identifier, and a
-     *                                  proof that the supplied token identifier
-     *                                  is contained in the merkle root held by
-     *                                  the item in question's criteria element.
-     *                                  Note that an empty criteria indicates
-     *                                  that any (transferrable) token
-     *                                  identifier on the token in question is
-     *                                  valid and that no associated proof needs
-     *                                  to be supplied.
-     * @param offerFulfillments         An array of FulfillmentComponent arrays
-     *                                  indicating which offer items to attempt
-     *                                  to aggregate when preparing executions.
-     * @param considerationFulfillments An array of FulfillmentComponent arrays
-     *                                  indicating which consideration items to
-     *                                  attempt to aggregate when preparing
-     *                                  executions.
-     * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
-     *                                  if any, to source the fulfiller's token
-     *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used (and
-     *                                  direct approvals set on Consideration).
-     * @param maximumFulfilled          The maximum number of orders to fulfill.
-     *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
-     */
-    function _fulfillAvailableAdvancedOrders(
-        AdvancedOrder[] memory advancedOrders,
-        CriteriaResolver[] memory criteriaResolvers,
-        FulfillmentComponent[][] calldata offerFulfillments,
-        FulfillmentComponent[][] calldata considerationFulfillments,
-        bytes32 fulfillerConduitKey,
-        uint256 maximumFulfilled
-    )
-        internal
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-    {
-        // Validate orders, apply amounts, & determine if they utilize conduits.
-        _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            criteriaResolvers,
-            false, // Signifies that invalid orders should NOT revert.
-            maximumFulfilled
-        );
-
-        // Aggregate used offer and consideration items and execute transfers.
-        (
-            availableOrders,
-            standardExecutions,
-            batchExecutions
-        ) = _executeAvailableFulfillments(
-            advancedOrders,
-            offerFulfillments,
-            considerationFulfillments,
-            fulfillerConduitKey
-        );
-
-        // Return order fulfillment details and executions.
-        return (availableOrders, standardExecutions, batchExecutions);
     }
 
     /**
@@ -846,5 +698,153 @@ contract OrderCombiner is
 
         // Return arrays with available orders and triggered executions.
         return (availableOrders, standardExecutions, batchExecutions);
+    }
+
+    /**
+     * @dev Internal function to match an arbitrary number of full or partial
+     *      orders, each with an arbitrary number of items for offer and
+     *      consideration, supplying criteria resolvers containing specific
+     *      token identifiers and associated proofs as well as fulfillments
+     *      allocating offer components to consideration components.
+     *
+     * @param advancedOrders    The advanced orders to match. Note that both the
+     *                          offerer and fulfiller on each order must first
+     *                          approve this contract (or their conduit if
+     *                          indicated by the order) to transfer any relevant
+     *                          tokens on their behalf and each consideration
+     *                          recipient must implement `onERC1155Received` in
+     *                          order toreceive ERC1155 tokens. Also note that
+     *                          the offer and consideration components for each
+     *                          order must have no remainder after multiplying
+     *                          the respective amount with the supplied fraction
+     *                          in order for the group of partial fills to be
+     *                          considered valid.
+     * @param criteriaResolvers An array where each element contains a reference
+     *                          to a specific order as well as that order's
+     *                          offer or consideration, a token identifier, and
+     *                          a proof that the supplied token identifier is
+     *                          contained in the order's merkle root. Note that
+     *                          an empty root indicates that any (transferrable)
+     *                          token identifier is valid and that no associated
+     *                          proof needs to be supplied.
+     * @param fulfillments      An array of elements allocating offer components
+     *                          to consideration components. Note that each
+     *                          consideration component must be fully met in
+     *                          order for the match operation to be valid.
+     *
+     * @return standardExecutions An array of elements indicating the sequence
+     *                            of non-batch transfers performed as part of
+     *                            matching the given orders.
+     * @return batchExecutions    An array of elements indicating the sequence
+     *                            of batch transfers performed as part of
+     *                            matching the given orders.
+     */
+    function _matchAdvancedOrders(
+        AdvancedOrder[] memory advancedOrders,
+        CriteriaResolver[] memory criteriaResolvers,
+        Fulfillment[] calldata fulfillments
+    )
+        internal
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        )
+    {
+        // Validate orders, update order status, and determine item amounts.
+        _validateOrdersAndPrepareToFulfill(
+            advancedOrders,
+            criteriaResolvers,
+            true, // Signifies that invalid orders should revert.
+            advancedOrders.length
+        );
+
+        // Fulfill the orders using the supplied fulfillments.
+        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
+    }
+
+    /**
+     * @dev Internal function to fulfill an arbitrary number of orders, either
+     *      full or partial, after validating, adjusting amounts, and applying
+     *      criteria resolvers.
+     *
+     * @param advancedOrders     The orders to match, including a fraction to
+     *                           attempt to fill for each order.
+     * @param fulfillments       An array of elements allocating offer
+     *                           components to consideration components. Note
+     *                           that the final amount of each consideration
+     *                           component must be zero for a match operation to
+     *                           be considered valid.
+     *
+     * @return standardExecutions An array of elements indicating the sequence
+     *                            of non-batch transfers performed as part of
+     *                            matching the given orders.
+     * @return batchExecutions    An array of elements indicating the sequence
+     *                            of batch transfers performed as part of
+     *                            matching the given orders.
+     */
+    function _fulfillAdvancedOrders(
+        AdvancedOrder[] memory advancedOrders,
+        Fulfillment[] calldata fulfillments
+    )
+        internal
+        returns (
+            Execution[] memory standardExecutions,
+            BatchExecution[] memory batchExecutions
+        )
+    {
+        // Retrieve fulfillments array length and place on the stack.
+        uint256 totalFulfillments = fulfillments.length;
+
+        // Allocate executions by fulfillment and apply them to each execution.
+        Execution[] memory executions = new Execution[](totalFulfillments);
+
+        // Skip overflow checks as all for loops are indexed starting at zero.
+        unchecked {
+            // Track number of filtered executions.
+            uint256 totalFilteredExecutions = 0;
+
+            // Iterate over each fulfillment.
+            for (uint256 i = 0; i < totalFulfillments; ++i) {
+                /// Retrieve the fulfillment in question.
+                Fulfillment calldata fulfillment = fulfillments[i];
+
+                // Derive the execution corresponding with the fulfillment.
+                Execution memory execution = _applyFulfillment(
+                    advancedOrders,
+                    fulfillment.offerComponents,
+                    fulfillment.considerationComponents
+                );
+
+                // If offerer and recipient on the execution are the same...
+                if (execution.item.recipient == execution.offerer) {
+                    // increment total filtered executions.
+                    totalFilteredExecutions += 1;
+                } else {
+                    // Otherwise, assign the execution to the executions array.
+                    executions[i - totalFilteredExecutions] = execution;
+                }
+            }
+
+            // If some number of executions have been filtered...
+            if (totalFilteredExecutions != 0) {
+                // reduce the total length of the executions array.
+                assembly {
+                    mstore(
+                        executions,
+                        sub(mload(executions), totalFilteredExecutions)
+                    )
+                }
+            }
+        }
+
+        // Perform final checks and compress executions into standard and batch.
+        (
+            ,
+            standardExecutions,
+            batchExecutions
+        ) = _performFinalChecksAndExecuteOrders(advancedOrders, executions);
+
+        // Return both standard and batch ERC1155 executions.
+        return (standardExecutions, batchExecutions);
     }
 }
