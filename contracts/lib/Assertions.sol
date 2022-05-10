@@ -7,6 +7,8 @@ import { GettersAndDerivers } from "./GettersAndDerivers.sol";
 
 import { TokenTransferrerErrors } from "../interfaces/TokenTransferrerErrors.sol";
 
+import { NonceManager } from "./NonceManager.sol";
+
 import "./ConsiderationConstants.sol";
 
 /**
@@ -15,7 +17,11 @@ import "./ConsiderationConstants.sol";
  * @notice Assertions contains logic for making various assertions that do not
  *         fit neatly within a dedicated semantic scope.
  */
-contract Assertions is GettersAndDerivers, TokenTransferrerErrors {
+contract Assertions is
+    GettersAndDerivers,
+    NonceManager,
+    TokenTransferrerErrors
+{
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
@@ -50,7 +56,10 @@ contract Assertions is GettersAndDerivers, TokenTransferrerErrors {
 
         // Derive and return order hash using current nonce for the offerer.
         return
-            _deriveOrderHash(orderParameters, _nonces[orderParameters.offerer]);
+            _deriveOrderHash(
+                orderParameters,
+                _getNonce(orderParameters.offerer)
+            );
     }
 
     /**
