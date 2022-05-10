@@ -1,5 +1,8 @@
 [default]
-solc = '0.8.13'
+# specified so solc compiles legacy wyvern contracts using 0.4.13, for use with getCode cheatcode
+auto_detect_solc = true
+optimizer = true
+optimizer_runs = 200
 via_ir = true
 fuzz_runs = 5000
 src = 'contracts'
