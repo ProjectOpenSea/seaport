@@ -21,7 +21,7 @@ import {
     BatchExecution
 } from "./lib/ConsiderationStructs.sol";
 
-import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
+import { OrderCombiner } from "./lib/OrderCombiner.sol";
 
 /**
  * @title Consideration
@@ -37,7 +37,7 @@ import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
  *         (the "offer") along with an arbitrary number of items that must be
  *         received back by the indicated recipients (the "consideration").
  */
-contract Consideration is ConsiderationInterface, ConsiderationInternal {
+contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
@@ -46,9 +46,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ConsiderationInternal(conduitController)
-    {}
+    constructor(address conduitController) OrderCombiner(conduitController) {}
 
     /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
@@ -377,21 +375,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             BatchExecution[] memory batchExecutions
         )
     {
-        // Convert orders to "advanced" orders.
-        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
-            orders
-        );
-
-        // Validate orders, update order status, and determine item amounts.
-        _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            new CriteriaResolver[](0), // No criteria resolvers supplied.
-            true, // Signifies that invalid orders should revert.
-            advancedOrders.length
-        );
-
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
+        // Convert to advanced, validate, and match orders using fulfillments.
+        return
+            _matchAdvancedOrders(
+                _convertOrdersToAdvanced(orders),
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                fulfillments
+            );
     }
 
     /**
@@ -446,16 +436,13 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
             BatchExecution[] memory batchExecutions
         )
     {
-        // Validate orders, update order status, and determine item amounts.
-        _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            criteriaResolvers,
-            true, // Signifies that invalid orders should revert.
-            advancedOrders.length
-        );
-
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
+        // Validate and match the advanced orders using supplied fulfillments.
+        return
+            _matchAdvancedOrders(
+                advancedOrders,
+                criteriaResolvers,
+                fulfillments
+            );
     }
 
     /**
