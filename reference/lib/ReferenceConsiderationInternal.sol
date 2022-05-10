@@ -1600,6 +1600,37 @@ contract ReferenceConsiderationInternal is
         return (availableOrders, standardExecutions, batchExecutions);
     }
 
+    /**
+     * @dev Internal function to trigger a call to the conduit currently held by
+     *      the accumulator if the accumulator contains item transfers (i.e. it
+     *      is "armed") and the supplied conduit key does not match the key held
+     *      by the accumulator.
+     *
+     * @param accumulatorStruct A struct containing conduit transfer data and its
+     *                          corresponding conduitKey.
+     * @param conduitKey        A bytes32 value indicating what corresponding conduit,
+     *                          if any, to source token approvals from. The zero hash
+     *                          signifies that no conduit should be used, with direct
+     *                          approvals set on this contract.
+     */
+    function _triggerIfArmedAndNotAccumulatable(
+        AccumulatorStruct memory accumulatorStruct,
+        bytes32 conduitKey
+    ) internal {
+        // Perform conduit call if the set key does not match the supplied key.
+        if (accumulatorStruct.conduitKey != conduitKey) {
+            _triggerIfArmed(accumulatorStruct);
+        }
+    }
+
+    /**
+     * @dev Internal function to trigger a call to the conduit currently held by
+     *      the accumulator if the accumulator contains item transfers (i.e. it
+     *      is "armed").
+     *
+     * @param accumulatorStruct A struct containing conduit transfer data and its
+     *                          corresponding conduitKey.
+     */
     function _triggerIfArmed(AccumulatorStruct memory accumulatorStruct)
         internal
     {
@@ -1612,14 +1643,95 @@ contract ReferenceConsiderationInternal is
         _trigger(accumulatorStruct);
     }
 
-    function _triggerIfArmedAndNotAccumulatable(
+    /**
+     * @dev Internal function to trigger a call to the conduit corresponding to
+     *      a given conduit key, supplying all accumulated item transfers. The
+     *      accumulator will be "disarmed" and reset in the process.
+     *
+     * @param accumulatorStruct A struct containing conduit transfer data and its
+     *                          corresponding conduitKey.
+     */
+    function _trigger(AccumulatorStruct memory accumulatorStruct) internal {
+        // Call the conduit with all the accumulated transfers.
+        ConduitInterface(_getConduit(accumulatorStruct.conduitKey)).execute(
+            accumulatorStruct.transfers
+        );
+
+        // Reset accumulator length to signal that it is now "disarmed".
+        delete accumulatorStruct.transfers;
+    }
+
+    /**
+     * @dev Internal pure function to place an item transfer into an accumulator
+     *      that collects a series of transfers to execute against a given
+     *      conduit in a single call.
+     *
+     * @param conduitKey        A bytes32 value indicating what corresponding conduit,
+     *                          if any, to source token approvals from. The zero hash
+     *                          signifies that no conduit should be used, with direct
+     *                          approvals set on this contract.
+     * @param accumulatorStruct A struct containing conduit transfer data and its
+     *                          corresponding conduitKey.
+     * @param itemType          The type of the item to transfer.
+     * @param token             The token to transfer.
+     * @param from              The originator of the transfer.
+     * @param to                The recipient of the transfer.
+     * @param identifier        The tokenId to transfer.
+     * @param amount            The amount to transfer.
+     */
+    function _insert(
+        bytes32 conduitKey,
         AccumulatorStruct memory accumulatorStruct,
-        bytes32 conduitKey
-    ) internal {
-        // Perform conduit call if the set key does not match the supplied key.
-        if (accumulatorStruct.conduitKey != conduitKey) {
-            _triggerIfArmed(accumulatorStruct);
+        uint256 itemType,
+        address token,
+        address from,
+        address to,
+        uint256 identifier,
+        uint256 amount
+    ) internal view {
+        /**
+         *   The following is highly inefficient, but written this way
+         *   to show in the most simplest form what the optimized
+         *   contract is performing inside its assembly.
+         */
+
+        // Get the current length of the accumulator's transfers.
+        uint256 currentTransferLength = accumulatorStruct.transfers.length;
+
+        // Create a new array to "insert" the new transfer.
+        ConduitTransfer[] memory newTransfers = (
+            new ConduitTransfer[](currentTransferLength + 1)
+        );
+
+        // Fill new array with old transfers.
+        for (uint256 i = 0; i < currentTransferLength; ++i) {
+            // Get the old transfer.
+            ConduitTransfer memory oldTransfer = accumulatorStruct.transfers[i];
+            // Add the old transfer into the new array.
+            newTransfers[i] = ConduitTransfer(
+                oldTransfer.itemType,
+                oldTransfer.token,
+                oldTransfer.from,
+                oldTransfer.to,
+                oldTransfer.identifier,
+                oldTransfer.amount
+            );
         }
+
+        // Insert new transfer into array.
+        newTransfers[currentTransferLength] = ConduitTransfer(
+            ConduitItemType(itemType),
+            token,
+            from,
+            to,
+            identifier,
+            amount
+        );
+
+        // Set accumulator struct transfers to new transfers.
+        accumulatorStruct.transfers = newTransfers;
+        // Set the conduitkey of the current transfers.
+        accumulatorStruct.conduitKey = conduitKey;
     }
 
     /**
@@ -1853,71 +1965,6 @@ contract ReferenceConsiderationInternal is
         }
     }
 
-    function _trigger(AccumulatorStruct memory accumulatorStruct) internal {
-        // Call the conduit with all the accumulated transfers.
-        ConduitInterface(_getConduit(accumulatorStruct.conduitKey)).execute(
-            accumulatorStruct.transfers
-        );
-
-        // Reset accumulator length to signal that it is now "disarmed".
-        delete accumulatorStruct.transfers;
-    }
-
-    function _insert(
-        bytes32 conduitKey,
-        AccumulatorStruct memory accumulatorStruct,
-        uint256 itemType,
-        address token,
-        address from,
-        address to,
-        uint256 identifier,
-        uint256 amount
-    ) internal view {
-        /**
-         *   The following is highly inefficient, but written this way
-         *   to show in the most simplest form what the optimized
-         *   contract is performing inside its assembly.
-         */
-
-        // Get the current length of the accumulator's transfers.
-        uint256 currentTransferLength = accumulatorStruct.transfers.length;
-
-        // Create a new array to "insert" the new transfer.
-        ConduitTransfer[] memory newTransfers = (
-            new ConduitTransfer[](currentTransferLength + 1)
-        );
-
-        // Fill new array with old transfers.
-        for (uint256 i = 0; i < currentTransferLength; ++i) {
-            // Get the old transfer.
-            ConduitTransfer memory oldTransfer = accumulatorStruct.transfers[i];
-            // Add the old transfer into the new array.
-            newTransfers[i] = ConduitTransfer(
-                oldTransfer.itemType,
-                oldTransfer.token,
-                oldTransfer.from,
-                oldTransfer.to,
-                oldTransfer.identifier,
-                oldTransfer.amount
-            );
-        }
-
-        // Insert new transfer into array.
-        newTransfers[currentTransferLength] = ConduitTransfer(
-            ConduitItemType(itemType),
-            token,
-            from,
-            to,
-            identifier,
-            amount
-        );
-
-        // Set accumulator struct transfers to new transfers.
-        accumulatorStruct.transfers = newTransfers;
-        // Set the conduitkey of the current transfers.
-        accumulatorStruct.conduitKey = conduitKey;
-    }
-
     /**
      * @dev Internal function to transfer a batch of ERC1155 tokens from a given
      *      originator to a given recipient. Sufficient approvals must be set,
@@ -1964,6 +2011,18 @@ contract ReferenceConsiderationInternal is
         }
     }
 
+    /**
+     * @dev Internal function get the conduit derived by the provided
+     *      conduit key.
+     *
+     * @param conduitKey A bytes32 value indicating what corresponding conduit,
+     *                   if any, to source token approvals from. This value is
+     *                   the "salt" parameter supplied by the deployer (i.e. the
+     *                   conduit controller) when deploying the given conduit.
+     *
+     * @return conduit The address of the conduit associated with the given
+     *                 conduit key.
+     */
     function _getConduit(bytes32 conduitKey)
         internal
         view
