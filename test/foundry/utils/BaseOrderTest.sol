@@ -63,12 +63,12 @@ contract BaseOrderTest is
     Fulfillment[] fulfillments;
     FulfillmentComponent firstOrderFirstItem;
     FulfillmentComponent firstOrderSecondItem;
-    FulfillmentComponent firstOrderThirdItem;
     FulfillmentComponent secondOrderFirstItem;
+    FulfillmentComponent secondOrderSecondItem;
     FulfillmentComponent[] firstOrderFirstItemArray;
     FulfillmentComponent[] firstOrderSecondItemArray;
-    FulfillmentComponent[] firstOrderThirdItemArray;
     FulfillmentComponent[] secondOrderFirstItemArray;
+    FulfillmentComponent[] secondOrderSecondItemArray;
     Fulfillment firstFulfillment;
     Fulfillment secondFulfillment;
     Fulfillment thirdFulfillment;

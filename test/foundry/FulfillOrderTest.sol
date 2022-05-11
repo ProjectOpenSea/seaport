@@ -516,7 +516,7 @@ contract FulfillOrderTest is BaseOrderTest {
             value: testStruct.args.paymentAmts[0] +
                 testStruct.args.paymentAmts[1] +
                 testStruct.args.paymentAmts[2]
-        }(Order(orderParameters, signature), conduitKey); // TODO: over/underflow error in referenceConsideration differential test
+        }(Order(orderParameters, signature), conduitKey);
     }
 
     function _testFulfillOrderSingleErc20ToSingleErc1155(
