@@ -16,15 +16,12 @@ import {
     Execution,
     Order,
     AdvancedOrder,
-    CriteriaResolver,
-    BatchExecution
+    CriteriaResolver
 } from "./ConsiderationStructs.sol";
 
 import { OrderFulfiller } from "./OrderFulfiller.sol";
 
 import { FulfillmentApplier } from "./FulfillmentApplier.sol";
-
-import { ExecutionCompression } from "./ExecutionCompression.sol";
 
 import "./ConsiderationConstants.sol";
 
@@ -35,11 +32,7 @@ import "./ConsiderationConstants.sol";
  *         either by matching offer items to consideration items or by
  *         fulfilling orders where available.
  */
-contract OrderCombiner is
-    OrderFulfiller,
-    FulfillmentApplier,
-    ExecutionCompression
-{
+contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
@@ -104,15 +97,12 @@ contract OrderCombiner is
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function _fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -123,11 +113,7 @@ contract OrderCombiner is
         uint256 maximumFulfilled
     )
         internal
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Validate orders, apply amounts, & determine if they utilize conduits.
         _validateOrdersAndPrepareToFulfill(
@@ -138,11 +124,7 @@ contract OrderCombiner is
         );
 
         // Aggregate used offer and consideration items and execute transfers.
-        (
-            availableOrders,
-            standardExecutions,
-            batchExecutions
-        ) = _executeAvailableFulfillments(
+        (availableOrders, executions) = _executeAvailableFulfillments(
             advancedOrders,
             offerFulfillments,
             considerationFulfillments,
@@ -150,7 +132,7 @@ contract OrderCombiner is
         );
 
         // Return order fulfillment details and executions.
-        return (availableOrders, standardExecutions, batchExecutions);
+        return (availableOrders, executions);
     }
 
     /**
@@ -445,15 +427,12 @@ contract OrderCombiner is
      *                                  that no conduit should be used, with
      *                                  direct approvals set on Consideration.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function _executeAvailableFulfillments(
         AdvancedOrder[] memory advancedOrders,
@@ -462,11 +441,7 @@ contract OrderCombiner is
         bytes32 fulfillerConduitKey
     )
         internal
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Retrieve length of offer fulfillments array and place on the stack.
         uint256 totalOfferFulfillments = offerFulfillments.length;
@@ -477,7 +452,7 @@ contract OrderCombiner is
         );
 
         // Allocate an execution for each offer and consideration fulfillment.
-        Execution[] memory executions = new Execution[](
+        executions = new Execution[](
             totalOfferFulfillments + totalConsiderationFulfillments
         );
 
@@ -555,42 +530,33 @@ contract OrderCombiner is
             revert NoSpecifiedOrdersAvailable();
         }
 
-        // Perform final checks, compress executions, and return.
-        return _performFinalChecksAndExecuteOrders(advancedOrders, executions);
+        // Perform final checks and return.
+        availableOrders = _performFinalChecksAndExecuteOrders(
+            advancedOrders,
+            executions
+        );
+
+        return (availableOrders, executions);
     }
 
     /**
      * @dev Internal function to perform a final check that each consideration
      *      item for an arbitrary number of fulfilled orders has been met and to
-     *      compress and trigger associated execututions, transferring the
-     *      respective items.
+     *      trigger associated execututions, transferring the respective items.
      *
      * @param advancedOrders     The orders to check and perform executions for.
-     * @param executions         An array of uncompressed elements indicating
-     *                           the sequence of transfers to perform when
-     *                           fulfilling the given orders.
+     * @param executions         An array of elements indicating the sequence of
+     *                           transfers to perform when fulfilling the given
+     *                           orders.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            fulfilling the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            fulfilling the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
      */
     function _performFinalChecksAndExecuteOrders(
         AdvancedOrder[] memory advancedOrders,
         Execution[] memory executions
-    )
-        internal
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-    {
+    ) internal returns (bool[] memory availableOrders) {
         // Retrieve the length of the advanced orders array and place on stack.
         uint256 totalOrders = advancedOrders.length;
 
@@ -633,18 +599,15 @@ contract OrderCombiner is
             }
         }
 
-        // Split executions into "standard" (no batch) and "batch" executions.
-        (standardExecutions, batchExecutions) = _compressExecutions(executions);
-
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
         bytes memory accumulator = new bytes(32);
 
-        // Iterate over each standard execution.
-        for (uint256 i = 0; i < standardExecutions.length; ) {
+        // Iterate over each execution.
+        for (uint256 i = 0; i < executions.length; ) {
             // Retrieve the execution and the associated received item.
-            Execution memory execution = standardExecutions[i];
+            Execution memory execution = executions[i];
             ReceivedItem memory item = execution.item;
 
             // If execution transfers native tokens, reduce value available.
@@ -677,17 +640,6 @@ contract OrderCombiner is
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulator);
 
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            uint256 totalBatchExecutions = batchExecutions.length;
-
-            // Iterate over each batch execution.
-            for (uint256 i = 0; i < totalBatchExecutions; ++i) {
-                // Perform the batch transfer.
-                _batchTransferERC1155(batchExecutions[i]);
-            }
-        }
-
         // If any ether remains after fulfillments, return it to the caller.
         if (etherRemaining != 0) {
             _transferEth(payable(msg.sender), etherRemaining);
@@ -696,8 +648,8 @@ contract OrderCombiner is
         // Clear the reentrancy guard.
         _clearReentrancyGuard();
 
-        // Return arrays with available orders and triggered executions.
-        return (availableOrders, standardExecutions, batchExecutions);
+        // Return the array containing available orders.
+        return (availableOrders);
     }
 
     /**
@@ -732,24 +684,15 @@ contract OrderCombiner is
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function _matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    )
-        internal
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-    {
+    ) internal returns (Execution[] memory executions) {
         // Validate orders, update order status, and determine item amounts.
         _validateOrdersAndPrepareToFulfill(
             advancedOrders,
@@ -775,28 +718,19 @@ contract OrderCombiner is
      *                           component must be zero for a match operation to
      *                           be considered valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function _fulfillAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         Fulfillment[] calldata fulfillments
-    )
-        internal
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-    {
+    ) internal returns (Execution[] memory executions) {
         // Retrieve fulfillments array length and place on the stack.
         uint256 totalFulfillments = fulfillments.length;
 
         // Allocate executions by fulfillment and apply them to each execution.
-        Execution[] memory executions = new Execution[](totalFulfillments);
+        executions = new Execution[](totalFulfillments);
 
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
@@ -837,14 +771,10 @@ contract OrderCombiner is
             }
         }
 
-        // Perform final checks and compress executions into standard and batch.
-        (
-            ,
-            standardExecutions,
-            batchExecutions
-        ) = _performFinalChecksAndExecuteOrders(advancedOrders, executions);
+        // Perform final checks and execute orders.
+        _performFinalChecksAndExecuteOrders(advancedOrders, executions);
 
-        // Return both standard and batch ERC1155 executions.
-        return (standardExecutions, batchExecutions);
+        // Return the executions array.
+        return (executions);
     }
 }

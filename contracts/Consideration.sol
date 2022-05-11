@@ -17,8 +17,7 @@ import {
     CriteriaResolver,
     Fulfillment,
     FulfillmentComponent,
-    Execution,
-    BatchExecution
+    Execution
 } from "./lib/ConsiderationStructs.sol";
 
 import { OrderCombiner } from "./lib/OrderCombiner.sol";
@@ -205,15 +204,12 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableOrders(
         Order[] calldata orders,
@@ -225,11 +221,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         external
         payable
         override
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert orders to "advanced" orders and fulfill all available orders.
         return
@@ -297,15 +289,12 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -318,11 +307,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         external
         payable
         override
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Fulfill all available orders.
         return
@@ -356,25 +341,14 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        override
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-    {
+    ) external payable override returns (Execution[] memory executions) {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
             _matchAdvancedOrders(
@@ -416,26 +390,15 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        override
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-    {
+    ) external payable override returns (Execution[] memory executions) {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(

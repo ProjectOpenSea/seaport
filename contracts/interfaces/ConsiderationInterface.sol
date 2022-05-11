@@ -8,7 +8,6 @@ import {
     Fulfillment,
     FulfillmentComponent,
     Execution,
-    BatchExecution,
     Order,
     AdvancedOrder,
     OrderStatus,
@@ -151,15 +150,12 @@ interface ConsiderationInterface {
      *                                  direct approvals set on this contract.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableOrders(
         Order[] calldata orders,
@@ -170,11 +166,7 @@ interface ConsiderationInterface {
     )
         external
         payable
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        );
+        returns (bool[] memory availableOrders, Execution[] memory executions);
 
     /**
      * @notice Attempt to fill a group of orders, fully or partially, with an
@@ -230,15 +222,12 @@ interface ConsiderationInterface {
      *                                  direct approvals set on this contract.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] calldata advancedOrders,
@@ -250,11 +239,7 @@ interface ConsiderationInterface {
     )
         external
         payable
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        );
+        returns (bool[] memory availableOrders, Execution[] memory executions);
 
     /**
      * @notice Match an arbitrary number of orders, each with an arbitrary
@@ -275,23 +260,14 @@ interface ConsiderationInterface {
      *                     consideration component must be fully met for the
      *                     match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        );
+    ) external payable returns (Execution[] memory executions);
 
     /**
      * @notice Match an arbitrary number of full or partial orders, each with an
@@ -325,24 +301,15 @@ interface ConsiderationInterface {
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        );
+    ) external payable returns (Execution[] memory executions);
 
     /**
      * @notice Cancel an arbitrary number of orders. Note that only the offerer
