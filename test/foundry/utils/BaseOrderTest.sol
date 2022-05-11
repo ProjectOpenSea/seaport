@@ -267,6 +267,20 @@ contract BaseOrderTest is
     }
 
     function _configureErc20ConsiderationItem(
+        address payable receiver,
+        uint256 paymentAmount
+    ) internal {
+        _configureConsiderationItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            paymentAmount,
+            paymentAmount,
+            receiver
+        );
+    }
+
+    function _configureErc20ConsiderationItem(
         uint256 startAmount,
         uint256 endAmount
     ) internal {

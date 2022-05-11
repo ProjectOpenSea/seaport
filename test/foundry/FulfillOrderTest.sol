@@ -50,7 +50,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 salt;
         uint128[3] paymentAmts;
         bool useConduit;
-        uint16 numberOfTips;
+        uint8 numberOfTips;
     }
 
     struct ToErc1155WithSingleTipStruct {
@@ -72,7 +72,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 salt;
         uint128[3] paymentAmts;
         bool useConduit;
-        uint16 numberOfTips;
+        uint8 numberOfTips;
     }
 
     struct ConsiderationToErc721Struct {

@@ -12,6 +12,7 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
+import { Merkle } from "murky/Merkle.sol";
 
 contract FulfillAdvancedOrder is BaseOrderTest {
     // todo: add numer/denom, swap if numer > denom
@@ -54,6 +55,59 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     function testAdvancedPartial1155(FuzzInputs memory args) public {
         _advancedPartial1155(Context(consideration, args));
         _advancedPartial1155(Context(referenceConsideration, args));
+    }
+
+    function testAdvancedPartial1155Static() public {
+        test1155_1.mint(alice, 1, 10);
+
+        _configureERC1155OfferItem(1, uint256(10));
+        _configureEthConsiderationItem(alice, uint256(10));
+        _configureEthConsiderationItem(payable(address(0)), uint256(10));
+        _configureEthConsiderationItem(cal, uint256(10));
+        uint256 nonce = referenceConsideration.getNonce(alice);
+        OrderComponents memory orderComponents = OrderComponents(
+            alice,
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.PARTIAL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            nonce
+        );
+        bytes32 orderHash = referenceConsideration.getOrderHash(
+            orderComponents
+        );
+
+        bytes memory signature = signOrder(
+            referenceConsideration,
+            alicePk,
+            orderHash
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            alice,
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.PARTIAL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            3
+        );
+        uint256 value = 30;
+
+        referenceConsideration.fulfillAdvancedOrder{ value: value }(
+            AdvancedOrder(orderParameters, 1, 1, signature, ""),
+            new CriteriaResolver[](0),
+            bytes32(0)
+        );
     }
 
     function _advancedPartial1155(Context memory context)

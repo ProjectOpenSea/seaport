@@ -37,20 +37,28 @@ contract ReentrantContract {
             ) {
                 emit BytesReason(reason);
             }
-        }
-        // else if (reentrancyPoint == ReentrancyPoint.FulfillOrder) {
-        //     Order memory order;
-        //     consideration.fulfillOrder(order, bytes32(0));
-        // } else if (reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder) {
-        //     AdvancedOrder memory order;
-        //     CriteriaResolver[]
-        //         memory criteriaResolvers = new CriteriaResolver[](0);
+        } else if (reentrancyPoint == ReentrancyPoint.FulfillOrder) {
+            Order memory order;
+            try consideration.fulfillOrder(order, bytes32(0)) {} catch (
+                bytes memory reason
+            ) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder) {
+            AdvancedOrder memory order;
+            CriteriaResolver[]
+                memory criteriaResolvers = new CriteriaResolver[](0);
 
-        //     consideration.fulfillAdvancedOrder(
-        //         order,
-        //         criteriaResolvers,
-        //         bytes32(0)
-        //     );
+            try
+                consideration.fulfillAdvancedOrder(
+                    order,
+                    criteriaResolvers,
+                    bytes32(0)
+                )
+            {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        }
         // } else if (reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders) {
         //     Order[] memory orders;
         //     FulfillmentComponent[][] memory orderFulfillments;

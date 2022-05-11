@@ -27,6 +27,10 @@ via_ir = true
 src = 'contracts'
 out = 'optimized-out'
 
+[test]
+solc = '0.8.13'
+via_ir = false
+
 [quick]
 via_ir = false
 fuzz_runs = 1000
