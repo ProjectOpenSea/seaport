@@ -625,13 +625,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               );
 
             expect(transferLogs.length > 0).to.be.true;
-            const transferLog = transferLogs[0];
-            expect(transferLog.args.id.toString()).to.equal(
-              identifier.toString()
-            );
-            expect(transferLog.args.amount.toString()).to.equal(
-              amount.toString()
-            );
+
+            let found = false;
+            for (transferLog of transferLogs) {
+              if (
+                transferLog.args.id.toString() === identifier.toString() &&
+                transferLog.args.amount.toString() === amount.toString()
+              ) {
+                found = true;
+                break;
+              }
+            }
+
+            expect(found).to.be.true;
           } else {
             expect(false).to.be.true; // bad item type
           }
@@ -832,36 +838,24 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                     : true))
             );
 
-          expect(transferLogs.length).to.equal(1);
-          const transferLog = transferLogs[0];
+          expect(transferLogs.length > 0).to.be.true;
 
-          if (
-            transferLog.signature ===
-            "TransferSingle(address,address,address,uint256,uint256)"
-          ) {
-            expect(transferLog.args.id.toString()).to.equal(
-              offer.identifier.toString()
-            );
-
-            if (!shouldSkipAmountComparison) {
-              expect(transferLog.args.amount.toString()).to.equal(
-                offer.amount.mul(multiplier).toString()
-              );
+          let found = false;
+          for (transferLog of transferLogs) {
+            if (
+              transferLog.signature ===
+                "TransferSingle(address,address,address,uint256,uint256)" &&
+              transferLog.args.id.toString() === offer.identifier.toString() &&
+              (shouldSkipAmountComparison ||
+                transferLog.args.amount.toString() ===
+                  offer.amount.mul(multiplier).toString())
+            ) {
+              found = true;
+              break;
             }
-          } else {
-            let located = false;
-            for ([i, batchTokenId] of Object.entries(transferLog.args.ids)) {
-              if (
-                batchTokenId.toString() === offer.identifier.toString() &&
-                transferLog.args[4][i].toString() === offer.amount.toString()
-              ) {
-                located = true;
-                break;
-              }
-            }
-
-            expect(located).to.be.true;
           }
+
+          expect(found).to.be.true;
         }
       }
 
@@ -923,37 +917,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   x.args.to === consideration.recipient)
             );
 
-          expect(transferLogs.length).to.equal(1);
-          const transferLog = transferLogs[0];
+          expect(transferLogs.length > 0).to.be.true;
 
-          if (
-            transferLog.signature ===
-            "TransferSingle(address,address,address,uint256,uint256)"
-          ) {
-            expect(transferLog.args.id.toString()).to.equal(
-              consideration.identifier.toString()
-            );
-            if (!shouldSkipAmountComparison) {
-              expect(transferLog.args.amount.toString()).to.equal(
-                consideration.amount.toString()
-              );
+          let found = false;
+          for (transferLog of transferLogs) {
+            if (
+              transferLog.signature ===
+                "TransferSingle(address,address,address,uint256,uint256)" &&
+              transferLog.args.id.toString() ===
+                consideration.identifier.toString() &&
+              (shouldSkipAmountComparison ||
+                transferLog.args.amount.toString() ===
+                  consideration.amount.mul(multiplier).toString())
+            ) {
+              found = true;
+              break;
             }
-          } else {
-            let located = false;
-            for ([i, batchTokenId] of Object.entries(transferLog.args.ids)) {
-              if (
-                batchTokenId.toString() ===
-                  consideration.identifier.toString() &&
-                transferLog.args[4][i].toString() ===
-                  consideration.amount.toString()
-              ) {
-                located = true;
-                break;
-              }
-            }
-
-            expect(located).to.be.true;
           }
+
+          expect(found).to.be.true;
         }
       }
     }
@@ -9124,8 +9106,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    describe("ERC1155 batch transfers", async () => {
-      it.only("ERC1155 <=> ETH (match)", async () => {
+    describe("Complex ERC1155 transfers", async () => {
+      it("ERC1155 <=> ETH (match)", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -9261,7 +9243,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           value
         );
 
-        //expect(batchExecutions.length).to.equal(1);
         expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
@@ -9450,7 +9431,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           value
         );
 
-        //expect(batchExecutions.length).to.equal(1);
         expect(executions.length).to.equal(6);
 
         await whileImpersonating(owner.address, provider, async () => {
@@ -9618,7 +9598,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           value
         );
 
-        //expect(batchExecutions.length).to.equal(1);
         expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
@@ -10038,7 +10017,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("ERC1155 <=> ETH (match, on single and one batch of 1155's)", async () => {
+      it.only("ERC1155 <=> ETH (match, one single and one with two 1155's)", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -10210,8 +10189,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           value
         );
 
-        //expect(batchExecutions.length).to.equal(1);
-        expect(executions.length).to.equal(7);
+        expect(executions.length).to.equal(6);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -10222,7 +10200,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("ERC1155 <=> ETH (match, two different batches of 1155's)", async () => {
+      it("ERC1155 <=> ETH (match, two different groups of 1155's)", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -10420,7 +10398,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           value
         );
 
-        //expect(batchExecutions.length).to.equal(2);
         expect(executions.length).to.equal(7);
 
         await whileImpersonating(owner.address, provider, async () => {
@@ -11820,7 +11797,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    it("Reverts when attempting to execute with batch 1155 transfers on a conduit when not called from a channel", async () => {
+    it("Reverts when attempting to execute with 1155 transfers on a conduit when not called from a channel", async () => {
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
           conduitOne.connect(owner).executeWithBatch1155([], [])
@@ -18094,7 +18071,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(1);
         expect(orderStatus.totalSize).to.equal(1);
       });
-      it("Reverts when 1155 batch tokens are not approved", async () => {
+      it("Reverts when 1155 tokens are not approved", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -18220,7 +18197,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.revertedWith("MissingItemAmount");
         });
       });
-      it("Reverts when 1155 batch tokens are not approved", async () => {
+      it("Reverts when 1155 tokens are not approved", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -18371,8 +18348,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           value
         );
 
-        //expect(batchExecutions.length).to.equal(1);
-        expect(executions.length).to.equal(6);
+        expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -18710,318 +18686,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         }
       });
-      it("Reverts when 1155 batch non-token account is supplied as the token", async () => {
-        // Seller mints first nft
-        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
-        await testERC1155.mint(seller.address, nftId, amount);
-
-        // Seller mints second nft
-        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
-        await testERC1155.mint(seller.address, secondNftId, secondAmount);
-
-        // Seller approves marketplace contract to transfer NFT
-        await whileImpersonating(seller.address, provider, async () => {
-          await expect(
-            testERC1155
-              .connect(seller)
-              .setApprovalForAll(marketplaceContract.address, true)
-          )
-            .to.emit(testERC1155, "ApprovalForAll")
-            .withArgs(seller.address, marketplaceContract.address, true);
-        });
-
-        const offer = [
-          getTestItem1155(nftId, amount, amount, marketplaceContract.address),
-          getTestItem1155(
-            secondNftId,
-            secondAmount,
-            secondAmount,
-            marketplaceContract.address
-          ),
-        ];
-
-        const consideration = [
-          getItemETH(10, 10, seller.address),
-          getItemETH(1, 1, zone.address),
-          getItemETH(1, 1, owner.address),
-        ];
-
-        const { order, orderHash, value } = await createOrder(
-          seller,
-          zone,
-          offer,
-          consideration,
-          0 // FULL_OPEN
-        );
-
-        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
-          await createMirrorBuyNowOrder(buyer, zone, order);
-
-        const fulfillments = [
-          {
-            offerComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 1,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 1,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 0,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 1,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 2,
-              },
-            ],
-          },
-        ];
-
-        if (!process.env.REFERENCE) {
-          await whileImpersonating(owner.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(owner)
-                .matchOrders([order, mirrorOrder], fulfillments, { value })
-            ).to.be.revertedWith(
-              `ERC1155BatchTransferGenericFailure("${
-                marketplaceContract.address
-              }", "${seller.address}", "${
-                buyer.address
-              }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
-            );
-          });
-        } else {
-          await whileImpersonating(owner.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(owner)
-                .matchOrders([order, mirrorOrder], fulfillments, { value })
-            ).to.be.reverted;
-          });
-        }
-
-        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
-
-        expect(orderStatus.isCancelled).to.equal(false);
-        expect(orderStatus.isValidated).to.equal(false);
-        expect(orderStatus.totalFilled).to.equal(0);
-        expect(orderStatus.totalSize).to.equal(0);
-      });
-      it("Reverts when 1155 batch non-token account is supplied as the token via conduit", async () => {
-        // Seller mints first nft
-        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
-        await testERC1155.mint(seller.address, nftId, amount);
-
-        // Seller mints second nft
-        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
-        await testERC1155.mint(seller.address, secondNftId, secondAmount);
-
-        // Seller approves conduit contract to transfer NFT
-        await whileImpersonating(seller.address, provider, async () => {
-          await expect(
-            testERC1155
-              .connect(seller)
-              .setApprovalForAll(conduitOne.address, true)
-          )
-            .to.emit(testERC1155, "ApprovalForAll")
-            .withArgs(seller.address, conduitOne.address, true);
-        });
-
-        const offer = [
-          getTestItem1155(nftId, amount, amount, marketplaceContract.address),
-          getTestItem1155(
-            secondNftId,
-            secondAmount,
-            secondAmount,
-            marketplaceContract.address
-          ),
-        ];
-
-        const consideration = [
-          getItemETH(10, 10, seller.address),
-          getItemETH(1, 1, zone.address),
-          getItemETH(1, 1, owner.address),
-        ];
-
-        const { order, orderHash, value } = await createOrder(
-          seller,
-          zone,
-          offer,
-          consideration,
-          0, // FULL_OPEN
-          [],
-          null,
-          seller,
-          constants.HashZero,
-          conduitKeyOne
-        );
-
-        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
-          await createMirrorBuyNowOrder(buyer, zone, order);
-
-        const fulfillments = [
-          {
-            offerComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 1,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 1,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 0,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 1,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 2,
-              },
-            ],
-          },
-        ];
-
-        if (!process.env.REFERENCE) {
-          await whileImpersonating(owner.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(owner)
-                .matchOrders([order, mirrorOrder], fulfillments, { value })
-            ).to.be.revertedWith(
-              `ERC1155BatchTransferGenericFailure("${
-                marketplaceContract.address
-              }", "${seller.address}", "${
-                buyer.address
-              }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
-            );
-          });
-        } else {
-          await whileImpersonating(owner.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(owner)
-                .matchOrders([order, mirrorOrder], fulfillments, { value })
-            ).to.be.reverted;
-          });
-        }
-
-        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
-
-        expect(orderStatus.isCancelled).to.equal(false);
-        expect(orderStatus.isValidated).to.equal(false);
-        expect(orderStatus.totalFilled).to.equal(0);
-        expect(orderStatus.totalSize).to.equal(0);
-      });
-      it("Reverts when 1155 batch token is not approved via conduit", async () => {
+      it("Reverts when 1155 token is not approved via conduit", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -19152,7 +18817,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
       });
-      it("Reverts when 1155 batch token with no code is supplied as the token via conduit", async () => {
+      it("Reverts when 1155 token with no code is supplied as the token via conduit", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
