@@ -51,7 +51,7 @@ interface ConduitInterface {
      */
     function execute(ConduitTransfer[] calldata transfers)
         external
-        returns (bytes4 executeMagicValue);
+        returns (bytes4 magicValue);
 
     /**
      * @notice Execute a sequence of transfers, both single and batch 1155. Only
@@ -66,7 +66,7 @@ interface ConduitInterface {
     function executeWithBatch1155(
         ConduitTransfer[] calldata standardTransfers,
         ConduitBatch1155Transfer[] calldata batch1155Transfers
-    ) external returns (bytes4 executeMagicValue);
+    ) external returns (bytes4 magicValue);
 
     /**
      * @notice Open or close a given channel. Only callable by the controller.
