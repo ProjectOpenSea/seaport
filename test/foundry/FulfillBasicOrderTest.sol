@@ -16,119 +16,93 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest {
-    struct FuzzInputs721 {
+    BasicOrderParameters basicOrderParameters;
+    OrderComponents orderComponents;
+
+    struct FuzzInputsCommon {
         address zone;
         uint256 tokenId;
         uint128 paymentAmount;
         bytes32 zoneHash;
         uint256 salt;
     }
-
-    struct FuzzInputs1155 {
-        address zone;
-        uint256 tokenId;
-        uint256 tokenAmount;
-        uint128 paymentAmount;
-        bytes32 zoneHash;
-        uint256 salt;
-    }
-
-    struct BasicOrder721 {
+    struct Context {
         Consideration consideration;
-        FuzzInputs721 args;
+        FuzzInputsCommon args;
+        uint128 tokenAmount;
     }
 
-    struct BasicOrder1155 {
-        Consideration consideration;
-        FuzzInputs1155 args;
+    function testBasicEthTo721(FuzzInputsCommon memory inputs) public {
+        _configureERC721OfferItem(inputs.tokenId);
+        _configureEthConsiderationItem(inputs.paymentAmount);
+        _configureBasicOrderParametersEthTo721(inputs);
+
+        _testBasicEthTo721_new(Context(consideration, inputs, 0));
+        _configureERC721OfferItem(inputs.tokenId);
+        _configureEthConsiderationItem(inputs.paymentAmount);
+        _testBasicEthTo721_new(Context(referenceConsideration, inputs, 0));
     }
 
-    function testBasicSingleERC721(FuzzInputs721 memory testBasicOrder) public {
-        _testListBasicEthTo721(BasicOrder721(consideration, testBasicOrder));
-        _testListBasicEthTo721(
-            BasicOrder721(referenceConsideration, testBasicOrder)
+    function testBasicErc20To721(FuzzInputsCommon memory inputs) public {
+        _configureERC721OfferItem(inputs.tokenId);
+        _configureErc20ConsiderationItem(inputs.paymentAmount);
+        _configureBasicOrderParametersErc20To721(inputs);
+
+        _testBasicErc20To721_new(Context(consideration, inputs, 0));
+        _configureERC721OfferItem(inputs.tokenId);
+        _configureErc20ConsiderationItem(inputs.paymentAmount);
+        _testBasicErc20To721_new(Context(referenceConsideration, inputs, 0));
+    }
+
+    function testBasicEthTo1155(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount
+    ) public {
+        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
+        _configureEthConsiderationItem(inputs.paymentAmount);
+
+        _configureBasicOrderParametersEthTo1155(inputs, tokenAmount);
+        _testBasicEthTo1155_new(
+            Context(referenceConsideration, inputs, tokenAmount)
         );
+        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
+        _configureEthConsiderationItem(inputs.paymentAmount);
+        _testBasicEthTo1155_new(Context(consideration, inputs, tokenAmount));
     }
 
-    function testListBasicEthTo1155(FuzzInputs1155 memory testBasicOrder)
-        public
-    {
-        _testListBasicEthTo1155(BasicOrder1155(consideration, testBasicOrder));
-        _testListBasicEthTo1155(
-            BasicOrder1155(referenceConsideration, testBasicOrder)
+    function testBasicErc20To1155(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount
+    ) public {
+        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
+        _configureErc20ConsiderationItem(inputs.paymentAmount);
+
+        _configureBasicOrderParametersErc20To1155(inputs, tokenAmount);
+        _testBasicErc20To1155_new(
+            Context(referenceConsideration, inputs, tokenAmount)
         );
+        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
+        _configureErc20ConsiderationItem(inputs.paymentAmount);
+        _testBasicErc20To1155_new(Context(consideration, inputs, tokenAmount));
     }
 
-    function testListBasic20to721(FuzzInputs721 memory testBasicOrder) public {
-        _testListBasic20to721(BasicOrder721(consideration, testBasicOrder));
-        _testListBasic20to721(
-            BasicOrder721(referenceConsideration, testBasicOrder)
-        );
-    }
-
-    function testListBasic20to1155(FuzzInputs1155 memory testBasicOrder)
-        public
-    {
-        _testListBasic20to1155(BasicOrder1155(consideration, testBasicOrder));
-        _testListBasic20to1155(
-            BasicOrder1155(referenceConsideration, testBasicOrder)
-        );
-    }
-
-    function _testListBasicEthTo721(BasicOrder721 memory context)
+    function _testBasicErc20To1155_new(Context memory context)
         internal
         resetTokenBalancesBetweenRuns
     {
-        // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
         vm.assume(context.args.paymentAmount > 0);
-        // don't try to mint IDs that already exist
-        vm.assume(
-            context.args.tokenId > globalTokenId || context.args.tokenId == 0
-        );
+        vm.assume(context.tokenAmount > 0);
 
-        emit log("Basic 721 Offer - Eth Consideration");
+        test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
-        test721_1.mint(alice, context.args.tokenId);
-        emit log_named_address("Minted test721_1 token to", alice);
-
-        OfferItem[] memory offer = new OfferItem[](1);
-        offer[0] = OfferItem(
-            ItemType.ERC721,
-            address(test721_1),
-            context.args.tokenId,
-            1,
-            1
-        );
-
-        ConsiderationItem[] memory considerationItem = new ConsiderationItem[](
-            1
-        );
-        considerationItem[0] = ConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            context.args.paymentAmount,
-            context.args.paymentAmount,
-            payable(alice)
-        );
-
-        // getNonce
-        uint256 nonce = context.consideration.getNonce(alice);
-
-        // getOrderHash
-        OrderComponents memory orderComponents = OrderComponents(
-            alice,
+        _configureOrderComponents(
             context.args.zone,
-            offer,
-            considerationItem,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 5000,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0), // no conduit
-            nonce
+            bytes32(0)
         );
+        uint256 nonce = context.consideration.getNonce(alice);
+        orderComponents.nonce = nonce;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -136,182 +110,56 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             orderHash
         );
 
-        // fulfill
-        BasicOrderParameters memory order = BasicOrderParameters(
-            address(0),
-            0,
-            context.args.paymentAmount,
-            payable(alice),
+        basicOrderParameters.signature = signature;
+        context.consideration.fulfillBasicOrder(basicOrderParameters);
+    }
+
+    function _testBasicEthTo1155_new(Context memory context)
+        internal
+        resetTokenBalancesBetweenRuns
+    {
+        vm.assume(context.args.paymentAmount > 0);
+        vm.assume(context.tokenAmount > 0);
+
+        test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
+
+        _configureOrderComponents(
             context.args.zone,
-            address(test721_1),
-            context.args.tokenId,
-            1,
-            BasicOrderType.ETH_TO_ERC721_FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 5000,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0), // no conduit
-            bytes32(0), // no conduit
-            0,
-            new AdditionalRecipient[](0),
-            signature
+            bytes32(0)
+        );
+        uint256 nonce = context.consideration.getNonce(alice);
+        orderComponents.nonce = nonce;
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
         );
 
-        emit log(">>>>");
-
-        // simple
+        basicOrderParameters.signature = signature;
         context.consideration.fulfillBasicOrder{
             value: context.args.paymentAmount
-        }(order);
-
-        emit log_named_address(
-            "Fulfilled Basic 721 Offer - Eth Consideration",
-            alice
-        );
+        }(basicOrderParameters);
     }
 
-    function _testListBasicEthTo1155(BasicOrder1155 memory context)
+    function _testBasicEthTo721_new(Context memory context)
         internal
         resetTokenBalancesBetweenRuns
     {
-        // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
         vm.assume(context.args.paymentAmount > 0);
-        vm.assume(
-            context.args.tokenId > globalTokenId || context.args.tokenId == 0
-        );
-        vm.assume(context.args.tokenAmount > 0);
-
-        emit log("Basic 1155 Offer - Eth Consideration");
-
-        test1155_1.mint(alice, context.args.tokenId, context.args.tokenAmount);
-        emit log_named_address("Minted test1155_1 token to", alice);
-
-        OfferItem[] memory offer = singleOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            context.args.tokenId,
-            context.args.tokenAmount,
-            context.args.tokenAmount
-        );
-
-        ConsiderationItem[] memory considerationItem = singleConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            context.args.paymentAmount,
-            context.args.paymentAmount,
-            alice
-        );
-
-        // getNonce
-        uint256 nonce = context.consideration.getNonce(alice);
-
-        // getOrderHash
-        OrderComponents memory orderComponents = OrderComponents(
-            alice,
-            context.args.zone,
-            offer,
-            considerationItem,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 5000,
-            context.args.zoneHash,
-            context.args.salt,
-            bytes32(0), // no conduit
-            nonce
-        );
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            orderHash
-        );
-
-        // fulfill
-        BasicOrderParameters memory order = BasicOrderParameters(
-            address(0),
-            0,
-            context.args.paymentAmount,
-            payable(alice),
-            context.args.zone,
-            address(test1155_1),
-            context.args.tokenId,
-            context.args.tokenAmount,
-            BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 5000,
-            context.args.zoneHash,
-            context.args.salt,
-            bytes32(0), // no conduit
-            bytes32(0), // no conduit
-            0,
-            new AdditionalRecipient[](0),
-            signature
-        );
-
-        emit log(">>>>");
-
-        // simple
-        context.consideration.fulfillBasicOrder{
-            value: context.args.paymentAmount
-        }(order);
-
-        emit log_named_address(
-            "Fulfilled Basic 1155 Offer - Eth Consideration",
-            alice
-        );
-    }
-
-    function _testListBasic20to721(BasicOrder721 memory context)
-        internal
-        resetTokenBalancesBetweenRuns
-    {
-        // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
-        vm.assume(context.args.paymentAmount > 0);
-        // vm.assume(context.args.paymentAmount < 100); //TODO change this so we can test big numbers.
-        vm.assume(
-            context.args.tokenId > globalTokenId || context.args.tokenId == 0
-        );
-        emit log("Basic 721 Offer - ERC20 Consideration");
 
         test721_1.mint(alice, context.args.tokenId);
-        emit log_named_address("Minted test721_1 token to", alice);
 
-        OfferItem[] memory offer = singleOfferItem(
-            ItemType.ERC721,
-            address(test721_1),
-            context.args.tokenId,
-            1,
-            1
-        );
-
-        ConsiderationItem[] memory considerationItem = singleConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            context.args.paymentAmount,
-            context.args.paymentAmount,
-            payable(alice)
-        );
-
-        // getNonce
-        uint256 nonce = context.consideration.getNonce(alice);
-
-        // getOrderHash
-        OrderComponents memory orderComponents = OrderComponents(
-            alice,
+        _configureOrderComponents(
             context.args.zone,
-            offer,
-            considerationItem,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 5000,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0), // no conduit
-            nonce
+            bytes32(0)
         );
+        uint256 nonce = context.consideration.getNonce(alice);
+        orderComponents.nonce = nonce;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -319,86 +167,28 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             orderHash
         );
 
-        // fulfill
-        BasicOrderParameters memory order = BasicOrderParameters(
-            address(token1),
-            0,
-            context.args.paymentAmount,
-            payable(alice),
-            context.args.zone,
-            address(address(test721_1)),
-            context.args.tokenId,
-            1,
-            BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 5000,
-            context.args.zoneHash,
-            context.args.salt,
-            bytes32(0), // no conduit
-            bytes32(0), // no conduit
-            0,
-            new AdditionalRecipient[](0),
-            signature
-        );
-
-        emit log(">>>>");
-
-        // simple
-        context.consideration.fulfillBasicOrder(order);
-
-        emit log("Fulfilled Basic 721 Offer - ERC20 Consideration");
+        basicOrderParameters.signature = signature;
+        context.consideration.fulfillBasicOrder{
+            value: context.args.paymentAmount
+        }(basicOrderParameters);
     }
 
-    function _testListBasic20to1155(BasicOrder1155 memory context)
+    function _testBasicErc20To721_new(Context memory context)
         internal
         resetTokenBalancesBetweenRuns
     {
-        // fails on 0 since we calculate payable status based on msg.value; ie, we don't support 0 value orders
         vm.assume(context.args.paymentAmount > 0);
-        vm.assume(
-            context.args.tokenId > globalTokenId || context.args.tokenId == 0
-        );
-        vm.assume(context.args.tokenAmount > 0);
 
-        emit log("Basic 1155 Offer - ERC20 Consideration");
+        test721_1.mint(alice, context.args.tokenId);
 
-        test1155_1.mint(alice, context.args.tokenId, context.args.tokenAmount);
-        emit log_named_address("Minted test1155_1 token to", alice);
-
-        OfferItem[] memory offer = singleOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            context.args.tokenId,
-            context.args.tokenAmount,
-            context.args.tokenAmount
-        );
-        ConsiderationItem[] memory considerationItem = singleConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            context.args.paymentAmount,
-            context.args.paymentAmount,
-            payable(alice)
-        );
-
-        // getNonce
-        uint256 nonce = context.consideration.getNonce(alice);
-
-        // getOrderHash
-        OrderComponents memory orderComponents = OrderComponents(
-            alice,
+        _configureOrderComponents(
             context.args.zone,
-            offer,
-            considerationItem,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 5000,
             context.args.zoneHash,
             context.args.salt,
-            bytes32(0), // no conduit
-            nonce
+            bytes32(0)
         );
-
+        uint256 nonce = context.consideration.getNonce(alice);
+        orderComponents.nonce = nonce;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -406,36 +196,94 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             orderHash
         );
 
-        // fulfill
-        BasicOrderParameters memory order = BasicOrderParameters(
-            address(token1),
-            0,
-            context.args.paymentAmount,
-            payable(alice),
-            context.args.zone,
-            address(test1155_1),
-            context.args.tokenId,
-            context.args.tokenAmount,
-            BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 5000,
-            context.args.zoneHash,
-            context.args.salt,
-            bytes32(0), // no conduit
-            bytes32(0), // no conduit
-            0,
-            new AdditionalRecipient[](0),
-            signature
-        );
+        basicOrderParameters.signature = signature;
+        context.consideration.fulfillBasicOrder(basicOrderParameters);
+    }
 
-        emit log(">>>>");
+    function _configureBasicOrderParametersEthTo721(
+        FuzzInputsCommon memory args
+    ) internal {
+        basicOrderParameters.considerationToken = address(0);
+        basicOrderParameters.considerationIdentifier = 0;
+        basicOrderParameters.considerationAmount = args.paymentAmount;
+        basicOrderParameters.offerer = payable(alice);
+        basicOrderParameters.zone = args.zone;
+        basicOrderParameters.offerToken = address(test721_1);
+        basicOrderParameters.offerIdentifier = args.tokenId;
+        basicOrderParameters.offerAmount = 1;
+        basicOrderParameters.basicOrderType = BasicOrderType
+            .ETH_TO_ERC721_FULL_OPEN;
+        basicOrderParameters.startTime = block.timestamp;
+        basicOrderParameters.endTime = block.timestamp + 100;
+        basicOrderParameters.zoneHash = args.zoneHash;
+        basicOrderParameters.salt = args.salt;
+        basicOrderParameters.offererConduitKey = bytes32(0);
+        basicOrderParameters.fulfillerConduitKey = bytes32(0);
+        basicOrderParameters.totalOriginalAdditionalRecipients = 0;
+        // additional recipients should always be empty
+        // don't do signature;
+    }
 
-        // simple
-        context.consideration.fulfillBasicOrder(order);
+    function _configureBasicOrderParametersEthTo1155(
+        FuzzInputsCommon memory args,
+        uint128 amount
+    ) internal {
+        basicOrderParameters.considerationToken = address(0);
+        basicOrderParameters.considerationIdentifier = 0;
+        basicOrderParameters.considerationAmount = args.paymentAmount;
+        basicOrderParameters.offerer = payable(alice);
+        basicOrderParameters.zone = args.zone;
+        basicOrderParameters.offerToken = address(test1155_1);
+        basicOrderParameters.offerIdentifier = args.tokenId;
+        basicOrderParameters.offerAmount = amount;
+        basicOrderParameters.basicOrderType = BasicOrderType
+            .ETH_TO_ERC1155_FULL_OPEN;
+        basicOrderParameters.startTime = block.timestamp;
+        basicOrderParameters.endTime = block.timestamp + 100;
+        basicOrderParameters.zoneHash = args.zoneHash;
+        basicOrderParameters.salt = args.salt;
+        basicOrderParameters.offererConduitKey = bytes32(0);
+        basicOrderParameters.fulfillerConduitKey = bytes32(0);
+        basicOrderParameters.totalOriginalAdditionalRecipients = 0;
+        // additional recipients should always be empty
+        // don't do signature;
+    }
 
-        emit log_named_address(
-            "Fulfilled Basic 721 Offer - Eth Consideration",
-            alice
-        );
+    function _configureBasicOrderParametersErc20To1155(
+        FuzzInputsCommon memory args,
+        uint128 amount
+    ) internal {
+        _configureBasicOrderParametersEthTo1155(args, amount);
+        basicOrderParameters.considerationToken = address(token1);
+        basicOrderParameters.basicOrderType = BasicOrderType
+            .ERC20_TO_ERC1155_FULL_OPEN;
+    }
+
+    function _configureBasicOrderParametersErc20To721(
+        FuzzInputsCommon memory args
+    ) internal {
+        _configureBasicOrderParametersEthTo721(args);
+        basicOrderParameters.considerationToken = address(token1);
+        basicOrderParameters.basicOrderType = BasicOrderType
+            .ERC20_TO_ERC721_FULL_OPEN;
+    }
+
+    function _configureOrderComponents(
+        address zone,
+        bytes32 zoneHash,
+        uint256 salt,
+        bytes32 conduitKey
+    ) internal {
+        orderComponents.offerer = alice;
+        orderComponents.zone = zone;
+        orderComponents.offer = offerItems;
+        orderComponents.consideration = considerationItems;
+        orderComponents.orderType = OrderType.FULL_OPEN;
+        orderComponents.startTime = block.timestamp;
+        orderComponents.endTime = block.timestamp + 100;
+        orderComponents.zoneHash = zoneHash;
+        orderComponents.salt = salt;
+        orderComponents.conduitKey = conduitKey;
+        // don't set nonce
     }
 }

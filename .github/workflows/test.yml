@@ -75,7 +75,7 @@ jobs:
       - run: yarn test:ref
   
   forge-quick:
-    name: Run Forge Tests (no IR)
+    name: Run "Quick" Forge Tests (via_ir = false; fuzz_runs = 1000)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -97,7 +97,7 @@ jobs:
         run: FOUNDRY_PROFILE=quick forge test -vvv
 
   forge:
-    name: Run Forge Tests
+    name: Run Forge Tests (via_ir = true; fuzz_runs = 5000)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -114,9 +114,12 @@ jobs:
 
       - name: Precompile reference using 0.8.7 and via-ir=false
         run: FOUNDRY_PROFILE=reference forge build
+      
+      - name: Precompile optimized using 0.8.13 and via-ir=true
+        run: FOUNDRY_PROFILE=optimized forge build
 
       - name: Run tests
-        run: forge test -vvv
+        run: FOUNDRY_PROFILE=test forge test -vvv
 
   coverage:
     name: Run Coverage Tests

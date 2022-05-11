@@ -8,11 +8,10 @@ import { AdditionalRecipient, Fulfillment, OfferItem, ConsiderationItem, Fulfill
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { ReentrantContract } from "./utils/reentrancy/ReentrantContract.sol";
 import { EntryPoint, ReentrancyPoint } from "./utils/reentrancy/ReentrantEnums.sol";
-import { FulfillBasicOrderParameters, FulfillOrderParameters, FulfillAdvancedOrderParameters, FulfillAvailableOrdersParameters, FulfillAvailableAdvancedOrdersParameters, MatchOrdersParameters, MatchAdvancedOrdersParameters, CancelParameters, ValidateParameters, ReentrantCallParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
+import { FulfillBasicOrderParameters, FulfillOrderParameters, OrderParameters, FulfillAdvancedOrderParameters, FulfillAvailableOrdersParameters, FulfillAvailableAdvancedOrdersParameters, MatchOrdersParameters, MatchAdvancedOrdersParameters, CancelParameters, ValidateParameters, ReentrantCallParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
 
 contract NonReentrantTest is BaseOrderTest {
     ReentrantContract reenterer;
-
     BasicOrderParameters basicOrderParameters;
     OrderComponents orderComponents;
     AdditionalRecipient recipient;
@@ -88,7 +87,11 @@ contract NonReentrantTest is BaseOrderTest {
         vm.assume(_inputs.entryPoint < 7 && _inputs.reentrancyPoint < 10);
         vm.assume(
             ReentrancyPoint(_inputs.reentrancyPoint) ==
-                ReentrancyPoint.FulfillBasicOrder
+                ReentrancyPoint.FulfillBasicOrder ||
+                ReentrancyPoint(_inputs.reentrancyPoint) ==
+                ReentrancyPoint.FulfillAdvancedOrder ||
+                ReentrancyPoint(_inputs.reentrancyPoint) ==
+                ReentrancyPoint.FulfillOrder
         );
         NonReentrantInputs memory inputs = NonReentrantInputs(
             EntryPoint(_inputs.entryPoint),
@@ -137,19 +140,117 @@ contract NonReentrantTest is BaseOrderTest {
         basicOrderParameters.signature = signature;
     }
 
-    function prepareOrder(NonReentrant memory context)
+    function prepareOrder()
         internal
-        returns (Order memory, bytes32)
-    {}
+        returns (
+            Order memory order,
+            bytes32 fulfillerConduitKey,
+            uint256 value
+        )
+    {
+        test1155_1.mint(alice, 1, 10);
 
-    function prepareAdvancedOrder(NonReentrant memory context)
+        _configureERC1155OfferItem(1, uint256(10));
+        _configureEthConsiderationItem(alice, uint256(10));
+        _configureEthConsiderationItem(payable(address(0)), uint256(10));
+        _configureEthConsiderationItem(payable(reenterer), uint256(10));
+        uint256 nonce = referenceConsideration.getNonce(alice);
+        orderComponents.offerer = alice;
+        orderComponents.zone = address(0);
+        orderComponents.offer = offerItems;
+        orderComponents.consideration = considerationItems;
+        orderComponents.orderType = OrderType.FULL_OPEN;
+        orderComponents.startTime = block.timestamp;
+        orderComponents.endTime = block.timestamp + 1;
+        orderComponents.zoneHash = bytes32(0);
+        orderComponents.salt = 0;
+        orderComponents.conduitKey = bytes32(0);
+        orderComponents.nonce = nonce;
+
+        bytes32 orderHash = referenceConsideration.getOrderHash(
+            orderComponents
+        );
+
+        bytes memory signature = signOrder(
+            referenceConsideration,
+            alicePk,
+            orderHash
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            alice,
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            3
+        );
+        value = 30;
+        order = Order(orderParameters, signature);
+        fulfillerConduitKey = bytes32(0);
+    }
+
+    function prepareAdvancedOrder()
         internal
         returns (
             AdvancedOrder memory order,
             CriteriaResolver[] memory criteriaResolvers,
-            bytes32 fulfillerConduitKey
+            bytes32 fulfillerConduitKey,
+            uint256 value
         )
-    {}
+    {
+        test1155_1.mint(alice, 1, 10);
+
+        _configureERC1155OfferItem(1, uint256(10));
+        _configureEthConsiderationItem(alice, uint256(10));
+        _configureEthConsiderationItem(payable(address(0)), uint256(10));
+        _configureEthConsiderationItem(payable(reenterer), uint256(10));
+        uint256 nonce = referenceConsideration.getNonce(alice);
+        orderComponents.offerer = alice;
+        orderComponents.zone = address(0);
+        orderComponents.offer = offerItems;
+        orderComponents.consideration = considerationItems;
+        orderComponents.orderType = OrderType.PARTIAL_OPEN;
+        orderComponents.startTime = block.timestamp;
+        orderComponents.endTime = block.timestamp + 1;
+        orderComponents.zoneHash = bytes32(0);
+        orderComponents.salt = 0;
+        orderComponents.conduitKey = bytes32(0);
+        orderComponents.nonce = nonce;
+
+        bytes32 orderHash = referenceConsideration.getOrderHash(
+            orderComponents
+        );
+
+        bytes memory signature = signOrder(
+            referenceConsideration,
+            alicePk,
+            orderHash
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            alice,
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.PARTIAL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            3
+        );
+        value = 30;
+        order = AdvancedOrder(orderParameters, 1, 1, signature, "");
+        criteriaResolvers = new CriteriaResolver[](0);
+        fulfillerConduitKey = bytes32(0);
+    }
 
     function prepareFulfillAvailableOrders(NonReentrant memory context)
         internal
@@ -160,7 +261,11 @@ contract NonReentrantTest is BaseOrderTest {
             bytes32 fulfillerConduitKey,
             uint256 maximumFulfilled
         )
-    {}
+    {
+        test721_1.mint(alice, 1);
+        _configureERC721OfferItem(1);
+        _configureErc20ConsiderationItem(payable(reenterer), 1);
+    }
 
     function prepareFullfillAvailableAdvancedOrders(NonReentrant memory context)
         internal
@@ -201,32 +306,49 @@ contract NonReentrantTest is BaseOrderTest {
         internal
         resetTokenBalancesBetweenRuns
     {
-        _setUpReenterer(context);
         if (context.args.entryPoint == EntryPoint.FulfillBasicOrder) {
+            _setUpReenterer(context);
             prepareBasicOrderParameters(context);
-            vm.expectEmit(true, false, false, false, alice);
+            vm.expectEmit(true, false, false, false, address(reenterer));
             emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             context.consideration.fulfillBasicOrder{ value: 1 }(
                 basicOrderParameters
             );
-        }
-        /**  else if (context.args.entryPoint == EntryPoint.FulfillOrder) {
-            (Order memory params, bytes32 fulfillerConduitKey) = prepareOrder(
-                context
+        } else if (context.args.entryPoint == EntryPoint.FulfillOrder) {
+            reenterer = new ReentrantContract();
+            reenterer.setConsideration(context.consideration);
+            reenterer.setReentrancyPoint(context.args.reentrancyPoint);
+            reenterer.setReenter(true);
+            (
+                Order memory params,
+                bytes32 fulfillerConduitKey,
+                uint256 value
+            ) = prepareOrder();
+            vm.expectEmit(true, false, false, false, address(reenterer));
+            emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            context.consideration.fulfillOrder{ value: value }(
+                params,
+                fulfillerConduitKey
             );
-            context.consideration.fulfillOrder(params, fulfillerConduitKey);
         } else if (context.args.entryPoint == EntryPoint.FulfillAdvancedOrder) {
+            reenterer = new ReentrantContract();
+            reenterer.setConsideration(context.consideration);
+            reenterer.setReentrancyPoint(context.args.reentrancyPoint);
+            reenterer.setReenter(true);
             (
                 AdvancedOrder memory order,
                 CriteriaResolver[] memory criteriaResolvers,
-                bytes32 fulfillerConduitKey
-            ) = prepareAdvancedOrder(context);
-            context.consideration.fulfillAdvancedOrder(
+                bytes32 fulfillerConduitKey,
+                uint256 value
+            ) = prepareAdvancedOrder();
+            vm.expectEmit(true, false, false, false, address(reenterer));
+            emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            context.consideration.fulfillAdvancedOrder{ value: value }(
                 order,
                 criteriaResolvers,
                 fulfillerConduitKey
             );
-        } else if (
+        } /**  else if (
             context.args.entryPoint == EntryPoint.FulfillAvailableOrders
         ) {
             (

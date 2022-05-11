@@ -16,8 +16,11 @@ hh-cache-ref/
 cache
 out
 reference-out
+optimized-out
+reference-working
 
 .DS_Store
 
 # VScode
 .vscode
+__pycache__
