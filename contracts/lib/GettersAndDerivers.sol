@@ -222,7 +222,7 @@ contract GettersAndDerivers is ConsiderationBase {
         }
     }
 
-     /**
+    /**
      * @dev Internal pure function to efficiently derive an digest to sign for
      *      an order in accordance with EIP-712.
      *
