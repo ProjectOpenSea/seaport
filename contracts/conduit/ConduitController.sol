@@ -178,7 +178,7 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External function for intitiating conduit ownership transfer by
+     * @dev External function for initiating conduit ownership transfer by
      *      assigning a new potential owner for the given conduit. Once set, the
      *      new potential owner may call `acceptOwnership` to claim ownership of
      *      the conduit. Only the owner of the conduit in question may call this
@@ -193,16 +193,18 @@ contract ConduitController is ConduitControllerInterface {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
 
+        // Ensure the new potential owner is not an invalid address.  
         if (newPotentialOwner == address(0)) {
             revert NewPotentialOwnerIsZeroAddress(conduit);
         }
 
+        // Emit an event indicating that the potential owner has been updated.
         emit PotentialOwnerUpdated(
             conduit,
-            _conduits[conduit].potentialOwner,
             newPotentialOwner
         );
 
+        // Set the new potential owner as the potential owner of the conduit.
         _conduits[conduit].potentialOwner = newPotentialOwner;
     }
 
@@ -220,7 +222,6 @@ contract ConduitController is ConduitControllerInterface {
         // Emit an event indicating that the potential owner has been cleared.
         emit PotentialOwnerUpdated(
             conduit,
-            _conduits[conduit].potentialOwner,
             address(0)
         );
 
@@ -248,7 +249,6 @@ contract ConduitController is ConduitControllerInterface {
         // Emit an event indicating that the potential owner has been cleared.
         emit PotentialOwnerUpdated(
             conduit,
-            _conduits[conduit].potentialOwner,
             address(0)
         );
 

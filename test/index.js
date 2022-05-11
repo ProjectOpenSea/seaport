@@ -12067,6 +12067,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Adds and removes channels", async () => {
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
+
       let isOpen = await conduitController.getChannelStatus(
         conduitOne.address,
         marketplaceContract.address
@@ -12086,6 +12092,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
       expect(isOpen).to.be.true;
 
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
+
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
           .connect(owner)
@@ -12097,6 +12109,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         seller.address
       );
       expect(isOpen).to.be.true;
+
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(2);
 
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
@@ -12114,6 +12132,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
       expect(isOpen).to.be.false;
 
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
+
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
           .connect(owner)
@@ -12126,6 +12150,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
       expect(isOpen).to.be.false;
 
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(0);
+
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
           .connect(owner)
@@ -12137,6 +12167,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         marketplaceContract.address
       );
       expect(isOpen).to.be.true;
+
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
     });
 
     it("Reverts on an attempt to move an unsupported item", async () => {

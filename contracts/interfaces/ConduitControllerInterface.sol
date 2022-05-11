@@ -20,8 +20,7 @@ interface ConduitControllerInterface {
 
     event PotentialOwnerUpdated(
         address indexed conduit,
-        address indexed previousOwner,
-        address indexed newOwner
+        address indexed newPotentialOwner
     );
 
     error InvalidCreator();
