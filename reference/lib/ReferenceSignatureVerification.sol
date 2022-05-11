@@ -1,23 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.7;
 
-import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
+import { EIP1271Interface } from "contracts/interfaces/EIP1271Interface.sol";
 
 // prettier-ignore
 import {
     SignatureVerificationErrors
-} from "../interfaces/SignatureVerificationErrors.sol";
+} from "contracts/interfaces/SignatureVerificationErrors.sol";
 
-import { LowLevelHelpers } from "./LowLevelHelpers.sol";
-
-import "./ConsiderationConstants.sol";
+import "./ReferenceConsiderationConstants.sol";
 
 /**
  * @title SignatureVerification
  * @author 0age
  * @notice SignatureVerification contains logic for verifying signatures.
  */
-contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
+contract ReferenceSignatureVerification is SignatureVerificationErrors {
     /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
@@ -46,40 +44,21 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
 
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                // Put the first word from the signature onto the stack as r.
-                r := mload(add(signature, OneWord))
+            (r, vs) = abi.decode(signature, (bytes32, bytes32));
 
-                // Put the second word from the signature onto the stack as vs.
-                vs := mload(add(signature, TwoWords))
+            s = vs & EIP2098_allButHighestBitMask;
 
-                // Extract canonical s from vs (all but the highest bit).
-                s := and(vs, EIP2098_allButHighestBitMask)
-
-                // Extract yParity from highest bit of vs and add 27 to get v.
-                v := add(shr(255, vs), 27)
-            }
-            // If signature is 65 bytes, parse as a standard signature. (r+s+v)
+            v = uint8(uint256(vs >> 255)) + 27;
         } else if (signature.length == 65) {
-            // Read each parameter directly from the signature's memory region.
-            assembly {
-                // Place first word on the stack at r.
-                r := mload(add(signature, OneWord))
-
-                // Place second word on the stack at s.
-                s := mload(add(signature, TwoWords))
-
-                // Place final byte on the stack at v.
-                v := byte(0, mload(add(signature, ThreeWords)))
-            }
+            (r, s) = abi.decode(signature, (bytes32, bytes32));
+            v = uint8(signature[64]);
 
             // Ensure v value is properly formatted.
             if (v != 27 && v != 28) {
                 revert BadSignatureV(v);
             }
-            // For all other signature lengths, try verification via EIP-1271.
         } else {
+            // For all other signature lengths, try verification via EIP-1271.
             // Attempt EIP-1271 static call to signer in case it's a contract.
             _assertValidEIP1271Signature(signer, digest, signature);
 
@@ -114,27 +93,10 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         bytes32 digest,
         bytes memory signature
     ) internal view {
-        // Attempt an EIP-1271 staticcall to the signer.
-        bool success = _staticcall(
-            signer,
-            abi.encodeWithSelector(
-                EIP1271Interface.isValidSignature.selector,
-                digest,
-                signature
-            )
-        );
-
-        // If the call fails...
-        if (!success) {
-            // Revert and pass reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert BadContractSignature();
-        }
-
-        // Ensure result was extracted and matches EIP-1271 magic value.
-        if (_doesNotMatchMagic(EIP1271Interface.isValidSignature.selector)) {
+        if (
+            EIP1271Interface(signer).isValidSignature(digest, signature) !=
+            EIP1271Interface.isValidSignature.selector
+        ) {
             revert InvalidSigner();
         }
     }

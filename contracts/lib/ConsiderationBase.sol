@@ -11,15 +11,10 @@ import {
     ConsiderationEventsAndErrors
 } from "../interfaces/ConsiderationEventsAndErrors.sol";
 
-import { OrderStatus } from "./ConsiderationStructs.sol";
-
-import "./ConsiderationConstants.sol";
-
 /**
  * @title ConsiderationBase
  * @author 0age
- * @notice ConsiderationBase contains all storage, immutable constants, and
- *         constructor logic.
+ * @notice ConsiderationBase contains immutable constants and constructor logic.
  */
 contract ConsiderationBase is ConsiderationEventsAndErrors {
     // Precompute hashes, original chainId, and domain separator on deployment.
@@ -37,15 +32,6 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
 
     // Cache the conduit creation code hash used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
-
-    // Prevent reentrant calls on protected functions.
-    uint256 internal _reentrancyGuard;
-
-    // Track status of each order (validated, cancelled, and fraction filled).
-    mapping(bytes32 => OrderStatus) internal _orderStatus;
-
-    // Cancel all of a given offerer's orders signed with their current nonce.
-    mapping(address => uint256) internal _nonces;
 
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
@@ -77,9 +63,6 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         (_CONDUIT_CREATION_CODE_HASH, ) = (
             _CONDUIT_CONTROLLER.getConduitCodeHashes()
         );
-
-        // Initialize the reentrancy guard in a cleared state.
-        _reentrancyGuard = _NOT_ENTERED;
     }
 
     /**

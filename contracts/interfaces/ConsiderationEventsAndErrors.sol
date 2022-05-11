@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.7;
 
-import { Side } from "../lib/ConsiderationEnums.sol";
-
 import { SpentItem, ReceivedItem } from "../lib/ConsiderationStructs.sol";
 
 /**
@@ -90,48 +88,10 @@ interface ConsiderationEventsAndErrors {
     error InvalidConduit(bytes32 conduitKey, address conduit);
 
     /**
-     * @dev Revert with an error when attempting to fill an order that specifies
-     *      a restricted submitter as its order type when not submitted by
-     *      either the offerrer or the order's zone or approved as valid by the
-     *      zone in question via a staticcall to `isValidOrder`.
-     *
-     * @param orderHash The order hash for the invalid restricted order.
-     */
-    error InvalidRestrictedOrder(bytes32 orderHash);
-
-    /**
      * @dev Revert with an error when an order is supplied for fulfillment with
      *      a consideration array that is shorter than the original array.
      */
     error MissingOriginalConsiderationItems();
-
-    /**
-     * @dev Revert with an error when a fulfillment is provided as part of an
-     *      call to fulfill available orders that does not declare at least one
-     *      component.
-     */
-    error MissingFulfillmentComponentOnAggregation(Side side);
-
-    /**
-     * @dev Revert with an error when a fulfillment is provided that does not
-     *      declare at least one offer component and at least one consideration
-     *      component.
-     */
-    error OfferAndConsiderationRequiredOnFulfillment();
-
-    /**
-     * @dev Revert with an error when the initial offer item named by a
-     *      fulfillment component does not match the type, token, identifier,
-     *      or conduit preference of the initial consideration item.
-     */
-    error MismatchedFulfillmentOfferAndConsiderationComponents();
-
-    /**
-     * @dev Revert with an error when an order or item index are out of range
-     *      or a fulfillment component does not match the type, token,
-     *      identifier, or conduit preference of the initial consideration item.
-     */
-    error InvalidFulfillmentComponentData();
 
     /**
      * @dev Revert with an error when a call to a conduit fails with revert data
@@ -202,12 +162,6 @@ interface ConsiderationEventsAndErrors {
     error BadFraction();
 
     /**
-     * @dev Revert with an error when a caller attempts to reenter a protected
-     *      function.
-     */
-    error NoReentrantCalls();
-
-    /**
      * @dev Revert with an error when a caller attempts to supply callvalue to a
      *      non-payable basic order route or does not supply any callvalue to a
      *      payable basic order route.
@@ -225,10 +179,4 @@ interface ConsiderationEventsAndErrors {
      *      available orders when none are fulfillable.
      */
     error NoSpecifiedOrdersAvailable();
-
-    /**
-     * @dev Revert with an error when attempting to fulfill an order where an
-     *      item has an amount of zero.
-     */
-    error MissingItemAmount();
 }

@@ -34,13 +34,15 @@ pragma solidity >=0.8.7;
  */
 
 // Declare constants for name, version, and reentrancy sentinel values.
-uint256 constant _NAME = (
+uint256 constant Name = (
     0x436F6E73696465726174696F6E00000000000000000000000000000000000000
 );
+uint256 constant Name_length = 13;
 
-uint256 constant _VERSION = (
+uint256 constant Version = (
     0x3100000000000000000000000000000000000000000000000000000000000000
 );
+uint256 constant Version_length = 1;
 
 uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;
@@ -67,6 +69,7 @@ uint256 constant Execution_conduit_offset = 0x40;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
 uint256 constant OrderParameters_conduit_offset = 0x120;
+uint256 constant OrderParameters_nonce_offset = 0x140;
 
 uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
@@ -88,6 +91,10 @@ uint256 constant EIP712_Order_size = 0x180;
 uint256 constant EIP712_OfferItem_size = 0xc0;
 uint256 constant EIP712_ConsiderationItem_size = 0xe0;
 uint256 constant AdditionalRecipients_size = 0x40;
+
+uint256 constant EIP712_DomainSeparator_offset = 0x02;
+uint256 constant EIP712_OrderHash_offset = 0x22;
+uint256 constant EIP712_DigestPayload_size = 0x42;
 
 uint256 constant receivedItemsHash_ptr = 0x60;
 
@@ -147,6 +154,7 @@ uint256 constant OrderFulfilled_consideration_head_offset = 0x60;
 uint256 constant OrderFulfilled_consideration_body_offset = 0x120;
 
 // BasicOrderParameters
+uint256 constant BasicOrder_parameters_cdPtr = 0x04;
 uint256 constant BasicOrder_considerationToken_cdPtr = 0x24;
 // uint256 constant BasicOrder_considerationIdentifier_cdPtr = 0x44;
 uint256 constant BasicOrder_considerationAmount_cdPtr = 0x64;
@@ -163,10 +171,12 @@ uint256 constant BasicOrder_startTime_cdPtr = 0x144;
 // uint256 constant BasicOrder_offererConduit_cdPtr = 0x1c4;
 // uint256 constant BasicOrder_fulfillerConduit_cdPtr = 0x1e4;
 uint256 constant BasicOrder_totalOriginalAdditionalRecipients_cdPtr = 0x204;
-// uint256 constant BasicOrder_additionalRecipients_head_cdPtr = 0x224;
-// uint256 constant BasicOrder_signature_cdPtr = 0x244;
+uint256 constant BasicOrder_additionalRecipients_head_cdPtr = 0x224;
+uint256 constant BasicOrder_signature_cdPtr = 0x244;
 uint256 constant BasicOrder_additionalRecipients_length_cdPtr = 0x264;
 uint256 constant BasicOrder_additionalRecipients_data_cdPtr = 0x284;
+
+uint256 constant BasicOrder_parameters_ptr = 0x20;
 
 /*
  *  Memory layout in _prepareBasicFulfillmentFromCalldata of
@@ -232,6 +242,8 @@ uint256 constant BasicOrder_order_startTime_ptr = 0x140;
 // uint256 constant BasicOrder_order_salt_ptr = 0x1a0;
 // uint256 constant BasicOrder_order_conduit_ptr = 0x1c0;
 uint256 constant BasicOrder_order_nonce_ptr = 0x1e0;
+uint256 constant BasicOrder_additionalRecipients_head_ptr = 0x240;
+uint256 constant BasicOrder_signature_ptr = 0x260;
 
 // Signature-related
 bytes32 constant EIP2098_allButHighestBitMask = (
@@ -249,7 +261,7 @@ uint256 constant ERC20_transferFrom_amount_ptr = 0x44;
 uint256 constant ERC20_transferFrom_length = 0x64; // 4 + 32 * 3 == 100
 
 // abi.encodeWithSignature(
-//     "safeTransferFrom(address,address,uint256,uint256,bytes"
+//     "safeTransferFrom(address,address,uint256,uint256,bytes)"
 // )
 uint256 constant ERC1155_safeTransferFrom_signature = (
     0xf242432a00000000000000000000000000000000000000000000000000000000
@@ -264,6 +276,9 @@ uint256 constant ERC1155_safeTransferFrom_data_length_ptr = 0xa4;
 uint256 constant ERC1155_safeTransferFrom_length = 0xc4; // 4 + 32 * 6 == 164
 uint256 constant ERC1155_safeTransferFrom_data_length_offset = 0xa0;
 
+// abi.encodeWithSignature(
+//     "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)"
+// )
 uint256 constant ERC1155_safeBatchTransferFrom_signature = (
     0x2eb2c2d600000000000000000000000000000000000000000000000000000000
 );
@@ -329,3 +344,18 @@ uint256 constant EIP_712_PREFIX = (
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
 uint256 constant MemoryExpansionCoefficient = 0x200;
+
+uint256 constant Create2AddressDerivation_ptr = 0x0b;
+uint256 constant Create2AddressDerivation_length = 0x55;
+
+uint256 constant MaskOverByteTwelve = (
+    0x0000000000000000000000ff0000000000000000000000000000000000000000
+);
+
+uint256 constant MaskOverLastTwentyBytes = (
+    0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
+);
+
+uint256 constant Conduit_executeWithBatch1155_signature = (
+    0x899e104c00000000000000000000000000000000000000000000000000000000
+);

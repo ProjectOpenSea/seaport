@@ -37,6 +37,10 @@ pragma solidity 0.8.7;
 // Offsets for identically positioned fields shared by:
 // OfferItem, ConsiderationItem, SpentItem, ReceivedItem
 
+// Declare constants for reentrancy sentinel values.
+uint256 constant _NOT_ENTERED = 1;
+uint256 constant _ENTERED = 2;
+
 uint256 constant Common_token_offset = 0x20;
 uint256 constant Common_identifier_offset = 0x40;
 uint256 constant Common_amount_offset = 0x60;
@@ -237,7 +241,7 @@ uint256 constant ERC20_transferFrom_amount_ptr = 0x44;
 uint256 constant ERC20_transferFrom_length = 0x64; // 4 + 32 * 3 == 100
 
 // abi.encodeWithSignature(
-//     "safeTransferFrom(address,address,uint256,uint256,bytes"
+//     "safeTransferFrom(address,address,uint256,uint256,bytes)"
 // )
 uint256 constant ERC1155_safeTransferFrom_signature = (
     0xf242432a00000000000000000000000000000000000000000000000000000000
@@ -252,6 +256,9 @@ uint256 constant ERC1155_safeTransferFrom_data_length_ptr = 0xa4;
 uint256 constant ERC1155_safeTransferFrom_length = 0xc4; // 4 + 32 * 6 == 164
 uint256 constant ERC1155_safeTransferFrom_data_length_offset = 0xa0;
 
+// abi.encodeWithSignature(
+//     "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)"
+// )
 uint256 constant ERC1155_safeBatchTransferFrom_signature = (
     0x2eb2c2d600000000000000000000000000000000000000000000000000000000
 );

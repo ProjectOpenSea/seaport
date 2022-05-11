@@ -1123,6 +1123,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
 
     reenterer = await deployContract("Reenterer", owner);
+
     if (process.env.REFERENCE) {
       conduitImplementation = await ethers.getContractFactory(
         "ReferenceConduit"
@@ -4278,7 +4279,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             getTestItem20(1, 1, zone.address),
           ];
 
-          for (let i = 1; i <= 100; ++i) {
+          for (let i = 1; i <= 50; ++i) {
             consideration.push(
               getTestItem20(i, i, toAddress(parseInt(i) + 10000))
             );
@@ -12066,6 +12067,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Adds and removes channels", async () => {
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
+
       let isOpen = await conduitController.getChannelStatus(
         conduitOne.address,
         marketplaceContract.address
@@ -12085,6 +12092,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
       expect(isOpen).to.be.true;
 
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
+
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
           .connect(owner)
@@ -12096,6 +12109,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         seller.address
       );
       expect(isOpen).to.be.true;
+
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(2);
 
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
@@ -12113,6 +12132,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
       expect(isOpen).to.be.false;
 
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
+
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
           .connect(owner)
@@ -12125,6 +12150,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
       expect(isOpen).to.be.false;
 
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(0);
+
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
           .connect(owner)
@@ -12136,6 +12167,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         marketplaceContract.address
       );
       expect(isOpen).to.be.true;
+
+      // Get number of open channels
+      totalChannels = await conduitController.getTotalChannels(
+        conduitOne.address
+      );
+      expect(totalChannels).to.equal(1);
     });
 
     it("Reverts on an attempt to move an unsupported item", async () => {
@@ -18230,6 +18267,132 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.isValidated).to.equal(true);
         expect(orderStatus.totalFilled).to.equal(1);
         expect(orderStatus.totalSize).to.equal(1);
+      });
+      it("Reverts when 1155 batch tokens are not approved", async () => {
+        // Seller mints first nft
+        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, nftId, amount);
+
+        // Seller mints second nft
+        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+        await testERC1155.mint(seller.address, secondNftId, secondAmount);
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(0),
+            endAmount: ethers.BigNumber.from(0),
+          },
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: secondNftId,
+            startAmount: secondAmount,
+            endAmount: secondAmount,
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+          await createMirrorBuyNowOrder(buyer, zone, order);
+
+        const fulfillments = [
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 0,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 1,
+              },
+            ],
+          },
+          {
+            offerComponents: [
+              {
+                orderIndex: 1,
+                itemIndex: 0,
+              },
+            ],
+            considerationComponents: [
+              {
+                orderIndex: 0,
+                itemIndex: 2,
+              },
+            ],
+          },
+        ];
+
+        await whileImpersonating(owner.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(owner)
+              .matchOrders([order, mirrorOrder], fulfillments, { value })
+          ).to.be.revertedWith("MissingItemAmount");
+        });
       });
       it("Reverts when 1155 batch tokens are not approved", async () => {
         // Seller mints first nft
