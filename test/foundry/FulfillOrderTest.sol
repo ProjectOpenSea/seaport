@@ -825,10 +825,8 @@ contract FulfillOrderTest is BaseOrderTest {
             uint256(testStruct.args.paymentAmts[0]) +
                 uint256(testStruct.args.paymentAmts[1]) +
                 uint256(testStruct.args.paymentAmts[2]) +
-                uint256(
-                    testStruct.args.numberOfTips *
-                        ((1 + testStruct.args.numberOfTips) / 2) // avg of tip amounts from 1 to numberOfTips eth
-                ) <=
+                uint256(testStruct.args.numberOfTips) *
+                ((1 + testStruct.args.numberOfTips) / 2) <= // avg of tip amounts from 1 to numberOfTips eth
                 2**128 - 1
         );
 
@@ -957,10 +955,8 @@ contract FulfillOrderTest is BaseOrderTest {
             uint256(testStruct.args.paymentAmts[0]) +
                 uint256(testStruct.args.paymentAmts[1]) +
                 uint256(testStruct.args.paymentAmts[2]) +
-                uint256(
-                    testStruct.args.numberOfTips *
-                        ((1 + testStruct.args.numberOfTips) / 2) // avg of tip amounts from 1 to numberOfTips eth
-                ) <=
+                uint256(testStruct.args.numberOfTips) *
+                ((1 + testStruct.args.numberOfTips) / 2) <= // avg of tip amounts from 1 to numberOfTips eth
                 2**128 - 1
         );
         bytes32 conduitKey = testStruct.args.useConduit

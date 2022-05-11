@@ -37,7 +37,7 @@ fuzz_runs = 1000
 
 [local]
 via_ir = false
-fuzz_runs = 256
+fuzz_runs = 1000
 src = 'reference-working'
 out = 'reference-out'
 ffi = true
