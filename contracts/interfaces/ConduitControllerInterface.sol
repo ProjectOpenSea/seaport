@@ -2,6 +2,14 @@
 pragma solidity >=0.8.7;
 
 interface ConduitControllerInterface {
+    struct ConduitProperties {
+        bytes32 key;
+        address owner;
+        address potentialOwner;
+        address[] channels;
+        mapping(address => uint256) channelIndexesPlusOne;
+    }
+
     event NewConduit(address conduit, bytes32 conduitKey);
 
     event OwnershipTransferred(
