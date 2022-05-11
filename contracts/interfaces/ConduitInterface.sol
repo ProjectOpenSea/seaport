@@ -57,8 +57,8 @@ interface ConduitInterface {
      * @notice Execute a sequence of transfers, both single and batch 1155. Only
      *         a caller with an open channel can call this function.
      *
-     * @param standardTransfers The ERC20/721/1155 transfers to perform.
-     * @param batchTransfers    The 1155 batch transfers to perform.
+     * @param standardTransfers  The ERC20/721/1155 transfers to perform.
+     * @param batch1155Transfers The 1155 batch transfers to perform.
      *
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
