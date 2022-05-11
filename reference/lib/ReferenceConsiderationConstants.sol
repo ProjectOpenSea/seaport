@@ -37,6 +37,10 @@ pragma solidity 0.8.7;
 // Offsets for identically positioned fields shared by:
 // OfferItem, ConsiderationItem, SpentItem, ReceivedItem
 
+// Declare constants for reentrancy sentinel values.
+uint256 constant _NOT_ENTERED = 1;
+uint256 constant _ENTERED = 2;
+
 uint256 constant Common_token_offset = 0x20;
 uint256 constant Common_identifier_offset = 0x40;
 uint256 constant Common_amount_offset = 0x60;
