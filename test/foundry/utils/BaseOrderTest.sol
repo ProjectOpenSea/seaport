@@ -61,10 +61,18 @@ contract BaseOrderTest is
     FulfillmentComponent[] thirdConsiderationFulfillment;
 
     Fulfillment[] fulfillments;
+    FulfillmentComponent firstOrderFirstItem;
+    FulfillmentComponent firstOrderSecondItem;
+    FulfillmentComponent firstOrderThirdItem;
+    FulfillmentComponent secondOrderFirstItem;
     FulfillmentComponent[] firstOrderFirstItemArray;
     FulfillmentComponent[] firstOrderSecondItemArray;
     FulfillmentComponent[] firstOrderThirdItemArray;
     FulfillmentComponent[] secondOrderFirstItemArray;
+    Fulfillment firstFulfillment;
+    Fulfillment secondFulfillment;
+    Fulfillment thirdFulfillment;
+    Fulfillment fourthFulfillment;
 
     uint256 internal globalTokenId;
 
@@ -106,6 +114,7 @@ contract BaseOrderTest is
         delete considerationItems;
         delete offerFulfillments;
         delete considerationFulfillments;
+        delete fulfillments;
     }
 
     function setUp() public virtual override {
@@ -114,6 +123,7 @@ contract BaseOrderTest is
         delete considerationItems;
         delete offerFulfillments;
         delete considerationFulfillments;
+        delete fulfillments;
 
         vm.label(alice, "alice");
         vm.label(bob, "bob");
