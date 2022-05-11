@@ -20,9 +20,6 @@ pragma solidity 0.8.13;
 //         bytes32 zoneHash;
 //         uint256 salt;
 //         uint128[3] paymentAmts;
-//         Order[] orders;
-//         Fulfillment[] fulfillments;
-//         uint128[3] paymentAmnts;
 //         bool useConduit;
 //     }
 
@@ -35,7 +32,7 @@ pragma solidity 0.8.13;
 //         _testSingleMatchOrdersEthToErc721(
 //             Context(referenceConsideration, inputs)
 //         );
-//         _testSingleMatchOrdersEthToErc721(Context(consideration, inputs));
+//         // _testSingleMatchOrdersEthToErc721(Context(consideration, inputs));
 //     }
 
 //     function _testSingleMatchOrdersEthToErc721(Context memory context)
@@ -182,7 +179,7 @@ pragma solidity 0.8.13;
 //             block.timestamp,
 //             block.timestamp + 1,
 //             context.args.zoneHash,
-//             uint256(10),
+//             context.args.salt,
 //             conduitKey,
 //             mirrorConsiderationItems.length
 //         );
@@ -191,23 +188,32 @@ pragma solidity 0.8.13;
 //         orders[0] = Order(orderParameters, signature);
 //         orders[1] = Order(mirrorOrderParameters, mirrorSignature);
 
-//         firstOrderFirstItemArray.push(FulfillmentComponent(0, 0));
-//         firstOrderSecondItemArray.push(FulfillmentComponent(0, 1));
-//         firstOrderThirdItemArray.push(FulfillmentComponent(0, 2));
-//         secondOrderFirstItemArray.push(FulfillmentComponent(1, 0));
+//         firstOrderFirstItem = FulfillmentComponent(0, 0);
+//         firstOrderSecondItem = FulfillmentComponent(0, 1);
+//         firstOrderThirdItem = FulfillmentComponent(0, 2);
+//         secondOrderFirstItem = FulfillmentComponent(1, 0);
 
-//         fulfillments.push(
-//             Fulfillment(firstOrderFirstItemArray, secondOrderFirstItemArray)
-//         );
-//         fulfillments.push(
-//             Fulfillment(secondOrderFirstItemArray, firstOrderFirstItemArray)
-//         );
-//         fulfillments.push(
-//             Fulfillment(secondOrderFirstItemArray, firstOrderSecondItemArray)
-//         );
-//         fulfillments.push(
-//             Fulfillment(secondOrderFirstItemArray, firstOrderThirdItemArray)
-//         );
+//         firstOrderFirstItemArray.push(firstOrderFirstItem);
+//         firstOrderSecondItemArray.push(firstOrderSecondItem);
+//         firstOrderThirdItemArray.push(firstOrderThirdItem);
+//         secondOrderFirstItemArray.push(secondOrderFirstItem);
+
+//         firstFulfillment.offerComponents = firstOrderFirstItemArray;
+//         firstFulfillment.considerationComponents = firstOrderSecondItemArray;
+
+//         secondFulfillment.offerComponents = secondOrderFirstItemArray;
+//         secondFulfillment.considerationComponents = firstOrderFirstItemArray;
+
+//         thirdFulfillment.offerComponents = secondOrderFirstItemArray;
+//         thirdFulfillment.considerationComponents = firstOrderSecondItemArray;
+
+//         fourthFulfillment.offerComponents = secondOrderFirstItemArray;
+//         fourthFulfillment.considerationComponents = firstOrderThirdItemArray;
+
+//         fulfillments.push(firstFulfillment);
+//         fulfillments.push(secondFulfillment);
+//         fulfillments.push(thirdFulfillment);
+//         fulfillments.push(fourthFulfillment);
 
 //         context.consideration.matchOrders{
 //             value: context.args.paymentAmts[0] +

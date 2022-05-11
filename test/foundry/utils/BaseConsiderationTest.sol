@@ -28,7 +28,7 @@ contract BaseConsiderationTest is DSTestPlusPlus {
         conduitKeyOne = bytes32(uint256(uint160(address(this))));
         vm.label(address(this), "testContract");
         _deployAndConfigurePrecompiledOptimizedConsideration();
-        _deployAndConfigurePrecompiledReferenceConsideration();
+        // _deployAndConfigurePrecompiledReferenceConsideration();
         // for local testing with stacktraces
         // _deployAndConfigureReferenceConsideration();
     }
