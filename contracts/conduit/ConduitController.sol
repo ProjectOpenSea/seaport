@@ -193,16 +193,13 @@ contract ConduitController is ConduitControllerInterface {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
 
-        // Ensure the new potential owner is not an invalid address.  
+        // Ensure the new potential owner is not an invalid address.
         if (newPotentialOwner == address(0)) {
             revert NewPotentialOwnerIsZeroAddress(conduit);
         }
 
         // Emit an event indicating that the potential owner has been updated.
-        emit PotentialOwnerUpdated(
-            conduit,
-            newPotentialOwner
-        );
+        emit PotentialOwnerUpdated(conduit, newPotentialOwner);
 
         // Set the new potential owner as the potential owner of the conduit.
         _conduits[conduit].potentialOwner = newPotentialOwner;
@@ -220,10 +217,7 @@ contract ConduitController is ConduitControllerInterface {
         _assertCallerIsConduitOwner(conduit);
 
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(
-            conduit,
-            address(0)
-        );
+        emit PotentialOwnerUpdated(conduit, address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;
@@ -247,10 +241,7 @@ contract ConduitController is ConduitControllerInterface {
         }
 
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(
-            conduit,
-            address(0)
-        );
+        emit PotentialOwnerUpdated(conduit, address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;

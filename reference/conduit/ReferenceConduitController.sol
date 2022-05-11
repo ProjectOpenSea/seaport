@@ -29,10 +29,14 @@ contract ReferenceConduitController is ConduitControllerInterface {
      */
     constructor() {
         // Derive the conduit creation code hash and set it as an immutable.
-        _CONDUIT_CREATION_CODE_HASH = keccak256(type(ReferenceConduit).creationCode);
+        _CONDUIT_CREATION_CODE_HASH = keccak256(
+            type(ReferenceConduit).creationCode
+        );
 
         // Deploy a conduit with the zero hash as the salt.
-        ReferenceConduit zeroConduit = new ReferenceConduit{ salt: bytes32(0) }();
+        ReferenceConduit zeroConduit = new ReferenceConduit{
+            salt: bytes32(0)
+        }();
 
         // Retrieve the conduit runtime code hash and set it as an immutable.
         _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
@@ -193,16 +197,13 @@ contract ReferenceConduitController is ConduitControllerInterface {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
 
-        // Ensure the new potential owner is not an invalid address.  
+        // Ensure the new potential owner is not an invalid address.
         if (newPotentialOwner == address(0)) {
             revert NewPotentialOwnerIsZeroAddress(conduit);
         }
 
         // Emit an event indicating that the potential owner has been updated.
-        emit PotentialOwnerUpdated(
-            conduit,
-            newPotentialOwner
-        );
+        emit PotentialOwnerUpdated(conduit, newPotentialOwner);
 
         // Set the new potential owner as the potential owner of the conduit.
         _conduits[conduit].potentialOwner = newPotentialOwner;
@@ -220,10 +221,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
         _assertCallerIsConduitOwner(conduit);
 
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(
-            conduit,
-            address(0)
-        );
+        emit PotentialOwnerUpdated(conduit, address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;
@@ -247,10 +245,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
         }
 
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(
-            conduit,
-            address(0)
-        );
+        emit PotentialOwnerUpdated(conduit, address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;
