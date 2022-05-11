@@ -223,42 +223,6 @@ contract GettersAndDerivers is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to efficiently derive an digest to sign for
-     *      an order in accordance with EIP-712.
-     *
-     * @param domainSeparator The domain separator.
-     * @param orderHash       The order hash.
-     *
-     * @return value The hash.
-     */
-    function _deriveEIP712Digest(bytes32 domainSeparator, bytes32 orderHash)
-        internal
-        pure
-        returns (bytes32 value)
-    {
-        // Leverage scratch space to perform an efficient hash.
-        assembly {
-            // Place the EIP-712 prefix at the start of scratch space.
-            mstore(0, EIP_712_PREFIX)
-
-            // Place the domain separator in the next region of scratch space.
-            mstore(EIP712_DomainSeparator_offset, domainSeparator)
-
-            // Place the order hash in scratch space, spilling into the first
-            // two bytes of the free memory pointer — this should never be set
-            // as memory cannot be expanded to that size, and will be zeroed out
-            // after the hash is performed.
-            mstore(EIP712_OrderHash_offset, orderHash)
-
-            // Hash the relevant region (65 bytes).
-            value := keccak256(0, EIP712_DigestPayload_size)
-
-            // Clear out the dirtied bits in the memory pointer.
-            mstore(EIP712_OrderHash_offset, 0)
-        }
-    }
-
-    /**
      * @dev Internal view function to derive the address of a given conduit
      *      using a corresponding conduit key.
      *
@@ -371,6 +335,42 @@ contract GettersAndDerivers is ConsiderationBase {
             mstore(OneWord, Name_length) // Second element is the length.
             mstore(TwoWords, Name) // Third element is the data.
             return(0, ThreeWords) // Return all three words.
+        }
+    }
+
+    /**
+     * @dev Internal pure function to efficiently derive an digest to sign for
+     *      an order in accordance with EIP-712.
+     *
+     * @param domainSeparator The domain separator.
+     * @param orderHash       The order hash.
+     *
+     * @return value The hash.
+     */
+    function _deriveEIP712Digest(bytes32 domainSeparator, bytes32 orderHash)
+        internal
+        pure
+        returns (bytes32 value)
+    {
+        // Leverage scratch space to perform an efficient hash.
+        assembly {
+            // Place the EIP-712 prefix at the start of scratch space.
+            mstore(0, EIP_712_PREFIX)
+
+            // Place the domain separator in the next region of scratch space.
+            mstore(EIP712_DomainSeparator_offset, domainSeparator)
+
+            // Place the order hash in scratch space, spilling into the first
+            // two bytes of the free memory pointer — this should never be set
+            // as memory cannot be expanded to that size, and will be zeroed out
+            // after the hash is performed.
+            mstore(EIP712_OrderHash_offset, orderHash)
+
+            // Hash the relevant region (65 bytes).
+            value := keccak256(0, EIP712_DigestPayload_size)
+
+            // Clear out the dirtied bits in the memory pointer.
+            mstore(EIP712_OrderHash_offset, 0)
         }
     }
 }
