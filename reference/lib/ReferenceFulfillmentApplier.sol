@@ -224,7 +224,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                 fulfillerConduitKey
             );
         }
-    }   
+    }
 
     /**
      * @dev Internal pure function to check the indicated offer item matches original item.
@@ -395,7 +395,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             fulfillerConduitKey
         );
     }
-    
+
     /**
      * @dev Internal pure function to check the indicated consideration item matches original item.
      *
@@ -534,5 +534,4 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             revert InvalidFulfillmentComponentData();
         }
     }
-
 }

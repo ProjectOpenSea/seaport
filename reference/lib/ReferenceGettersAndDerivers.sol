@@ -158,7 +158,7 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
         );
     }
 
-     /**
+    /**
      * @dev Internal view function to derive the address of a given conduit
      *      using a corresponding conduit key.
      *
@@ -207,7 +207,7 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
                 _VERSION_HASH);
     }
 
-     /**
+    /**
      * @notice Retrieve configuration information for this contract.
      *
      * @return version           The contract version.

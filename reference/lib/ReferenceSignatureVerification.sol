@@ -16,7 +16,7 @@ import "./ReferenceConsiderationConstants.sol";
  * @notice SignatureVerification contains logic for verifying signatures.
  */
 contract ReferenceSignatureVerification is SignatureVerificationErrors {
-     /**
+    /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
      *      is not 32 or 33 bytes or if the recovered signer does not match the

@@ -12,7 +12,10 @@ import { ReferenceSignatureVerification } from "./ReferenceSignatureVerification
  * @author 0age
  * @notice Verifiers contains functions for performing verifications.
  */
-contract ReferenceVerifiers is ReferenceAssertions, ReferenceSignatureVerification {
+contract ReferenceVerifiers is
+    ReferenceAssertions,
+    ReferenceSignatureVerification
+{
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
@@ -21,9 +24,11 @@ contract ReferenceVerifiers is ReferenceAssertions, ReferenceSignatureVerificati
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) ReferenceAssertions(conduitController) {}
+    constructor(address conduitController)
+        ReferenceAssertions(conduitController)
+    {}
 
-    /** 
+    /**
      * @dev Internal view function to ensure that the current time falls within
      *      an order's valid timespan.
      *
@@ -54,7 +59,7 @@ contract ReferenceVerifiers is ReferenceAssertions, ReferenceSignatureVerificati
         valid = true;
     }
 
-     /**
+    /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
      *      is not 32 or 33 bytes or if the recovered signer does not match the

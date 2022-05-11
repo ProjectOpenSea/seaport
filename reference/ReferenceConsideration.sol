@@ -51,7 +51,9 @@ contract ReferenceConsideration is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) ReferenceOrderCombiner(conduitController) {}
+    constructor(address conduitController)
+        ReferenceOrderCombiner(conduitController)
+    {}
 
     /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
@@ -468,7 +470,7 @@ contract ReferenceConsideration is
             );
     }
 
-     /**
+    /**
      * @notice Cancel an arbitrary number of orders. Note that only the offerer
      *         or the zone of a given order may cancel it.
      *
@@ -601,11 +603,11 @@ contract ReferenceConsideration is
         override
         returns (uint256)
     {
-         // Return the nonce for the supplied offerer.
+        // Return the nonce for the supplied offerer.
         return _getNonce(offerer);
     }
 
-   /**
+    /**
      * @notice Retrieve configuration information for this contract.
      *
      * @return version           The contract version.

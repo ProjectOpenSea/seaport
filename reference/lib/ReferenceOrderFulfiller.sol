@@ -29,6 +29,7 @@ import { ReferenceCriteriaResolution } from "./ReferenceCriteriaResolution.sol";
 import { ReferenceAmountDeriver } from "./ReferenceAmountDeriver.sol";
 
 import "./ReferenceConsiderationConstants.sol";
+
 /**
  * @title OrderFulfiller
  * @author 0age
@@ -80,10 +81,7 @@ contract ReferenceOrderFulfiller is
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) internal 
-        notEntered
-        nonReentrant 
-        returns (bool) {
+    ) internal notEntered nonReentrant returns (bool) {
         // Declare empty bytes32 array (unused, will remain empty).
         bytes32[] memory priorOrderHashes;
 

@@ -26,7 +26,6 @@ import "./ReferenceConsiderationConstants.sol";
 
 import { AccumulatorStruct } from "./ReferenceConsiderationStructs.sol";
 
-
 /**
  * @title Executor
  * @author 0age
@@ -42,9 +41,11 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) ReferenceVerifiers(conduitController) {}
+    constructor(address conduitController)
+        ReferenceVerifiers(conduitController)
+    {}
 
-    /** 
+    /**
      * @dev Internal function to transfer a given item.
      *
      * @param item                  The item to transfer including an amount and recipient.
@@ -321,7 +322,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         }
     }
 
-      /**
+    /**
      * @dev Internal function to trigger a call to the conduit currently held by
      *      the accumulator if the accumulator contains item transfers (i.e. it
      *      is "armed") and the supplied conduit key does not match the key held
@@ -382,7 +383,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         delete accumulatorStruct.transfers;
     }
 
-     /**
+    /**
      * @dev Internal pure function to place an item transfer into an accumulator
      *      that collects a series of transfers to execute against a given
      *      conduit in a single call.
@@ -455,7 +456,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         accumulatorStruct.conduitKey = conduitKey;
     }
 
-     /**
+    /**
      * @dev Internal function get the conduit derived by the provided
      *      conduit key.
      *

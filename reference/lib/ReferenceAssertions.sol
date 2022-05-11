@@ -22,7 +22,7 @@ contract ReferenceAssertions is
     ReferenceNonceManager,
     TokenTransferrerErrors
 {
-     /**
+    /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
      *
@@ -55,10 +55,14 @@ contract ReferenceAssertions is
         );
 
         // Derive and return order hash using current nonce for the offerer.
-        return _deriveOrderHash(orderParameters, _getNonce(orderParameters.offerer));
+        return
+            _deriveOrderHash(
+                orderParameters,
+                _getNonce(orderParameters.offerer)
+            );
     }
 
-     /**
+    /**
      * @dev Internal pure function to ensure that the supplied consideration
      *      array length for an order to be fulfilled is not less than the
      *      original consideration array length for that order.
@@ -78,7 +82,7 @@ contract ReferenceAssertions is
         }
     }
 
-   /**
+    /**
      * @dev Internal pure function to ensure that a given item amount in not
      *      zero.
      *
@@ -115,5 +119,4 @@ contract ReferenceAssertions is
             revert InvalidBasicOrderParameterEncoding();
         }
     }
-
 }

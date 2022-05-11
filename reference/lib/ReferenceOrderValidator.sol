@@ -23,7 +23,10 @@ import { ReferenceZoneInteraction } from "./ReferenceZoneInteraction.sol";
  * @notice OrderValidator contains functionality related to validating orders
  *         and updating their status.
  */
-contract ReferenceOrderValidator is ReferenceExecutor, ReferenceZoneInteraction {
+contract ReferenceOrderValidator is
+    ReferenceExecutor,
+    ReferenceZoneInteraction
+{
     // Track status of each order (validated, cancelled, and fraction filled).
     mapping(bytes32 => OrderStatus) private _orderStatus;
 
@@ -35,7 +38,9 @@ contract ReferenceOrderValidator is ReferenceExecutor, ReferenceZoneInteraction 
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) ReferenceExecutor(conduitController) {}
+    constructor(address conduitController)
+        ReferenceExecutor(conduitController)
+    {}
 
     /**
      * @dev Internal function to verify and update the status of a basic order.
@@ -296,7 +301,7 @@ contract ReferenceOrderValidator is ReferenceExecutor, ReferenceZoneInteraction 
         }
         return true;
     }
-    
+
     /**
      * @dev Internal function to validate an arbitrary number of orders, thereby
      *      registering them as valid and allowing the fulfiller to skip
@@ -308,8 +313,11 @@ contract ReferenceOrderValidator is ReferenceExecutor, ReferenceZoneInteraction 
      * @return A boolean indicating whether the supplied orders were
      *         successfully validated.
      */
-    function _validate(Order[] calldata orders) internal notEntered returns (bool) {
-     
+    function _validate(Order[] calldata orders)
+        internal
+        notEntered
+        returns (bool)
+    {
         // Declare variables outside of the loop.
         bytes32 orderHash;
         address offerer;
@@ -360,7 +368,7 @@ contract ReferenceOrderValidator is ReferenceExecutor, ReferenceZoneInteraction 
         return true;
     }
 
-     /**
+    /**
      * @dev Internal view function to retrieve the status of a given order by
      *      hash, including whether the order has been cancelled or validated
      *      and the fraction of the order that has been filled.

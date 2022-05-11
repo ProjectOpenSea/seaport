@@ -50,9 +50,11 @@ contract ReferenceOrderCombiner is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) ReferenceOrderFulfiller(conduitController) {}
+    constructor(address conduitController)
+        ReferenceOrderFulfiller(conduitController)
+    {}
 
-     /**
+    /**
      * @notice Internal function to attempt to fill a group of orders, fully or
      *         partially, with an arbitrary number of items for offer and
      *         consideration per order alongside criteria resolvers containing
@@ -191,8 +193,7 @@ contract ReferenceOrderCombiner is
         CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid,
         uint256 maximumFulfilled
-    ) internal         notEntered
-        nonReentrant {
+    ) internal notEntered nonReentrant {
         // Read length of orders array and place on the stack.
         uint256 totalOrders = advancedOrders.length;
 
@@ -850,5 +851,4 @@ contract ReferenceOrderCombiner is
         // Return both standard and batch ERC1155 executions.
         return (standardExecutions, batchExecutions);
     }
-    
 }

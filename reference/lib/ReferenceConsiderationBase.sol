@@ -57,7 +57,7 @@ contract ReferenceConsiderationBase is
      *                                    tokens.
      */
     constructor(address conduitController) {
-         // Derive name and version hashes alongside required EIP-712 typehashes.
+        // Derive name and version hashes alongside required EIP-712 typehashes.
         (
             _NAME_HASH,
             _VERSION_HASH,
@@ -70,9 +70,11 @@ contract ReferenceConsiderationBase is
 
         // Store the current chainId and derive the current domain separator.
         _CHAIN_ID = block.chainid;
-        
+
         // Set the supplied conduit controller to temp.
-        ConduitControllerInterface tempConduitController = ConduitControllerInterface(conduitController);
+        ConduitControllerInterface tempConduitController = ConduitControllerInterface(
+                conduitController
+            );
 
         _CONDUIT_CONTROLLER = tempConduitController;
 
@@ -88,7 +90,7 @@ contract ReferenceConsiderationBase is
      *
      * @return The derived domain separator.
      */
-     function _deriveInitialDomainSeparator(
+    function _deriveInitialDomainSeparator(
         bytes32 _eip712DomainTypeHash,
         bytes32 _nameHash,
         bytes32 _versionHash
@@ -100,7 +102,6 @@ contract ReferenceConsiderationBase is
                 _versionHash
             );
     }
-
 
     /**
      * @dev Internal view function to derive the EIP-712 domain separator.
@@ -229,6 +230,10 @@ contract ReferenceConsiderationBase is
             )
         );
 
-        domainSeparator = _deriveInitialDomainSeparator(eip712DomainTypehash, nameHash, versionHash);
+        domainSeparator = _deriveInitialDomainSeparator(
+            eip712DomainTypehash,
+            nameHash,
+            versionHash
+        );
     }
 }

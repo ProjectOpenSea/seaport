@@ -14,7 +14,10 @@ import { ReferenceReentrancyGuard } from "./ReferenceReentrancyGuard.sol";
  * @notice NonceManager contains a storage mapping and related functionality
  *         for retreiving and incrementing a per-offerer nonce.
  */
-contract ReferenceNonceManager is ConsiderationEventsAndErrors, ReferenceReentrancyGuard {
+contract ReferenceNonceManager is
+    ConsiderationEventsAndErrors,
+    ReferenceReentrancyGuard
+{
     // Only orders signed using an offerer's current nonce are fulfillable.
     mapping(address => uint256) private _nonces;
 
@@ -25,11 +28,7 @@ contract ReferenceNonceManager is ConsiderationEventsAndErrors, ReferenceReentra
      *
      * @return newNonce The new nonce.
      */
-    function _incrementNonce()
-        internal
-        notEntered
-        returns (uint256 newNonce)
-    {
+    function _incrementNonce() internal notEntered returns (uint256 newNonce) {
         // Increment current nonce for the supplied offerer.
         newNonce = ++_nonces[msg.sender];
 
@@ -37,7 +36,7 @@ contract ReferenceNonceManager is ConsiderationEventsAndErrors, ReferenceReentra
         emit NonceIncremented(newNonce, msg.sender);
     }
 
-     /**
+    /**
      * @dev Internal view function to retrieve the current nonce for a given
      *      offerer.
      *
@@ -54,4 +53,3 @@ contract ReferenceNonceManager is ConsiderationEventsAndErrors, ReferenceReentra
         currentNonce = _nonces[offerer];
     }
 }
- 

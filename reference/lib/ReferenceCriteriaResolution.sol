@@ -29,7 +29,7 @@ import {
  * @notice CriteriaResolution contains a collection of pure functions related to
  *         resolving criteria-based items.
  */
- contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
+contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
     /**
      * @dev Internal pure function to apply criteria resolvers containing
      *      specific token identifiers and associated proofs to order items.
@@ -330,7 +330,7 @@ import {
             }
         }
     }
-        
+
     /**
      * @dev Internal pure function to check whether a given item type represents
      *      a criteria-based ERC721 or ERC1155 item (e.g. an item that can be
@@ -352,7 +352,7 @@ import {
         withCriteria = uint256(itemType) > 3;
     }
 
-     /**
+    /**
      * @dev Internal pure function to ensure that a given element is contained
      *      in a merkle root via a supplied proof.
      *
@@ -391,5 +391,4 @@ import {
             revert InvalidProof();
         }
     }
-
- }
+}

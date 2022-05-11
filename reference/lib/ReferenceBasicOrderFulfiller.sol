@@ -39,7 +39,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController) ReferenceOrderValidator(conduitController) {}
+    constructor(address conduitController)
+        ReferenceOrderValidator(conduitController)
+    {}
 
     /**
      * @dev Internal function to fulfill an order offering an ERC20, ERC721, or
@@ -66,10 +68,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
-    function _validateAndFulfillBasicOrder(BasicOrderParameters calldata parameters)
-        internal
-        returns (bool)
-    {
+    function _validateAndFulfillBasicOrder(
+        BasicOrderParameters calldata parameters
+    ) internal returns (bool) {
         // Declare enums for order type & route to extract from basicOrderType.
         BasicOrderRouteType route = BasicOrderRouteType(
             uint8(parameters.basicOrderType) / 4

@@ -7,6 +7,7 @@ import {
 } from "contracts/interfaces/AmountDerivationErrors.sol";
 
 import { FractionData } from "./ReferenceConsiderationStructs.sol";
+
 /**
  * @title AmountDeriver
  * @author 0age
