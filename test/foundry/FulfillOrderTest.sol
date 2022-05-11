@@ -400,11 +400,19 @@ contract FulfillOrderTest is BaseOrderTest {
             conduitKey,
             considerationItems.length
         );
+<<<<<<< HEAD
         context.consideration.fulfillOrder{
             value: context.args.paymentAmts[0] +
                 context.args.paymentAmts[1] +
                 context.args.paymentAmts[2]
         }(Order(orderParameters, signature), conduitKey); // TODO: over/underflow error in referenceConsideration differential test
+=======
+        testStruct.consideration.fulfillOrder{
+            value: testStruct.args.paymentAmts[0] +
+                testStruct.args.paymentAmts[1] +
+                testStruct.args.paymentAmts[2]
+        }(Order(orderParameters, signature), conduitKey);
+>>>>>>> stephan/foundry-tests-working
     }
 
     function _testFulfillOrderSingleErc20ToSingleErc1155(Context memory context)
