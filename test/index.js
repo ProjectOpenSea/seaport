@@ -566,7 +566,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     receipt,
     orderGroups,
     standardExecutions,
-    batchExecutions,
     criteriaResolvers,
     shouldSkipAmountComparison = false,
     multiplier = 1
@@ -625,7 +624,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   x.args.to === recipient
               );
 
-            expect(transferLogs.length).to.equal(1);
+            expect(transferLogs.length > 0).to.be.true;
             const transferLog = transferLogs[0];
             expect(transferLog.args.id.toString()).to.equal(
               identifier.toString()
@@ -641,37 +640,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // TODO: sum up executions and compare to orders to ensure that all the
       // items (or partially-filled items) are accounted for
-    }
-
-    if (batchExecutions && batchExecutions.length > 0) {
-      for (batchExecution of batchExecutions) {
-        const { token, from, to, tokenIds, amounts } = batchExecution;
-
-        const tokenEvents = receipt.events.filter((x) => x.address === token);
-
-        expect(tokenEvents.length).to.be.above(0);
-
-        // search for transfer
-        const transferLogs = tokenEvents
-          .map((x) => testERC1155.interface.parseLog(x))
-          .filter(
-            (x) =>
-              x.signature ===
-                "TransferBatch(address,address,address,uint256[],uint256[])" &&
-              x.args.to === to
-          );
-
-        expect(transferLogs.length).to.equal(1);
-        const transferLog = transferLogs[0];
-        for ([i, tokenId] of Object.entries(tokenIds)) {
-          expect(transferLog.args.ids[i].toString()).to.equal(
-            tokenId.toString()
-          );
-          expect(transferLog.args[4][i].toString()).to.equal(
-            amounts[i].toString()
-          );
-        }
-      }
     }
 
     if (criteriaResolvers) {
@@ -2900,16 +2868,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
-
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -2919,8 +2884,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -2931,8 +2895,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -3000,16 +2963,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -3019,8 +2980,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -3031,8 +2991,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -3095,16 +3054,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -3116,8 +3073,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -3128,8 +3084,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -3742,16 +3697,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -3761,8 +3714,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -3773,8 +3725,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -3855,16 +3806,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -3874,8 +3823,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -3886,8 +3834,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -4472,16 +4419,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -4491,8 +4436,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -4503,8 +4447,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -4581,16 +4524,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -4600,8 +4541,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -4612,8 +4552,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -4970,16 +4909,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -4989,8 +4926,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -5001,8 +4937,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -5071,16 +5006,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -5090,8 +5023,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -5102,8 +5034,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -5465,16 +5396,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -5484,8 +5413,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -5496,8 +5424,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -5568,16 +5495,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -5587,8 +5512,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -5599,8 +5523,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -6051,16 +5974,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -6070,8 +5991,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -6082,8 +6002,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -6168,16 +6087,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -6187,8 +6104,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -6199,8 +6115,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -7260,7 +7175,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -7286,7 +7200,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -7339,7 +7252,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order: ordersClone[0], orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -7436,7 +7348,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -7462,7 +7373,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -7515,7 +7425,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order: ordersClone[0], orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -7605,7 +7514,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               criteriaResolvers
             );
@@ -7740,17 +7648,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [order, mirrorOrder],
-            criteriaResolvers,
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [order, mirrorOrder],
+          criteriaResolvers,
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -7765,8 +7671,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions,
+            executions,
             criteriaResolvers
           );
           await checkExpectedEvents(
@@ -7778,8 +7683,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -7865,7 +7769,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 receipt,
                 [{ order, orderHash, fulfiller: buyer.address }],
                 null,
-                null,
                 criteriaResolvers
               );
               return receipt;
@@ -7946,7 +7849,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 receipt,
                 [{ order, orderHash, fulfiller: buyer.address }],
                 null,
-                null,
                 criteriaResolvers
               );
               return receipt;
@@ -8016,7 +7918,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -8137,7 +8038,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -8205,16 +8105,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -8224,8 +8122,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8236,8 +8133,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -8448,17 +8344,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [orderOne, orderTwo, orderThree],
-            [], // no criteria resolvers
-            fulfillments,
-            owner,
-            0 // no value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0 // no value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(fulfillments.length);
+        expect(executions.length).to.equal(fulfillments.length);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -8479,8 +8373,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8491,8 +8384,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8503,8 +8395,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -8674,17 +8565,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [orderOne, orderTwo, orderThree],
-            [], // no criteria resolvers
-            fulfillments,
-            owner,
-            0 // no value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0 // no value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(fulfillments.length - 1);
+        expect(executions.length).to.equal(fulfillments.length - 1);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -8705,8 +8594,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8717,8 +8605,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8729,8 +8616,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -8922,17 +8808,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [orderOne, orderTwo, orderThree],
-            [], // no criteria resolvers
-            fulfillments,
-            owner,
-            0 // no value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0 // no value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(fulfillments.length);
+        expect(executions.length).to.equal(fulfillments.length);
 
         await whileImpersonating(buyer.address, provider, async () => {
           const tx = await marketplaceContract
@@ -8953,8 +8837,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions,
+            executions,
             [],
             true
           );
@@ -8967,8 +8850,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions,
+            executions,
             [],
             true
           );
@@ -8981,8 +8863,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
 
           expect(
@@ -9178,17 +9059,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [orderOne, orderTwo, orderThree],
-            [], // no criteria resolvers
-            fulfillments,
-            owner,
-            0 // no value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0 // no value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(fulfillments.length);
+        expect(executions.length).to.equal(fulfillments.length);
 
         await whileImpersonating(buyer.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9209,8 +9088,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9221,8 +9099,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions,
+            executions,
             [],
             true
           );
@@ -9235,8 +9112,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions,
+            executions,
             [],
             true
           );
@@ -9249,7 +9125,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("ERC1155 batch transfers", async () => {
-      it("ERC1155 <=> ETH (match)", async () => {
+      it.only("ERC1155 <=> ETH (match)", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -9378,16 +9254,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(3);
+        //expect(batchExecutions.length).to.equal(1);
+        expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9397,8 +9272,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9409,8 +9283,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -9570,16 +9443,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(3);
+        //expect(batchExecutions.length).to.equal(1);
+        expect(executions.length).to.equal(6);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9589,8 +9461,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9601,8 +9472,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -9741,16 +9611,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(3);
+        //expect(batchExecutions.length).to.equal(1);
+        expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9760,8 +9629,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9772,8 +9640,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -9840,16 +9707,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(1);
+        expect(executions.length).to.equal(1);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9859,8 +9724,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9871,8 +9735,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -9985,16 +9848,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -10004,8 +9865,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -10016,8 +9876,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -10161,16 +10020,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(5);
+        expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -10346,16 +10203,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(4);
+        //expect(batchExecutions.length).to.equal(1);
+        expect(executions.length).to.equal(7);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -10557,16 +10413,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(2);
-        expect(standardExecutions.length).to.equal(3);
+        //expect(batchExecutions.length).to.equal(2);
+        expect(executions.length).to.equal(7);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -12524,7 +12379,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -12637,7 +12491,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -12752,7 +12605,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -12847,7 +12699,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -12956,7 +12807,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -13098,16 +12948,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            zone,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          zone,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         if (!process.env.REFERENCE) {
           await whileImpersonating(owner.address, provider, async () => {
@@ -13135,8 +12983,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -13147,8 +12994,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -13795,16 +13641,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -13814,8 +13658,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -13826,8 +13669,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -13896,16 +13738,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -13915,8 +13755,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -13927,8 +13766,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -15733,7 +15571,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               criteriaResolvers
             );
             return receipt;
@@ -16029,7 +15866,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               criteriaResolvers
             );
@@ -16448,7 +16284,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               criteriaResolvers
             );
@@ -17168,7 +17003,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -17219,16 +17053,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           await expect(
@@ -17258,8 +17090,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -17270,8 +17101,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -17589,7 +17419,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -17975,7 +17804,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -18122,7 +17950,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -18253,7 +18080,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -18538,16 +18364,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(3);
+        //expect(batchExecutions.length).to.equal(1);
+        expect(executions.length).to.equal(6);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -18557,8 +18382,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -18569,8 +18393,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
