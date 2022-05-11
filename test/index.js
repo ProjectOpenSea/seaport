@@ -10017,7 +10017,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it.only("ERC1155 <=> ETH (match, one single and one with two 1155's)", async () => {
+      it("ERC1155 <=> ETH (match, one single and one with two 1155's)", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
