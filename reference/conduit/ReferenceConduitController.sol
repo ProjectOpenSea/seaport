@@ -11,14 +11,6 @@ import {
 import { ConduitInterface } from "contracts/interfaces/ConduitInterface.sol";
 
 contract ReferenceConduitController is ConduitControllerInterface {
-    struct ConduitProperties {
-        bytes32 key;
-        address owner;
-        address potentialOwner;
-        address[] channels;
-        mapping(address => uint256) channelIndexesPlusOne;
-    }
-
     mapping(address => ConduitProperties) internal _conduits;
 
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
