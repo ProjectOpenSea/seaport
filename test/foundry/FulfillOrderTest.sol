@@ -251,6 +251,8 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
+    // function testFulfillOrderEthToErc721FullRestricted(ToErc)
+
     function _testFulfillOrderEthToErc721(
         ConsiderationToErc721Struct memory testStruct
     )
@@ -1439,6 +1441,117 @@ contract FulfillOrderTest is BaseOrderTest {
             considerationItems.length - testStruct.args.numberOfTips
         );
 
+        testStruct.consideration.fulfillOrder{
+            value: testStruct.args.paymentAmts[0] +
+                testStruct.args.paymentAmts[1] +
+                testStruct.args.paymentAmts[2]
+        }(Order(orderParameters, signature), conduitKey);
+    }
+
+    // function _testFulfillOrderEthToErc1155WithErc1155Tips(
+    //     ConsiderationToErc1155WithMultipleTipsStruct memory testStruct
+    // )
+    //     internal
+    //     onlyPayable(testStruct.args.zone)
+    //     topUp
+    //     resetTokenBalancesBetweenRuns
+    // {}
+
+    function _testFulfillOrderEthToErc721FullRestricted(
+        ConsiderationToErc721Struct memory testStruct
+    )
+        internal
+        onlyPayable(testStruct.args.zone)
+        topUp
+        resetTokenBalancesBetweenRuns
+    {
+        vm.assume(
+            testStruct.args.paymentAmts[0] > 0 &&
+                testStruct.args.paymentAmts[1] > 0 &&
+                testStruct.args.paymentAmts[2] > 0
+        );
+        vm.assume(
+            uint256(testStruct.args.paymentAmts[0]) +
+                uint256(testStruct.args.paymentAmts[1]) +
+                uint256(testStruct.args.paymentAmts[2]) <=
+                2**128 - 1
+        );
+        bytes32 conduitKey = testStruct.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        offerItems.push(
+            OfferItem(
+                ItemType.ERC721,
+                address(test721_1),
+                testStruct.args.id,
+                1,
+                1
+            )
+        );
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[0]),
+                uint256(testStruct.args.paymentAmts[0]),
+                payable(alice)
+            )
+        );
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[1]),
+                uint256(testStruct.args.paymentAmts[1]),
+                payable(testStruct.args.zone)
+            )
+        );
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(testStruct.args.paymentAmts[2]),
+                uint256(testStruct.args.paymentAmts[2]),
+                payable(cal)
+            )
+        );
+
+        OrderComponents memory orderComponents = OrderComponents(
+            alice,
+            testStruct.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_RESTRICTED,
+            block.timestamp,
+            block.timestamp + 1,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
+            conduitKey,
+            testStruct.consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            testStruct.consideration,
+            alicePk,
+            testStruct.consideration.getOrderHash(orderComponents)
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            testStruct.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_RESTRICTED,
+            block.timestamp,
+            block.timestamp + 1,
+            testStruct.args.zoneHash,
+            testStruct.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
         testStruct.consideration.fulfillOrder{
             value: testStruct.args.paymentAmts[0] +
                 testStruct.args.paymentAmts[1] +
