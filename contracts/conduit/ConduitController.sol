@@ -13,7 +13,9 @@ import { Conduit } from "./Conduit.sol";
 /**
  * @title ConduitController
  * @author 0age
- * @notice ConduitController enables deploying and managing new conduits.
+ * @notice ConduitController enables deploying and managing new conduits, or
+ *         contracts that allow registered callers (or open "channels") to
+ *         transfer approved ERC20/721/1155 tokens on their behalf.
  */
 contract ConduitController is ConduitControllerInterface {
     // Register keys, owners, new potential owners, and channels by conduit.
@@ -39,11 +41,11 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External function for deploying a new conduit using a supplied
-     *      conduit key and assigning an initial owner for the deployed conduit.
-     *      Note that the last twenty bytes of the supplied conduit key must
-     *      match the caller and that a new conduit cannot be created if one has
-     *      already been deployed using the same conduit key.
+     * @notice Deploy a new conduit using a supplied conduit key and assigning
+     *         an initial owner for the deployed conduit. Note that the last
+     *         twenty bytes of the supplied conduit key must match the caller
+     *         and that a new conduit cannot be created if one has already been
+     *         deployed using the same conduit key.
      *
      * @param conduitKey   The conduit key used to deploy the conduit. Note that
      *                     the last twenty bytes of the conduit key must match
@@ -102,13 +104,12 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External function for opening or closing a channel on a given
-     *      conduit, thereby allowing the named account to execute transfers
-     *      against that conduit. Extreme care must be taken when updating
-     *      channels, as malicious or vulnerable channels can transfer any
-     *      ERC20, ERC721 and ERC1155 tokens where the owner has approved the
-     *      associated conduit. Only the owner of the conduit in question may
-     *      call this function.
+     * @notice Open or close a channel on a given conduit, thereby allowing the
+     *         specified account to execute transfers against that conduit.
+     *         Extreme care must be taken when updating channels, as malicious
+     *         or vulnerable channels can transfer any ERC20, ERC721 and ERC1155
+     *         tokens where the token holder has granted the conduit approval.
+     *         Only the owner of the conduit in question may call this function.
      *
      * @param conduit The conduit for which to open or close the channel.
      * @param channel The channel to open or close on the conduit.
@@ -178,11 +179,10 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External function for intitiating conduit ownership transfer by
-     *      assigning a new potential owner for the given conduit. Once set, the
-     *      new potential owner may call `acceptOwnership` to claim ownership of
-     *      the conduit. Only the owner of the conduit in question may call this
-     *      function.
+     * @notice Initiate conduit ownership transfer by assigning a new potential
+     *         owner for the given conduit. Once set, the new potential owner
+     *         may call `acceptOwnership` to claim ownership of the conduit.
+     *         Only the owner of the conduit in question may call this function.
      *
      * @param conduit The conduit for which to initiate ownership transfer.
      */
@@ -193,23 +193,21 @@ contract ConduitController is ConduitControllerInterface {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
 
+        // Ensure the new potential owner is not an invalid address.
         if (newPotentialOwner == address(0)) {
             revert NewPotentialOwnerIsZeroAddress(conduit);
         }
 
-        emit PotentialOwnerUpdated(
-            conduit,
-            _conduits[conduit].potentialOwner,
-            newPotentialOwner
-        );
+        // Emit an event indicating that the potential owner has been updated.
+        emit PotentialOwnerUpdated(conduit, newPotentialOwner);
 
+        // Set the new potential owner as the potential owner of the conduit.
         _conduits[conduit].potentialOwner = newPotentialOwner;
     }
 
     /**
-     * @dev External function for clearing the currently set potential owner, if
-     *      any, from a conduit. Only the owner of the conduit in question may
-     *      call this function.
+     * @notice Clear the currently set potential owner, if any, from a conduit.
+     *         Only the owner of the conduit in question may call this function.
      *
      * @param conduit The conduit for which to cancel ownership transfer.
      */
@@ -218,20 +216,16 @@ contract ConduitController is ConduitControllerInterface {
         _assertCallerIsConduitOwner(conduit);
 
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(
-            conduit,
-            _conduits[conduit].potentialOwner,
-            address(0)
-        );
+        emit PotentialOwnerUpdated(conduit, address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;
     }
 
     /**
-     * @dev External function for accepting ownership of a supplied conduit.
-     *      Only accounts that the current owner has set as a new potential
-     *      owner may call this function.
+     * @notice Accept ownership of a supplied conduit. Only accounts that the
+     *         current owner has set as the new potential owner may call this
+     *         function.
      *
      * @param conduit The conduit for which to accept ownership.
      */
@@ -246,11 +240,7 @@ contract ConduitController is ConduitControllerInterface {
         }
 
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(
-            conduit,
-            _conduits[conduit].potentialOwner,
-            address(0)
-        );
+        emit PotentialOwnerUpdated(conduit, address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;
@@ -267,8 +257,7 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External view function to retrieve the current owner of a deployed
-     *      conduit.
+     * @notice Retrieve the current owner of a deployed conduit.
      *
      * @param conduit The conduit for which to retrieve the associated owner.
      *
@@ -288,8 +277,8 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External view function to retrieve the conduit key for a deployed
-     *      conduit via reverse lookup.
+     * @notice Retrieve the conduit key for a deployed conduit via reverse
+     *         lookup.
      *
      * @param conduit The conduit for which to retrieve the associated conduit
      *                key.
@@ -312,9 +301,9 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External view function to derive the conduit associated with a given
-     *      conduit key and determine whether that conduit exists (i.e. whether
-     *      it has been deployed).
+     * @notice Derive the conduit associated with a given conduit key and
+     *         determine whether that conduit exists (i.e. whether it has been
+     *         deployed).
      *
      * @param conduitKey The conduit key used to derive the conduit.
      *
@@ -349,10 +338,10 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External view function to retrieve the potential owner, if any, for
-     *      a given conduit. The current owner may set a new potential owner via
-     *      `transferOwnership` and that owner may then accept ownership of the
-     *      conduit in question via `acceptOwnership`.
+     * @notice Retrieve the potential owner, if any, for a given conduit. The
+     *         current owner may set a new potential owner via
+     *         `transferOwnership` and that owner may then accept ownership of
+     *         the conduit in question via `acceptOwnership`.
      *
      * @param conduit The conduit for which to retrieve the potential owner.
      *
@@ -372,8 +361,8 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External view function to determine the status (either open or
-     *      closed) of a given channel on a conduit.
+     * @notice Retrieve the status (either open or closed) of a given channel on
+     *         a conduit.
      *
      * @param conduit The conduit for which to retrieve the channel status.
      * @param channel The channel for which to retrieve the status.
@@ -394,8 +383,7 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External view function to retrieve the total number of open channels
-     *      for a given conduit.
+     * @notice Retrieve the total number of open channels for a given conduit.
      *
      * @param conduit The conduit for which to retrieve the total channel count.
      *
@@ -415,9 +403,9 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External view function to retrieve an open channel at a specific
-     *      index for a given conduit. Note that the index of a channel can
-     *      change as a result of other channels being closed on the conduit.
+     * @notice Retrieve an open channel at a specific index for a given conduit.
+     *         Note that the index of a channel can change as a result of other
+     *         channels being closed on the conduit.
      *
      * @param conduit      The conduit for which to retrieve the open channel.
      * @param channelIndex The index of the channel in question.
@@ -446,9 +434,9 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External view function to retrieve all open channels for a given
-     *      conduit. Note that calling this function for a conduit with many
-     *      channels will revert with an out-of-gas error.
+     * @notice Retrieve all open channels for a given conduit. Note that calling
+     *         this function for a conduit with many channels will revert with
+     *         an out-of-gas error.
      *
      * @param conduit The conduit for which to retrieve open channels.
      *
@@ -468,8 +456,7 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev External view function to retrieve the conduit creation code and
-     *      runtime code hashes.
+     * @dev Retrieve the conduit creation code and runtime code hashes.
      */
     function getConduitCodeHashes()
         external
