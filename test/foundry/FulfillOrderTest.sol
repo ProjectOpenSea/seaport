@@ -268,7 +268,16 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
-    // function testFulfillOrderEthToErc721FullRestricted(ToErc)
+    function testFulfillOrderEthToErc721FullRestricted(
+        ToErc721Struct memory testStruct
+    ) public {
+        _testFulfillOrderEthToErc721FullRestricted(
+            ConsiderationToErc721Struct(referenceConsideration, testStruct)
+        );
+        _testFulfillOrderEthToErc721FullRestricted(
+            ConsiderationToErc721Struct(consideration, testStruct)
+        );
+    }
 
     function _testFulfillOrderEthToErc721(
         ConsiderationToErc721Struct memory testStruct
@@ -1618,6 +1627,7 @@ contract FulfillOrderTest is BaseOrderTest {
             ? conduitKeyOne
             : bytes32(0);
 
+        test721_1.mint(alice, testStruct.args.id);
         offerItems.push(
             OfferItem(
                 ItemType.ERC721,
@@ -1690,6 +1700,7 @@ contract FulfillOrderTest is BaseOrderTest {
             conduitKey,
             considerationItems.length
         );
+        vm.prank(alice);
         testStruct.consideration.fulfillOrder{
             value: testStruct.args.paymentAmts[0] +
                 testStruct.args.paymentAmts[1] +
