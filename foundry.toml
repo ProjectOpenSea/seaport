@@ -10,7 +10,7 @@ remappings = [
     'ds-test=lib/ds-test/src/',
     'forge-std=lib/forge-std/src/',
 ]
-fuzz_max_global_rejects = 100_000
+fuzz_max_global_rejects = 500_000
 fuzz_max_local_rejects = 10_000
 
 [reference]
