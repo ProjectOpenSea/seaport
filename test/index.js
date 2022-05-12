@@ -11898,22 +11898,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .withArgs(owner.address, tempConduit.address, true);
       });
 
-      await tempConduit.connect(owner).executeWithBatch1155(
-        [],
-        [
-          {
-            token: ethers.constants.AddressZero,
-            from: owner.address,
-            to: buyer.address,
-            ids: [nftId, secondNftId],
-            amounts: [amount, secondAmount],
-          },
-        ]
-      );
-
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
-          tempConduit.connect(owner).executeWithBatch1155()
+          tempConduit.connect(owner).executeWithBatch1155(
+            [],
+            [
+              {
+                token: ethers.constants.AddressZero,
+                from: owner.address,
+                to: buyer.address,
+                ids: [nftId, secondNftId],
+                amounts: [amount, secondAmount],
+              },
+            ]
+          )
         ).to.be.revertedWith("NoContract");
       });
     });
