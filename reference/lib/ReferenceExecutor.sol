@@ -16,7 +16,7 @@ import { ConduitTransfer, ConduitBatch1155Transfer } from "contracts/conduit/lib
 
 import { ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
-import { ReceivedItem, BatchExecution } from "contracts/lib/ConsiderationStructs.sol";
+import { ReceivedItem } from "contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceVerifiers } from "./ReferenceVerifiers.sol";
 
@@ -272,52 +272,6 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
                 to,
                 identifier,
                 amount
-            );
-        }
-    }
-
-    /**
-     * @dev Internal function to transfer a batch of ERC1155 tokens from a given
-     *      originator to a given recipient. Sufficient approvals must be set,
-     *      either on the respective conduit or on this contract itself.
-     *
-     * @param batchExecution The batch of 1155 tokens to be transferred.
-     */
-    function _batchTransferERC1155(BatchExecution memory batchExecution)
-        internal
-    {
-        // Place elements of the batch execution in memory onto the stack.
-        bytes32 conduitKey = batchExecution.conduitKey;
-        address token = batchExecution.token;
-        address from = batchExecution.from;
-        address to = batchExecution.to;
-
-        // Retrieve the tokenIds and amounts.
-        uint256[] memory tokenIds = batchExecution.tokenIds;
-        uint256[] memory amounts = batchExecution.amounts;
-        // If no conduit has been specified...
-        if (batchExecution.conduitKey == bytes32(0)) {
-            // Perform transfer via the token contract directly.
-            _performERC1155BatchTransfer(token, from, to, tokenIds, amounts);
-        } else {
-            // Create an array of 1155 transfers.
-            ConduitBatch1155Transfer[] memory batchTransfers = (
-                new ConduitBatch1155Transfer[](1)
-            );
-
-            // Add a ConduitBatch1155Transfer into the array.
-            batchTransfers[0] = ConduitBatch1155Transfer(
-                token,
-                from,
-                to,
-                tokenIds,
-                amounts
-            );
-
-            // Perform the call to the conduit.
-            ConduitInterface(_getConduit(conduitKey)).executeWithBatch1155(
-                new ConduitTransfer[](0),
-                batchTransfers
             );
         }
     }
