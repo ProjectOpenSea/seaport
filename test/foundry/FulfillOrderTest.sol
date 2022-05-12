@@ -14,17 +14,11 @@ import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 
 contract FulfillOrderTest is BaseOrderTest {
-    uint256 salt;
-    bytes32 zoneHash;
-
-    modifier deriveSaltAndZoneHash(Context memory context) {
-        zoneHash = keccak256(abi.encode(context));
-        salt = uint256(keccak256(abi.encode(zoneHash)));
-        _;
-    }
     struct FuzzInputsCommon {
         address zone;
         uint128 id;
+        bytes32 zoneHash;
+        uint256 salt;
         uint128[3] paymentAmts;
         bool useConduit;
     }
@@ -275,8 +269,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -293,8 +287,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length
         );
@@ -377,8 +371,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -395,24 +389,16 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length
         );
-<<<<<<< HEAD
         context.consideration.fulfillOrder{
             value: context.args.paymentAmts[0] +
                 context.args.paymentAmts[1] +
                 context.args.paymentAmts[2]
         }(Order(orderParameters, signature), conduitKey); // TODO: over/underflow error in referenceConsideration differential test
-=======
-        testStruct.consideration.fulfillOrder{
-            value: testStruct.args.paymentAmts[0] +
-                testStruct.args.paymentAmts[1] +
-                testStruct.args.paymentAmts[2]
-        }(Order(orderParameters, signature), conduitKey);
->>>>>>> stephan/foundry-tests-working
     }
 
     function _testFulfillOrderSingleErc20ToSingleErc1155(Context memory context)
@@ -488,8 +474,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -506,8 +492,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length
         );
@@ -593,8 +579,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -624,8 +610,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - 1
         );
@@ -715,8 +701,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -746,8 +732,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - 1
         );
@@ -836,8 +822,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -872,8 +858,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
@@ -964,8 +950,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -1001,8 +987,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
@@ -1086,8 +1072,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -1122,8 +1108,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
@@ -1208,8 +1194,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -1244,8 +1230,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
@@ -1329,8 +1315,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -1364,8 +1350,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
@@ -1452,8 +1438,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -1487,8 +1473,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
@@ -1571,8 +1557,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -1605,8 +1591,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
@@ -1692,8 +1678,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -1726,8 +1712,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length - context.numTips
         );
@@ -1809,8 +1795,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_RESTRICTED,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             context.consideration.getNonce(alice)
         );
@@ -1828,8 +1814,8 @@ contract FulfillOrderTest is BaseOrderTest {
             OrderType.FULL_RESTRICTED,
             block.timestamp,
             block.timestamp + 1,
-            zoneHash,
-            salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length
         );

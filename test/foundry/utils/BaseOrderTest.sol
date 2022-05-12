@@ -310,6 +310,30 @@ contract BaseOrderTest is
         );
     }
 
+    function _configureErc721ConsiderationItem(
+        address payable recipient,
+        uint256 tokenId
+    ) internal {
+        _configureConsiderationItem(
+            ItemType.ERC721,
+            address(test721_1),
+            tokenId,
+            1,
+            1,
+            recipient
+        );
+    }
+
+    function _configureEthOfferItem(uint256 paymentAmount) internal {
+        _configureOfferItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            paymentAmount,
+            paymentAmount
+        );
+    }
+
     /**
     @dev deploy test token contracts
      */

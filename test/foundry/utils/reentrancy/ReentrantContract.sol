@@ -58,57 +58,78 @@ contract ReentrantContract {
             {} catch (bytes memory reason) {
                 emit BytesReason(reason);
             }
+        } else if (reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders) {
+            Order[] memory orders;
+            FulfillmentComponent[][] memory orderFulfillments;
+            FulfillmentComponent[][] memory considerationFulfillments;
+
+            try
+                consideration.fulfillAvailableOrders(
+                    orders,
+                    orderFulfillments,
+                    considerationFulfillments,
+                    bytes32(0),
+                    0
+                )
+            {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (
+            reentrancyPoint == ReentrancyPoint.FulfillAvailableAdvancedOrders
+        ) {
+            AdvancedOrder[] memory advancedOrders;
+            CriteriaResolver[] memory criteriaResolvers;
+            FulfillmentComponent[][] memory orderFulfillments;
+            FulfillmentComponent[][] memory considerationFulfillments;
+
+            try
+                consideration.fulfillAvailableAdvancedOrders(
+                    advancedOrders,
+                    criteriaResolvers,
+                    orderFulfillments,
+                    considerationFulfillments,
+                    bytes32(0),
+                    0
+                )
+            {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.MatchOrders) {
+            Order[] memory orders;
+            Fulfillment[] memory orderFulfillments;
+            try consideration.matchOrders(orders, orderFulfillments) {} catch (
+                bytes memory reason
+            ) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.MatchAdvancedOrders) {
+            AdvancedOrder[] memory advancedOrders;
+            CriteriaResolver[] memory criteriaResolvers;
+            Fulfillment[] memory orderFulfillments;
+            try
+                consideration.matchAdvancedOrders(
+                    advancedOrders,
+                    criteriaResolvers,
+                    orderFulfillments
+                )
+            {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.Cancel) {
+            OrderComponents[] memory orders;
+            try consideration.cancel(orders) {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.Validate) {
+            Order[] memory orders;
+            try consideration.validate(orders) {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.IncrementNonce) {
+            try consideration.incrementNonce() {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
         }
-        // } else if (reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders) {
-        //     Order[] memory orders;
-        //     FulfillmentComponent[][] memory orderFulfillments;
-        //     FulfillmentComponent[][] memory considerationFulfillments;
-
-        //     consideration.fulfillAvailableOrders(
-        //         orders,
-        //         orderFulfillments,
-        //         considerationFulfillments,
-        //         bytes32(0),
-        //         0
-        //     );
-        // } else if (
-        //     reentrancyPoint == ReentrancyPoint.FulfillAvailableAdvancedOrders
-        // ) {
-        //     AdvancedOrder[] memory advancedOrders;
-        //     CriteriaResolver[] memory criteriaResolvers;
-        //     FulfillmentComponent[][] memory orderFulfillments;
-        //     FulfillmentComponent[][] memory considerationFulfillments;
-
-        //     consideration.fulfillAvailableAdvancedOrders(
-        //         advancedOrders,
-        //         criteriaResolvers,
-        //         orderFulfillments,
-        //         considerationFulfillments,
-        //         bytes32(0),
-        //         0
-        //     );
-        // } else if (reentrancyPoint == ReentrancyPoint.MatchOrders) {
-        //     Order[] memory orders;
-        //     Fulfillment[] memory orderFulfillments;
-        //     consideration.matchOrders(orders, orderFulfillments);
-        // } else if (reentrancyPoint == ReentrancyPoint.MatchAdvancedOrders) {
-        //     AdvancedOrder[] memory advancedOrders;
-        //     CriteriaResolver[] memory criteriaResolvers;
-        //     Fulfillment[] memory orderFulfillments;
-        //     consideration.matchAdvancedOrders(
-        //         advancedOrders,
-        //         criteriaResolvers,
-        //         orderFulfillments
-        //     );
-        // } else if (reentrancyPoint == ReentrancyPoint.Cancel) {
-        //     OrderComponents[] memory orders;
-        //     consideration.cancel(orders);
-        // } else if (reentrancyPoint == ReentrancyPoint.Validate) {
-        //     Order[] memory orders;
-        //     consideration.validate(orders);
-        // } else if (reentrancyPoint == ReentrancyPoint.IncrementNonce) {
-        //     consideration.incrementNonce();
-        // }
     }
 
     receive() external payable {
