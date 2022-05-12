@@ -14,7 +14,7 @@ import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 
 contract FulfillAvailableOrder is BaseOrderTest {
-    struct ToErc721Struct {
+    struct FuzzInputs {
         address zone;
         uint256 id;
         bytes32 zoneHash;
@@ -23,52 +23,52 @@ contract FulfillAvailableOrder is BaseOrderTest {
         bool useConduit;
     }
 
-    struct ConsiderationToErc721Struct {
+    struct Context {
         Consideration consideration;
-        ToErc721Struct args;
+        FuzzInputs args;
     }
 
     function testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-        ToErc721Struct memory testStruct
+        FuzzInputs memory args
     ) public {
         _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-            ConsiderationToErc721Struct(consideration, testStruct)
+            Context(consideration, args)
         );
         _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-            ConsiderationToErc721Struct(referenceConsideration, testStruct)
+            Context(referenceConsideration, args)
         );
     }
 
     function _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-        ConsiderationToErc721Struct memory testStruct
+        Context memory context
     )
         internal
-        onlyPayable(testStruct.args.zone)
+        onlyPayable(context.args.zone)
         topUp
         resetTokenBalancesBetweenRuns
     {
         vm.assume(
-            testStruct.args.paymentAmts[0] > 0 &&
-                testStruct.args.paymentAmts[1] > 0 &&
-                testStruct.args.paymentAmts[2] > 0
+            context.args.paymentAmts[0] > 0 &&
+                context.args.paymentAmts[1] > 0 &&
+                context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(testStruct.args.paymentAmts[0]) +
-                uint256(testStruct.args.paymentAmts[1]) +
-                uint256(testStruct.args.paymentAmts[2]) <=
+            uint256(context.args.paymentAmts[0]) +
+                uint256(context.args.paymentAmts[1]) +
+                uint256(context.args.paymentAmts[2]) <=
                 2**128 - 1
         );
 
-        bytes32 conduitKey = testStruct.args.useConduit
+        bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
-        test721_1.mint(alice, testStruct.args.id);
+        test721_1.mint(alice, context.args.id);
         offerItems.push(
             OfferItem(
                 ItemType.ERC721,
                 address(test721_1),
-                testStruct.args.id,
+                context.args.id,
                 1,
                 1
             )
@@ -78,8 +78,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(testStruct.args.paymentAmts[0]),
-                uint256(testStruct.args.paymentAmts[0]),
+                uint256(context.args.paymentAmts[0]),
+                uint256(context.args.paymentAmts[0]),
                 payable(alice)
             )
         );
@@ -88,9 +88,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(testStruct.args.paymentAmts[1]),
-                uint256(testStruct.args.paymentAmts[1]),
-                payable(testStruct.args.zone)
+                uint256(context.args.paymentAmts[1]),
+                uint256(context.args.paymentAmts[1]),
+                payable(context.args.zone)
             )
         );
         considerationItems.push(
@@ -98,28 +98,28 @@ contract FulfillAvailableOrder is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(testStruct.args.paymentAmts[2]),
-                uint256(testStruct.args.paymentAmts[2]),
+                uint256(context.args.paymentAmts[2]),
+                uint256(context.args.paymentAmts[2]),
                 payable(cal)
             )
         );
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            testStruct.args.zone,
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            testStruct.args.zoneHash,
-            testStruct.args.salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
-            testStruct.consideration.getNonce(alice)
+            context.consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
-            testStruct.consideration,
+            context.consideration,
             alicePk,
-            testStruct.consideration.getOrderHash(orderComponents)
+            context.consideration.getOrderHash(orderComponents)
         );
 
         firstOfferFulfillment.push(FulfillmentComponent(0, 0));
@@ -138,14 +138,14 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
-            testStruct.args.zone,
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            testStruct.args.zoneHash,
-            testStruct.args.salt,
+            context.args.zoneHash,
+            context.args.salt,
             conduitKey,
             considerationItems.length
         );
@@ -153,10 +153,10 @@ contract FulfillAvailableOrder is BaseOrderTest {
         Order[] memory orders = new Order[](1);
         orders[0] = Order(orderParameters, signature);
 
-        testStruct.consideration.fulfillAvailableOrders{
-            value: testStruct.args.paymentAmts[0] +
-                testStruct.args.paymentAmts[1] +
-                testStruct.args.paymentAmts[2]
+        context.consideration.fulfillAvailableOrders{
+            value: context.args.paymentAmts[0] +
+                context.args.paymentAmts[1] +
+                context.args.paymentAmts[2]
         }(
             orders,
             offerFulfillments,
@@ -165,4 +165,34 @@ contract FulfillAvailableOrder is BaseOrderTest {
             100
         );
     }
+
+    // function _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableAdvancedOrders(
+    //     Context memory context,
+    //     uint240 amount,
+    //     uint16 numOrders
+    // )
+    //     internal
+    //     onlyPayable(context.args.zone)
+    //     topUp
+    //     resetTokenBalancesBetweenRuns
+    // {
+    //     vm.assume(
+    //         context.args.paymentAmts[0] > 0 &&
+    //             context.args.paymentAmts[1] > 0 &&
+    //             context.args.paymentAmts[2] > 0
+    //     );
+    //     vm.assume(amount > 0);
+    //     vm.assume(uint256(amount) * numOrders <= 2**256 - 1);
+    //     vm.assume(
+    //         uint256(context.args.paymentAmts[0]) +
+    //             uint256(context.args.paymentAmts[1]) +
+    //             uint256(context.args.paymentAmts[2]) <=
+    //             2**128 - 1
+    //     );
+
+    //     bytes32 conduitKey = context.args.useConduit
+    //         ? conduitKeyOne
+    //         : bytes32(0);
+
+    // }
 }
