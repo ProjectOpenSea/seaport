@@ -780,15 +780,11 @@ contract ReferenceOrderCombiner is
             for (uint256 i = 0; i < executionLength; ++i) {
                 filteredExecutions[i] = executions[i];
             }
-            // Perform final checks and compress executions into standard and batch.
-            (, standardExecutions) = _performFinalChecksAndExecuteOrders(
-                ordersToExecute,
-                filteredExecutions
-            );
-        }
 
+            executions = filteredExecutions;
+        }
         // Perform final checks and execute orders.
-        _performFinalChecksAndExecuteOrders(advancedOrders, executions);
+        _performFinalChecksAndExecuteOrders(ordersToExecute, executions);
 
         // Return both standard and batch ERC1155 executions.
         return (executions);
