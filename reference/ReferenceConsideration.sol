@@ -414,12 +414,9 @@ contract ReferenceConsideration is
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -429,10 +426,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (Execution[] memory standardExecutions)
     {
         // Validate and match the advanced orders using supplied fulfillments.
         return
@@ -449,16 +443,16 @@ contract ReferenceConsideration is
      *
      * @param orders The orders to cancel.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully cancelled.
+     * @return cancelled A boolean indicating whether the supplied orders have
+     *         been successfully cancelled.
      */
     function cancel(OrderComponents[] calldata orders)
         external
         override
-        returns (bool)
+        returns (bool cancelled)
     {
         // Cancel the orders.
-        return _cancel(orders);
+        cancelled = _cancel(orders);
     }
 
     /**
@@ -469,16 +463,16 @@ contract ReferenceConsideration is
      *
      * @param orders The orders to validate.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully validated.
+     * @return validated A boolean indicating whether the supplied orders have
+     *         been successfully validated.
      */
     function validate(Order[] calldata orders)
         external
         override
-        returns (bool)
+        returns (bool validated)
     {
         // Validate the orders.
-        return _validate(orders);
+        validated = _validate(orders);
     }
 
     /**
@@ -495,7 +489,7 @@ contract ReferenceConsideration is
         returns (uint256 newNonce)
     {
         // Increment current nonce for the supplied offerer.
-        return _incrementNonce();
+        newNonce = _incrementNonce();
     }
 
     /**
@@ -503,17 +497,17 @@ contract ReferenceConsideration is
      *
      * @param order The components of the order.
      *
-     * @return The order hash.
+     * @return orderHash the order hash.
      */
     function getOrderHash(OrderComponents calldata order)
         external
         view
         override
-        returns (bytes32)
+        returns (bytes32 orderHash)
     {
         // Derive order hash by supplying order parameters along with the nonce.
         // prettier-ignore
-        return _deriveOrderHash(
+        orderHash = _deriveOrderHash(
             OrderParameters(
                 order.offerer,
                 order.zone,
@@ -568,16 +562,16 @@ contract ReferenceConsideration is
      *
      * @param offerer The offerer in question.
      *
-     * @return The current nonce.
+     * @return nonce, the current nonce.
      */
     function getNonce(address offerer)
         external
         view
         override
-        returns (uint256)
+        returns (uint256 nonce)
     {
         // Return the nonce for the supplied offerer.
-        return _getNonce(offerer);
+        nonce = _getNonce(offerer);
     }
 
     /**
@@ -604,10 +598,15 @@ contract ReferenceConsideration is
     /**
      * @notice Retrieve the name of this contract.
      *
-     * @return The name of this contract.
+     * @return contractName The name of this contract.
      */
-    function name() external pure override returns (string memory) {
+    function name()
+        external
+        pure
+        override
+        returns (string memory contractName)
+    {
         // Return the name of the contract.
-        return _name();
+        contractName = _name();
     }
 }
