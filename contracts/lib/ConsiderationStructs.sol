@@ -242,3 +242,25 @@ struct Execution {
     address offerer;
     bytes32 conduitKey;
 }
+
+/**
+ * @dev A batch execution operates in a similar fashion to a standard execution,
+ *      but instead will transfer a number of ERC1155 tokenIds on the same token
+ *      contract in a single batch transaction.
+ */
+struct BatchExecution {
+    address token;
+    address from;
+    address to;
+    uint256[] tokenIds;
+    uint256[] amounts;
+    bytes32 conduitKey;
+}
+
+/**
+ * @dev An internal struct for facilitating batch execution construction.
+ */
+struct Batch {
+    bytes32 hash;
+    uint256[] executionIndices;
+}
