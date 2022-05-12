@@ -425,12 +425,7 @@ contract ReferenceConsideration is
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        override
-        returns (Execution[] memory executions)
-    {
+    ) external payable override returns (Execution[] memory executions) {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(

@@ -128,10 +128,7 @@ contract ReferenceOrderCombiner is
         uint256 maximumFulfilled
     )
         internal
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory executions
-        )
+        returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Validate orders, apply amounts, & determine if they utilize conduits
         _validateOrdersAndPrepareToFulfill(
