@@ -226,31 +226,6 @@ contract BaseOrderTest is
         );
     }
 
-    function _configureEthConsiderationItem(uint256 paymentAmount) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            paymentAmount,
-            paymentAmount,
-            alice
-        );
-    }
-
-    function _configureEthConsiderationItem(
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            startAmount,
-            endAmount,
-            alice
-        );
-    }
-
     function _configureEthConsiderationItem(
         address payable recipient,
         uint256 paymentAmount
@@ -277,17 +252,6 @@ contract BaseOrderTest is
             startAmount,
             endAmount,
             recipient
-        );
-    }
-
-    function _configureErc20ConsiderationItem(uint256 paymentAmount) internal {
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            paymentAmount,
-            paymentAmount,
-            alice
         );
     }
 
@@ -302,20 +266,6 @@ contract BaseOrderTest is
             paymentAmount,
             paymentAmount,
             receiver
-        );
-    }
-
-    function _configureErc20ConsiderationItem(
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            startAmount,
-            endAmount,
-            alice
         );
     }
 
