@@ -2,8 +2,8 @@ import { utils, BigNumber, constants } from "ethers";
 import { getAddress, parseEther } from "ethers/lib/utils";
 import { BasicOrderParameters, BigNumberish, Order } from "./types";
 
-export const randomHex = () =>
-  `0x${[...Array(64)]
+export const randomHex = (bytes: number = 64) =>
+  `0x${[...Array(bytes)]
     .map(() => Math.floor(Math.random() * 16).toString(16))
     .join("")}`;
 
@@ -11,6 +11,8 @@ export const randomLarge = () =>
   `0x${[...Array(60)]
     .map(() => Math.floor(Math.random() * 16).toString(16))
     .join("")}`;
+
+export const randomAddress = () => toAddress(randomHex(40));
 
 const hexRegex = /[A-Fa-fx]/g;
 
@@ -22,7 +24,8 @@ export const toHex = (n: BigNumberish, numBytes: number = 0) => {
       ? n.replace(/0x/, "")
       : (+n).toString(16)
     : (+n).toString(16);
-  return `0x${asHexString.padStart(numBytes * 2, "0")}`;
+  const len = numBytes * 2;
+  return `0x${asHexString.slice(0, len).padStart(len, "0")}`;
 };
 
 export const toBN = (n: BigNumberish) => BigNumber.from(toHex(n));

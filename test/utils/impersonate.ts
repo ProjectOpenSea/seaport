@@ -22,11 +22,14 @@ export const stopImpersonation = async (
   await provider.send("hardhat_stopImpersonatingAccount", [address]);
 };
 
+export type AccountLike = string | { address: string };
+
 export const whileImpersonating = async <T>(
-  address: string,
+  account: AccountLike,
   provider: JsonRpcProvider,
   fn: () => T
 ) => {
+  const address = typeof account === "string" ? account : account.address;
   await impersonate(address, provider);
   const result = await fn();
   await stopImpersonation(address, provider);

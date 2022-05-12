@@ -19,6 +19,7 @@ const {
   getItem721,
   getOfferOrConsiderationItem,
   getItemETH,
+  randomAddress,
 } = require("./utils/encoding");
 const { eip712DomainType } = require("../eip-712-types/domain");
 const { orderType } = require("../eip-712-types/order");
@@ -45,6 +46,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   let conduitController;
   let conduitImplementation;
   let conduitOne;
+  let conduitTwo;
   let conduitKeyOne;
 
   const getTestItem721 = (
@@ -780,7 +782,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const tokenEvents = receipt.events.filter(
           (x) => x.address === offerItem.token
         );
-
+ 
         if (offer.itemType === 1) {
           // ERC20
           // search for transfer
@@ -1096,7 +1098,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     expect(exists).to.be.true;
 
-    conduitOne = conduitImplementation.attach(conduitOneAddress);
+    conduitTwo = await (await ethers.getContractFactory("Conduit", owner)).deploy();
+
+    conduitOne = await ethers.getContractAt("Conduit", conduitOneAddress);
 
     marketplaceContract = await deployContract(
       "Consideration",
@@ -11759,7 +11763,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
-  describe("Conduit tests", async () => {
+  describe.only("ConduitController", async () => {
     let seller;
     let buyer;
     let sellerContract;
@@ -12044,6 +12048,74 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             []
           )
         ).to.be.revertedWith("InvalidItemType");
+      });
+    });
+
+    const setupBatchExecuteTest = async () => {
+      const recipient = randomAddress();
+      const nftId1 = ethers.BigNumber.from(randomHex());
+      const nftAmount1 = ethers.BigNumber.from(randomHex());
+      const nftId2 = ethers.BigNumber.from(randomHex());
+      const nftAmount2 = ethers.BigNumber.from(randomHex());
+      const tokenAmount = ethers.BigNumber.from(randomHex());
+      await testERC20.mint(seller.address, tokenAmount);
+      await whileImpersonating(seller.address, provider, async () => {
+          await testERC1155.connect(seller).setApprovalForAll(conduitOne.address, true)
+          await testERC20
+            .connect(seller)
+            .approve(conduitOne.address, tokenAmount)
+      })
+      const transfers = [
+        {
+          itemType: 1, // ERC20
+          token: testERC20.address,
+          from: seller.address, // ignored for ETH
+          to: recipient,
+          identifier: 0,
+          amount: tokenAmount,
+        }
+      ];
+      const batchTransfers = [
+        {
+          token: testERC1155.address,
+          from: seller.address,
+          to: recipient,
+          ids: [nftId1, nftId2],
+          amounts: [nftAmount1, nftAmount2]
+        }
+      ]
+
+      await testERC1155.mint(seller.address, nftId1, nftAmount1);
+      await testERC1155.mint(seller.address, nftId2, nftAmount2);
+      
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, seller.address, true);
+      });
+
+      return { transfers, batchTransfers };
+    }
+
+    it.only("Executes a set of standard and batch transfers", async () => {
+      console.log(conduitOne.interface.getSighash(conduitOne.interface.getError('Invalid1155BatchTransferEncoding()')))
+      const { transfers, batchTransfers } = await setupBatchExecuteTest()
+      await whileImpersonating(seller.address, provider, async () => {
+        const { to, data, gasLimit } = await conduitOne.connect(seller).populateTransaction.executeWithBatch1155(transfers, batchTransfers)
+        await seller.call({ to, data, gasLimit, }).catch(err => console.log([err.error, err.data].join('\n')))
+        // await seller.sendTransaction(tx).catch(err => console.log(err.address))
+        // console.log(conduitOne.interface)
+        /* await conduitOne.connect(seller).executeWithBatch1155(
+              transfers,
+              batchTransfers
+        ) */
+        // await/*  expect( */
+        //   conduitOne.connect(seller).executeWithBatch1155(
+        //     transfers,
+        //     batchTransfers
+        //   )
+        // ).to.be.revertedWith("InvalidItemType");
       });
     });
 
