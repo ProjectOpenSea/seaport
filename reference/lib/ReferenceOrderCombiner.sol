@@ -130,7 +130,7 @@ contract ReferenceOrderCombiner is
         internal
         returns (
             bool[] memory availableOrders,
-            Execution[] memory standardExecutions
+            Execution[] memory executions
         )
     {
         // Validate orders, apply amounts, & determine if they utilize conduits
@@ -142,7 +142,7 @@ contract ReferenceOrderCombiner is
             maximumFulfilled
         );
 
-        // Aggregate used offer and consideration items and execute transfers.
+        // Execute transfers.
         (availableOrders, executions) = _executeAvailableFulfillments(
             ordersToExecute,
             offerFulfillments,
@@ -449,7 +449,9 @@ contract ReferenceOrderCombiner is
         uint256 totalOfferFulfillments = offerFulfillments.length;
 
         // Retrieve length of consideration fulfillments array & place on stack.
-        uint256 totalConsiderationFulfillments = ();
+        uint256 totalConsiderationFulfillments = (
+            considerationFulfillments.length
+        );
 
         // Allocate an execution for each offer and consideration fulfillment.
         executions = new Execution[](
@@ -642,19 +644,13 @@ contract ReferenceOrderCombiner is
         // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulatorStruct);
 
-        // Iterate over each batch execution.
-        for (uint256 i = 0; i < batchExecutions.length; ++i) {
-            // Perform the batch transfer.
-            _batchTransferERC1155(batchExecutions[i]);
-        }
-
         // If any ether remains after fulfillments, return it to the caller.
         if (etherRemaining != 0) {
             _transferEth(payable(msg.sender), etherRemaining);
         }
 
         // Return the array containing available orders.
-        return (availableOrders);
+        return availableOrders;
     }
 
     /**
@@ -783,10 +779,11 @@ contract ReferenceOrderCombiner is
 
             executions = filteredExecutions;
         }
+
         // Perform final checks and execute orders.
         _performFinalChecksAndExecuteOrders(ordersToExecute, executions);
 
-        // Return both standard and batch ERC1155 executions.
-        return (executions);
+        // Return executions.
+        return executions;
     }
 }

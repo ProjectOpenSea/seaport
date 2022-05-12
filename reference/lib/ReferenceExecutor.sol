@@ -364,11 +364,10 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         address to,
         uint256 identifier,
         uint256 amount
-    ) internal view {
+    ) internal pure {
         /**
-         *   The following is highly inefficient, but written this way
-         *   to show in the most simplest form what the optimized
-         *   contract is performing inside its assembly.
+         *   The following is highly inefficient, but written this way to
+         *   simply demonstrate what is performed by the optimized contract.
          */
 
         // Get the current length of the accumulator's transfers.
@@ -383,6 +382,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         for (uint256 i = 0; i < currentTransferLength; ++i) {
             // Get the old transfer.
             ConduitTransfer memory oldTransfer = accumulatorStruct.transfers[i];
+
             // Add the old transfer into the new array.
             newTransfers[i] = ConduitTransfer(
                 oldTransfer.itemType,
@@ -406,6 +406,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
 
         // Set accumulator struct transfers to new transfers.
         accumulatorStruct.transfers = newTransfers;
+
         // Set the conduitkey of the current transfers.
         accumulatorStruct.conduitKey = conduitKey;
     }
@@ -427,9 +428,12 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         view
         returns (address conduit)
     {
+        // Derive the address of the conduit using the conduit key.
         conduit = _deriveConduit(conduitKey);
 
+        // If the conduit does not have runtime code (i.e. is not deployed)...
         if (conduit.code.length == 0) {
+            // Revert with an error indicating an invalud conduit.
             revert InvalidConduit(conduitKey, conduit);
         }
     }

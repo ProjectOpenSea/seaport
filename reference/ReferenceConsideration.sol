@@ -77,7 +77,8 @@ contract ReferenceConsideration is
      *                   implement `onERC1155Received` in order to receive those
      *                   items.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   fulfilled.
      */
     function fulfillBasicOrder(BasicOrderParameters calldata parameters)
         external
@@ -108,7 +109,8 @@ contract ReferenceConsideration is
      *                            should be used (and direct approvals set on
      *                            Consideration).
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   fulfilled.
      */
     function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
@@ -159,7 +161,8 @@ contract ReferenceConsideration is
      *                            should be used (and direct approvals set on
      *                            Consideration).
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   fulfilled.
      */
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
@@ -210,7 +213,7 @@ contract ReferenceConsideration is
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * * @return availableOrders An array of booleans indicating if each order
+     * @return availableOrders An array of booleans indicating if each order
      *                         with an index corresponding to the index of the
      *                         returned boolean was fulfillable or not.
      * @return executions      An array of elements indicating the sequence of
@@ -426,7 +429,7 @@ contract ReferenceConsideration is
         external
         payable
         override
-        returns (Execution[] memory standardExecutions)
+        returns (Execution[] memory executions)
     {
         // Validate and match the advanced orders using supplied fulfillments.
         return
@@ -562,7 +565,7 @@ contract ReferenceConsideration is
      *
      * @param offerer The offerer in question.
      *
-     * @return nonce, the current nonce.
+     * @return nonce The current nonce.
      */
     function getNonce(address offerer)
         external
