@@ -11859,7 +11859,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Deploys a conduit, adds a channel, and executes transfers", async () => {
       const tempConduitKey =
-        "0xff00000000000000000000dd" + owner.address.slice(2);
+        "0xff00000000000000000000ff" + owner.address.slice(2);
 
       const { conduit: tempConduitAddress } =
         await conduitController.getConduit(tempConduitKey);
