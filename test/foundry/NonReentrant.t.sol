@@ -653,20 +653,20 @@ contract NonReentrantTest is BaseOrderTest {
                 emit BytesReason(reason);
             }
         } else if (reentrancyPoint == ReentrancyPoint.FulfillOrder) {
-            Order memory order;
-            try consideration.fulfillOrder(order, bytes32(0)) {} catch (
+            Order memory _order;
+            try consideration.fulfillOrder(_order, bytes32(0)) {} catch (
                 bytes memory reason
             ) {
                 emit BytesReason(reason);
             }
         } else if (reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder) {
-            AdvancedOrder memory order;
+            AdvancedOrder memory _order;
             CriteriaResolver[]
                 memory criteriaResolvers = new CriteriaResolver[](0);
 
             try
                 consideration.fulfillAdvancedOrder(
-                    order,
+                    _order,
                     criteriaResolvers,
                     bytes32(0)
                 )
@@ -674,13 +674,13 @@ contract NonReentrantTest is BaseOrderTest {
                 emit BytesReason(reason);
             }
         } else if (reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders) {
-            Order[] memory orders;
+            Order[] memory _orders;
             FulfillmentComponent[][] memory orderFulfillments;
             FulfillmentComponent[][] memory considerationFulfillments;
 
             try
                 consideration.fulfillAvailableOrders(
-                    orders,
+                    _orders,
                     orderFulfillments,
                     considerationFulfillments,
                     bytes32(0),
@@ -710,9 +710,9 @@ contract NonReentrantTest is BaseOrderTest {
                 emit BytesReason(reason);
             }
         } else if (reentrancyPoint == ReentrancyPoint.MatchOrders) {
-            Order[] memory orders;
+            Order[] memory _orders;
             Fulfillment[] memory orderFulfillments;
-            try consideration.matchOrders(orders, orderFulfillments) {} catch (
+            try consideration.matchOrders(_orders, orderFulfillments) {} catch (
                 bytes memory reason
             ) {
                 emit BytesReason(reason);
@@ -731,13 +731,13 @@ contract NonReentrantTest is BaseOrderTest {
                 emit BytesReason(reason);
             }
         } else if (reentrancyPoint == ReentrancyPoint.Cancel) {
-            OrderComponents[] memory orders;
-            try consideration.cancel(orders) {} catch (bytes memory reason) {
+            OrderComponents[] memory _orders;
+            try consideration.cancel(_orders) {} catch (bytes memory reason) {
                 emit BytesReason(reason);
             }
         } else if (reentrancyPoint == ReentrancyPoint.Validate) {
-            Order[] memory orders;
-            try consideration.validate(orders) {} catch (bytes memory reason) {
+            Order[] memory _orders;
+            try consideration.validate(_orders) {} catch (bytes memory reason) {
                 emit BytesReason(reason);
             }
         } else if (reentrancyPoint == ReentrancyPoint.IncrementNonce) {
