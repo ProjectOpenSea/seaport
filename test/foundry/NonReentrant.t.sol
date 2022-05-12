@@ -21,9 +21,13 @@ contract NonReentrantTest is BaseOrderTest {
     OrderParameters orderParameters;
     Order order;
     Order[] orders;
-    Fulfillment fulfillment;
-    FulfillmentComponent fulfillmentComponent;
-    FulfillmentComponent[] fulfillmentComponents;
+    // Fulfillment fulfillment;
+    // FulfillmentComponent fulfillmentComponent;
+    // FulfillmentComponent[] fulfillmentComponents;
+    // FulfillmentComponent[][] offerComponents;
+    // FulfillmentComponent[][] considerationComponents;
+    ReentrancyPoint reentrancyPoint;
+    Consideration currentConsideration;
 
     /**
      * @dev Foundry fuzzes enums as uints, so we need to manually fuzz on uints and use vm.assume
@@ -89,7 +93,7 @@ contract NonReentrantTest is BaseOrderTest {
         internal
         returns (BasicOrderParameters memory _basicOrderParameters)
     {
-        test721_1.mint(address(alice), 1);
+        test721_1.mint(alice, 1);
 
         offerItems.push(
             OfferItem(
@@ -112,9 +116,9 @@ contract NonReentrantTest is BaseOrderTest {
             )
         );
 
-        uint256 nonce = context.consideration.getNonce(address(alice));
+        uint256 nonce = context.consideration.getNonce(alice);
 
-        orderComponents.offerer = payable(alice);
+        orderComponents.offerer = alice;
         orderComponents.zone = address(1);
         orderComponents.offer = offerItems;
         orderComponents.consideration = considerationItems;
@@ -152,7 +156,7 @@ contract NonReentrantTest is BaseOrderTest {
 
         _configureERC1155OfferItem(1, uint256(10));
         _configureEthConsiderationItem(alice, uint256(10));
-        _configureEthConsiderationItem(payable(address(0)), uint256(10));
+        _configureEthConsiderationItem(payable(0), uint256(10));
         _configureEthConsiderationItem(payable(reenterer), uint256(10));
         uint256 nonce = context.consideration.getNonce(alice);
 
@@ -193,7 +197,10 @@ contract NonReentrantTest is BaseOrderTest {
         _configureERC1155OfferItem(1, uint256(10));
         _configureEthConsiderationItem(alice, uint256(10));
         _configureEthConsiderationItem(payable(address(0)), uint256(10));
-        _configureEthConsiderationItem(payable(reenterer), uint256(10));
+        _configureEthConsiderationItem(
+            payable(address(reenterer)),
+            uint256(10)
+        );
         uint256 nonce = context.consideration.getNonce(alice);
         OrderParameters memory _orderParameters = getOrderParameters(
             alice,
@@ -308,7 +315,7 @@ contract NonReentrantTest is BaseOrderTest {
     {
         test721_1.mint(alice, 1);
         _configureERC721OfferItem(1);
-        _configureEthConsiderationItem(payable(reenterer), 1);
+        _configureEthConsiderationItem(payable(address(reenterer)), 1);
         uint256 nonce = context.consideration.getNonce(alice);
 
         OrderParameters memory _orderParameters = getOrderParameters(
@@ -327,11 +334,15 @@ contract NonReentrantTest is BaseOrderTest {
             alicePk,
             orderHash
         );
-        firstOfferFulfillment.push(FulfillmentComponent(0, 0));
-        offerFulfillments.push(firstOfferFulfillment);
-        considerationFulfillments.push(firstOfferFulfillment);
-        _offerFulfillments = offerFulfillments;
-        _considerationFulfillments = considerationFulfillments;
+        delete fulfillmentComponents;
+        delete offerComponentsArray;
+        delete considerationComponentsArray;
+
+        fulfillmentComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(fulfillmentComponents);
+        considerationComponentsArray.push(fulfillmentComponents);
+        _offerFulfillments = offerComponentsArray;
+        _considerationFulfillments = considerationComponentsArray;
         fulfillerConduitKey = bytes32(0);
         maximumFulfilled = 100;
 
@@ -375,7 +386,7 @@ contract NonReentrantTest is BaseOrderTest {
     {
         test721_1.mint(alice, 1);
         _configureERC721OfferItem(1);
-        _configureEthConsiderationItem(payable(reenterer), 1);
+        _configureEthConsiderationItem(payable(address(reenterer)), 1);
         uint256 nonce = context.consideration.getNonce(alice);
         orderComponents.offerer = alice;
         orderComponents.zone = address(0);
@@ -620,5 +631,123 @@ contract NonReentrantTest is BaseOrderTest {
                 _fulfillments
             );
         }
+    }
+
+    function isValidSignature(bytes32, bytes memory)
+        external
+        pure
+        returns (bytes4)
+    {
+        return 0x1626ba7e;
+    }
+
+    /**
+     * @dev call target function with empty parameters - should be rejected for reentrancy before any issues arise
+     */
+    function _doReenter() internal {
+        if (reentrancyPoint == ReentrancyPoint.FulfillBasicOrder) {
+            BasicOrderParameters memory params;
+            try consideration.fulfillBasicOrder(params) {} catch (
+                bytes memory reason
+            ) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.FulfillOrder) {
+            Order memory order;
+            try consideration.fulfillOrder(order, bytes32(0)) {} catch (
+                bytes memory reason
+            ) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder) {
+            AdvancedOrder memory order;
+            CriteriaResolver[]
+                memory criteriaResolvers = new CriteriaResolver[](0);
+
+            try
+                consideration.fulfillAdvancedOrder(
+                    order,
+                    criteriaResolvers,
+                    bytes32(0)
+                )
+            {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders) {
+            Order[] memory orders;
+            FulfillmentComponent[][] memory orderFulfillments;
+            FulfillmentComponent[][] memory considerationFulfillments;
+
+            try
+                consideration.fulfillAvailableOrders(
+                    orders,
+                    orderFulfillments,
+                    considerationFulfillments,
+                    bytes32(0),
+                    0
+                )
+            {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (
+            reentrancyPoint == ReentrancyPoint.FulfillAvailableAdvancedOrders
+        ) {
+            AdvancedOrder[] memory advancedOrders;
+            CriteriaResolver[] memory criteriaResolvers;
+            FulfillmentComponent[][] memory orderFulfillments;
+            FulfillmentComponent[][] memory considerationFulfillments;
+
+            try
+                consideration.fulfillAvailableAdvancedOrders(
+                    advancedOrders,
+                    criteriaResolvers,
+                    orderFulfillments,
+                    considerationFulfillments,
+                    bytes32(0),
+                    0
+                )
+            {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.MatchOrders) {
+            Order[] memory orders;
+            Fulfillment[] memory orderFulfillments;
+            try consideration.matchOrders(orders, orderFulfillments) {} catch (
+                bytes memory reason
+            ) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.MatchAdvancedOrders) {
+            AdvancedOrder[] memory advancedOrders;
+            CriteriaResolver[] memory criteriaResolvers;
+            Fulfillment[] memory orderFulfillments;
+            try
+                consideration.matchAdvancedOrders(
+                    advancedOrders,
+                    criteriaResolvers,
+                    orderFulfillments
+                )
+            {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.Cancel) {
+            OrderComponents[] memory orders;
+            try consideration.cancel(orders) {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.Validate) {
+            Order[] memory orders;
+            try consideration.validate(orders) {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else if (reentrancyPoint == ReentrancyPoint.IncrementNonce) {
+            try consideration.incrementNonce() {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        }
+    }
+
+    receive() external payable override {
+        _doReenter();
     }
 }

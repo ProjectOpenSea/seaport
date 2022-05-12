@@ -71,6 +71,9 @@ contract BaseOrderTest is
     Fulfillment secondFulfillment;
     Fulfillment thirdFulfillment;
     Fulfillment fourthFulfillment;
+    FulfillmentComponent fulfillmentComponent;
+    FulfillmentComponent[] fulfillmentComponents;
+    Fulfillment fulfillment;
 
     uint256 internal globalTokenId;
 
@@ -507,5 +510,5 @@ contract BaseOrderTest is
             .checked_write(uint128(MAX_INT));
     }
 
-    receive() external payable {}
+    receive() external payable virtual {}
 }
