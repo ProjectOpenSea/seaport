@@ -33,6 +33,13 @@ interface ConduitInterface {
     error InvalidController();
 
     /**
+     * @dev Revert with an error when attempting to execute an 1155 batch transfer
+     *      using calldata not produced by default ABI encoding or with different
+     *      lengths for ids and amounts arrays.
+     */
+    error Invalid1155BatchTransferEncoding();
+
+    /**
      * @dev Emit an event whenever a channel is opened or closed.
      *
      * @param channel The channel that has been updated.

@@ -279,13 +279,7 @@ uint256 constant ERC1155_safeTransferFrom_data_length_offset = 0xa0;
 // abi.encodeWithSignature(
 //     "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)"
 // )
-uint256 constant ERC1155_safeBatchTransferFrom_signature = (
-    0x2eb2c2d600000000000000000000000000000000000000000000000000000000
-);
-
-bytes4 constant ERC1155_safeBatchTransferFrom_selector = bytes4(
-    bytes32(ERC1155_safeBatchTransferFrom_signature)
-);
+bytes32 constant ERC1155_safeBatchTransferFrom_selector = 0x2eb2c2d600000000000000000000000000000000000000000000000000000000;
 
 uint256 constant ERC721_transferFrom_signature = ERC20_transferFrom_signature;
 uint256 constant ERC721_transferFrom_sig_ptr = 0x0;
@@ -356,6 +350,59 @@ uint256 constant MaskOverLastTwentyBytes = (
     0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
 );
 
+uint256 constant MaskOverFirstFourBytes = (
+    0xffffffff00000000000000000000000000000000000000000000000000000000
+);
+
 uint256 constant Conduit_executeWithBatch1155_signature = (
     0x899e104c00000000000000000000000000000000000000000000000000000000
 );
+
+// Values are offset by 32 bytes so that we can write the token to the beginning
+// if we have to revert
+uint256 constant BatchTransfer1155Params_ptr = 0x24;
+uint256 constant BatchTransfer1155Params_ids_head_ptr = 0x44;
+uint256 constant BatchTransfer1155Params_amounts_head_ptr = 0x84;
+uint256 constant BatchTransfer1155Params_data_head_ptr = 0xa4;
+uint256 constant BatchTransfer1155Params_data_length_basePtr = 0x104;
+
+uint256 constant BatchTransfer1155Params_ids_length_ptr = 0xc4;
+// uint256 constant BatchTransfer1155Params_amounts_length_basePtr = 0xe4;
+
+// uint256 constant BatchTransfer1155Params_data_ptr = 0xe4;
+// uint256 constant BatchTransfer1155Params_baseSize = 0xc0;
+// uint256 constant BatchTransfer1155Params_calldata_baseSize = 0x104;
+
+// Safebatchtransferfrom
+/*
+from:             0x00      memory: 0x24
+to:               0x20      memory: 0x44
+ids:              0x40      memory: 0x64
+amounts:          0x60      memory: 0x84
+data:             0x80      memory: 0xa4
+ids_length:       0xa0      memory: 0xc4
+amounts_length:   0xc0      memory: 0xe4
+data_length:      0xe0      memory: 0x104
+
+*/
+
+
+uint256 constant BatchTransfer1155Params_ids_length_offset = 0xa0;
+uint256 constant BatchTransfer1155Params_amounts_length_baseOffset = 0xc0;
+uint256 constant BatchTransfer1155Params_data_length_baseOffset = 0xe0;
+
+uint256 constant ConduitBatch1155Transfer_usable_head_size = 0x80;
+// uint256 constant BatchTransfer1155Params_body_ptr = 0xa0;
+
+
+
+uint256 constant ConduitBatch1155Transfer_from_offset = 0x20;
+uint256 constant ConduitBatch1155Transfer_ids_head_offset = 0x60;
+uint256 constant ConduitBatch1155Transfer_amounts_head_offset = 0x80;
+uint256 constant ConduitBatch1155Transfer_ids_length_offset = 0xa0;
+uint256 constant ConduitBatch1155Transfer_amounts_length_baseOffset = 0xc0;
+uint256 constant ConduitBatch1155Transfer_calldata_baseSize = 0xc0;
+
+uint256 constant Invalid1155BatchTransferEncoding_ptr = 0x00;
+uint256 constant Invalid1155BatchTransferEncoding_length = 0x04;
+uint256 constant Invalid1155BatchTransferEncoding_selector = 0xeba2084c00000000000000000000000000000000000000000000000000000000;
