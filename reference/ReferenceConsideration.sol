@@ -84,6 +84,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (bool)
     {
         // Validate and fulfill the basic order.
@@ -115,6 +117,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (bool)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
@@ -166,7 +170,7 @@ contract ReferenceConsideration is
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) external payable override returns (bool) {
+    ) external payable override notEntered nonReentrant returns (bool) {
         // Validate and fulfill the order.
         return
             _validateAndFulfillAdvancedOrder(
@@ -232,6 +236,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (
             bool[] memory availableOrders,
             Execution[] memory standardExecutions,
@@ -336,6 +342,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (
             bool[] memory availableOrders,
             Execution[] memory standardExecutions,
@@ -395,6 +403,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
@@ -456,6 +466,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
@@ -482,6 +494,7 @@ contract ReferenceConsideration is
     function cancel(OrderComponents[] calldata orders)
         external
         override
+        notEntered
         returns (bool)
     {
         // Cancel the orders.
@@ -502,6 +515,7 @@ contract ReferenceConsideration is
     function validate(Order[] calldata orders)
         external
         override
+        notEntered
         returns (bool)
     {
         // Validate the orders.
