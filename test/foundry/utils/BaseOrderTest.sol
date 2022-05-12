@@ -10,7 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -52,13 +52,11 @@ contract BaseOrderTest is
     OfferItem[] offerItems;
     ConsiderationItem[] considerationItems;
 
-    FulfillmentComponent[][] offerFulfillments;
-    FulfillmentComponent[][] considerationFulfillments;
+    FulfillmentComponent[] offerComponents;
+    FulfillmentComponent[] considerationComponents;
 
-    FulfillmentComponent[] firstOfferFulfillment;
-    FulfillmentComponent[] firstConsiderationFulfillment;
-    FulfillmentComponent[] secondConsiderationFulfillment;
-    FulfillmentComponent[] thirdConsiderationFulfillment;
+    FulfillmentComponent[][] offerComponentsArray;
+    FulfillmentComponent[][] considerationComponentsArray;
 
     Fulfillment[] fulfillments;
     FulfillmentComponent firstOrderFirstItem;
@@ -112,8 +110,8 @@ contract BaseOrderTest is
         // todo: don't delete these between runs, do setup outside of test logic
         delete offerItems;
         delete considerationItems;
-        delete offerFulfillments;
-        delete considerationFulfillments;
+        delete offerComponentsArray;
+        delete considerationComponentsArray;
         delete fulfillments;
     }
 
@@ -121,8 +119,8 @@ contract BaseOrderTest is
         super.setUp();
         delete offerItems;
         delete considerationItems;
-        delete offerFulfillments;
-        delete considerationFulfillments;
+        delete offerComponentsArray;
+        delete considerationComponentsArray;
         delete fulfillments;
 
         vm.label(alice, "alice");
@@ -153,6 +151,14 @@ contract BaseOrderTest is
         allocateTokensAndApprovals(alice, uint128(MAX_INT));
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
+    }
+
+    function resetOfferComponents() internal {
+        delete offerComponents;
+    }
+
+    function resetConsiderationComponents() internal {
+        delete considerationComponents;
     }
 
     function _configureConsiderationItem(
@@ -387,6 +393,29 @@ contract BaseOrderTest is
             value += amount;
         }
         return value;
+    }
+
+    /**
+     * @dev return OrderComponents for a given OrderParameters and offerer nonce
+     */
+    function getOrderComponents(
+        OrderParameters memory parameters,
+        uint256 nonce
+    ) internal pure returns (OrderComponents memory) {
+        return
+            OrderComponents(
+                parameters.offerer,
+                parameters.zone,
+                parameters.offer,
+                parameters.consideration,
+                parameters.orderType,
+                parameters.startTime,
+                parameters.endTime,
+                parameters.zoneHash,
+                parameters.salt,
+                parameters.conduitKey,
+                nonce
+            );
     }
 
     /**

@@ -142,19 +142,23 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        firstOfferFulfillment.push(FulfillmentComponent(0, 0));
-        offerFulfillments.push(firstOfferFulfillment);
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
 
-        firstConsiderationFulfillment.push(FulfillmentComponent(0, 0));
-        considerationFulfillments.push(firstConsiderationFulfillment);
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
 
-        secondConsiderationFulfillment.push(FulfillmentComponent(0, 1));
-        considerationFulfillments.push(secondConsiderationFulfillment);
+        considerationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
 
-        thirdConsiderationFulfillment.push(FulfillmentComponent(0, 2));
-        considerationFulfillments.push(thirdConsiderationFulfillment);
+        considerationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
 
-        assertTrue(considerationFulfillments.length == 3);
+        assertTrue(considerationComponentsArray.length == 3);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -188,8 +192,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         }(
             advancedOrders,
             criteriaResolvers,
-            offerFulfillments,
-            considerationFulfillments,
+            offerComponentsArray,
+            considerationComponentsArray,
             conduitKey,
             100
         );
@@ -292,19 +296,23 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        firstOfferFulfillment.push(FulfillmentComponent(0, 0));
-        offerFulfillments.push(firstOfferFulfillment);
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
 
-        firstConsiderationFulfillment.push(FulfillmentComponent(0, 0));
-        considerationFulfillments.push(firstConsiderationFulfillment);
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
 
-        secondConsiderationFulfillment.push(FulfillmentComponent(0, 1));
-        considerationFulfillments.push(secondConsiderationFulfillment);
+        considerationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
 
-        thirdConsiderationFulfillment.push(FulfillmentComponent(0, 2));
-        considerationFulfillments.push(thirdConsiderationFulfillment);
+        considerationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
 
-        assertTrue(considerationFulfillments.length == 3);
+        assertTrue(considerationComponentsArray.length == 3);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -337,8 +345,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         context.consideration.fulfillAvailableAdvancedOrders{ value: value }(
             advancedOrders,
             criteriaResolvers,
-            offerFulfillments,
-            considerationFulfillments,
+            offerComponentsArray,
+            considerationComponentsArray,
             conduitKey,
             100
         );

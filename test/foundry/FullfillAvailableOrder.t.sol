@@ -18,7 +18,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         address zone;
         uint256 id;
         bytes32 zoneHash;
-        uint256 salt;
+        uint248 salt;
         uint128[3] paymentAmts;
         bool useConduit;
     }
@@ -32,10 +32,24 @@ contract FulfillAvailableOrder is BaseOrderTest {
         FuzzInputs memory args
     ) public {
         _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-            Context(consideration, args)
+            Context(referenceConsideration, args)
         );
         _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-            Context(referenceConsideration, args)
+            Context(consideration, args)
+        );
+    }
+
+    function testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+        FuzzInputs memory args,
+        uint240 amount
+    ) public {
+        _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+            Context(referenceConsideration, args),
+            amount
+        );
+        _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+            Context(consideration, args),
+            amount
         );
     }
 
@@ -103,38 +117,6 @@ contract FulfillAvailableOrder is BaseOrderTest {
                 payable(cal)
             )
         );
-        OrderComponents memory orderComponents = OrderComponents(
-            alice,
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            context.consideration.getNonce(alice)
-        );
-        bytes memory signature = signOrder(
-            context.consideration,
-            alicePk,
-            context.consideration.getOrderHash(orderComponents)
-        );
-
-        firstOfferFulfillment.push(FulfillmentComponent(0, 0));
-        offerFulfillments.push(firstOfferFulfillment);
-
-        firstConsiderationFulfillment.push(FulfillmentComponent(0, 0));
-        considerationFulfillments.push(firstConsiderationFulfillment);
-
-        secondConsiderationFulfillment.push(FulfillmentComponent(0, 1));
-        considerationFulfillments.push(secondConsiderationFulfillment);
-
-        thirdConsiderationFulfillment.push(FulfillmentComponent(0, 2));
-        considerationFulfillments.push(thirdConsiderationFulfillment);
-
-        assertTrue(considerationFulfillments.length == 3);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -150,8 +132,37 @@ contract FulfillAvailableOrder is BaseOrderTest {
             considerationItems.length
         );
 
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
         Order[] memory orders = new Order[](1);
         orders[0] = Order(orderParameters, signature);
+
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        assertTrue(considerationComponentsArray.length == 3);
 
         context.consideration.fulfillAvailableOrders{
             value: context.args.paymentAmts[0] +
@@ -159,40 +170,169 @@ contract FulfillAvailableOrder is BaseOrderTest {
                 context.args.paymentAmts[2]
         }(
             orders,
-            offerFulfillments,
-            considerationFulfillments,
+            offerComponentsArray,
+            considerationComponentsArray,
             conduitKey,
             100
         );
     }
 
-    // function _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableAdvancedOrders(
-    //     Context memory context,
-    //     uint240 amount,
-    //     uint16 numOrders
-    // )
-    //     internal
-    //     onlyPayable(context.args.zone)
-    //     topUp
-    //     resetTokenBalancesBetweenRuns
-    // {
-    //     vm.assume(
-    //         context.args.paymentAmts[0] > 0 &&
-    //             context.args.paymentAmts[1] > 0 &&
-    //             context.args.paymentAmts[2] > 0
-    //     );
-    //     vm.assume(amount > 0);
-    //     vm.assume(uint256(amount) * numOrders <= 2**256 - 1);
-    //     vm.assume(
-    //         uint256(context.args.paymentAmts[0]) +
-    //             uint256(context.args.paymentAmts[1]) +
-    //             uint256(context.args.paymentAmts[2]) <=
-    //             2**128 - 1
-    //     );
+    function _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+        Context memory context,
+        uint240 amount
+    )
+        internal
+        onlyPayable(context.args.zone)
+        topUp
+        resetTokenBalancesBetweenRuns
+    {
+        vm.assume(
+            context.args.paymentAmts[0] > 0 &&
+                context.args.paymentAmts[1] > 0 &&
+                context.args.paymentAmts[2] > 0
+        );
+        vm.assume(amount > 0);
+        vm.assume(
+            uint256(context.args.paymentAmts[0]) +
+                uint256(context.args.paymentAmts[1]) +
+                uint256(context.args.paymentAmts[2]) <=
+                2**128 - 1
+        );
+        vm.assume(
+            context.args.paymentAmts[0] % 2 == 0 &&
+                context.args.paymentAmts[1] % 2 == 0 &&
+                context.args.paymentAmts[2] % 2 == 0
+        );
 
-    //     bytes32 conduitKey = context.args.useConduit
-    //         ? conduitKeyOne
-    //         : bytes32(0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
 
-    // }
+        test1155_1.mint(alice, context.args.id, uint256(amount) * 2);
+
+        offerItems.push(
+            OfferItem(
+                ItemType.ERC1155,
+                address(test1155_1),
+                context.args.id,
+                amount,
+                amount
+            )
+        );
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(context.args.paymentAmts[0]) / 2,
+                uint256(context.args.paymentAmts[0]) / 2,
+                payable(alice)
+            )
+        );
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(context.args.paymentAmts[1]) / 2,
+                uint256(context.args.paymentAmts[1]) / 2,
+                payable(context.args.zone)
+            )
+        );
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.NATIVE,
+                address(0),
+                0,
+                uint256(context.args.paymentAmts[2]) / 2,
+                uint256(context.args.paymentAmts[2]) / 2,
+                payable(cal)
+            )
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        OrderParameters memory secondOrderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            context.args.zoneHash,
+            uint256(context.args.salt) + 1,
+            conduitKey,
+            considerationItems.length
+        );
+
+        OrderComponents memory secondOrderComponents = getOrderComponents(
+            secondOrderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes memory secondOrderSignature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(secondOrderComponents)
+        );
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = Order(orderParameters, signature);
+        orders[1] = Order(secondOrderParameters, secondOrderSignature);
+
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponents.push(FulfillmentComponent(1, 1));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponents.push(FulfillmentComponent(1, 2));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        context.consideration.fulfillAvailableOrders{
+            value: context.args.paymentAmts[0] +
+                context.args.paymentAmts[1] +
+                context.args.paymentAmts[2]
+        }(
+            orders,
+            offerComponentsArray,
+            considerationComponentsArray,
+            conduitKey,
+            100
+        );
+    }
 }
