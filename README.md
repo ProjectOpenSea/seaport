@@ -171,11 +171,34 @@ To profile gas usage (note that gas usage is mildly non-deterministic at the mom
 yarn profile
 ```
 
-### Foundry Test dependencies
+### Foundry Tests
+
+First, install Foundry. On Linux and macOS systems, this is done as follows:
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+```
+This will download foundryup. To start install Foundry, run:
+```bash
+foundryup
+```
 To install dependencies:
 
 ```
 forge install Rari-Capital/solmate
 ```
 
-For more information, see [Foundry Book installation instructions](https://book.getfoundry.sh/getting-started/installation.html).
+Next, run the tests with:
+```bash
+forge test
+```
+
+Use modifiers in the cli to see more or less stuff.
+Level 2 (-vv): Logs emitted during tests are also displayed.
+Level 3 (-vvv): Stack traces for failing tests are also displayed.
+Level 4 (-vvvv): Stack traces for all tests are displayed, and setup traces for failing tests are displayed.
+Level 5 (-vvvvv): Stack traces and setup traces are always displayed.
+```bash
+forge test  -vv
+```
+
+For more information on foundry testing and use, see [Foundry Book installation instructions](https://book.getfoundry.sh/getting-started/installation.html).
