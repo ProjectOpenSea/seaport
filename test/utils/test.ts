@@ -135,6 +135,11 @@ const updateChildren = (parent: string) => {
 
 const createStructuredOffsetsObject = (name: string, coder: Coder): any => {
   const _children = children[name];
+
+  if (!_children) {
+    return null;
+  }
+
   const _offsets = absoluteOffsets[name];
   if (coder instanceof TupleCoder) {
     return _children.reduce(
