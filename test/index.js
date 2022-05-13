@@ -12656,6 +12656,380 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
+    it("Performs complex batch transfer through a conduit", async () => {
+      const tempConduitKey =
+        "0xf100000000000000000000f1" + owner.address.slice(2);
+
+      const { conduit: tempConduitAddress } =
+        await conduitController.getConduit(tempConduitKey);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .createConduit(tempConduitKey, owner.address);
+      });
+
+      const tempConduit = conduitImplementation.attach(tempConduitAddress);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, owner.address, true);
+      });
+
+      const nftId = 1;
+      const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId, amount.mul(2));
+
+      const secondNftId = 2;
+      const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(
+        1
+      );
+      await testERC1155.mint(owner.address, secondNftId, secondAmount.mul(2));
+
+      const thirdNftId = 3;
+      const thirdAmount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(
+        1
+      );
+      await testERC1155.mint(owner.address, thirdNftId, thirdAmount.mul(2));
+
+      const nftId4 = 4;
+      const amount4 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId4, amount4.mul(2));
+
+      const nftId5 = 5;
+      const amount5 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155Two.mint(owner.address, nftId5, amount5.mul(2));
+
+      const nftId6 = 6;
+      const amount6 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155Two.mint(owner.address, nftId6, amount6.mul(2));
+
+      const nftId7 = 7;
+      const amount7 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155Two.mint(owner.address, nftId7, amount7.mul(2));
+
+      const nftId8 = 8;
+      const amount8 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155Two.mint(owner.address, nftId8, amount8.mul(2));
+
+      const amount9 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC20.mint(owner.address, amount9.mul(2));
+
+      const nftId10 = 10;
+      await testERC721.mint(owner.address, nftId10);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          testERC1155
+            .connect(owner)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC1155, "ApprovalForAll")
+          .withArgs(owner.address, tempConduit.address, true);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          testERC1155Two
+            .connect(owner)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC1155Two, "ApprovalForAll")
+          .withArgs(owner.address, tempConduit.address, true);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          testERC721.connect(owner).setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC721, "ApprovalForAll")
+          .withArgs(owner.address, tempConduit.address, true);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          testERC20.connect(owner).approve(tempConduit.address, amount9)
+        )
+          .to.emit(testERC20, "Approval")
+          .withArgs(owner.address, tempConduit.address, amount9);
+      });
+
+      const newAddress = toAddress(12345);
+
+      await tempConduit.connect(owner).executeWithBatch1155(
+        [
+          {
+            itemType: 1,
+            token: testERC20.address,
+            from: owner.address,
+            to: newAddress,
+            identifier: ethers.BigNumber.from(0),
+            amount: amount9,
+          },
+          {
+            itemType: 2,
+            token: testERC721.address,
+            from: owner.address,
+            to: newAddress,
+            identifier: nftId10,
+            amount: ethers.BigNumber.from(1),
+          },
+        ],
+        [
+          {
+            token: testERC1155.address,
+            from: owner.address,
+            to: newAddress,
+            ids: [nftId, secondNftId, thirdNftId, nftId4],
+            amounts: [amount, secondAmount, thirdAmount, amount4],
+          },
+          {
+            token: testERC1155Two.address,
+            from: owner.address,
+            to: newAddress,
+            ids: [nftId5, nftId6, nftId7, nftId8],
+            amounts: [amount5, amount6, amount7, amount8],
+          },
+        ]
+      );
+
+      expect(await testERC1155.balanceOf(newAddress, nftId)).to.equal(amount);
+      expect(await testERC1155.balanceOf(newAddress, secondNftId)).to.equal(
+        secondAmount
+      );
+      expect(await testERC1155.balanceOf(newAddress, thirdNftId)).to.equal(
+        thirdAmount
+      );
+      expect(await testERC1155.balanceOf(newAddress, nftId4)).to.equal(amount4);
+
+      expect(await testERC1155Two.balanceOf(newAddress, nftId5)).to.equal(
+        amount5
+      );
+      expect(await testERC1155Two.balanceOf(newAddress, nftId6)).to.equal(
+        amount6
+      );
+      expect(await testERC1155Two.balanceOf(newAddress, nftId7)).to.equal(
+        amount7
+      );
+      expect(await testERC1155Two.balanceOf(newAddress, nftId8)).to.equal(
+        amount8
+      );
+
+      expect(await testERC20.balanceOf(newAddress)).to.equal(amount9);
+      expect(await testERC721.ownerOf(nftId10)).to.equal(newAddress);
+    });
+
+    it("ERC1155 <=> ETH (match, two different groups of 1155's)", async () => {
+      // Seller mints first nft
+      const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
+      await testERC1155.mint(seller.address, nftId, amount);
+
+      // Seller mints second nft
+      const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+      await testERC1155Two.mint(seller.address, secondNftId, secondAmount);
+
+      // Seller mints third nft
+      const thirdNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const thirdAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+      await testERC1155.mint(seller.address, thirdNftId, thirdAmount);
+
+      // Seller mints fourth nft
+      const fourthNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const fourthAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
+      await testERC1155Two.mint(seller.address, fourthNftId, fourthAmount);
+
+      // Seller approves marketplace contract to transfer NFTs
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC1155
+            .connect(seller)
+            .setApprovalForAll(marketplaceContract.address, true)
+        )
+          .to.emit(testERC1155, "ApprovalForAll")
+          .withArgs(seller.address, marketplaceContract.address, true);
+      });
+
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC1155Two
+            .connect(seller)
+            .setApprovalForAll(marketplaceContract.address, true)
+        )
+          .to.emit(testERC1155Two, "ApprovalForAll")
+          .withArgs(seller.address, marketplaceContract.address, true);
+      });
+
+      const offer = [
+        {
+          itemType: 3, // ERC1155
+          token: testERC1155.address,
+          identifierOrCriteria: nftId,
+          startAmount: amount,
+          endAmount: amount,
+        },
+        {
+          itemType: 3, // ERC1155
+          token: testERC1155Two.address,
+          identifierOrCriteria: secondNftId,
+          startAmount: secondAmount,
+          endAmount: secondAmount,
+        },
+        {
+          itemType: 3, // ERC1155
+          token: testERC1155.address,
+          identifierOrCriteria: thirdNftId,
+          startAmount: thirdAmount,
+          endAmount: thirdAmount,
+        },
+        {
+          itemType: 3, // ERC1155
+          token: testERC1155Two.address,
+          identifierOrCriteria: fourthNftId,
+          startAmount: fourthAmount,
+          endAmount: fourthAmount,
+        },
+      ];
+
+      const consideration = [
+        getItemETH(10, 10, seller.address),
+        getItemETH(1, 1, zone.address),
+        getItemETH(1, 1, owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder, mirrorOrderHash, mirrorValue } =
+        await createMirrorBuyNowOrder(buyer, zone, order);
+
+      const fulfillments = [
+        {
+          offerComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 1,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 2,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 2,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 3,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 3,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 0,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 1,
+            },
+          ],
+        },
+        {
+          offerComponents: [
+            {
+              orderIndex: 1,
+              itemIndex: 0,
+            },
+          ],
+          considerationComponents: [
+            {
+              orderIndex: 0,
+              itemIndex: 2,
+            },
+          ],
+        },
+      ];
+
+      const executions = await simulateMatchOrders(
+        [order, mirrorOrder],
+        fulfillments,
+        owner,
+        value
+      );
+
+      expect(executions.length).to.equal(7);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        const tx = await marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, { value });
+        const receipt = await tx.wait();
+        // TODO: check events (need to account for second 1155 token)
+        return receipt;
+      });
+    });
+
     it("Reverts when attempting to update a conduit channel when call is not from controller", async () => {
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
