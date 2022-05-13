@@ -7,6 +7,8 @@ import { ConduitItemType } from "./lib/ConduitEnums.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
+import "../lib/ConsiderationConstants.sol";
+
 // prettier-ignore
 import {
     ConduitTransfer,
@@ -112,22 +114,8 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             }
         }
 
-        // Retrieve the total number of batch transfers and place on the stack.
-        uint256 totalBatchTransfers = batchTransfers.length;
-
-        // Iterate over each batch transfer.
-        for (uint256 i = 0; i < totalBatchTransfers; ) {
-            // Retrieve the batch transfer in question.
-            ConduitBatch1155Transfer calldata batchTransfer = batchTransfers[i];
-
-            // Perform the batch transfer.
-            _batchTransferERC1155(batchTransfer);
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
-            }
-        }
+        // Perform 1155 batch transfers.
+        _performERC1155BatchTransfers(batchTransfers);
 
         // Return a magic value indicating that the transfers were performed.
         return this.execute.selector;
@@ -188,25 +176,5 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             // Throw with an error.
             revert InvalidItemType();
         }
-    }
-
-    /**
-     * @dev Internal function to transfer a batch of ERC1155 tokens from a given
-     *      originator to a given recipient. Sufficient approvals must be set on
-     *      this contract.
-     *
-     * @param batchTransfer The batch of 1155 tokens to be transferred.
-     */
-    function _batchTransferERC1155(
-        ConduitBatch1155Transfer calldata batchTransfer
-    ) internal {
-        // Perform optimized batch 1155 transfer.
-        _performERC1155BatchTransfer(
-            batchTransfer.token,
-            batchTransfer.from,
-            batchTransfer.to,
-            batchTransfer.ids,
-            batchTransfer.amounts
-        );
     }
 }
