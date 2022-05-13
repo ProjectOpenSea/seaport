@@ -45,6 +45,28 @@ contract NonReentrantTest is BaseOrderTest {
 
     event BytesReason(bytes data);
 
+    modifier resetStorageState() {
+        _;
+        delete additionalRecipients;
+        delete considerationComponents;
+        delete considerationComponentsArray;
+        delete considerationItems;
+        delete currentConsideration;
+        delete fulfillment;
+        delete fulfillmentComponent;
+        delete fulfillmentComponents;
+        delete offerComponents;
+        delete offerComponentsArray;
+        delete offerItems;
+        delete order;
+        delete orderComponents;
+        delete orderParameters;
+        delete orders;
+        delete recipient;
+        delete reentryPoint;
+        delete basicOrderParameters;
+    }
+
     function setUp() public virtual override {
         super.setUp();
     }
@@ -77,8 +99,8 @@ contract NonReentrantTest is BaseOrderTest {
             EntryPoint(_inputs.entryPoint),
             ReentryPoint(_inputs.reentryPoint)
         );
-        // _testNonReentrant(NonReentrant(consideration, inputs));
         _testNonReentrant(Context(referenceConsideration, inputs));
+        _testNonReentrant(Context(consideration, inputs));
     }
 
     function prepareBasicOrder(uint256 tokenId)
@@ -502,10 +524,14 @@ contract NonReentrantTest is BaseOrderTest {
     function _testNonReentrant(Context memory context)
         internal
         resetTokenBalancesBetweenRuns
+        resetStorageState
     {
         currentConsideration = context.consideration;
         reentryPoint = context.args.reentryPoint;
         _entryPoint(context.args.entryPoint, 2, false);
+
+        // make sure reentry calls are valid
+        _reentryPoint(11);
     }
 
     // public so we can use try/catch
@@ -635,7 +661,21 @@ contract NonReentrantTest is BaseOrderTest {
         }
     }
 
-    function _reentryPoint(ReentryPoint reentryPoint) public {}
+    function _reentryPoint(uint256 tokenId) public {
+        if (reentryPoint == ReentryPoint.Cancel) {
+            prepareBasicOrder(tokenId);
+            OrderComponents[] memory _orders = new OrderComponents[](1);
+            _orders[0] = orderComponents;
+            currentConsideration.cancel(_orders);
+        } else if (reentryPoint == ReentryPoint.Validate) {
+            Order[] memory _orders = new Order[](1);
+            (Order memory _order, , ) = prepareOrder(tokenId);
+            _orders[0] = _order;
+            currentConsideration.validate(_orders);
+        } else if (reentryPoint == ReentryPoint.IncrementNonce) {
+            currentConsideration.incrementNonce();
+        }
+    }
 
     ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
     function isValidSignature(bytes32, bytes memory)
@@ -654,6 +694,10 @@ contract NonReentrantTest is BaseOrderTest {
             try
                 this._entryPoint(EntryPoint(uint256(reentryPoint)), 10, true)
             {} catch (bytes memory reason) {
+                emit BytesReason(reason);
+            }
+        } else {
+            try this._reentryPoint(10) {} catch (bytes memory reason) {
                 emit BytesReason(reason);
             }
         }
@@ -740,27 +784,6 @@ contract NonReentrantTest is BaseOrderTest {
         //         emit BytesReason(reason);
         //     }
         // } else
-        else if (reentryPoint == ReentryPoint.Cancel) {
-            OrderComponents[] memory _orders;
-            try currentConsideration.cancel(_orders) {} catch (
-                bytes memory reason
-            ) {
-                emit BytesReason(reason);
-            }
-        } else if (reentryPoint == ReentryPoint.Validate) {
-            Order[] memory _orders;
-            try currentConsideration.validate(_orders) {} catch (
-                bytes memory reason
-            ) {
-                emit BytesReason(reason);
-            }
-        } else if (reentryPoint == ReentryPoint.IncrementNonce) {
-            try currentConsideration.incrementNonce() {} catch (
-                bytes memory reason
-            ) {
-                emit BytesReason(reason);
-            }
-        }
     }
 
     receive() external payable override {
