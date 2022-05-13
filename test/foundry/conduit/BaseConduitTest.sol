@@ -2,7 +2,7 @@
 pragma solidity 0.8.13;
 
 import { BaseConsiderationTest } from "../utils/BaseConsiderationTest.sol";
-import { ConduitTransfer, ConduitItemType } from "contracts/conduit/lib/ConduitStructs.sol";
+import { ConduitTransfer, ConduitItemType } from "../../../contracts/conduit/lib/ConduitStructs.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
@@ -50,8 +50,9 @@ contract BaseConduitTest is
     }
 
     function isErc1155Receiver(address to) internal returns (bool success) {
-        success = true;
-        if (to.code.length > 0) {
+        if (to == address(0)) {
+            return false;
+        } else if (to.code.length > 0) {
             (success, ) = to.call(
                 abi.encodePacked(
                     ERC1155TokenReceiver.onERC1155Received.selector,
@@ -62,6 +63,8 @@ contract BaseConduitTest is
                     ""
                 )
             );
+        } else {
+            return true;
         }
     }
 

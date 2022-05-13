@@ -21,7 +21,19 @@ contract ConduitExecuteTest is BaseConduitTest {
         ConduitTransfer[] transfers;
     }
 
-    function testExecute(FuzzInputs memory inputs) public {}
+    ConduitTransfer[] transfers;
+
+    function testExecute(FuzzInputs memory inputs) public {
+        for (uint8 i; i < inputs.intermediates.length; i++) {
+            transfers.push(
+                createTokenAndConduitTransfer(
+                    inputs.intermediates[i],
+                    address(referenceConduit)
+                )
+            );
+        }
+        _testExecute(Context(referenceConduit, transfers));
+    }
 
     function _testExecute(Context memory context) internal {
         context.conduit.execute(context.transfers);
