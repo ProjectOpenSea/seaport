@@ -386,15 +386,12 @@ data_length:      0xe0      memory: 0x104
 
 */
 
-
 uint256 constant BatchTransfer1155Params_ids_length_offset = 0xa0;
 uint256 constant BatchTransfer1155Params_amounts_length_baseOffset = 0xc0;
 uint256 constant BatchTransfer1155Params_data_length_baseOffset = 0xe0;
 
 uint256 constant ConduitBatch1155Transfer_usable_head_size = 0x80;
 // uint256 constant BatchTransfer1155Params_body_ptr = 0xa0;
-
-
 
 uint256 constant ConduitBatch1155Transfer_from_offset = 0x20;
 uint256 constant ConduitBatch1155Transfer_ids_head_offset = 0x60;

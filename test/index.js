@@ -782,7 +782,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const tokenEvents = receipt.events.filter(
           (x) => x.address === offerItem.token
         );
- 
+
         if (offer.itemType === 1) {
           // ERC20
           // search for transfer
@@ -1098,7 +1098,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     expect(exists).to.be.true;
 
-    conduitTwo = await (await ethers.getContractFactory("Conduit", owner)).deploy();
+    conduitTwo = await (
+      await ethers.getContractFactory("Conduit", owner)
+    ).deploy();
 
     conduitOne = await ethers.getContractAt("Conduit", conduitOneAddress);
 
@@ -12060,11 +12062,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       const tokenAmount = ethers.BigNumber.from(randomHex());
       await testERC20.mint(seller.address, tokenAmount);
       await whileImpersonating(seller.address, provider, async () => {
-          await testERC1155.connect(seller).setApprovalForAll(conduitOne.address, true)
-          await testERC20
-            .connect(seller)
-            .approve(conduitOne.address, tokenAmount)
-      })
+        await testERC1155
+          .connect(seller)
+          .setApprovalForAll(conduitOne.address, true);
+        await testERC20
+          .connect(seller)
+          .approve(conduitOne.address, tokenAmount);
+      });
       const transfers = [
         {
           itemType: 1, // ERC20
@@ -12073,7 +12077,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           to: recipient,
           identifier: 0,
           amount: tokenAmount,
-        }
+        },
       ];
       const batchTransfers = [
         {
@@ -12081,13 +12085,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           from: seller.address,
           to: recipient,
           ids: [nftId1, nftId2],
-          amounts: [nftAmount1, nftAmount2]
-        }
-      ]
+          amounts: [nftAmount1, nftAmount2],
+        },
+      ];
 
       await testERC1155.mint(seller.address, nftId1, nftAmount1);
       await testERC1155.mint(seller.address, nftId2, nftAmount2);
-      
 
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
@@ -12096,14 +12099,22 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       return { transfers, batchTransfers };
-    }
+    };
 
     it.only("Executes a set of standard and batch transfers", async () => {
-      console.log(conduitOne.interface.getSighash(conduitOne.interface.getError('Invalid1155BatchTransferEncoding()')))
-      const { transfers, batchTransfers } = await setupBatchExecuteTest()
+      console.log(
+        conduitOne.interface.getSighash(
+          conduitOne.interface.getError("Invalid1155BatchTransferEncoding()")
+        )
+      );
+      const { transfers, batchTransfers } = await setupBatchExecuteTest();
       await whileImpersonating(seller.address, provider, async () => {
-        const { to, data, gasLimit } = await conduitOne.connect(seller).populateTransaction.executeWithBatch1155(transfers, batchTransfers)
-        await seller.call({ to, data, gasLimit, }).catch(err => console.log([err.error, err.data].join('\n')))
+        const { to, data, gasLimit } = await conduitOne
+          .connect(seller)
+          .populateTransaction.executeWithBatch1155(transfers, batchTransfers);
+        await seller
+          .call({ to, data, gasLimit })
+          .catch((err) => console.log([err.error, err.data].join("\n")));
         // await seller.sendTransaction(tx).catch(err => console.log(err.address))
         // console.log(conduitOne.interface)
         /* await conduitOne.connect(seller).executeWithBatch1155(

@@ -189,7 +189,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     function _performERC1155BatchTransfers(
         ConduitBatch1155Transfer[] calldata batchTransfers
     ) internal {
-        // Utilize assembly to perform an optimized ERC1155 token transfer.
+        // Utilize assembly to perform optimized batch 1155 transfers.
         assembly {
             let len := batchTransfers.length
             // Pointer to first head in the array, which is offset to the struct
@@ -197,15 +197,16 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             // multiplying by 32 to get the offset for each element.
             let nextElementHeadPtr := batchTransfers.offset
 
-            // Pointer to beginning of the head of the array. This is the reference
-            // position each offset references. It's held static to let each loop
-            // calculate the data position for an element.
+            // Pointer to beginning of the head of the array. This is the
+            // reference position each offset references. It's held static to
+            // let each loop calculate the data position for an element.
             let arrayHeadPtr := nextElementHeadPtr
 
-            // Write the function selector for safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)
-            // This will be reused for each call
+            // Write the function selector, which will be reused for each call:
+            // safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)
             mstore(0x20, ERC1155_safeBatchTransferFrom_selector)
 
+            // Iterate over each batch transfer.
             for {
                 let i := 0
             } lt(i, len) {
@@ -224,9 +225,9 @@ contract Conduit is ConduitInterface, TokenTransferrer {
 
                 // Copy head from calldata
                 calldatacopy(
-                  BatchTransfer1155Params_ptr,
-                  add(elementPtr, ConduitBatch1155Transfer_from_offset),
-                  ConduitBatch1155Transfer_usable_head_size
+                    BatchTransfer1155Params_ptr,
+                    add(elementPtr, ConduitBatch1155Transfer_from_offset),
+                    ConduitBatch1155Transfer_usable_head_size
                 )
 
                 let idsLength := calldataload(
@@ -235,27 +236,27 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                 let idsAndAmountsSize := add(0x40, mul(idsLength, 0x40))
 
                 mstore(
-                  BatchTransfer1155Params_data_head_ptr,
-                  add(
-                    BatchTransfer1155Params_ids_length_offset,
-                    idsAndAmountsSize
-                  )
+                    BatchTransfer1155Params_data_head_ptr,
+                    add(
+                        BatchTransfer1155Params_ids_length_offset,
+                        idsAndAmountsSize
+                    )
                 )
 
                 mstore(
-                  add(BatchTransfer1155Params_data_length_basePtr, idsAndAmountsSize),
-                  0x00
+                    add(
+                        BatchTransfer1155Params_data_length_basePtr,
+                        idsAndAmountsSize
+                    ),
+                    0x00
                 )
 
-                let transferDataSize := add(
-                    0x104,
-                    mul(idsLength, 0x40)
-                )
+                let transferDataSize := add(0x104, mul(idsLength, 0x40))
 
                 calldatacopy(
-                  BatchTransfer1155Params_ids_length_ptr,
-                  add(elementPtr, ConduitBatch1155Transfer_ids_length_offset),
-                  idsAndAmountsSize
+                    BatchTransfer1155Params_ids_length_ptr,
+                    add(elementPtr, ConduitBatch1155Transfer_ids_length_offset),
+                    idsAndAmountsSize
                 )
 
                 let expectedAmountsOffset := add(
@@ -297,8 +298,14 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                 )
 
                 if invalidEncoding {
-                    mstore(Invalid1155BatchTransferEncoding_ptr, Invalid1155BatchTransferEncoding_selector)
-                    revert(Invalid1155BatchTransferEncoding_ptr, Invalid1155BatchTransferEncoding_length)
+                    mstore(
+                        Invalid1155BatchTransferEncoding_ptr,
+                        Invalid1155BatchTransferEncoding_selector
+                    )
+                    revert(
+                        Invalid1155BatchTransferEncoding_ptr,
+                        Invalid1155BatchTransferEncoding_length
+                    )
                 }
 
                 let token := calldataload(elementPtr)
@@ -326,19 +333,20 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                     // gas remains to do so:
                     if returndatasize() {
                         // Ensure that sufficient gas is available to copy
-                        // returndata while expanding memory where necessary. Start
-                        // by computing word size of returndata & allocated memory.
+                        // returndata while expanding memory where necessary.
+                        // Start by computing word size of returndata and
+                        // allocated memory.
                         let returnDataWords := div(returndatasize(), 0x20)
 
-                        // Note: use transferDataSize in place of msize() to work around a Yul
-                        // warning that prevents accessing msize directly when the IR pipeline is activated.
-                        // We do not use the free memory pointer because this contract does almost all memory
-                        // management manually and does not update it, and transferDataSize should be the
-                        // highest memory value used (unless a previous batch was higher)
-                        let msizeWords := div(
-                            transferDataSize,
-                            0x20
-                        )
+                        // Note: use transferDataSize in place of msize() to
+                        // work around a Yul warning that prevents accessing
+                        // msize directly when the IR pipeline is activated.
+                        // The free memory pointer is not used hereh because
+                        // this function does almost all memory management
+                        // manually and does not update it, and transferDataSize
+                        // should be the largest memory value used (unless a
+                        // previous batch was larger).
+                        let msizeWords := div(transferDataSize, 0x20)
 
                         // Next, compute the cost of the returndatacopy.
                         let cost := mul(3, returnDataWords)
@@ -367,24 +375,24 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                         // remaining; bubble up the revert data if enough gas is
                         // still available.
                         if lt(add(cost, 0x20), gas()) {
-                            // Copy returndata to memory; overwrite existing memory.
+                            // Copy returndata to memory; overwrite existing.
                             returndatacopy(0, 0, returndatasize())
 
-                            // Revert, giving memory region with copied returndata.
+                            // Revert with memory region containing returndata.
                             revert(0, returndatasize())
                         }
                     }
 
-                    // Set the error signature
+                    // Set the error signature.
                     mstore(
                         0x00,
                         ERC1155BatchTransferGenericFailure_error_signature
                     )
 
-                    // Write the token
+                    // Write the token.
                     mstore(0x04, token)
 
-                    // Move the ids and amounts offsets forward a word
+                    // Move the ids and amounts offsets forward a word.
                     mstore(
                         BatchTransfer1155Params_ids_head_ptr,
                         ConduitBatch1155Transfer_amounts_head_offset
@@ -402,7 +410,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                 }
             }
 
-            // reset the free memory pointer to the default value.
+            // Reset the free memory pointer to the default value.
             mstore(0x40, 0x80)
         }
     }
