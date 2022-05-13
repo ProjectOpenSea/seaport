@@ -505,16 +505,30 @@ contract NonReentrantTest is BaseOrderTest {
     {
         currentConsideration = context.consideration;
         reentrancyPoint = context.args.reentrancyPoint;
-        _entrantSet(context.args.entryPoint);
+        _entryPoint(context.args.entryPoint, 2, false);
     }
 
-    function _entrantSet(EntryPoint entryPoint) internal {
+    // public so we can use try/catch
+    function _entryPoint(
+        EntryPoint entryPoint,
+        uint256 tokenId,
+        bool reentering
+    ) public {
         if (entryPoint == EntryPoint.FulfillBasicOrder) {
             // _etchReentrantCodeToUserAddress(context);
             BasicOrderParameters
-                memory _basicOrderParameters = prepareBasicOrder(2);
-            vm.expectEmit(true, false, false, false, address(address(this)));
-            emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+                memory _basicOrderParameters = prepareBasicOrder(tokenId);
+            if (!reentering) {
+                vm.expectEmit(
+                    true,
+                    false,
+                    false,
+                    false,
+                    address(address(this))
+                );
+                emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            }
+
             currentConsideration.fulfillBasicOrder{ value: 1 }(
                 _basicOrderParameters
             );
@@ -523,9 +537,11 @@ contract NonReentrantTest is BaseOrderTest {
                 Order memory params,
                 bytes32 fulfillerConduitKey,
                 uint256 value
-            ) = prepareOrder(2);
-            vm.expectEmit(true, false, false, false, address(this));
-            emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            ) = prepareOrder(tokenId);
+            if (!reentering) {
+                vm.expectEmit(true, false, false, false, address(this));
+                emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            }
             currentConsideration.fulfillOrder{ value: value }(
                 params,
                 fulfillerConduitKey
@@ -536,9 +552,11 @@ contract NonReentrantTest is BaseOrderTest {
                 CriteriaResolver[] memory criteriaResolvers,
                 bytes32 fulfillerConduitKey,
                 uint256 value
-            ) = prepareAdvancedOrder(2);
-            vm.expectEmit(true, false, false, false, address(this));
-            emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            ) = prepareAdvancedOrder(tokenId);
+            if (!reentering) {
+                vm.expectEmit(true, false, false, false, address(this));
+                emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            }
             currentConsideration.fulfillAdvancedOrder{ value: value }(
                 _order,
                 criteriaResolvers,
@@ -551,9 +569,11 @@ contract NonReentrantTest is BaseOrderTest {
                 FulfillmentComponent[][] memory _considerationFulfillments,
                 bytes32 fulfillerConduitKey,
                 uint256 maximumFulfilled
-            ) = prepareAvailableOrders(2);
-            vm.expectEmit(true, false, false, false, address(this));
-            emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            ) = prepareAvailableOrders(tokenId);
+            if (!reentering) {
+                vm.expectEmit(true, false, false, false, address(this));
+                emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            }
             vm.prank(alice);
             currentConsideration.fulfillAvailableOrders{ value: 1 }(
                 _orders,
@@ -570,9 +590,11 @@ contract NonReentrantTest is BaseOrderTest {
                 FulfillmentComponent[][] memory _considerationFulfillments,
                 bytes32 fulfillerConduitKey,
                 uint256 maximumFulfilled
-            ) = prepareFullfillAvailableAdvancedOrders(2);
-            vm.expectEmit(true, false, false, false, address(this));
-            emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            ) = prepareFullfillAvailableAdvancedOrders(tokenId);
+            if (!reentering) {
+                vm.expectEmit(true, false, false, false, address(this));
+                emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            }
             vm.prank(alice);
             currentConsideration.fulfillAvailableAdvancedOrders{ value: 1 }(
                 advancedOrders,
@@ -586,9 +608,11 @@ contract NonReentrantTest is BaseOrderTest {
             (
                 Order[] memory _orders,
                 Fulfillment[] memory _fulfillments
-            ) = prepareMatchOrders(2);
-            vm.expectEmit(true, false, false, false, address(this));
-            emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            ) = prepareMatchOrders(tokenId);
+            if (!reentering) {
+                vm.expectEmit(true, false, false, false, address(this));
+                emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            }
             currentConsideration.matchOrders{ value: 1 }(
                 _orders,
                 _fulfillments
@@ -598,7 +622,11 @@ contract NonReentrantTest is BaseOrderTest {
                 AdvancedOrder[] memory _orders,
                 CriteriaResolver[] memory criteriaResolvers,
                 Fulfillment[] memory _fulfillments
-            ) = prepareMatchAdvancedOrders(2);
+            ) = prepareMatchAdvancedOrders(tokenId);
+            if (!reentering) {
+                vm.expectEmit(true, false, false, false, address(this));
+                emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
+            }
             currentConsideration.matchAdvancedOrders{ value: 1 }(
                 _orders,
                 criteriaResolvers,
@@ -606,6 +634,8 @@ contract NonReentrantTest is BaseOrderTest {
             );
         }
     }
+
+    function reentryPoint(ReentrancyPoint reentryPoint) internal {}
 
     ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
     function isValidSignature(bytes32, bytes memory)
@@ -620,92 +650,97 @@ contract NonReentrantTest is BaseOrderTest {
      * @dev call target function with empty parameters - should be rejected for reentrancy before any issues arise
      */
     function _doReenter() internal {
-        if (reentrancyPoint == ReentrancyPoint.FulfillBasicOrder) {
-            BasicOrderParameters memory params;
-            try currentConsideration.fulfillBasicOrder(params) {} catch (
-                bytes memory reason
-            ) {
-                emit BytesReason(reason);
-            }
-        } else if (reentrancyPoint == ReentrancyPoint.FulfillOrder) {
-            Order memory _order;
-            try currentConsideration.fulfillOrder(_order, bytes32(0)) {} catch (
-                bytes memory reason
-            ) {
-                emit BytesReason(reason);
-            }
-        } else if (reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder) {
-            AdvancedOrder memory _order;
-            CriteriaResolver[]
-                memory criteriaResolvers = new CriteriaResolver[](0);
-
+        if (uint256(reentrancyPoint) < 7) {
             try
-                currentConsideration.fulfillAdvancedOrder(
-                    _order,
-                    criteriaResolvers,
-                    bytes32(0)
-                )
+                this._entryPoint(EntryPoint(uint256(reentrancyPoint)), 10, true)
             {} catch (bytes memory reason) {
                 emit BytesReason(reason);
             }
-        } else if (reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders) {
-            Order[] memory _orders;
-            FulfillmentComponent[][] memory orderFulfillments;
-            FulfillmentComponent[][] memory considerationFulfillments;
-
-            try
-                currentConsideration.fulfillAvailableOrders(
-                    _orders,
-                    orderFulfillments,
-                    considerationFulfillments,
-                    bytes32(0),
-                    0
-                )
-            {} catch (bytes memory reason) {
-                emit BytesReason(reason);
-            }
-        } else if (
-            reentrancyPoint == ReentrancyPoint.FulfillAvailableAdvancedOrders
-        ) {
-            AdvancedOrder[] memory advancedOrders;
-            CriteriaResolver[] memory criteriaResolvers;
-            FulfillmentComponent[][] memory orderFulfillments;
-            FulfillmentComponent[][] memory considerationFulfillments;
-
-            try
-                currentConsideration.fulfillAvailableAdvancedOrders(
-                    advancedOrders,
-                    criteriaResolvers,
-                    orderFulfillments,
-                    considerationFulfillments,
-                    bytes32(0),
-                    0
-                )
-            {} catch (bytes memory reason) {
-                emit BytesReason(reason);
-            }
-        } else if (reentrancyPoint == ReentrancyPoint.MatchOrders) {
-            Order[] memory _orders;
-            Fulfillment[] memory orderFulfillments;
-            try
-                currentConsideration.matchOrders(_orders, orderFulfillments)
-            {} catch (bytes memory reason) {
-                emit BytesReason(reason);
-            }
-        } else if (reentrancyPoint == ReentrancyPoint.MatchAdvancedOrders) {
-            AdvancedOrder[] memory advancedOrders;
-            CriteriaResolver[] memory criteriaResolvers;
-            Fulfillment[] memory orderFulfillments;
-            try
-                currentConsideration.matchAdvancedOrders(
-                    advancedOrders,
-                    criteriaResolvers,
-                    orderFulfillments
-                )
-            {} catch (bytes memory reason) {
-                emit BytesReason(reason);
-            }
-        } else if (reentrancyPoint == ReentrancyPoint.Cancel) {
+        }
+        // if (reentrancyPoint == ReentrancyPoint.FulfillBasicOrder) {
+        //     BasicOrderParameters memory params;
+        //     try currentConsideration.fulfillBasicOrder(params) {} catch (
+        //         bytes memory reason
+        //     ) {
+        //         emit BytesReason(reason);
+        //     }
+        // } else if (reentrancyPoint == ReentrancyPoint.FulfillOrder) {
+        //     Order memory _order;
+        //     try currentConsideration.fulfillOrder(_order, bytes32(0)) {} catch (
+        //         bytes memory reason
+        //     ) {
+        //         emit BytesReason(reason);
+        //     }
+        // } else if (reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder) {
+        //     AdvancedOrder memory _order;
+        //     CriteriaResolver[]
+        //         memory criteriaResolvers = new CriteriaResolver[](0);
+        //     try
+        //         currentConsideration.fulfillAdvancedOrder(
+        //             _order,
+        //             criteriaResolvers,
+        //             bytes32(0)
+        //         )
+        //     {} catch (bytes memory reason) {
+        //         emit BytesReason(reason);
+        //     }
+        // } else if (reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders) {
+        //     Order[] memory _orders;
+        //     FulfillmentComponent[][] memory orderFulfillments;
+        //     FulfillmentComponent[][] memory considerationFulfillments;
+        //     try
+        //         currentConsideration.fulfillAvailableOrders(
+        //             _orders,
+        //             orderFulfillments,
+        //             considerationFulfillments,
+        //             bytes32(0),
+        //             0
+        //         )
+        //     {} catch (bytes memory reason) {
+        //         emit BytesReason(reason);
+        //     }
+        // } else if (
+        //     reentrancyPoint == ReentrancyPoint.FulfillAvailableAdvancedOrders
+        // ) {
+        //     AdvancedOrder[] memory advancedOrders;
+        //     CriteriaResolver[] memory criteriaResolvers;
+        //     FulfillmentComponent[][] memory orderFulfillments;
+        //     FulfillmentComponent[][] memory considerationFulfillments;
+        //     try
+        //         currentConsideration.fulfillAvailableAdvancedOrders(
+        //             advancedOrders,
+        //             criteriaResolvers,
+        //             orderFulfillments,
+        //             considerationFulfillments,
+        //             bytes32(0),
+        //             0
+        //         )
+        //     {} catch (bytes memory reason) {
+        //         emit BytesReason(reason);
+        //     }
+        // } else if (reentrancyPoint == ReentrancyPoint.MatchOrders) {
+        //     Order[] memory _orders;
+        //     Fulfillment[] memory orderFulfillments;
+        //     try
+        //         currentConsideration.matchOrders(_orders, orderFulfillments)
+        //     {} catch (bytes memory reason) {
+        //         emit BytesReason(reason);
+        //     }
+        // } else if (reentrancyPoint == ReentrancyPoint.MatchAdvancedOrders) {
+        //     AdvancedOrder[] memory advancedOrders;
+        //     CriteriaResolver[] memory criteriaResolvers;
+        //     Fulfillment[] memory orderFulfillments;
+        //     try
+        //         currentConsideration.matchAdvancedOrders(
+        //             advancedOrders,
+        //             criteriaResolvers,
+        //             orderFulfillments
+        //         )
+        //     {} catch (bytes memory reason) {
+        //         emit BytesReason(reason);
+        //     }
+        // } else
+        else if (reentrancyPoint == ReentrancyPoint.Cancel) {
             OrderComponents[] memory _orders;
             try currentConsideration.cancel(_orders) {} catch (
                 bytes memory reason
