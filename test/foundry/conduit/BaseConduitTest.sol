@@ -20,18 +20,22 @@ contract BaseConduitTest is
     address[] erc1155s;
 
     function isErc1155Receiver(address to) internal returns (bool success) {
-        (success, ) = to.call(
-            abi.encodePacked(
-                ERC1155TokenReceiver.onERC1155Received.selector,
-                address(0),
-                address(0),
-                new uint256[](0),
-                new uint256[](0),
-                ""
-            )
-        );
+        success = true;
+        if (to.code.length > 0) {
+            (success, ) = to.call(
+                abi.encodePacked(
+                    ERC1155TokenReceiver.onERC1155Received.selector,
+                    address(0),
+                    address(0),
+                    new uint256[](0),
+                    new uint256[](0),
+                    ""
+                )
+            );
+        }
     }
 
+    ///@dev helper to turn a fuzzed address
     function receiver(address to) internal returns (address) {
         if (!isErc1155Receiver(to)) {
             if (uint160(to) == 2**160 - 1) {
