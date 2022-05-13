@@ -1078,14 +1078,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     if (process.env.REFERENCE) {
       conduitImplementation = await ethers.getContractFactory(
-        "ReferenceConduit"
+        "ReferenceConduit",
+        owner
       );
       conduitController = await deployContract(
         "ReferenceConduitController",
         owner
       );
     } else {
-      conduitImplementation = await ethers.getContractFactory("Conduit");
+      conduitImplementation = await ethers.getContractFactory("Conduit", owner);
       conduitController = await deployContract("ConduitController", owner);
     }
 
@@ -1098,11 +1099,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     expect(exists).to.be.true;
 
-    conduitTwo = await (
-      await ethers.getContractFactory("Conduit", owner)
-    ).deploy();
+    conduitTwo = await conduitImplementation.deploy();
 
-    conduitOne = await ethers.getContractAt("Conduit", conduitOneAddress);
+    conduitOne = conduitImplementation.attach(conduitOneAddress);
 
     marketplaceContract = await deployContract(
       "Consideration",

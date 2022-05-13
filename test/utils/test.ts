@@ -150,7 +150,7 @@ const createStructuredOffsetsObject = (name: string, coder: Coder): any => {
       }
     );
   } else if (coder instanceof ArrayCoder) {
-    console.log(name)
+    //console.log(name)
     return _children.reduce(
       (obj, child, i) => ({
         ...obj,
@@ -171,7 +171,6 @@ const parentObj = finalObj;
 
 const removeParentName = (parent: string, child: string) => {};
 
-// sexport
 function pack(
   writer: Writer,
   coders: ReadonlyArray<Coder>,
@@ -248,18 +247,18 @@ function pack(
       // Prepare to populate the correct offset once we are done
       const updateFunc = staticWriter.writeUpdatableValue();
       updateFuncs.push((baseOffset: number) => {
-        console.log(
-          `dyn ${thisName} : ${
-            baseOffset + dynamicOffset
-          } (${baseOffset} + ${dynamicOffset}) Head: ${headOffset}`
-        );
+        // console.log(
+        //   `dyn ${thisName} : ${
+        //     baseOffset + dynamicOffset
+        //   } (${baseOffset} + ${dynamicOffset}) Head: ${headOffset}`
+        // );
         relativeOffsets[`${thisName}@head`] = headOffset;
         relativeOffsets[thisName] = baseOffset + dynamicOffset;
         updateFunc(baseOffset + dynamicOffset);
       });
     } else {
       relativeOffsets[thisName] = staticWriter.length;
-      console.log(`${thisName}: ${staticWriter.length}`);
+      //console.log(`${thisName}: ${staticWriter.length}`);
       coder.encode(staticWriter, value);
     }
     namesNest.pop();
@@ -386,7 +385,7 @@ const values = {
 //getError('Invalid1155BatchTransferEncoding()').format()
 const coders = val.inputs.map((i) => coder._getCoder(i));
 const writer = new Writer(32);
-console.log(pack(writer, coders, values));
+//console.log(pack(writer, coders, values));
 coders.map((coder) => coder.localName).map(updateChildren);
 const output: any = coders.reduce(
   (obj, coder) => ({
@@ -396,7 +395,7 @@ const output: any = coders.reduce(
   {}
 );
 
-console.log(output.batchTransfers[0].ids.head);
+//console.log(output.batchTransfers[0].ids.head);
 
 // console.log(coders.length);
 // console.log(writer.data.slice(2).match(/.{0,64}/g));
