@@ -12582,6 +12582,34 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
       await testERC1155.mint(owner.address, thirdNftId, thirdAmount.mul(2));
 
+      const nftId4 = 4;
+      const amount4 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId4, amount4.mul(2));
+
+      const nftId5 = 5;
+      const amount5 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId5, amount5.mul(2));
+
+      const nftId6 = 6;
+      const amount6 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId6, amount6.mul(2));
+
+      const nftId7 = 7;
+      const amount7 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId7, amount7.mul(2));
+
+      const nftId8 = 8;
+      const amount8 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId8, amount8.mul(2));
+
+      const nftId9 = 9;
+      const amount9 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId9, amount9.mul(2));
+
+      const nftId10 = 10;
+      const amount10 = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId10, amount10.mul(2));
+
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
           testERC1155
@@ -12599,8 +12627,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             token: testERC1155.address,
             from: owner.address,
             to: buyer.address,
-            ids: [nftId, secondNftId, thirdNftId],
-            amounts: [amount, secondAmount, thirdAmount],
+            ids: [
+              nftId,
+              secondNftId,
+              thirdNftId,
+              nftId4,
+              nftId5,
+              nftId6,
+              nftId7,
+              nftId8,
+              nftId9,
+              nftId10,
+            ],
+            amounts: [
+              amount,
+              secondAmount,
+              thirdAmount,
+              amount4,
+              amount5,
+              amount6,
+              amount7,
+              amount8,
+              amount9,
+              amount10,
+            ],
           },
         ]
       );
