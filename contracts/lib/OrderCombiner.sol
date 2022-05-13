@@ -542,7 +542,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
     /**
      * @dev Internal function to perform a final check that each consideration
      *      item for an arbitrary number of fulfilled orders has been met and to
-     *      trigger associated execututions, transferring the respective items.
+     *      trigger associated executions, transferring the respective items.
      *
      * @param advancedOrders     The orders to check and perform executions for.
      * @param executions         An array of elements indicating the sequence of

@@ -549,7 +549,7 @@ contract ReferenceOrderCombiner is
     /**
      * @dev Internal function to perform a final check that each consideration
      *      item for an arbitrary number of fulfilled orders has been met and to
-     *      trigger associated execututions, transferring the respective items.
+     *      trigger associated executions, transferring the respective items.
      *
      * @param ordersToExecute    The orders to check and perform executions.
      * @param executions         An array of uncompressed elements indicating
