@@ -81,7 +81,7 @@ contract ReferenceOrderFulfiller is
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) internal notEntered nonReentrant returns (bool) {
+    ) internal returns (bool) {
         // Declare empty bytes32 array (unused, will remain empty).
         bytes32[] memory priorOrderHashes;
 

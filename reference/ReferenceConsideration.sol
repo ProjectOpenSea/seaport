@@ -84,6 +84,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (bool fulfilled)
     {
         // Validate and fulfill the basic order.
@@ -116,6 +118,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (bool fulfilled)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
@@ -168,7 +172,14 @@ contract ReferenceConsideration is
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) external payable override returns (bool fulfilled) {
+    )
+        external
+        payable
+        override
+        notEntered
+        nonReentrant
+        returns (bool fulfilled)
+    {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
             advancedOrder,
@@ -230,6 +241,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert orders to "advanced" orders.
@@ -327,6 +340,8 @@ contract ReferenceConsideration is
         external
         payable
         override
+        notEntered
+        nonReentrant
         returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert Advanced Orders to Orders to Execute
@@ -375,7 +390,14 @@ contract ReferenceConsideration is
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable override returns (Execution[] memory executions) {
+    )
+        external
+        payable
+        override
+        notEntered
+        nonReentrant
+        returns (Execution[] memory executions)
+    {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
             _matchAdvancedOrders(
@@ -425,7 +447,14 @@ contract ReferenceConsideration is
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable override returns (Execution[] memory executions) {
+    )
+        external
+        payable
+        override
+        notEntered
+        nonReentrant
+        returns (Execution[] memory executions)
+    {
         // Validate and match the advanced orders using supplied fulfillments.
         return
             _matchAdvancedOrders(
@@ -447,6 +476,7 @@ contract ReferenceConsideration is
     function cancel(OrderComponents[] calldata orders)
         external
         override
+        notEntered
         returns (bool cancelled)
     {
         // Cancel the orders.
@@ -467,6 +497,7 @@ contract ReferenceConsideration is
     function validate(Order[] calldata orders)
         external
         override
+        notEntered
         returns (bool validated)
     {
         // Validate the orders.
