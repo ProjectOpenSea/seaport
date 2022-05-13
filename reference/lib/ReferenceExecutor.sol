@@ -16,7 +16,7 @@ import { ConduitTransfer, ConduitBatch1155Transfer } from "contracts/conduit/lib
 
 import { ItemType } from "contracts/lib/ConsiderationEnums.sol";
 
-import { ReceivedItem, BatchExecution } from "contracts/lib/ConsiderationStructs.sol";
+import { ReceivedItem } from "contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceVerifiers } from "./ReferenceVerifiers.sol";
 
@@ -277,52 +277,6 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
     }
 
     /**
-     * @dev Internal function to transfer a batch of ERC1155 tokens from a given
-     *      originator to a given recipient. Sufficient approvals must be set,
-     *      either on the respective conduit or on this contract itself.
-     *
-     * @param batchExecution The batch of 1155 tokens to be transferred.
-     */
-    function _batchTransferERC1155(BatchExecution memory batchExecution)
-        internal
-    {
-        // Place elements of the batch execution in memory onto the stack.
-        bytes32 conduitKey = batchExecution.conduitKey;
-        address token = batchExecution.token;
-        address from = batchExecution.from;
-        address to = batchExecution.to;
-
-        // Retrieve the tokenIds and amounts.
-        uint256[] memory tokenIds = batchExecution.tokenIds;
-        uint256[] memory amounts = batchExecution.amounts;
-        // If no conduit has been specified...
-        if (batchExecution.conduitKey == bytes32(0)) {
-            // Perform transfer via the token contract directly.
-            _performERC1155BatchTransfer(token, from, to, tokenIds, amounts);
-        } else {
-            // Create an array of 1155 transfers.
-            ConduitBatch1155Transfer[] memory batchTransfers = (
-                new ConduitBatch1155Transfer[](1)
-            );
-
-            // Add a ConduitBatch1155Transfer into the array.
-            batchTransfers[0] = ConduitBatch1155Transfer(
-                token,
-                from,
-                to,
-                tokenIds,
-                amounts
-            );
-
-            // Perform the call to the conduit.
-            ConduitInterface(_getConduit(conduitKey)).executeWithBatch1155(
-                new ConduitTransfer[](0),
-                batchTransfers
-            );
-        }
-    }
-
-    /**
      * @dev Internal function to trigger a call to the conduit currently held by
      *      the accumulator if the accumulator contains item transfers (i.e. it
      *      is "armed") and the supplied conduit key does not match the key held
@@ -410,11 +364,10 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         address to,
         uint256 identifier,
         uint256 amount
-    ) internal view {
+    ) internal pure {
         /**
-         *   The following is highly inefficient, but written this way
-         *   to show in the most simplest form what the optimized
-         *   contract is performing inside its assembly.
+         *   The following is highly inefficient, but written this way to
+         *   simply demonstrate what is performed by the optimized contract.
          */
 
         // Get the current length of the accumulator's transfers.
@@ -429,6 +382,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         for (uint256 i = 0; i < currentTransferLength; ++i) {
             // Get the old transfer.
             ConduitTransfer memory oldTransfer = accumulatorStruct.transfers[i];
+
             // Add the old transfer into the new array.
             newTransfers[i] = ConduitTransfer(
                 oldTransfer.itemType,
@@ -452,6 +406,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
 
         // Set accumulator struct transfers to new transfers.
         accumulatorStruct.transfers = newTransfers;
+
         // Set the conduitkey of the current transfers.
         accumulatorStruct.conduitKey = conduitKey;
     }
@@ -473,9 +428,12 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
         view
         returns (address conduit)
     {
+        // Derive the address of the conduit using the conduit key.
         conduit = _deriveConduit(conduitKey);
 
+        // If the conduit does not have runtime code (i.e. is not deployed)...
         if (conduit.code.length == 0) {
+            // Revert with an error indicating an invalud conduit.
             revert InvalidConduit(conduitKey, conduit);
         }
     }

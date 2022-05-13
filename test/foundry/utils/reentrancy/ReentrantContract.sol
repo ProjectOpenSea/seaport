@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 import { Consideration } from "../../../../contracts/Consideration.sol";
 import { ReentryPoint } from "./ReentrantEnums.sol";
 import { FulfillBasicOrderParameters, FulfillOrderParameters, FulfillAdvancedOrderParameters, FulfillAvailableOrdersParameters, FulfillAvailableAdvancedOrdersParameters, MatchOrdersParameters, MatchAdvancedOrdersParameters, CancelParameters, ValidateParameters, ReentrantCallParameters } from "./ReentrantStructs.sol";
-import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver, BatchExecution } from "../../../../contracts/lib/ConsiderationStructs.sol";
+import { BasicOrderParameters, OfferItem, ConsiderationItem, OrderParameters, OrderComponents, Fulfillment, FulfillmentComponent, Execution, Order, AdvancedOrder, OrderStatus, CriteriaResolver } from "../../../../contracts/lib/ConsiderationStructs.sol";
 
 contract ReentrantContract {
     Consideration consideration;

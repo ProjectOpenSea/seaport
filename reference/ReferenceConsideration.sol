@@ -17,8 +17,7 @@ import {
     CriteriaResolver,
     Fulfillment,
     FulfillmentComponent,
-    Execution,
-    BatchExecution
+    Execution
 } from "contracts/lib/ConsiderationStructs.sol";
 
 import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
@@ -78,7 +77,8 @@ contract ReferenceConsideration is
      *                   implement `onERC1155Received` in order to receive those
      *                   items.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   fulfilled.
      */
     function fulfillBasicOrder(BasicOrderParameters calldata parameters)
         external
@@ -86,10 +86,14 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
+<<<<<<< HEAD
         returns (bool)
+=======
+        returns (bool fulfilled)
+>>>>>>> main
     {
         // Validate and fulfill the basic order.
-        return _validateAndFulfillBasicOrder(parameters);
+        fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
 
     /**
@@ -111,7 +115,8 @@ contract ReferenceConsideration is
      *                            should be used (and direct approvals set on
      *                            Consideration).
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   fulfilled.
      */
     function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
@@ -119,11 +124,15 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
+<<<<<<< HEAD
         returns (bool)
+=======
+        returns (bool fulfilled)
+>>>>>>> main
     {
         // Convert order to "advanced" order, then validate and fulfill it.
         // prettier-ignore
-        return _validateAndFulfillAdvancedOrder(
+        fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
             fulfillerConduitKey
@@ -164,20 +173,31 @@ contract ReferenceConsideration is
      *                            should be used (and direct approvals set on
      *                            Consideration).
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   fulfilled.
      */
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
+<<<<<<< HEAD
     ) external payable override notEntered nonReentrant returns (bool) {
+=======
+    )
+        external
+        payable
+        override
+        notEntered
+        nonReentrant
+        returns (bool fulfilled)
+    {
+>>>>>>> main
         // Validate and fulfill the order.
-        return
-            _validateAndFulfillAdvancedOrder(
-                advancedOrder,
-                criteriaResolvers,
-                fulfillerConduitKey
-            );
+        fulfilled = _validateAndFulfillAdvancedOrder(
+            advancedOrder,
+            criteriaResolvers,
+            fulfillerConduitKey
+        );
     }
 
     /**
@@ -216,15 +236,12 @@ contract ReferenceConsideration is
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableOrders(
         Order[] calldata orders,
@@ -238,11 +255,15 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
+<<<<<<< HEAD
         returns (
             bool[] memory availableOrders,
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
         )
+=======
+        returns (bool[] memory availableOrders, Execution[] memory executions)
+>>>>>>> main
     {
         // Convert orders to "advanced" orders.
         AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
@@ -321,15 +342,12 @@ contract ReferenceConsideration is
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -344,11 +362,15 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
+<<<<<<< HEAD
         returns (
             bool[] memory availableOrders,
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
         )
+=======
+        returns (bool[] memory availableOrders, Execution[] memory executions)
+>>>>>>> main
     {
         // Convert Advanced Orders to Orders to Execute
         OrderToExecute[]
@@ -389,12 +411,9 @@ contract ReferenceConsideration is
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchOrders(
         Order[] calldata orders,
@@ -405,10 +424,14 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
+<<<<<<< HEAD
         returns (
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
         )
+=======
+        returns (Execution[] memory executions)
+>>>>>>> main
     {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
@@ -451,12 +474,9 @@ contract ReferenceConsideration is
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -468,10 +488,14 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
+<<<<<<< HEAD
         returns (
             Execution[] memory standardExecutions,
             BatchExecution[] memory batchExecutions
         )
+=======
+        returns (Execution[] memory executions)
+>>>>>>> main
     {
         // Validate and match the advanced orders using supplied fulfillments.
         return
@@ -488,17 +512,21 @@ contract ReferenceConsideration is
      *
      * @param orders The orders to cancel.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully cancelled.
+     * @return cancelled A boolean indicating whether the supplied orders have
+     *         been successfully cancelled.
      */
     function cancel(OrderComponents[] calldata orders)
         external
         override
         notEntered
+<<<<<<< HEAD
         returns (bool)
+=======
+        returns (bool cancelled)
+>>>>>>> main
     {
         // Cancel the orders.
-        return _cancel(orders);
+        cancelled = _cancel(orders);
     }
 
     /**
@@ -509,17 +537,21 @@ contract ReferenceConsideration is
      *
      * @param orders The orders to validate.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully validated.
+     * @return validated A boolean indicating whether the supplied orders have
+     *         been successfully validated.
      */
     function validate(Order[] calldata orders)
         external
         override
         notEntered
+<<<<<<< HEAD
         returns (bool)
+=======
+        returns (bool validated)
+>>>>>>> main
     {
         // Validate the orders.
-        return _validate(orders);
+        validated = _validate(orders);
     }
 
     /**
@@ -536,7 +568,7 @@ contract ReferenceConsideration is
         returns (uint256 newNonce)
     {
         // Increment current nonce for the supplied offerer.
-        return _incrementNonce();
+        newNonce = _incrementNonce();
     }
 
     /**
@@ -544,17 +576,17 @@ contract ReferenceConsideration is
      *
      * @param order The components of the order.
      *
-     * @return The order hash.
+     * @return orderHash the order hash.
      */
     function getOrderHash(OrderComponents calldata order)
         external
         view
         override
-        returns (bytes32)
+        returns (bytes32 orderHash)
     {
         // Derive order hash by supplying order parameters along with the nonce.
         // prettier-ignore
-        return _deriveOrderHash(
+        orderHash = _deriveOrderHash(
             OrderParameters(
                 order.offerer,
                 order.zone,
@@ -609,16 +641,16 @@ contract ReferenceConsideration is
      *
      * @param offerer The offerer in question.
      *
-     * @return The current nonce.
+     * @return nonce The current nonce.
      */
     function getNonce(address offerer)
         external
         view
         override
-        returns (uint256)
+        returns (uint256 nonce)
     {
         // Return the nonce for the supplied offerer.
-        return _getNonce(offerer);
+        nonce = _getNonce(offerer);
     }
 
     /**
@@ -645,10 +677,15 @@ contract ReferenceConsideration is
     /**
      * @notice Retrieve the name of this contract.
      *
-     * @return The name of this contract.
+     * @return contractName The name of this contract.
      */
-    function name() external pure override returns (string memory) {
+    function name()
+        external
+        pure
+        override
+        returns (string memory contractName)
+    {
         // Return the name of the contract.
-        return _name();
+        contractName = _name();
     }
 }
