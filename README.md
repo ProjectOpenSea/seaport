@@ -173,26 +173,27 @@ yarn profile
 
 ### Foundry Tests
 
-First, install Foundry. On Linux and macOS systems, this is done as follows:
+First, install Foundry (assuming a Linux or macOS system):
 ```bash
 curl -L https://foundry.paradigm.xyz | bash
 ```
-This will download foundryup. To start install Foundry, run:
+
+This will download foundryup. To start Foundry, run:
 ```bash
 foundryup
 ```
-To install dependencies:
 
+To install dependencies:
 ```
 forge install
 ```
 
-Next, run the tests with:
+To run tests:
 ```bash
 forge test
 ```
 
-Use modifiers in the cli to see more or less stuff.
+The following modifiers are also available:
 
 - Level 2 (-vv): Logs emitted during tests are also displayed.
 - Level 3 (-vvv): Stack traces for failing tests are also displayed.
