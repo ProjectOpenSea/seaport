@@ -178,11 +178,7 @@ contract ReferenceOrderCombiner is
         CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid,
         uint256 maximumFulfilled
-<<<<<<< HEAD
-    ) internal  {
-=======
     ) internal {
->>>>>>> main
         // Read length of orders array and place on the stack.
         uint256 totalOrders = advancedOrders.length;
 

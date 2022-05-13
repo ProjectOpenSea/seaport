@@ -86,11 +86,7 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-<<<<<<< HEAD
-        returns (bool)
-=======
         returns (bool fulfilled)
->>>>>>> main
     {
         // Validate and fulfill the basic order.
         fulfilled = _validateAndFulfillBasicOrder(parameters);
@@ -124,11 +120,7 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-<<<<<<< HEAD
-        returns (bool)
-=======
         returns (bool fulfilled)
->>>>>>> main
     {
         // Convert order to "advanced" order, then validate and fulfill it.
         // prettier-ignore
@@ -180,9 +172,6 @@ contract ReferenceConsideration is
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-<<<<<<< HEAD
-    ) external payable override notEntered nonReentrant returns (bool) {
-=======
     )
         external
         payable
@@ -191,7 +180,6 @@ contract ReferenceConsideration is
         nonReentrant
         returns (bool fulfilled)
     {
->>>>>>> main
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
             advancedOrder,
@@ -255,15 +243,7 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-<<<<<<< HEAD
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-=======
         returns (bool[] memory availableOrders, Execution[] memory executions)
->>>>>>> main
     {
         // Convert orders to "advanced" orders.
         AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
@@ -362,15 +342,7 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-<<<<<<< HEAD
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-=======
         returns (bool[] memory availableOrders, Execution[] memory executions)
->>>>>>> main
     {
         // Convert Advanced Orders to Orders to Execute
         OrderToExecute[]
@@ -424,14 +396,7 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-<<<<<<< HEAD
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-=======
         returns (Execution[] memory executions)
->>>>>>> main
     {
         // Convert to advanced, validate, and match orders using fulfillments.
         return
@@ -488,14 +453,7 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-<<<<<<< HEAD
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-=======
         returns (Execution[] memory executions)
->>>>>>> main
     {
         // Validate and match the advanced orders using supplied fulfillments.
         return
@@ -519,11 +477,7 @@ contract ReferenceConsideration is
         external
         override
         notEntered
-<<<<<<< HEAD
-        returns (bool)
-=======
         returns (bool cancelled)
->>>>>>> main
     {
         // Cancel the orders.
         cancelled = _cancel(orders);
@@ -544,11 +498,7 @@ contract ReferenceConsideration is
         external
         override
         notEntered
-<<<<<<< HEAD
-        returns (bool)
-=======
         returns (bool validated)
->>>>>>> main
     {
         // Validate the orders.
         validated = _validate(orders);

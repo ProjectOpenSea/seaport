@@ -6,7 +6,6 @@ import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.so
 import { Consideration } from "../../contracts/Consideration.sol";
 import { AdditionalRecipient, Fulfillment, OfferItem, ConsiderationItem, FulfillmentComponent, OrderComponents, AdvancedOrder, BasicOrderParameters, Order } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { ReentrantContract } from "./utils/reentrancy/ReentrantContract.sol";
 import { EntryPoint, ReentryPoint } from "./utils/reentrancy/ReentrantEnums.sol";
 import { FulfillBasicOrderParameters, FulfillOrderParameters, OrderParameters, FulfillAdvancedOrderParameters, FulfillAvailableOrdersParameters, FulfillAvailableAdvancedOrdersParameters, MatchOrdersParameters, MatchAdvancedOrdersParameters, CancelParameters, ValidateParameters, ReentrantCallParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
 
