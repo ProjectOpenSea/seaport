@@ -8,6 +8,7 @@ import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 import { ERC721Recipient } from "../utils/ERC721Recipient.sol";
 import { ERC1155Recipient } from "../utils/ERC1155Recipient.sol";
+import { ERC1155TokenReceiver } from "@rari-capital/solmate/src/tokens/ERC1155.sol";
 
 contract BaseConduitTest is
     BaseConsiderationTest,
@@ -18,8 +19,27 @@ contract BaseConduitTest is
     address[] erc721s;
     address[] erc1155s;
 
-    modifier onlyERC1155Receiver(address to) {
-        _;
+    function isErc1155Receiver(address to) internal returns (bool success) {
+        (success, ) = to.call(
+            abi.encodePacked(
+                ERC1155TokenReceiver.onERC1155Received.selector,
+                address(0),
+                address(0),
+                new uint256[](0),
+                new uint256[](0),
+                ""
+            )
+        );
+    }
+
+    function receiver(address to) internal returns (address) {
+        if (!isErc1155Receiver(to)) {
+            if (uint160(to) == 2**160 - 1) {
+                return address(uint160(to) - 1);
+            }
+            return address(uint160(to) + 1);
+        }
+        return to;
     }
 
     function setUp() public override {
