@@ -462,7 +462,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
      *      implement onReceived to indicate that they are willing to accept the
      *      transfer.
      *
-     * @param batchTransfers
+     * @param batchTransfers The group of 1155 batch transfers to perform.
      */
     function _performERC1155BatchTransfers(
         ConduitBatch1155Transfer[] calldata batchTransfers
@@ -501,18 +501,23 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 // Update the offset position for the next loop
                 nextElementHeadPtr := add(nextElementHeadPtr, 0x20)
 
-                // Copy head from calldata
+                // Copy the first section of calldata (before dynamic values).
                 calldatacopy(
                     BatchTransfer1155Params_ptr,
                     add(elementPtr, ConduitBatch1155Transfer_from_offset),
                     ConduitBatch1155Transfer_usable_head_size
                 )
 
+                // Get the total number of supplied ids.
                 let idsLength := calldataload(
                     add(elementPtr, ConduitBatch1155Transfer_ids_length_offset)
                 )
+
+                // Determine size of calldata required for ids and amounts. Note
+                // that the size includes both lengths as well as the data.
                 let idsAndAmountsSize := add(0x40, mul(idsLength, 0x40))
 
+                // Update the offset for the data array in memory.
                 mstore(
                     BatchTransfer1155Params_data_head_ptr,
                     add(
@@ -521,6 +526,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     )
                 )
 
+                // Set the length of the data array in memory to zero.
                 mstore(
                     add(
                         BatchTransfer1155Params_data_length_basePtr,
@@ -529,20 +535,23 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     0x00
                 )
 
+                // Determine the total calldata size for the call to transfer.
                 let transferDataSize := add(0x104, mul(idsLength, 0x40))
 
+                // Copy second section of calldata (including dynamic values).
                 calldatacopy(
                     BatchTransfer1155Params_ids_length_ptr,
                     add(elementPtr, ConduitBatch1155Transfer_ids_length_offset),
                     idsAndAmountsSize
                 )
 
+                // Determine the expected offset for the amounts array.
                 let expectedAmountsOffset := add(
                     ConduitBatch1155Transfer_amounts_length_baseOffset,
                     mul(idsLength, 0x20)
                 )
 
-                // Validate struct encoding
+                // Validate struct encoding.
                 let invalidEncoding := iszero(
                     and(
                         // ids.length == amounts.length
@@ -575,6 +584,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     )
                 )
 
+                // Revert with an error if the encoding is not valid.
                 if invalidEncoding {
                     mstore(
                         Invalid1155BatchTransferEncoding_ptr,
@@ -586,6 +596,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     )
                 }
 
+                // Retrieve the token from calldata.
                 let token := calldataload(elementPtr)
 
                 // If the token has no code, revert.
@@ -595,6 +606,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
+                // Perform the call to transfer 1155 tokens.
                 let success := call(
                     gas(),
                     token,
@@ -607,8 +619,8 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                 // If the transfer reverted:
                 if iszero(success) {
-                    // If it returned a message, bubble it up as long as sufficient
-                    // gas remains to do so:
+                    // If it returned a message, bubble it up as long as
+                    // sufficient gas remains to do so:
                     if returndatasize() {
                         // Ensure that sufficient gas is available to copy
                         // returndata while expanding memory where necessary.
@@ -688,7 +700,8 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 }
             }
 
-            // Reset the free memory pointer to the default value.
+            // Reset the free memory pointer to the default value; memory must
+            // be assumed to be dirtied and not reused from this point forward.
             mstore(0x40, 0x80)
         }
     }
