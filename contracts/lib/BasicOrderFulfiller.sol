@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
+import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+
 // prettier-ignore
 import {
     OrderType,
@@ -161,20 +163,16 @@ contract BasicOrderFulfiller is OrderValidator {
             conduitKey := calldataload(add(0x1c4, mul(gt(route, 3), 0x20)))
         }
 
-        // Declare transfer accumulator — it will extend memory where needed.
-        bytes memory accumulator = new bytes(32);
-
         // Transfer tokens based on the route.
-        if (route == BasicOrderRouteType.ETH_TO_ERC721) {
-            // Transfer ERC721 to caller using offerer's conduit if applicable.
-            _transferERC721(
+        if (additionalRecipientsItemType == ItemType.NATIVE) {
+            _transferIndividual721Or1155Item(
+                offeredItemType,
                 parameters.offerToken,
                 offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
-                conduitKey,
-                accumulator
+                conduitKey
             );
 
             // Transfer native to recipients, return excess to caller & wrap up.
@@ -182,119 +180,105 @@ contract BasicOrderFulfiller is OrderValidator {
                 parameters.considerationAmount,
                 offerer,
                 parameters.additionalRecipients
-            );
-        } else if (route == BasicOrderRouteType.ETH_TO_ERC1155) {
-            // Transfer ERC1155 to caller using offerer's conduit if applicable.
-            _transferERC1155(
-                parameters.offerToken,
-                offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey,
-                accumulator
-            );
-
-            // Transfer native to recipients, return excess to caller & wrap up.
-            _transferEthAndFinalize(
-                parameters.considerationAmount,
-                offerer,
-                parameters.additionalRecipients
-            );
-        } else if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
-            // Transfer ERC721 to caller using offerer's conduit if applicable.
-            _transferERC721(
-                parameters.offerToken,
-                offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey,
-                accumulator
-            );
-
-            // Transfer ERC20 tokens to all recipients and wrap up.
-            _transferERC20AndFinalize(
-                msg.sender,
-                offerer,
-                parameters.considerationToken,
-                parameters.considerationAmount,
-                parameters.additionalRecipients,
-                false, // Send full amount indicated by all consideration items.
-                accumulator
-            );
-        } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
-            // Transfer ERC1155 to caller using offerer's conduit if applicable.
-            _transferERC1155(
-                parameters.offerToken,
-                offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey,
-                accumulator
-            );
-
-            // Transfer ERC20 tokens to all recipients and wrap up.
-            _transferERC20AndFinalize(
-                msg.sender,
-                offerer,
-                parameters.considerationToken,
-                parameters.considerationAmount,
-                parameters.additionalRecipients,
-                false, // Send full amount indicated by all consideration items.
-                accumulator
-            );
-        } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
-            // Transfer ERC721 to offerer using caller's conduit if applicable.
-            _transferERC721(
-                parameters.considerationToken,
-                msg.sender,
-                offerer,
-                parameters.considerationIdentifier,
-                parameters.considerationAmount,
-                conduitKey,
-                accumulator
-            );
-
-            // Transfer ERC20 tokens to all recipients and wrap up.
-            _transferERC20AndFinalize(
-                offerer,
-                msg.sender,
-                parameters.offerToken,
-                parameters.offerAmount,
-                parameters.additionalRecipients,
-                true, // Reduce amount sent to fulfiller by additional amounts.
-                accumulator
             );
         } else {
-            // route == BasicOrderRouteType.ERC1155_TO_ERC20
+            bytes memory accumulator = new bytes(32);
 
-            // Transfer ERC1155 to offerer using caller's conduit if applicable.
-            _transferERC1155(
-                parameters.considerationToken,
-                msg.sender,
-                offerer,
-                parameters.considerationIdentifier,
-                parameters.considerationAmount,
-                conduitKey,
-                accumulator
-            );
+            if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
+                // Transfer ERC721 to caller using offerer's conduit preference.
+                _transferERC721(
+                    parameters.offerToken,
+                    offerer,
+                    msg.sender,
+                    parameters.offerIdentifier,
+                    parameters.offerAmount,
+                    conduitKey,
+                    accumulator
+                );
 
-            // Transfer ERC20 tokens to all recipients and wrap up.
-            _transferERC20AndFinalize(
-                offerer,
-                msg.sender,
-                parameters.offerToken,
-                parameters.offerAmount,
-                parameters.additionalRecipients,
-                true, // Reduce amount sent to fulfiller by additional amounts.
-                accumulator
-            );
+                // Transfer ERC20 tokens to all recipients and wrap up.
+                _transferERC20AndFinalize(
+                    msg.sender,
+                    offerer,
+                    parameters.considerationToken,
+                    parameters.considerationAmount,
+                    parameters.additionalRecipients,
+                    false, // Send full amount indicated by consideration items.
+                    accumulator
+                );
+            } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
+                // Transfer ERC1155 to caller with offerer's conduit preference.
+                _transferERC1155(
+                    parameters.offerToken,
+                    offerer,
+                    msg.sender,
+                    parameters.offerIdentifier,
+                    parameters.offerAmount,
+                    conduitKey,
+                    accumulator
+                );
+
+                // Transfer ERC20 tokens to all recipients and wrap up.
+                _transferERC20AndFinalize(
+                    msg.sender,
+                    offerer,
+                    parameters.considerationToken,
+                    parameters.considerationAmount,
+                    parameters.additionalRecipients,
+                    false, // Send full amount indicated by consideration items.
+                    accumulator
+                );
+            } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
+                // Transfer ERC721 to offerer using caller's conduit preference.
+                _transferERC721(
+                    parameters.considerationToken,
+                    msg.sender,
+                    offerer,
+                    parameters.considerationIdentifier,
+                    parameters.considerationAmount,
+                    conduitKey,
+                    accumulator
+                );
+
+                // Transfer ERC20 tokens to all recipients and wrap up.
+                _transferERC20AndFinalize(
+                    offerer,
+                    msg.sender,
+                    parameters.offerToken,
+                    parameters.offerAmount,
+                    parameters.additionalRecipients,
+                    true, // Reduce fulfiller amount sent by additional amounts.
+                    accumulator
+                );
+            } else {
+                // route == BasicOrderRouteType.ERC1155_TO_ERC20
+
+                // Transfer ERC1155 to offerer with caller's conduit preference.
+                _transferERC1155(
+                    parameters.considerationToken,
+                    msg.sender,
+                    offerer,
+                    parameters.considerationIdentifier,
+                    parameters.considerationAmount,
+                    conduitKey,
+                    accumulator
+                );
+
+                // Transfer ERC20 tokens to all recipients and wrap up.
+                _transferERC20AndFinalize(
+                    offerer,
+                    msg.sender,
+                    parameters.offerToken,
+                    parameters.offerAmount,
+                    parameters.additionalRecipients,
+                    true, // Reduce fulfiller amount sent by additional amounts.
+                    accumulator
+                );
+            }
+
+            // Trigger any remaining accumulated transfers via call to conduit.
+            _triggerIfArmed(accumulator);
         }
-
-        // Trigger any remaining accumulated transfers via call to the conduit.
-        _triggerIfArmed(accumulator);
 
         return true;
     }

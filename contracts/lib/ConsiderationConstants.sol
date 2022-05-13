@@ -364,6 +364,24 @@ uint256 constant MaskOverFirstFourBytes = (
     0xffffffff00000000000000000000000000000000000000000000000000000000
 );
 
+uint256 constant Conduit_execute_signature = (
+    0x4ce34aa200000000000000000000000000000000000000000000000000000000
+);
+
+uint256 constant Conduit_execute_ConduitTransfer_ptr = 0x20;
+uint256 constant Conduit_execute_ConduitTransfer_length = 0x01;
+
+uint256 constant Conduit_execute_ConduitTransfer_offset_ptr = 0x04;
+uint256 constant Conduit_execute_ConduitTransfer_length_ptr = 0x24;
+uint256 constant Conduit_execute_transferItemType_ptr = 0x44;
+uint256 constant Conduit_execute_transferToken_ptr = 0x64;
+uint256 constant Conduit_execute_transferFrom_ptr = 0x84;
+uint256 constant Conduit_execute_transferTo_ptr = 0xa4;
+uint256 constant Conduit_execute_transferIdentifier_ptr = 0xc4;
+uint256 constant Conduit_execute_transferAmount_ptr = 0xe4;
+
+uint256 constant OneConduitExecute_size = 0x104;
+
 uint256 constant Conduit_executeWithBatch1155_signature = (
     0x899e104c00000000000000000000000000000000000000000000000000000000
 );
