@@ -7,12 +7,19 @@ import "@rari-capital/solmate/src/tokens/ERC20.sol";
 contract TestERC20 is ERC20("Test20", "TST20", 18) {
     bool public blocked;
 
+    bool public noReturnData;
+
     constructor() {
         blocked = false;
+        noReturnData = false;
     }
 
     function blockTransfer(bool blocking) external {
         blocked = blocking;
+    }
+
+    function setNoReturnData(bool noReturn) external {
+        noReturnData = noReturn;
     }
 
     function mint(address to, uint256 amount) external returns (bool) {
@@ -30,6 +37,12 @@ contract TestERC20 is ERC20("Test20", "TST20", 18) {
         }
 
         super.transferFrom(from, to, amount);
+
+        if (noReturnData) {
+            assembly {
+                return(0, 0)
+            }
+        }
 
         ok = true;
     }
