@@ -9,6 +9,7 @@ import { Test } from "forge-std/Test.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { ReferenceConduitController } from "../../../reference/conduit/ReferenceConduitController.sol";
 import { ReferenceConsideration } from "../../../reference/ReferenceConsideration.sol";
+import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is Test {
@@ -19,8 +20,8 @@ contract BaseConsiderationTest is Test {
     bytes32 conduitKeyOne;
     ConduitController conduitController;
     ConduitController referenceConduitController;
-    address referenceConduit;
-    address conduit;
+    Conduit referenceConduit;
+    Conduit conduit;
 
     function setUp() public virtual {
         conduitKeyOne = bytes32(uint256(uint160(address(this))));
@@ -45,13 +46,13 @@ contract BaseConsiderationTest is Test {
 
         vm.label(address(conduitController), "conduitController");
         vm.label(address(consideration), "consideration");
-        vm.label(conduit, "conduit");
+        vm.label(address(conduit), "conduit");
         vm.label(
             address(referenceConduitController),
             "referenceConduitController"
         );
         vm.label(address(referenceConsideration), "referenceConsideration");
-        vm.label(referenceConduit, "referenceConduit");
+        vm.label(address(referenceConduit), "referenceConduit");
     }
 
     function _deployAndConfigureReferenceConsideration() public {
@@ -63,12 +64,14 @@ contract BaseConsiderationTest is Test {
                 new ReferenceConsideration(address(referenceConduitController))
             )
         );
-        referenceConduit = referenceConduitController.createConduit(
-            conduitKeyOne,
-            address(this)
+        referenceConduit = Conduit(
+            referenceConduitController.createConduit(
+                conduitKeyOne,
+                address(this)
+            )
         );
         referenceConduitController.updateChannel(
-            referenceConduit,
+            address(referenceConduit),
             address(referenceConsideration),
             true
         );
@@ -77,8 +80,14 @@ contract BaseConsiderationTest is Test {
     function _deployAndConfigureConsideration() public {
         conduitController = new ConduitController();
         consideration = new Consideration(address(conduitController));
-        conduit = conduitController.createConduit(conduitKeyOne, address(this));
-        conduitController.updateChannel(conduit, address(consideration), true);
+        conduit = Conduit(
+            conduitController.createConduit(conduitKeyOne, address(this))
+        );
+        conduitController.updateChannel(
+            address(conduit),
+            address(consideration),
+            true
+        );
     }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source (solc-0.8.13, IR pipeline enabled)
@@ -96,8 +105,14 @@ contract BaseConsiderationTest is Test {
         );
 
         //create conduit, update channel
-        conduit = conduitController.createConduit(conduitKeyOne, address(this));
-        conduitController.updateChannel(conduit, address(consideration), true);
+        conduit = Conduit(
+            conduitController.createConduit(conduitKeyOne, address(this))
+        );
+        conduitController.updateChannel(
+            address(conduit),
+            address(consideration),
+            true
+        );
     }
 
     ///@dev deploy reference consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
@@ -115,12 +130,14 @@ contract BaseConsiderationTest is Test {
         );
 
         //create conduit, update channel
-        referenceConduit = referenceConduitController.createConduit(
-            conduitKeyOne,
-            address(this)
+        referenceConduit = Conduit(
+            referenceConduitController.createConduit(
+                conduitKeyOne,
+                address(this)
+            )
         );
         referenceConduitController.updateChannel(
-            referenceConduit,
+            address(referenceConduit),
             address(referenceConsideration),
             true
         );

@@ -39,11 +39,11 @@ contract BaseConduitTest is
         IdAmount[] idAmounts;
     }
 
-    function setUp() public override {
+    function setUp() public virtual override {
         super.setUp();
-        conduitController.updateChannel(conduit, address(this), true);
+        conduitController.updateChannel(address(conduit), address(this), true);
         referenceConduitController.updateChannel(
-            referenceConduit,
+            address(referenceConduit),
             address(this),
             true
         );
