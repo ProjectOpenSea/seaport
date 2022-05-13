@@ -52,7 +52,7 @@ contract BasicOrderFulfiller is OrderValidator {
      *      "additional recipients" may also be supplied which will each receive
      *      native tokens or ERC20 items from the fulfiller as consideration.
      *      Refer to the documentation for a more comprehensive summary of how
-     *      to utilize with this method and what orders are compatible with it.
+     *      to utilize this method and what orders are compatible with it.
      *
      * @param parameters Additional information on the fulfilled order. Note
      *                   that the offerer and the fulfiller must first approve

@@ -566,7 +566,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     receipt,
     orderGroups,
     standardExecutions,
-    batchExecutions,
     criteriaResolvers,
     shouldSkipAmountComparison = false,
     multiplier = 1
@@ -625,14 +624,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   x.args.to === recipient
               );
 
-            expect(transferLogs.length).to.equal(1);
-            const transferLog = transferLogs[0];
-            expect(transferLog.args.id.toString()).to.equal(
-              identifier.toString()
-            );
-            expect(transferLog.args.amount.toString()).to.equal(
-              amount.toString()
-            );
+            expect(transferLogs.length > 0).to.be.true;
+
+            let found = false;
+            for (transferLog of transferLogs) {
+              if (
+                transferLog.args.id.toString() === identifier.toString() &&
+                transferLog.args.amount.toString() === amount.toString()
+              ) {
+                found = true;
+                break;
+              }
+            }
+
+            expect(found).to.be.true;
           } else {
             expect(false).to.be.true; // bad item type
           }
@@ -641,37 +646,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // TODO: sum up executions and compare to orders to ensure that all the
       // items (or partially-filled items) are accounted for
-    }
-
-    if (batchExecutions && batchExecutions.length > 0) {
-      for (batchExecution of batchExecutions) {
-        const { token, from, to, tokenIds, amounts } = batchExecution;
-
-        const tokenEvents = receipt.events.filter((x) => x.address === token);
-
-        expect(tokenEvents.length).to.be.above(0);
-
-        // search for transfer
-        const transferLogs = tokenEvents
-          .map((x) => testERC1155.interface.parseLog(x))
-          .filter(
-            (x) =>
-              x.signature ===
-                "TransferBatch(address,address,address,uint256[],uint256[])" &&
-              x.args.to === to
-          );
-
-        expect(transferLogs.length).to.equal(1);
-        const transferLog = transferLogs[0];
-        for ([i, tokenId] of Object.entries(tokenIds)) {
-          expect(transferLog.args.ids[i].toString()).to.equal(
-            tokenId.toString()
-          );
-          expect(transferLog.args[4][i].toString()).to.equal(
-            amounts[i].toString()
-          );
-        }
-      }
     }
 
     if (criteriaResolvers) {
@@ -864,36 +838,24 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                     : true))
             );
 
-          expect(transferLogs.length).to.equal(1);
-          const transferLog = transferLogs[0];
+          expect(transferLogs.length > 0).to.be.true;
 
-          if (
-            transferLog.signature ===
-            "TransferSingle(address,address,address,uint256,uint256)"
-          ) {
-            expect(transferLog.args.id.toString()).to.equal(
-              offer.identifier.toString()
-            );
-
-            if (!shouldSkipAmountComparison) {
-              expect(transferLog.args.amount.toString()).to.equal(
-                offer.amount.mul(multiplier).toString()
-              );
+          let found = false;
+          for (transferLog of transferLogs) {
+            if (
+              transferLog.signature ===
+                "TransferSingle(address,address,address,uint256,uint256)" &&
+              transferLog.args.id.toString() === offer.identifier.toString() &&
+              (shouldSkipAmountComparison ||
+                transferLog.args.amount.toString() ===
+                  offer.amount.mul(multiplier).toString())
+            ) {
+              found = true;
+              break;
             }
-          } else {
-            let located = false;
-            for ([i, batchTokenId] of Object.entries(transferLog.args.ids)) {
-              if (
-                batchTokenId.toString() === offer.identifier.toString() &&
-                transferLog.args[4][i].toString() === offer.amount.toString()
-              ) {
-                located = true;
-                break;
-              }
-            }
-
-            expect(located).to.be.true;
           }
+
+          expect(found).to.be.true;
         }
       }
 
@@ -955,37 +917,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   x.args.to === consideration.recipient)
             );
 
-          expect(transferLogs.length).to.equal(1);
-          const transferLog = transferLogs[0];
+          expect(transferLogs.length > 0).to.be.true;
 
-          if (
-            transferLog.signature ===
-            "TransferSingle(address,address,address,uint256,uint256)"
-          ) {
-            expect(transferLog.args.id.toString()).to.equal(
-              consideration.identifier.toString()
-            );
-            if (!shouldSkipAmountComparison) {
-              expect(transferLog.args.amount.toString()).to.equal(
-                consideration.amount.toString()
-              );
+          let found = false;
+          for (transferLog of transferLogs) {
+            if (
+              transferLog.signature ===
+                "TransferSingle(address,address,address,uint256,uint256)" &&
+              transferLog.args.id.toString() ===
+                consideration.identifier.toString() &&
+              (shouldSkipAmountComparison ||
+                transferLog.args.amount.toString() ===
+                  consideration.amount.mul(multiplier).toString())
+            ) {
+              found = true;
+              break;
             }
-          } else {
-            let located = false;
-            for ([i, batchTokenId] of Object.entries(transferLog.args.ids)) {
-              if (
-                batchTokenId.toString() ===
-                  consideration.identifier.toString() &&
-                transferLog.args[4][i].toString() ===
-                  consideration.amount.toString()
-              ) {
-                located = true;
-                break;
-              }
-            }
-
-            expect(located).to.be.true;
           }
+
+          expect(found).to.be.true;
         }
       }
     }
@@ -2900,16 +2850,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
-
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -2919,8 +2866,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -2931,8 +2877,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -3000,16 +2945,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -3019,8 +2962,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -3031,8 +2973,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -3095,16 +3036,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -3116,8 +3055,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -3128,8 +3066,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -3742,16 +3679,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -3761,8 +3696,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -3773,8 +3707,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -3855,16 +3788,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -3874,8 +3805,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -3886,8 +3816,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -4472,16 +4401,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -4491,8 +4418,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -4503,8 +4429,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -4581,16 +4506,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -4600,8 +4523,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -4612,8 +4534,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -4970,16 +4891,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -4989,8 +4908,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -5001,8 +4919,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -5071,16 +4988,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -5090,8 +5005,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -5102,8 +5016,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -5465,16 +5378,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -5484,8 +5395,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -5496,8 +5406,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -5568,16 +5477,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultBuyNowMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -5587,8 +5494,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -5599,8 +5505,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -6051,16 +5956,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -6070,8 +5973,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -6082,8 +5984,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -6168,16 +6069,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const fulfillments = defaultAcceptOfferMirrorFulfillment;
 
-          const { standardExecutions, batchExecutions } =
-            await simulateMatchOrders(
-              [order, mirrorOrder],
-              fulfillments,
-              owner,
-              value
-            );
+          const executions = await simulateMatchOrders(
+            [order, mirrorOrder],
+            fulfillments,
+            owner,
+            value
+          );
 
-          expect(batchExecutions.length).to.equal(0);
-          expect(standardExecutions.length).to.equal(4);
+          expect(executions.length).to.equal(4);
 
           await whileImpersonating(owner.address, provider, async () => {
             const tx = await marketplaceContract
@@ -6187,8 +6086,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: constants.AddressZero }],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             await checkExpectedEvents(
               receipt,
@@ -6199,8 +6097,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   fulfiller: constants.AddressZero,
                 },
               ],
-              standardExecutions,
-              batchExecutions
+              executions
             );
             return receipt;
           });
@@ -7260,7 +7157,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -7286,7 +7182,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -7339,7 +7234,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order: ordersClone[0], orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -7436,7 +7330,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -7462,7 +7355,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -7515,7 +7407,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order: ordersClone[0], orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -7606,6 +7497,81 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
+              criteriaResolvers
+            );
+            return receipt;
+          });
+        });
+      });
+      it("Criteria-based offer item (standard, collection-level)", async () => {
+        // Seller mints nfts
+        const nftId = ethers.BigNumber.from(randomHex());
+        const secondNFTId = ethers.BigNumber.from(randomHex());
+        const thirdNFTId = ethers.BigNumber.from(randomHex());
+
+        await testERC721.mint(seller.address, nftId);
+        await testERC721.mint(seller.address, secondNFTId);
+        await testERC721.mint(seller.address, thirdNFTId);
+
+        const tokenIds = [nftId, secondNFTId, thirdNFTId];
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 4, // ERC721WithCriteria
+            token: testERC721.address,
+            identifierOrCriteria: ethers.constants.HashZero, // collection-level
+            startAmount: ethers.BigNumber.from(1),
+            endAmount: ethers.BigNumber.from(1),
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const criteriaResolvers = [
+          {
+            orderIndex: 0,
+            side: 0, // offer
+            index: 0,
+            identifier: nftId,
+            criteriaProof: [], // No proof on collection-level
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          criteriaResolvers
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, criteriaResolvers, async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
+                value,
+              });
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: buyer.address }],
               null,
               criteriaResolvers
             );
@@ -7740,17 +7706,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [order, mirrorOrder],
-            criteriaResolvers,
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [order, mirrorOrder],
+          criteriaResolvers,
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -7765,8 +7729,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions,
+            executions,
             criteriaResolvers
           );
           await checkExpectedEvents(
@@ -7778,8 +7741,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -7865,7 +7827,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 receipt,
                 [{ order, orderHash, fulfiller: buyer.address }],
                 null,
-                null,
                 criteriaResolvers
               );
               return receipt;
@@ -7946,7 +7907,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 receipt,
                 [{ order, orderHash, fulfiller: buyer.address }],
                 null,
-                null,
                 criteriaResolvers
               );
               return receipt;
@@ -8016,7 +7976,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -8137,7 +8096,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -8205,16 +8163,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -8224,8 +8180,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8236,8 +8191,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -8448,17 +8402,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [orderOne, orderTwo, orderThree],
-            [], // no criteria resolvers
-            fulfillments,
-            owner,
-            0 // no value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0 // no value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(fulfillments.length);
+        expect(executions.length).to.equal(fulfillments.length);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -8479,8 +8431,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8491,8 +8442,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8503,8 +8453,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -8674,17 +8623,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [orderOne, orderTwo, orderThree],
-            [], // no criteria resolvers
-            fulfillments,
-            owner,
-            0 // no value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0 // no value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(fulfillments.length - 1);
+        expect(executions.length).to.equal(fulfillments.length - 1);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -8705,8 +8652,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8717,8 +8663,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -8729,8 +8674,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -8922,17 +8866,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [orderOne, orderTwo, orderThree],
-            [], // no criteria resolvers
-            fulfillments,
-            owner,
-            0 // no value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0 // no value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(fulfillments.length);
+        expect(executions.length).to.equal(fulfillments.length);
 
         await whileImpersonating(buyer.address, provider, async () => {
           const tx = await marketplaceContract
@@ -8953,8 +8895,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions,
+            executions,
             [],
             true
           );
@@ -8967,8 +8908,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions,
+            executions,
             [],
             true
           );
@@ -8981,8 +8921,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
 
           expect(
@@ -9178,17 +9117,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateAdvancedMatchOrders(
-            [orderOne, orderTwo, orderThree],
-            [], // no criteria resolvers
-            fulfillments,
-            owner,
-            0 // no value
-          );
+        const executions = await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0 // no value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(fulfillments.length);
+        expect(executions.length).to.equal(fulfillments.length);
 
         await whileImpersonating(buyer.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9209,8 +9146,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9221,8 +9157,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions,
+            executions,
             [],
             true
           );
@@ -9235,8 +9170,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions,
+            executions,
             [],
             true
           );
@@ -9248,7 +9182,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    describe("ERC1155 batch transfers", async () => {
+    describe("Complex ERC1155 transfers", async () => {
       it("ERC1155 <=> ETH (match)", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -9378,16 +9312,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(3);
+        expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9397,8 +9329,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9409,8 +9340,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -9570,16 +9500,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(3);
+        expect(executions.length).to.equal(6);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9589,8 +9517,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9601,8 +9528,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -9741,16 +9667,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(3);
+        expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9760,8 +9684,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9772,8 +9695,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -9840,16 +9762,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(1);
+        expect(executions.length).to.equal(1);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -9859,8 +9779,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -9871,8 +9790,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -9985,16 +9903,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -10004,8 +9920,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -10016,8 +9931,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -10161,16 +10075,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(5);
+        expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -10181,7 +10093,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("ERC1155 <=> ETH (match, on single and one batch of 1155's)", async () => {
+      it("ERC1155 <=> ETH (match, one single and one with two 1155's)", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -10346,16 +10258,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(6);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -10366,7 +10276,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("ERC1155 <=> ETH (match, two different batches of 1155's)", async () => {
+      it("ERC1155 <=> ETH (match, two different groups of 1155's)", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -10557,16 +10467,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           },
         ];
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(2);
-        expect(standardExecutions.length).to.equal(3);
+        expect(executions.length).to.equal(7);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -11949,6 +11857,127 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
+    it("Deploys a conduit, adds a channel, and executes transfers", async () => {
+      const tempConduitKey =
+        "0xff00000000000000000000ff" + owner.address.slice(2);
+
+      const { conduit: tempConduitAddress } =
+        await conduitController.getConduit(tempConduitKey);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .createConduit(tempConduitKey, owner.address);
+      });
+
+      const tempConduit = conduitImplementation.attach(tempConduitAddress);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, owner.address, true);
+      });
+
+      const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId, amount.mul(2));
+
+      const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(
+        1
+      );
+      await testERC1155.mint(owner.address, secondNftId, secondAmount.mul(2));
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          testERC1155
+            .connect(owner)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC1155, "ApprovalForAll")
+          .withArgs(owner.address, tempConduit.address, true);
+      });
+
+      await tempConduit.connect(owner).executeWithBatch1155(
+        [],
+        [
+          {
+            token: testERC1155.address,
+            from: owner.address,
+            to: buyer.address,
+            ids: [nftId, secondNftId],
+            amounts: [amount, secondAmount],
+          },
+          {
+            token: testERC1155.address,
+            from: owner.address,
+            to: buyer.address,
+            ids: [secondNftId, nftId],
+            amounts: [secondAmount, amount],
+          },
+        ]
+      );
+    });
+
+    it("Reverts on calls to batch transfer 1155 items with no contract on a conduit", async () => {
+      const tempConduitKey =
+        "0xff00000000000000000000dd" + owner.address.slice(2);
+
+      const { conduit: tempConduitAddress } =
+        await conduitController.getConduit(tempConduitKey);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .createConduit(tempConduitKey, owner.address);
+      });
+
+      const tempConduit = conduitImplementation.attach(tempConduitAddress);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, owner.address, true);
+      });
+
+      const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId, amount.mul(2));
+
+      const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(
+        1
+      );
+      await testERC1155.mint(owner.address, secondNftId, secondAmount.mul(2));
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          testERC1155
+            .connect(owner)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC1155, "ApprovalForAll")
+          .withArgs(owner.address, tempConduit.address, true);
+      });
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          tempConduit.connect(owner).executeWithBatch1155(
+            [],
+            [
+              {
+                token: ethers.constants.AddressZero,
+                from: owner.address,
+                to: buyer.address,
+                ids: [nftId, secondNftId],
+                amounts: [amount, secondAmount],
+              },
+            ]
+          )
+        ).to.be.revertedWith("NoContract");
+      });
+    });
+
     it("Reverts when attempting to update a conduit channel when call is not from controller", async () => {
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
@@ -11965,7 +11994,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    it("Reverts when attempting to execute with batch 1155 transfers on a conduit when not called from a channel", async () => {
+    it("Reverts when attempting to execute with 1155 transfers on a conduit when not called from a channel", async () => {
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
           conduitOne.connect(owner).executeWithBatch1155([], [])
@@ -12524,7 +12553,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -12637,7 +12665,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -12752,7 +12779,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -12847,7 +12873,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -12956,7 +12981,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -13098,16 +13122,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            zone,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          zone,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         if (!process.env.REFERENCE) {
           await whileImpersonating(owner.address, provider, async () => {
@@ -13135,8 +13157,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -13147,8 +13168,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -13795,16 +13815,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -13814,8 +13832,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -13826,8 +13843,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -13896,16 +13912,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -13915,8 +13929,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -13927,8 +13940,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -15733,7 +15745,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               criteriaResolvers
             );
             return receipt;
@@ -16029,7 +16040,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               criteriaResolvers
             );
@@ -16448,7 +16458,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               criteriaResolvers
             );
@@ -17168,7 +17177,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -17219,16 +17227,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         const fulfillments = defaultBuyNowMirrorFulfillment;
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(0);
-        expect(standardExecutions.length).to.equal(4);
+        expect(executions.length).to.equal(4);
 
         await whileImpersonating(owner.address, provider, async () => {
           await expect(
@@ -17258,8 +17264,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -17270,8 +17275,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -17589,7 +17593,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             await checkExpectedEvents(
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
-              null,
               null,
               []
             );
@@ -17975,6 +17978,109 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
+              []
+            );
+            return receipt;
+          });
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect(orderStatus.isCancelled).to.equal(false);
+        expect(orderStatus.isValidated).to.equal(true);
+        expect(orderStatus.totalFilled).to.equal(1);
+        expect(orderStatus.totalSize).to.equal(1);
+      });
+      it("Works when ERC20 tokens return falsey values", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        const amount = ethers.BigNumber.from(randomHex().slice(0, 5));
+        await testERC1155.mint(seller.address, nftId, amount.mul(10000));
+
+        // Seller approves marketplace contract to transfer NFTs
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC1155
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC1155, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        // Buyer mints ERC20
+        const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+        await testERC20.mint(buyer.address, tokenAmount);
+
+        // Buyer approves marketplace contract to transfer tokens
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            testERC20
+              .connect(buyer)
+              .approve(marketplaceContract.address, tokenAmount)
+          )
+            .to.emit(testERC20, "Approval")
+            .withArgs(buyer.address, marketplaceContract.address, tokenAmount);
+        });
+
+        const offer = [
+          {
+            itemType: 3, // ERC1155
+            token: testERC1155.address,
+            identifierOrCriteria: nftId,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+          },
+        ];
+
+        const consideration = [
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(1000),
+            endAmount: amount.mul(1000),
+            recipient: seller.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(10),
+            endAmount: amount.mul(10),
+            recipient: zone.address,
+          },
+          {
+            itemType: 1, // ERC20
+            token: testERC20.address,
+            identifierOrCriteria: 0,
+            startAmount: amount.mul(20),
+            endAmount: amount.mul(20),
+            recipient: owner.address,
+          },
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await testERC20.setNoReturnData(true);
+
+        expect(await testERC20.noReturnData()).to.be.true;
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await withBalanceChecks([order], 0, [], async () => {
+            const tx = await marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toKey(false), { value });
+            const receipt = await tx.wait();
+            await checkExpectedEvents(
+              receipt,
+              [{ order, orderHash, fulfiller: buyer.address }],
               null,
               []
             );
@@ -17988,6 +18094,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.isValidated).to.equal(true);
         expect(orderStatus.totalFilled).to.equal(1);
         expect(orderStatus.totalSize).to.equal(1);
+
+        await testERC20.setNoReturnData(false);
+
+        expect(await testERC20.noReturnData()).to.be.false;
       });
       it("Reverts when ERC20 tokens return falsey values (via conduit)", async () => {
         // Seller mints nft
@@ -18122,7 +18232,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -18254,7 +18363,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               receipt,
               [{ order, orderHash, fulfiller: buyer.address }],
               null,
-              null,
               []
             );
             return receipt;
@@ -18268,7 +18376,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(1);
         expect(orderStatus.totalSize).to.equal(1);
       });
-      it("Reverts when 1155 batch tokens are not approved", async () => {
+      it("Reverts when 1155 tokens are not approved", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -18394,7 +18502,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.revertedWith("MissingItemAmount");
         });
       });
-      it("Reverts when 1155 batch tokens are not approved", async () => {
+      it("Reverts when 1155 tokens are not approved", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -18538,16 +18646,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .withArgs(seller.address, marketplaceContract.address, true);
         });
 
-        const { standardExecutions, batchExecutions } =
-          await simulateMatchOrders(
-            [order, mirrorOrder],
-            fulfillments,
-            owner,
-            value
-          );
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
 
-        expect(batchExecutions.length).to.equal(1);
-        expect(standardExecutions.length).to.equal(3);
+        expect(executions.length).to.equal(5);
 
         await whileImpersonating(owner.address, provider, async () => {
           const tx = await marketplaceContract
@@ -18557,8 +18663,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await checkExpectedEvents(
             receipt,
             [{ order, orderHash, fulfiller: constants.AddressZero }],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           await checkExpectedEvents(
             receipt,
@@ -18569,8 +18674,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 fulfiller: constants.AddressZero,
               },
             ],
-            standardExecutions,
-            batchExecutions
+            executions
           );
           return receipt;
         });
@@ -18887,318 +18991,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           });
         }
       });
-      it("Reverts when 1155 batch non-token account is supplied as the token", async () => {
-        // Seller mints first nft
-        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
-        await testERC1155.mint(seller.address, nftId, amount);
-
-        // Seller mints second nft
-        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
-        await testERC1155.mint(seller.address, secondNftId, secondAmount);
-
-        // Seller approves marketplace contract to transfer NFT
-        await whileImpersonating(seller.address, provider, async () => {
-          await expect(
-            testERC1155
-              .connect(seller)
-              .setApprovalForAll(marketplaceContract.address, true)
-          )
-            .to.emit(testERC1155, "ApprovalForAll")
-            .withArgs(seller.address, marketplaceContract.address, true);
-        });
-
-        const offer = [
-          getTestItem1155(nftId, amount, amount, marketplaceContract.address),
-          getTestItem1155(
-            secondNftId,
-            secondAmount,
-            secondAmount,
-            marketplaceContract.address
-          ),
-        ];
-
-        const consideration = [
-          getItemETH(10, 10, seller.address),
-          getItemETH(1, 1, zone.address),
-          getItemETH(1, 1, owner.address),
-        ];
-
-        const { order, orderHash, value } = await createOrder(
-          seller,
-          zone,
-          offer,
-          consideration,
-          0 // FULL_OPEN
-        );
-
-        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
-          await createMirrorBuyNowOrder(buyer, zone, order);
-
-        const fulfillments = [
-          {
-            offerComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 1,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 1,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 0,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 1,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 2,
-              },
-            ],
-          },
-        ];
-
-        if (!process.env.REFERENCE) {
-          await whileImpersonating(owner.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(owner)
-                .matchOrders([order, mirrorOrder], fulfillments, { value })
-            ).to.be.revertedWith(
-              `ERC1155BatchTransferGenericFailure("${
-                marketplaceContract.address
-              }", "${seller.address}", "${
-                buyer.address
-              }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
-            );
-          });
-        } else {
-          await whileImpersonating(owner.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(owner)
-                .matchOrders([order, mirrorOrder], fulfillments, { value })
-            ).to.be.reverted;
-          });
-        }
-
-        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
-
-        expect(orderStatus.isCancelled).to.equal(false);
-        expect(orderStatus.isValidated).to.equal(false);
-        expect(orderStatus.totalFilled).to.equal(0);
-        expect(orderStatus.totalSize).to.equal(0);
-      });
-      it("Reverts when 1155 batch non-token account is supplied as the token via conduit", async () => {
-        // Seller mints first nft
-        const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-        const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
-        await testERC1155.mint(seller.address, nftId, amount);
-
-        // Seller mints second nft
-        const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-        const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10));
-        await testERC1155.mint(seller.address, secondNftId, secondAmount);
-
-        // Seller approves conduit contract to transfer NFT
-        await whileImpersonating(seller.address, provider, async () => {
-          await expect(
-            testERC1155
-              .connect(seller)
-              .setApprovalForAll(conduitOne.address, true)
-          )
-            .to.emit(testERC1155, "ApprovalForAll")
-            .withArgs(seller.address, conduitOne.address, true);
-        });
-
-        const offer = [
-          getTestItem1155(nftId, amount, amount, marketplaceContract.address),
-          getTestItem1155(
-            secondNftId,
-            secondAmount,
-            secondAmount,
-            marketplaceContract.address
-          ),
-        ];
-
-        const consideration = [
-          getItemETH(10, 10, seller.address),
-          getItemETH(1, 1, zone.address),
-          getItemETH(1, 1, owner.address),
-        ];
-
-        const { order, orderHash, value } = await createOrder(
-          seller,
-          zone,
-          offer,
-          consideration,
-          0, // FULL_OPEN
-          [],
-          null,
-          seller,
-          constants.HashZero,
-          conduitKeyOne
-        );
-
-        const { mirrorOrder, mirrorOrderHash, mirrorValue } =
-          await createMirrorBuyNowOrder(buyer, zone, order);
-
-        const fulfillments = [
-          {
-            offerComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 1,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 1,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 0,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 1,
-              },
-            ],
-          },
-          {
-            offerComponents: [
-              {
-                orderIndex: 1,
-                itemIndex: 0,
-              },
-            ],
-            considerationComponents: [
-              {
-                orderIndex: 0,
-                itemIndex: 2,
-              },
-            ],
-          },
-        ];
-
-        if (!process.env.REFERENCE) {
-          await whileImpersonating(owner.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(owner)
-                .matchOrders([order, mirrorOrder], fulfillments, { value })
-            ).to.be.revertedWith(
-              `ERC1155BatchTransferGenericFailure("${
-                marketplaceContract.address
-              }", "${seller.address}", "${
-                buyer.address
-              }", [${nftId.toString()}, ${secondNftId.toString()}], [${amount.toString()}, ${secondAmount.toString()}])`
-            );
-          });
-        } else {
-          await whileImpersonating(owner.address, provider, async () => {
-            await expect(
-              marketplaceContract
-                .connect(owner)
-                .matchOrders([order, mirrorOrder], fulfillments, { value })
-            ).to.be.reverted;
-          });
-        }
-
-        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
-
-        expect(orderStatus.isCancelled).to.equal(false);
-        expect(orderStatus.isValidated).to.equal(false);
-        expect(orderStatus.totalFilled).to.equal(0);
-        expect(orderStatus.totalSize).to.equal(0);
-      });
-      it("Reverts when 1155 batch token is not approved via conduit", async () => {
+      it("Reverts when 1155 token is not approved via conduit", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));
@@ -19329,7 +19122,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         expect(orderStatus.totalFilled).to.equal(0);
         expect(orderStatus.totalSize).to.equal(0);
       });
-      it("Reverts when 1155 batch token with no code is supplied as the token via conduit", async () => {
+      it("Reverts when 1155 token with no code is supplied as the token via conduit", async () => {
         // Seller mints first nft
         const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
         const amount = ethers.BigNumber.from(randomHex().slice(0, 10));

@@ -12,7 +12,7 @@ import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 import { ItemType } from "./ConsiderationEnums.sol";
 
-import { ReceivedItem, BatchExecution } from "./ConsiderationStructs.sol";
+import { ReceivedItem } from "./ConsiderationStructs.sol";
 
 import { Verifiers } from "./Verifiers.sol";
 
@@ -265,73 +265,6 @@ contract Executor is Verifiers, TokenTransferrer {
                 identifier,
                 amount
             );
-        }
-    }
-
-    /**
-     * @dev Internal function to transfer a batch of ERC1155 tokens from a given
-     *      originator to a given recipient. Sufficient approvals must be set,
-     *      either on the respective conduit or on this contract itself.
-     *
-     * @param batchExecution The batch of 1155 tokens to be transferred.
-     */
-    function _batchTransferERC1155(BatchExecution memory batchExecution)
-        internal
-    {
-        // Place elements of the batch execution in memory onto the stack.
-        bytes32 conduitKey = batchExecution.conduitKey;
-        address token = batchExecution.token;
-        address from = batchExecution.from;
-        address to = batchExecution.to;
-
-        // Retrieve the tokenIds and amounts.
-        uint256[] memory tokenIds = batchExecution.tokenIds;
-        uint256[] memory amounts = batchExecution.amounts;
-
-        // If no conduit has been specified...
-        if (conduitKey == bytes32(0)) {
-            // Perform transfer via the token contract directly.
-            _performERC1155BatchTransfer(token, from, to, tokenIds, amounts);
-        } else {
-            uint256 totalTokenIds = tokenIds.length;
-            uint256 tokenWords = totalTokenIds * 32;
-            uint256 callDataSize = 388 + 64 * totalTokenIds;
-            bytes memory callData = new bytes(callDataSize);
-            bytes4 selector = ConduitInterface.executeWithBatch1155.selector;
-            uint256 callDataOffset;
-            assembly {
-                callDataOffset := add(callData, 0x20)
-                mstore(callDataOffset, selector)
-                mstore(add(callData, 0x24), 0x40)
-                mstore(add(callData, 0x44), 0x60)
-                mstore(add(callData, 0x64), 0)
-                mstore(add(callData, 0x84), 1)
-                mstore(add(callData, 0xa4), 0x20)
-                mstore(add(callData, 0xc4), token)
-                mstore(add(callData, 0xe4), from)
-                mstore(add(callData, 0x104), to)
-                mstore(add(callData, 0x124), 0xa0)
-                mstore(add(callData, 0x144), add(0xc0, tokenWords))
-                mstore(add(callData, 0x164), totalTokenIds)
-                mstore(add(callData, add(0x184, tokenWords)), totalTokenIds)
-                for {
-                    let i := 0
-                } lt(i, tokenWords) {
-                    i := add(i, 0x20)
-                } {
-                    mstore(
-                        add(callData, add(0x184, i)),
-                        mload(add(add(0x20, tokenIds), i))
-                    )
-                    mstore(
-                        add(callData, add(0x1e4, i)),
-                        mload(add(add(0x20, amounts), i))
-                    )
-                }
-            }
-
-            // Perform the call to the conduit.
-            _callConduitUsingOffsets(conduitKey, callDataOffset, callDataSize);
         }
     }
 
