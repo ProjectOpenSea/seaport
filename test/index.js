@@ -17080,6 +17080,59 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.revertedWith("InvalidERC721TransferAmount");
         });
       });
+      it("Reverts on attempts to transfer >1 ERC721 in single transfer (basic)", async () => {
+        // Seller mints nft
+        const nftId = ethers.BigNumber.from(randomHex());
+        await testERC721.mint(seller.address, nftId);
+
+        // Seller approves marketplace contract to transfer NFT
+        await whileImpersonating(seller.address, provider, async () => {
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
+        });
+
+        const offer = [
+          {
+            itemType: 2, // ERC721
+            token: testERC721.address,
+            identifierOrCriteria: nftId,
+            startAmount: ethers.BigNumber.from(2),
+            endAmount: ethers.BigNumber.from(2),
+          },
+        ];
+
+        const consideration = [
+          getItemETH(10, 10, seller.address),
+          getItemETH(1, 1, zone.address),
+          getItemETH(1, 1, owner.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          0, // EthForERC721
+          order
+        );
+
+        await whileImpersonating(buyer.address, provider, async () => {
+          await expect(
+            marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, { value })
+          ).to.be.revertedWith("InvalidERC721TransferAmount");
+        });
+      });
       it("Reverts on attempts to transfer >1 ERC721 in single transfer via conduit", async () => {
         // Seller mints nft
         const nftId = ethers.BigNumber.from(randomHex());
