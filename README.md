@@ -194,10 +194,10 @@ forge test
 
 Use modifiers in the cli to see more or less stuff.
 
-Level 2 (-vv): Logs emitted during tests are also displayed.
-Level 3 (-vvv): Stack traces for failing tests are also displayed.
-Level 4 (-vvvv): Stack traces for all tests are displayed, and setup traces for failing tests are displayed.
-Level 5 (-vvvvv): Stack traces and setup traces are always displayed.
+- Level 2 (-vv): Logs emitted during tests are also displayed.
+- Level 3 (-vvv): Stack traces for failing tests are also displayed.
+- Level 4 (-vvvv): Stack traces for all tests are displayed, and setup traces for failing tests are displayed.
+- Level 5 (-vvvvv): Stack traces and setup traces are always displayed.
 
 ```bash
 forge test  -vv
