@@ -10,7 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -52,27 +52,28 @@ contract BaseOrderTest is
     OfferItem[] offerItems;
     ConsiderationItem[] considerationItems;
 
-    FulfillmentComponent[][] offerFulfillments;
-    FulfillmentComponent[][] considerationFulfillments;
+    FulfillmentComponent[] offerComponents;
+    FulfillmentComponent[] considerationComponents;
 
-    FulfillmentComponent[] firstOfferFulfillment;
-    FulfillmentComponent[] firstConsiderationFulfillment;
-    FulfillmentComponent[] secondConsiderationFulfillment;
-    FulfillmentComponent[] thirdConsiderationFulfillment;
+    FulfillmentComponent[][] offerComponentsArray;
+    FulfillmentComponent[][] considerationComponentsArray;
 
     Fulfillment[] fulfillments;
     FulfillmentComponent firstOrderFirstItem;
     FulfillmentComponent firstOrderSecondItem;
-    FulfillmentComponent firstOrderThirdItem;
     FulfillmentComponent secondOrderFirstItem;
+    FulfillmentComponent secondOrderSecondItem;
     FulfillmentComponent[] firstOrderFirstItemArray;
     FulfillmentComponent[] firstOrderSecondItemArray;
-    FulfillmentComponent[] firstOrderThirdItemArray;
     FulfillmentComponent[] secondOrderFirstItemArray;
+    FulfillmentComponent[] secondOrderSecondItemArray;
     Fulfillment firstFulfillment;
     Fulfillment secondFulfillment;
     Fulfillment thirdFulfillment;
     Fulfillment fourthFulfillment;
+    FulfillmentComponent fulfillmentComponent;
+    FulfillmentComponent[] fulfillmentComponents;
+    Fulfillment fulfillment;
 
     uint256 internal globalTokenId;
 
@@ -112,8 +113,8 @@ contract BaseOrderTest is
         // todo: don't delete these between runs, do setup outside of test logic
         delete offerItems;
         delete considerationItems;
-        delete offerFulfillments;
-        delete considerationFulfillments;
+        delete offerComponentsArray;
+        delete considerationComponentsArray;
         delete fulfillments;
     }
 
@@ -121,8 +122,8 @@ contract BaseOrderTest is
         super.setUp();
         delete offerItems;
         delete considerationItems;
-        delete offerFulfillments;
-        delete considerationFulfillments;
+        delete offerComponentsArray;
+        delete considerationComponentsArray;
         delete fulfillments;
 
         vm.label(alice, "alice");
@@ -153,6 +154,14 @@ contract BaseOrderTest is
         allocateTokensAndApprovals(alice, uint128(MAX_INT));
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
         allocateTokensAndApprovals(cal, uint128(MAX_INT));
+    }
+
+    function resetOfferComponents() internal {
+        delete offerComponents;
+    }
+
+    function resetConsiderationComponents() internal {
+        delete considerationComponents;
     }
 
     function _configureConsiderationItem(
@@ -217,31 +226,6 @@ contract BaseOrderTest is
         );
     }
 
-    function _configureEthConsiderationItem(uint256 paymentAmount) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            paymentAmount,
-            paymentAmount,
-            alice
-        );
-    }
-
-    function _configureEthConsiderationItem(
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            startAmount,
-            endAmount,
-            alice
-        );
-    }
-
     function _configureEthConsiderationItem(
         address payable recipient,
         uint256 paymentAmount
@@ -268,17 +252,6 @@ contract BaseOrderTest is
             startAmount,
             endAmount,
             recipient
-        );
-    }
-
-    function _configureErc20ConsiderationItem(uint256 paymentAmount) internal {
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            paymentAmount,
-            paymentAmount,
-            alice
         );
     }
 
@@ -296,17 +269,27 @@ contract BaseOrderTest is
         );
     }
 
-    function _configureErc20ConsiderationItem(
-        uint256 startAmount,
-        uint256 endAmount
+    function _configureErc721ConsiderationItem(
+        address payable recipient,
+        uint256 tokenId
     ) internal {
         _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
+            ItemType.ERC721,
+            address(test721_1),
+            tokenId,
+            1,
+            1,
+            recipient
+        );
+    }
+
+    function _configureEthOfferItem(uint256 paymentAmount) internal {
+        _configureOfferItem(
+            ItemType.NATIVE,
+            address(0),
             0,
-            startAmount,
-            endAmount,
-            alice
+            paymentAmount,
+            paymentAmount
         );
     }
 
@@ -390,6 +373,29 @@ contract BaseOrderTest is
     }
 
     /**
+     * @dev return OrderComponents for a given OrderParameters and offerer nonce
+     */
+    function getOrderComponents(
+        OrderParameters memory parameters,
+        uint256 nonce
+    ) internal pure returns (OrderComponents memory) {
+        return
+            OrderComponents(
+                parameters.offerer,
+                parameters.zone,
+                parameters.offer,
+                parameters.consideration,
+                parameters.orderType,
+                parameters.startTime,
+                parameters.endTime,
+                parameters.zoneHash,
+                parameters.salt,
+                parameters.conduitKey,
+                nonce
+            );
+    }
+
+    /**
      * @dev reset written token storage slots to 0 and reinitialize uint128(MAX_INT) erc20 balances for 3 test accounts and this
      */
     function _resetTokensAndEthForTestAccounts() internal {
@@ -454,5 +460,5 @@ contract BaseOrderTest is
             .checked_write(uint128(MAX_INT));
     }
 
-    receive() external payable {}
+    receive() external payable virtual {}
 }

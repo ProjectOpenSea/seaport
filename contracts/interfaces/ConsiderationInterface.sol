@@ -39,12 +39,13 @@ interface ConsiderationInterface {
      *                   their preferred conduit if indicated by the order) for
      *                   their offered ERC721 token to be transferred.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
      */
     function fulfillBasicOrder(BasicOrderParameters calldata parameters)
         external
         payable
-        returns (bool);
+        returns (bool fulfilled);
 
     /**
      * @notice Fulfill an order with an arbitrary number of items for offer and
@@ -65,12 +66,13 @@ interface ConsiderationInterface {
      *                            should be used, with direct approvals set on
      *                            Consideration.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
      */
     function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
         payable
-        returns (bool);
+        returns (bool fulfilled);
 
     /**
      * @notice Fill an order, fully or partially, with an arbitrary number of
@@ -106,13 +108,14 @@ interface ConsiderationInterface {
      *                            should be used, with direct approvals set on
      *                            Consideration.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
      */
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) external payable returns (bool);
+    ) external payable returns (bool fulfilled);
 
     /**
      * @notice Attempt to fill a group of orders, each with an arbitrary number
@@ -317,10 +320,12 @@ interface ConsiderationInterface {
      *
      * @param orders The orders to cancel.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully cancelled.
+     * @return cancelled A boolean indicating whether the supplied orders have
+     *                   been successfully cancelled.
      */
-    function cancel(OrderComponents[] calldata orders) external returns (bool);
+    function cancel(OrderComponents[] calldata orders)
+        external
+        returns (bool cancelled);
 
     /**
      * @notice Validate an arbitrary number of orders, thereby registering them
@@ -330,10 +335,12 @@ interface ConsiderationInterface {
      *
      * @param orders The orders to validate.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully validated.
+     * @return validated A boolean indicating whether the supplied orders have
+     *                   been successfully validated.
      */
-    function validate(Order[] calldata orders) external returns (bool);
+    function validate(Order[] calldata orders)
+        external
+        returns (bool validated);
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
@@ -349,12 +356,12 @@ interface ConsiderationInterface {
      *
      * @param order The components of the order.
      *
-     * @return The order hash.
+     * @return orderHash The order hash.
      */
     function getOrderHash(OrderComponents calldata order)
         external
         view
-        returns (bytes32);
+        returns (bytes32 orderHash);
 
     /**
      * @notice Retrieve the status of a given order by hash, including whether
@@ -388,9 +395,9 @@ interface ConsiderationInterface {
      *
      * @param offerer The offerer in question.
      *
-     * @return The current nonce.
+     * @return nonce The current nonce.
      */
-    function getNonce(address offerer) external view returns (uint256);
+    function getNonce(address offerer) external view returns (uint256 nonce);
 
     /**
      * @notice Retrieve configuration information for this contract.
@@ -411,7 +418,7 @@ interface ConsiderationInterface {
     /**
      * @notice Retrieve the name of this contract.
      *
-     * @return The name of this contract.
+     * @return contractName The name of this contract.
      */
-    function name() external view returns (string memory);
+    function name() external view returns (string memory contractName);
 }
