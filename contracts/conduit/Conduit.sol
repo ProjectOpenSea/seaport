@@ -402,9 +402,8 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                 }
             }
 
-            // Very odd, but it seems to only work when explicity returning...
-            mstore(0, 0x1234567800000000000000000000000000000000000000000000000000000000)
-            return(0, 0x20)
+            // reset the free memory pointer to the default value.
+            mstore(0x40, 0x80)
         }
     }
 }
