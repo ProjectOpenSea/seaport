@@ -17,7 +17,7 @@ enum EntryPoint {
 /**
  * @dev Enum of functions that check the reentrancy guard
  */
-enum ReentrancyPoint {
+enum ReentryPoint {
     FulfillBasicOrder,
     FulfillOrder,
     FulfillAdvancedOrder,

@@ -7,7 +7,7 @@ import { Consideration } from "../../contracts/Consideration.sol";
 import { AdditionalRecipient, Fulfillment, OfferItem, ConsiderationItem, FulfillmentComponent, OrderComponents, AdvancedOrder, BasicOrderParameters, Order } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { ReentrantContract } from "./utils/reentrancy/ReentrantContract.sol";
-import { EntryPoint, ReentrancyPoint } from "./utils/reentrancy/ReentrantEnums.sol";
+import { EntryPoint, ReentryPoint } from "./utils/reentrancy/ReentrantEnums.sol";
 import { FulfillBasicOrderParameters, FulfillOrderParameters, OrderParameters, FulfillAdvancedOrderParameters, FulfillAvailableOrdersParameters, FulfillAvailableAdvancedOrdersParameters, MatchOrdersParameters, MatchAdvancedOrdersParameters, CancelParameters, ValidateParameters, ReentrantCallParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
 
 contract NonReentrantTest is BaseOrderTest {
@@ -18,7 +18,7 @@ contract NonReentrantTest is BaseOrderTest {
     OrderParameters orderParameters;
     Order order;
     Order[] orders;
-    ReentrancyPoint reentrancyPoint;
+    ReentryPoint reentryPoint;
     Consideration currentConsideration;
 
     /**
@@ -27,7 +27,7 @@ contract NonReentrantTest is BaseOrderTest {
      */
     struct FuzzInputs {
         uint8 entryPoint;
-        uint8 reentrancyPoint;
+        uint8 reentryPoint;
     }
 
     /**
@@ -35,7 +35,7 @@ contract NonReentrantTest is BaseOrderTest {
      */
     struct NonReentrantInputs {
         EntryPoint entryPoint;
-        ReentrancyPoint reentrancyPoint;
+        ReentryPoint reentryPoint;
     }
 
     struct Context {
@@ -71,11 +71,11 @@ contract NonReentrantTest is BaseOrderTest {
     }
 
     function testNonReentrant(FuzzInputs memory _inputs) public {
-        vm.assume(_inputs.entryPoint < 7 && _inputs.reentrancyPoint < 10);
+        vm.assume(_inputs.entryPoint < 7 && _inputs.reentryPoint < 10);
 
         NonReentrantInputs memory inputs = NonReentrantInputs(
             EntryPoint(_inputs.entryPoint),
-            ReentrancyPoint(_inputs.reentrancyPoint)
+            ReentryPoint(_inputs.reentryPoint)
         );
         // _testNonReentrant(NonReentrant(consideration, inputs));
         _testNonReentrant(Context(referenceConsideration, inputs));
@@ -504,7 +504,7 @@ contract NonReentrantTest is BaseOrderTest {
         resetTokenBalancesBetweenRuns
     {
         currentConsideration = context.consideration;
-        reentrancyPoint = context.args.reentrancyPoint;
+        reentryPoint = context.args.reentryPoint;
         _entryPoint(context.args.entryPoint, 2, false);
     }
 
@@ -635,7 +635,7 @@ contract NonReentrantTest is BaseOrderTest {
         }
     }
 
-    function reentryPoint(ReentrancyPoint reentryPoint) internal {}
+    function _reentryPoint(ReentryPoint reentryPoint) public {}
 
     ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
     function isValidSignature(bytes32, bytes memory)
@@ -650,28 +650,28 @@ contract NonReentrantTest is BaseOrderTest {
      * @dev call target function with empty parameters - should be rejected for reentrancy before any issues arise
      */
     function _doReenter() internal {
-        if (uint256(reentrancyPoint) < 7) {
+        if (uint256(reentryPoint) < 7) {
             try
-                this._entryPoint(EntryPoint(uint256(reentrancyPoint)), 10, true)
+                this._entryPoint(EntryPoint(uint256(reentryPoint)), 10, true)
             {} catch (bytes memory reason) {
                 emit BytesReason(reason);
             }
         }
-        // if (reentrancyPoint == ReentrancyPoint.FulfillBasicOrder) {
+        // if (reentryPoint == ReentryPoint.FulfillBasicOrder) {
         //     BasicOrderParameters memory params;
         //     try currentConsideration.fulfillBasicOrder(params) {} catch (
         //         bytes memory reason
         //     ) {
         //         emit BytesReason(reason);
         //     }
-        // } else if (reentrancyPoint == ReentrancyPoint.FulfillOrder) {
+        // } else if (reentryPoint == ReentryPoint.FulfillOrder) {
         //     Order memory _order;
         //     try currentConsideration.fulfillOrder(_order, bytes32(0)) {} catch (
         //         bytes memory reason
         //     ) {
         //         emit BytesReason(reason);
         //     }
-        // } else if (reentrancyPoint == ReentrancyPoint.FulfillAdvancedOrder) {
+        // } else if (reentryPoint == ReentryPoint.FulfillAdvancedOrder) {
         //     AdvancedOrder memory _order;
         //     CriteriaResolver[]
         //         memory criteriaResolvers = new CriteriaResolver[](0);
@@ -684,7 +684,7 @@ contract NonReentrantTest is BaseOrderTest {
         //     {} catch (bytes memory reason) {
         //         emit BytesReason(reason);
         //     }
-        // } else if (reentrancyPoint == ReentrancyPoint.FulfillAvailableOrders) {
+        // } else if (reentryPoint == ReentryPoint.FulfillAvailableOrders) {
         //     Order[] memory _orders;
         //     FulfillmentComponent[][] memory orderFulfillments;
         //     FulfillmentComponent[][] memory considerationFulfillments;
@@ -700,7 +700,7 @@ contract NonReentrantTest is BaseOrderTest {
         //         emit BytesReason(reason);
         //     }
         // } else if (
-        //     reentrancyPoint == ReentrancyPoint.FulfillAvailableAdvancedOrders
+        //     reentryPoint == ReentryPoint.FulfillAvailableAdvancedOrders
         // ) {
         //     AdvancedOrder[] memory advancedOrders;
         //     CriteriaResolver[] memory criteriaResolvers;
@@ -718,7 +718,7 @@ contract NonReentrantTest is BaseOrderTest {
         //     {} catch (bytes memory reason) {
         //         emit BytesReason(reason);
         //     }
-        // } else if (reentrancyPoint == ReentrancyPoint.MatchOrders) {
+        // } else if (reentryPoint == ReentryPoint.MatchOrders) {
         //     Order[] memory _orders;
         //     Fulfillment[] memory orderFulfillments;
         //     try
@@ -726,7 +726,7 @@ contract NonReentrantTest is BaseOrderTest {
         //     {} catch (bytes memory reason) {
         //         emit BytesReason(reason);
         //     }
-        // } else if (reentrancyPoint == ReentrancyPoint.MatchAdvancedOrders) {
+        // } else if (reentryPoint == ReentryPoint.MatchAdvancedOrders) {
         //     AdvancedOrder[] memory advancedOrders;
         //     CriteriaResolver[] memory criteriaResolvers;
         //     Fulfillment[] memory orderFulfillments;
@@ -740,21 +740,21 @@ contract NonReentrantTest is BaseOrderTest {
         //         emit BytesReason(reason);
         //     }
         // } else
-        else if (reentrancyPoint == ReentrancyPoint.Cancel) {
+        else if (reentryPoint == ReentryPoint.Cancel) {
             OrderComponents[] memory _orders;
             try currentConsideration.cancel(_orders) {} catch (
                 bytes memory reason
             ) {
                 emit BytesReason(reason);
             }
-        } else if (reentrancyPoint == ReentrancyPoint.Validate) {
+        } else if (reentryPoint == ReentryPoint.Validate) {
             Order[] memory _orders;
             try currentConsideration.validate(_orders) {} catch (
                 bytes memory reason
             ) {
                 emit BytesReason(reason);
             }
-        } else if (reentrancyPoint == ReentrancyPoint.IncrementNonce) {
+        } else if (reentryPoint == ReentryPoint.IncrementNonce) {
             try currentConsideration.incrementNonce() {} catch (
                 bytes memory reason
             ) {
