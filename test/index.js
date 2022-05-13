@@ -11765,7 +11765,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
-  describe.only("ConduitController", async () => {
+  describe("ConduitController", async () => {
     let seller;
     let buyer;
     let sellerContract;
@@ -12101,12 +12101,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       return { transfers, batchTransfers };
     };
 
-    it.only("Executes a set of standard and batch transfers", async () => {
-      console.log(
-        conduitOne.interface.getSighash(
-          conduitOne.interface.getError("Invalid1155BatchTransferEncoding()")
-        )
-      );
+    it("Executes a set of standard and batch transfers", async () => {
+      // console.log(
+      //   conduitOne.interface.getSighash(
+      //     conduitOne.interface.getError("Invalid1155BatchTransferEncoding()")
+      //   )
+      // );
       const { transfers, batchTransfers } = await setupBatchExecuteTest();
       await whileImpersonating(seller.address, provider, async () => {
         const { to, data, gasLimit } = await conduitOne
