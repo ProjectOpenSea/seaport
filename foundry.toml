@@ -23,23 +23,21 @@ test = 'reference'
 
 [optimized]
 solc = '0.8.13'
-via_ir = true
-src = 'contracts'
 out = 'optimized-out'
 
 [test]
 solc = '0.8.13'
 via_ir = false
 
-[quick]
+[lite]
 out = 'optimized-out'
 via_ir = false
 fuzz_runs = 1000
 
-[local]
+[local-ffi]
 via_ir = false
 fuzz_runs = 1000
-src = 'reference-working'
+src = 'reference'
 out = 'reference-out'
 ffi = true
 
