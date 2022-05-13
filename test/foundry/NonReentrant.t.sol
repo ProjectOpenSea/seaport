@@ -81,7 +81,7 @@ contract NonReentrantTest is BaseOrderTest {
         _testNonReentrant(Context(referenceConsideration, inputs));
     }
 
-    function prepareBasicOrder(Context memory context, uint256 tokenId)
+    function prepareBasicOrder(uint256 tokenId)
         internal
         returns (BasicOrderParameters memory _basicOrderParameters)
     {
@@ -108,7 +108,7 @@ contract NonReentrantTest is BaseOrderTest {
             )
         );
 
-        uint256 nonce = context.consideration.getNonce(address(this));
+        uint256 nonce = currentConsideration.getNonce(address(this));
 
         orderComponents.offerer = address(this);
         orderComponents.zone = address(1);
@@ -122,9 +122,9 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.conduitKey = bytes32(0);
         orderComponents.nonce = nonce;
 
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        bytes32 orderHash = currentConsideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
-            context.consideration,
+            currentConsideration,
             alicePk,
             orderHash
         );
@@ -136,7 +136,7 @@ contract NonReentrantTest is BaseOrderTest {
             );
     }
 
-    function prepareOrder(Context memory context, uint256 tokenId)
+    function prepareOrder(uint256 tokenId)
         internal
         returns (
             Order memory _order,
@@ -150,7 +150,7 @@ contract NonReentrantTest is BaseOrderTest {
         _configureEthConsiderationItem(payable(this), uint256(10));
         _configureEthConsiderationItem(payable(0), uint256(10));
         _configureEthConsiderationItem(alice, uint256(10));
-        uint256 nonce = context.consideration.getNonce(address(this));
+        uint256 nonce = currentConsideration.getNonce(address(this));
 
         OrderParameters memory _orderParameters = getOrderParameters(
             payable(this),
@@ -161,12 +161,10 @@ contract NonReentrantTest is BaseOrderTest {
             nonce
         );
 
-        bytes32 orderHash = context.consideration.getOrderHash(
-            _orderComponents
-        );
+        bytes32 orderHash = currentConsideration.getOrderHash(_orderComponents);
 
         bytes memory signature = signOrder(
-            context.consideration,
+            currentConsideration,
             alicePk,
             orderHash
         );
@@ -175,7 +173,7 @@ contract NonReentrantTest is BaseOrderTest {
         fulfillerConduitKey = bytes32(0);
     }
 
-    function prepareAdvancedOrder(Context memory context, uint256 tokenId)
+    function prepareAdvancedOrder(uint256 tokenId)
         internal
         returns (
             AdvancedOrder memory _order,
@@ -190,7 +188,7 @@ contract NonReentrantTest is BaseOrderTest {
         _configureEthConsiderationItem(payable(this), uint256(10));
         _configureEthConsiderationItem(payable(address(0)), uint256(10));
         _configureEthConsiderationItem(payable(address(this)), uint256(10));
-        uint256 nonce = context.consideration.getNonce(address(this));
+        uint256 nonce = currentConsideration.getNonce(address(this));
         OrderParameters memory _orderParameters = getOrderParameters(
             payable(this),
             OrderType.PARTIAL_OPEN
@@ -200,12 +198,10 @@ contract NonReentrantTest is BaseOrderTest {
             nonce
         );
 
-        bytes32 orderHash = context.consideration.getOrderHash(
-            _orderComponents
-        );
+        bytes32 orderHash = currentConsideration.getOrderHash(_orderComponents);
 
         bytes memory signature = signOrder(
-            context.consideration,
+            currentConsideration,
             alicePk,
             orderHash
         );
@@ -292,7 +288,7 @@ contract NonReentrantTest is BaseOrderTest {
             );
     }
 
-    function prepareAvailableOrders(Context memory context, uint256 tokenId)
+    function prepareAvailableOrders(uint256 tokenId)
         internal
         returns (
             Order[] memory _orders,
@@ -305,7 +301,7 @@ contract NonReentrantTest is BaseOrderTest {
         test721_1.mint(address(this), tokenId);
         _configureERC721OfferItem(tokenId);
         _configureEthConsiderationItem(payable(address(this)), 1);
-        uint256 nonce = context.consideration.getNonce(address(this));
+        uint256 nonce = currentConsideration.getNonce(address(this));
 
         OrderParameters memory _orderParameters = getOrderParameters(
             payable(this),
@@ -315,11 +311,9 @@ contract NonReentrantTest is BaseOrderTest {
             _orderParameters,
             nonce
         );
-        bytes32 orderHash = context.consideration.getOrderHash(
-            _orderComponents
-        );
+        bytes32 orderHash = currentConsideration.getOrderHash(_orderComponents);
         bytes memory signature = signOrder(
-            context.consideration,
+            currentConsideration,
             alicePk,
             orderHash
         );
@@ -339,10 +333,7 @@ contract NonReentrantTest is BaseOrderTest {
         _orders[0] = Order(_orderParameters, signature);
     }
 
-    function prepareFullfillAvailableAdvancedOrders(
-        Context memory context,
-        uint256 tokenId
-    )
+    function prepareFullfillAvailableAdvancedOrders(uint256 tokenId)
         internal
         returns (
             AdvancedOrder[] memory advancedOrders,
@@ -361,7 +352,7 @@ contract NonReentrantTest is BaseOrderTest {
             _considerationFulfillments,
             fulfillerConduitKey,
             maximumFulfilled
-        ) = prepareAvailableOrders(context, tokenId);
+        ) = prepareAvailableOrders(tokenId);
         advancedOrders = new AdvancedOrder[](1);
         advancedOrders[0] = AdvancedOrder(
             _orders[0].parameters,
@@ -372,14 +363,14 @@ contract NonReentrantTest is BaseOrderTest {
         );
     }
 
-    function prepareMatchOrders(Context memory context, uint256 tokenId)
+    function prepareMatchOrders(uint256 tokenId)
         internal
         returns (Order[] memory, Fulfillment[] memory)
     {
         test721_1.mint(address(this), tokenId);
         _configureERC721OfferItem(tokenId);
         _configureEthConsiderationItem(payable(address(this)), 1);
-        uint256 nonce = context.consideration.getNonce(address(this));
+        uint256 nonce = currentConsideration.getNonce(address(this));
         orderComponents.offerer = address(this);
         orderComponents.zone = address(0);
         orderComponents.offer = offerItems;
@@ -391,9 +382,9 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.salt = 0;
         orderComponents.conduitKey = bytes32(0);
         orderComponents.nonce = nonce;
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        bytes32 orderHash = currentConsideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
-            context.consideration,
+            currentConsideration,
             alicePk,
             orderHash
         );
@@ -419,7 +410,7 @@ contract NonReentrantTest is BaseOrderTest {
         delete considerationItems;
         _configureEthOfferItem(1);
         _configureErc721ConsiderationItem(payable(this), tokenId);
-        nonce = context.consideration.getNonce(address(bob));
+        nonce = currentConsideration.getNonce(address(bob));
         orderComponents.offerer = bob;
         orderComponents.zone = address(0);
         orderComponents.offer = offerItems;
@@ -432,11 +423,11 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.conduitKey = bytes32(0);
         orderComponents.nonce = nonce;
 
-        bytes32 mirrorOrderHash = context.consideration.getOrderHash(
+        bytes32 mirrorOrderHash = currentConsideration.getOrderHash(
             orderComponents
         );
         bytes memory mirrorSignature = signOrder(
-            context.consideration,
+            currentConsideration,
             bobPk,
             mirrorOrderHash
         );
@@ -491,7 +482,7 @@ contract NonReentrantTest is BaseOrderTest {
         return AdvancedOrder(_order.parameters, 1, 1, _order.signature, "");
     }
 
-    function prepareMatchAdvancedOrders(Context memory context, uint256 tokenId)
+    function prepareMatchAdvancedOrders(uint256 tokenId)
         internal
         returns (
             AdvancedOrder[] memory _orders,
@@ -500,7 +491,7 @@ contract NonReentrantTest is BaseOrderTest {
         )
     {
         Order[] memory _regOrders;
-        (_regOrders, _fulfillments) = prepareMatchOrders(context, tokenId);
+        (_regOrders, _fulfillments) = prepareMatchOrders(tokenId);
         _orders = new AdvancedOrder[](2);
         _orders[0] = _convertOrderToAdvanced(_regOrders[0]);
         _orders[1] = _convertOrderToAdvanced(_regOrders[1]);
@@ -514,64 +505,64 @@ contract NonReentrantTest is BaseOrderTest {
     {
         currentConsideration = context.consideration;
         reentrancyPoint = context.args.reentrancyPoint;
-        if (context.args.entryPoint == EntryPoint.FulfillBasicOrder) {
+        _entrantSet(context.args.entryPoint);
+    }
+
+    function _entrantSet(EntryPoint entryPoint) internal {
+        if (entryPoint == EntryPoint.FulfillBasicOrder) {
             // _etchReentrantCodeToUserAddress(context);
             BasicOrderParameters
-                memory _basicOrderParameters = prepareBasicOrder(context, 2);
+                memory _basicOrderParameters = prepareBasicOrder(2);
             vm.expectEmit(true, false, false, false, address(address(this)));
             emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
-            context.consideration.fulfillBasicOrder{ value: 1 }(
+            currentConsideration.fulfillBasicOrder{ value: 1 }(
                 _basicOrderParameters
             );
-        } else if (context.args.entryPoint == EntryPoint.FulfillOrder) {
+        } else if (entryPoint == EntryPoint.FulfillOrder) {
             (
                 Order memory params,
                 bytes32 fulfillerConduitKey,
                 uint256 value
-            ) = prepareOrder(context, 2);
+            ) = prepareOrder(2);
             vm.expectEmit(true, false, false, false, address(this));
             emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
-            context.consideration.fulfillOrder{ value: value }(
+            currentConsideration.fulfillOrder{ value: value }(
                 params,
                 fulfillerConduitKey
             );
-        } else if (context.args.entryPoint == EntryPoint.FulfillAdvancedOrder) {
+        } else if (entryPoint == EntryPoint.FulfillAdvancedOrder) {
             (
                 AdvancedOrder memory _order,
                 CriteriaResolver[] memory criteriaResolvers,
                 bytes32 fulfillerConduitKey,
                 uint256 value
-            ) = prepareAdvancedOrder(context, 2);
+            ) = prepareAdvancedOrder(2);
             vm.expectEmit(true, false, false, false, address(this));
             emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
-            context.consideration.fulfillAdvancedOrder{ value: value }(
+            currentConsideration.fulfillAdvancedOrder{ value: value }(
                 _order,
                 criteriaResolvers,
                 fulfillerConduitKey
             );
-        } else if (
-            context.args.entryPoint == EntryPoint.FulfillAvailableOrders
-        ) {
+        } else if (entryPoint == EntryPoint.FulfillAvailableOrders) {
             (
                 Order[] memory _orders,
                 FulfillmentComponent[][] memory _offerFulfillments,
                 FulfillmentComponent[][] memory _considerationFulfillments,
                 bytes32 fulfillerConduitKey,
                 uint256 maximumFulfilled
-            ) = prepareAvailableOrders(context, 2);
+            ) = prepareAvailableOrders(2);
             vm.expectEmit(true, false, false, false, address(this));
             emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             vm.prank(alice);
-            context.consideration.fulfillAvailableOrders{ value: 1 }(
+            currentConsideration.fulfillAvailableOrders{ value: 1 }(
                 _orders,
                 _offerFulfillments,
                 _considerationFulfillments,
                 fulfillerConduitKey,
                 maximumFulfilled
             );
-        } else if (
-            context.args.entryPoint == EntryPoint.FulfillAvailableAdvancedOrders
-        ) {
+        } else if (entryPoint == EntryPoint.FulfillAvailableAdvancedOrders) {
             (
                 AdvancedOrder[] memory advancedOrders,
                 CriteriaResolver[] memory criteriaResolvers,
@@ -579,11 +570,11 @@ contract NonReentrantTest is BaseOrderTest {
                 FulfillmentComponent[][] memory _considerationFulfillments,
                 bytes32 fulfillerConduitKey,
                 uint256 maximumFulfilled
-            ) = prepareFullfillAvailableAdvancedOrders(context, 2);
+            ) = prepareFullfillAvailableAdvancedOrders(2);
             vm.expectEmit(true, false, false, false, address(this));
             emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             vm.prank(alice);
-            context.consideration.fulfillAvailableAdvancedOrders{ value: 1 }(
+            currentConsideration.fulfillAvailableAdvancedOrders{ value: 1 }(
                 advancedOrders,
                 criteriaResolvers,
                 _offerFulfillments,
@@ -591,24 +582,24 @@ contract NonReentrantTest is BaseOrderTest {
                 fulfillerConduitKey,
                 maximumFulfilled
             );
-        } else if (context.args.entryPoint == EntryPoint.MatchOrders) {
+        } else if (entryPoint == EntryPoint.MatchOrders) {
             (
                 Order[] memory _orders,
                 Fulfillment[] memory _fulfillments
-            ) = prepareMatchOrders(context, 2);
+            ) = prepareMatchOrders(2);
             vm.expectEmit(true, false, false, false, address(this));
             emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
-            context.consideration.matchOrders{ value: 1 }(
+            currentConsideration.matchOrders{ value: 1 }(
                 _orders,
                 _fulfillments
             );
-        } else if (context.args.entryPoint == EntryPoint.MatchAdvancedOrders) {
+        } else if (entryPoint == EntryPoint.MatchAdvancedOrders) {
             (
                 AdvancedOrder[] memory _orders,
                 CriteriaResolver[] memory criteriaResolvers,
                 Fulfillment[] memory _fulfillments
-            ) = prepareMatchAdvancedOrders(context, 2);
-            context.consideration.matchAdvancedOrders{ value: 1 }(
+            ) = prepareMatchAdvancedOrders(2);
+            currentConsideration.matchAdvancedOrders{ value: 1 }(
                 _orders,
                 criteriaResolvers,
                 _fulfillments
@@ -738,6 +729,6 @@ contract NonReentrantTest is BaseOrderTest {
     }
 
     receive() external payable override {
-        // _doReenter();
+        _doReenter();
     }
 }
