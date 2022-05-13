@@ -53,7 +53,9 @@ contract BaseOrderTest is
     ConsiderationItem[] considerationItems;
 
     FulfillmentComponent[] offerComponents;
-    FulfillmentComponent[] considerationComponents;
+    FulfillmentComponent[] firstConsiderationComponents;
+    FulfillmentComponent[] secondConsiderationComponents;
+    FulfillmentComponent[] thirdConsiderationComponents;
 
     FulfillmentComponent[][] offerComponentsArray;
     FulfillmentComponent[][] considerationComponentsArray;
@@ -158,7 +160,9 @@ contract BaseOrderTest is
     }
 
     function resetConsiderationComponents() internal {
-        delete considerationComponents;
+        delete firstConsiderationComponents;
+        delete secondConsiderationComponents;
+        delete thirdConsiderationComponents;
     }
 
     function _configureConsiderationItem(

@@ -146,16 +146,16 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        considerationComponents.push(FulfillmentComponent(0, 0));
-        considerationComponentsArray.push(considerationComponents);
+        firstConsiderationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(firstConsiderationComponents);
         resetConsiderationComponents();
 
-        considerationComponents.push(FulfillmentComponent(0, 1));
-        considerationComponentsArray.push(considerationComponents);
+        firstConsiderationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponentsArray.push(firstConsiderationComponents);
         resetConsiderationComponents();
 
-        considerationComponents.push(FulfillmentComponent(0, 2));
-        considerationComponentsArray.push(considerationComponents);
+        firstConsiderationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponentsArray.push(firstConsiderationComponents);
         resetConsiderationComponents();
 
         assertTrue(considerationComponentsArray.length == 3);
@@ -300,16 +300,16 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        considerationComponents.push(FulfillmentComponent(0, 0));
-        considerationComponentsArray.push(considerationComponents);
+        firstConsiderationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(firstConsiderationComponents);
         resetConsiderationComponents();
 
-        considerationComponents.push(FulfillmentComponent(0, 1));
-        considerationComponentsArray.push(considerationComponents);
+        firstConsiderationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponentsArray.push(firstConsiderationComponents);
         resetConsiderationComponents();
 
-        considerationComponents.push(FulfillmentComponent(0, 2));
-        considerationComponentsArray.push(considerationComponents);
+        firstConsiderationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponentsArray.push(firstConsiderationComponents);
         resetConsiderationComponents();
 
         assertTrue(considerationComponentsArray.length == 3);
