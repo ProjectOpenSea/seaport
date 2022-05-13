@@ -69,7 +69,6 @@ contract BaseConduitTest is
         ConduitTransferIntermediate memory intermediate,
         address currentConduit
     ) internal returns (ConduitTransfer memory) {
-        ConduitTransfer memory conduitTransfer;
         ConduitItemType itemType = ConduitItemType(
             (intermediate.itemType % 3) + 1
         );
@@ -105,7 +104,7 @@ contract BaseConduitTest is
                     intermediate.identifier,
                     intermediate.amount
                 );
-        } else if (itemType == ConduitItemType.ERC721) {
+        } else {
             TestERC721 erc721 = new TestERC721();
             erc721.mint(from, intermediate.identifier);
             vm.prank(from);
