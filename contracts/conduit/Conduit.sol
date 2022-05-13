@@ -30,16 +30,6 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     // Track the status of each channel.
     mapping(address => bool) private _channels;
 
-/*     function onERC1155Received(
-        address,
-        address,
-        uint256,
-        uint256,
-        bytes calldata
-    ) external view returns (bytes4) {
-      return 
-    } */
-
     /**
      * @notice In the constructor, set the deployer as the controller.
      */
@@ -215,12 +205,6 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             // Write the function selector for safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)
             // This will be reused for each call
             mstore(0x20, ERC1155_safeBatchTransferFrom_selector)
-  
-
-
-            // mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-            // mstore(NoContract_error_token_ptr, 0)
-            // revert(NoContract_error_sig_ptr, NoContract_error_length)
 
             for {
                 let i := 0
@@ -244,15 +228,16 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                   add(elementPtr, ConduitBatch1155Transfer_from_offset),
                   ConduitBatch1155Transfer_usable_head_size
                 )
+
                 let idsLength := calldataload(
                     add(elementPtr, ConduitBatch1155Transfer_ids_length_offset)
                 )
-                let idsAndAmountsSize := mul(idsLength, 0x40)
-                
+                let idsAndAmountsSize := add(0x40, mul(idsLength, 0x40))
+
                 mstore(
                   BatchTransfer1155Params_data_head_ptr,
                   add(
-                    BatchTransfer1155Params_data_length_baseOffset,
+                    BatchTransfer1155Params_ids_length_offset,
                     idsAndAmountsSize
                   )
                 )
@@ -335,10 +320,6 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                     0
                 )
 
-                mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                mstore(NoContract_error_token_ptr, add(success, 1))
-                revert(NoContract_error_sig_ptr, NoContract_error_length)
-
                 // If the transfer reverted:
                 if iszero(success) {
                     // If it returned a message, bubble it up as long as sufficient
@@ -393,10 +374,6 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                             revert(0, returndatasize())
                         }
                     }
-                        // mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                        // mstore(NoContract_error_token_ptr, 0)
-                        // revert(NoContract_error_sig_ptr, NoContract_error_length)
-
 
                     // Set the error signature
                     mstore(
@@ -424,6 +401,10 @@ contract Conduit is ConduitInterface, TokenTransferrer {
                     revert(0x00, add(transferDataSize, 0x24))
                 }
             }
+
+            // Very odd, but it seems to only work when explicity returning...
+            mstore(0, 0x1234567800000000000000000000000000000000000000000000000000000000)
+            return(0, 0x20)
         }
     }
 }
