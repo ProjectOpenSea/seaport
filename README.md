@@ -184,7 +184,7 @@ foundryup
 To install dependencies:
 
 ```
-forge install Rari-Capital/solmate
+forge install
 ```
 
 Next, run the tests with:
