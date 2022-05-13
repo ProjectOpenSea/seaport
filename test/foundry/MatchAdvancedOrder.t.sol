@@ -13,46 +13,42 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 
-contract MatchOrders is BaseOrderTest {
-    struct FuzzInputsCommon {
+contract MatchAdvancedOrder is BaseOrderTest {
+    struct FuzzInputs {
         address zone;
         uint256 id;
         bytes32 zoneHash;
         uint256 salt;
-        uint128[3] paymentAmts;
+        uint128 amount;
         bool useConduit;
     }
 
     struct Context {
         Consideration consideration;
-        FuzzInputsCommon args;
+        FuzzInputs args;
     }
 
-    function testMatchOrdersSingleErc721OfferSingleEthConsideration(
-        FuzzInputsCommon memory inputs
+    function testMatchAdvancedOrdersWithEmptyCriteriaResolversEthToErc721(
+        FuzzInputs memory args
     ) public {
-        _testMatchOrdersSingleErc721OfferSingleEthConsideration(
-            Context(referenceConsideration, inputs)
+        _testMatchAdvancedOrdersWithEmptyCriteriaResolversEthToErc721(
+            Context(referenceConsideration, args)
         );
-        _testMatchOrdersSingleErc721OfferSingleEthConsideration(
-            Context(consideration, inputs)
+        _testMatchAdvancedOrdersWithEmptyCriteriaResolversEthToErc721(
+            Context(consideration, args)
         );
     }
 
-    function _testMatchOrdersSingleErc721OfferSingleEthConsideration(
+    function _testMatchAdvancedOrdersWithEmptyCriteriaResolversEthToErc721(
         Context memory context
-    ) internal resetTokenBalancesBetweenRuns {
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
-        );
+    )
+        internal
+        onlyPayable(context.args.zone)
+        topUp
+        resetTokenBalancesBetweenRuns
+    {
+        vm.assume(context.args.amount > 0);
+
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -73,14 +69,14 @@ contract MatchOrders is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(1),
-                uint256(1),
+                context.args.amount,
+                context.args.amount,
                 payable(alice)
             )
         );
 
-        OrderComponents memory orderComponents = OrderComponents(
-            alice,
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
             context.args.zone,
             offerItems,
             considerationItems,
@@ -90,6 +86,10 @@ contract MatchOrders is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
+            considerationItems.length
+        );
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
             context.consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
@@ -122,39 +122,6 @@ contract MatchOrders is BaseOrderTest {
             payable(cal)
         );
 
-        OrderComponents memory mirrorOrderComponents = OrderComponents(
-            cal,
-            context.args.zone,
-            mirrorOfferItems,
-            mirrorConsiderationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            context.consideration.getNonce(cal)
-        );
-        bytes memory mirrorSignature = signOrder(
-            context.consideration,
-            calPk,
-            context.consideration.getOrderHash(mirrorOrderComponents)
-        );
-
-        OrderParameters memory orderParameters = OrderParameters(
-            address(alice),
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            considerationItems.length
-        );
-
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(cal),
             context.args.zone,
@@ -169,9 +136,32 @@ contract MatchOrders is BaseOrderTest {
             mirrorConsiderationItems.length
         );
 
-        Order[] memory orders = new Order[](2);
-        orders[0] = Order(orderParameters, signature);
-        orders[1] = Order(mirrorOrderParameters, mirrorSignature);
+        OrderComponents memory mirrorOrderComponents = getOrderComponents(
+            mirrorOrderParameters,
+            context.consideration.getNonce(cal)
+        );
+
+        bytes memory mirrorSignature = signOrder(
+            context.consideration,
+            calPk,
+            context.consideration.getOrderHash(mirrorOrderComponents)
+        );
+
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
+        advancedOrders[0] = AdvancedOrder(
+            orderParameters,
+            uint120(1),
+            uint120(1),
+            signature,
+            "0x"
+        );
+        advancedOrders[1] = AdvancedOrder(
+            mirrorOrderParameters,
+            uint120(1),
+            uint120(1),
+            mirrorSignature,
+            "0x"
+        );
 
         firstOrderFirstItem = FulfillmentComponent(0, 0);
         secondOrderFirstItem = FulfillmentComponent(1, 0);
@@ -188,10 +178,10 @@ contract MatchOrders is BaseOrderTest {
         fulfillments.push(firstFulfillment);
         fulfillments.push(secondFulfillment);
 
-        context.consideration.matchOrders{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
-        }(orders, fulfillments);
+        context.consideration.matchAdvancedOrders{ value: context.args.amount }(
+            advancedOrders,
+            new CriteriaResolver[](0), // no criteria
+            fulfillments
+        );
     }
 }
