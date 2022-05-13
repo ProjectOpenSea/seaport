@@ -28,6 +28,17 @@ contract BaseConduitTest is
         uint128 amount;
     }
 
+    struct IdAmount {
+        uint256 id;
+        uint128 amount;
+    }
+
+    struct BatchIntermediate {
+        address from;
+        address to;
+        IdAmount[] idAmounts;
+    }
+
     function setUp() public override {
         super.setUp();
         conduitController.updateChannel(conduit, address(this), true);
