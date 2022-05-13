@@ -12545,6 +12545,67 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
+    it("Makes batch transfer 1155 items through a conduit", async () => {
+      const tempConduitKey =
+        "0xff00000000000000000000f1" + owner.address.slice(2);
+
+      const { conduit: tempConduitAddress } =
+        await conduitController.getConduit(tempConduitKey);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .createConduit(tempConduitKey, owner.address);
+      });
+
+      const tempConduit = conduitImplementation.attach(tempConduitAddress);
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, owner.address, true);
+      });
+
+      const nftId = 1;
+      const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(owner.address, nftId, amount.mul(2));
+
+      const secondNftId = 2;
+      const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(
+        1
+      );
+      await testERC1155.mint(owner.address, secondNftId, secondAmount.mul(2));
+
+      const thirdNftId = 3;
+      const thirdAmount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(
+        1
+      );
+      await testERC1155.mint(owner.address, thirdNftId, thirdAmount.mul(2));
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await expect(
+          testERC1155
+            .connect(owner)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC1155, "ApprovalForAll")
+          .withArgs(owner.address, tempConduit.address, true);
+      });
+
+      await tempConduit.connect(owner).executeWithBatch1155(
+        [],
+        [
+          {
+            token: testERC1155.address,
+            from: owner.address,
+            to: buyer.address,
+            ids: [nftId, secondNftId, thirdNftId],
+            amounts: [amount, secondAmount, thirdAmount],
+          },
+        ]
+      );
+    });
+
     it("Reverts when attempting to update a conduit channel when call is not from controller", async () => {
       await whileImpersonating(owner.address, provider, async () => {
         await expect(
