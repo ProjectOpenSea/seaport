@@ -2,7 +2,7 @@
 pragma solidity 0.8.13;
 
 import { BaseConsiderationTest } from "../utils/BaseConsiderationTest.sol";
-import { ConduitTransfer, ConduitItemType } from "contracts/conduit/lib/ConduitStructs.sol";
+import { ConduitTransfer, ConduitBatch1155Transfer, ConduitItemType } from "contracts/conduit/lib/ConduitStructs.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
@@ -131,5 +131,33 @@ contract BaseConduitTest is
                     1
                 );
         }
+    }
+
+    function create1155sAndConduitBatch1155Transfer(
+        BatchIntermediate memory intermediate,
+        address currentConduit
+    ) internal returns (ConduitBatch1155Transfer memory) {
+        address from = receiver(intermediate.from);
+        address to = receiver(intermediate.to);
+
+        uint256[] memory ids = new uint256[](intermediate.idAmounts.length);
+        uint256[] memory amounts = new uint256[](intermediate.idAmounts.length);
+
+        TestERC1155 erc1155 = new TestERC1155();
+
+        for (uint256 i = 0; i < intermediate.idAmounts.length; i++) {
+            erc1155.mint(
+                from,
+                intermediate.idAmounts[i].id,
+                intermediate.idAmounts[i].amount
+            );
+            vm.prank(from);
+            erc1155.setApprovalForAll(currentConduit, true);
+            erc1155s.push(erc1155);
+            ids[i] = intermediate.idAmounts[i].id;
+            amounts[i] = intermediate.idAmounts[i].amount;
+        }
+        return
+            ConduitBatch1155Transfer(address(erc1155), from, to, ids, amounts);
     }
 }
