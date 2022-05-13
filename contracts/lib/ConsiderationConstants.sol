@@ -83,6 +83,9 @@ uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
 uint256 constant DefaultFreeMemoryPointer = 0x80;
 
+uint256 constant Slot0x80 = 0x80;
+uint256 constant Slot0xA0 = 0xa0;
+
 uint256 constant BasicOrder_endAmount_cdPtr = 0x104;
 
 uint256 constant BasicOrder_considerationHashesArray_ptr = 0x160;
@@ -321,6 +324,7 @@ uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
 uint256 constant ERC1155BatchTransferGenericFailure_error_signature = (
     0xafc445e200000000000000000000000000000000000000000000000000000000
 );
+uint256 constant ERC1155BatchTransferGenericFailure_token_ptr = 0x04;
 
 // abi.encodeWithSignature(
 //     "BadReturnValueFromERC20OnTransfer(address,address,address,uint256)"
@@ -356,6 +360,39 @@ uint256 constant MaskOverLastTwentyBytes = (
     0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff
 );
 
+uint256 constant MaskOverFirstFourBytes = (
+    0xffffffff00000000000000000000000000000000000000000000000000000000
+);
+
 uint256 constant Conduit_executeWithBatch1155_signature = (
     0x899e104c00000000000000000000000000000000000000000000000000000000
+);
+
+// Values are offset by 32 bytes in order to write the token to the beginning
+// in the event of a revert
+uint256 constant BatchTransfer1155Params_ptr = 0x24;
+uint256 constant BatchTransfer1155Params_ids_head_ptr = 0x44;
+uint256 constant BatchTransfer1155Params_amounts_head_ptr = 0x84;
+uint256 constant BatchTransfer1155Params_data_head_ptr = 0xa4;
+uint256 constant BatchTransfer1155Params_data_length_basePtr = 0x104;
+
+uint256 constant BatchTransfer1155Params_ids_length_ptr = 0xc4;
+
+uint256 constant BatchTransfer1155Params_ids_length_offset = 0xa0;
+uint256 constant BatchTransfer1155Params_amounts_length_baseOffset = 0xc0;
+uint256 constant BatchTransfer1155Params_data_length_baseOffset = 0xe0;
+
+uint256 constant ConduitBatch1155Transfer_usable_head_size = 0x80;
+
+uint256 constant ConduitBatch1155Transfer_from_offset = 0x20;
+uint256 constant ConduitBatch1155Transfer_ids_head_offset = 0x60;
+uint256 constant ConduitBatch1155Transfer_amounts_head_offset = 0x80;
+uint256 constant ConduitBatch1155Transfer_ids_length_offset = 0xa0;
+uint256 constant ConduitBatch1155Transfer_amounts_length_baseOffset = 0xc0;
+uint256 constant ConduitBatch1155Transfer_calldata_baseSize = 0xc0;
+
+uint256 constant Invalid1155BatchTransferEncoding_ptr = 0x00;
+uint256 constant Invalid1155BatchTransferEncoding_length = 0x04;
+uint256 constant Invalid1155BatchTransferEncoding_selector = (
+    0xeba2084c00000000000000000000000000000000000000000000000000000000
 );
