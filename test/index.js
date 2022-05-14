@@ -1174,7 +1174,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitController.address.slice(2).padStart(64, "0")
     );
 
-    const { gasLimit } = await provider.getBlock();
+    let { gasLimit } = await provider.getBlock();
+
+    if (process.env.REFERENCE) {
+      gasLimit = ethers.BigNumber.from(300_000_000);
+    }
 
     const tx = await create2Factory.safeCreate2(
       ethers.constants.HashZero, // TODO: find a good one
