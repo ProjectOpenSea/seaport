@@ -21,7 +21,6 @@ module.exports = {
     "lib/ConsiderationPure.sol",
     "lib/ConsiderationStructs.sol",
     "lib/TokenTransferrer.sol",
-    "reference/lib/ReferenceConsiderationConstants.sol",
     "test/EIP1271Wallet.sol",
     "test/ExcessReturnDataRecipient.sol",
     "test/Reenterer.sol",
