@@ -1036,10 +1036,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     );
     expect(deployedCode).to.equal(deployConstants.KEYLESS_CREATE2_RUNTIME_CODE);
 
+    let { gasLimit } = await provider.getBlock();
+
+    if (hre.__SOLIDITY_COVERAGE_RUNNING) {
+      gasLimit = ethers.BigNumber.from(300_000_000);
+    }
+
     // Deploy inefficient deployer through keyless
     await owner.sendTransaction({
       to: deployConstants.KEYLESS_CREATE2_ADDRESS,
       data: deployConstants.IMMUTABLE_CREATE2_FACTORY_CREATION_CODE,
+      gasLimit,
     });
     deployedCode = await provider.getCode(
       deployConstants.INEFFICIENT_IMMUTABLE_CREATE2_FACTORY_ADDRESS
@@ -1059,8 +1066,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       .connect(owner)
       .safeCreate2(
         deployConstants.IMMUTABLE_CREATE2_FACTORY_SALT,
-        deployConstants.IMMUTABLE_CREATE2_FACTORY_CREATION_CODE
+        deployConstants.IMMUTABLE_CREATE2_FACTORY_CREATION_CODE,
+        {
+          gasLimit,
+        }
       );
+
     deployedCode = await provider.getCode(
       deployConstants.IMMUTABLE_CREATE2_FACTORY_ADDRESS
     );
@@ -1097,7 +1108,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       await create2Factory.safeCreate2(
         ethers.constants.HashZero, // TODO: find a good one
-        conduitControllerFactory.bytecode
+        conduitControllerFactory.bytecode,
+        {
+          gasLimit,
+        }
       );
 
       conduitController = await ethers.getContractAt(
@@ -1128,12 +1142,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       marketplaceContractFactory.bytecode +
         conduitController.address.slice(2).padStart(64, "0")
     );
-
-    let { gasLimit } = await provider.getBlock();
-
-    if (process.env.REFERENCE) {
-      gasLimit = ethers.BigNumber.from(300_000_000);
-    }
 
     const tx = await create2Factory.safeCreate2(
       ethers.constants.HashZero, // TODO: find a good one
