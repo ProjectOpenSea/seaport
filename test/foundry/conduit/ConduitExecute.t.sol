@@ -13,7 +13,7 @@ import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 
 contract ConduitExecuteTest is BaseConduitTest {
     struct FuzzInputs {
-        ConduitTransferIntermediate[64] intermediates;
+        ConduitTransferIntermediate[20] intermediates;
     }
 
     struct Context {
@@ -24,27 +24,18 @@ contract ConduitExecuteTest is BaseConduitTest {
     function testExecute(FuzzInputs memory inputs) public {
         ConduitTransfer[] memory transfers = new ConduitTransfer[](0);
         for (uint8 i; i < inputs.intermediates.length; i++) {
-            extendConduitTransferArray(
+            transfers = extendConduitTransferArray(
                 transfers,
-                createTokenAndConduitTransfer(
-                    inputs.intermediates[i],
-                    address(referenceConduit)
-                )
+                deployTokenAndCreateConduitTransfers(inputs.intermediates[i])
             );
         }
-        preprocessTransfers(transfers);
+        mintTokensAndSetTokenApprovalsForConduit(
+            transfers,
+            address(referenceConduit)
+        );
+        updateExpectedTokenBalances(transfers);
         _testExecute(Context(referenceConduit, transfers));
-        transfers = new ConduitTransfer[](0);
-        for (uint8 i; i < inputs.intermediates.length; i++) {
-            extendConduitTransferArray(
-                transfers,
-                createTokenAndConduitTransfer(
-                    inputs.intermediates[i],
-                    address(conduit)
-                )
-            );
-        }
-        preprocessTransfers(transfers);
+        mintTokensAndSetTokenApprovalsForConduit(transfers, address(conduit));
         _testExecute(Context(conduit, transfers));
     }
 
@@ -61,7 +52,7 @@ contract ConduitExecuteTest is BaseConduitTest {
             if (itemType == ConduitItemType.ERC20) {
                 assertEq(
                     TestERC20(transfer.token).balanceOf(transfer.to),
-                    _expectedBalance(transfer)
+                    getExpectedTokenBalance(transfer)
                 );
             } else if (itemType == ConduitItemType.ERC1155) {
                 assertEq(
@@ -69,7 +60,7 @@ contract ConduitExecuteTest is BaseConduitTest {
                         transfer.to,
                         transfer.identifier
                     ),
-                    _expectedBalance(transfer)
+                    getExpectedTokenBalance(transfer)
                 );
             } else if (itemType == ConduitItemType.ERC721) {
                 assertEq(

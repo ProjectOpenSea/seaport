@@ -73,7 +73,7 @@ enum BasicOrderType {
     ERC721_TO_ERC20_PARTIAL_OPEN,
 
     // 18: no partial fills, only offerer or zone can execute
-    ERC721_TO_ERC20_FULL_RESTRICTED0,
+    ERC721_TO_ERC20_FULL_RESTRICTED,
 
     // 19: partial fills supported, only offerer or zone can execute
     ERC721_TO_ERC20_PARTIAL_RESTRICTED,
