@@ -10083,7 +10083,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Send the transfers
       await tempConduit.connect(seller).execute(transfers);
 
-      console.log(transfers.length);
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, from, to, amount, identifier

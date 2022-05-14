@@ -9,7 +9,8 @@ import { TokenTransferrerErrors } from "contracts/interfaces/TokenTransferrerErr
 
 import { ReferenceNonceManager } from "./ReferenceNonceManager.sol";
 
-import "./ReferenceConsiderationConstants.sol";
+//import "./ReferenceConsiderationConstants.sol";
+import "contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title Assertions
