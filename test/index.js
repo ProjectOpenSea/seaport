@@ -52,14 +52,24 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     considerationComponents: toFulfillmentComponents(considerationsArr),
   });
 
-  const set721ApprovalForAll = async (signer, spender, approved = true) =>
-    expect(testERC721.connect(signer).setApprovalForAll(spender, approved))
-      .to.emit(testERC721, "ApprovalForAll")
+  const set721ApprovalForAll = async (
+    signer,
+    spender,
+    approved = true,
+    contract = testERC721
+  ) =>
+    expect(contract.connect(signer).setApprovalForAll(spender, approved))
+      .to.emit(contract, "ApprovalForAll")
       .withArgs(signer.address, spender, approved);
 
-  const set1155ApprovalForAll = async (signer, spender, approved = true) =>
-    expect(testERC1155.connect(signer).setApprovalForAll(spender, approved))
-      .to.emit(testERC1155, "ApprovalForAll")
+  const set1155ApprovalForAll = async (
+    signer,
+    spender,
+    approved = true,
+    contract = testERC1155
+  ) =>
+    expect(contract.connect(signer).setApprovalForAll(spender, approved))
+      .to.emit(contract, "ApprovalForAll")
       .withArgs(signer.address, spender, approved);
 
   const mintAndApproveERC20 = async (signer, spender, tokenAmount) => {
@@ -694,13 +704,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await contract.mint(receiver.address, identifier);
 
         // Receiver approves contract to transfer tokens
-        await whileImpersonating(receiver.address, provider, async () => {
-          await expect(
-            contract.connect(receiver).setApprovalForAll(approvalAddress, true)
-          )
-            .to.emit(contract, "ApprovalForAll")
-            .withArgs(receiver.address, approvalAddress, true);
-        });
+        await set721ApprovalForAll(receiver, approvalAddress, true, contract);
         break;
       case 3: // ERC1155
       case 5: // ERC1155_WITH_CRITERIA
@@ -709,13 +713,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await contract.mint(receiver.address, identifier, amount);
 
         // Receiver approves contract to transfer tokens
-        await whileImpersonating(receiver.address, provider, async () => {
-          await expect(
-            contract.connect(receiver).setApprovalForAll(approvalAddress, true)
-          )
-            .to.emit(contract, "ApprovalForAll")
-            .withArgs(receiver.address, approvalAddress, true);
-        });
+        await set1155ApprovalForAll(receiver, approvalAddress, true, contract);
         break;
     }
     return { itemType, token, from, to, identifier, amount };
@@ -10014,19 +10012,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .updateChannel(tempConduit.address, seller.address, true);
       });
 
-      // Get 3 Numbers that's value adds to Item Amount
+      // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       let itemsToCreate = 64;
-      let numERC20s = randomInt(itemsToCreate);
-      let numEC721s = randomInt(itemsToCreate - numERC20s);
-      let numERC1155s = itemsToCreate - numERC20s - numEC721s;
+      let numERC20s = randomInt(itemsToCreate - 2);
+      let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
       let erc20Contracts = [numERC20s];
       let erc20Transfers = [numERC20s];
 
-      let erc721Contracts = [numERC20s];
+      let erc721Contracts = [numEC721s];
       let erc721Transfers = [numEC721s];
 
-      let erc1155Contracts = [numERC20s];
+      let erc1155Contracts = [numERC1155s];
       let erc1155Transfers = [numERC1155s];
 
       // Create numERC20s amount of ERC20 objects
@@ -10079,40 +10077,38 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Contracts[i] = tempERC1155Contract;
         erc1155Transfers[i] = erc1155Transfer;
       }
+
       let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
       let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
       // Send the transfers
       await tempConduit.connect(seller).execute(transfers);
 
+      console.log(transfers.length);
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
-        // Get Itemtype
+        // Get Itemtype, token, from, to, amount, identifier
         itemType = transfers[i].itemType;
-        // Get Token
         token = contracts[i];
-        // Get From and To
         from = transfers[i].from;
         to = transfers[i].to;
+        amount = transfers[i].amount;
+        identifier = transfers[i].identifier;
 
         switch (itemType) {
           case 1: // ERC20
             // Check balance
             expect(await token.balanceOf(from)).to.equal(0);
-            expect(await token.balanceOf(to)).to.equal(transfers[i].amount);
+            expect(await token.balanceOf(to)).to.equal(amount);
             break;
           case 2: // ERC721
           case 4: // ERC721_WITH_CRITERIA
-            expect(await token.ownerOf(transfers[i].identifier)).to.equal(to);
+            expect(await token.ownerOf(identifier)).to.equal(to);
             break;
           case 3: // ERC1155
           case 5: // ERC1155_WITH_CRITERIA
             // Check balance
-            expect(
-              await token.balanceOf(from, transfers[i].identifier)
-            ).to.equal(0);
-            expect(await token.balanceOf(to, transfers[i].identifier)).to.equal(
-              transfers[i].amount
-            );
+            expect(await token.balanceOf(from, identifier)).to.equal(0);
+            expect(await token.balanceOf(to, identifier)).to.equal(amount);
             break;
         }
       }
