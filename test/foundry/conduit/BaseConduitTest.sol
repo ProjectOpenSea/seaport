@@ -192,6 +192,56 @@ contract BaseConduitTest is
             );
     }
 
+    function deploy1155TokensAndCreateConduitBatch1155Transfers(
+        BatchIntermediate[] memory batchIntermediates
+    ) internal returns (ConduitBatch1155Transfer[] memory) {
+        ConduitBatch1155Transfer[]
+            memory batchTransfers = new ConduitBatch1155Transfer[](
+                batchIntermediates.length
+            );
+
+        address[] memory tokenAddresses = new address[](5);
+        TestERC1155 erc1155_1 = new TestERC1155();
+        TestERC1155 erc1155_2 = new TestERC1155();
+        TestERC1155 erc1155_3 = new TestERC1155();
+        TestERC1155 erc1155_4 = new TestERC1155();
+        TestERC1155 erc1155_5 = new TestERC1155();
+
+        tokenAddresses[0] = address(erc1155_1);
+        tokenAddresses[1] = address(erc1155_2);
+        tokenAddresses[2] = address(erc1155_3);
+        tokenAddresses[3] = address(erc1155_4);
+        tokenAddresses[4] = address(erc1155_5);
+
+        for (uint256 i = 0; i < batchIntermediates.length; i++) {
+            uint256 intermediateIndex = i;
+            uint256[] memory ids = new uint256[](
+                batchIntermediates[i].idAmounts.length
+            );
+            uint256[] memory amounts = new uint256[](
+                batchIntermediates[i].idAmounts.length
+            );
+            for (
+                uint256 n = 0;
+                n < batchIntermediates[intermediateIndex].idAmounts.length;
+                n++
+            ) {
+                ids[n] = batchIntermediates[intermediateIndex].idAmounts[n].id;
+                amounts[n] = batchIntermediates[intermediateIndex]
+                    .idAmounts[n]
+                    .amount;
+            }
+            batchTransfers[i] = ConduitBatch1155Transfer(
+                tokenAddresses[i % 5],
+                batchIntermediates[i].from,
+                batchIntermediates[i].to,
+                ids,
+                amounts
+            );
+        }
+        return batchTransfers;
+    }
+
     function mintTokensAndSetTokenApprovalsForConduit(
         ConduitTransfer[] memory transfers,
         address conduitAddress

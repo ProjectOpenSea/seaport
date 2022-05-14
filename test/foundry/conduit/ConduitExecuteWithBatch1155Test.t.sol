@@ -14,8 +14,8 @@ import { ERC1155Recipient } from "../utils/ERC1155Recipient.sol";
 
 contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
     struct FuzzInputs {
-        ConduitTransferIntermediate[64] transferIntermediates;
-        BatchIntermediate[64] batchIntermediates;
+        ConduitTransferIntermediate[20] transferIntermediates;
+        BatchIntermediate[20] batchIntermediates;
     }
 
     struct Context {
