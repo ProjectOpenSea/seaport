@@ -9,6 +9,7 @@ const { TypedData, TypedDataUtils } = require("ethers-eip712");
 const { faucet, whileImpersonating } = require("./utils/impersonate");
 const { deployContract } = require("./utils/contracts");
 const { merkleTree } = require("./utils/criteria");
+const deployConstants = require("../constants/constants");
 const {
   randomHex,
   randomLarge,
@@ -1070,6 +1071,53 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       [owner].map((wallet) => faucet(wallet.address, provider))
     );
 
+    // Deploy keyless create2 deployer
+    await faucet(deployConstants.KEYLESS_CREATE2_DEPLOYER_ADDRESS, provider);
+    await provider.sendTransaction(
+      deployConstants.KEYLESS_CREATE2_DEPLOYMENT_TRANSACTION
+    );
+    let deployedCode = await provider.getCode(
+      deployConstants.KEYLESS_CREATE2_ADDRESS
+    );
+    expect(deployedCode).to.equal(deployConstants.KEYLESS_CREATE2_RUNTIME_CODE);
+
+    // Deploy inefficient deployer through keyless
+    await owner.sendTransaction({
+      to: deployConstants.KEYLESS_CREATE2_ADDRESS,
+      data: deployConstants.IMMUTABLE_CREATE2_FACTORY_CREATION_CODE,
+    });
+    deployedCode = await provider.getCode(
+      deployConstants.INEFFICIENT_IMMUTABLE_CREATE2_FACTORY_ADDRESS
+    );
+    expect(ethers.utils.keccak256(deployedCode)).to.equal(
+      deployConstants.IMMUTABLE_CREATE2_FACTORY_RUNTIME_HASH
+    );
+
+    const inefficientFactory = await ethers.getContractAt(
+      "ImmutableCreate2FactoryInterface",
+      deployConstants.INEFFICIENT_IMMUTABLE_CREATE2_FACTORY_ADDRESS,
+      owner
+    );
+
+    // Deploy effecient deployer through inefficient deployer
+    await inefficientFactory
+      .connect(owner)
+      .safeCreate2(
+        deployConstants.IMMUTABLE_CREATE2_FACTORY_SALT,
+        deployConstants.IMMUTABLE_CREATE2_FACTORY_CREATION_CODE
+      );
+    deployedCode = await provider.getCode(
+      deployConstants.IMMUTABLE_CREATE2_FACTORY_ADDRESS
+    );
+    expect(ethers.utils.keccak256(deployedCode)).to.equal(
+      deployConstants.IMMUTABLE_CREATE2_FACTORY_RUNTIME_HASH
+    );
+    const create2Factory = await ethers.getContractAt(
+      "ImmutableCreate2FactoryInterface",
+      deployConstants.IMMUTABLE_CREATE2_FACTORY_ADDRESS,
+      owner
+    );
+
     EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
 
     reenterer = await deployContract("Reenterer", owner);
@@ -1078,13 +1126,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       conduitImplementation = await ethers.getContractFactory(
         "ReferenceConduit"
       );
-      conduitController = await deployContract(
-        "ReferenceConduitController",
-        owner
-      );
+      conduitController = await deployContract("ConduitController", owner);
     } else {
       conduitImplementation = await ethers.getContractFactory("Conduit");
-      conduitController = await deployContract("ConduitController", owner);
+
+      // Deploy conduit controller through efficient create2 factory
+      const conduitControllerFactory = await ethers.getContractFactory(
+        "ConduitController"
+      );
+
+      const conduitControllerAddress = await create2Factory.findCreate2Address(
+        ethers.constants.HashZero, // TODO: find a good one
+        conduitControllerFactory.bytecode
+      );
+
+      await create2Factory.safeCreate2(
+        ethers.constants.HashZero, // TODO: find a good one
+        conduitControllerFactory.bytecode
+      );
+
+      conduitController = await ethers.getContractAt(
+        "ConduitController",
+        conduitControllerAddress,
+        owner
+      );
     }
 
     conduitKeyOne = `0x000000000000000000000000${owner.address.slice(2)}`;
@@ -1098,10 +1163,34 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     conduitOne = conduitImplementation.attach(conduitOneAddress);
 
-    marketplaceContract = await deployContract(
-      "Consideration",
-      owner,
-      conduitController.address
+    // Deploy marketplace contract through efficient create2 factory
+    const marketplaceContractFactory = await ethers.getContractFactory(
+      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration"
+    );
+
+    const marketplaceContractAddress = await create2Factory.findCreate2Address(
+      ethers.constants.HashZero, // TODO: find a good one
+      marketplaceContractFactory.bytecode +
+        conduitController.address.slice(2).padStart(64, "0")
+    );
+
+    const { gasLimit } = await provider.getBlock();
+
+    const tx = await create2Factory.safeCreate2(
+      ethers.constants.HashZero, // TODO: find a good one
+      marketplaceContractFactory.bytecode +
+        conduitController.address.slice(2).padStart(64, "0"),
+      {
+        gasLimit,
+      }
+    );
+
+    const { gasUsed } = await tx.wait(); // as of now: 5_479_569
+
+    marketplaceContract = await ethers.getContractAt(
+      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
+      marketplaceContractAddress,
+      owner
     );
 
     await conduitController
@@ -8657,7 +8746,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const nftId = ethers.BigNumber.from(randomHex());
         const endAmount = ethers.BigNumber.from(randomHex().slice(0, 5));
         const startAmount = endAmount.div(2);
-        console.log(endAmount, startAmount);
 
         await testERC1155.mint(seller.address, nftId, endAmount.mul(10));
 
