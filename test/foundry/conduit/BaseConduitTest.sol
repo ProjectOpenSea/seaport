@@ -41,15 +41,7 @@ contract BaseConduitTest is
     modifier resetTokenBalancesBetweenRuns(ConduitTransfer[] memory transfers) {
         vm.record();
         _;
-        _resetTokenBalances(transfers);
-    }
-
-    function _resetTokenBalances(ConduitTransfer[] memory transfers) internal {
-        for (uint256 i = 0; i < transfers.length; i++) {
-            ConduitTransfer memory transfer = transfers[i];
-            _resetStorage(transfers[i].token);
-        }
-        _resetStorage(address(this));
+        resetTokenBalances(transfers);
     }
 
     function setUp() public virtual override {
@@ -62,11 +54,11 @@ contract BaseConduitTest is
         );
     }
 
-    function isErc1155Receiver(address to) internal returns (bool success) {
+    function isErc1155Receiver(address to) internal returns (bool) {
         if (to == address(0)) {
             return false;
         } else if (to.code.length > 0) {
-            (success, ) = to.call(
+            (bool success, bytes memory returnData) = to.call(
                 abi.encodePacked(
                     ERC1155TokenReceiver.onERC1155Received.selector,
                     address(0),
@@ -76,33 +68,42 @@ contract BaseConduitTest is
                     ""
                 )
             );
+            return
+                success &&
+                keccak256(returnData) ==
+                keccak256(
+                    abi.encode(ERC1155TokenReceiver.onERC1155Received.selector)
+                );
         } else {
             return true;
         }
     }
 
-    ///@dev helper to make sure fuzzed addresses can receive erc1155s by changing it if it can't
-    function receiver(address to) internal returns (address) {
-        if (!isErc1155Receiver(to)) {
-            if (uint160(to) == 2**160 - 1) {
-                return address(uint160(to) - 1);
-            }
-            return address(uint160(to) + 1);
+    ///@dev helper to make sure fuzzed addresses can receive tokens by changing it if it can't
+    function receiver(address addr) internal returns (address) {
+        // 0 address is not valid mint or origin address
+        if (addr == address(0)) {
+            return address(1);
         }
-        return to;
+        if (!isErc1155Receiver(addr)) {
+            return address(uint160(addr) + 1);
+        }
+        return addr;
     }
 
+    /**
+     * @dev
+     */
     function createNumTokenIdsConduitTransfers(
         ConduitTransferIntermediate memory intermediate,
         address tokenAddress,
         ConduitItemType itemType,
         address from,
         address to
-    ) internal returns (ConduitTransfer[] memory) {
+    ) internal pure returns (ConduitTransfer[] memory) {
         ConduitTransfer[] memory transfers;
         if (itemType == ConduitItemType.ERC20) {
             transfers = new ConduitTransfer[](1);
-            TestERC20(tokenAddress).mint(from, intermediate.amount);
             transfers[0] = ConduitTransfer(
                 itemType,
                 tokenAddress,
@@ -111,16 +112,12 @@ contract BaseConduitTest is
                 0,
                 intermediate.amount
             );
+            return transfers;
         }
         uint256 truncatedNumTokenIds = (intermediate.numTokenIds % 8) + 1;
         transfers = new ConduitTransfer[](truncatedNumTokenIds);
         for (uint256 i = 0; i < truncatedNumTokenIds; i++) {
             if (itemType == ConduitItemType.ERC1155) {
-                TestERC1155(tokenAddress).mint(
-                    from,
-                    intermediate.identifier + i,
-                    intermediate.amount
-                );
                 transfers[i] = ConduitTransfer(
                     itemType,
                     tokenAddress,
@@ -130,10 +127,6 @@ contract BaseConduitTest is
                     intermediate.amount
                 );
             } else if (itemType == ConduitItemType.ERC721) {
-                TestERC721(tokenAddress).mint(
-                    from,
-                    intermediate.identifier + i
-                );
                 transfers[i] = ConduitTransfer(
                     itemType,
                     tokenAddress,
@@ -150,7 +143,7 @@ contract BaseConduitTest is
     function extendConduitTransferArray(
         ConduitTransfer[] memory original,
         ConduitTransfer[] memory extension
-    ) internal returns (ConduitTransfer[] memory) {
+    ) internal pure returns (ConduitTransfer[] memory) {
         ConduitTransfer[] memory transfers = new ConduitTransfer[](
             original.length + extension.length
         );
@@ -163,51 +156,67 @@ contract BaseConduitTest is
         return transfers;
     }
 
-    function createTokenAndConduitTransfer(
-        ConduitTransferIntermediate memory intermediate,
-        address currentConduit
+    /**
+     * @dev given ConduitTransferIntermediate, return an array of 1-8 ConduitTransfers
+     * specifying multiple tokenIds (when appropriate)
+     */
+    function deployTokenAndCreateConduitTransfers(
+        ConduitTransferIntermediate memory intermediate
     ) internal returns (ConduitTransfer[] memory) {
         ConduitItemType itemType = ConduitItemType(
             (intermediate.itemType % 3) + 1
         );
+        address token;
+        if (itemType == ConduitItemType.ERC20) {
+            token = address(new TestERC20());
+        } else if (itemType == ConduitItemType.ERC1155) {
+            token = address(new TestERC1155());
+        } else {
+            token = address(new TestERC721());
+        }
+
+        // re-calculate from+to after constructing token because forge fuzzer
+        // is apparently smart enough to know where the tokens will be deployed
+        // leading to issues with onERC1155Received
+        // note: might have to pre-deploy all tokens first if issue persists
         address from = receiver(intermediate.from);
         address to = receiver(intermediate.to);
-        if (itemType == ConduitItemType.ERC20) {
-            TestERC20 erc20 = new TestERC20();
-            vm.prank(from);
-            erc20.approve(currentConduit, 2**256 - 1);
-            return
-                createNumTokenIdsConduitTransfers(
-                    intermediate,
-                    address(erc20),
-                    itemType,
-                    from,
-                    to
-                );
-        } else if (itemType == ConduitItemType.ERC1155) {
-            TestERC1155 erc1155 = new TestERC1155();
-            vm.prank(from);
-            erc1155.setApprovalForAll(currentConduit, true);
-            return
-                createNumTokenIdsConduitTransfers(
-                    intermediate,
-                    address(erc1155),
-                    itemType,
-                    from,
-                    to
-                );
-        } else {
-            TestERC721 erc721 = new TestERC721();
-            vm.prank(from);
-            erc721.setApprovalForAll(currentConduit, true);
-            return
-                createNumTokenIdsConduitTransfers(
-                    intermediate,
-                    address(erc721),
-                    itemType,
-                    from,
-                    to
-                );
+
+        return
+            createNumTokenIdsConduitTransfers(
+                intermediate,
+                token,
+                itemType,
+                from,
+                to
+            );
+    }
+
+    function mintTokensAndSetTokenApprovalsForConduit(
+        ConduitTransfer[] memory transfers,
+        address conduitAddress
+    ) internal {
+        for (uint256 i = 0; i < transfers.length; i++) {
+            ConduitTransfer memory transfer = transfers[i];
+            ConduitItemType itemType = transfer.itemType;
+            address from = transfer.from;
+            address token = transfer.token;
+            if (itemType == ConduitItemType.ERC20) {
+                TestERC20 erc20 = TestERC20(token);
+                erc20.mint(from, transfer.amount);
+                vm.prank(from);
+                erc20.approve(conduitAddress, 2**256 - 1);
+            } else if (itemType == ConduitItemType.ERC1155) {
+                TestERC1155 erc1155 = TestERC1155(token);
+                erc1155.mint(from, transfer.identifier, transfer.amount);
+                vm.prank(from);
+                erc1155.setApprovalForAll(conduitAddress, true);
+            } else {
+                TestERC721 erc721 = TestERC721(token);
+                erc721.mint(from, transfer.identifier);
+                vm.prank(from);
+                erc721.setApprovalForAll(conduitAddress, true);
+            }
         }
     }
 
@@ -238,7 +247,7 @@ contract BaseConduitTest is
             ConduitBatch1155Transfer(address(erc1155), from, to, ids, amounts);
     }
 
-    function _expectedBalance(ConduitTransfer memory transfer)
+    function getExpectedTokenBalance(ConduitTransfer memory transfer)
         internal
         view
         returns (uint256)
@@ -249,7 +258,9 @@ contract BaseConduitTest is
             ];
     }
 
-    function preprocessTransfers(ConduitTransfer[] memory transfers) internal {
+    function updateExpectedTokenBalances(ConduitTransfer[] memory transfers)
+        internal
+    {
         for (uint256 i = 0; i < transfers.length; i++) {
             ConduitTransfer memory transfer = transfers[i];
             ConduitItemType itemType = transfer.itemType;
@@ -263,5 +274,15 @@ contract BaseConduitTest is
         userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
             transfer.identifier
         ] += transfer.amount;
+    }
+
+    /**
+     * @dev reset all token contract storage changed since vm.record was started
+     */
+    function resetTokenBalances(ConduitTransfer[] memory transfers) internal {
+        for (uint256 i = 0; i < transfers.length; i++) {
+            ConduitTransfer memory transfer = transfers[i];
+            _resetStorage(transfer.token);
+        }
     }
 }
