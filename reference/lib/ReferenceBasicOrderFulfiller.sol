@@ -19,7 +19,12 @@ import {
     ReceivedItem
 } from "contracts/lib/ConsiderationStructs.sol";
 
-import { AccumulatorStruct, BasicFulfillmentHashes, FulfillmentItemTypes } from "./ReferenceConsiderationStructs.sol";
+// prettier-ignore
+import {
+    AccumulatorStruct,
+    BasicFulfillmentHashes,
+    FulfillmentItemTypes
+} from "./ReferenceConsiderationStructs.sol";
 
 import { ReferenceOrderValidator } from "./ReferenceOrderValidator.sol";
 
