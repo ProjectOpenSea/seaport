@@ -4,6 +4,7 @@ pragma solidity 0.8.7;
 // prettier-ignore
 import {
     OrderType,
+    BasicOrderType,
     ItemType,
     BasicOrderRouteType
 } from "contracts/lib/ConsiderationEnums.sol";
@@ -18,7 +19,12 @@ import {
     ReceivedItem
 } from "contracts/lib/ConsiderationStructs.sol";
 
-import { AccumulatorStruct, BasicFulfillmentHashes, FulfillmentItemTypes } from "./ReferenceConsiderationStructs.sol";
+// prettier-ignore
+import {
+    AccumulatorStruct,
+    BasicFulfillmentHashes,
+    FulfillmentItemTypes
+} from "./ReferenceConsiderationStructs.sol";
 
 import { ReferenceOrderValidator } from "./ReferenceOrderValidator.sol";
 
@@ -71,55 +77,154 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
     function _validateAndFulfillBasicOrder(
         BasicOrderParameters calldata parameters
     ) internal returns (bool) {
-        // Declare enums for order type & route to extract from basicOrderType.
-        BasicOrderRouteType route = BasicOrderRouteType(
-            uint8(parameters.basicOrderType) / 4
-        );
-
-        OrderType orderType = OrderType(uint8(parameters.basicOrderType) % 4);
-
-        // Declare additional recipient item type to derive from the route type.
-        ItemType additionalRecipientsItemType = ItemType(
-            uint8(route) > 1 ? 1 : 0
-        );
-
+        // Determine the basic order route type from the basic order type.
+        BasicOrderRouteType route;
         {
-            // Declare temporary variable for enforcing payable status.
-            bool correctPayableStatus = (msg.value != 0 &&
-                additionalRecipientsItemType == ItemType.NATIVE) ||
-                (msg.value == 0 &&
-                    additionalRecipientsItemType == ItemType.ERC20);
-
-            // Revert if msg.value has not been supplied as part of payable
-            // routes or has been supplied as part of non-payable routes.
-            if (!correctPayableStatus) {
-                revert InvalidMsgValue(msg.value);
+            BasicOrderType basicType = parameters.basicOrderType;
+            if (
+                basicType == BasicOrderType.ETH_TO_ERC721_FULL_OPEN ||
+                basicType == BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ETH_TO_ERC721_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ETH_TO_ERC721_PARTIAL_RESTRICTED
+            ) {
+                route = BasicOrderRouteType.ETH_TO_ERC721;
+            } else if (
+                basicType == BasicOrderType.ETH_TO_ERC1155_FULL_OPEN ||
+                basicType == BasicOrderType.ETH_TO_ERC1155_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ETH_TO_ERC1155_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ETH_TO_ERC1155_PARTIAL_RESTRICTED
+            ) {
+                route = BasicOrderRouteType.ETH_TO_ERC1155;
+            } else if (
+                basicType == BasicOrderType.ERC20_TO_ERC721_FULL_OPEN ||
+                basicType == BasicOrderType.ERC20_TO_ERC721_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ERC20_TO_ERC721_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ERC20_TO_ERC721_PARTIAL_RESTRICTED
+            ) {
+                route = BasicOrderRouteType.ERC20_TO_ERC721;
+            } else if (
+                basicType == BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN ||
+                basicType == BasicOrderType.ERC20_TO_ERC1155_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ERC20_TO_ERC1155_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ERC20_TO_ERC1155_PARTIAL_RESTRICTED
+            ) {
+                route = BasicOrderRouteType.ERC20_TO_ERC1155;
+            } else if (
+                basicType == BasicOrderType.ERC721_TO_ERC20_FULL_OPEN ||
+                basicType == BasicOrderType.ERC721_TO_ERC20_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ERC721_TO_ERC20_PARTIAL_RESTRICTED
+            ) {
+                route = BasicOrderRouteType.ERC721_TO_ERC20;
+            } else {
+                route = BasicOrderRouteType.ERC1155_TO_ERC20;
             }
         }
 
-        // Declare more arguments that will be derived from route and calldata.
-        address additionalRecipientsToken = uint8(route) > 3
-            ? parameters.offerToken
-            : parameters.considerationToken;
+        // Determine the order type from the basic order type.
+        OrderType orderType;
+        {
+            BasicOrderType basicType = parameters.basicOrderType;
+            if (
+                basicType == BasicOrderType.ETH_TO_ERC721_FULL_OPEN ||
+                basicType == BasicOrderType.ETH_TO_ERC1155_FULL_OPEN ||
+                basicType == BasicOrderType.ERC20_TO_ERC721_FULL_OPEN ||
+                basicType == BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN ||
+                basicType == BasicOrderType.ERC721_TO_ERC20_FULL_OPEN ||
+                basicType == BasicOrderType.ERC1155_TO_ERC20_FULL_OPEN
+            ) {
+                orderType = OrderType.FULL_OPEN;
+            } else if (
+                basicType == BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ETH_TO_ERC1155_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ERC20_TO_ERC721_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ERC20_TO_ERC1155_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ERC721_TO_ERC20_PARTIAL_OPEN ||
+                basicType == BasicOrderType.ERC1155_TO_ERC20_PARTIAL_OPEN
+            ) {
+                orderType = OrderType.PARTIAL_OPEN;
+            } else if (
+                basicType == BasicOrderType.ETH_TO_ERC721_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ETH_TO_ERC1155_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ERC20_TO_ERC721_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ERC20_TO_ERC1155_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED ||
+                basicType == BasicOrderType.ERC1155_TO_ERC20_FULL_RESTRICTED
+            ) {
+                orderType = OrderType.FULL_RESTRICTED;
+            } else {
+                orderType = OrderType.PARTIAL_RESTRICTED;
+            }
+        }
 
-        ItemType receivedItemType = uint8(route) > 2
-            ? ItemType(uint8(route) - 2)
-            : (
-                route == BasicOrderRouteType.ERC20_TO_ERC721
-                    ? ItemType.ERC20
-                    : ItemType.NATIVE
-            );
+        // Declare additional recipient item type to derive from the route type.
+        ItemType additionalRecipientsItemType;
+        if (
+            route == BasicOrderRouteType.ETH_TO_ERC721 ||
+            route == BasicOrderRouteType.ETH_TO_ERC1155
+        ) {
+            additionalRecipientsItemType = ItemType.NATIVE;
+        } else {
+            additionalRecipientsItemType = ItemType.ERC20;
+        }
 
-        ItemType offeredItemType = uint8(route) > 3
-            ? ItemType.ERC20
-            : (
-                uint8(route) > 1
-                    ? ItemType(uint8(route))
-                    : ItemType(uint8(route) + 2)
-            );
+        // Revert if msg.value was not supplied as part of a payable route.
+        if (msg.value == 0 && additionalRecipientsItemType == ItemType.NATIVE) {
+            revert InvalidMsgValue(msg.value);
+        }
+
+        // Revert if msg.value was supplied as part of a non-payable route.
+        if (msg.value != 0 && additionalRecipientsItemType == ItemType.ERC20) {
+            revert InvalidMsgValue(msg.value);
+        }
+
+        // Determine the token that additional recipients should have set.
+        address additionalRecipientsToken;
+        if (
+            route == BasicOrderRouteType.ERC721_TO_ERC20 ||
+            route == BasicOrderRouteType.ERC1155_TO_ERC20
+        ) {
+            additionalRecipientsToken = parameters.offerToken;
+        } else {
+            additionalRecipientsToken = parameters.considerationToken;
+        }
+
+        // Determine the item type for received items.
+        ItemType receivedItemType;
+        if (
+            route == BasicOrderRouteType.ETH_TO_ERC721 ||
+            route == BasicOrderRouteType.ETH_TO_ERC1155
+        ) {
+            receivedItemType = ItemType.NATIVE;
+        } else if (
+            route == BasicOrderRouteType.ERC20_TO_ERC721 ||
+            route == BasicOrderRouteType.ERC20_TO_ERC1155
+        ) {
+            receivedItemType = ItemType.ERC20;
+        } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
+            receivedItemType = ItemType.ERC721;
+        } else {
+            receivedItemType = ItemType.ERC1155;
+        }
+
+        // Determine the item type for the offered item.
+        ItemType offeredItemType;
+        if (
+            route == BasicOrderRouteType.ERC721_TO_ERC20 ||
+            route == BasicOrderRouteType.ERC1155_TO_ERC20
+        ) {
+            offeredItemType = ItemType.ERC20;
+        } else if (
+            route == BasicOrderRouteType.ETH_TO_ERC721 ||
+            route == BasicOrderRouteType.ERC20_TO_ERC721
+        ) {
+            offeredItemType = ItemType.ERC721;
+        } else {
+            offeredItemType = ItemType.ERC1155;
+        }
 
         // Derive & validate order using parameters and update order status.
-        _prepareBasicFulfillmentFromCalldata(
+        _prepareBasicFulfillment(
             parameters,
             orderType,
             receivedItemType,
@@ -131,13 +236,19 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         // Read offerer from calldata and place on the stack.
         address payable offerer = parameters.offerer;
 
-        // Declare conduitKey argument used by transfer functions.
-        bytes32 conduitKey = uint8(route) > 3
-            ? parameters.fulfillerConduitKey
-            : parameters.offererConduitKey;
+        // Determine conduitKey argument used by transfer functions.
+        bytes32 conduitKey;
+        if (
+            route == BasicOrderRouteType.ERC721_TO_ERC20 ||
+            route == BasicOrderRouteType.ERC1155_TO_ERC20
+        ) {
+            conduitKey = parameters.fulfillerConduitKey;
+        } else {
+            conduitKey = parameters.offererConduitKey;
+        }
 
-        // Declare transfer accumulator — it will extend memory where needed.
-        //bytes memory accumulator = new bytes(32);
+        // Declare transfer accumulator that will collect transfers that can be
+        // bundled into a single call to their associated conduit.
         AccumulatorStruct memory accumulatorStruct;
 
         // Transfer tokens based on the route.
@@ -268,12 +379,12 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
     }
 
     /**
-     * @dev Internal function to calculate the order hash
+     * @dev Internal function to calculate the order hash.
      *
-     * @param hashes                       The array of offerItems and
-     *                                     receivedItems hashes.
-     * @param parameters                   The parameters of the basic order.
-     * @param fulfillmentItemTypes         The fulfillment's item type.
+     * @param hashes               The array of offerItems and receivedItems
+     *                             hashes.
+     * @param parameters           The parameters of the basic order.
+     * @param fulfillmentItemTypes The fulfillment's item type.
      */
     function _hashOrder(
         BasicFulfillmentHashes memory hashes,
@@ -303,20 +414,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
     }
 
     /**
-     * @dev Internal function to prepare fulfillment of a basic order with
-     *      manual calldata and memory access. This calculates the order hash,
-     *      emits an OrderFulfilled event, and asserts basic order validity.
-     *      Note that calldata offsets must be validated as this function
-     *      accesses constant calldata pointers for dynamic types that match
-     *      default ABI encoding, but valid ABI encoding can use arbitrary
-     *      offsets. Checking that the offsets were produced by default encoding
-     *      will ensure that other functions using Solidity's calldata accessors
-     *      (which calculate pointers from the stored offsets) are reading the
-     *      same data as the order hash is derived from. Also note that This
-     *      function accesses memory directly. It does not clear the expanded
-     *      memory regions used, nor does it update the free memory pointer, so
-     *      other direct memory access must not assume that unused memory is
-     *      empty.
+     * @dev Internal function to prepare fulfillment of a basic order. This
+     *      calculates the order hash, emits an OrderFulfilled event, and
+     *      asserts basic order validity.
      *
      * @param parameters                   The parameters of the basic order.
      * @param orderType                    The order type.
@@ -330,7 +430,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      * @param offeredItemType              The item type of the offered item on
      *                                     the order.
      */
-    function _prepareBasicFulfillmentFromCalldata(
+    function _prepareBasicFulfillment(
         BasicOrderParameters calldata parameters,
         OrderType orderType,
         ItemType receivedItemType,
@@ -342,9 +442,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         _verifyTime(parameters.startTime, parameters.endTime, true);
 
         // Verify that calldata offsets for all dynamic types were produced by
-        // default encoding. This ensures that the constants we use for calldata
-        // pointers to dynamic types are the same as those calculated by
-        // Solidity using their offsets.
+        // default encoding. This is only required on the optimized contract,
+        // but is included here to maintain parity.
         _assertValidBasicOrderParameterOffsets();
 
         // Ensure supplied consideration array length is not less than original.
