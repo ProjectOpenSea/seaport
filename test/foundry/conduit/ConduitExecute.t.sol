@@ -21,50 +21,37 @@ contract ConduitExecuteTest is BaseConduitTest {
         ConduitTransfer[] transfers;
     }
 
-    mapping(address => mapping(address => mapping(uint256 => uint256))) userToExpectedTokenIdentifierBalance;
-
-    function updateExpectedBalance(ConduitTransfer memory transfer) internal {
-        userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
-            transfer.identifier
-        ] += transfer.amount;
-    }
-
-    function preprocessTransfers(ConduitTransfer[] memory transfers) internal {
-        for (uint256 i = 0; i < transfers.length; i++) {
-            ConduitTransfer memory transfer = transfers[i];
-            ConduitItemType itemType = transfer.itemType;
-            if (itemType != ConduitItemType.ERC721) {
-                updateExpectedBalance(transfers[i]);
-            }
-        }
-    }
-
     function testExecute(FuzzInputs memory inputs) public {
-        ConduitTransfer[] memory transfers = new ConduitTransfer[](
-            inputs.intermediates.length
-        );
+        ConduitTransfer[] memory transfers = new ConduitTransfer[](0);
         for (uint8 i; i < inputs.intermediates.length; i++) {
-            transfers[i] = createTokenAndConduitTransfer(
-                inputs.intermediates[i],
-                address(referenceConduit)
+            extendConduitTransferArray(
+                transfers,
+                createTokenAndConduitTransfer(
+                    inputs.intermediates[i],
+                    address(referenceConduit)
+                )
             );
         }
         preprocessTransfers(transfers);
         _testExecute(Context(referenceConduit, transfers));
+        transfers = new ConduitTransfer[](0);
+        for (uint8 i; i < inputs.intermediates.length; i++) {
+            extendConduitTransferArray(
+                transfers,
+                createTokenAndConduitTransfer(
+                    inputs.intermediates[i],
+                    address(conduit)
+                )
+            );
+        }
+        preprocessTransfers(transfers);
+        _testExecute(Context(conduit, transfers));
     }
 
-    function _expectedBalance(ConduitTransfer memory transfer)
+    function _testExecute(Context memory context)
         internal
-        view
-        returns (uint256)
+        resetTokenBalancesBetweenRuns(context.transfers)
     {
-        return
-            userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
-                transfer.identifier
-            ];
-    }
-
-    function _testExecute(Context memory context) internal {
         bytes4 magicValue = context.conduit.execute(context.transfers);
         assertEq(magicValue, Conduit.execute.selector);
 

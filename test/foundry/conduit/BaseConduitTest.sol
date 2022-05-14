@@ -15,17 +15,16 @@ contract BaseConduitTest is
     ERC1155Recipient,
     ERC721Recipient
 {
-    TestERC20[] erc20s;
-    TestERC721[] erc721s;
-    TestERC1155[] erc1155s;
+    mapping(address => mapping(address => mapping(uint256 => uint256))) userToExpectedTokenIdentifierBalance;
 
     struct ConduitTransferIntermediate {
         uint8 itemType;
         address from;
         address to;
-        uint256 identifier;
+        uint128 identifier;
         // uint128 so minting won't overflow if same erc1155 ids are minted
         uint128 amount;
+        uint8 numTokenIds;
     }
 
     struct IdAmount {
@@ -37,6 +36,20 @@ contract BaseConduitTest is
         address from;
         address to;
         IdAmount[] idAmounts;
+    }
+
+    modifier resetTokenBalancesBetweenRuns(ConduitTransfer[] memory transfers) {
+        vm.record();
+        _;
+        _resetTokenBalances(transfers);
+    }
+
+    function _resetTokenBalances(ConduitTransfer[] memory transfers) internal {
+        for (uint256 i = 0; i < transfers.length; i++) {
+            ConduitTransfer memory transfer = transfers[i];
+            _resetStorage(transfers[i].token);
+        }
+        _resetStorage(address(this));
     }
 
     function setUp() public virtual override {
@@ -79,10 +92,81 @@ contract BaseConduitTest is
         return to;
     }
 
+    function createNumTokenIdsConduitTransfers(
+        ConduitTransferIntermediate memory intermediate,
+        address tokenAddress,
+        ConduitItemType itemType,
+        address from,
+        address to
+    ) internal returns (ConduitTransfer[] memory) {
+        ConduitTransfer[] memory transfers;
+        if (itemType == ConduitItemType.ERC20) {
+            transfers = new ConduitTransfer[](1);
+            TestERC20(tokenAddress).mint(from, intermediate.amount);
+            transfers[0] = ConduitTransfer(
+                itemType,
+                tokenAddress,
+                from,
+                to,
+                0,
+                intermediate.amount
+            );
+        }
+        uint256 truncatedNumTokenIds = (intermediate.numTokenIds % 8) + 1;
+        transfers = new ConduitTransfer[](truncatedNumTokenIds);
+        for (uint256 i = 0; i < truncatedNumTokenIds; i++) {
+            if (itemType == ConduitItemType.ERC1155) {
+                TestERC1155(tokenAddress).mint(
+                    from,
+                    intermediate.identifier + i,
+                    intermediate.amount
+                );
+                transfers[i] = ConduitTransfer(
+                    itemType,
+                    tokenAddress,
+                    from,
+                    to,
+                    intermediate.identifier + i,
+                    intermediate.amount
+                );
+            } else if (itemType == ConduitItemType.ERC721) {
+                TestERC721(tokenAddress).mint(
+                    from,
+                    intermediate.identifier + i
+                );
+                transfers[i] = ConduitTransfer(
+                    itemType,
+                    tokenAddress,
+                    from,
+                    to,
+                    intermediate.identifier + i,
+                    1
+                );
+            }
+        }
+        return transfers;
+    }
+
+    function extendConduitTransferArray(
+        ConduitTransfer[] memory original,
+        ConduitTransfer[] memory extension
+    ) internal returns (ConduitTransfer[] memory) {
+        ConduitTransfer[] memory transfers = new ConduitTransfer[](
+            original.length + extension.length
+        );
+        for (uint256 i = 0; i < original.length; i++) {
+            transfers[i] = original[i];
+        }
+        for (uint256 i = 0; i < extension.length; i++) {
+            transfers[i + original.length] = extension[i];
+        }
+        return transfers;
+    }
+
     function createTokenAndConduitTransfer(
         ConduitTransferIntermediate memory intermediate,
         address currentConduit
-    ) internal returns (ConduitTransfer memory) {
+    ) internal returns (ConduitTransfer[] memory) {
         ConduitItemType itemType = ConduitItemType(
             (intermediate.itemType % 3) + 1
         );
@@ -90,48 +174,39 @@ contract BaseConduitTest is
         address to = receiver(intermediate.to);
         if (itemType == ConduitItemType.ERC20) {
             TestERC20 erc20 = new TestERC20();
-            erc20.mint(from, intermediate.amount);
             vm.prank(from);
             erc20.approve(currentConduit, 2**256 - 1);
-            erc20s.push(erc20);
             return
-                ConduitTransfer(
-                    itemType,
+                createNumTokenIdsConduitTransfers(
+                    intermediate,
                     address(erc20),
+                    itemType,
                     from,
-                    to,
-                    0,
-                    intermediate.amount
+                    to
                 );
         } else if (itemType == ConduitItemType.ERC1155) {
             TestERC1155 erc1155 = new TestERC1155();
-            erc1155.mint(from, intermediate.identifier, intermediate.amount);
             vm.prank(from);
             erc1155.setApprovalForAll(currentConduit, true);
-            erc1155s.push(erc1155);
             return
-                ConduitTransfer(
-                    itemType,
+                createNumTokenIdsConduitTransfers(
+                    intermediate,
                     address(erc1155),
+                    itemType,
                     from,
-                    to,
-                    intermediate.identifier,
-                    intermediate.amount
+                    to
                 );
         } else {
             TestERC721 erc721 = new TestERC721();
-            erc721.mint(from, intermediate.identifier);
             vm.prank(from);
             erc721.setApprovalForAll(currentConduit, true);
-            erc721s.push(erc721);
             return
-                ConduitTransfer(
-                    itemType,
+                createNumTokenIdsConduitTransfers(
+                    intermediate,
                     address(erc721),
+                    itemType,
                     from,
-                    to,
-                    intermediate.identifier,
-                    1
+                    to
                 );
         }
     }
@@ -156,11 +231,37 @@ contract BaseConduitTest is
             );
             vm.prank(from);
             erc1155.setApprovalForAll(currentConduit, true);
-            erc1155s.push(erc1155);
             ids[i] = intermediate.idAmounts[i].id;
             amounts[i] = intermediate.idAmounts[i].amount;
         }
         return
             ConduitBatch1155Transfer(address(erc1155), from, to, ids, amounts);
+    }
+
+    function _expectedBalance(ConduitTransfer memory transfer)
+        internal
+        view
+        returns (uint256)
+    {
+        return
+            userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
+                transfer.identifier
+            ];
+    }
+
+    function preprocessTransfers(ConduitTransfer[] memory transfers) internal {
+        for (uint256 i = 0; i < transfers.length; i++) {
+            ConduitTransfer memory transfer = transfers[i];
+            ConduitItemType itemType = transfer.itemType;
+            if (itemType != ConduitItemType.ERC721) {
+                updateExpectedBalance(transfers[i]);
+            }
+        }
+    }
+
+    function updateExpectedBalance(ConduitTransfer memory transfer) internal {
+        userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
+            transfer.identifier
+        ] += transfer.amount;
     }
 }
