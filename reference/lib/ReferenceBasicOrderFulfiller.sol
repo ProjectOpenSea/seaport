@@ -197,9 +197,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         ) {
             receivedItemType = ItemType.ERC20;
         } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
-            receivedItemType == ItemType.ERC721;
+            receivedItemType = ItemType.ERC721;
         } else {
-            receivedItemType == ItemType.ERC1155;
+            receivedItemType = ItemType.ERC1155;
         }
 
         // Determine the item type for the offered item.
