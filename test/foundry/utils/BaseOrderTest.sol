@@ -73,6 +73,9 @@ contract BaseOrderTest is
     Fulfillment secondFulfillment;
     Fulfillment thirdFulfillment;
     Fulfillment fourthFulfillment;
+    FulfillmentComponent fulfillmentComponent;
+    FulfillmentComponent[] fulfillmentComponents;
+    Fulfillment fulfillment;
 
     uint256 internal globalTokenId;
 
@@ -227,31 +230,6 @@ contract BaseOrderTest is
         );
     }
 
-    function _configureEthConsiderationItem(uint256 paymentAmount) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            paymentAmount,
-            paymentAmount,
-            alice
-        );
-    }
-
-    function _configureEthConsiderationItem(
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            startAmount,
-            endAmount,
-            alice
-        );
-    }
-
     function _configureEthConsiderationItem(
         address payable recipient,
         uint256 paymentAmount
@@ -278,17 +256,6 @@ contract BaseOrderTest is
             startAmount,
             endAmount,
             recipient
-        );
-    }
-
-    function _configureErc20ConsiderationItem(uint256 paymentAmount) internal {
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            paymentAmount,
-            paymentAmount,
-            alice
         );
     }
 
@@ -306,17 +273,27 @@ contract BaseOrderTest is
         );
     }
 
-    function _configureErc20ConsiderationItem(
-        uint256 startAmount,
-        uint256 endAmount
+    function _configureErc721ConsiderationItem(
+        address payable recipient,
+        uint256 tokenId
     ) internal {
         _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
+            ItemType.ERC721,
+            address(test721_1),
+            tokenId,
+            1,
+            1,
+            recipient
+        );
+    }
+
+    function _configureEthOfferItem(uint256 paymentAmount) internal {
+        _configureOfferItem(
+            ItemType.NATIVE,
+            address(0),
             0,
-            startAmount,
-            endAmount,
-            alice
+            paymentAmount,
+            paymentAmount
         );
     }
 
@@ -462,19 +439,6 @@ contract BaseOrderTest is
     }
 
     /**
-     * @dev reset all storage written at an address thus far to 0; will overwrite totalSupply()for ERC20s but that should be fine
-     *      with the goal of resetting the balances and owners of tokens - but note: should be careful about approvals, etc
-     *
-     *      note: must be called in conjunction with vm.record()
-     */
-    function _resetStorage(address _addr) internal {
-        (, bytes32[] memory writeSlots) = vm.accesses(_addr);
-        for (uint256 i = 0; i < writeSlots.length; i++) {
-            vm.store(_addr, writeSlots[i], bytes32(0));
-        }
-    }
-
-    /**
      * @dev reset token balance for an address to uint128(MAX_INT)
      */
     function _restoreERC20Balance(
@@ -487,5 +451,5 @@ contract BaseOrderTest is
             .checked_write(uint128(MAX_INT));
     }
 
-    receive() external payable {}
+    receive() external payable virtual {}
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.7;
+pragma solidity ^0.8.7;
 
 // prettier-ignore
 import {
@@ -8,34 +8,21 @@ import {
 
 // prettier-ignore
 import {
-    OrderType,
-    ItemType,
-    BasicOrderRouteType
-} from "contracts/lib/ConsiderationEnums.sol";
-
-// prettier-ignore
-import {
-    BasicOrderParameters,
-    OfferItem,
-    ConsiderationItem,
-    OrderParameters,
     OrderComponents,
-    Fulfillment,
-    FulfillmentComponent,
-    Execution,
+    BasicOrderParameters,
+    OrderParameters,
     Order,
     AdvancedOrder,
     OrderStatus,
     CriteriaResolver,
-    BatchExecution
+    Fulfillment,
+    FulfillmentComponent,
+    Execution
 } from "contracts/lib/ConsiderationStructs.sol";
 
-// prettier-ignore
-import {
-    ReferenceConsiderationInternal
-} from "./lib/ReferenceConsiderationInternal.sol";
+import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
 
-import { OrderToExecute } from "./lib/ReferenceConsiderationStructs.sol";
+import { OrderToExecute, AccumulatorStruct } from "./lib/ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceConsideration
@@ -53,19 +40,18 @@ import { OrderToExecute } from "./lib/ReferenceConsiderationStructs.sol";
  */
 contract ReferenceConsideration is
     ConsiderationInterface,
-    ReferenceConsiderationInternal
+    ReferenceOrderCombiner
 {
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
      *
-     * @param conduitController           A contract that deploys conduits, or
-     *                                    proxies that may optionally be used to
-     *                                    transfer approved ERC20+721+1155
-     *                                    tokens.
+     * @param conduitController A contract that deploys conduits, or proxies
+     *                          that may optionally be used to transfer approved
+     *                          ERC20/721/1155 tokens.
      */
     constructor(address conduitController)
-        ReferenceConsiderationInternal(conduitController)
+        ReferenceOrderCombiner(conduitController)
     {}
 
     /**
@@ -91,7 +77,8 @@ contract ReferenceConsideration is
      *                   implement `onERC1155Received` in order to receive those
      *                   items.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   fulfilled.
      */
     function fulfillBasicOrder(BasicOrderParameters calldata parameters)
         external
@@ -99,185 +86,10 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-        returns (bool)
+        returns (bool fulfilled)
     {
-        // Declare enums for order type & route to extract from basicOrderType.
-        BasicOrderRouteType route = BasicOrderRouteType(
-            uint8(parameters.basicOrderType) / 4
-        );
-
-        OrderType orderType = OrderType(uint8(parameters.basicOrderType) % 4);
-
-        // Declare additional recipient item type to derive from the route type.
-        ItemType additionalRecipientsItemType = ItemType(
-            uint8(route) > 1 ? 1 : 0
-        );
-
-        {
-            // Declare temporary variable for enforcing payable status.
-            bool correctPayableStatus = (msg.value != 0 &&
-                additionalRecipientsItemType == ItemType.NATIVE) ||
-                (msg.value == 0 &&
-                    additionalRecipientsItemType == ItemType.ERC20);
-
-            // Revert if msg.value has not been supplied as part of payable
-            // routes or has been supplied as part of non-payable routes.
-            if (!correctPayableStatus) {
-                revert InvalidMsgValue(msg.value);
-            }
-        }
-
-        // Declare more arguments that will be derived from route and calldata.
-        address additionalRecipientsToken = uint8(route) > 3
-            ? parameters.offerToken
-            : parameters.considerationToken;
-
-        ItemType receivedItemType = uint8(route) > 2
-            ? ItemType(uint8(route) - 2)
-            : (
-                route == BasicOrderRouteType.ERC20_TO_ERC721
-                    ? ItemType.ERC20
-                    : ItemType.NATIVE
-            );
-
-        ItemType offeredItemType = uint8(route) > 3
-            ? ItemType.ERC20
-            : (
-                uint8(route) > 1
-                    ? ItemType(uint8(route))
-                    : ItemType(uint8(route) + 2)
-            );
-
-        // Derive & validate order using parameters and update order status.
-        _prepareBasicFulfillmentFromCalldata(
-            parameters,
-            orderType,
-            receivedItemType,
-            additionalRecipientsItemType,
-            additionalRecipientsToken,
-            offeredItemType
-        );
-
-        // Read offerer from calldata and place on the stack.
-        address payable offerer = parameters.offerer;
-
-        // Declare conduitKey argument used by transfer functions.
-        bytes32 conduitKey = uint8(route) > 3
-            ? parameters.fulfillerConduitKey
-            : parameters.offererConduitKey;
-
-        // Transfer tokens based on the route.
-        if (route == BasicOrderRouteType.ETH_TO_ERC721) {
-            // Transfer ERC721 to caller using offerer's conduit if applicable.
-            _transferERC721(
-                parameters.offerToken,
-                offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey
-            );
-
-            // Transfer native to recipients, return excess to caller & wrap up.
-            _transferEthAndFinalize(parameters.considerationAmount, parameters);
-        } else if (route == BasicOrderRouteType.ETH_TO_ERC1155) {
-            // Transfer ERC1155 to caller using offerer's conduit if applicable.
-            _transferERC1155(
-                parameters.offerToken,
-                offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey
-            );
-
-            // Transfer native to recipients, return excess to caller & wrap up.
-            _transferEthAndFinalize(parameters.considerationAmount, parameters);
-        } else if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
-            // Transfer ERC721 to caller using offerer's conduit if applicable.
-            _transferERC721(
-                parameters.offerToken,
-                offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey
-            );
-
-            // Transfer ERC20 tokens to all recipients and wrap up.
-            _transferERC20AndFinalize(
-                msg.sender,
-                offerer,
-                parameters.considerationToken,
-                parameters.considerationAmount,
-                parameters,
-                false // Send full amount indicated by all consideration items.
-            );
-        } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
-            // Transfer ERC1155 to caller using offerer's conduit if applicable.
-            _transferERC1155(
-                parameters.offerToken,
-                offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey
-            );
-
-            // Transfer ERC20 tokens to all recipients and wrap up.
-            _transferERC20AndFinalize(
-                msg.sender,
-                offerer,
-                parameters.considerationToken,
-                parameters.considerationAmount,
-                parameters,
-                false // Send full amount indicated by all consideration items.
-            );
-        } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
-            // Transfer ERC721 to offerer using caller's conduit if applicable.
-            _transferERC721(
-                parameters.considerationToken,
-                msg.sender,
-                offerer,
-                parameters.considerationIdentifier,
-                parameters.considerationAmount,
-                conduitKey
-            );
-
-            // Transfer ERC20 tokens to all recipients and wrap up.
-            _transferERC20AndFinalize(
-                offerer,
-                msg.sender,
-                parameters.offerToken,
-                parameters.offerAmount,
-                parameters,
-                true // Reduce amount sent to fulfiller by additional amounts.
-            );
-        } else {
-            // route == BasicOrderRouteType.ERC1155_TO_ERC20
-
-            // Transfer ERC1155 to offerer using caller's conduit if applicable.
-            _transferERC1155(
-                parameters.considerationToken,
-                msg.sender,
-                offerer,
-                parameters.considerationIdentifier,
-                parameters.considerationAmount,
-                conduitKey
-            );
-
-            // Transfer ERC20 tokens to all recipients and wrap up.
-            _transferERC20AndFinalize(
-                offerer,
-                msg.sender,
-                parameters.offerToken,
-                parameters.offerAmount,
-                parameters,
-                true // Reduce amount sent to fulfiller by additional amounts.
-            );
-        }
-
-        return true;
+        // Validate and fulfill the basic order.
+        fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
 
     /**
@@ -299,7 +111,8 @@ contract ReferenceConsideration is
      *                            should be used (and direct approvals set on
      *                            Consideration).
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   fulfilled.
      */
     function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
@@ -307,17 +120,15 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-        returns (bool)
+        returns (bool fulfilled)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
         // prettier-ignore
-        return _validateAndFulfillAdvancedOrder(
+        fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
             fulfillerConduitKey
         );
-
-        // TODO: Make these work with Orders To Execute
     }
 
     /**
@@ -354,22 +165,27 @@ contract ReferenceConsideration is
      *                            should be used (and direct approvals set on
      *                            Consideration).
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   fulfilled.
      */
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) external payable override notEntered nonReentrant returns (bool) {
+    )
+        external
+        payable
+        override
+        notEntered
+        nonReentrant
+        returns (bool fulfilled)
+    {
         // Validate and fulfill the order.
-        return
-            _validateAndFulfillAdvancedOrder(
-                advancedOrder,
-                criteriaResolvers,
-                fulfillerConduitKey
-            );
-
-        // TODO: Make these work with Orders To Execute
+        fulfilled = _validateAndFulfillAdvancedOrder(
+            advancedOrder,
+            criteriaResolvers,
+            fulfillerConduitKey
+        );
     }
 
     /**
@@ -408,15 +224,12 @@ contract ReferenceConsideration is
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableOrders(
         Order[] calldata orders,
@@ -430,11 +243,7 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert orders to "advanced" orders.
         AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
@@ -513,15 +322,12 @@ contract ReferenceConsideration is
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -536,11 +342,7 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert Advanced Orders to Orders to Execute
         OrderToExecute[]
@@ -581,12 +383,9 @@ contract ReferenceConsideration is
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchOrders(
         Order[] calldata orders,
@@ -597,32 +396,15 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (Execution[] memory executions)
     {
-        // Convert orders to "advanced" orders.
-        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
-            orders
-        );
-
-        // Convert advanced orders to orders to execute.
-        OrderToExecute[]
-            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
-                advancedOrders
+        // Convert to advanced, validate, and match orders using fulfillments.
+        return
+            _matchAdvancedOrders(
+                _convertOrdersToAdvanced(orders),
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                fulfillments
             );
-
-        _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            ordersToExecute,
-            new CriteriaResolver[](0), // No criteria resolvers supplied.
-            true, // Signifies that invalid orders should revert.
-            advancedOrders.length
-        );
-
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(ordersToExecute, fulfillments);
     }
 
     /**
@@ -657,12 +439,9 @@ contract ReferenceConsideration is
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -674,90 +453,34 @@ contract ReferenceConsideration is
         override
         notEntered
         nonReentrant
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (Execution[] memory executions)
     {
-        // Convert Advanced Orders to Orders to Execute
-        OrderToExecute[]
-            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
-                advancedOrders
+        // Validate and match the advanced orders using supplied fulfillments.
+        return
+            _matchAdvancedOrders(
+                advancedOrders,
+                criteriaResolvers,
+                fulfillments
             );
-
-        // Validate orders, apply amounts, & determine if they utilize conduits.
-        _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            ordersToExecute,
-            criteriaResolvers,
-            true, // Signifies that invalid orders should revert.
-            advancedOrders.length
-        );
-
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(ordersToExecute, fulfillments);
     }
 
     /**
      * @notice Cancel an arbitrary number of orders. Note that only the offerer
-     * or the zone of a given order may cancel it.
+     *         or the zone of a given order may cancel it.
      *
      * @param orders The orders to cancel.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully cancelled.
+     * @return cancelled A boolean indicating whether the supplied orders have
+     *         been successfully cancelled.
      */
     function cancel(OrderComponents[] calldata orders)
         external
         override
         notEntered
-        returns (bool)
+        returns (bool cancelled)
     {
-        address offerer;
-        address zone;
-
-        // Read length of the orders array from memory and place on stack.
-        uint256 totalOrders = orders.length;
-
-        // Iterate over each order.
-        for (uint256 i = 0; i < totalOrders; ++i) {
-            // Retrieve the order.
-            OrderComponents calldata order = orders[i];
-
-            offerer = order.offerer;
-            zone = order.zone;
-
-            // Ensure caller is either offerer or zone of the order.
-            if (msg.sender != offerer && msg.sender != zone) {
-                revert InvalidCanceller();
-            }
-
-            // Derive order hash using the order parameters and the nonce.
-            bytes32 orderHash = _getOrderHash(
-                OrderParameters(
-                    offerer,
-                    zone,
-                    order.offer,
-                    order.consideration,
-                    order.orderType,
-                    order.startTime,
-                    order.endTime,
-                    order.zoneHash,
-                    order.salt,
-                    order.conduitKey,
-                    order.consideration.length
-                ),
-                order.nonce
-            );
-
-            // Update the order status as not valid and cancelled.
-            _orderStatus[orderHash].isValidated = false;
-            _orderStatus[orderHash].isCancelled = true;
-
-            // Emit an event signifying that the order has been cancelled.
-            emit OrderCancelled(orderHash, offerer, zone);
-        }
-        return true;
+        // Cancel the orders.
+        cancelled = _cancel(orders);
     }
 
     /**
@@ -768,63 +491,17 @@ contract ReferenceConsideration is
      *
      * @param orders The orders to validate.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully validated.
+     * @return validated A boolean indicating whether the supplied orders have
+     *         been successfully validated.
      */
     function validate(Order[] calldata orders)
         external
         override
         notEntered
-        returns (bool)
+        returns (bool validated)
     {
-        // Declare variables outside of the loop.
-        bytes32 orderHash;
-        address offerer;
-
-        // Read length of the orders array from memory and place on stack.
-        uint256 totalOrders = orders.length;
-
-        // Iterate over each order.
-        for (uint256 i = 0; i < totalOrders; ++i) {
-            // Retrieve the order.
-            Order calldata order = orders[i];
-
-            // Retrieve the order parameters.
-            OrderParameters calldata orderParameters = order.parameters;
-
-            // Move offerer from memory to the stack.
-            offerer = orderParameters.offerer;
-
-            // Get current nonce and use it w/ params to derive order hash.
-            orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
-                orderParameters
-            );
-
-            // Retrieve the order status using the derived order hash.
-            OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-            // Ensure order is fillable and retrieve the filled amount.
-            _verifyOrderStatus(
-                orderHash,
-                orderStatus,
-                false, // Signifies that partially filled orders are valid.
-                true // Signifies to revert if the order is invalid.
-            );
-
-            // If the order has not already been validated...
-            if (!orderStatus.isValidated) {
-                // Verify the supplied signature.
-                _verifySignature(offerer, orderHash, order.signature);
-
-                // Update order status to mark the order as valid.
-                _orderStatus[orderHash].isValidated = true;
-
-                // Emit an event signifying the order has been validated.
-                emit OrderValidated(orderHash, offerer, orderParameters.zone);
-            }
-        }
-
-        return true;
+        // Validate the orders.
+        validated = _validate(orders);
     }
 
     /**
@@ -841,10 +518,7 @@ contract ReferenceConsideration is
         returns (uint256 newNonce)
     {
         // Increment current nonce for the supplied offerer.
-        newNonce = ++_nonces[msg.sender];
-
-        // Emit an event containing the new nonce.
-        emit NonceIncremented(newNonce, msg.sender);
+        newNonce = _incrementNonce();
     }
 
     /**
@@ -852,17 +526,17 @@ contract ReferenceConsideration is
      *
      * @param order The components of the order.
      *
-     * @return The order hash.
+     * @return orderHash the order hash.
      */
-    function getOrderHash(OrderComponents memory order)
+    function getOrderHash(OrderComponents calldata order)
         external
         view
         override
-        returns (bytes32)
+        returns (bytes32 orderHash)
     {
         // Derive order hash by supplying order parameters along with the nonce.
         // prettier-ignore
-        return _getOrderHash(
+        orderHash = _deriveOrderHash(
             OrderParameters(
                 order.offerer,
                 order.zone,
@@ -909,15 +583,7 @@ contract ReferenceConsideration is
         )
     {
         // Retrieve the order status using the order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-        // Return the fields on the order status.
-        return (
-            orderStatus.isValidated,
-            orderStatus.isCancelled,
-            orderStatus.numerator,
-            orderStatus.denominator
-        );
+        return _getOrderStatus(orderHash);
     }
 
     /**
@@ -925,16 +591,16 @@ contract ReferenceConsideration is
      *
      * @param offerer The offerer in question.
      *
-     * @return The current nonce.
+     * @return nonce The current nonce.
      */
     function getNonce(address offerer)
         external
         view
         override
-        returns (uint256)
+        returns (uint256 nonce)
     {
         // Return the nonce for the supplied offerer.
-        return _nonces[offerer];
+        nonce = _getNonce(offerer);
     }
 
     /**
@@ -954,18 +620,22 @@ contract ReferenceConsideration is
             address conduitController
         )
     {
-        version = _VERSION;
-        domainSeparator = _domainSeparator();
-        conduitController = address(_CONDUIT_CONTROLLER);
+        // Return the information for this contract.
+        return _information();
     }
 
     /**
      * @notice Retrieve the name of this contract.
      *
-     * @return The name of this contract.
+     * @return contractName The name of this contract.
      */
-    function name() external pure override returns (string memory) {
+    function name()
+        external
+        pure
+        override
+        returns (string memory contractName)
+    {
         // Return the name of the contract.
-        return _NAME;
+        contractName = _name();
     }
 }

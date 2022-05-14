@@ -17,11 +17,10 @@ import {
     CriteriaResolver,
     Fulfillment,
     FulfillmentComponent,
-    Execution,
-    BatchExecution
+    Execution
 } from "./lib/ConsiderationStructs.sol";
 
-import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
+import { OrderCombiner } from "./lib/OrderCombiner.sol";
 
 /**
  * @title Consideration
@@ -37,7 +36,7 @@ import { ConsiderationInternal } from "./lib/ConsiderationInternal.sol";
  *         (the "offer") along with an arbitrary number of items that must be
  *         received back by the indicated recipients (the "consideration").
  */
-contract Consideration is ConsiderationInterface, ConsiderationInternal {
+contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
@@ -46,9 +45,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      */
-    constructor(address conduitController)
-        ConsiderationInternal(conduitController)
-    {}
+    constructor(address conduitController) OrderCombiner(conduitController) {}
 
     /**
      * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
@@ -63,7 +60,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *         recipients" may also be supplied which will each receive native
      *         tokens or ERC20 items from the fulfiller as consideration. Refer
      *         to the documentation for a more comprehensive summary of how to
-     *         utilize with this method and what orders are compatible with it.
+     *         utilize this method and what orders are compatible with it.
      *
      * @param parameters Additional information on the fulfilled order. Note
      *                   that the offerer and the fulfiller must first approve
@@ -73,16 +70,17 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                   implement `onERC1155Received` in order to receive those
      *                   items.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
      */
     function fulfillBasicOrder(BasicOrderParameters calldata parameters)
         external
         payable
         override
-        returns (bool)
+        returns (bool fulfilled)
     {
         // Validate and fulfill the basic order.
-        return _validateAndFulfillBasicOrder(parameters);
+        fulfilled = _validateAndFulfillBasicOrder(parameters);
     }
 
     /**
@@ -104,17 +102,17 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                            should be used (and direct approvals set on
      *                            Consideration).
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
      */
     function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
         payable
         override
-        returns (bool)
+        returns (bool fulfilled)
     {
         // Convert order to "advanced" order, then validate and fulfill it.
-        // prettier-ignore
-        return _validateAndFulfillAdvancedOrder(
+        fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
             fulfillerConduitKey
@@ -155,20 +153,20 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                            should be used (and direct approvals set on
      *                            Consideration).
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
      */
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) external payable override returns (bool) {
+    ) external payable override returns (bool fulfilled) {
         // Validate and fulfill the order.
-        return
-            _validateAndFulfillAdvancedOrder(
-                advancedOrder,
-                criteriaResolvers,
-                fulfillerConduitKey
-            );
+        fulfilled = _validateAndFulfillAdvancedOrder(
+            advancedOrder,
+            criteriaResolvers,
+            fulfillerConduitKey
+        );
     }
 
     /**
@@ -207,15 +205,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableOrders(
         Order[] calldata orders,
@@ -227,11 +222,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         external
         payable
         override
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Convert orders to "advanced" orders and fulfill all available orders.
         return
@@ -299,15 +290,12 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -320,11 +308,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         external
         payable
         override
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
+        returns (bool[] memory availableOrders, Execution[] memory executions)
     {
         // Fulfill all available orders.
         return
@@ -358,40 +342,21 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        override
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-    {
-        // Convert orders to "advanced" orders.
-        AdvancedOrder[] memory advancedOrders = _convertOrdersToAdvanced(
-            orders
-        );
-
-        // Validate orders, update order status, and determine item amounts.
-        _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            new CriteriaResolver[](0), // No criteria resolvers supplied.
-            true, // Signifies that invalid orders should revert.
-            advancedOrders.length
-        );
-
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
+    ) external payable override returns (Execution[] memory executions) {
+        // Convert to advanced, validate, and match orders using fulfillments.
+        return
+            _matchAdvancedOrders(
+                _convertOrdersToAdvanced(orders),
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                fulfillments
+            );
     }
 
     /**
@@ -426,36 +391,22 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        override
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        )
-    {
-        // Validate orders, update order status, and determine item amounts.
-        _validateOrdersAndPrepareToFulfill(
-            advancedOrders,
-            criteriaResolvers,
-            true, // Signifies that invalid orders should revert.
-            advancedOrders.length
-        );
-
-        // Fulfill the orders using the supplied fulfillments.
-        return _fulfillAdvancedOrders(advancedOrders, fulfillments);
+    ) external payable override returns (Execution[] memory executions) {
+        // Validate and match the advanced orders using supplied fulfillments.
+        return
+            _matchAdvancedOrders(
+                advancedOrders,
+                criteriaResolvers,
+                fulfillments
+            );
     }
 
     /**
@@ -464,16 +415,16 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @param orders The orders to cancel.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully cancelled.
+     * @return cancelled A boolean indicating whether the supplied orders have
+     *                   been successfully cancelled.
      */
     function cancel(OrderComponents[] calldata orders)
         external
         override
-        returns (bool)
+        returns (bool cancelled)
     {
         // Cancel the orders.
-        return _cancel(orders);
+        cancelled = _cancel(orders);
     }
 
     /**
@@ -484,16 +435,16 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @param orders The orders to validate.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully validated.
+     * @return validated A boolean indicating whether the supplied orders have
+     *                   been successfully validated.
      */
     function validate(Order[] calldata orders)
         external
         override
-        returns (bool)
+        returns (bool validated)
     {
         // Validate the orders.
-        return _validate(orders);
+        validated = _validate(orders);
     }
 
     /**
@@ -504,17 +455,8 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      * @return newNonce The new nonce.
      */
     function incrementNonce() external override returns (uint256 newNonce) {
-        // Ensure that the reentrancy guard is not currently set.
-        _assertNonReentrant();
-
-        // No need to check for overflow; nonce cannot be incremented that far.
-        unchecked {
-            // Increment current nonce for the supplied offerer.
-            newNonce = ++_nonces[msg.sender];
-        }
-
-        // Emit an event containing the new nonce.
-        emit NonceIncremented(newNonce, msg.sender);
+        // Increment current nonce for the supplied offerer.
+        newNonce = _incrementNonce();
     }
 
     /**
@@ -522,17 +464,16 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @param order The components of the order.
      *
-     * @return The order hash.
+     * @return orderHash The order hash.
      */
     function getOrderHash(OrderComponents calldata order)
         external
         view
         override
-        returns (bytes32)
+        returns (bytes32 orderHash)
     {
         // Derive order hash by supplying order parameters along with the nonce.
-        // prettier-ignore
-        return _getOrderHash(
+        orderHash = _deriveOrderHash(
             OrderParameters(
                 order.offerer,
                 order.zone,
@@ -579,15 +520,7 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
         )
     {
         // Retrieve the order status using the order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
-
-        // Return the fields on the order status.
-        return (
-            orderStatus.isValidated,
-            orderStatus.isCancelled,
-            orderStatus.numerator,
-            orderStatus.denominator
-        );
+        return _getOrderStatus(orderHash);
     }
 
     /**
@@ -595,16 +528,16 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
      *
      * @param offerer The offerer in question.
      *
-     * @return The current nonce.
+     * @return nonce The current nonce.
      */
     function getNonce(address offerer)
         external
         view
         override
-        returns (uint256)
+        returns (uint256 nonce)
     {
         // Return the nonce for the supplied offerer.
-        return _nonces[offerer];
+        nonce = _getNonce(offerer);
     }
 
     /**
@@ -631,10 +564,15 @@ contract Consideration is ConsiderationInterface, ConsiderationInternal {
     /**
      * @notice Retrieve the name of this contract.
      *
-     * @return The name of this contract.
+     * @return contractName The name of this contract.
      */
-    function name() external pure override returns (string memory) {
+    function name()
+        external
+        pure
+        override
+        returns (string memory contractName)
+    {
         // Return the name of the contract.
-        return _name();
+        contractName = _name();
     }
 }

@@ -10,7 +10,7 @@ remappings = [
     'ds-test=lib/ds-test/src/',
     'forge-std=lib/forge-std/src/',
 ]
-fuzz_max_global_rejects = 100_000
+fuzz_max_global_rejects = 500_000
 fuzz_max_local_rejects = 10_000
 
 [reference]
@@ -23,22 +23,21 @@ test = 'reference'
 
 [optimized]
 solc = '0.8.13'
-via_ir = true
-src = 'contracts'
 out = 'optimized-out'
 
 [test]
 solc = '0.8.13'
 via_ir = false
 
-[quick]
+[lite]
+out = 'optimized-out'
 via_ir = false
 fuzz_runs = 1000
 
-[local]
+[local-ffi]
 via_ir = false
 fuzz_runs = 1000
-src = 'reference-working'
+src = 'reference'
 out = 'reference-out'
 ffi = true
 

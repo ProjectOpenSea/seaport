@@ -8,7 +8,6 @@ import {
     Fulfillment,
     FulfillmentComponent,
     Execution,
-    BatchExecution,
     Order,
     AdvancedOrder,
     OrderStatus,
@@ -37,15 +36,16 @@ interface ConsiderationInterface {
      *
      * @param parameters Additional information on the fulfilled order. Note
      *                   that the offerer must first approve this contract (or
-     *                   their proxy if indicated by the order) in order for
+     *                   their preferred conduit if indicated by the order) for
      *                   their offered ERC721 token to be transferred.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
      */
     function fulfillBasicOrder(BasicOrderParameters calldata parameters)
         external
         payable
-        returns (bool);
+        returns (bool fulfilled);
 
     /**
      * @notice Fulfill an order with an arbitrary number of items for offer and
@@ -63,17 +63,16 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
-     *                            should be used (and direct approvals set on
-     *                            Consideration) and `bytes32(1)` signifies to
-     *                            utilize the legacy user proxy for the
-     *                            fulfiller.
+     *                            should be used, with direct approvals set on
+     *                            Consideration.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
      */
     function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
         payable
-        returns (bool);
+        returns (bool fulfilled);
 
     /**
      * @notice Fill an order, fully or partially, with an arbitrary number of
@@ -83,9 +82,9 @@ interface ConsiderationInterface {
      * @param advancedOrder       The order to fulfill along with the fraction
      *                            of the order to attempt to fill. Note that
      *                            both the offerer and the fulfiller must first
-     *                            approve this contract (or their proxy if
-     *                            indicated by the order) to transfer any
-     *                            relevant tokens on their behalf and that
+     *                            approve this contract (or their preferred
+     *                            conduit if indicated by the order) to transfer
+     *                            any relevant tokens on their behalf and that
      *                            contracts must implement `onERC1155Received`
      *                            to receive ERC1155 tokens as consideration.
      *                            Also note that all offer and consideration
@@ -106,18 +105,17 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
-     *                            should be used (and direct approvals set on
-     *                            Consideration) and `bytes32(1)` signifies to
-     *                            utilize the legacy user proxy for the
-     *                            fulfiller.
+     *                            should be used, with direct approvals set on
+     *                            Consideration.
      *
-     * @return A boolean indicating whether the order has been fulfilled.
+     * @return fulfilled A boolean indicating whether the order has been
+     *                   successfully fulfilled.
      */
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) external payable returns (bool);
+    ) external payable returns (bool fulfilled);
 
     /**
      * @notice Attempt to fill a group of orders, each with an arbitrary number
@@ -151,19 +149,16 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used (and
-     *                                  direct approvals set on Consideration).
+     *                                  that no conduit should be used, with
+     *                                  direct approvals set on this contract.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableOrders(
         Order[] calldata orders,
@@ -174,11 +169,7 @@ interface ConsiderationInterface {
     )
         external
         payable
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        );
+        returns (bool[] memory availableOrders, Execution[] memory executions);
 
     /**
      * @notice Attempt to fill a group of orders, fully or partially, with an
@@ -197,11 +188,11 @@ interface ConsiderationInterface {
      *                                  fraction of those orders to attempt to
      *                                  fill. Note that both the offerer and the
      *                                  fulfiller must first approve this
-     *                                  contract (or their proxy if indicated by
-     *                                  the order) to transfer any relevant
-     *                                  tokens on their behalf and that
+     *                                  contract (or their preferred conduit if
+     *                                  indicated by the order) to transfer any
+     *                                  relevant tokens on their behalf and that
      *                                  contracts must implement
-     *                                  `onERC1155Received` in order to receive
+     *                                  `onERC1155Received` to enable receipt of
      *                                  ERC1155 tokens as consideration. Also
      *                                  note that all offer and consideration
      *                                  components must have no remainder after
@@ -230,21 +221,16 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used (and
-     *                                  direct approvals set on Consideration)
-     *                                  and `bytes32(1)` signifies to utilize
-     *                                  the legacy user proxy for the fulfiller.
+     *                                  that no conduit should be used, with
+     *                                  direct approvals set on this contract.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders    An array of booleans indicating if each order
-     *                            with an index corresponding to the index of
-     *                            the returned boolean was fulfillable or not.
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
      */
     function fulfillAvailableAdvancedOrders(
         AdvancedOrder[] calldata advancedOrders,
@@ -256,11 +242,7 @@ interface ConsiderationInterface {
     )
         external
         payable
-        returns (
-            bool[] memory availableOrders,
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        );
+        returns (bool[] memory availableOrders, Execution[] memory executions);
 
     /**
      * @notice Match an arbitrary number of orders, each with an arbitrary
@@ -270,35 +252,25 @@ interface ConsiderationInterface {
      *         criteria-based or partial filling of orders (though filling the
      *         remainder of a partially-filled order is supported).
      *
-     * @param orders            The orders to match. Note that both the offerer
-     *                          and fulfiller on each order must first approve
-     *                          this contract (or their proxy if indicated by
-     *                          the order) to transfer any relevant tokens on
-     *                          their behalf and each consideration recipient
-     *                          must implement `onERC1155Received` in order to
-     *                          receive ERC1155 tokens.
-     * @param fulfillments      An array of elements allocating offer components
-     *                          to consideration components. Note that each
-     *                          consideration component must be fully met in
-     *                          order for the match operation to be valid.
+     * @param orders       The orders to match. Note that both the offerer and
+     *                     fulfiller on each order must first approve this
+     *                     contract (or their conduit if indicated by the order)
+     *                     to transfer any relevant tokens on their behalf and
+     *                     each consideration recipient must implement
+     *                     `onERC1155Received` to enable ERC1155 token receipt.
+     * @param fulfillments An array of elements allocating offer components to
+     *                     consideration components. Note that each
+     *                     consideration component must be fully met for the
+     *                     match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        );
+    ) external payable returns (Execution[] memory executions);
 
     /**
      * @notice Match an arbitrary number of full or partial orders, each with an
@@ -309,7 +281,7 @@ interface ConsiderationInterface {
      *
      * @param orders            The advanced orders to match. Note that both the
      *                          offerer and fulfiller on each order must first
-     *                          approve this contract (or their proxy if
+     *                          approve this contract (or a preferred conduit if
      *                          indicated by the order) to transfer any relevant
      *                          tokens on their behalf and each consideration
      *                          recipient must implement `onERC1155Received` in
@@ -332,24 +304,15 @@ interface ConsiderationInterface {
      *                          consideration component must be fully met in
      *                          order for the match operation to be valid.
      *
-     * @return standardExecutions An array of elements indicating the sequence
-     *                            of non-batch transfers performed as part of
-     *                            matching the given orders.
-     * @return batchExecutions    An array of elements indicating the sequence
-     *                            of batch transfers performed as part of
-     *                            matching the given orders.
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
      */
     function matchAdvancedOrders(
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    )
-        external
-        payable
-        returns (
-            Execution[] memory standardExecutions,
-            BatchExecution[] memory batchExecutions
-        );
+    ) external payable returns (Execution[] memory executions);
 
     /**
      * @notice Cancel an arbitrary number of orders. Note that only the offerer
@@ -357,10 +320,12 @@ interface ConsiderationInterface {
      *
      * @param orders The orders to cancel.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully cancelled.
+     * @return cancelled A boolean indicating whether the supplied orders have
+     *                   been successfully cancelled.
      */
-    function cancel(OrderComponents[] calldata orders) external returns (bool);
+    function cancel(OrderComponents[] calldata orders)
+        external
+        returns (bool cancelled);
 
     /**
      * @notice Validate an arbitrary number of orders, thereby registering them
@@ -370,10 +335,12 @@ interface ConsiderationInterface {
      *
      * @param orders The orders to validate.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully validated.
+     * @return validated A boolean indicating whether the supplied orders have
+     *                   been successfully validated.
      */
-    function validate(Order[] calldata orders) external returns (bool);
+    function validate(Order[] calldata orders)
+        external
+        returns (bool validated);
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
@@ -389,12 +356,12 @@ interface ConsiderationInterface {
      *
      * @param order The components of the order.
      *
-     * @return The order hash.
+     * @return orderHash The order hash.
      */
     function getOrderHash(OrderComponents calldata order)
         external
         view
-        returns (bytes32);
+        returns (bytes32 orderHash);
 
     /**
      * @notice Retrieve the status of a given order by hash, including whether
@@ -428,9 +395,9 @@ interface ConsiderationInterface {
      *
      * @param offerer The offerer in question.
      *
-     * @return The current nonce.
+     * @return nonce The current nonce.
      */
-    function getNonce(address offerer) external view returns (uint256);
+    function getNonce(address offerer) external view returns (uint256 nonce);
 
     /**
      * @notice Retrieve configuration information for this contract.
@@ -451,7 +418,7 @@ interface ConsiderationInterface {
     /**
      * @notice Retrieve the name of this contract.
      *
-     * @return The name of this contract.
+     * @return contractName The name of this contract.
      */
-    function name() external view returns (string memory);
+    function name() external view returns (string memory contractName);
 }

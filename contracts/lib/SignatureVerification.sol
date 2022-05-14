@@ -31,7 +31,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
      * @param signature A signature from the signer indicating that the order
      *                  has been approved.
      */
-    function _verifySignatureUsingDigest(
+    function _assertValidSignature(
         address signer,
         bytes32 digest,
         bytes memory signature
@@ -81,7 +81,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             // For all other signature lengths, try verification via EIP-1271.
         } else {
             // Attempt EIP-1271 static call to signer in case it's a contract.
-            _verifySignatureViaERC1271(signer, digest, signature);
+            _assertValidEIP1271Signature(signer, digest, signature);
 
             // Return early if the ERC-1271 signature check succeeded.
             return;
@@ -96,7 +96,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             // Should a signer be recovered, but it doesn't match the signer...
         } else if (recoveredSigner != signer) {
             // Attempt EIP-1271 static call to signer in case it's a contract.
-            _verifySignatureViaERC1271(signer, digest, signature);
+            _assertValidEIP1271Signature(signer, digest, signature);
         }
     }
 
@@ -109,7 +109,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
      *                  and the order hash.
      * @param signature A signature (or other data) used to validate the digest.
      */
-    function _verifySignatureViaERC1271(
+    function _assertValidEIP1271Signature(
         address signer,
         bytes32 digest,
         bytes memory signature

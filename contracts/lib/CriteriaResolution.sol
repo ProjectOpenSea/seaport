@@ -47,10 +47,13 @@ contract CriteriaResolution is CriteriaResolutionErrors {
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Retrieve length of criteria resolvers array and place on stack.
-            uint256 arraySize = criteriaResolvers.length;
+            uint256 totalCriteriaResolvers = criteriaResolvers.length;
+
+            // Retrieve length of orders array and place on stack.
+            uint256 totalAdvancedOrders = advancedOrders.length;
 
             // Iterate over each criteria resolver.
-            for (uint256 i = 0; i < arraySize; ++i) {
+            for (uint256 i = 0; i < totalCriteriaResolvers; ++i) {
                 // Retrieve the criteria resolver.
                 CriteriaResolver memory criteriaResolver = (
                     criteriaResolvers[i]
@@ -60,7 +63,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 uint256 orderIndex = criteriaResolver.orderIndex;
 
                 // Ensure that the order index is in range.
-                if (orderIndex >= advancedOrders.length) {
+                if (orderIndex >= totalAdvancedOrders) {
                     revert OrderCriteriaResolverOutOfRange();
                 }
 
@@ -83,56 +86,62 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
                 // If the criteria resolver refers to an offer item...
                 if (criteriaResolver.side == Side.OFFER) {
+                    // Retrieve the offer.
+                    OfferItem[] memory offer = orderParameters.offer;
+
                     // Ensure that the component index is in range.
-                    if (componentIndex >= orderParameters.offer.length) {
+                    if (componentIndex >= offer.length) {
                         revert OfferCriteriaResolverOutOfRange();
                     }
 
-                    // Retrieve relevant item using order and component index.
-                    OfferItem memory offer = (
-                        orderParameters.offer[componentIndex]
-                    );
+                    // Retrieve relevant item using the component index.
+                    OfferItem memory offerItem = offer[componentIndex];
 
                     // Read item type and criteria from memory & place on stack.
-                    itemType = offer.itemType;
-                    identifierOrCriteria = offer.identifierOrCriteria;
+                    itemType = offerItem.itemType;
+                    identifierOrCriteria = offerItem.identifierOrCriteria;
 
                     // Optimistically update item type to remove criteria usage.
                     ItemType newItemType;
                     assembly {
                         newItemType := sub(3, eq(itemType, 4))
                     }
-                    offer.itemType = newItemType;
+                    offerItem.itemType = newItemType;
 
                     // Optimistically update identifier w/ supplied identifier.
-                    offer.identifierOrCriteria = criteriaResolver.identifier;
+                    offerItem.identifierOrCriteria = criteriaResolver
+                        .identifier;
                 } else {
                     // Otherwise, the resolver refers to a consideration item.
+                    ConsiderationItem[] memory consideration = (
+                        orderParameters.consideration
+                    );
+
                     // Ensure that the component index is in range.
-                    if (
-                        componentIndex >= orderParameters.consideration.length
-                    ) {
+                    if (componentIndex >= consideration.length) {
                         revert ConsiderationCriteriaResolverOutOfRange();
                     }
 
                     // Retrieve relevant item using order and component index.
-                    ConsiderationItem memory consideration = (
-                        orderParameters.consideration[componentIndex]
+                    ConsiderationItem memory considerationItem = (
+                        consideration[componentIndex]
                     );
 
                     // Read item type and criteria from memory & place on stack.
-                    itemType = consideration.itemType;
-                    identifierOrCriteria = consideration.identifierOrCriteria;
+                    itemType = considerationItem.itemType;
+                    identifierOrCriteria = (
+                        considerationItem.identifierOrCriteria
+                    );
 
                     // Optimistically update item type to remove criteria usage.
                     ItemType newItemType;
                     assembly {
                         newItemType := sub(3, eq(itemType, 4))
                     }
-                    consideration.itemType = newItemType;
+                    considerationItem.itemType = newItemType;
 
                     // Optimistically update identifier w/ supplied identifier.
-                    consideration.identifierOrCriteria = (
+                    considerationItem.identifierOrCriteria = (
                         criteriaResolver.identifier
                     );
                 }
@@ -153,11 +162,8 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 }
             }
 
-            // Retrieve length of advanced orders array and place on stack.
-            arraySize = advancedOrders.length;
-
             // Iterate over each advanced order.
-            for (uint256 i = 0; i < arraySize; ++i) {
+            for (uint256 i = 0; i < totalAdvancedOrders; ++i) {
                 // Retrieve the advanced order.
                 AdvancedOrder memory advancedOrder = advancedOrders[i];
 
@@ -166,17 +172,20 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     continue;
                 }
 
-                // Read consideration length from memory and place on stack.
-                uint256 totalItems = (
-                    advancedOrder.parameters.consideration.length
+                // Retrieve the parameters for the order.
+                OrderParameters memory orderParameters = (
+                    advancedOrders[i].parameters
                 );
+
+                // Read consideration length from memory and place on stack.
+                uint256 totalItems = orderParameters.consideration.length;
 
                 // Iterate over each consideration item on the order.
                 for (uint256 j = 0; j < totalItems; ++j) {
                     // Ensure item type no longer indicates criteria usage.
                     if (
                         _isItemWithCriteria(
-                            advancedOrder.parameters.consideration[j].itemType
+                            orderParameters.consideration[j].itemType
                         )
                     ) {
                         revert UnresolvedConsiderationCriteria();
@@ -184,15 +193,13 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 }
 
                 // Read offer length from memory and place on stack.
-                totalItems = advancedOrder.parameters.offer.length;
+                totalItems = orderParameters.offer.length;
 
                 // Iterate over each offer item on the order.
                 for (uint256 j = 0; j < totalItems; ++j) {
                     // Ensure item type no longer indicates criteria usage.
                     if (
-                        _isItemWithCriteria(
-                            advancedOrder.parameters.offer[j].itemType
-                        )
+                        _isItemWithCriteria(orderParameters.offer[j].itemType)
                     ) {
                         revert UnresolvedOfferCriteria();
                     }
@@ -247,12 +254,12 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 // Retrieve the proof element.
                 bytes32 proofElement = proof[i];
 
-                if (computedHash <= proofElement) {
-                    // Hash(current computed hash + current element of proof)
-                    computedHash = _efficientHash(computedHash, proofElement);
-                } else {
+                if (computedHash > proofElement) {
                     // Hash(current element of proof + current computed hash)
                     computedHash = _efficientHash(proofElement, computedHash);
+                } else {
+                    // Hash(current computed hash + current element of proof)
+                    computedHash = _efficientHash(computedHash, proofElement);
                 }
             }
         }
