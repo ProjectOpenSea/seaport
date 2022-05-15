@@ -47,7 +47,6 @@ contract NonReentrantTest is BaseOrderTest {
     modifier resetStorageState() {
         _;
         delete additionalRecipients;
-        delete considerationComponents;
         delete considerationComponentsArray;
         delete considerationItems;
         delete currentConsideration;

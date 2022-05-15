@@ -156,6 +156,23 @@ contract BaseConduitTest is
         return transfers;
     }
 
+    function extendConduitTransferArray(
+        ConduitBatch1155Transfer[] memory original,
+        ConduitBatch1155Transfer[] memory extension
+    ) internal pure returns (ConduitBatch1155Transfer[] memory) {
+        ConduitBatch1155Transfer[]
+            memory transfers = new ConduitBatch1155Transfer[](
+                original.length + extension.length
+            );
+        for (uint256 i = 0; i < original.length; i++) {
+            transfers[i] = original[i];
+        }
+        for (uint256 i = 0; i < extension.length; i++) {
+            transfers[i + original.length] = extension[i];
+        }
+        return transfers;
+    }
+
     /**
      * @dev given ConduitTransferIntermediate, return an array of 1-8 ConduitTransfers
      * specifying multiple tokenIds (when appropriate)
@@ -193,12 +210,10 @@ contract BaseConduitTest is
     }
 
     function deploy1155TokensAndCreateConduitBatch1155Transfers(
-        BatchIntermediate[] memory batchIntermediates
+        BatchIntermediate memory batchIntermediate
     ) internal returns (ConduitBatch1155Transfer[] memory) {
         ConduitBatch1155Transfer[]
-            memory batchTransfers = new ConduitBatch1155Transfer[](
-                batchIntermediates.length
-            );
+            memory batchTransfers = new ConduitBatch1155Transfer[](5);
 
         address[] memory tokenAddresses = new address[](5);
         TestERC1155 erc1155_1 = new TestERC1155();
@@ -213,28 +228,21 @@ contract BaseConduitTest is
         tokenAddresses[3] = address(erc1155_4);
         tokenAddresses[4] = address(erc1155_5);
 
-        for (uint256 i = 0; i < batchIntermediates.length; i++) {
-            uint256 intermediateIndex = i;
+        for (uint256 i = 0; i < tokenAddresses.length; i++) {
             uint256[] memory ids = new uint256[](
-                batchIntermediates[i].idAmounts.length
+                batchIntermediate.idAmounts.length
             );
             uint256[] memory amounts = new uint256[](
-                batchIntermediates[i].idAmounts.length
+                batchIntermediate.idAmounts.length
             );
-            for (
-                uint256 n = 0;
-                n < batchIntermediates[intermediateIndex].idAmounts.length;
-                n++
-            ) {
-                ids[n] = batchIntermediates[intermediateIndex].idAmounts[n].id;
-                amounts[n] = batchIntermediates[intermediateIndex]
-                    .idAmounts[n]
-                    .amount;
+            for (uint256 n = 0; n < batchIntermediate.idAmounts.length; n++) {
+                ids[n] = batchIntermediate.idAmounts[n].id;
+                amounts[n] = batchIntermediate.idAmounts[n].amount;
             }
             batchTransfers[i] = ConduitBatch1155Transfer(
                 tokenAddresses[i % 5],
-                batchIntermediates[i].from,
-                batchIntermediates[i].to,
+                batchIntermediate.from,
+                batchIntermediate.to,
                 ids,
                 amounts
             );
@@ -302,6 +310,20 @@ contract BaseConduitTest is
             ];
     }
 
+    function getExpectedBatchTokenBalances(
+        ConduitBatch1155Transfer memory batchTransfer
+    ) internal view returns (uint256[] memory) {
+        uint256[] memory batchTokenBalances = new uint256[](
+            batchTransfer.ids.length
+        );
+        for (uint256 i = 0; i < batchTransfer.ids.length; i++) {
+            batchTokenBalances[i] = userToExpectedTokenIdentifierBalance[
+                batchTransfer.to
+            ][batchTransfer.token][batchTransfer.ids[i]];
+        }
+        return batchTokenBalances;
+    }
+
     function updateExpectedTokenBalances(ConduitTransfer[] memory transfers)
         internal
     {
@@ -314,10 +336,28 @@ contract BaseConduitTest is
         }
     }
 
+    function updateExpectedTokenBalances(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) internal {
+        for (uint256 i = 0; i < batchTransfers.length; i++) {
+            updateExpectedBatchBalances(batchTransfers[i]);
+        }
+    }
+
     function updateExpectedBalance(ConduitTransfer memory transfer) internal {
         userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
             transfer.identifier
         ] += transfer.amount;
+    }
+
+    function updateExpectedBatchBalances(
+        ConduitBatch1155Transfer memory batchTransfer
+    ) internal {
+        for (uint256 i = 0; i < batchTransfer.ids.length; i++) {
+            userToExpectedTokenIdentifierBalance[batchTransfer.to][
+                batchTransfer.token
+            ][batchTransfer.ids[i]] += batchTransfer.amounts[i];
+        }
     }
 
     /**
@@ -327,6 +367,15 @@ contract BaseConduitTest is
         for (uint256 i = 0; i < transfers.length; i++) {
             ConduitTransfer memory transfer = transfers[i];
             _resetStorage(transfer.token);
+        }
+    }
+
+    function resetTokenBalances(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) internal {
+        for (uint256 i = 0; i < batchTransfers.length; i++) {
+            ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
+            _resetStorage(batchTransfer.token);
         }
     }
 }
