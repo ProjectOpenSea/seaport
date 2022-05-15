@@ -270,31 +270,25 @@ contract BaseConduitTest is
         }
     }
 
-    function create1155sAndConduitBatch1155Transfer(
-        BatchIntermediate memory intermediate,
-        address currentConduit
-    ) internal returns (ConduitBatch1155Transfer memory) {
-        address from = receiver(intermediate.from);
-        address to = receiver(intermediate.to);
-
-        uint256[] memory ids = new uint256[](intermediate.idAmounts.length);
-        uint256[] memory amounts = new uint256[](intermediate.idAmounts.length);
-
-        TestERC1155 erc1155 = new TestERC1155();
-
-        for (uint256 i = 0; i < intermediate.idAmounts.length; i++) {
-            erc1155.mint(
-                from,
-                intermediate.idAmounts[i].id,
-                intermediate.idAmounts[i].amount
-            );
+    function mintTokensAndSetTokenApprovalsForConduit(
+        ConduitBatch1155Transfer[] memory batchTransfers,
+        address conduitAddress
+    ) internal {
+        for (uint256 i = 0; i < batchTransfers.length; i++) {
+            ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
+            address from = batchTransfer.from;
+            address token = batchTransfer.token;
+            TestERC1155 erc1155 = TestERC1155(token);
+            for (uint256 n = 0; n < batchTransfer.ids.length; n++) {
+                erc1155.mint(
+                    from,
+                    batchTransfer.ids[n],
+                    batchTransfer.amounts[n]
+                );
+            }
             vm.prank(from);
-            erc1155.setApprovalForAll(currentConduit, true);
-            ids[i] = intermediate.idAmounts[i].id;
-            amounts[i] = intermediate.idAmounts[i].amount;
+            erc1155.setApprovalForAll(conduitAddress, true);
         }
-        return
-            ConduitBatch1155Transfer(address(erc1155), from, to, ids, amounts);
     }
 
     function getExpectedTokenBalance(ConduitTransfer memory transfer)
