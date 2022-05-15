@@ -2,8 +2,8 @@ import { utils, BigNumber, constants } from "ethers";
 import { getAddress, parseEther } from "ethers/lib/utils";
 import { BasicOrderParameters, BigNumberish, Order } from "./types";
 
-export const randomHex = () =>
-  `0x${[...Array(64)]
+export const randomHex = (length: number = 64) =>
+  `0x${[...Array(length)]
     .map(() => Math.floor(Math.random() * 16).toString(16))
     .join("")}`;
 
@@ -47,7 +47,7 @@ export const getBasicOrderParameters = (
   basicOrderRouteType: number,
   order: Order,
   fulfillerConduitKey = false,
-  tips = [],
+  tips = []
 ): BasicOrderParameters => ({
   offerer: order.parameters.offerer,
   zone: order.parameters.zone,

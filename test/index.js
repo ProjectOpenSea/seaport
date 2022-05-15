@@ -17,6 +17,7 @@ const {
   getItemETH,
 } = require("./utils/encoding");
 const { orderType } = require("../eip-712-types/order");
+const { randomInt } = require("crypto");
 
 const VERSION = !process.env.REFERENCE ? "1" : "rc.1";
 
@@ -51,14 +52,24 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     considerationComponents: toFulfillmentComponents(considerationsArr),
   });
 
-  const set721ApprovalForAll = async (signer, spender, approved = true) =>
-    expect(testERC721.connect(signer).setApprovalForAll(spender, approved))
-      .to.emit(testERC721, "ApprovalForAll")
+  const set721ApprovalForAll = async (
+    signer,
+    spender,
+    approved = true,
+    contract = testERC721
+  ) =>
+    expect(contract.connect(signer).setApprovalForAll(spender, approved))
+      .to.emit(contract, "ApprovalForAll")
       .withArgs(signer.address, spender, approved);
 
-  const set1155ApprovalForAll = async (signer, spender, approved = true) =>
-    expect(testERC1155.connect(signer).setApprovalForAll(spender, approved))
-      .to.emit(testERC1155, "ApprovalForAll")
+  const set1155ApprovalForAll = async (
+    signer,
+    spender,
+    approved = true,
+    contract = testERC1155
+  ) =>
+    expect(contract.connect(signer).setApprovalForAll(spender, approved))
+      .to.emit(contract, "ApprovalForAll")
       .withArgs(signer.address, spender, approved);
 
   const mintAndApproveERC20 = async (signer, spender, tokenAmount) => {
@@ -614,6 +625,98 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       mirrorOrderHash,
       mirrorValue,
     };
+  };
+
+  const deployNewConduit = async (owner) => {
+    // Create a conduit key with a random salt
+    const tempConduitKey = randomHex(24) + owner.address.slice(2);
+
+    const { conduit: tempConduitAddress } = await conduitController.getConduit(
+      tempConduitKey
+    );
+
+    await whileImpersonating(owner.address, provider, async () => {
+      await conduitController
+        .connect(owner)
+        .createConduit(tempConduitKey, owner.address);
+    });
+
+    const tempConduit = conduitImplementation.attach(tempConduitAddress);
+    return tempConduit;
+  };
+
+  // Deploys a new contract based on itemType
+  const deployContracts = async (itemType) => {
+    let tempContract;
+
+    switch (itemType) {
+      case 0:
+        break;
+      case 1: // ERC20
+        tempContract = await deployContract("TestERC20", owner);
+        break;
+      case 2: // ERC721
+      case 4: // ERC721_WITH_CRITERIA
+        tempContract = await deployContract("TestERC721", owner);
+        break;
+      case 3: // ERC1155
+      case 5: // ERC1155_WITH_CRITERIA
+        tempContract = await deployContract("TestERC1155", owner);
+        break;
+    }
+    return tempContract;
+  };
+
+  // Creates a transfer object after minting a random amount
+  // of tokens, and setting receiver's token approval based on itemType
+  const createTransferWithApproval = async (
+    contract,
+    receiver,
+    itemType,
+    approvalAddress,
+    from,
+    to
+  ) => {
+    let identifier = 0;
+    let amount;
+    let token = contract.address;
+
+    switch (itemType) {
+      case 0:
+        break;
+      case 1: // ERC20
+        amount = ethers.BigNumber.from(randomLarge()).add(100);
+        await contract.mint(receiver.address, amount);
+
+        // Receiver approves contract to transfer tokens
+        await whileImpersonating(receiver.address, provider, async () => {
+          await expect(
+            contract.connect(receiver).approve(approvalAddress, amount)
+          )
+            .to.emit(contract, "Approval")
+            .withArgs(receiver.address, approvalAddress, amount);
+        });
+        break;
+      case 2: // ERC721
+      case 4: // ERC721_WITH_CRITERIA
+        amount = 1;
+        identifier = ethers.BigNumber.from(randomHex());
+        await contract.mint(receiver.address, identifier);
+
+        // Receiver approves contract to transfer tokens
+        await set721ApprovalForAll(receiver, approvalAddress, true, contract);
+        break;
+      case 3: // ERC1155
+      case 5: // ERC1155_WITH_CRITERIA
+        identifier = ethers.BigNumber.from(randomHex().slice(0, 10));
+        amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+        await contract.mint(receiver.address, identifier, amount);
+
+        // Receiver approves contract to transfer tokens
+        await set1155ApprovalForAll(receiver, approvalAddress, true, contract);
+        break;
+    }
+    return { itemType, token, from, to, identifier, amount };
   };
 
   const checkExpectedEvents = async (
@@ -9504,6 +9607,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     let buyer;
     let sellerContract;
     let buyerContract;
+    let tempConduit;
 
     beforeEach(async () => {
       // Setup basic buyer/seller wallets with ETH
@@ -9514,6 +9618,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       sellerContract = await EIP1271WalletFactory.deploy(seller.address);
       buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
 
+      // Deploy a new conduit
+      tempConduit = await deployNewConduit(owner);
+
       await Promise.all(
         [seller, buyer, zone, sellerContract, buyerContract].map((wallet) =>
           faucet(wallet.address, provider)
@@ -9521,48 +9628,39 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
-    it("Deploys a conduit, adds a channel, and executes transfers", async () => {
-      const tempConduitKey =
-        "0xff00000000000000000000ff" + owner.address.slice(2);
-
-      const { conduit: tempConduitAddress } =
-        await conduitController.getConduit(tempConduitKey);
-
-      await conduitController
-        .connect(owner)
-        .createConduit(tempConduitKey, owner.address);
-
-      const tempConduit = conduitImplementation.attach(tempConduitAddress);
-
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, owner.address, true);
+    it("Adds a channel, and executes transfers (ERC1155 with batch)", async () => {
+      // Owner updates conduit channel to allow seller access
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
+      });
 
       const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
       const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
-      await testERC1155.mint(owner.address, nftId, amount.mul(2));
+      await testERC1155.mint(seller.address, nftId, amount.mul(2));
 
       const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
       const secondAmount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(
         1
       );
-      await testERC1155.mint(owner.address, secondNftId, secondAmount.mul(2));
+      await testERC1155.mint(seller.address, secondNftId, secondAmount.mul(2));
 
-      await set1155ApprovalForAll(owner, tempConduit.address, true);
+      await set1155ApprovalForAll(seller, tempConduit.address, true);
 
-      await tempConduit.connect(owner).executeWithBatch1155(
+      await tempConduit.connect(seller).executeWithBatch1155(
         [],
         [
           {
             token: testERC1155.address,
-            from: owner.address,
+            from: seller.address,
             to: buyer.address,
             ids: [nftId, secondNftId],
             amounts: [amount, secondAmount],
           },
           {
             token: testERC1155.address,
-            from: owner.address,
+            from: seller.address,
             to: buyer.address,
             ids: [secondNftId, nftId],
             amounts: [secondAmount, amount],
@@ -9571,22 +9669,456 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
+    it("Adds a channel, and executes transfers (ERC721)", async () => {
+      // Owner updates conduit channel to allow seller access
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
+      });
+
+      // Seller mints nft
+      const nftId = ethers.BigNumber.from(randomHex());
+      await testERC721.mint(seller.address, nftId);
+
+      const secondNftId = ethers.BigNumber.from(randomHex());
+      await testERC721.mint(seller.address, secondNftId);
+
+      // Check ownership
+      expect(await testERC721.ownerOf(nftId)).to.equal(seller.address);
+      expect(await testERC721.ownerOf(secondNftId)).to.equal(seller.address);
+
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC721
+            .connect(seller)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC721, "ApprovalForAll")
+          .withArgs(seller.address, tempConduit.address, true);
+      });
+
+      await tempConduit.connect(seller).execute([
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          from: seller.address,
+          to: buyer.address,
+          identifier: nftId,
+          amount: ethers.BigNumber.from(1),
+        },
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          from: seller.address,
+          to: buyer.address,
+          identifier: secondNftId,
+          amount: ethers.BigNumber.from(1),
+        },
+      ]);
+
+      // Check ownership
+      expect(await testERC721.ownerOf(nftId)).to.equal(buyer.address);
+      expect(await testERC721.ownerOf(secondNftId)).to.equal(buyer.address);
+    });
+
+    it("Adds a channel, and executes transfers (ERC721 + ERC20)", async () => {
+      // Owner updates conduit channel to allow seller access
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
+      });
+
+      // Seller mints nft
+      const nftId = ethers.BigNumber.from(randomHex());
+      await testERC721.mint(seller.address, nftId);
+
+      // Check ownership
+      expect(await testERC721.ownerOf(nftId)).to.equal(seller.address);
+
+      // Set approval of nft
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC721
+            .connect(seller)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC721, "ApprovalForAll")
+          .withArgs(seller.address, tempConduit.address, true);
+      });
+
+      const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+      await testERC20.mint(seller.address, tokenAmount);
+
+      // Check balance
+      expect(await testERC20.balanceOf(seller.address)).to.equal(tokenAmount);
+
+      // Seller approves conduit contract to transfer tokens
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
+        )
+          .to.emit(testERC20, "Approval")
+          .withArgs(seller.address, tempConduit.address, tokenAmount);
+      });
+
+      // Send an ERC721 and (token amount - 100) ERC20 tokens
+      await tempConduit.connect(seller).execute([
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          from: seller.address,
+          to: buyer.address,
+          identifier: nftId,
+          amount: ethers.BigNumber.from(1),
+        },
+        {
+          itemType: 1, // ERC20
+          token: testERC20.address,
+          from: seller.address,
+          to: buyer.address,
+          identifier: 0,
+          amount: tokenAmount.sub(100),
+        },
+      ]);
+
+      // Check ownership
+      expect(await testERC721.ownerOf(nftId)).to.equal(buyer.address);
+      // Check balance
+      expect(await testERC20.balanceOf(seller.address)).to.equal(100);
+      expect(await testERC20.balanceOf(buyer.address)).to.equal(
+        tokenAmount.sub(100)
+      );
+    });
+
+    it("Adds a channel, and executes transfers (ERC721 + ERC1155)", async () => {
+      // Owner updates conduit channel to allow seller access
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
+      });
+
+      // Seller mints nft
+      const nftId = ethers.BigNumber.from(randomHex());
+      await testERC721.mint(seller.address, nftId);
+
+      // Check ownership
+      expect(await testERC721.ownerOf(nftId)).to.equal(seller.address);
+
+      // Set approval of nft
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC721
+            .connect(seller)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC721, "ApprovalForAll")
+          .withArgs(seller.address, tempConduit.address, true);
+      });
+
+      const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      await testERC1155.mint(seller.address, secondNftId, amount);
+
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC1155
+            .connect(seller)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC1155, "ApprovalForAll")
+          .withArgs(seller.address, tempConduit.address, true);
+      });
+
+      // Check ownership
+      expect(await testERC1155.balanceOf(seller.address, secondNftId)).to.equal(
+        amount
+      );
+
+      // Send an ERC721 and ERC1155
+      await tempConduit.connect(seller).execute([
+        {
+          itemType: 2, // ERC721
+          token: testERC721.address,
+          from: seller.address,
+          to: buyer.address,
+          identifier: nftId,
+          amount: ethers.BigNumber.from(1),
+        },
+        {
+          itemType: 3, // ERC1155
+          token: testERC1155.address,
+          from: seller.address,
+          to: buyer.address,
+          identifier: secondNftId,
+          amount: amount.sub(10),
+        },
+      ]);
+
+      // Check ownership
+      expect(await testERC721.ownerOf(nftId)).to.equal(buyer.address);
+      // Check balance
+      expect(await testERC1155.balanceOf(seller.address, secondNftId)).to.equal(
+        10
+      );
+      expect(await testERC1155.balanceOf(buyer.address, secondNftId)).to.equal(
+        amount.sub(10)
+      );
+    });
+
+    it("Adds a channel, and executes transfers (ERC20 + ERC1155)", async () => {
+      // Owner updates conduit channel to allow seller access
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
+      });
+
+      // Seller mints nft
+      const tokenAmount = ethers.BigNumber.from(randomLarge()).add(100);
+      await testERC20.mint(seller.address, tokenAmount);
+
+      // Check balance
+      expect(await testERC20.balanceOf(seller.address)).to.equal(tokenAmount);
+
+      // Seller approves conduit contract to transfer tokens
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
+        )
+          .to.emit(testERC20, "Approval")
+          .withArgs(seller.address, tempConduit.address, tokenAmount);
+      });
+
+      const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
+      const erc1155amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(
+        1
+      );
+      await testERC1155.mint(seller.address, nftId, erc1155amount);
+
+      await whileImpersonating(seller.address, provider, async () => {
+        await expect(
+          testERC1155
+            .connect(seller)
+            .setApprovalForAll(tempConduit.address, true)
+        )
+          .to.emit(testERC1155, "ApprovalForAll")
+          .withArgs(seller.address, tempConduit.address, true);
+      });
+
+      // Check ownership
+      expect(await testERC1155.balanceOf(seller.address, nftId)).to.equal(
+        erc1155amount
+      );
+
+      // Send an ERC20 and ERC1155
+      await tempConduit.connect(seller).execute([
+        {
+          itemType: 1, // ERC20
+          token: testERC20.address,
+          from: seller.address,
+          to: buyer.address,
+          identifier: 0,
+          amount: tokenAmount.sub(100),
+        },
+        {
+          itemType: 3, // ERC1155
+          token: testERC1155.address,
+          from: seller.address,
+          to: buyer.address,
+          identifier: nftId,
+          amount: erc1155amount.sub(10),
+        },
+      ]);
+
+      // Check balance
+      expect(await testERC20.balanceOf(seller.address)).to.equal(100);
+      expect(await testERC20.balanceOf(buyer.address)).to.equal(
+        tokenAmount.sub(100)
+      );
+      expect(await testERC1155.balanceOf(seller.address, nftId)).to.equal(10);
+      expect(await testERC1155.balanceOf(buyer.address, nftId)).to.equal(
+        erc1155amount.sub(10)
+      );
+    });
+
+    it("Adds a channel, and executes transfers (ERC20 + ERC721 + ERC1155)", async () => {
+      // Owner updates conduit channel to allow seller access
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
+      });
+
+      // Create/Approve X amount of  ERC20s
+      let erc20Transfer = await createTransferWithApproval(
+        testERC20,
+        seller,
+        1,
+        tempConduit.address,
+        seller.address,
+        buyer.address
+      );
+
+      // Create/Approve Y amount of  ERC721s
+      let erc721Transfer = await createTransferWithApproval(
+        testERC721,
+        seller,
+        2,
+        tempConduit.address,
+        seller.address,
+        buyer.address
+      );
+
+      // Create/Approve Z amount of ERC1155s
+      let erc1155Transfer = await createTransferWithApproval(
+        testERC1155,
+        seller,
+        3,
+        tempConduit.address,
+        seller.address,
+        buyer.address
+      );
+
+      // Send an ERC20, ERC721, and ERC1155
+      await tempConduit
+        .connect(seller)
+        .execute([erc20Transfer, erc721Transfer, erc1155Transfer]);
+
+      // Check ownership
+      expect(await testERC721.ownerOf(erc721Transfer.identifier)).to.equal(
+        buyer.address
+      );
+      // Check balance
+      expect(await testERC20.balanceOf(seller.address)).to.equal(0);
+      expect(await testERC20.balanceOf(buyer.address)).to.equal(
+        erc20Transfer.amount
+      );
+      expect(
+        await testERC1155.balanceOf(seller.address, erc1155Transfer.identifier)
+      ).to.equal(0);
+      expect(
+        await testERC1155.balanceOf(buyer.address, erc1155Transfer.identifier)
+      ).to.equal(erc1155Transfer.amount);
+    });
+
+    it("Adds a channel, and executes transfers (many token types)", async () => {
+      // Owner updates conduit channel to allow seller access
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
+      });
+
+      // Get 3 Numbers that's value adds to Item Amount and minimum 1.
+      let itemsToCreate = 64;
+      let numERC20s = randomInt(itemsToCreate - 2);
+      let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+
+      let erc20Contracts = [numERC20s];
+      let erc20Transfers = [numERC20s];
+
+      let erc721Contracts = [numEC721s];
+      let erc721Transfers = [numEC721s];
+
+      let erc1155Contracts = [numERC1155s];
+      let erc1155Transfers = [numERC1155s];
+
+      // Create numERC20s amount of ERC20 objects
+      for (let i = 0; i < numERC20s; i++) {
+        // Deploy Contract
+        let tempERC20Contract = await deployContracts(1);
+        // Create/Approve X amount of  ERC20s
+        let erc20Transfer = await createTransferWithApproval(
+          tempERC20Contract,
+          seller,
+          1,
+          tempConduit.address,
+          seller.address,
+          buyer.address
+        );
+        erc20Contracts[i] = tempERC20Contract;
+        erc20Transfers[i] = erc20Transfer;
+      }
+
+      // Create numEC721s amount of ERC20 objects
+      for (let i = 0; i < numEC721s; i++) {
+        // Deploy Contract
+        let tempERC721Contract = await deployContracts(2);
+        // Create/Approve numEC721s amount of  ERC721s
+        let erc721Transfer = await createTransferWithApproval(
+          tempERC721Contract,
+          seller,
+          2,
+          tempConduit.address,
+          seller.address,
+          buyer.address
+        );
+        erc721Contracts[i] = tempERC721Contract;
+        erc721Transfers[i] = erc721Transfer;
+      }
+
+      // Create numERC1155s amount of ERC1155 objects
+      for (let i = 0; i < numERC1155s; i++) {
+        // Deploy Contract
+        let tempERC1155Contract = await deployContracts(3);
+        // Create/Approve numERC1155s amount of ERC1155s
+        let erc1155Transfer = await createTransferWithApproval(
+          tempERC1155Contract,
+          seller,
+          3,
+          tempConduit.address,
+          seller.address,
+          buyer.address
+        );
+        erc1155Contracts[i] = tempERC1155Contract;
+        erc1155Transfers[i] = erc1155Transfer;
+      }
+
+      let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
+      let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
+      // Send the transfers
+      await tempConduit.connect(seller).execute(transfers);
+
+      // Loop through all transfer to do ownership/balance checks
+      for (let i = 0; i < transfers.length; i++) {
+        // Get Itemtype, token, from, to, amount, identifier
+        itemType = transfers[i].itemType;
+        token = contracts[i];
+        from = transfers[i].from;
+        to = transfers[i].to;
+        amount = transfers[i].amount;
+        identifier = transfers[i].identifier;
+
+        switch (itemType) {
+          case 1: // ERC20
+            // Check balance
+            expect(await token.balanceOf(from)).to.equal(0);
+            expect(await token.balanceOf(to)).to.equal(amount);
+            break;
+          case 2: // ERC721
+          case 4: // ERC721_WITH_CRITERIA
+            expect(await token.ownerOf(identifier)).to.equal(to);
+            break;
+          case 3: // ERC1155
+          case 5: // ERC1155_WITH_CRITERIA
+            // Check balance
+            expect(await token.balanceOf(from, identifier)).to.equal(0);
+            expect(await token.balanceOf(to, identifier)).to.equal(amount);
+            break;
+        }
+      }
+    });
+
     it("Reverts on calls to batch transfer 1155 items with no contract on a conduit", async () => {
-      const tempConduitKey =
-        "0xff00000000000000000000dd" + owner.address.slice(2);
-
-      const { conduit: tempConduitAddress } =
-        await conduitController.getConduit(tempConduitKey);
-
-      await conduitController
-        .connect(owner)
-        .createConduit(tempConduitKey, owner.address);
-
-      const tempConduit = conduitImplementation.attach(tempConduitAddress);
-
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, owner.address, true);
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, owner.address, true);
+      });
 
       const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
       const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
