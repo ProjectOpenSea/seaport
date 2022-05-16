@@ -247,7 +247,7 @@ contract FulfillOrderTest is BaseOrderTest {
                 0,
                 uint256(context.args.paymentAmts[1]),
                 uint256(context.args.paymentAmts[1]),
-                payable(context.args.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+                payable(context.args.zone)
             )
         );
         considerationItems.push(
@@ -398,7 +398,7 @@ contract FulfillOrderTest is BaseOrderTest {
             value: context.args.paymentAmts[0] +
                 context.args.paymentAmts[1] +
                 context.args.paymentAmts[2]
-        }(Order(orderParameters, signature), conduitKey); // TODO: over/underflow error in referenceConsideration differential test
+        }(Order(orderParameters, signature), conduitKey);
     }
 
     function _testFulfillOrderSingleErc20ToSingleErc1155(Context memory context)
@@ -557,7 +557,7 @@ contract FulfillOrderTest is BaseOrderTest {
                 0,
                 uint256(context.args.paymentAmts[1]),
                 uint256(context.args.paymentAmts[1]),
-                payable(context.args.zone) // TODO: should we fuzz on zone? do royalties get paid to zone??
+                payable(context.args.zone)
             )
         );
         considerationItems.push(
@@ -754,7 +754,7 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(context.numTips > 1 && context.numTips < 64);
+        context.numTips = (context.numTips % 64) + 1;
         vm.assume(
             context.args.paymentAmts[0] > 0 &&
                 context.args.paymentAmts[1] > 0 &&
@@ -880,7 +880,7 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(context.numTips > 1 && context.numTips < 64);
+        context.numTips = (context.numTips % 64) + 1;
         vm.assume(context.erc1155amt > 0);
         vm.assume(
             context.args.paymentAmts[0] > 0 &&
@@ -1007,7 +1007,7 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(context.numTips > 0 && context.numTips < 64);
+        context.numTips = (context.numTips % 64) + 1;
         vm.assume(
             context.args.paymentAmts[0] > 0 &&
                 context.args.paymentAmts[1] > 0 &&
@@ -1127,7 +1127,7 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(context.numTips > 1 && context.numTips < 64);
+        context.numTips = (context.numTips % 64) + 1;
         vm.assume(context.erc1155amt > 0);
         vm.assume(
             context.args.paymentAmts[0] > 0 &&
@@ -1249,7 +1249,7 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(context.numTips > 0 && context.numTips < 64);
+        context.numTips = (context.numTips % 64) + 1;
         vm.assume(
             context.args.paymentAmts[0] > 0 &&
                 context.args.paymentAmts[1] > 0 &&
@@ -1371,7 +1371,7 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(context.numTips > 1 && context.numTips < 64);
+        context.numTips = (context.numTips % 64) + 1;
         vm.assume(context.erc1155amt > 0);
         vm.assume(
             context.args.paymentAmts[0] > 0 &&
@@ -1610,7 +1610,7 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        vm.assume(context.numTips > 1 && context.numTips < 64);
+        context.numTips = (context.numTips % 64) + 1;
         vm.assume(context.erc1155amt > 0);
         vm.assume(
             context.args.paymentAmts[0] > 0 &&
