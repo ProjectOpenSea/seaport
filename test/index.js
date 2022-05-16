@@ -1276,12 +1276,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       const conduitControllerAddress = await create2Factory.findCreate2Address(
-        ethers.constants.HashZero, // TODO: find a good one
+        deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
         conduitControllerFactory.bytecode
       );
 
+      expect(conduitControllerAddress).to.equal(
+        deployConstants.CONDUIT_CONTROLLER_ADDRESS
+      );
+
       await create2Factory.safeCreate2(
-        ethers.constants.HashZero, // TODO: find a good one
+        deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
         conduitControllerFactory.bytecode,
         {
           gasLimit,
