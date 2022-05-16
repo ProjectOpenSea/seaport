@@ -173,17 +173,15 @@ contract MatchOrders is BaseOrderTest {
         orders[0] = Order(orderParameters, signature);
         orders[1] = Order(mirrorOrderParameters, mirrorSignature);
 
-        firstOrderFirstItem = FulfillmentComponent(0, 0);
-        secondOrderFirstItem = FulfillmentComponent(1, 0);
-
-        firstOrderFirstItemArray.push(firstOrderFirstItem);
-        secondOrderFirstItemArray.push(secondOrderFirstItem);
-
-        firstFulfillment.offerComponents = firstOrderFirstItemArray;
-        firstFulfillment.considerationComponents = secondOrderFirstItemArray;
-
-        secondFulfillment.offerComponents = secondOrderFirstItemArray;
-        secondFulfillment.considerationComponents = firstOrderFirstItemArray;
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        firstFulfillment.offerComponents = fulfillmentComponents;
+        secondFulfillment.considerationComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        firstFulfillment.considerationComponents = fulfillmentComponents;
+        secondFulfillment.offerComponents = fulfillmentComponents;
 
         fulfillments.push(firstFulfillment);
         fulfillments.push(secondFulfillment);
