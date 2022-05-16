@@ -14377,7 +14377,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 value,
                 gasLimit: hre.__SOLIDITY_COVERAGE_RUNNING
                   ? baseGas.add(35000)
-                  : baseGas.add(2000),
+                  : baseGas.add(5000),
               })
           ).to.be.revertedWith("InvalidCallToConduit");
         });
