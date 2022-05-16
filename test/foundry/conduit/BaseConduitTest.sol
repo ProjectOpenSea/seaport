@@ -372,6 +372,10 @@ contract BaseConduitTest is
         ConduitTransfer[] memory transfers,
         ConduitBatch1155Transfer[] memory batchTransfers
     ) internal {
+        for (uint256 i = 0; i < transfers.length; i++) {
+            ConduitTransfer memory transfer = transfers[i];
+            _resetStorage(transfer.token);
+        }
         for (uint256 i = 0; i < batchTransfers.length; i++) {
             ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
             _resetStorage(batchTransfer.token);
