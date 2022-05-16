@@ -29,4 +29,11 @@ module.exports = {
     "test/TestERC721.sol",
     "test/TestZone.sol",
   ],
+  configureYulOptimizer: true,
+  solcOptimizerDetails: {
+    yul: true,
+    yulDetails: {
+      stackAllocation: true
+    }
+  }
 };
