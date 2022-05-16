@@ -81,7 +81,7 @@ uint256 constant Panic_error_length = 0x24;
 uint256 constant Panic_overflow = 0x11;
 
 uint256 constant MissingItemAmount_error_signature = (
-  0x91b3e51400000000000000000000000000000000000000000000000000000000
+    0x91b3e51400000000000000000000000000000000000000000000000000000000
 );
 uint256 constant MissingItemAmount_error_len = 0x20;
 
