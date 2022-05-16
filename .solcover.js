@@ -17,7 +17,6 @@ module.exports = {
     "reference/conduit/ReferenceConduit.sol",
     "reference/conduit/ReferenceConduitController.sol",
     "reference/lib/ReferenceConsiderationBase.sol",
-    "reference/lib/ReferenceConsiderationConstants.sol",
     "reference/lib/ReferenceConsiderationInternal.sol",
     "reference/lib/ReferenceConsiderationInternalView.sol",
     "reference/lib/ReferenceConsiderationPure.sol",
@@ -30,4 +29,11 @@ module.exports = {
     "test/TestERC721.sol",
     "test/TestZone.sol",
   ],
+  configureYulOptimizer: true,
+  solcOptimizerDetails: {
+    yul: true,
+    yulDetails: {
+      stackAllocation: true,
+    },
+  },
 };

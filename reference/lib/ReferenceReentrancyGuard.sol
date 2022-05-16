@@ -3,7 +3,7 @@ pragma solidity ^0.8.7;
 
 import { ReentrancyErrors } from "contracts/interfaces/ReentrancyErrors.sol";
 
-import "./ReferenceConsiderationConstants.sol";
+import "contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title ReentrancyGuard

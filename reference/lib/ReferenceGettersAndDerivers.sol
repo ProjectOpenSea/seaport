@@ -5,7 +5,7 @@ import { ConsiderationItem, OfferItem, OrderParameters } from "contracts/lib/Con
 
 import { ReferenceConsiderationBase } from "./ReferenceConsiderationBase.sol";
 
-import "./ReferenceConsiderationConstants.sol";
+import "contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title GettersAndDerivers

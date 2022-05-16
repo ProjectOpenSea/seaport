@@ -8,7 +8,7 @@ import { OrderType } from "contracts/lib/ConsiderationEnums.sol";
 // prettier-ignore
 import { AdvancedOrder, CriteriaResolver } from "contracts/lib/ConsiderationStructs.sol";
 
-import "./ReferenceConsiderationConstants.sol";
+import "contracts/lib/ConsiderationConstants.sol";
 
 // prettier-ignore
 import {

@@ -1,16 +1,24 @@
-import { utils, BigNumber, constants } from "ethers";
-import { getAddress, parseEther } from "ethers/lib/utils";
+import { randomBytes as nodeRandomBytes } from "crypto";
+import { utils, BigNumber, constants, ContractTransaction } from "ethers";
+import { getAddress } from "ethers/lib/utils";
 import { BasicOrderParameters, BigNumberish, Order } from "./types";
+const SeededRNG = require("./seeded-rng");
 
-export const randomHex = () =>
-  `0x${[...Array(64)]
-    .map(() => Math.floor(Math.random() * 16).toString(16))
-    .join("")}`;
+const GAS_REPORT_MODE = process.env.REPORT_GAS;
 
-export const randomLarge = () =>
-  `0x${[...Array(60)]
-    .map(() => Math.floor(Math.random() * 16).toString(16))
-    .join("")}`;
+let randomBytes: (n: number) => string;
+if (GAS_REPORT_MODE) {
+  const srng = SeededRNG.create("gas-report");
+  randomBytes = srng.randomBytes;
+} else {
+  randomBytes = (n: number) => nodeRandomBytes(n).toString("hex");
+}
+
+// const randomBytes
+
+export const randomHex = (bytes = 32) => `0x${randomBytes(bytes)}`;
+
+export const random128 = () => toBN(randomHex(16));
 
 const hexRegex = /[A-Fa-fx]/g;
 
@@ -24,6 +32,20 @@ export const toHex = (n: BigNumberish, numBytes: number = 0) => {
     : (+n).toString(16);
   return `0x${asHexString.padStart(numBytes * 2, "0")}`;
 };
+
+export const baseFee = async (tx: ContractTransaction) => {
+  const data = tx.data;
+  const { gasUsed } = await tx.wait();
+  const bytes = toHex(data)
+    .slice(2)
+    .match(/.{1,2}/g) as string[];
+  const numZero = bytes.filter((b) => b === "00").length;
+  return (
+    gasUsed.toNumber() - (21000 + (numZero * 4 + (bytes.length - numZero) * 16))
+  );
+};
+
+export const randomBN = (bytes: number = 32) => toBN(randomHex(bytes));
 
 export const toBN = (n: BigNumberish) => BigNumber.from(toHex(n));
 
@@ -47,7 +69,7 @@ export const getBasicOrderParameters = (
   basicOrderRouteType: number,
   order: Order,
   fulfillerConduitKey = false,
-  tips = [],
+  tips = []
 ): BasicOrderParameters => ({
   offerer: order.parameters.offerer,
   zone: order.parameters.zone,
@@ -96,16 +118,16 @@ export const getOfferOrConsiderationItem = (
 });
 
 export const getItemETH = (
-  startAmount: number = 1,
-  endAmount: number = 1,
+  startAmount: BigNumberish = 1,
+  endAmount: BigNumberish = 1,
   recipient?: string
 ) =>
   getOfferOrConsiderationItem(
     0,
     constants.AddressZero,
     0,
-    parseEther(startAmount.toString()),
-    parseEther(endAmount.toString()),
+    toBN(startAmount),
+    toBN(endAmount),
     recipient
   );
 
