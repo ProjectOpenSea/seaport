@@ -3,7 +3,7 @@ pragma solidity 0.8.13;
 
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
-import { Consideration } from "../../contracts/Consideration.sol";
+import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { AdditionalRecipient, Fulfillment, OfferItem, ConsiderationItem, FulfillmentComponent, OrderComponents, AdvancedOrder, BasicOrderParameters, Order } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { EntryPoint, ReentryPoint } from "./utils/reentrancy/ReentrantEnums.sol";
@@ -18,7 +18,7 @@ contract NonReentrantTest is BaseOrderTest {
     Order order;
     Order[] orders;
     ReentryPoint reentryPoint;
-    Consideration currentConsideration;
+    ConsiderationInterface currentConsideration;
 
     /**
      * @dev Foundry fuzzes enums as uints, so we need to manually fuzz on uints and use vm.assume
@@ -38,7 +38,7 @@ contract NonReentrantTest is BaseOrderTest {
     }
 
     struct Context {
-        Consideration consideration;
+        ConsiderationInterface consideration;
         NonReentrantInputs args;
     }
 

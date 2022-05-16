@@ -5,7 +5,7 @@ pragma solidity 0.8.13;
 
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
-import { Consideration } from "../../contracts/Consideration.sol";
+import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
@@ -27,7 +27,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         uint256 salt;
     }
     struct Context {
-        Consideration consideration;
+        ConsiderationInterface consideration;
         FuzzInputsCommon args;
         uint128 tokenAmount;
     }

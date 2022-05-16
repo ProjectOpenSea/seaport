@@ -202,17 +202,20 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         assembly {
             function throwInvalidFulfillmentComponentData() {
                 mstore(0, InvalidFulfillmentComponentData_error_signature)
-                revert(0x1c, InvalidFulfillmentComponentData_error_len)
+                revert(0, InvalidFulfillmentComponentData_error_len)
+            }
+
+            function throwOverflow() {
+                mstore(0, Panic_error_signature)
+                mstore(Panic_error_offset, Panic_error_length)
+                revert(0, Panic_error_length)
             }
 
             // Get position in offerComponents head
             let fulfillmentHeadPtr := add(offerComponents, 0x20)
 
-            // Get fulfillment ptr from offer component & start index.
-            let fulfillmentPtr := mload(fulfillmentHeadPtr)
-
             // Retrieve the order index using the fulfillment pointer.
-            let orderIndex := mload(fulfillmentPtr)
+            let orderIndex := mload(mload(fulfillmentHeadPtr))
 
             // Ensure that the order index is not out of range.
             if iszero(lt(orderIndex, mload(advancedOrders))) {
@@ -236,7 +239,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             // Retrieve item index using an offset of the fulfillment pointer.
             let itemIndex := mload(
-                add(fulfillmentPtr, Fulfillment_itemIndex_offset)
+                add(mload(fulfillmentHeadPtr), Fulfillment_itemIndex_offset)
             )
 
             // Only continue if the fulfillment is not invalid.
@@ -253,6 +256,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
             )
 
+            // Create variable to track errors encountered with amount
+            let errorBuffer := 0
+
             // Only add offer amount to execution amount if numerator
             // is greater than zero
             if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
@@ -262,6 +268,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 amount := mload(amountPtr)
                 // Zero out amount on item to indicate it is credited.
                 mstore(amountPtr, 0)
+                // Buffer indicating whether issues were found
+                errorBuffer := iszero(amount)
             }
 
             // Retrieve the received item pointer.
@@ -313,11 +321,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // prettier-ignore
             for {} lt(fulfillmentHeadPtr,  endPtr) {} {
                 fulfillmentHeadPtr := add(fulfillmentHeadPtr, 0x20)
-                // Retrieve the fulfillment pointer.
-                fulfillmentPtr := mload(fulfillmentHeadPtr)
 
                 // Get the order index using the fulfillment pointer.
-                orderIndex := mload(fulfillmentPtr)
+                orderIndex := mload(mload(fulfillmentHeadPtr))
 
                 // Ensure the order index is in range.
                 if iszero(lt(orderIndex, mload(advancedOrders))) {
@@ -351,7 +357,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
 
                 // Get the item index using the fulfillment pointer.
-                itemIndex := mload(add(fulfillmentPtr, 0x20))
+                itemIndex := mload(add(mload(fulfillmentHeadPtr), 0x20))
 
                 // Throw if itemIndex is out of the range of array.
                 if iszero(
@@ -377,7 +383,19 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
 
                 // Add offer amount to execution amount
-                amount := add(amount, mload(amountPtr))
+                let newAmount := add(amount, mload(amountPtr))
+
+                // Update error buffer. 1 = zero amount, 2 = overflow
+                errorBuffer := or(
+                  errorBuffer,
+                  or(
+                    shl(1, lt(newAmount, amount)),
+                    iszero(mload(amountPtr))
+                  )
+                )
+
+                // Update sum
+                amount := newAmount
 
                 // Zero out amount on original item to indicate it
                 // is credited.
@@ -422,6 +440,16 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             }
             // Write final amount to execution
             mstore(add(mload(execution), Common_amount_offset), amount)
+
+            switch errorBuffer
+            case 1 {
+                mstore(0, MissingItemAmount_error_signature)
+                revert(0, MissingItemAmount_error_len)
+            }
+            case 2 {
+                // If the sum overflowed, panic
+                throwOverflow()
+            }
         }
     }
 
@@ -447,7 +475,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         assembly {
             function throwInvalidFulfillmentComponentData() {
                 mstore(0, InvalidFulfillmentComponentData_error_signature)
-                revert(0x1c, InvalidFulfillmentComponentData_error_len)
+                revert(0, InvalidFulfillmentComponentData_error_len)
+            }
+
+            function throwOverflow() {
+                mstore(0, Panic_error_signature)
+                mstore(Panic_error_offset, Panic_error_length)
+                revert(0, Panic_error_length)
             }
 
             let amount := 0
@@ -455,11 +489,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Get position in considerationComponents head
             let fulfillmentHeadPtr := add(considerationComponents, 0x20)
 
-            // Get fulfillment ptr from head in array
-            let fulfillmentPtr := mload(fulfillmentHeadPtr)
-
             // Retrieve the order index using the fulfillment pointer.
-            let orderIndex := mload(fulfillmentPtr)
+            let orderIndex := mload(mload(fulfillmentHeadPtr))
 
             // Ensure that the order index is not out of range.
             if iszero(lt(orderIndex, mload(advancedOrders))) {
@@ -473,17 +504,18 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
             )
 
-            // Read the pointer to OrderParameters from the AdvancedOrder
-            let paramsPtr := mload(orderPtr)
-
             // Load consideration array pointer.
             let considerationArrPtr := mload(
-                add(paramsPtr, OrderParameters_consideration_head_offset)
+                add(
+                    // Read the pointer to OrderParameters from the AdvancedOrder
+                    mload(orderPtr),
+                    OrderParameters_consideration_head_offset
+                )
             )
 
             // Retrieve item index using an offset of the fulfillment pointer.
             let itemIndex := mload(
-                add(fulfillmentPtr, Fulfillment_itemIndex_offset)
+                add(mload(fulfillmentHeadPtr), Fulfillment_itemIndex_offset)
             )
 
             // Ensure that the order index is not out of range.
@@ -501,6 +533,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
             )
 
+            // Create variable to track errors encountered with amount
+            let errorBuffer := 0
+
             // Only add consideration amount to execution amount if numerator
             // is greater than zero
             if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
@@ -508,6 +543,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 let amountPtr := add(considerationItemPtr, Common_amount_offset)
                 // Set the amount.
                 amount := mload(amountPtr)
+                // Set error bit if amount is zero
+                errorBuffer := iszero(amount)
                 // Zero out amount on item to indicate it is credited.
                 mstore(amountPtr, 0)
             }
@@ -559,11 +596,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Increment position in considerationComponents head
                 fulfillmentHeadPtr := add(fulfillmentHeadPtr, 0x20)
 
-                // Get fulfillment ptr from head in array
-                fulfillmentPtr := mload(fulfillmentHeadPtr)
-
                 // Get the order index using the fulfillment pointer.
-                orderIndex := mload(fulfillmentPtr)
+                orderIndex := mload(mload(fulfillmentHeadPtr))
 
                 // Ensure the order index is in range.
                 if iszero(lt(orderIndex, mload(advancedOrders))) {
@@ -583,19 +617,17 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                   continue
                 }
 
-                // Get pointer to OrderParameters from AdvancedOrder.
-                paramsPtr := mload(orderPtr)
-
                 // Load consideration array pointer from OrderParameters.
                 considerationArrPtr := mload(
                     add(
-                        paramsPtr,
+                        // Get pointer to OrderParameters from AdvancedOrder.
+                        mload(orderPtr),
                         OrderParameters_consideration_head_offset
                     )
                 )
 
                 // Get the item index using the fulfillment pointer.
-                itemIndex := mload(add(fulfillmentPtr, 0x20))
+                itemIndex := mload(add(mload(fulfillmentHeadPtr), 0x20))
 
                 // Check if itemIndex is within the range of array.
                 if iszero(lt(itemIndex, mload(considerationArrPtr))) {
@@ -612,18 +644,28 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     )
                 )
 
-                // Retrieve amount pointer using consideration item
-                // pointer.
+                // Retrieve amount pointer using consideration item pointer.
                 let amountPtr := add(
-                    considerationItemPtr,
-                    Common_amount_offset
+                      considerationItemPtr,
+                      Common_amount_offset
                 )
 
-                // Add consideration amount to execution amount
-                amount := add(amount, mload(amountPtr))
+                // Add offer amount to execution amount
+                let newAmount := add(amount, mload(amountPtr))
 
-                // Zero out amount on original item to indicate it
-                // is credited.
+                // Check if addition overflows
+                errorBuffer := or(
+                  errorBuffer,
+                  or(
+                    shl(1, lt(newAmount, amount)),
+                    iszero(mload(amountPtr))
+                  )
+                )
+
+                // Update sum
+                amount := newAmount
+
+                // Zero out amount on original item to indicate it is credited.
                 mstore(amountPtr, 0)
 
                 // Ensure the indicated item matches original item.
@@ -639,7 +681,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                             ),
                             mload(
                                 add(
-                                    mload(execution),
+                                    receivedItem,
                                     ReceivedItem_recipient_offset
                                 )
                             )
@@ -655,7 +697,17 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 }
             }
             // Write final amount to execution
-            mstore(add(mload(execution), Common_amount_offset), amount)
+            mstore(add(receivedItem, Common_amount_offset), amount)
+
+            switch errorBuffer
+            case 1 {
+                mstore(0, MissingItemAmount_error_signature)
+                revert(0, MissingItemAmount_error_len)
+            }
+            case 2 {
+                // If the sum overflowed, panic
+                throwOverflow()
+            }
         }
     }
 }

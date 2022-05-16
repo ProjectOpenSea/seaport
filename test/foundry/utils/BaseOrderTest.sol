@@ -118,6 +118,10 @@ contract BaseOrderTest is
         delete offerComponentsArray;
         delete considerationComponentsArray;
         delete fulfillments;
+        delete firstFulfillment;
+        delete secondFulfillment;
+        delete fulfillmentComponent;
+        delete fulfillmentComponents;
     }
 
     function setUp() public virtual override {
