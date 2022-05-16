@@ -19,7 +19,6 @@ const {
   getItemETH,
   toBN,
   randomBN,
-  baseFee
 } = require("./utils/encoding");
 const { orderType } = require("../eip-712-types/order");
 
@@ -121,15 +120,33 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     return mint721(signer, id);
   };
 
-  const mint1155 = async (signer, multiplier = 1, token = testERC1155, id = null, amt = null) => {
+  const mint1155 = async (
+    signer,
+    multiplier = 1,
+    token = testERC1155,
+    id = null,
+    amt = null
+  ) => {
     const nftId = id ? toBN(id) : randomBN();
     const amount = amt ? toBN(amt) : toBN(randomBN(4));
     await token.mint(signer.address, nftId, amount.mul(multiplier));
     return { nftId, amount };
   };
 
-  const mintAndApprove1155 = async (signer, spender, multiplier = 1, id = null, amt = null) => {
-    const { nftId, amount } = await mint1155(signer, multiplier, testERC1155, id, amt);
+  const mintAndApprove1155 = async (
+    signer,
+    spender,
+    multiplier = 1,
+    id = null,
+    amt = null
+  ) => {
+    const { nftId, amount } = await mint1155(
+      signer,
+      multiplier,
+      testERC1155,
+      id,
+      amt
+    );
     await set1155ApprovalForAll(signer, spender, true);
     return { nftId, amount };
   };
@@ -7141,7 +7158,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     describe("Order groups", async () => {
       it("Multiple offer components at once", async () => {
         // Seller mints NFTs
-        const { nftId, amount } = await mint1155(seller, 2)
+        const { nftId, amount } = await mint1155(seller, 2);
 
         // Seller approves marketplace contract to transfer NFT
 
@@ -7287,7 +7304,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Multiple consideration components at once", async () => {
         // Seller mints NFTs
-        const { nftId, amount } = await mint1155(seller, 2)
+        const { nftId, amount } = await mint1155(seller, 2);
 
         // Seller approves marketplace contract to transfer NFT
 
@@ -9084,9 +9101,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         .connect(owner)
         .updateChannel(tempConduit.address, owner.address, true);
 
-      const { nftId, amount } = await mint1155(owner, 2)
+      const { nftId, amount } = await mint1155(owner, 2);
 
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(owner, 2)
+      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+        owner,
+        2
+      );
 
       await set1155ApprovalForAll(owner, tempConduit.address, true);
 
@@ -9128,9 +9148,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         .connect(owner)
         .updateChannel(tempConduit.address, owner.address, true);
 
-      const { nftId, amount } = await mint1155(owner, 2)
+      const { nftId, amount } = await mint1155(owner, 2);
 
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(owner, 2)
+      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+        owner,
+        2
+      );
 
       await set1155ApprovalForAll(owner, tempConduit.address, true);
 
@@ -9167,25 +9190,31 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         .connect(owner)
         .updateChannel(tempConduit.address, owner.address, true);
 
-      const { nftId, amount } = await mint1155(owner, 2)
+      const { nftId, amount } = await mint1155(owner, 2);
 
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(owner, 2)
+      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+        owner,
+        2
+      );
 
-      const { nftId: thirdNftId, amount: thirdAmount } = await mint1155(owner, 2)
+      const { nftId: thirdNftId, amount: thirdAmount } = await mint1155(
+        owner,
+        2
+      );
 
-      const { nftId: nftId4, amount: amount4 } = await mint1155(owner, 2)
+      const { nftId: nftId4, amount: amount4 } = await mint1155(owner, 2);
 
-      const { nftId: nftId5, amount: amount5 } = await mint1155(owner, 2)
+      const { nftId: nftId5, amount: amount5 } = await mint1155(owner, 2);
 
-      const { nftId: nftId6, amount: amount6 } = await mint1155(owner, 2)
+      const { nftId: nftId6, amount: amount6 } = await mint1155(owner, 2);
 
-      const { nftId: nftId7, amount: amount7 } = await mint1155(owner, 2)
+      const { nftId: nftId7, amount: amount7 } = await mint1155(owner, 2);
 
-      const { nftId: nftId8, amount: amount8 } = await mint1155(owner, 2)
+      const { nftId: nftId8, amount: amount8 } = await mint1155(owner, 2);
 
-      const { nftId: nftId9, amount: amount9 } = await mint1155(owner, 2)
+      const { nftId: nftId9, amount: amount9 } = await mint1155(owner, 2);
 
-      const { nftId: nftId10, amount: amount10 } = await mint1155(owner, 2)
+      const { nftId: nftId10, amount: amount10 } = await mint1155(owner, 2);
 
       await set1155ApprovalForAll(owner, tempConduit.address, true);
 
@@ -9242,21 +9271,43 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         .connect(owner)
         .updateChannel(tempConduit.address, owner.address, true);
 
-      const { nftId, amount } = await mint1155(owner, 2)
+      const { nftId, amount } = await mint1155(owner, 2);
 
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(owner, 2)
+      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+        owner,
+        2
+      );
 
-      const { nftId: thirdNftId, amount: thirdAmount } = await mint1155(owner, 2)
+      const { nftId: thirdNftId, amount: thirdAmount } = await mint1155(
+        owner,
+        2
+      );
 
-      const { nftId: nftId4, amount: amount4 } = await mint1155(owner, 2)
+      const { nftId: nftId4, amount: amount4 } = await mint1155(owner, 2);
 
-      const { nftId: nftId5, amount: amount5 } = await mint1155(owner, 2, testERC1155Two)
+      const { nftId: nftId5, amount: amount5 } = await mint1155(
+        owner,
+        2,
+        testERC1155Two
+      );
 
-      const { nftId: nftId6, amount: amount6 } = await mint1155(owner, 2, testERC1155Two)
+      const { nftId: nftId6, amount: amount6 } = await mint1155(
+        owner,
+        2,
+        testERC1155Two
+      );
 
-      const { nftId: nftId7, amount: amount7 } = await mint1155(owner, 2, testERC1155Two)
+      const { nftId: nftId7, amount: amount7 } = await mint1155(
+        owner,
+        2,
+        testERC1155Two
+      );
 
-      const { nftId: nftId8, amount: amount8 } = await mint1155(owner, 2, testERC1155Two)
+      const { nftId: nftId8, amount: amount8 } = await mint1155(
+        owner,
+        2,
+        testERC1155Two
+      );
 
       const amount9 = toBN(randomBN(4)).add(1);
       await mintAndApproveERC20(owner, tempConduit.address, amount9.mul(2));
@@ -11501,7 +11552,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Reverts on fulfillAvailableAdvancedOrders with out-of-range initial offer order", async () => {
         // Seller mints nft
-        const { nftId, amount } = await mint1155(seller, 2)
+        const { nftId, amount } = await mint1155(seller, 2);
 
         // Seller approves marketplace contract to transfer NFT
 
@@ -11553,7 +11604,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Reverts on fulfillAvailableAdvancedOrders with out-of-range offer order", async () => {
         // Seller mints nft
-        const { nftId, amount } = await mint1155(seller, 2)
+        const { nftId, amount } = await mint1155(seller, 2);
 
         // Seller approves marketplace contract to transfer NFT
 
@@ -13383,7 +13434,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Reverts when 1155 token transfer reverts", async () => {
         // Seller mints nft
-        const { nftId, amount } = await mint1155(seller, 10000)
+        const { nftId, amount } = await mint1155(seller, 10000);
 
         const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
 
@@ -13409,7 +13460,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Reverts when 1155 token transfer reverts (via conduit)", async () => {
         // Seller mints nft
-        const { nftId, amount } = await mint1155(seller, 10000)
+        const { nftId, amount } = await mint1155(seller, 10000);
 
         const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
 
@@ -13737,7 +13788,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Reverts when ERC20 tokens return falsey values (via conduit)", async () => {
         // Seller mints nft
-        const { nftId, amount } = await mint1155(seller, 10000)
+        const { nftId, amount } = await mint1155(seller, 10000);
 
         // Seller approves conduit contract to transfer NFTs
         await set1155ApprovalForAll(seller, conduitOne.address, true);
@@ -13845,7 +13896,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Reverts when providing non-existent conduit", async () => {
         // Seller mints nft
-        const { nftId, amount } = await mint1155(seller, 10000)
+        const { nftId, amount } = await mint1155(seller, 10000);
 
         // Seller approves conduit contract to transfer NFTs
         await set1155ApprovalForAll(seller, conduitOne.address, true);
