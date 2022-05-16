@@ -24,7 +24,7 @@ contract BaseConsiderationTest is Test {
     Conduit conduit;
 
     function setUp() public virtual {
-        conduitKeyOne = bytes32(uint256(uint160(address(this))));
+        conduitKeyOne = bytes32(uint256(uint160(address(this))) << 96);
         vm.label(address(this), "testContract");
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
