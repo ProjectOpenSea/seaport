@@ -43,6 +43,7 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
             address(referenceConduit)
         );
         updateExpectedTokenBalances(transfers);
+        mintTokensAndSetTokenApprovalsForConduit(transfers, address(conduit));
 
         ConduitBatch1155Transfer[]
             memory batchTransfers = new ConduitBatch1155Transfer[](0);
