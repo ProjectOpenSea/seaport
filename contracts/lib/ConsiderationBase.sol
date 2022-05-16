@@ -72,7 +72,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
      *
      * @return The derived domain separator.
      */
-    function _deriveDomainSeparator() internal view virtual returns (bytes32) {
+    function _deriveDomainSeparator() internal view returns (bytes32) {
         // prettier-ignore
         return keccak256(
             abi.encode(
