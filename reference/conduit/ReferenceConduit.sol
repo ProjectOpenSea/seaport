@@ -56,6 +56,27 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         return this.execute.selector;
     }
 
+    function executeBatch1155(
+        ConduitBatch1155Transfer[] calldata batchTransfers
+    ) external override returns (bytes4 magicValue) {
+        if (!_channels[msg.sender]) {
+            revert ChannelClosed();
+        }
+
+        uint256 totalBatchTransfers = batchTransfers.length;
+
+        // Iterate over each batch transfer.
+        for (uint256 i = 0; i < totalBatchTransfers; i++) {
+            // Retrieve the batch transfer in question.
+            ConduitBatch1155Transfer calldata batchTransfer = batchTransfers[i];
+
+            // Perform the batch transfer.
+            _batchTransferERC1155(batchTransfer);
+        }
+
+        return this.executeBatch1155.selector;
+    }
+
     function executeWithBatch1155(
         ConduitTransfer[] calldata standardTransfers,
         ConduitBatch1155Transfer[] calldata batchTransfers
@@ -86,7 +107,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
             _batchTransferERC1155(batchTransfer);
         }
 
-        return this.execute.selector;
+        return this.executeWithBatch1155.selector;
     }
 
     function updateChannel(address channel, bool isOpen) external override {
