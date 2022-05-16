@@ -6496,6 +6496,107 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
+      it("Criteria-based offer item (match, collection-level)", async () => {
+        // Seller mints nfts
+        const nftId = randomBN();
+        const secondNFTId = randomBN();
+        const thirdNFTId = randomBN();
+
+        await testERC721.mint(seller.address, nftId);
+        await testERC721.mint(seller.address, secondNFTId);
+        await testERC721.mint(seller.address, thirdNFTId);
+
+        const tokenIds = [nftId, secondNFTId, thirdNFTId];
+
+        // Seller approves marketplace contract to transfer NFTs
+        await set721ApprovalForAll(seller, marketplaceContract.address, true);
+
+        const offer = [
+          getTestItem721WithCriteria(constants.HashZero, toBN(1), toBN(1)),
+        ];
+
+        const consideration = [
+          getItemETH(parseEther("10"), parseEther("10"), seller.address),
+          getItemETH(parseEther("1"), parseEther("1"), zone.address),
+          getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        ];
+
+        const criteriaResolvers = [buildResolver(0, 0, 0, nftId, [])];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0, // FULL_OPEN
+          criteriaResolvers
+        );
+
+        const { mirrorOrder, mirrorOrderHash } =
+          await createMirrorAcceptOfferOrder(
+            buyer,
+            zone,
+            order,
+            criteriaResolvers
+          );
+
+        const fulfillments = [
+          [[[1, 0]], [[0, 0]]],
+          [[[0, 0]], [[1, 0]]],
+          [[[1, 1]], [[0, 1]]],
+          [[[1, 2]], [[0, 2]]],
+        ].map(([offerArr, considerationArr]) =>
+          toFulfillment(offerArr, considerationArr)
+        );
+
+        const executions = await simulateAdvancedMatchOrders(
+          [order, mirrorOrder],
+          criteriaResolvers,
+          fulfillments,
+          owner,
+          value
+        );
+
+        expect(executions.length).to.equal(4);
+
+        await whileImpersonating(owner.address, provider, async () => {
+          const tx = await marketplaceContract
+            .connect(owner)
+            .matchAdvancedOrders(
+              [order, mirrorOrder],
+              criteriaResolvers,
+              fulfillments,
+              {
+                value,
+              }
+            );
+          const receipt = await tx.wait();
+          await checkExpectedEvents(
+            receipt,
+            [
+              {
+                order,
+                orderHash,
+                fulfiller: constants.AddressZero,
+              },
+            ],
+            executions,
+            criteriaResolvers
+          );
+          await checkExpectedEvents(
+            receipt,
+            [
+              {
+                order: mirrorOrder,
+                orderHash: mirrorOrderHash,
+                fulfiller: constants.AddressZero,
+              },
+            ],
+            executions
+          );
+          return receipt;
+        });
+      });
       it("Criteria-based consideration item (standard)", async () => {
         // buyer mints nfts
         const nftId = randomBN();

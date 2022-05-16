@@ -33,7 +33,7 @@ module.exports = {
   solcOptimizerDetails: {
     yul: true,
     yulDetails: {
-      stackAllocation: true
-    }
-  }
+      stackAllocation: true,
+    },
+  },
 };
