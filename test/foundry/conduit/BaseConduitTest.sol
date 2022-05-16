@@ -79,11 +79,17 @@ contract BaseConduitTest is
         }
     }
 
-    ///@dev helper to make sure fuzzed addresses can receive tokens by changing it if it can't
-    function receiver(address addr) internal returns (address) {
+    ///@dev helper to coerce a fuzzed address into one that can accept tokens if necessary
+    function receiver(address addr, ConduitItemType itemType)
+        internal
+        returns (address)
+    {
         // 0 address is not valid mint or origin address
         if (addr == address(0)) {
             return address(1);
+        }
+        if (itemType != ConduitItemType.ERC1155) {
+            return addr;
         }
         if (!isErc1155Receiver(addr)) {
             return address(uint160(addr) + 1);
@@ -193,8 +199,8 @@ contract BaseConduitTest is
     function makeRecipientsSafe(ConduitTransfer[] memory transfers) internal {
         for (uint256 i; i < transfers.length; i++) {
             ConduitTransfer memory transfer = transfers[i];
-            address from = receiver(transfer.from);
-            address to = receiver(transfer.to);
+            address from = receiver(transfer.from, transfer.itemType);
+            address to = receiver(transfer.to, transfer.itemType);
             transfer.from = from;
             transfer.to = to;
         }
@@ -232,8 +238,8 @@ contract BaseConduitTest is
         BatchIntermediate memory intermediate,
         address currentConduit
     ) internal returns (ConduitBatch1155Transfer memory) {
-        address from = receiver(intermediate.from);
-        address to = receiver(intermediate.to);
+        address from = receiver(intermediate.from, ConduitItemType.ERC1155);
+        address to = receiver(intermediate.to, ConduitItemType.ERC1155);
 
         uint256[] memory ids = new uint256[](intermediate.idAmounts.length);
         uint256[] memory amounts = new uint256[](intermediate.idAmounts.length);
