@@ -35,13 +35,30 @@ contract BaseConduitTest is
     struct BatchIntermediate {
         address from;
         address to;
-        IdAmount[] idAmounts;
+        IdAmount[10] idAmounts;
     }
 
     modifier resetTokenBalancesBetweenRuns(ConduitTransfer[] memory transfers) {
         vm.record();
         _;
         resetTokenBalances(transfers);
+    }
+
+    modifier resetBatchTokenBalancesBetweenRuns(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) {
+        vm.record();
+        _;
+        resetTokenBalances(batchTransfers);
+    }
+
+    modifier resetTransferAndBatchTransferTokenBalancesBetweenRuns(
+        ConduitTransfer[] memory transfers,
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) {
+        vm.record();
+        _;
+        resetTokenBalances(transfers, batchTransfers);
     }
 
     function setUp() public virtual override {
@@ -162,6 +179,23 @@ contract BaseConduitTest is
         return transfers;
     }
 
+    function extendConduitTransferArray(
+        ConduitBatch1155Transfer[] memory original,
+        ConduitBatch1155Transfer[] memory extension
+    ) internal pure returns (ConduitBatch1155Transfer[] memory) {
+        ConduitBatch1155Transfer[]
+            memory transfers = new ConduitBatch1155Transfer[](
+                original.length + extension.length
+            );
+        for (uint256 i = 0; i < original.length; i++) {
+            transfers[i] = original[i];
+        }
+        for (uint256 i = 0; i < extension.length; i++) {
+            transfers[i + original.length] = extension[i];
+        }
+        return transfers;
+    }
+
     /**
      * @dev given ConduitTransferIntermediate, return an array of 1-8 ConduitTransfers
      * specifying multiple tokenIds (when appropriate)
@@ -191,6 +225,36 @@ contract BaseConduitTest is
             );
     }
 
+    function deployTokenAndCreateConduitBatch1155Transfer(
+        BatchIntermediate memory batchIntermediate
+    ) internal returns (ConduitBatch1155Transfer[] memory) {
+        ConduitBatch1155Transfer[] memory batchTransfers;
+
+        TestERC1155 erc1155 = new TestERC1155();
+        uint256[] memory ids = new uint256[](
+            batchIntermediate.idAmounts.length
+        );
+        uint256[] memory amounts = new uint256[](
+            batchIntermediate.idAmounts.length
+        );
+        for (uint256 n = 0; n < batchIntermediate.idAmounts.length; n++) {
+            ids[n] = batchIntermediate.idAmounts[n].id;
+            amounts[n] = uint256(batchIntermediate.idAmounts[n].amount) + 1;
+        }
+        address from = batchIntermediate.from;
+        address to = batchIntermediate.to;
+
+        batchTransfers = new ConduitBatch1155Transfer[](1);
+        batchTransfers[0] = ConduitBatch1155Transfer(
+            address(erc1155),
+            from,
+            to,
+            ids,
+            amounts
+        );
+        return batchTransfers;
+    }
+
     /**
      * @dev Foundry will fuzz addresses on contracts - including contracts that haven't been created (yet)
      *      Make sure all recipients (including mint recipients) can receive erc1155 tokens by changing
@@ -203,6 +267,21 @@ contract BaseConduitTest is
             address to = receiver(transfer.to, transfer.itemType);
             transfer.from = from;
             transfer.to = to;
+        }
+    }
+
+    function makeRecipientsSafe(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) internal {
+        for (uint256 i; i < batchTransfers.length; i++) {
+            ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
+            address from = receiver(
+                batchTransfer.from,
+                ConduitItemType.ERC1155
+            );
+            address to = receiver(batchTransfer.to, ConduitItemType.ERC1155);
+            batchTransfer.from = from;
+            batchTransfer.to = to;
         }
     }
 
@@ -234,31 +313,24 @@ contract BaseConduitTest is
         }
     }
 
-    function create1155sAndConduitBatch1155Transfer(
-        BatchIntermediate memory intermediate,
-        address currentConduit
-    ) internal returns (ConduitBatch1155Transfer memory) {
-        address from = receiver(intermediate.from, ConduitItemType.ERC1155);
-        address to = receiver(intermediate.to, ConduitItemType.ERC1155);
-
-        uint256[] memory ids = new uint256[](intermediate.idAmounts.length);
-        uint256[] memory amounts = new uint256[](intermediate.idAmounts.length);
-
-        TestERC1155 erc1155 = new TestERC1155();
-
-        for (uint256 i = 0; i < intermediate.idAmounts.length; i++) {
-            erc1155.mint(
-                from,
-                intermediate.idAmounts[i].id,
-                intermediate.idAmounts[i].amount
-            );
-            vm.prank(from);
-            erc1155.setApprovalForAll(currentConduit, true);
-            ids[i] = intermediate.idAmounts[i].id;
-            amounts[i] = intermediate.idAmounts[i].amount;
+    function mintTokensAndSetTokenApprovalsForConduit(
+        ConduitBatch1155Transfer[] memory batchTransfers,
+        address conduitAddress
+    ) internal {
+        for (uint256 i = 0; i < batchTransfers.length; i++) {
+            ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
+            address from = batchTransfer.from;
+            address token = batchTransfer.token;
+            TestERC1155 erc1155 = TestERC1155(token);
+            for (uint256 n = 0; n < batchTransfer.ids.length; n++) {
+                erc1155.mint(
+                    from,
+                    batchTransfer.ids[n],
+                    batchTransfer.amounts[n]
+                );
+            }
+            erc1155.setApprovalForAll(conduitAddress, true);
         }
-        return
-            ConduitBatch1155Transfer(address(erc1155), from, to, ids, amounts);
     }
 
     function getExpectedTokenBalance(ConduitTransfer memory transfer)
@@ -270,6 +342,20 @@ contract BaseConduitTest is
             userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
                 transfer.identifier
             ];
+    }
+
+    function getExpectedBatchTokenBalances(
+        ConduitBatch1155Transfer memory batchTransfer
+    ) internal view returns (uint256[] memory) {
+        uint256[] memory batchTokenBalances = new uint256[](
+            batchTransfer.ids.length
+        );
+        for (uint256 i = 0; i < batchTransfer.ids.length; i++) {
+            batchTokenBalances[i] = userToExpectedTokenIdentifierBalance[
+                batchTransfer.to
+            ][batchTransfer.token][batchTransfer.ids[i]];
+        }
+        return batchTokenBalances;
     }
 
     function updateExpectedTokenBalances(ConduitTransfer[] memory transfers)
@@ -284,10 +370,28 @@ contract BaseConduitTest is
         }
     }
 
+    function updateExpectedTokenBalances(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) internal {
+        for (uint256 i = 0; i < batchTransfers.length; i++) {
+            updateExpectedBatchBalances(batchTransfers[i]);
+        }
+    }
+
     function updateExpectedBalance(ConduitTransfer memory transfer) internal {
         userToExpectedTokenIdentifierBalance[transfer.to][transfer.token][
             transfer.identifier
         ] += transfer.amount;
+    }
+
+    function updateExpectedBatchBalances(
+        ConduitBatch1155Transfer memory batchTransfer
+    ) internal {
+        for (uint256 i = 0; i < batchTransfer.ids.length; i++) {
+            userToExpectedTokenIdentifierBalance[batchTransfer.to][
+                batchTransfer.token
+            ][batchTransfer.ids[i]] += batchTransfer.amounts[i];
+        }
     }
 
     /**
@@ -297,6 +401,29 @@ contract BaseConduitTest is
         for (uint256 i = 0; i < transfers.length; i++) {
             ConduitTransfer memory transfer = transfers[i];
             _resetStorage(transfer.token);
+        }
+    }
+
+    function resetTokenBalances(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) internal {
+        for (uint256 i = 0; i < batchTransfers.length; i++) {
+            ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
+            _resetStorage(batchTransfer.token);
+        }
+    }
+
+    function resetTokenBalances(
+        ConduitTransfer[] memory transfers,
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) internal {
+        for (uint256 i = 0; i < transfers.length; i++) {
+            ConduitTransfer memory transfer = transfers[i];
+            _resetStorage(transfer.token);
+        }
+        for (uint256 i = 0; i < batchTransfers.length; i++) {
+            ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
+            _resetStorage(batchTransfer.token);
         }
     }
 }
