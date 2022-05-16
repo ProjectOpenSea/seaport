@@ -44,6 +44,14 @@ contract BaseConduitTest is
         resetTokenBalances(transfers);
     }
 
+    modifier resetBatchTokenBalancesBetweenRuns(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) {
+        vm.record();
+        _;
+        resetTokenBalances(batchTransfers);
+    }
+
     function setUp() public virtual override {
         super.setUp();
         conduitController.updateChannel(address(conduit), address(this), true);

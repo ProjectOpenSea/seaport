@@ -70,7 +70,10 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
         _testExecuteWithBatch1155(Context(conduit, transfers, batchTransfers));
     }
 
-    function _testExecuteWithBatch1155(Context memory context) internal {
+    function _testExecuteWithBatch1155(Context memory context)
+        internal
+        resetBatchTokenBalancesBetweenRuns(context.batchTransfers)
+    {
         bytes4 magicValue = context.conduit.executeWithBatch1155(
             context.transfers,
             context.batchTransfers
@@ -99,7 +102,9 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
                     transfer.to
                 );
             }
+        }
 
+        for (uint256 i = 0; i < context.batchTransfers.length; i++) {
             ConduitBatch1155Transfer memory batchTransfer = context
                 .batchTransfers[i];
 
@@ -120,8 +125,8 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
                 actualBatchBalances.length == expectedBatchBalances.length
             );
 
-            for (uint256 k = 0; k < actualBatchBalances.length; k++) {
-                assertEq(actualBatchBalances[k], expectedBatchBalances[k]);
+            for (uint256 j = 0; j < actualBatchBalances.length; j++) {
+                assertEq(actualBatchBalances[j], expectedBatchBalances[j]);
             }
         }
     }
