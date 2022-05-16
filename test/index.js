@@ -743,7 +743,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       case 0:
         break;
       case 1: // ERC20
-        amount = ethers.BigNumber.from(randomHex()).add(100);
+        amount = minRandom(100);
         await contract.mint(receiver.address, amount);
 
         // Receiver approves contract to transfer tokens
@@ -758,7 +758,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       case 2: // ERC721
       case 4: // ERC721_WITH_CRITERIA
         amount = 1;
-        identifier = ethers.BigNumber.from(randomHex());
+        identifier = randomBN();
         await contract.mint(receiver.address, identifier);
 
         // Receiver approves contract to transfer tokens
@@ -766,8 +766,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         break;
       case 3: // ERC1155
       case 5: // ERC1155_WITH_CRITERIA
-        identifier = ethers.BigNumber.from(randomHex().slice(0, 10));
-        amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+        identifier = random128();
+        amount = minRandom(1);
         await contract.mint(receiver.address, identifier, amount);
 
         // Receiver approves contract to transfer tokens
@@ -2433,7 +2433,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
         it("ERC721 <=> ETH (basic with partial restricted order)", async () => {
           // Seller mints nft
-          const nftId = ethers.BigNumber.from(randomHex());
+          const nftId = randomBN();
           await testERC721.mint(seller.address, nftId);
 
           // Seller approves marketplace contract to transfer NFT
@@ -9412,10 +9412,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       // Seller mints nft
-      const nftId = ethers.BigNumber.from(randomHex());
+      const nftId = randomBN();
       await testERC721.mint(seller.address, nftId);
 
-      const secondNftId = ethers.BigNumber.from(randomHex());
+      const secondNftId = randomBN();
       await testERC721.mint(seller.address, secondNftId);
 
       // Check ownership
@@ -9465,7 +9465,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       // Seller mints nft
-      const nftId = ethers.BigNumber.from(randomHex());
+      const nftId = randomBN();
       await testERC721.mint(seller.address, nftId);
 
       // Check ownership
@@ -9482,7 +9482,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .withArgs(seller.address, tempConduit.address, true);
       });
 
-      const tokenAmount = ethers.BigNumber.from(randomHex()).add(100);
+      const tokenAmount = minRandom(100);
       await testERC20.mint(seller.address, tokenAmount);
 
       // Check balance
@@ -9535,7 +9535,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       // Seller mints nft
-      const nftId = ethers.BigNumber.from(randomHex());
+      const nftId = randomBN();
       await testERC721.mint(seller.address, nftId);
 
       // Check ownership
@@ -9552,8 +9552,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .withArgs(seller.address, tempConduit.address, true);
       });
 
-      const secondNftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-      const amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(1);
+      const secondNftId = random128();
+      const amount = random128().add(1);
       await testERC1155.mint(seller.address, secondNftId, amount);
 
       await whileImpersonating(seller.address, provider, async () => {
@@ -9611,7 +9611,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       // Seller mints nft
-      const tokenAmount = ethers.BigNumber.from(randomHex()).add(100).div(100);
+      const tokenAmount = minRandom(100).div(100);
       await testERC20.mint(seller.address, tokenAmount);
 
       // Check balance
@@ -9626,8 +9626,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .withArgs(seller.address, tempConduit.address, tokenAmount);
       });
 
-      const nftId = ethers.BigNumber.from(randomHex().slice(0, 10));
-      const erc1155amount = ethers.BigNumber.from(randomHex().slice(0, 10)).add(
+      const nftId = random128();
+      const erc1155amount = random128().add(
         1
       );
       await testERC1155.mint(seller.address, nftId, erc1155amount);
@@ -14199,7 +14199,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Skip this test when testing the reference contract
       if (!process.env.REFERENCE) {
         // TODO: unskip
-        it.skip("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
+        it("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
           const recipient = await (
             await ethers.getContractFactory("ExcessReturnDataRecipient")
           ).deploy();
