@@ -28,6 +28,39 @@ contract FulfillAvailableOrder is BaseOrderTest {
         FuzzInputs args;
     }
 
+    function testMatchorderOverflow() public {}
+
+    function _testMatchOrderOverflow(ConsiderationInterface _consideration)
+        public
+    {
+        test721_1.mint(alice, 1);
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            _consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            _consideration,
+            alicePk,
+            _consideration.getOrderHash(orderComponents)
+        );
+
+        test721_2.mint(bob, 2);
+    }
+
     function testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
         FuzzInputs memory args
     ) public {
