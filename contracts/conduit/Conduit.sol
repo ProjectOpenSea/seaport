@@ -7,8 +7,6 @@ import { ConduitItemType } from "./lib/ConduitEnums.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
-import "../lib/ConsiderationConstants.sol";
-
 // prettier-ignore
 import {
     ConduitTransfer,
@@ -21,7 +19,11 @@ import {
  * @notice This contract serves as an originator for "proxied" transfers. Each
  *         conduit is deployed and controlled by a "conduit controller" that can
  *         add and remove "channels" or contracts that can instruct the conduit
- *         to transfer approved ERC20/721/1155 tokens.
+ *         to transfer approved ERC20/721/1155 tokens. *IMPORTANT NOTE: each
+ *         conduit has an owner that can arbitrarily add or remove channels, and
+ *         a malicious or negligent owner can add a channel that allows for any
+ *         approved ERC20/721/1155 tokens to be taken immediately — be extremely
+ *         cautious with what conduits you give token approvals to!*
  */
 contract Conduit is ConduitInterface, TokenTransferrer {
     // Set deployer as an immutable controller that can update channel statuses.
@@ -75,7 +77,31 @@ contract Conduit is ConduitInterface, TokenTransferrer {
         }
 
         // Return a magic value indicating that the transfers were performed.
-        return this.execute.selector;
+        magicValue = this.execute.selector;
+    }
+
+    /**
+     * @notice Execute a sequence of batch 1155 transfers. Only a caller with an
+     *         open channel can call this function.
+     *
+     * @param batchTransfers The 1155 batch transfers to perform.
+     *
+     * @return magicValue A magic value indicating that the transfers were
+     *                    performed successfully.
+     */
+    function executeBatch1155(
+        ConduitBatch1155Transfer[] calldata batchTransfers
+    ) external returns (bytes4 magicValue) {
+        // Ensure that the caller has an open channel.
+        if (!_channels[msg.sender]) {
+            revert ChannelClosed();
+        }
+
+        // Perform 1155 batch transfers.
+        _performERC1155BatchTransfers(batchTransfers);
+
+        // Return a magic value indicating that the transfers were performed.
+        magicValue = this.executeBatch1155.selector;
     }
 
     /**
@@ -118,7 +144,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
         _performERC1155BatchTransfers(batchTransfers);
 
         // Return a magic value indicating that the transfers were performed.
-        return this.execute.selector;
+        magicValue = this.executeWithBatch1155.selector;
     }
 
     /**

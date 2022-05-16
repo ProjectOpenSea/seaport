@@ -61,6 +61,19 @@ interface ConduitInterface {
         returns (bytes4 magicValue);
 
     /**
+     * @notice Execute a sequence of batch 1155 transfers. Only a caller with an
+     *         open channel can call this function.
+     *
+     * @param batch1155Transfers The 1155 batch transfers to perform.
+     *
+     * @return magicValue A magic value indicating that the transfers were
+     *                    performed successfully.
+     */
+    function executeBatch1155(
+        ConduitBatch1155Transfer[] calldata batch1155Transfers
+    ) external returns (bytes4 magicValue);
+
+    /**
      * @notice Execute a sequence of transfers, both single and batch 1155. Only
      *         a caller with an open channel can call this function.
      *
