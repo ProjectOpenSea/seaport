@@ -57,31 +57,20 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
 
-        // Validate and aggregate consideration items and store the result as a
-        // ReceivedItem.
-        ReceivedItem memory considerationItem = (
-            _aggregateValidFulfillmentConsiderationItems(
-                advancedOrders,
-                considerationComponents,
-                0
-            )
+        Execution memory considerationExecution;
+        // Validate & aggregate consideration items to Execution object.
+        _aggregateValidFulfillmentConsiderationItems(
+            advancedOrders,
+            considerationComponents,
+            considerationExecution
         );
+        ReceivedItem memory considerationItem = considerationExecution.item;
 
-        // Validate & aggregate offer items and store result as an Execution.
-        (
-            execution
-            /**
-             * ItemType itemType,
-             * address token,
-             * uint256 identifier,
-             * address offerer,
-             * bytes32 conduitKey,
-             * uint256 offerAmount
-             */
-        ) = _aggregateValidFulfillmentOfferItems(
+        // Validate & aggregate offer items to Execution object.
+        _aggregateValidFulfillmentOfferItems(
             advancedOrders,
             offerComponents,
-            0
+            execution
         );
 
         // Ensure offer and consideration share types, tokens and identifiers.
@@ -153,77 +142,36 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
     ) internal view returns (Execution memory execution) {
         // Skip overflow / underflow checks; conditions checked or unreachable.
         unchecked {
-            // Retrieve advanced orders array length and place on the stack.
-            uint256 totalOrders = advancedOrders.length;
-
             // Retrieve fulfillment components array length and place on stack.
-            uint256 totalFulfillmentComponents = fulfillmentComponents.length;
-
             // Ensure at least one fulfillment component has been supplied.
-            if (totalFulfillmentComponents == 0) {
+            if (fulfillmentComponents.length == 0) {
                 revert MissingFulfillmentComponentOnAggregation(side);
-            }
-
-            // Determine component index after first available (0 implies none).
-            uint256 nextComponentIndex = 0;
-
-            // Iterate over components until finding one with a fulfilled order.
-            for (uint256 i = 0; i < totalFulfillmentComponents; ++i) {
-                // Retrieve the fulfillment component index.
-                uint256 orderIndex = fulfillmentComponents[i].orderIndex;
-
-                // Ensure that the order index is in range.
-                if (orderIndex >= totalOrders) {
-                    revert InvalidFulfillmentComponentData();
-                }
-
-                // If order is being fulfilled (i.e. it is still available)...
-                if (advancedOrders[orderIndex].numerator != 0) {
-                    // Update the next potential component index.
-                    nextComponentIndex = i + 1;
-
-                    // Exit the loop.
-                    break;
-                }
-            }
-
-            // If no available order was located...
-            if (nextComponentIndex == 0) {
-                // Return with an empty execution element that will be filtered.
-                // prettier-ignore
-                return Execution(
-                    ReceivedItem(
-                        ItemType.NATIVE,
-                        address(0),
-                        0,
-                        0,
-                        payable(address(0))
-                    ),
-                    address(0),
-                    bytes32(0)
-                );
             }
 
             // If the fulfillment components are offer components...
             if (side == Side.OFFER) {
                 // Return execution for aggregated items provided by offerer.
                 // prettier-ignore
-                return _aggregateValidFulfillmentOfferItems(
+                _aggregateValidFulfillmentOfferItems(
                     advancedOrders,
                     fulfillmentComponents,
-                    nextComponentIndex - 1
+                    execution
                 );
             } else {
                 // Otherwise, fulfillment components are consideration
                 // components. Return execution for aggregated items provided by
                 // the fulfiller.
                 // prettier-ignore
-                return _aggregateConsiderationItems(
+                _aggregateValidFulfillmentConsiderationItems(
                     advancedOrders,
                     fulfillmentComponents,
-                    nextComponentIndex - 1,
-                    fulfillerConduitKey
+                    execution
                 );
+                execution.offerer = msg.sender;
+                execution.conduitKey = fulfillerConduitKey;
+            }
+            if (execution.item.amount == 0) {
+                execution.item.recipient = payable(execution.offerer);
             }
         }
     }
@@ -237,93 +185,87 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      * @param offerComponents An array of FulfillmentComponent structs
      *                        indicating the order index and item index of each
      *                        candidate offer item for aggregation.
-     * @param startIndex      The initial order index to begin iteration on when
-     *                        searching for offer items to aggregate.
-     *
-     * @return execution The aggregated offer items.
+     * @param execution       The execution to apply the aggregation to.
      */
     function _aggregateValidFulfillmentOfferItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
-        uint256 startIndex
-    ) internal view returns (Execution memory execution) {
+        Execution memory execution
+    ) internal view {
         // Declare a variable for the final aggregated item amount.
         uint256 amount;
+        // uint g1 = gasleft();
 
         // Declare a variable indicating whether the aggregation is invalid.
-        bool invalidFulfillment;
+        // bool invalidFulfillment;
 
-        // Utilize assembly in order to efficiently aggregate the items.
         assembly {
-            // Retrieve fulfillment pointer from offer component & start index.
-            let fulfillmentPtr := mload(
-                add(add(offerComponents, 0x20), mul(startIndex, 0x20))
-            )
+            function throwInvalidFulfillmentComponentData() {
+                mstore(0, InvalidFulfillmentComponentData_error_signature)
+                revert(0x1c, InvalidFulfillmentComponentData_error_len)
+            }
+
+            // Get position in offerComponents head
+            let fulfillmentHeadPtr := add(offerComponents, 0x20)
+
+            // Get fulfillment ptr from offer component & start index.
+            let fulfillmentPtr := mload(fulfillmentHeadPtr)
 
             // Retrieve the order index using the fulfillment pointer.
             let orderIndex := mload(fulfillmentPtr)
+
+            // Ensure that the order index is not out of range.
+            if iszero(lt(orderIndex, mload(advancedOrders))) {
+                throwInvalidFulfillmentComponentData()
+            }
+
+            // Read the pointer to advancedOrders[orderIndex] from its
+            // head in the array.
+            let orderPtr := mload(
+                // Calculate head position of advancedOrders[orderIndex]
+                add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
+            )
+
+            // Read the pointer to OrderParameters from the AdvancedOrder
+            let paramsPtr := mload(orderPtr)
+
+            // Load offer array pointer.
+            let offerArrPtr := mload(
+                add(paramsPtr, OrderParameters_offer_head_offset)
+            )
 
             // Retrieve item index using an offset of the fulfillment pointer.
             let itemIndex := mload(
                 add(fulfillmentPtr, Fulfillment_itemIndex_offset)
             )
 
-            // Ensure that the order index is not out of range.
-            invalidFulfillment := iszero(lt(orderIndex, mload(advancedOrders)))
-
-            // Retrieve the initial order pointer from the order index.
-            let orderPtr := mload(
-                mload(
-                    add(
-                        // Calculate pointer to start of advancedOrders head.
-                        add(advancedOrders, 0x20),
-                        // Calculate offset to pointer for desired order.
-                        mul(orderIndex, 0x20)
-                    )
-                )
-            )
-            // Retrieve offer array pointer using offset of the order pointer.
-            let offerArrPtr := mload(
-                add(orderPtr, OrderParameters_offer_head_offset)
-            )
-
-            // Ensure that the item index is not out of range.
-            invalidFulfillment := or(
-                iszero(lt(itemIndex, mload(offerArrPtr))),
-                invalidFulfillment
-            )
-
-            // Retrieve the offer item pointer using offset of the item index.
+            // Only continue if the fulfillment is not invalid.
+            if iszero(lt(itemIndex, mload(offerArrPtr))) {
+                throwInvalidFulfillmentComponentData()
+            }
+            // Retrieve consideration item pointer using the item index.
             let offerItemPtr := mload(
                 add(
-                    // Get pointer to beginning of OfferItem.
+                    // Get pointer to beginning of receivedItem.
                     add(offerArrPtr, 0x20),
                     // Calculate offset to pointer for desired order.
                     mul(itemIndex, 0x20)
                 )
             )
 
+            // Only add offer amount to execution amount if numerator
+            // is greater than zero
+            if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
+                // Retrieve amount pointer using consideration item pointer.
+                let amountPtr := add(offerItemPtr, Common_amount_offset)
+                // Set the amount.
+                amount := mload(amountPtr)
+                // Zero out amount on item to indicate it is credited.
+                mstore(amountPtr, 0)
+            }
+
             // Retrieve the received item pointer.
             let receivedItemPtr := mload(execution)
-
-            // Set itemType located at the offerItem pointer on receivedItem.
-            mstore(receivedItemPtr, mload(offerItemPtr))
-
-            // Set token located at offset of offerItem pointer on receivedItem.
-            mstore(
-                add(receivedItemPtr, Common_token_offset),
-                mload(add(offerItemPtr, Common_token_offset))
-            )
-
-            // Set identifier located at offset of offerItem pointer as well.
-            mstore(
-                add(receivedItemPtr, 0x40),
-                mload(add(offerItemPtr, Common_identifier_offset))
-            )
-
-            // Set amount on received item and additionaly place on the stack.
-            let amountPtr := add(offerItemPtr, Common_amount_offset)
-            amount := mload(amountPtr)
 
             // Set the caller as the recipient on the received item.
             mstore(
@@ -331,220 +273,153 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 caller()
             )
 
-            // Zero out amount on original offerItem to indicate it is spent.
-            mstore(amountPtr, 0)
+            // Set the item type on the received item.
+            mstore(receivedItemPtr, mload(offerItemPtr))
+
+            // Set the token on the received item.
+            mstore(
+                add(receivedItemPtr, Common_token_offset),
+                mload(add(offerItemPtr, Common_token_offset))
+            )
+
+            // Set the identifier on the received item.
+            mstore(
+                add(receivedItemPtr, Common_identifier_offset),
+                mload(add(offerItemPtr, Common_identifier_offset))
+            )
 
             // Set the offerer on returned execution using order pointer.
-            mstore(add(execution, Execution_offerer_offset), mload(orderPtr))
+            mstore(add(execution, Execution_offerer_offset), mload(paramsPtr))
 
             // Set conduitKey on returned execution via offset of order pointer.
             mstore(
                 add(execution, Execution_conduit_offset),
-                mload(add(orderPtr, OrderParameters_conduit_offset))
+                mload(add(paramsPtr, OrderParameters_conduit_offset))
             )
-        }
 
-        // Declare new assembly scope to avoid stack too deep errors.
-        assembly {
-            // Retrieve the received item pointer using the execution.
-            let receivedItemPtr := mload(execution)
+            // Calculate the hash of (itemType, token, identifier)
+            let dataHash := keccak256(receivedItemPtr, ReceivedItem_CommonParams_size)
 
-            // Iterate over offer components as long as fulfillment is valid.
+            // Get position one word past last element in head of array
+            let endPtr := add(
+                offerComponents,
+                mul(mload(offerComponents), 0x20)
+            )
+
+            // Iterate over remaining offer components.
             // prettier-ignore
-            for {
-                let i := add(startIndex, 1)
-            } and(iszero(invalidFulfillment), lt(i, mload(offerComponents))) {
-                i := add(i, 1)
-            } {
-                // Retrieve fulfillment pointer for the current offer component.
-                let fulfillmentPtr := mload(
-                    add(add(offerComponents, 0x20), mul(i, 0x20))
-                )
+            for {} lt(fulfillmentHeadPtr,  endPtr) {} {
+                fulfillmentHeadPtr := add(fulfillmentHeadPtr, 0x20)
+                // Retrieve the fulfillment pointer.
+                fulfillmentPtr := mload(fulfillmentHeadPtr)
 
-                // Retrieve the order index using the fulfillment pointer.
-                let orderIndex := mload(fulfillmentPtr)
+                // Get the order index using the fulfillment pointer.
+                orderIndex := mload(fulfillmentPtr)
 
-                // Retrieve the item index using offset of fulfillment pointer.
-                let itemIndex := mload(
-                    add(fulfillmentPtr, Fulfillment_itemIndex_offset)
-                )
-
-                // Ensure that the order index is in range.
-                invalidFulfillment := iszero(
-                    lt(orderIndex, mload(advancedOrders))
-                )
-
-                // Exit iteration if it is out of range.
-                if invalidFulfillment {
-                    break
+                // Ensure the order index is in range.
+                if iszero(lt(orderIndex, mload(advancedOrders))) {
+                  throwInvalidFulfillmentComponentData()
                 }
 
-                // Retrieve the order pointer using the order index. Note that
-                // advancedOrders[orderIndex].OrderParameters pointer is first
-                // word of AdvancedOrder struct, so mload again in a moment.
-                let orderPtr := mload(
-                    add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
+                // Get pointer to AdvancedOrder element.
+                orderPtr := mload(
+                    add(
+                        add(advancedOrders, 0x20),
+                        mul(orderIndex, 0x20)
+                    )
                 )
 
-                // If the order is available (i.e. has a numerator != 0)...
-                if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
-                    // Retrieve the order pointer (i.e. the second mload).
-                    orderPtr := mload(orderPtr)
+                // Only continue if numerator is not zero.
+                if iszero(mload(
+                    add(orderPtr, AdvancedOrder_numerator_offset)
+                )) {
+                  continue
+                }
 
-                    // Load offer item array pointer.
-                    let offerArrPtr := mload(
-                        add(orderPtr, OrderParameters_offer_head_offset)
+                // Read the pointer to OrderParameters from the AdvancedOrder
+                paramsPtr := mload(orderPtr)
+
+                // Load offer array pointer.
+                offerArrPtr := mload(
+                    add(
+                        paramsPtr,
+                        OrderParameters_offer_head_offset
                     )
+                )
 
-                    // Ensure that the offer item index is in range.
-                    invalidFulfillment := iszero(
-                        lt(itemIndex, mload(offerArrPtr))
+                // Get the item index using the fulfillment pointer.
+                itemIndex := mload(add(fulfillmentPtr, 0x20))
+
+                // Throw if itemIndex is out of the range of array.
+                if iszero(
+                    lt(itemIndex, mload(offerArrPtr))
+                ) {
+                    throwInvalidFulfillmentComponentData()
+                }
+
+                // Retrieve offer item pointer using index.
+                offerItemPtr := mload(
+                    add(
+                        // Get pointer to beginning of receivedItem.
+                        add(offerArrPtr, 0x20),
+                        // Use offset to pointer for desired order.
+                        mul(itemIndex, 0x20)
                     )
+                )
 
-                    // Exit iteration if it is out of range.
-                    if invalidFulfillment {
-                        break
-                    }
+                // Retrieve amount pointer using offer item pointer.
+                let amountPtr := add(
+                      offerItemPtr,
+                      Common_amount_offset
+                )
 
-                    // Retrieve the offer item pointer using the item index.
-                    let offerItemPtr := mload(
-                        add(
-                            // Get pointer to beginning of OfferItem
-                            add(offerArrPtr, 0x20),
-                            // Calculate offset to pointer for desired order
-                            mul(itemIndex, 0x20)
-                        )
-                    )
+                // Add offer amount to execution amount
+                amount := add(amount, mload(amountPtr))
 
-                    // Retrieve the amount using the offer item pointer.
-                    let amountPtr := add(offerItemPtr, Common_amount_offset)
+                // Zero out amount on original item to indicate it
+                // is credited.
+                mstore(amountPtr, 0)
 
-                    // Increment the amount.
-                    amount := add(amount, mload(amountPtr))
-
-                    // Zero out amount on original item to indicate it is spent.
-                    mstore(amountPtr, 0)
-
-                    // Ensure the indicated offer item matches original item.
-                    invalidFulfillment := iszero(
+                // Ensure the indicated item matches original item.
+                if iszero(
+                    and(
                         and(
-                            // The identifier must match on both items.
-                            eq(
-                                mload(
-                                    add(offerItemPtr, Common_identifier_offset)
-                                ),
-                                mload(
-                                    add(
-                                        receivedItemPtr,
-                                        Common_identifier_offset
-                                    )
-                                )
-                            ),
-                            and(
-                                and(
-                                    // The offerer must match on both items.
-                                    eq(
-                                        mload(orderPtr),
-                                        mload(
-                                            add(execution, Common_token_offset)
-                                        )
-                                    ),
-                                    // The conduit key must match on both items.
-                                    eq(
-                                        mload(
-                                            add(
-                                                orderPtr,
-                                                OrderParameters_conduit_offset
-                                            )
-                                        ),
-                                        mload(
-                                            add(
-                                                execution,
-                                                Execution_conduit_offset
-                                            )
-                                        )
-                                    )
-                                ),
-                                and(
-                                    // The item type must match on both items.
-                                    eq(
-                                        mload(offerItemPtr),
-                                        mload(receivedItemPtr)
-                                    ),
-                                    // The token must match on both items.
-                                    eq(
-                                        mload(
-                                            add(
-                                                offerItemPtr,
-                                                Common_token_offset
-                                            )
-                                        ),
-                                        mload(
-                                            add(
-                                                receivedItemPtr,
-                                                Common_token_offset
-                                            )
-                                        )
-                                    )
-                                )
-                            )
+                          // The offerer must match on both items.
+                          eq(
+                              mload(paramsPtr),
+                              mload(
+                                  add(execution, Execution_offerer_offset)
+                              )
+                          ),
+                          // The conduit key must match on both items.
+                          eq(
+                              mload(
+                                  add(
+                                      paramsPtr,
+                                      OrderParameters_conduit_offset
+                                  )
+                              ),
+                              mload(
+                                  add(
+                                      execution,
+                                      Execution_conduit_offset
+                                  )
+                              )
+                          )
+                        ),
+                        // itemType, token, identifier must match
+                        eq(
+                          dataHash,
+                          keccak256(offerItemPtr, ReceivedItem_CommonParams_size)
                         )
                     )
+                ) {
+                  throwInvalidFulfillmentComponentData()
                 }
             }
-
-            // Update the final amount on the returned received item.
-            mstore(add(receivedItemPtr, Common_amount_offset), amount)
+            // Write final amount to execution
+            mstore(add(mload(execution), Common_amount_offset), amount)
         }
-
-        // Revert if an order/item was out of range or was not aggregatable.
-        if (invalidFulfillment) {
-            revert InvalidFulfillmentComponentData();
-        }
-    }
-
-    /**
-     * @dev Internal view function to aggregate consideration items from a group
-     *      of orders into a single execution via a supplied components array.
-     *      Consideration items that are not available to aggregate will not be
-     *      included in the aggregated execution.
-     *
-     * @param advancedOrders          The orders to aggregate.
-     * @param considerationComponents An array designating consideration
-     *                                components to aggregate if part of an
-     *                                available order.
-     * @param nextComponentIndex      The index of the next potential
-     *                                consideration component.
-     * @param fulfillerConduitKey     A bytes32 value indicating what conduit,
-     *                                if any, to source the fulfiller's token
-     *                                approvals from. The zero hash signifies
-     *                                that no conduit should be used, with
-     *                                approvals set directly on this contract.
-     *
-     * @return execution The transfer performed as a result of the fulfillment.
-     */
-    function _aggregateConsiderationItems(
-        AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] memory considerationComponents,
-        uint256 nextComponentIndex,
-        bytes32 fulfillerConduitKey
-    ) internal view returns (Execution memory execution) {
-        // Validate and aggregate consideration items on available orders and
-        // store result as a ReceivedItem.
-        ReceivedItem memory receiveConsiderationItem = (
-            _aggregateValidFulfillmentConsiderationItems(
-                advancedOrders,
-                considerationComponents,
-                nextComponentIndex
-            )
-        );
-
-        // Return execution for aggregated items provided by the fulfiller.
-        execution = Execution(
-            receiveConsiderationItem,
-            msg.sender,
-            fulfillerConduitKey
-        );
     }
 
     /**
@@ -558,291 +433,223 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      *                                indicating the order index and item index
      *                                of each candidate consideration item for
      *                                aggregation.
-     * @param startIndex              The initial order index to begin iteration
-     *                                on when searching for consideration items
-     *                                to aggregate.
-     *
-     * @return receivedItem The aggregated consideration items.
+     * @param execution       The execution to apply the aggregation to.
      */
     function _aggregateValidFulfillmentConsiderationItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory considerationComponents,
-        uint256 startIndex
-    ) internal pure returns (ReceivedItem memory receivedItem) {
-        // Declare a variable indicating whether the aggregation is invalid.
-        bool invalidFulfillment;
-
+        Execution memory execution
+    ) internal pure {
         // Utilize assembly in order to efficiently aggregate the items.
         assembly {
-            // Retrieve the length of the orders array.
-            let totalOrders := mload(advancedOrders)
+            function throwInvalidFulfillmentComponentData() {
+                mstore(0, InvalidFulfillmentComponentData_error_signature)
+                revert(0x1c, InvalidFulfillmentComponentData_error_len)
+            }
 
-            // Begin iteration at the indicated start index.
-            let i := startIndex
+            let amount := 0
 
-            // Get fulfillment ptr from consideration component & start index.
-            let fulfillmentPtr := mload(
-                add(add(considerationComponents, 0x20), mul(i, 0x20))
-            )
+            // Get position in considerationComponents head
+            let fulfillmentHeadPtr := add(considerationComponents, 0x20)
+
+            // Get fulfillment ptr from head in array
+            let fulfillmentPtr := mload(fulfillmentHeadPtr)
 
             // Retrieve the order index using the fulfillment pointer.
             let orderIndex := mload(fulfillmentPtr)
 
+            // Ensure that the order index is not out of range.
+            if iszero(lt(orderIndex, mload(advancedOrders))) {
+                throwInvalidFulfillmentComponentData()
+            }
+
+            // Read the pointer to advancedOrders[orderIndex] from its
+            // head in the array.
+            let orderPtr := mload(
+                // Calculate head position of advancedOrders[orderIndex]
+                add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
+            )
+
+            // Read the pointer to OrderParameters from the AdvancedOrder
+            let paramsPtr := mload(orderPtr)
+
+            // Load consideration array pointer.
+            let considerationArrPtr := mload(
+                add(paramsPtr, OrderParameters_consideration_head_offset)
+            )
+
             // Retrieve item index using an offset of the fulfillment pointer.
-            let itemIndex := mload(add(fulfillmentPtr, 0x20))
+            let itemIndex := mload(
+                add(fulfillmentPtr, Fulfillment_itemIndex_offset)
+            )
 
             // Ensure that the order index is not out of range.
-            invalidFulfillment := iszero(lt(orderIndex, totalOrders))
+            if iszero(lt(itemIndex, mload(considerationArrPtr))) {
+                throwInvalidFulfillmentComponentData()
+            }
 
-            // Only continue if the fulfillment is not invalid.
-            if iszero(invalidFulfillment) {
-                // Calculate pointer to AdvancedOrder element at
-                // advancedOrders[orderIndex].OrderParameters pointer is first
-                // word of AdvancedOrder struct, so we mload twice.
-                let orderPtr := mload(
-                    // Read the pointer to advancedOrders[orderIndex] from its
-                    // head in the array.
-                    mload(
-                        // Calculate head position of advancedOrders[orderIndex]
-                        add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
-                    )
+            // Retrieve consideration item pointer using the item index.
+            let considerationItemPtr := mload(
+                add(
+                    // Get pointer to beginning of receivedItem.
+                    add(considerationArrPtr, 0x20),
+                    // Calculate offset to pointer for desired order.
+                    mul(itemIndex, 0x20)
                 )
+            )
 
-                // Load consideration array pointer.
-                let considerationArrPtr := mload(
-                    add(orderPtr, OrderParameters_consideration_head_offset)
-                )
+            // Only add consideration amount to execution amount if numerator
+            // is greater than zero
+            if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
+                // Retrieve amount pointer using consideration item pointer.
+                let amountPtr := add(considerationItemPtr, Common_amount_offset)
+                // Set the amount.
+                amount := mload(amountPtr)
+                // Zero out amount on item to indicate it is credited.
+                mstore(amountPtr, 0)
+            }
 
-                // Check if itemIndex is within the range of the array.
-                invalidFulfillment := iszero(
-                    lt(itemIndex, mload(considerationArrPtr))
-                )
+            // Retrieve ReceivedItem pointer from Execution
+            let receivedItem := mload(execution)
 
-                // Only continue if the fulfillment is not invalid.
-                if iszero(invalidFulfillment) {
-                    // Retrieve consideration item pointer using the item index.
-                    let considerationItemPtr := mload(
-                        add(
-                            // Get pointer to beginning of receivedItem.
-                            add(considerationArrPtr, 0x20),
-                            // Calculate offset to pointer for desired order.
-                            mul(itemIndex, 0x20)
-                        )
-                    )
+            // Set the item type on the received item.
+            mstore(receivedItem, mload(considerationItemPtr))
 
-                    // Set the item type on the received item.
-                    mstore(receivedItem, mload(considerationItemPtr))
+            // Set the token on the received item.
+            mstore(
+                add(receivedItem, Common_token_offset),
+                mload(add(considerationItemPtr, Common_token_offset))
+            )
 
-                    // Set the token on the received item.
-                    mstore(
-                        add(receivedItem, Common_token_offset),
-                        mload(add(considerationItemPtr, Common_token_offset))
-                    )
+            // Set the identifier on the received item.
+            mstore(
+                add(receivedItem, Common_identifier_offset),
+                mload(add(considerationItemPtr, Common_identifier_offset))
+            )
 
-                    // Set the identifier on the received item.
-                    mstore(
-                        add(receivedItem, Common_identifier_offset),
-                        mload(
-                            add(considerationItemPtr, Common_identifier_offset)
-                        )
-                    )
-
-                    // Retrieve amount pointer using consideration item pointer.
-                    let amountPtr := add(
+            // Set the recipient on the received item.
+            mstore(
+                add(receivedItem, ReceivedItem_recipient_offset),
+                mload(
+                    add(
                         considerationItemPtr,
-                        Common_amount_offset
+                        ConsiderationItem_recipient_offset
                     )
-                    // Set the amount.
-                    mstore(
-                        add(receivedItem, Common_amount_offset),
-                        mload(amountPtr)
+                )
+            )
+
+            // Calculate the hash of (itemType, token, identifier)
+            let dataHash := keccak256(receivedItem, ReceivedItem_CommonParams_size)
+
+            // Get position one word past last element in head of array
+            let endPtr := add(
+                considerationComponents,
+                mul(mload(considerationComponents), 0x20)
+            )
+
+            // Iterate over remaining offer components.
+            // prettier-ignore
+            for {} lt(fulfillmentHeadPtr,  endPtr) {} {
+                // Increment position in considerationComponents head
+                fulfillmentHeadPtr := add(fulfillmentHeadPtr, 0x20)
+
+                // Get fulfillment ptr from head in array
+                fulfillmentPtr := mload(fulfillmentHeadPtr)
+
+                // Get the order index using the fulfillment pointer.
+                orderIndex := mload(fulfillmentPtr)
+
+                // Ensure the order index is in range.
+                if iszero(lt(orderIndex, mload(advancedOrders))) {
+                  throwInvalidFulfillmentComponentData()
+                }
+
+                // Get pointer to AdvancedOrder element.
+                orderPtr := mload(
+                    add(
+                        add(advancedOrders, 0x20),
+                        mul(orderIndex, 0x20)
                     )
+                )
 
-                    // Zero out amount on item to indicate it is credited.
-                    mstore(amountPtr, 0)
+                // Don't handle fulfillment if numerator is 0
+                if iszero(mload(add(orderPtr, AdvancedOrder_numerator_offset))) {
+                  continue
+                }
 
-                    // Set the recipient.
-                    mstore(
-                        add(receivedItem, ReceivedItem_recipient_offset),
-                        mload(
-                            add(
-                                considerationItemPtr,
-                                ConsiderationItem_recipient_offset
+                // Get pointer to OrderParameters from AdvancedOrder.
+                paramsPtr := mload(orderPtr)
+
+                // Load consideration array pointer from OrderParameters.
+                considerationArrPtr := mload(
+                    add(
+                        paramsPtr,
+                        OrderParameters_consideration_head_offset
+                    )
+                )
+
+                // Get the item index using the fulfillment pointer.
+                itemIndex := mload(add(fulfillmentPtr, 0x20))
+
+                // Check if itemIndex is within the range of array.
+                if iszero(lt(itemIndex, mload(considerationArrPtr))) {
+                    throwInvalidFulfillmentComponentData()
+                }
+
+                // Retrieve consideration item pointer using index.
+                considerationItemPtr := mload(
+                    add(
+                        // Get pointer to beginning of receivedItem.
+                        add(considerationArrPtr, 0x20),
+                        // Use offset to pointer for desired order.
+                        mul(itemIndex, 0x20)
+                    )
+                )
+
+                // Retrieve amount pointer using consideration item
+                // pointer.
+                let amountPtr := add(
+                    considerationItemPtr,
+                    Common_amount_offset
+                )
+
+                // Add consideration amount to execution amount
+                amount := add(amount, mload(amountPtr))
+
+                // Zero out amount on original item to indicate it
+                // is credited.
+                mstore(amountPtr, 0)
+
+                // Ensure the indicated item matches original item.
+                if iszero(
+                    and(
+                        // Item recipients must match.
+                        eq(
+                            mload(
+                                add(
+                                    considerationItemPtr,
+                                    ConsiderItem_recipient_offset
+                                )
+                            ),
+                            mload(
+                                add(
+                                    mload(execution),
+                                    ReceivedItem_recipient_offset
+                                )
                             )
+                        ),
+                        // itemType, token, identifier must match
+                        eq(
+                          dataHash,
+                          keccak256(considerationItemPtr, ReceivedItem_CommonParams_size)
                         )
                     )
-
-                    // Increment the iterator.
-                    i := add(i, 1)
-
-                    // Iterate over remaining consideration components.
-                    // prettier-ignore
-                    for {} lt(i, mload(considerationComponents)) {
-                        i := add(i, 1)
-                    } {
-                        // Retrieve the fulfillment pointer.
-                        fulfillmentPtr := mload(
-                            add(
-                                add(considerationComponents, 0x20),
-                                mul(i, 0x20)
-                            )
-                        )
-
-                        // Get the order index using the fulfillment pointer.
-                        orderIndex := mload(fulfillmentPtr)
-
-                        // Get the item index using the fulfillment pointer.
-                        itemIndex := mload(add(fulfillmentPtr, 0x20))
-
-                        // Ensure the order index is in range.
-                        invalidFulfillment := iszero(
-                            lt(orderIndex, totalOrders)
-                        )
-
-                        // Exit iteration if order index is not in range.
-                        if invalidFulfillment {
-                            break
-                        }
-                        // Get pointer to AdvancedOrder element. The pointer
-                        // will be reused as the pointer to OrderParameters.
-                        orderPtr := mload(
-                            add(
-                                add(advancedOrders, 0x20),
-                                mul(orderIndex, 0x20)
-                            )
-                        )
-
-                        // Only continue if numerator is not zero.
-                        if mload(
-                            add(orderPtr, AdvancedOrder_numerator_offset)
-                        ) {
-                            // First word of AdvancedOrder is pointer to
-                            // OrderParameters.
-                            orderPtr := mload(orderPtr)
-
-                            // Load consideration array pointer.
-                            considerationArrPtr := mload(
-                                add(
-                                    orderPtr,
-                                    OrderParameters_consideration_head_offset
-                                )
-                            )
-
-                            // Check if itemIndex is within the range of array.
-                            invalidFulfillment := iszero(
-                                lt(itemIndex, mload(considerationArrPtr))
-                            )
-
-                            // Exit iteration if item index is not in range.
-                            if invalidFulfillment {
-                                break
-                            }
-
-                            // Retrieve consideration item pointer using index.
-                            considerationItemPtr := mload(
-                                add(
-                                    // Get pointer to beginning of receivedItem.
-                                    add(considerationArrPtr, 0x20),
-                                    // Use offset to pointer for desired order.
-                                    mul(itemIndex, 0x20)
-                                )
-                            )
-
-                            // Retrieve amount pointer using consideration item
-                            // pointer.
-                            amountPtr := add(
-                                considerationItemPtr,
-                                Common_amount_offset
-                            )
-
-                            // Increment the amount on the received item.
-                            mstore(
-                                add(receivedItem, Common_amount_offset),
-                                add(
-                                    mload(
-                                        add(receivedItem, Common_amount_offset)
-                                    ),
-                                    mload(amountPtr)
-                                )
-                            )
-
-                            // Zero out amount on original item to indicate it
-                            // is credited.
-                            mstore(amountPtr, 0)
-
-                            // Ensure the indicated item matches original item.
-                            invalidFulfillment := iszero(
-                                and(
-                                    // Item recipients must match.
-                                    eq(
-                                        mload(
-                                            add(
-                                                considerationItemPtr,
-                                                ConsiderItem_recipient_offset
-                                            )
-                                        ),
-                                        mload(
-                                            add(
-                                                receivedItem,
-                                                ReceivedItem_recipient_offset
-                                            )
-                                        )
-                                    ),
-                                    and(
-                                        // Item types must match.
-                                        eq(
-                                            mload(considerationItemPtr),
-                                            mload(receivedItem)
-                                        ),
-                                        and(
-                                            // Item tokens must match.
-                                            eq(
-                                                mload(
-                                                    add(
-                                                        considerationItemPtr,
-                                                        Common_token_offset
-                                                    )
-                                                ),
-                                                mload(
-                                                    add(
-                                                        receivedItem,
-                                                        Common_token_offset
-                                                    )
-                                                )
-                                            ),
-                                            // Item identifiers must match.
-                                            eq(
-                                                mload(
-                                                    add(
-                                                        considerationItemPtr,
-                                                        Common_identifier_offset
-                                                    )
-                                                ),
-                                                mload(
-                                                    add(
-                                                        receivedItem,
-                                                        Common_identifier_offset
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-
-                            // Exit iteration if items do not match.
-                            if invalidFulfillment {
-                                break
-                            }
-                        }
-                    }
+                ) {
+                    throwInvalidFulfillmentComponentData()
                 }
             }
-        }
-
-        // Revert if an order/item was out of range or was not aggregatable.
-        if (invalidFulfillment) {
-            revert InvalidFulfillmentComponentData();
+            // Write final amount to execution
+            mstore(add(mload(execution), Common_amount_offset), amount)
         }
     }
 }
