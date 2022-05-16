@@ -30,14 +30,14 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
         }
 
         ConduitTransfer[] memory transfers = new ConduitTransfer[](0);
-        // for (uint8 i = 0; i < inputs.transferIntermediates.length; i++) {
-        //     transfers = extendConduitTransferArray(
-        //         transfers,
-        //         deployTokenAndCreateConduitTransfers(
-        //             inputs.transferIntermediates[i]
-        //         )
-        //     );
-        // }
+        for (uint8 i = 0; i < inputs.transferIntermediates.length; i++) {
+            transfers = extendConduitTransferArray(
+                transfers,
+                deployTokenAndCreateConduitTransfers(
+                    inputs.transferIntermediates[i]
+                )
+            );
+        }
         mintTokensAndSetTokenApprovalsForConduit(
             transfers,
             address(referenceConduit)
@@ -66,7 +66,6 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
             batchTransfers,
             address(conduit)
         );
-        updateExpectedTokenBalances(batchTransfers);
         _testExecuteWithBatch1155(Context(conduit, transfers, batchTransfers));
     }
 
