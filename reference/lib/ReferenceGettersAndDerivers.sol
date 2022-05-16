@@ -203,8 +203,8 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
         return block.chainid == _CHAIN_ID
             ? _DOMAIN_SEPARATOR
             : _deriveDomainSeparator(_EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH);
+            _NAME_HASH,
+            _VERSION_HASH);
     }
 
     /**
