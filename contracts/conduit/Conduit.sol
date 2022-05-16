@@ -7,8 +7,6 @@ import { ConduitItemType } from "./lib/ConduitEnums.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
-import "../lib/ConsiderationConstants.sol";
-
 // prettier-ignore
 import {
     ConduitTransfer,
@@ -86,7 +84,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
      * @notice Execute a sequence of batch 1155 transfers. Only a caller with an
      *         open channel can call this function.
      *
-     * @param batch1155Transfers The 1155 batch transfers to perform.
+     * @param batchTransfers The 1155 batch transfers to perform.
      *
      * @return magicValue A magic value indicating that the transfers were
      *                    performed successfully.
