@@ -34,14 +34,15 @@ pragma solidity >=0.8.7;
  */
 
 // Declare constants for name, version, and reentrancy sentinel values.
-uint256 constant Name = (
-    0x436F6E73696465726174696F6E00000000000000000000000000000000000000
-);
-uint256 constant Name_length = 13;
 
-uint256 constant Version = (
-    0x3100000000000000000000000000000000000000000000000000000000000000
-);
+// Name is right padded, so it touches the length which is left padded.
+// This lets us write both values at once.
+// Length goes at byte 63, and name fills bytes 64-77, so we write
+// both values left-padded to 45.
+uint256 constant NameLengthPtr = 45;
+uint256 constant NameWithLength = 0x0d436F6E73696465726174696F6E;
+
+uint256 constant Version = 0x31;
 uint256 constant Version_length = 1;
 
 uint256 constant _NOT_ENTERED = 1;
