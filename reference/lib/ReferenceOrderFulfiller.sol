@@ -28,7 +28,7 @@ import { ReferenceCriteriaResolution } from "./ReferenceCriteriaResolution.sol";
 
 import { ReferenceAmountDeriver } from "./ReferenceAmountDeriver.sol";
 
-import "./ReferenceConsiderationConstants.sol";
+import "contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title OrderFulfiller

@@ -17,7 +17,7 @@ import {
 
 import { ConsiderationItemIndicesAndValidity, OrderToExecute } from "./ReferenceConsiderationStructs.sol";
 
-import "./ReferenceConsiderationConstants.sol";
+import "contracts/lib/ConsiderationConstants.sol";
 
 // prettier-ignore
 import {

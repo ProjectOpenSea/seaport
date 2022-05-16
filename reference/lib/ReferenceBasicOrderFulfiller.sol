@@ -28,7 +28,7 @@ import {
 
 import { ReferenceOrderValidator } from "./ReferenceOrderValidator.sol";
 
-import "./ReferenceConsiderationConstants.sol";
+import "contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title BasicOrderFulfiller

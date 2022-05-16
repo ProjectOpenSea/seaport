@@ -22,7 +22,7 @@ import { ReferenceVerifiers } from "./ReferenceVerifiers.sol";
 
 import { ReferenceTokenTransferrer } from "./ReferenceTokenTransferrer.sol";
 
-import "./ReferenceConsiderationConstants.sol";
+import "contracts/lib/ConsiderationConstants.sol";
 
 import { AccumulatorStruct } from "./ReferenceConsiderationStructs.sol";
 
