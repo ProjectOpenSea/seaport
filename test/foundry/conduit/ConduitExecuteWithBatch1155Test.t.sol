@@ -25,10 +25,6 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
     }
 
     function testExecuteWithBatch1155(FuzzInputs memory inputs) public {
-        for (uint8 i = 0; i < inputs.batchIntermediates.length; i++) {
-            vm.assume(inputs.batchIntermediates[i].idAmounts.length > 0);
-        }
-
         ConduitTransfer[] memory transfers = new ConduitTransfer[](0);
         for (uint8 i = 0; i < inputs.transferIntermediates.length; i++) {
             transfers = extendConduitTransferArray(
@@ -49,6 +45,7 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
                 )
             );
         }
+        makeRecipientsSafe(transfers);
         mintTokensAndSetTokenApprovalsForConduit(
             transfers,
             address(referenceConduit)

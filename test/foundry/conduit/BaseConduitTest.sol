@@ -217,6 +217,36 @@ contract BaseConduitTest is
             );
     }
 
+    function deployTokenAndCreateConduitBatch1155Transfer(
+        BatchIntermediate memory batchIntermediate
+    ) internal returns (ConduitBatch1155Transfer[] memory) {
+        ConduitBatch1155Transfer[] memory batchTransfers;
+
+        TestERC1155 erc1155 = new TestERC1155();
+        uint256[] memory ids = new uint256[](
+            batchIntermediate.idAmounts.length
+        );
+        uint256[] memory amounts = new uint256[](
+            batchIntermediate.idAmounts.length
+        );
+        for (uint256 n = 0; n < batchIntermediate.idAmounts.length; n++) {
+            ids[n] = batchIntermediate.idAmounts[n].id;
+            amounts[n] = batchIntermediate.idAmounts[n].amount;
+        }
+        address from = batchIntermediate.from;
+        address to = batchIntermediate.to;
+
+        batchTransfers = new ConduitBatch1155Transfer[](1);
+        batchTransfers[0] = ConduitBatch1155Transfer(
+            address(erc1155),
+            from,
+            to,
+            ids,
+            amounts
+        );
+        return batchTransfers;
+    }
+
     /**
      * @dev Foundry will fuzz addresses on contracts - including contracts that haven't been created (yet)
      *      Make sure all recipients (including mint recipients) can receive erc1155 tokens by changing
@@ -260,29 +290,24 @@ contract BaseConduitTest is
         }
     }
 
-    function create1155sAndConduitBatch1155Transfer(
-        BatchIntermediate memory intermediate,
-        address currentConduit
-    ) internal returns (ConduitBatch1155Transfer memory) {
-        address from = receiver(intermediate.from, ConduitItemType.ERC1155);
-        address to = receiver(intermediate.to, ConduitItemType.ERC1155);
-
-        uint256[] memory ids = new uint256[](intermediate.idAmounts.length);
-        uint256[] memory amounts = new uint256[](intermediate.idAmounts.length);
-
-        TestERC1155 erc1155 = new TestERC1155();
-
-        for (uint256 i = 0; i < intermediate.idAmounts.length; i++) {
-            erc1155.mint(
-                from,
-                intermediate.idAmounts[i].id,
-                intermediate.idAmounts[i].amount
-            );
-            vm.prank(from);
-            erc1155.setApprovalForAll(currentConduit, true);
+    function mintTokensAndSetTokenApprovalsForConduit(
+        ConduitBatch1155Transfer[] memory batchTransfers,
+        address conduitAddress
+    ) internal {
+        for (uint256 i = 0; i < batchTransfers.length; i++) {
+            ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
+            address from = batchTransfer.from;
+            address token = batchTransfer.token;
+            TestERC1155 erc1155 = TestERC1155(token);
+            for (uint256 n = 0; n < batchTransfer.ids.length; n++) {
+                erc1155.mint(
+                    from,
+                    batchTransfer.ids[n],
+                    batchTransfer.amounts[n]
+                );
+            }
+            erc1155.setApprovalForAll(conduitAddress, true);
         }
-        return
-            ConduitBatch1155Transfer(address(erc1155), from, to, ids, amounts);
     }
 
     function getExpectedTokenBalance(ConduitTransfer memory transfer)
