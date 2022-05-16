@@ -45,11 +45,12 @@ contract BaseConduitTest is
     }
 
     modifier resetBatchTokenBalancesBetweenRuns(
+        ConduitTransfer[] memory transfers,
         ConduitBatch1155Transfer[] memory batchTransfers
     ) {
         vm.record();
         _;
-        resetTokenBalances(batchTransfers);
+        resetTokenBalances(transfers, batchTransfers);
     }
 
     function setUp() public virtual override {
@@ -368,6 +369,7 @@ contract BaseConduitTest is
     }
 
     function resetTokenBalances(
+        ConduitTransfer[] memory transfers,
         ConduitBatch1155Transfer[] memory batchTransfers
     ) internal {
         for (uint256 i = 0; i < batchTransfers.length; i++) {

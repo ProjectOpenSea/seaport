@@ -26,7 +26,10 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
 
     function testExecuteWithBatch1155(FuzzInputs memory inputs) public {
         for (uint8 i = 0; i < inputs.batchIntermediates.length; i++) {
-            vm.assume(inputs.batchIntermediates[i].idAmounts.length > 0);
+            vm.assume(
+                inputs.batchIntermediates[i].idAmounts.length > 0 &&
+                    inputs.batchIntermediates[i].idAmounts.length < 5
+            );
         }
 
         ConduitTransfer[] memory transfers = new ConduitTransfer[](0);
@@ -72,7 +75,10 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
 
     function _testExecuteWithBatch1155(Context memory context)
         internal
-        resetBatchTokenBalancesBetweenRuns(context.batchTransfers)
+        resetBatchTokenBalancesBetweenRuns(
+            context.transfers,
+            context.batchTransfers
+        )
     {
         bytes4 magicValue = context.conduit.executeWithBatch1155(
             context.transfers,
@@ -83,6 +89,8 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
         for (uint256 i = 0; i < context.transfers.length; i++) {
             ConduitTransfer memory transfer = context.transfers[i];
             ConduitItemType itemType = transfer.itemType;
+            emit log_uint(uint256(transfer.itemType));
+
             if (itemType == ConduitItemType.ERC20) {
                 assertEq(
                     TestERC20(transfer.token).balanceOf(transfer.to),
