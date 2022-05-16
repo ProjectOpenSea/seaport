@@ -79,7 +79,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
         }
 
         // Return a magic value indicating that the transfers were performed.
-        return this.execute.selector;
+        magicValue = this.execute.selector;
     }
 
     /**
@@ -92,7 +92,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
      *                    performed successfully.
      */
     function executeBatch1155(
-        ConduitBatch1155Transfer[] calldata batch1155Transfers
+        ConduitBatch1155Transfer[] calldata batchTransfers
     ) external returns (bytes4 magicValue) {
         // Ensure that the caller has an open channel.
         if (!_channels[msg.sender]) {
@@ -103,7 +103,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
         _performERC1155BatchTransfers(batchTransfers);
 
         // Return a magic value indicating that the transfers were performed.
-        return this.executeBatch1155.selector;
+        magicValue = this.executeBatch1155.selector;
     }
 
     /**
@@ -146,7 +146,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
         _performERC1155BatchTransfers(batchTransfers);
 
         // Return a magic value indicating that the transfers were performed.
-        return this.executeWithBatch1155.selector;
+        magicValue = this.executeWithBatch1155.selector;
     }
 
     /**
