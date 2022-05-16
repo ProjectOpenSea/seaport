@@ -702,7 +702,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
   const deployNewConduit = async (owner) => {
     // Create a conduit key with a random salt
-    const tempConduitKey = randomHex(12) + owner.address.slice(2);
+    const tempConduitKey = owner.address + randomHex(12).slice(2);
 
     const { conduit: tempConduitAddress } = await conduitController.getConduit(
       tempConduitKey
@@ -1295,7 +1295,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     }
 
-    conduitKeyOne = `0x000000000000000000000000${owner.address.slice(2)}`;
+    conduitKeyOne = `${owner.address}000000000000000000000000`;
 
     await conduitController.createConduit(conduitKeyOne, owner.address);
 
@@ -9833,6 +9833,42 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
+    it("Adds a channel, and executes only batch transfers (ERC1155 with batch)", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
+      });
+
+      const { nftId, amount } = await mint1155(owner, 2);
+
+      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+        owner,
+        2
+      );
+
+      await testERC1155.mint(seller.address, nftId, amount.mul(2));
+      await testERC1155.mint(seller.address, secondNftId, secondAmount.mul(2));
+      await set1155ApprovalForAll(seller, tempConduit.address, true);
+
+      await tempConduit.connect(seller).executeBatch1155([
+        {
+          token: testERC1155.address,
+          from: seller.address,
+          to: buyer.address,
+          ids: [nftId, secondNftId],
+          amounts: [amount, secondAmount],
+        },
+        {
+          token: testERC1155.address,
+          from: seller.address,
+          to: buyer.address,
+          ids: [secondNftId, nftId],
+          amounts: [secondAmount, amount],
+        },
+      ]);
+    });
+
     it("Adds a channel, and executes transfers (ERC721)", async () => {
       // Owner updates conduit channel to allow seller access
       await whileImpersonating(owner.address, provider, async () => {
@@ -10307,9 +10343,37 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("NoContract");
     });
 
+    it("Reverts on calls to only batch transfer 1155 items with no contract on a conduit", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, owner.address, true);
+      });
+
+      const { nftId, amount } = await mint1155(owner, 2);
+
+      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+        owner,
+        2
+      );
+
+      await set1155ApprovalForAll(owner, tempConduit.address, true);
+
+      await expect(
+        tempConduit.connect(owner).executeBatch1155([
+          {
+            token: constants.AddressZero,
+            from: owner.address,
+            to: buyer.address,
+            ids: [nftId, secondNftId],
+            amounts: [amount, secondAmount],
+          },
+        ])
+      ).to.be.revertedWith("NoContract");
+    });
+
     it("Makes batch transfer 1155 items through a conduit", async () => {
-      const tempConduitKey =
-        "0xff00000000000000000000f1" + owner.address.slice(2);
+      const tempConduitKey = owner.address + "ff00000000000000000000f1";
 
       const { conduit: tempConduitAddress } =
         await conduitController.getConduit(tempConduitKey);
@@ -10389,8 +10453,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Performs complex batch transfer through a conduit", async () => {
-      const tempConduitKey =
-        "0xf100000000000000000000f1" + owner.address.slice(2);
+      const tempConduitKey = owner.address + "f100000000000000000000f1";
 
       const { conduit: tempConduitAddress } =
         await conduitController.getConduit(tempConduitKey);
@@ -10629,6 +10692,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts when attempting to execute with 1155 transfers on a conduit when not called from a channel", async () => {
       await expect(
         conduitOne.connect(owner).executeWithBatch1155([], [])
+      ).to.be.revertedWith("ChannelClosed");
+    });
+
+    it("Reverts when attempting to execute batch 1155 transfers on a conduit when not called from a channel", async () => {
+      await expect(
+        conduitOne.connect(owner).executeBatch1155([])
       ).to.be.revertedWith("ChannelClosed");
     });
 
