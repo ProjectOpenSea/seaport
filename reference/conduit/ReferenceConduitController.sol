@@ -45,12 +45,12 @@ contract ReferenceConduitController is ConduitControllerInterface {
     /**
      * @dev External function for deploying a new conduit using a supplied
      *      conduit key and assigning an initial owner for the deployed conduit.
-     *      Note that the last twenty bytes of the supplied conduit key must
+     *      Note that the first twenty bytes of the supplied conduit key must
      *      match the caller and that a new conduit cannot be created if one has
      *      already been deployed using the same conduit key.
      *
      * @param conduitKey   The conduit key used to deploy the conduit. Note that
-     *                     the last twenty bytes of the conduit key must match
+     *                     the first twenty bytes of the conduit key must match
      *                     the caller of this contract.
      * @param initialOwner The initial owner to set for the new conduit.
      *
@@ -61,8 +61,8 @@ contract ReferenceConduitController is ConduitControllerInterface {
         override
         returns (address conduit)
     {
-        // If the last 20 bytes of the conduit key do not match the caller...
-        if (address(uint160(uint256(conduitKey))) != msg.sender) {
+        // If the first 20 bytes of the conduit key do not match the caller...
+        if (address(uint160(bytes20(conduitKey))) != msg.sender) {
             // Revert with an error indicating that the creator is invalid.
             revert InvalidCreator();
         }
