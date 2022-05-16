@@ -29,6 +29,7 @@ contract ConduitExecuteTest is BaseConduitTest {
                 deployTokenAndCreateConduitTransfers(inputs.intermediates[i])
             );
         }
+        makeRecipientsSafe(transfers);
         mintTokensAndSetTokenApprovalsForConduit(
             transfers,
             address(referenceConduit)
