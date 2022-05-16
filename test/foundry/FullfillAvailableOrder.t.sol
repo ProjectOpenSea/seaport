@@ -28,12 +28,17 @@ contract FulfillAvailableOrder is BaseOrderTest {
         FuzzInputs args;
     }
 
-    function testMatchorderOverflow() public {}
+    function testFulfillAvailableOrderOverflow() public {
+        _testFulfillAvailableOrderOverflow(referenceConsideration);
+    }
 
-    function _testMatchOrderOverflow(ConsiderationInterface _consideration)
-        public
-    {
+    function _testFulfillAvailableOrderOverflow(
+        ConsiderationInterface _consideration
+    ) public {
         test721_1.mint(alice, 1);
+        _configureERC721OfferItem(1);
+        _configureEthConsiderationItem(alice, 100);
+
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             address(0),
@@ -48,17 +53,77 @@ contract FulfillAvailableOrder is BaseOrderTest {
             considerationItems.length
         );
 
-        OrderComponents memory orderComponents = getOrderComponents(
+        OrderComponents memory firstOrderComponents = getOrderComponents(
             orderParameters,
             _consideration.getNonce(alice)
         );
         bytes memory signature = signOrder(
             _consideration,
             alicePk,
-            _consideration.getOrderHash(orderComponents)
+            _consideration.getOrderHash(firstOrderComponents)
         );
 
+        delete offerItems;
+        delete considerationItems;
+
         test721_2.mint(bob, 2);
+        _configureERC721OfferItem(2);
+        _configureEthConsiderationItem(bob, MAX_INT);
+
+        OrderParameters memory secondOrderParameters = OrderParameters(
+            address(bob),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory secondOrderComponents = getOrderComponents(
+            orderParameters,
+            _consideration.getNonce(bob)
+        );
+        bytes memory secondSignature = signOrder(
+            _consideration,
+            bobPk,
+            _consideration.getOrderHash(secondOrderComponents)
+        );
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = Order(orderParameters, signature);
+        orders[1] = Order(secondOrderParameters, secondSignature);
+
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponents.push(FulfillmentComponent(1, 1));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponents.push(FulfillmentComponent(1, 2));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+        _consideration.fulfillAvailableOrders{ value: 99 }(
+            orders,
+            offerComponentsArray,
+            considerationComponentsArray,
+            bytes32(0),
+            2
+        );
     }
 
     function testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
