@@ -292,6 +292,34 @@ contract GettersAndDerivers is ConsiderationBase {
     }
 
     /**
+     * @dev Internal pure function to retrieve the default name of this
+     *      contract and return.
+     *
+     * @return The name of this contract.
+     */
+    function _name() internal pure override returns (string memory) {
+        // Return the name of the contract.
+        assembly {
+            mstore(0, OneWord) // First element is the offset.
+            // Name is right padded, so it touches the length which is left
+            // padded. This enables writing both values at once.
+            mstore(NameLengthPtr, NameWithLength)
+            return(0, ThreeWords) // Return all three words.
+        }
+    }
+
+    /**
+     * @dev Internal pure function to retrieve the default name of this contract
+     *      as a string that can be used internally.
+     *
+     * @return The name of this contract.
+     */
+    function _nameString() internal pure override returns (string memory) {
+        // Return the name of the contract.
+        return "Consideration";
+    }
+
+    /**
      * @dev Internal view function to retrieve configuration information for
      *      this contract.
      *
@@ -320,22 +348,6 @@ contract GettersAndDerivers is ConsiderationBase {
         // Set the version as data on the newly allocated string.
         assembly {
             mstore(add(version, OneWord), shl(0xf8, Version))
-        }
-    }
-
-    /**
-     * @dev Internal pure function to retrieve the name of this contract.
-     *
-     * @return The name of this contract.
-     */
-    function _name() internal pure returns (string memory) {
-        // Return the name of the contract.
-        assembly {
-            mstore(0, OneWord) // First element is the offset.
-            // Name is right padded, so it touches the length which is left padded.
-            // This lets us write both values at once
-            mstore(NameLengthPtr, NameWithLength)
-            return(0, ThreeWords) // Return all three words.
         }
     }
 
