@@ -202,7 +202,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         assembly {
             function throwInvalidFulfillmentComponentData() {
                 mstore(0, InvalidFulfillmentComponentData_error_signature)
-                revert(0x1c, InvalidFulfillmentComponentData_error_len)
+                revert(0, InvalidFulfillmentComponentData_error_len)
+            }
+
+            function throwOverflow() {
+                mstore(0, Panic_error_signature)
+                mstore(Panic_error_offset, Panic_error_length)
+                revert(0, Panic_error_length)
             }
 
             // Get position in offerComponents head
@@ -445,12 +451,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             }
             case 2 {
                 // If the sum overflowed, panic
-                mstore(
-                    0,
-                    0x4e487b7100000000000000000000000000000000000000000000000000000000
-                )
-                mstore(4, 0x11)
-                revert(0, 0x24)
+                throwOverflow()
             }
         }
     }
@@ -477,7 +478,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         assembly {
             function throwInvalidFulfillmentComponentData() {
                 mstore(0, InvalidFulfillmentComponentData_error_signature)
-                revert(0x1c, InvalidFulfillmentComponentData_error_len)
+                revert(0, InvalidFulfillmentComponentData_error_len)
+            }
+
+            function throwOverflow() {
+                mstore(0, Panic_error_signature)
+                mstore(Panic_error_offset, Panic_error_length)
+                revert(0, Panic_error_length)
             }
 
             let amount := 0
@@ -705,12 +712,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             }
             case 2 {
                 // If the sum overflowed, panic
-                mstore(
-                    0,
-                    0x4e487b7100000000000000000000000000000000000000000000000000000000
-                )
-                mstore(4, 0x11)
-                revert(0, 0x24)
+                throwOverflow()
             }
         }
     }
