@@ -444,9 +444,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
               throwInvalidFulfillmentComponentData()
             }
             case 2 {
-            // If the sum overflowed, panic
-              mstore(0, 0x11)
-              revert(0, 0x20)
+              // If the sum overflowed, panic
+              mstore(0, 0x4e487b7100000000000000000000000000000000000000000000000000000000)
+              mstore(4, 0x11)
+              revert(0, 0x24)
             }
         }
     }
@@ -648,10 +649,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Zero out amount on original item to indicate it
-                // is credited.
-                mstore(amountPtr, 0)
-
                 // Check if addition overflows
                 errorBuffer := or(
                   errorBuffer,
@@ -663,6 +660,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
                 // Update sum
                 amount := newAmount
+
+                // Zero out amount on original item to indicate it is credited.
+                mstore(amountPtr, 0)
 
                 // Ensure the indicated item matches original item.
                 if iszero(
@@ -701,9 +701,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
               throwInvalidFulfillmentComponentData()
             }
             case 2 {
-            // If the sum overflowed, panic
-              mstore(0, 0x11)
-              revert(0, 0x20)
+              // If the sum overflowed, panic
+              mstore(0, 0x4e487b7100000000000000000000000000000000000000000000000000000000)
+              mstore(4, 0x11)
+              revert(0, 0x24)
             }
         }
     }
