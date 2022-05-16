@@ -2,7 +2,7 @@
 pragma solidity 0.8.13;
 
 import { ConduitController } from "../../../contracts/conduit/ConduitController.sol";
-import { Consideration } from "../../../contracts/Consideration.sol";
+import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 import { OrderType, BasicOrderType, ItemType, Side } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { Test } from "forge-std/Test.sol";
@@ -15,8 +15,8 @@ import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 contract BaseConsiderationTest is Test {
     using stdStorage for StdStorage;
 
-    Consideration consideration;
-    Consideration referenceConsideration;
+    ConsiderationInterface consideration;
+    ConsiderationInterface referenceConsideration;
     bytes32 conduitKeyOne;
     ConduitController conduitController;
     ConduitController referenceConduitController;
@@ -59,7 +59,7 @@ contract BaseConsiderationTest is Test {
         referenceConduitController = ConduitController(
             address(new ReferenceConduitController())
         );
-        referenceConsideration = Consideration(
+        referenceConsideration = ConsiderationInterface(
             address(
                 new ReferenceConsideration(address(referenceConduitController))
             )
@@ -77,19 +77,6 @@ contract BaseConsiderationTest is Test {
         );
     }
 
-    function _deployAndConfigureConsideration() public {
-        conduitController = new ConduitController();
-        consideration = new Consideration(address(conduitController));
-        conduit = Conduit(
-            conduitController.createConduit(conduitKeyOne, address(this))
-        );
-        conduitController.updateChannel(
-            address(conduit),
-            address(consideration),
-            true
-        );
-    }
-
     ///@dev deploy optimized consideration contracts from pre-compiled source (solc-0.8.13, IR pipeline enabled)
     function _deployAndConfigurePrecompiledOptimizedConsideration() public {
         conduitController = ConduitController(
@@ -97,7 +84,7 @@ contract BaseConsiderationTest is Test {
                 "optimized-out/ConduitController.sol/ConduitController.json"
             )
         );
-        consideration = Consideration(
+        consideration = ConsiderationInterface(
             deployCode(
                 "optimized-out/Consideration.sol/Consideration.json",
                 abi.encode(address(conduitController))
@@ -122,7 +109,7 @@ contract BaseConsiderationTest is Test {
                 "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
             )
         );
-        referenceConsideration = Consideration(
+        referenceConsideration = ConsiderationInterface(
             deployCode(
                 "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json",
                 abi.encode(address(referenceConduitController))
@@ -180,7 +167,7 @@ contract BaseConsiderationTest is Test {
     }
 
     function signOrder(
-        Consideration _consideration,
+        ConsiderationInterface _consideration,
         uint256 _pkOfSigner,
         bytes32 _orderHash
     ) internal returns (bytes memory) {
