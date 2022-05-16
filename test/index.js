@@ -9627,9 +9627,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       const nftId = random128();
-      const erc1155amount = random128().add(
-        1
-      );
+      const erc1155amount = random128().add(1);
       await testERC1155.mint(seller.address, nftId, erc1155amount);
 
       await whileImpersonating(seller.address, provider, async () => {
