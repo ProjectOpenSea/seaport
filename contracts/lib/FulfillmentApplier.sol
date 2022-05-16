@@ -208,11 +208,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Get position in offerComponents head
             let fulfillmentHeadPtr := add(offerComponents, 0x20)
 
-            // Get fulfillment ptr from offer component & start index.
-            let fulfillmentPtr := mload(fulfillmentHeadPtr)
-
             // Retrieve the order index using the fulfillment pointer.
-            let orderIndex := mload(fulfillmentPtr)
+            let orderIndex := mload(mload(fulfillmentHeadPtr))
 
             // Ensure that the order index is not out of range.
             if iszero(lt(orderIndex, mload(advancedOrders))) {
@@ -236,7 +233,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             // Retrieve item index using an offset of the fulfillment pointer.
             let itemIndex := mload(
-                add(fulfillmentPtr, Fulfillment_itemIndex_offset)
+                add(mload(fulfillmentHeadPtr), Fulfillment_itemIndex_offset)
             )
 
             // Only continue if the fulfillment is not invalid.
@@ -310,17 +307,15 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             )
 
             // Buffer indicating whether issues were found
-            let errorBuffer := 0
+            let errorBuffer := iszero(amount)
 
             // Iterate over remaining offer components.
             // prettier-ignore
             for {} lt(fulfillmentHeadPtr,  endPtr) {} {
                 fulfillmentHeadPtr := add(fulfillmentHeadPtr, 0x20)
-                // Retrieve the fulfillment pointer.
-                fulfillmentPtr := mload(fulfillmentHeadPtr)
 
                 // Get the order index using the fulfillment pointer.
-                orderIndex := mload(fulfillmentPtr)
+                orderIndex := mload(mload(fulfillmentHeadPtr))
 
                 // Ensure the order index is in range.
                 if iszero(lt(orderIndex, mload(advancedOrders))) {
@@ -354,7 +349,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
 
                 // Get the item index using the fulfillment pointer.
-                itemIndex := mload(add(fulfillmentPtr, 0x20))
+                itemIndex := mload(add(mload(fulfillmentHeadPtr), 0x20))
 
                 // Throw if itemIndex is out of the range of array.
                 if iszero(
@@ -481,11 +476,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Get position in considerationComponents head
             let fulfillmentHeadPtr := add(considerationComponents, 0x20)
 
-            // Get fulfillment ptr from head in array
-            let fulfillmentPtr := mload(fulfillmentHeadPtr)
-
             // Retrieve the order index using the fulfillment pointer.
-            let orderIndex := mload(fulfillmentPtr)
+            let orderIndex := mload(mload(fulfillmentHeadPtr))
 
             // Ensure that the order index is not out of range.
             if iszero(lt(orderIndex, mload(advancedOrders))) {
@@ -510,7 +502,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             // Retrieve item index using an offset of the fulfillment pointer.
             let itemIndex := mload(
-                add(fulfillmentPtr, Fulfillment_itemIndex_offset)
+                add(mload(fulfillmentHeadPtr), Fulfillment_itemIndex_offset)
             )
 
             // Ensure that the order index is not out of range.
@@ -580,7 +572,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 mul(mload(considerationComponents), 0x20)
             )
 
-            let errorBuffer := 0
+            let errorBuffer := iszero(amount)
 
             // Iterate over remaining offer components.
             // prettier-ignore
@@ -588,11 +580,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Increment position in considerationComponents head
                 fulfillmentHeadPtr := add(fulfillmentHeadPtr, 0x20)
 
-                // Get fulfillment ptr from head in array
-                fulfillmentPtr := mload(fulfillmentHeadPtr)
-
                 // Get the order index using the fulfillment pointer.
-                orderIndex := mload(fulfillmentPtr)
+                orderIndex := mload(mload(fulfillmentHeadPtr))
 
                 // Ensure the order index is in range.
                 if iszero(lt(orderIndex, mload(advancedOrders))) {
@@ -622,7 +611,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
 
                 // Get the item index using the fulfillment pointer.
-                itemIndex := mload(add(fulfillmentPtr, 0x20))
+                itemIndex := mload(add(mload(fulfillmentHeadPtr), 0x20))
 
                 // Check if itemIndex is within the range of array.
                 if iszero(lt(itemIndex, mload(considerationArrPtr))) {
