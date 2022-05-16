@@ -1280,9 +1280,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitControllerFactory.bytecode
       );
 
-      expect(conduitControllerAddress).to.equal(
-        deployConstants.CONDUIT_CONTROLLER_ADDRESS
-      );
+      if (!hre.__SOLIDITY_COVERAGE_RUNNING) {
+        expect(conduitControllerAddress).to.equal(
+          deployConstants.CONDUIT_CONTROLLER_ADDRESS
+        );
+      }
 
       await create2Factory.safeCreate2(
         deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
