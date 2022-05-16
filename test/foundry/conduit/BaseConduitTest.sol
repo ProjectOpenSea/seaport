@@ -175,21 +175,29 @@ contract BaseConduitTest is
             token = address(new TestERC721());
         }
 
-        // re-calculate from+to after constructing token because forge fuzzer
-        // is apparently smart enough to know where the tokens will be deployed
-        // leading to issues with onERC1155Received
-        // note: might have to pre-deploy all tokens first if issue persists
-        address from = receiver(intermediate.from);
-        address to = receiver(intermediate.to);
-
         return
             createNumTokenIdsConduitTransfers(
                 intermediate,
                 token,
                 itemType,
-                from,
-                to
+                intermediate.from,
+                intermediate.to
             );
+    }
+
+    /**
+     * @dev Foundry will fuzz addresses on contracts - including contracts that haven't been created (yet)
+     *      Make sure all recipients (including mint recipients) can receive erc1155 tokens by changing
+     *      address if it can't
+     */
+    function makeRecipientsSafe(ConduitTransfer[] memory transfers) internal {
+        for (uint256 i; i < transfers.length; i++) {
+            ConduitTransfer memory transfer = transfers[i];
+            address from = receiver(transfer.from);
+            address to = receiver(transfer.to);
+            transfer.from = from;
+            transfer.to = to;
+        }
     }
 
     function mintTokensAndSetTokenApprovalsForConduit(
