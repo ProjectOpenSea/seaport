@@ -18,7 +18,7 @@ if (GAS_REPORT_MODE) {
 
 export const randomHex = (bytes = 32) => `0x${randomBytes(bytes)}`;
 
-export const random128 = () => randomHex(16);
+export const random128 = () => toBN(randomHex(16));
 
 const hexRegex = /[A-Fa-fx]/g;
 
