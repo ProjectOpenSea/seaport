@@ -93,9 +93,11 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                 identifierOrCriteria = offer.identifier;
 
                 // Optimistically update item type to remove criteria usage.
-                offer.itemType = (itemType == ItemType.ERC721_WITH_CRITERIA)
-                    ? ItemType.ERC721
-                    : ItemType.ERC1155;
+                if (itemType == ItemType.ERC721_WITH_CRITERIA) {
+                    offer.itemType = ItemType.ERC721;
+                } else {
+                    offer.itemType = ItemType.ERC1155;
+                }
 
                 // Optimistically update identifier w/ supplied identifier.
                 offer.identifier = criteriaResolver.identifier;
@@ -122,10 +124,11 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                 identifierOrCriteria = consideration.identifier;
 
                 // Optimistically update item type to remove criteria usage.
-                consideration.itemType = (itemType ==
-                    ItemType.ERC721_WITH_CRITERIA)
-                    ? ItemType.ERC721
-                    : ItemType.ERC1155;
+                if (itemType == ItemType.ERC721_WITH_CRITERIA) {
+                    consideration.itemType = ItemType.ERC721;
+                } else {
+                    consideration.itemType = ItemType.ERC1155;
+                }
 
                 // Optimistically update identifier w/ supplied identifier.
                 consideration.identifier = (criteriaResolver.identifier);
@@ -250,9 +253,11 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                 identifierOrCriteria = offer.identifierOrCriteria;
 
                 // Optimistically update item type to remove criteria usage.
-                offer.itemType = (itemType == ItemType.ERC721_WITH_CRITERIA)
-                    ? ItemType.ERC721
-                    : ItemType.ERC1155;
+                if (itemType == ItemType.ERC721_WITH_CRITERIA) {
+                    offer.itemType = ItemType.ERC721;
+                } else {
+                    offer.itemType = ItemType.ERC1155;
+                }
 
                 // Optimistically update identifier w/ supplied identifier.
                 offer.identifierOrCriteria = criteriaResolver.identifier;
@@ -273,10 +278,11 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
                 identifierOrCriteria = consideration.identifierOrCriteria;
 
                 // Optimistically update item type to remove criteria usage.
-                consideration.itemType = (itemType ==
-                    ItemType.ERC721_WITH_CRITERIA)
-                    ? ItemType.ERC721
-                    : ItemType.ERC1155;
+                if (itemType == ItemType.ERC721_WITH_CRITERIA) {
+                    consideration.itemType = ItemType.ERC721;
+                } else {
+                    consideration.itemType = ItemType.ERC1155;
+                }
 
                 // Optimistically update identifier w/ supplied identifier.
                 consideration.identifierOrCriteria = (

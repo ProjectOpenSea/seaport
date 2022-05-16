@@ -200,11 +200,14 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      */
     function _domainSeparator() internal view returns (bytes32) {
         // prettier-ignore
-        return block.chainid == _CHAIN_ID
-            ? _DOMAIN_SEPARATOR
-            : _deriveDomainSeparator(_EIP_712_DOMAIN_TYPEHASH,
-                _NAME_HASH,
-                _VERSION_HASH);
+        if(block.chainid == _CHAIN_ID){
+            return _DOMAIN_SEPARATOR;
+        }
+        else{
+            return _deriveDomainSeparator(_EIP_712_DOMAIN_TYPEHASH,
+            _NAME_HASH,
+            _VERSION_HASH);
+        }
     }
 
     /**

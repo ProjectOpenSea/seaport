@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
+import "hardhat/console.sol";
+
 // prettier-ignore
 import {
     OrderType,
@@ -37,6 +39,11 @@ import "contracts/lib/ConsiderationConstants.sol";
  *         orders.
  */
 contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
+    // Map BasicOrderType to BasicOrderRouteType
+    mapping(BasicOrderType => BasicOrderRouteType) internal _OrderToRouteType;
+    // Map BasicOrderType to OrderType
+    mapping(BasicOrderType => OrderType) internal _BasicOrderToOrderType;
+
     /**
      * @dev Derive and set hashes, reference chainId, and associated domain
      *      separator during deployment.
@@ -47,7 +54,183 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      */
     constructor(address conduitController)
         ReferenceOrderValidator(conduitController)
-    {}
+    {
+        createMappings();
+    }
+
+    /**
+     * @dev Creates a mapping of BasicOrderType Enums to BasicOrderRouteType Enums
+     *      and BasicOrderType Enums to OrderType Enums
+     */
+    function createMappings() internal {
+        // BasicOrderType to BasicOrderRouteType
+
+        // ETH TO ERC 721
+        _OrderToRouteType[
+            BasicOrderType.ETH_TO_ERC721_FULL_OPEN
+        ] = BasicOrderRouteType.ETH_TO_ERC721;
+        _OrderToRouteType[
+            BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN
+        ] = BasicOrderRouteType.ETH_TO_ERC721;
+        _OrderToRouteType[
+            BasicOrderType.ETH_TO_ERC721_FULL_RESTRICTED
+        ] = BasicOrderRouteType.ETH_TO_ERC721;
+        _OrderToRouteType[
+            BasicOrderType.ETH_TO_ERC721_PARTIAL_RESTRICTED
+        ] = BasicOrderRouteType.ETH_TO_ERC721;
+
+        // ETH TO ERC 1155
+        _OrderToRouteType[
+            BasicOrderType.ETH_TO_ERC1155_FULL_OPEN
+        ] = BasicOrderRouteType.ETH_TO_ERC1155;
+        _OrderToRouteType[
+            BasicOrderType.ETH_TO_ERC1155_PARTIAL_OPEN
+        ] = BasicOrderRouteType.ETH_TO_ERC1155;
+        _OrderToRouteType[
+            BasicOrderType.ETH_TO_ERC1155_FULL_RESTRICTED
+        ] = BasicOrderRouteType.ETH_TO_ERC1155;
+        _OrderToRouteType[
+            BasicOrderType.ETH_TO_ERC1155_PARTIAL_RESTRICTED
+        ] = BasicOrderRouteType.ETH_TO_ERC1155;
+
+        // ERC 20 TO ERC 721
+        _OrderToRouteType[
+            BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
+        ] = BasicOrderRouteType.ERC20_TO_ERC721;
+        _OrderToRouteType[
+            BasicOrderType.ERC20_TO_ERC721_PARTIAL_OPEN
+        ] = BasicOrderRouteType.ERC20_TO_ERC721;
+        _OrderToRouteType[
+            BasicOrderType.ERC20_TO_ERC721_FULL_RESTRICTED
+        ] = BasicOrderRouteType.ERC20_TO_ERC721;
+        _OrderToRouteType[
+            BasicOrderType.ERC20_TO_ERC721_PARTIAL_RESTRICTED
+        ] = BasicOrderRouteType.ERC20_TO_ERC721;
+
+        // ERC 20 TO ERC 1155
+        _OrderToRouteType[
+            BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN
+        ] = BasicOrderRouteType.ERC20_TO_ERC1155;
+        _OrderToRouteType[
+            BasicOrderType.ERC20_TO_ERC1155_PARTIAL_OPEN
+        ] = BasicOrderRouteType.ERC20_TO_ERC1155;
+        _OrderToRouteType[
+            BasicOrderType.ERC20_TO_ERC1155_FULL_RESTRICTED
+        ] = BasicOrderRouteType.ERC20_TO_ERC1155;
+        _OrderToRouteType[
+            BasicOrderType.ERC20_TO_ERC1155_PARTIAL_RESTRICTED
+        ] = BasicOrderRouteType.ERC20_TO_ERC1155;
+
+        // ERC 721 TO ERC 20
+        _OrderToRouteType[
+            BasicOrderType.ERC721_TO_ERC20_FULL_OPEN
+        ] = BasicOrderRouteType.ERC721_TO_ERC20;
+        _OrderToRouteType[
+            BasicOrderType.ERC721_TO_ERC20_PARTIAL_OPEN
+        ] = BasicOrderRouteType.ERC721_TO_ERC20;
+        _OrderToRouteType[
+            BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED
+        ] = BasicOrderRouteType.ERC721_TO_ERC20;
+        _OrderToRouteType[
+            BasicOrderType.ERC721_TO_ERC20_PARTIAL_RESTRICTED
+        ] = BasicOrderRouteType.ERC721_TO_ERC20;
+
+        // ERC 1155 TO ERC 20
+        _OrderToRouteType[
+            BasicOrderType.ERC1155_TO_ERC20_FULL_OPEN
+        ] = BasicOrderRouteType.ERC1155_TO_ERC20;
+        _OrderToRouteType[
+            BasicOrderType.ERC1155_TO_ERC20_PARTIAL_OPEN
+        ] = BasicOrderRouteType.ERC1155_TO_ERC20;
+        _OrderToRouteType[
+            BasicOrderType.ERC1155_TO_ERC20_FULL_RESTRICTED
+        ] = BasicOrderRouteType.ERC1155_TO_ERC20;
+        _OrderToRouteType[
+            BasicOrderType.ERC1155_TO_ERC20_PARTIAL_RESTRICTED
+        ] = BasicOrderRouteType.ERC1155_TO_ERC20;
+
+        // Basic OrderType to OrderType
+
+        // FULL OPEN
+        _BasicOrderToOrderType[
+            BasicOrderType.ETH_TO_ERC721_FULL_OPEN
+        ] = OrderType.FULL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ETH_TO_ERC1155_FULL_OPEN
+        ] = OrderType.FULL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC20_TO_ERC721_FULL_OPEN
+        ] = OrderType.FULL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN
+        ] = OrderType.FULL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC721_TO_ERC20_FULL_OPEN
+        ] = OrderType.FULL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC1155_TO_ERC20_FULL_OPEN
+        ] = OrderType.FULL_OPEN;
+
+        // PARTIAL OPEN
+        _BasicOrderToOrderType[
+            BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN
+        ] = OrderType.PARTIAL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ETH_TO_ERC1155_PARTIAL_OPEN
+        ] = OrderType.PARTIAL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC20_TO_ERC721_PARTIAL_OPEN
+        ] = OrderType.PARTIAL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC20_TO_ERC1155_PARTIAL_OPEN
+        ] = OrderType.PARTIAL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC721_TO_ERC20_PARTIAL_OPEN
+        ] = OrderType.PARTIAL_OPEN;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC1155_TO_ERC20_PARTIAL_OPEN
+        ] = OrderType.PARTIAL_OPEN;
+
+        // FULL RESTRICTED
+        _BasicOrderToOrderType[
+            BasicOrderType.ETH_TO_ERC721_FULL_RESTRICTED
+        ] = OrderType.FULL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ETH_TO_ERC1155_FULL_RESTRICTED
+        ] = OrderType.FULL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC20_TO_ERC721_FULL_RESTRICTED
+        ] = OrderType.FULL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC20_TO_ERC1155_FULL_RESTRICTED
+        ] = OrderType.FULL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED
+        ] = OrderType.FULL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC1155_TO_ERC20_FULL_RESTRICTED
+        ] = OrderType.FULL_RESTRICTED;
+
+        // PARTIAL RESTRICTED
+        _BasicOrderToOrderType[
+            BasicOrderType.ETH_TO_ERC721_PARTIAL_RESTRICTED
+        ] = OrderType.PARTIAL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ETH_TO_ERC1155_PARTIAL_RESTRICTED
+        ] = OrderType.PARTIAL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC20_TO_ERC721_PARTIAL_RESTRICTED
+        ] = OrderType.PARTIAL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC20_TO_ERC1155_PARTIAL_RESTRICTED
+        ] = OrderType.PARTIAL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC721_TO_ERC20_PARTIAL_RESTRICTED
+        ] = OrderType.PARTIAL_RESTRICTED;
+        _BasicOrderToOrderType[
+            BasicOrderType.ERC1155_TO_ERC20_PARTIAL_RESTRICTED
+        ] = OrderType.PARTIAL_RESTRICTED;
+    }
 
     /**
      * @dev Internal function to fulfill an order offering an ERC20, ERC721, or
@@ -81,80 +264,14 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         BasicOrderRouteType route;
         {
             BasicOrderType basicType = parameters.basicOrderType;
-            if (
-                basicType == BasicOrderType.ETH_TO_ERC721_FULL_OPEN ||
-                basicType == BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ETH_TO_ERC721_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ETH_TO_ERC721_PARTIAL_RESTRICTED
-            ) {
-                route = BasicOrderRouteType.ETH_TO_ERC721;
-            } else if (
-                basicType == BasicOrderType.ETH_TO_ERC1155_FULL_OPEN ||
-                basicType == BasicOrderType.ETH_TO_ERC1155_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ETH_TO_ERC1155_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ETH_TO_ERC1155_PARTIAL_RESTRICTED
-            ) {
-                route = BasicOrderRouteType.ETH_TO_ERC1155;
-            } else if (
-                basicType == BasicOrderType.ERC20_TO_ERC721_FULL_OPEN ||
-                basicType == BasicOrderType.ERC20_TO_ERC721_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ERC20_TO_ERC721_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ERC20_TO_ERC721_PARTIAL_RESTRICTED
-            ) {
-                route = BasicOrderRouteType.ERC20_TO_ERC721;
-            } else if (
-                basicType == BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN ||
-                basicType == BasicOrderType.ERC20_TO_ERC1155_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ERC20_TO_ERC1155_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ERC20_TO_ERC1155_PARTIAL_RESTRICTED
-            ) {
-                route = BasicOrderRouteType.ERC20_TO_ERC1155;
-            } else if (
-                basicType == BasicOrderType.ERC721_TO_ERC20_FULL_OPEN ||
-                basicType == BasicOrderType.ERC721_TO_ERC20_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ERC721_TO_ERC20_PARTIAL_RESTRICTED
-            ) {
-                route = BasicOrderRouteType.ERC721_TO_ERC20;
-            } else {
-                route = BasicOrderRouteType.ERC1155_TO_ERC20;
-            }
+            route = _OrderToRouteType[basicType];
         }
 
         // Determine the order type from the basic order type.
         OrderType orderType;
         {
             BasicOrderType basicType = parameters.basicOrderType;
-            if (
-                basicType == BasicOrderType.ETH_TO_ERC721_FULL_OPEN ||
-                basicType == BasicOrderType.ETH_TO_ERC1155_FULL_OPEN ||
-                basicType == BasicOrderType.ERC20_TO_ERC721_FULL_OPEN ||
-                basicType == BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN ||
-                basicType == BasicOrderType.ERC721_TO_ERC20_FULL_OPEN ||
-                basicType == BasicOrderType.ERC1155_TO_ERC20_FULL_OPEN
-            ) {
-                orderType = OrderType.FULL_OPEN;
-            } else if (
-                basicType == BasicOrderType.ETH_TO_ERC721_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ETH_TO_ERC1155_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ERC20_TO_ERC721_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ERC20_TO_ERC1155_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ERC721_TO_ERC20_PARTIAL_OPEN ||
-                basicType == BasicOrderType.ERC1155_TO_ERC20_PARTIAL_OPEN
-            ) {
-                orderType = OrderType.PARTIAL_OPEN;
-            } else if (
-                basicType == BasicOrderType.ETH_TO_ERC721_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ETH_TO_ERC1155_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ERC20_TO_ERC721_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ERC20_TO_ERC1155_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ERC721_TO_ERC20_FULL_RESTRICTED ||
-                basicType == BasicOrderType.ERC1155_TO_ERC20_FULL_RESTRICTED
-            ) {
-                orderType = OrderType.FULL_RESTRICTED;
-            } else {
-                orderType = OrderType.PARTIAL_RESTRICTED;
-            }
+            orderType = _BasicOrderToOrderType[basicType];
         }
 
         // Declare additional recipient item type to derive from the route type.
@@ -777,9 +894,12 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         AccumulatorStruct memory accumulatorStruct
     ) internal {
         // Determine the appropriate conduit to utilize.
-        bytes32 conduitKey = fromOfferer
-            ? parameters.offererConduitKey
-            : parameters.fulfillerConduitKey;
+        bytes32 conduitKey;
+        if (fromOfferer) {
+            conduitKey = parameters.offererConduitKey;
+        } else {
+            conduitKey = parameters.fulfillerConduitKey;
+        }
 
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < parameters.additionalRecipients.length; ++i) {
