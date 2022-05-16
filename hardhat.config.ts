@@ -31,11 +31,33 @@ const config: HardhatUserConfig = {
           viaIR: true,
           optimizer: {
             enabled: true,
-            runs: 3750,
+            runs: 15000,
           },
         },
       },
     ],
+    overrides: {
+      "contracts/conduit/Conduit.sol": {
+        version: "0.8.13",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
+      "contracts/conduit/ConduitController.sol": {
+        version: "0.8.13",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
+    },
   },
   networks: {
     hardhat: {
