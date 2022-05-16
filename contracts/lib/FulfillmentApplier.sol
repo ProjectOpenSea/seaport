@@ -202,7 +202,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         assembly {
             function throwInvalidFulfillmentComponentData() {
                 mstore(0, InvalidFulfillmentComponentData_error_signature)
-                revert(0x1c, InvalidFulfillmentComponentData_error_len)
+                revert(0, InvalidFulfillmentComponentData_error_len)
+            }
+
+            function throwOverflow() {
+                mstore(0, Panic_error_signature)
+                mstore(Panic_error_offset, Panic_error_length)
+                revert(0, Panic_error_length)
             }
 
             // Get position in offerComponents head
@@ -435,13 +441,12 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             switch errorBuffer
             case 1 {
-              // change to MissingItemAmount
-              throwInvalidFulfillmentComponentData()
+                // change to MissingItemAmount
+                throwInvalidFulfillmentComponentData()
             }
             case 2 {
-            // If the sum overflowed, panic
-              mstore(0, 0x11)
-              revert(0, 0x20)
+                // If the sum overflowed, panic
+                throwOverflow()
             }
         }
     }
@@ -468,7 +473,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         assembly {
             function throwInvalidFulfillmentComponentData() {
                 mstore(0, InvalidFulfillmentComponentData_error_signature)
-                revert(0x1c, InvalidFulfillmentComponentData_error_len)
+                revert(0, InvalidFulfillmentComponentData_error_len)
+            }
+
+            function throwOverflow() {
+                mstore(0, Panic_error_signature)
+                mstore(Panic_error_offset, Panic_error_length)
+                revert(0, Panic_error_length)
             }
 
             let amount := 0
@@ -494,9 +505,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Load consideration array pointer.
             let considerationArrPtr := mload(
                 add(
-                  // Read the pointer to OrderParameters from the AdvancedOrder
-                  mload(orderPtr),
-                  OrderParameters_consideration_head_offset
+                    // Read the pointer to OrderParameters from the AdvancedOrder
+                    mload(orderPtr),
+                    OrderParameters_consideration_head_offset
                 )
             )
 
@@ -637,10 +648,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Zero out amount on original item to indicate it
-                // is credited.
-                mstore(amountPtr, 0)
-
                 // Check if addition overflows
                 errorBuffer := or(
                   errorBuffer,
@@ -652,6 +659,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
                 // Update sum
                 amount := newAmount
+
+                // Zero out amount on original item to indicate it is credited.
+                mstore(amountPtr, 0)
 
                 // Ensure the indicated item matches original item.
                 if iszero(
@@ -686,13 +696,12 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             switch errorBuffer
             case 1 {
-              // change to MissingItemAmount
-              throwInvalidFulfillmentComponentData()
+                // change to MissingItemAmount
+                throwInvalidFulfillmentComponentData()
             }
             case 2 {
-            // If the sum overflowed, panic
-              mstore(0, 0x11)
-              revert(0, 0x20)
+                // If the sum overflowed, panic
+                throwOverflow()
             }
         }
     }

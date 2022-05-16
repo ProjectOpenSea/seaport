@@ -68,8 +68,17 @@ uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
 
 // bytes4 constant InvalidFulfillmentComponentData_error_write_ptr = 0x1c;
-uint32 constant InvalidFulfillmentComponentData_error_signature = (0x7fda7279);
+uint256 constant InvalidFulfillmentComponentData_error_signature = (
+    0x7fda727900000000000000000000000000000000000000000000000000000000
+);
 uint256 constant InvalidFulfillmentComponentData_error_len = 0x20;
+
+uint256 constant Panic_error_signature = (
+    0x4e487b7100000000000000000000000000000000000000000000000000000000
+);
+uint256 constant Panic_error_offset = 0x04;
+uint256 constant Panic_error_length = 0x24;
+uint256 constant Panic_overflow = 0x11;
 
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
