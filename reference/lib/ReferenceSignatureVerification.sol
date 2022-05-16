@@ -8,7 +8,7 @@ import {
     SignatureVerificationErrors
 } from "contracts/interfaces/SignatureVerificationErrors.sol";
 
-import "./ReferenceConsiderationConstants.sol";
+import "contracts/lib/ConsiderationConstants.sol";
 
 /**
  * @title SignatureVerification
