@@ -28,6 +28,7 @@ out = 'optimized-out'
 [test]
 solc = '0.8.13'
 via_ir = false
+src = 'test/foundry'
 
 [lite]
 out = 'optimized-out'

@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 import { Order, Fulfillment } from "../../contracts/lib/ConsiderationStructs.sol";
-import { Consideration } from "../../contracts/Consideration.sol";
+import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, CriteriaResolver, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
@@ -24,7 +24,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
     }
 
     struct Context {
-        Consideration consideration;
+        ConsiderationInterface consideration;
         FuzzInputs args;
     }
 
