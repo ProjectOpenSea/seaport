@@ -161,9 +161,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     );
                 }
 
-                unchecked {
-                    ++i;
-                }
+                ++i;
             }
 
             // Iterate over each advanced order.
