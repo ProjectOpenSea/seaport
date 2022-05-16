@@ -256,6 +256,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
             )
 
+            // Create variable to track errors encountered with amount
+            let errorBuffer := 0
+
             // Only add offer amount to execution amount if numerator
             // is greater than zero
             if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
@@ -265,6 +268,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 amount := mload(amountPtr)
                 // Zero out amount on item to indicate it is credited.
                 mstore(amountPtr, 0)
+                // Buffer indicating whether issues were found
+                errorBuffer := iszero(amount)
             }
 
             // Retrieve the received item pointer.
@@ -311,9 +316,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 offerComponents,
                 mul(mload(offerComponents), 0x20)
             )
-
-            // Buffer indicating whether issues were found
-            let errorBuffer := iszero(amount)
 
             // Iterate over remaining offer components.
             // prettier-ignore
@@ -441,8 +443,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             switch errorBuffer
             case 1 {
-                // change to MissingItemAmount
-                throwInvalidFulfillmentComponentData()
+                mstore(0, MissingItemAmount_error_signature)
+                revert(0, MissingItemAmount_error_len)
             }
             case 2 {
                 // If the sum overflowed, panic
@@ -531,6 +533,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
             )
 
+            // Create variable to track errors encountered with amount
+            let errorBuffer := 0
+
             // Only add consideration amount to execution amount if numerator
             // is greater than zero
             if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
@@ -538,6 +543,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 let amountPtr := add(considerationItemPtr, Common_amount_offset)
                 // Set the amount.
                 amount := mload(amountPtr)
+                // Set error bit if amount is zero
+                errorBuffer := iszero(amount)
                 // Zero out amount on item to indicate it is credited.
                 mstore(amountPtr, 0)
             }
@@ -582,8 +589,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 considerationComponents,
                 mul(mload(considerationComponents), 0x20)
             )
-
-            let errorBuffer := iszero(amount)
 
             // Iterate over remaining offer components.
             // prettier-ignore
@@ -696,8 +701,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             switch errorBuffer
             case 1 {
-                // change to MissingItemAmount
-                throwInvalidFulfillmentComponentData()
+                mstore(0, MissingItemAmount_error_signature)
+                revert(0, MissingItemAmount_error_len)
             }
             case 2 {
                 // If the sum overflowed, panic
