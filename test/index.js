@@ -116,7 +116,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   };
 
   const mint721 = async (signer, id) => {
-    const nftId = id ? toBN(id) : minRandom(100);
+    const nftId = id ? toBN(id) : randomBN();
     await testERC721.mint(signer.address, nftId);
     return nftId;
   };
@@ -139,8 +139,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     id = null,
     amt = null
   ) => {
-    const nftId = id ? toBN(id) : minRandom(100);
-    const amount = amt ? toBN(amt) : minRandom(100);
+    const nftId = id ? toBN(id) : randomBN();
+    const amount = amt ? toBN(amt) : toBN(randomBN(4));
     await token.mint(signer.address, nftId, amount.mul(multiplier));
     return { nftId, amount };
   };
@@ -15243,11 +15243,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       it("Reverts when 1155 token with no code is supplied as the token via conduit", async () => {
         // Seller mints first nft
         const nftId = toBN(randomBN(4));
-        const amount = minRandom(4);
+        const amount = toBN(randomBN(4));
 
         // Seller mints second nft
         const secondNftId = toBN(randomBN(4));
-        const secondAmount = minRandom(4);
+        const secondAmount = toBN(randomBN(4));
 
         const offer = [
           getTestItem1155(nftId, amount, amount, constants.AddressZero),
