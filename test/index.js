@@ -702,7 +702,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
   const deployNewConduit = async (owner) => {
     // Create a conduit key with a random salt
-    const tempConduitKey = randomHex(12) + owner.address.slice(2);
+    const tempConduitKey = owner.address + randomHex(12).slice(2);
 
     const { conduit: tempConduitAddress } = await conduitController.getConduit(
       tempConduitKey
@@ -1295,7 +1295,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     }
 
-    conduitKeyOne = `0x000000000000000000000000${owner.address.slice(2)}`;
+    conduitKeyOne = `${owner.address}000000000000000000000000`;
 
     await conduitController.createConduit(conduitKeyOne, owner.address);
 
@@ -10308,8 +10308,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Makes batch transfer 1155 items through a conduit", async () => {
-      const tempConduitKey =
-        "0xff00000000000000000000f1" + owner.address.slice(2);
+      const tempConduitKey = owner.address + "ff00000000000000000000f1";
 
       const { conduit: tempConduitAddress } =
         await conduitController.getConduit(tempConduitKey);
@@ -10389,8 +10388,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Performs complex batch transfer through a conduit", async () => {
-      const tempConduitKey =
-        "0xf100000000000000000000f1" + owner.address.slice(2);
+      const tempConduitKey = owner.address + "f100000000000000000000f1";
 
       const { conduit: tempConduitAddress } =
         await conduitController.getConduit(tempConduitKey);
