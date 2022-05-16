@@ -440,14 +440,17 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             switch errorBuffer
             case 1 {
-              // change to MissingItemAmount
-              throwInvalidFulfillmentComponentData()
+                // change to MissingItemAmount
+                throwInvalidFulfillmentComponentData()
             }
             case 2 {
-              // If the sum overflowed, panic
-              mstore(0, 0x4e487b7100000000000000000000000000000000000000000000000000000000)
-              mstore(4, 0x11)
-              revert(0, 0x24)
+                // If the sum overflowed, panic
+                mstore(
+                    0,
+                    0x4e487b7100000000000000000000000000000000000000000000000000000000
+                )
+                mstore(4, 0x11)
+                revert(0, 0x24)
             }
         }
     }
@@ -503,9 +506,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Load consideration array pointer.
             let considerationArrPtr := mload(
                 add(
-                  // Read the pointer to OrderParameters from the AdvancedOrder
-                  mload(orderPtr),
-                  OrderParameters_consideration_head_offset
+                    // Read the pointer to OrderParameters from the AdvancedOrder
+                    mload(orderPtr),
+                    OrderParameters_consideration_head_offset
                 )
             )
 
@@ -697,14 +700,17 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             switch errorBuffer
             case 1 {
-              // change to MissingItemAmount
-              throwInvalidFulfillmentComponentData()
+                // change to MissingItemAmount
+                throwInvalidFulfillmentComponentData()
             }
             case 2 {
-              // If the sum overflowed, panic
-              mstore(0, 0x4e487b7100000000000000000000000000000000000000000000000000000000)
-              mstore(4, 0x11)
-              revert(0, 0x24)
+                // If the sum overflowed, panic
+                mstore(
+                    0,
+                    0x4e487b7100000000000000000000000000000000000000000000000000000000
+                )
+                mstore(4, 0x11)
+                revert(0, 0x24)
             }
         }
     }
