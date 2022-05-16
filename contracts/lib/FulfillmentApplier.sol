@@ -298,7 +298,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             )
 
             // Calculate the hash of (itemType, token, identifier)
-            let dataHash := keccak256(receivedItemPtr, ReceivedItem_CommonParams_size)
+            let dataHash := keccak256(
+                receivedItemPtr,
+                ReceivedItem_CommonParams_size
+            )
 
             // Get position one word past last element in head of array
             let endPtr := add(
@@ -539,7 +542,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             )
 
             // Calculate the hash of (itemType, token, identifier)
-            let dataHash := keccak256(receivedItem, ReceivedItem_CommonParams_size)
+            let dataHash := keccak256(
+                receivedItem,
+                ReceivedItem_CommonParams_size
+            )
 
             // Get position one word past last element in head of array
             let endPtr := add(

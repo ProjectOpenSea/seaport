@@ -687,7 +687,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
   const deployNewConduit = async (owner) => {
     // Create a conduit key with a random salt
-    const tempConduitKey = randomHex(24) + owner.address.slice(2);
+    const tempConduitKey = randomHex(12) + owner.address.slice(2);
 
     const { conduit: tempConduitAddress } = await conduitController.getConduit(
       tempConduitKey
@@ -13562,7 +13562,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           marketplaceContract
             .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, {
-              value: toBN(1),
+              value: toBN(0),
             })
         ).to.be.revertedWith("InvalidMsgValue");
 

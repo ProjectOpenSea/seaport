@@ -66,11 +66,8 @@ uint256 constant ConsiderItem_recipient_offset = 0xa0;
 uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
 
-
 // bytes4 constant InvalidFulfillmentComponentData_error_write_ptr = 0x1c;
-uint32 constant InvalidFulfillmentComponentData_error_signature = (
-  0x7fda7279
-);
+uint32 constant InvalidFulfillmentComponentData_error_signature = (0x7fda7279);
 uint256 constant InvalidFulfillmentComponentData_error_len = 0x20;
 
 uint256 constant OrderParameters_offer_head_offset = 0x40;
