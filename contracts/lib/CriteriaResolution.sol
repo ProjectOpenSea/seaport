@@ -53,7 +53,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
             uint256 totalAdvancedOrders = advancedOrders.length;
 
             // Iterate over each criteria resolver.
-            for (uint256 i = 0; i < totalCriteriaResolvers; ++i) {
+            for (uint256 i = 0; i < totalCriteriaResolvers; ) {
                 // Retrieve the criteria resolver.
                 CriteriaResolver memory criteriaResolver = (
                     criteriaResolvers[i]
@@ -159,6 +159,10 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                         identifierOrCriteria,
                         criteriaResolver.criteriaProof
                     );
+                }
+
+                unchecked {
+                    ++i;
                 }
             }
 

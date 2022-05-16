@@ -204,8 +204,10 @@ contract OrderFulfiller is
                 }
             }
 
+            uint256 oderParametersOfferLen = orderParameters.offer.length;
+
             // Iterate over each offer on the order.
-            for (uint256 i = 0; i < orderParameters.offer.length; ) {
+            for (uint256 i = 0; i < oderParametersOfferLen; ) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
 
@@ -290,8 +292,12 @@ contract OrderFulfiller is
                 }
             }
 
+            uint256 orderParametersConsiderationLength = orderParameters
+                .consideration
+                .length;
+
             // Iterate over each consideration on the order.
-            for (uint256 i = 0; i < orderParameters.consideration.length; ) {
+            for (uint256 i = 0; i < orderParametersConsiderationLength; ) {
                 // Retrieve the consideration item.
                 ConsiderationItem memory considerationItem = (
                     orderParameters.consideration[i]
