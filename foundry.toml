@@ -1,7 +1,5 @@
 [default]
-auto_detect_solc = true
 via_ir = true
-fuzz_runs = 5000
 src = 'contracts'
 out = 'out'
 libs = ['node_modules']
@@ -10,8 +8,10 @@ remappings = [
     'ds-test=lib/ds-test/src/',
     'forge-std=lib/forge-std/src/',
 ]
+fuzz_runs = 5000
 fuzz_max_global_rejects = 500_000
 fuzz_max_local_rejects = 10_000
+optimizer_runs = 3750
 
 [reference]
 solc = '0.8.7'
@@ -23,23 +23,21 @@ test = 'reference'
 
 [optimized]
 solc = '0.8.13'
-via_ir = true
-src = 'contracts'
 out = 'optimized-out'
 
 [test]
 solc = '0.8.13'
 via_ir = false
 
-[quick]
+[lite]
 out = 'optimized-out'
 via_ir = false
 fuzz_runs = 1000
 
-[local]
+[local-ffi]
 via_ir = false
-fuzz_runs = 1000
-src = 'reference-working'
+fuzz_runs = 5000
+src = 'reference'
 out = 'reference-out'
 ffi = true
 
