@@ -80,6 +80,11 @@ uint256 constant Panic_error_offset = 0x04;
 uint256 constant Panic_error_length = 0x24;
 uint256 constant Panic_overflow = 0x11;
 
+uint256 constant MissingItemAmount_error_signature = (
+  0x91b3e51400000000000000000000000000000000000000000000000000000000
+);
+uint256 constant MissingItemAmount_error_len = 0x20;
+
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
 uint256 constant OrderParameters_conduit_offset = 0x120;
