@@ -209,44 +209,33 @@ contract BaseConduitTest is
             );
     }
 
-    function deploy1155TokensAndCreateConduitBatch1155Transfers(
+    function deployTokenAndCreateConduitBatch1155Transfer(
         BatchIntermediate memory batchIntermediate
     ) internal returns (ConduitBatch1155Transfer[] memory) {
-        ConduitBatch1155Transfer[]
-            memory batchTransfers = new ConduitBatch1155Transfer[](5);
+        ConduitBatch1155Transfer[] memory batchTransfers;
 
-        address[] memory tokenAddresses = new address[](5);
-        TestERC1155 erc1155_1 = new TestERC1155();
-        TestERC1155 erc1155_2 = new TestERC1155();
-        TestERC1155 erc1155_3 = new TestERC1155();
-        TestERC1155 erc1155_4 = new TestERC1155();
-        TestERC1155 erc1155_5 = new TestERC1155();
-
-        tokenAddresses[0] = address(erc1155_1);
-        tokenAddresses[1] = address(erc1155_2);
-        tokenAddresses[2] = address(erc1155_3);
-        tokenAddresses[3] = address(erc1155_4);
-        tokenAddresses[4] = address(erc1155_5);
-
-        for (uint256 i = 0; i < tokenAddresses.length; i++) {
-            uint256[] memory ids = new uint256[](
-                batchIntermediate.idAmounts.length
-            );
-            uint256[] memory amounts = new uint256[](
-                batchIntermediate.idAmounts.length
-            );
-            for (uint256 n = 0; n < batchIntermediate.idAmounts.length; n++) {
-                ids[n] = batchIntermediate.idAmounts[n].id;
-                amounts[n] = batchIntermediate.idAmounts[n].amount;
-            }
-            batchTransfers[i] = ConduitBatch1155Transfer(
-                tokenAddresses[i % 5],
-                batchIntermediate.from,
-                batchIntermediate.to,
-                ids,
-                amounts
-            );
+        TestERC1155 erc1155 = new TestERC1155();
+        uint256[] memory ids = new uint256[](
+            batchIntermediate.idAmounts.length
+        );
+        uint256[] memory amounts = new uint256[](
+            batchIntermediate.idAmounts.length
+        );
+        for (uint256 n = 0; n < batchIntermediate.idAmounts.length; n++) {
+            ids[n] = batchIntermediate.idAmounts[n].id;
+            amounts[n] = batchIntermediate.idAmounts[n].amount;
         }
+        address from = receiver(batchIntermediate.from);
+        address to = receiver(batchIntermediate.to);
+
+        batchTransfers = new ConduitBatch1155Transfer[](1);
+        batchTransfers[0] = ConduitBatch1155Transfer(
+            address(erc1155),
+            from,
+            to,
+            ids,
+            amounts
+        );
         return batchTransfers;
     }
 

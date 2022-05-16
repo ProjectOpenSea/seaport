@@ -45,7 +45,7 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
         for (uint8 j = 0; j < inputs.batchIntermediates.length; j++) {
             batchTransfers = extendConduitTransferArray(
                 batchTransfers,
-                deploy1155TokensAndCreateConduitBatch1155Transfers(
+                deployTokenAndCreateConduitBatch1155Transfer(
                     inputs.batchIntermediates[j]
                 )
             );
