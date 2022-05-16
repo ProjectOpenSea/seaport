@@ -319,7 +319,7 @@ contract GettersAndDerivers is ConsiderationBase {
 
         // Set the version as data on the newly allocated string.
         assembly {
-            mstore(add(version, OneWord), Version)
+            mstore(add(version, OneWord), shl(0xf8, Version))
         }
     }
 
@@ -332,8 +332,9 @@ contract GettersAndDerivers is ConsiderationBase {
         // Return the name of the contract.
         assembly {
             mstore(0, OneWord) // First element is the offset.
-            mstore(OneWord, Name_length) // Second element is the length.
-            mstore(TwoWords, Name) // Third element is the data.
+            // Name is right padded, so it touches the length which is left padded.
+            // This lets us write both values at once
+            mstore(NameLengthPtr, NameWithLength)
             return(0, ThreeWords) // Return all three words.
         }
     }
