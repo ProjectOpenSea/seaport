@@ -45,7 +45,7 @@ export const baseFee = async (tx: ContractTransaction) => {
   );
 };
 
-export const randomBN = (bytes: number = 32) => toBN(randomHex(bytes));
+export const randomBN = (bytes: number = 16) => toBN(randomHex(bytes));
 
 export const toBN = (n: BigNumberish) => BigNumber.from(toHex(n));
 
