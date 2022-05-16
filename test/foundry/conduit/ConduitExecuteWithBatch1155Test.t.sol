@@ -58,6 +58,7 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
             batchTransfers,
             address(referenceConduit)
         );
+        updateExpectedTokenBalances(batchTransfers);
         _testExecuteWithBatch1155(
             Context(referenceConduit, transfers, batchTransfers)
         );
@@ -65,6 +66,7 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
             batchTransfers,
             address(conduit)
         );
+        updateExpectedTokenBalances(batchTransfers);
         _testExecuteWithBatch1155(Context(conduit, transfers, batchTransfers));
     }
 
