@@ -9851,25 +9851,23 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await testERC1155.mint(seller.address, secondNftId, secondAmount.mul(2));
       await set1155ApprovalForAll(seller, tempConduit.address, true);
 
-      await tempConduit.connect(seller).executeBatch1155(
-        [
-          {
-            token: testERC1155.address,
-            from: seller.address,
-            to: buyer.address,
-            ids: [nftId, secondNftId],
-            amounts: [amount, secondAmount],
-          },
-          {
-            token: testERC1155.address,
-            from: seller.address,
-            to: buyer.address,
-            ids: [secondNftId, nftId],
-            amounts: [secondAmount, amount],
-          },
-        ]
-      );
-    })
+      await tempConduit.connect(seller).executeBatch1155([
+        {
+          token: testERC1155.address,
+          from: seller.address,
+          to: buyer.address,
+          ids: [nftId, secondNftId],
+          amounts: [amount, secondAmount],
+        },
+        {
+          token: testERC1155.address,
+          from: seller.address,
+          to: buyer.address,
+          ids: [secondNftId, nftId],
+          amounts: [secondAmount, amount],
+        },
+      ]);
+    });
 
     it("Adds a channel, and executes transfers (ERC721)", async () => {
       // Owner updates conduit channel to allow seller access
@@ -10362,19 +10360,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await set1155ApprovalForAll(owner, tempConduit.address, true);
 
       await expect(
-        tempConduit.connect(owner).executeBatch1155(
-          [
-            {
-              token: constants.AddressZero,
-              from: owner.address,
-              to: buyer.address,
-              ids: [nftId, secondNftId],
-              amounts: [amount, secondAmount],
-            },
-          ]
-        )
+        tempConduit.connect(owner).executeBatch1155([
+          {
+            token: constants.AddressZero,
+            from: owner.address,
+            to: buyer.address,
+            ids: [nftId, secondNftId],
+            amounts: [amount, secondAmount],
+          },
+        ])
       ).to.be.revertedWith("NoContract");
-  });
+    });
 
     it("Makes batch transfer 1155 items through a conduit", async () => {
       const tempConduitKey = owner.address + "ff00000000000000000000f1";
