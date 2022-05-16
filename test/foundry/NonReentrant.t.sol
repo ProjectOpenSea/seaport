@@ -20,6 +20,8 @@ contract NonReentrantTest is BaseOrderTest {
     ReentryPoint reentryPoint;
     ConsiderationInterface currentConsideration;
 
+    uint256 globalSalt;
+
     /**
      * @dev Foundry fuzzes enums as uints, so we need to manually fuzz on uints and use vm.assume
      * to filter out invalid values
@@ -66,15 +68,17 @@ contract NonReentrantTest is BaseOrderTest {
         delete basicOrderParameters;
     }
 
-    function testNonReentrant(FuzzInputs memory _inputs) public {
-        vm.assume(_inputs.entryPoint < 7 && _inputs.reentryPoint < 10);
-
-        NonReentrantInputs memory inputs = NonReentrantInputs(
-            EntryPoint(_inputs.entryPoint),
-            ReentryPoint(_inputs.reentryPoint)
-        );
-        _testNonReentrant(Context(referenceConsideration, inputs));
-        _testNonReentrant(Context(consideration, inputs));
+    function testNonReentrant() public {
+        for (uint256 i; i < 7; i++) {
+            for (uint256 j; j < 10; j++) {
+                NonReentrantInputs memory inputs = NonReentrantInputs(
+                    EntryPoint(i),
+                    ReentryPoint(j)
+                );
+                _testNonReentrant(Context(referenceConsideration, inputs));
+                _testNonReentrant(Context(consideration, inputs));
+            }
+        }
     }
 
     function _testNonReentrant(Context memory context)
@@ -171,7 +175,7 @@ contract NonReentrantTest is BaseOrderTest {
                 FulfillmentComponent[][] memory _considerationFulfillments,
                 bytes32 fulfillerConduitKey,
                 uint256 maximumFulfilled
-            ) = prepareFullfillAvailableAdvancedOrders(tokenId);
+            ) = prepareFulfillAvailableAdvancedOrders(tokenId);
             if (!reentering) {
                 vm.expectEmit(true, false, false, false, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
@@ -234,7 +238,6 @@ contract NonReentrantTest is BaseOrderTest {
 
     function getOrderParameters(address payable offerer, OrderType orderType)
         internal
-        view
         returns (OrderParameters memory)
     {
         return
@@ -247,7 +250,7 @@ contract NonReentrantTest is BaseOrderTest {
                 block.timestamp,
                 block.timestamp + 1,
                 bytes32(0),
-                0,
+                globalSalt++,
                 bytes32(0),
                 considerationItems.length
             );
@@ -290,7 +293,7 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.startTime = block.timestamp;
         orderComponents.endTime = block.timestamp + 1;
         orderComponents.zoneHash = bytes32(0);
-        orderComponents.salt = 0;
+        orderComponents.salt = globalSalt++;
         orderComponents.conduitKey = bytes32(0);
         orderComponents.nonce = nonce;
 
@@ -505,7 +508,7 @@ contract NonReentrantTest is BaseOrderTest {
         _orders[0] = Order(_orderParameters, signature);
     }
 
-    function prepareFullfillAvailableAdvancedOrders(uint256 tokenId)
+    function prepareFulfillAvailableAdvancedOrders(uint256 tokenId)
         internal
         returns (
             AdvancedOrder[] memory advancedOrders,
@@ -551,7 +554,7 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.startTime = block.timestamp;
         orderComponents.endTime = block.timestamp + 1;
         orderComponents.zoneHash = bytes32(0);
-        orderComponents.salt = 0;
+        orderComponents.salt = globalSalt++;
         orderComponents.conduitKey = bytes32(0);
         orderComponents.nonce = nonce;
         bytes32 orderHash = currentConsideration.getOrderHash(orderComponents);
@@ -569,7 +572,7 @@ contract NonReentrantTest is BaseOrderTest {
         orderParameters.startTime = block.timestamp;
         orderParameters.endTime = block.timestamp + 1;
         orderParameters.zoneHash = bytes32(0);
-        orderParameters.salt = 0;
+        orderParameters.salt = orderComponents.salt;
         orderParameters.conduitKey = bytes32(0);
         orderParameters.totalOriginalConsiderationItems = 1;
 
@@ -591,7 +594,7 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.startTime = block.timestamp;
         orderComponents.endTime = block.timestamp + 1;
         orderComponents.zoneHash = bytes32(0);
-        orderComponents.salt = 0;
+        orderComponents.salt = globalSalt++;
         orderComponents.conduitKey = bytes32(0);
         orderComponents.nonce = nonce;
 
@@ -611,7 +614,7 @@ contract NonReentrantTest is BaseOrderTest {
         orderParameters.startTime = block.timestamp;
         orderParameters.endTime = block.timestamp + 1;
         orderParameters.zoneHash = bytes32(0);
-        orderParameters.salt = 0;
+        orderParameters.salt = orderComponents.salt;
         orderParameters.conduitKey = bytes32(0);
         orderParameters.totalOriginalConsiderationItems = 1;
 
@@ -619,29 +622,22 @@ contract NonReentrantTest is BaseOrderTest {
         order.signature = mirrorSignature;
         orders.push(order);
 
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
         // map order offer to mirror consideration
-        fulfillmentComponent = FulfillmentComponent(0, 0);
-        fulfillmentComponents.push(fulfillmentComponent);
-        fulfillment.offerComponents = fulfillmentComponents;
+        firstFulfillment.offerComponents = fulfillmentComponents;
+        // map mirror consideration to order offer
+        secondFulfillment.considerationComponents = fulfillmentComponents;
         delete fulfillmentComponents;
         fulfillmentComponent = FulfillmentComponent(1, 0);
         fulfillmentComponents.push(fulfillmentComponent);
-        fulfillment.considerationComponents = fulfillmentComponents;
-        // push fulfillment
-        fulfillments.push(fulfillment);
-
-        // clear working fulfillment
-        delete fulfillment;
-
         // map mirror offer to order consideration
-        fulfillmentComponent = FulfillmentComponent(1, 0);
-        fulfillmentComponents.push(fulfillmentComponent);
-        fulfillment.offerComponents = fulfillmentComponents;
-        delete fulfillmentComponents;
-        fulfillmentComponent = FulfillmentComponent(0, 0);
-        fulfillmentComponents.push(fulfillmentComponent);
-        fulfillment.considerationComponents = fulfillmentComponents;
-        fulfillments.push(fulfillment);
+        firstFulfillment.considerationComponents = fulfillmentComponents;
+        // map order consideration to mirror offer
+        secondFulfillment.offerComponents = fulfillmentComponents;
+
+        fulfillments.push(firstFulfillment);
+        fulfillments.push(secondFulfillment);
 
         return (orders, fulfillments);
     }
