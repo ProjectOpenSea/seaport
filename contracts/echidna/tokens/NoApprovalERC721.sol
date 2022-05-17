@@ -27,13 +27,13 @@ contract NoApprovalERC721 is ERC721("Test721", "TST721") {
         address to,
         uint256 id
     ) public override {
-        require(from == ownerOf(id), "WRONG_FROM");
+        require(from == ownerOf[id], "WRONG_FROM");
         require(to != address(0), "INVALID_RECIPIENT");
         unchecked {
             balanceOf[from]--;
             balanceOf[to]++;
         }
-        _ownerOf[id] = to;
+        ownerOf[id] = to;
         emit TransferERC721(from, to, id);
     }
 }

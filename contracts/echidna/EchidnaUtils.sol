@@ -221,8 +221,9 @@ abstract contract EchidnaUtils is IEchidna, EchidnaOrderUtils {
         // Unique id for ERC721 and ERC1155 ids
         uid = uint256(keccak256(abi.encode(seed)));
 
-        uint256 sellForMax = one_to_max_uint64(amount);
-        uint256 sellForMin = one_to_max_uint64(amount / 2);
+        // Note: currently unused.
+        //uint256 sellForMax = one_to_max_uint64(amount);
+        //uint256 sellForMin = one_to_max_uint64(amount / 2);
 
         // No. of offer/ consideration items
         // Bounded between 1 - 10 for advanced orders.

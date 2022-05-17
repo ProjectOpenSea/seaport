@@ -37,7 +37,7 @@ contract EchidnaOrderUtils {
         OrderParameters memory orderParams,
         bytes memory sig,
         BasicOrderType basicOrderType
-    ) internal returns (BasicOrderParameters memory) {
+    ) internal pure returns (BasicOrderParameters memory) {
         bytes32 conduitKey = orderParams.conduitKey;
         OfferItem memory offer = orderParams.offer[0];
         ConsiderationItem memory consideration = orderParams.consideration[0];

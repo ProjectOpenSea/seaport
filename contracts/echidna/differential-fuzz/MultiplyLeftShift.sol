@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
 // echidna-test-2.0 . --contract MultiplyLeftShift  --test-mode assertion

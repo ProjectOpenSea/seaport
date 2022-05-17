@@ -77,9 +77,12 @@ contract Echidna is ERC1155TokenReceiver, EchidnaUtils {
             AdvancedOrder memory order = pendingPartialOrders[
                 lastPartialOrderIndex
             ];
-            uint256 remaining = pendingPartialOrdersAmount[
-                lastPartialOrderIndex++
-            ];
+
+            // Note: currently unused.
+            // uint256 remaining = pendingPartialOrdersAmount[
+            //     lastPartialOrderIndex++
+            // ];
+
             order.numerator = 1;
             order.denominator = 1;
             CriteriaResolver[] memory resolvers = new CriteriaResolver[](0);
@@ -319,27 +322,28 @@ contract Echidna is ERC1155TokenReceiver, EchidnaUtils {
     }
 
     function onERC1155Received(
-        address operator,
-        address from,
-        uint256 id,
-        uint256 amount,
-        bytes calldata data
-    ) external override returns (bytes4) {
+        address, /* operator */
+        address, /* from */
+        uint256, /* id */
+        uint256, /* amount */
+        bytes calldata /* data */
+    ) external pure override returns (bytes4) {
         return ERC1155TokenReceiver.onERC1155Received.selector;
     }
 
     function onERC1155BatchReceived(
-        address operator,
-        address from,
-        uint256[] calldata ids,
-        uint256[] calldata amounts,
-        bytes calldata data
-    ) external override returns (bytes4) {
+        address, /* operator */
+        address, /* from */
+        uint256[] calldata, /* ids */
+        uint256[] calldata, /* amounts */
+        bytes calldata /* data */
+    ) external pure override returns (bytes4) {
         return ERC1155TokenReceiver.onERC1155BatchReceived.selector;
     }
 
     function deriveConduit(bytes32 conduitKey)
         internal
+        view
         returns (address conduit)
     {
         bytes32 conduitCreationCodeHash = keccak256(type(Conduit).creationCode);
