@@ -24,3 +24,7 @@ reference-working
 # VScode
 .vscode
 __pycache__
+
+#Echidna
+e2e-cvg/
+crytic-export/
