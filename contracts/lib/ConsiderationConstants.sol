@@ -60,6 +60,8 @@ uint256 constant ReceivedItem_size = 0xa0;
 uint256 constant ReceivedItem_amount_offset = 0x60;
 uint256 constant ReceivedItem_recipient_offset = 0x80;
 
+uint256 constant ReceivedItem_CommonParams_size = 0x60;
+
 uint256 constant ConsiderationItem_recipient_offset = 0xa0;
 // Store the same constant in an abbreviated format for a line length fix.
 uint256 constant ConsiderItem_recipient_offset = 0xa0;
@@ -67,7 +69,6 @@ uint256 constant ConsiderItem_recipient_offset = 0xa0;
 uint256 constant Execution_offerer_offset = 0x20;
 uint256 constant Execution_conduit_offset = 0x40;
 
-// bytes4 constant InvalidFulfillmentComponentData_error_write_ptr = 0x1c;
 uint256 constant InvalidFulfillmentComponentData_error_signature = (
     0x7fda727900000000000000000000000000000000000000000000000000000000
 );
@@ -78,7 +79,7 @@ uint256 constant Panic_error_signature = (
 );
 uint256 constant Panic_error_offset = 0x04;
 uint256 constant Panic_error_length = 0x24;
-uint256 constant Panic_overflow = 0x11;
+uint256 constant Panic_arithmetic = 0x11;
 
 uint256 constant MissingItemAmount_error_signature = (
     0x91b3e51400000000000000000000000000000000000000000000000000000000
@@ -262,7 +263,7 @@ uint256 constant BasicOrder_order_startTime_ptr = 0x140;
 // uint256 constant BasicOrder_order_endTime_ptr = 0x160;
 // uint256 constant BasicOrder_order_zoneHash_ptr = 0x180;
 // uint256 constant BasicOrder_order_salt_ptr = 0x1a0;
-// uint256 constant BasicOrder_order_conduit_ptr = 0x1c0;
+// uint256 constant BasicOrder_order_conduitKey_ptr = 0x1c0;
 uint256 constant BasicOrder_order_nonce_ptr = 0x1e0;
 uint256 constant BasicOrder_additionalRecipients_head_ptr = 0x240;
 uint256 constant BasicOrder_signature_ptr = 0x260;
@@ -272,50 +273,6 @@ bytes32 constant EIP2098_allButHighestBitMask = (
     0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 );
 
-// abi.encodeWithSignature("transferFrom(address,address,uint256)")
-uint256 constant ERC20_transferFrom_signature = (
-    0x23b872dd00000000000000000000000000000000000000000000000000000000
-);
-uint256 constant ERC20_transferFrom_sig_ptr = 0x0;
-uint256 constant ERC20_transferFrom_from_ptr = 0x04;
-uint256 constant ERC20_transferFrom_to_ptr = 0x24;
-uint256 constant ERC20_transferFrom_amount_ptr = 0x44;
-uint256 constant ERC20_transferFrom_length = 0x64; // 4 + 32 * 3 == 100
-
-// abi.encodeWithSignature(
-//     "safeTransferFrom(address,address,uint256,uint256,bytes)"
-// )
-uint256 constant ERC1155_safeTransferFrom_signature = (
-    0xf242432a00000000000000000000000000000000000000000000000000000000
-);
-uint256 constant ERC1155_safeTransferFrom_sig_ptr = 0x0;
-uint256 constant ERC1155_safeTransferFrom_from_ptr = 0x04;
-uint256 constant ERC1155_safeTransferFrom_to_ptr = 0x24;
-uint256 constant ERC1155_safeTransferFrom_id_ptr = 0x44;
-uint256 constant ERC1155_safeTransferFrom_amount_ptr = 0x64;
-uint256 constant ERC1155_safeTransferFrom_data_offset_ptr = 0x84;
-uint256 constant ERC1155_safeTransferFrom_data_length_ptr = 0xa4;
-uint256 constant ERC1155_safeTransferFrom_length = 0xc4; // 4 + 32 * 6 == 164
-uint256 constant ERC1155_safeTransferFrom_data_length_offset = 0xa0;
-
-// abi.encodeWithSignature(
-//     "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)"
-// )
-uint256 constant ERC1155_safeBatchTransferFrom_signature = (
-    0x2eb2c2d600000000000000000000000000000000000000000000000000000000
-);
-
-bytes4 constant ERC1155_safeBatchTransferFrom_selector = bytes4(
-    bytes32(ERC1155_safeBatchTransferFrom_signature)
-);
-
-uint256 constant ERC721_transferFrom_signature = ERC20_transferFrom_signature;
-uint256 constant ERC721_transferFrom_sig_ptr = 0x0;
-uint256 constant ERC721_transferFrom_from_ptr = 0x04;
-uint256 constant ERC721_transferFrom_to_ptr = 0x24;
-uint256 constant ERC721_transferFrom_id_ptr = 0x44;
-uint256 constant ERC721_transferFrom_length = 0x64; // 4 + 32 * 3 == 100
-
 // abi.encodeWithSignature("NoContract(address)")
 uint256 constant NoContract_error_signature = (
     0x5f15d67200000000000000000000000000000000000000000000000000000000
@@ -323,42 +280,6 @@ uint256 constant NoContract_error_signature = (
 uint256 constant NoContract_error_sig_ptr = 0x0;
 uint256 constant NoContract_error_token_ptr = 0x4;
 uint256 constant NoContract_error_length = 0x24; // 4 + 32 == 36
-
-// abi.encodeWithSignature(
-//     "TokenTransferGenericFailure(address,address,address,uint256,uint256)"
-// )
-uint256 constant TokenTransferGenericFailure_error_signature = (
-    0xf486bc8700000000000000000000000000000000000000000000000000000000
-);
-uint256 constant TokenTransferGenericFailure_error_sig_ptr = 0x0;
-uint256 constant TokenTransferGenericFailure_error_token_ptr = 0x4;
-uint256 constant TokenTransferGenericFailure_error_from_ptr = 0x24;
-uint256 constant TokenTransferGenericFailure_error_to_ptr = 0x44;
-uint256 constant TokenTransferGenericFailure_error_id_ptr = 0x64;
-uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0x84;
-
-// 4 + 32 * 5 == 164
-uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
-
-uint256 constant ERC1155BatchTransferGenericFailure_error_signature = (
-    0xafc445e200000000000000000000000000000000000000000000000000000000
-);
-uint256 constant ERC1155BatchTransferGenericFailure_token_ptr = 0x04;
-
-// abi.encodeWithSignature(
-//     "BadReturnValueFromERC20OnTransfer(address,address,address,uint256)"
-// )
-uint256 constant BadReturnValueFromERC20OnTransfer_error_signature = (
-    0x9889192300000000000000000000000000000000000000000000000000000000
-);
-uint256 constant BadReturnValueFromERC20OnTransfer_error_sig_ptr = 0x0;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_token_ptr = 0x4;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_from_ptr = 0x24;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_to_ptr = 0x44;
-uint256 constant BadReturnValueFromERC20OnTransfer_error_amount_ptr = 0x64;
-
-// 4 + 32 * 4 == 132
-uint256 constant BadReturnValueFromERC20OnTransfer_error_length = 0x84;
 
 uint256 constant EIP_712_PREFIX = (
     0x1901000000000000000000000000000000000000000000000000000000000000
@@ -400,38 +321,3 @@ uint256 constant Conduit_execute_transferIdentifier_ptr = 0xc4;
 uint256 constant Conduit_execute_transferAmount_ptr = 0xe4;
 
 uint256 constant OneConduitExecute_size = 0x104;
-
-uint256 constant Conduit_executeWithBatch1155_signature = (
-    0x899e104c00000000000000000000000000000000000000000000000000000000
-);
-
-// Values are offset by 32 bytes in order to write the token to the beginning
-// in the event of a revert
-uint256 constant BatchTransfer1155Params_ptr = 0x24;
-uint256 constant BatchTransfer1155Params_ids_head_ptr = 0x44;
-uint256 constant BatchTransfer1155Params_amounts_head_ptr = 0x84;
-uint256 constant BatchTransfer1155Params_data_head_ptr = 0xa4;
-uint256 constant BatchTransfer1155Params_data_length_basePtr = 0x104;
-
-uint256 constant BatchTransfer1155Params_ids_length_ptr = 0xc4;
-
-uint256 constant BatchTransfer1155Params_ids_length_offset = 0xa0;
-uint256 constant BatchTransfer1155Params_amounts_length_baseOffset = 0xc0;
-uint256 constant BatchTransfer1155Params_data_length_baseOffset = 0xe0;
-
-uint256 constant ConduitBatch1155Transfer_usable_head_size = 0x80;
-
-uint256 constant ConduitBatch1155Transfer_from_offset = 0x20;
-uint256 constant ConduitBatch1155Transfer_ids_head_offset = 0x60;
-uint256 constant ConduitBatch1155Transfer_amounts_head_offset = 0x80;
-uint256 constant ConduitBatch1155Transfer_ids_length_offset = 0xa0;
-uint256 constant ConduitBatch1155Transfer_amounts_length_baseOffset = 0xc0;
-uint256 constant ConduitBatch1155Transfer_calldata_baseSize = 0xc0;
-
-uint256 constant Invalid1155BatchTransferEncoding_ptr = 0x00;
-uint256 constant Invalid1155BatchTransferEncoding_length = 0x04;
-uint256 constant Invalid1155BatchTransferEncoding_selector = (
-    0xeba2084c00000000000000000000000000000000000000000000000000000000
-);
-
-uint256 constant ReceivedItem_CommonParams_size = 0x60;
