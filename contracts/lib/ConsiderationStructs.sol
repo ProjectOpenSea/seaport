@@ -219,7 +219,7 @@ struct Fulfillment {
 }
 
 /**
- * @dev Each fulfullment component contains one index referencing a specific
+ * @dev Each fulfillment component contains one index referencing a specific
  *      order and another referencing a specific offer or consideration item.
  */
 struct FulfillmentComponent {
