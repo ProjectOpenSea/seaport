@@ -45,7 +45,7 @@ contract Seaport is Consideration {
 
     /**
      * @dev Internal pure function to retrieve the name of this contract as a
-     *      tring that can be used internally.
+     *      string that can be used internally.
      *
      * @return The name of this contract as a string.
      */

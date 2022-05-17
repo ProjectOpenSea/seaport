@@ -62,6 +62,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   let conduitImplementation;
   let conduitOne;
   let conduitKeyOne;
+  let directMarketplaceContract;
 
   const buildResolver = (
     orderIndex,
@@ -1317,6 +1318,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       process.env.REFERENCE ? "ReferenceConsideration" : "Seaport"
     );
 
+    directMarketplaceContract = await deployContract(
+      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
+      owner,
+      conduitController.address
+    );
+
     const marketplaceContractAddress = await create2Factory.findCreate2Address(
       ethers.constants.HashZero, // TODO: find a good one
       marketplaceContractFactory.bytecode +
@@ -1700,6 +1707,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(name).to.equal(
         process.env.REFERENCE ? "Consideration" : "Seaport"
       );
+
+      const directName = await directMarketplaceContract.name();
+      expect(directName).to.equal("Consideration");
     });
     it("gets correct version, domain separator and conduit controller", async () => {
       const name = process.env.REFERENCE ? "Consideration" : "Seaport";
