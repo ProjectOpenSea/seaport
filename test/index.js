@@ -1330,7 +1330,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       conduitController.address
     );
 
-    if (!hre.__SOLIDITY_COVERAGE_RUNNING) {
+    if (!hre.__SOLIDITY_COVERAGE_RUNNING && !process.env.REFERENCE) {
       expect(
         ethers.utils.keccak256(
           marketplaceContractFactory.bytecode +
@@ -1345,7 +1345,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitController.address.slice(2).padStart(64, "0")
     );
 
-    if (!hre.__SOLIDITY_COVERAGE_RUNNING) {
+    if (!hre.__SOLIDITY_COVERAGE_RUNNING && !process.env.REFERENCE) {
       expect(marketplaceContractAddress).to.equal(
         deployConstants.MARKETPLACE_CONTRACT_ADDRESS
       );
