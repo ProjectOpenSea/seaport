@@ -43,6 +43,7 @@ uint256 constant DefaultFreeMemoryPointer = 0x80;
 
 uint256 constant Slot0x80 = 0x80;
 uint256 constant Slot0xA0 = 0xa0;
+uint256 constant Slot0xC0 = 0xc0;
 
 // abi.encodeWithSignature("transferFrom(address,address,uint256)")
 uint256 constant ERC20_transferFrom_signature = (
@@ -67,7 +68,7 @@ uint256 constant ERC1155_safeTransferFrom_id_ptr = 0x44;
 uint256 constant ERC1155_safeTransferFrom_amount_ptr = 0x64;
 uint256 constant ERC1155_safeTransferFrom_data_offset_ptr = 0x84;
 uint256 constant ERC1155_safeTransferFrom_data_length_ptr = 0xa4;
-uint256 constant ERC1155_safeTransferFrom_length = 0xc4; // 4 + 32 * 6 == 164
+uint256 constant ERC1155_safeTransferFrom_length = 0xc4; // 4 + 32 * 6 == 196
 uint256 constant ERC1155_safeTransferFrom_data_length_offset = 0xa0;
 
 // abi.encodeWithSignature(
