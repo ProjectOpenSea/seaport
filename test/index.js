@@ -87,6 +87,52 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     criteriaProof,
   });
 
+  const getBasicOrderExecutions = (order, fulfiller, fulfillerConduitKey) => {
+    const { offerer, conduitKey, offer, consideration } = order.parameters;
+    const offerItem = offer[0];
+    const considerationItem = consideration[0];
+    const executions = [
+      {
+        item: {
+          ...offerItem,
+          amount: offerItem.endAmount,
+          recipient: fulfiller,
+        },
+        offerer: offerer,
+        conduitKey: conduitKey,
+      },
+      {
+        item: {
+          ...considerationItem,
+          amount: considerationItem.endAmount,
+        },
+        offerer: fulfiller,
+        conduitKey: fulfillerConduitKey,
+      },
+    ];
+    if (consideration.length > 1) {
+      for (const additionalRecipient of consideration.slice(1)) {
+        const execution = {
+          item: {
+            ...additionalRecipient,
+            amount: additionalRecipient.endAmount,
+          },
+          offerer: fulfiller,
+          conduitKey: fulfillerConduitKey,
+        };
+        if (additionalRecipient.itemType === offerItem.itemType) {
+          execution.offerer = offerer;
+          execution.conduitKey = conduitKey;
+          executions[0].item.amount = executions[0].item.amount.sub(
+            execution.item.amount
+          );
+        }
+        executions.push(execution);
+      }
+    }
+    return executions;
+  };
+
   const toFulfillmentComponents = (arr) =>
     arr.map(([orderIndex, itemIndex]) => ({ orderIndex, itemIndex }));
 
@@ -851,13 +897,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     receipt,
     orderGroups,
     standardExecutions,
-    criteriaResolvers,
+    criteriaResolvers = [],
     shouldSkipAmountComparison = false,
     multiplier = 1
   ) => {
     const { timestamp } = await provider.getBlock(receipt.blockHash);
 
-    if (standardExecutions && standardExecutions.length > 0) {
+    if (standardExecutions && standardExecutions.length) {
       for (const standardExecution of standardExecutions) {
         const { item, offerer, conduitKey } = standardExecution;
         await checkTransferEvent(tx, item, {
@@ -871,7 +917,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // items (or partially-filled items) are accounted for
     }
 
-    if (criteriaResolvers) {
+    if (criteriaResolvers && criteriaResolvers.length) {
       for (const { orderIndex, side, index, identifier } of criteriaResolvers) {
         const itemType =
           orderGroups[orderIndex].order.parameters[
@@ -1013,6 +1059,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           } else {
             amount = endAmount.mul(order.numerator).div(order.denominator);
           }
+          amount = amount.mul(multiplier);
 
           await checkTransferEvent(
             tx,
@@ -1038,6 +1085,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           } else {
             amount = endAmount.mul(order.numerator).div(order.denominator);
           }
+          amount = amount.mul(multiplier);
 
           await checkTransferEvent(
             tx,
@@ -3682,13 +3730,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters);
             const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              {
-                order,
-                orderHash,
-                fulfiller: buyer.address,
-              },
-            ]);
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order,
+                  orderHash,
+                  fulfiller: buyer.address,
+                },
+              ],
+              getBasicOrderExecutions(order, buyer.address)
+            );
 
             return receipt;
           });
@@ -3742,13 +3795,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters);
             const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              {
-                order,
-                orderHash,
-                fulfiller: buyer.address,
-              },
-            ]);
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order,
+                  orderHash,
+                  fulfiller: buyer.address,
+                },
+              ],
+              getBasicOrderExecutions(order, buyer.address)
+            );
 
             return receipt;
           });
@@ -3797,14 +3855,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters);
             const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              {
-                order,
-                orderHash,
-                fulfiller: buyer.address,
-                fulfillerConduitKey: conduitKeyOne,
-              },
-            ]);
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order,
+                  orderHash,
+                  fulfiller: buyer.address,
+                  fulfillerConduitKey: conduitKeyOne,
+                },
+              ],
+              getBasicOrderExecutions(order, buyer.address, conduitKeyOne)
+            );
 
             return receipt;
           });
@@ -4433,13 +4496,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters);
             const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              {
-                order,
-                orderHash,
-                fulfiller: buyer.address,
-              },
-            ]);
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order,
+                  orderHash,
+                  fulfiller: buyer.address,
+                },
+              ],
+              getBasicOrderExecutions(order, buyer.address)
+            );
 
             return receipt;
           });
@@ -4813,13 +4881,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters);
             const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              {
-                order,
-                orderHash,
-                fulfiller: buyer.address,
-              },
-            ]);
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order,
+                  orderHash,
+                  fulfiller: buyer.address,
+                },
+              ],
+              getBasicOrderExecutions(order, buyer.address)
+            );
 
             return receipt;
           });
@@ -4867,14 +4940,26 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             const tx = marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters);
+
+            const executions = getBasicOrderExecutions(
+              order,
+              buyer.address,
+              conduitKeyOne
+            );
             const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              {
-                order,
-                orderHash,
-                fulfiller: buyer.address,
-              },
-            ]);
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order,
+                  orderHash,
+                  fulfiller: buyer.address,
+                  fulfillerConduitKey: conduitKeyOne,
+                },
+              ],
+              executions
+            );
 
             return receipt;
           });
@@ -6290,18 +6375,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           value
         );
 
-        const tx2 = await marketplaceContract
-          .connect(owner)
-          .matchAdvancedOrders(
-            [order, mirrorObject.mirrorOrder],
-            [], // no criteria resolvers
-            fulfillments,
-            {
-              value,
-            }
-          );
-        const receipt2 = await tx2.wait();
+        const tx2 = marketplaceContract.connect(owner).matchAdvancedOrders(
+          [order, mirrorObject.mirrorOrder],
+          [], // no criteria resolvers
+          fulfillments,
+          {
+            value,
+          }
+        );
+        const receipt2 = await (await tx2).wait();
         await checkExpectedEvents(
+          tx2,
           receipt2,
           [
             {
@@ -6309,12 +6393,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               orderHash,
               fulfiller: constants.AddressZero,
             },
-          ],
-          executions
-        );
-        await checkExpectedEvents(
-          receipt2,
-          [
             {
               order: mirrorObject.mirrorOrder,
               orderHash: mirrorObject.mirrorOrderHash,
@@ -6356,6 +6434,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           );
         const receipt3 = await tx3.wait();
         await checkExpectedEvents(
+          tx3,
           receipt3,
           [
             {
@@ -6363,12 +6442,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               orderHash,
               fulfiller: constants.AddressZero,
             },
-          ],
-          executions
-        );
-        await checkExpectedEvents(
-          receipt3,
-          [
             {
               order: mirrorObject.mirrorOrder,
               orderHash: mirrorObject.mirrorOrderHash,
@@ -7966,26 +8039,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               orderHash: orderHashOne,
               fulfiller: constants.AddressZero,
             },
-          ],
-          executions
-        );
-
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
             {
               order: orderTwo,
               orderHash: orderHashTwo,
               fulfiller: constants.AddressZero,
             },
-          ],
-          executions
-        );
-        await checkExpectedEvents(
-          tx,
-          receipt,
-          [
             {
               order: orderThree,
               orderHash: orderHashThree,
@@ -8238,26 +8296,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 orderHash: orderHashOne,
                 fulfiller: constants.AddressZero,
               },
-            ],
-            executions
-          );
-
-          await checkExpectedEvents(
-            receipt,
-            [
               {
                 order: orderTwo,
                 orderHash: orderHashTwo,
                 fulfiller: constants.AddressZero,
               },
-            ],
-            executions,
-            [],
-            true
-          );
-          await checkExpectedEvents(
-            receipt,
-            [
               {
                 order: orderThree,
                 orderHash: orderHashThree,
@@ -9119,24 +9162,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                     orderHash: orderHashOne,
                     fulfiller: buyer.address,
                   },
-                ],
-                [],
-                [],
-                [],
-                false,
-                2
-              );
-
-              await checkExpectedEvents(
-                receipt,
-                [
                   {
                     order: orderTwo,
                     orderHash: orderHashTwo,
                     fulfiller: buyer.address,
                   },
                 ],
-                [],
                 [],
                 [],
                 false,
@@ -9237,24 +9268,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                     orderHash: orderHashOne,
                     fulfiller: buyer.address,
                   },
-                ],
-                [],
-                [],
-                [],
-                false,
-                2
-              );
-
-              await checkExpectedEvents(
-                receipt,
-                [
                   {
                     order: orderTwo,
                     orderHash: orderHashTwo,
                     fulfiller: buyer.address,
                   },
                 ],
-                [],
                 [],
                 [],
                 false,
@@ -9332,8 +9351,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             0,
             null,
             async () => {
-              const { executions } =
-                await marketplaceContract.callStatic.fulfillAvailableOrders(
+              const { executions } = await marketplaceContract
+                .connect(buyer)
+                .callStatic.fulfillAvailableOrders(
                   [orderOne, orderTwo],
                   offerComponents,
                   considerationComponents,
@@ -9465,7 +9485,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                     fulfiller: buyer.address,
                   },
                 ],
-                [],
                 [],
                 [],
                 false,
