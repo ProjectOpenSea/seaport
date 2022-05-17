@@ -35,7 +35,7 @@ contract BaseConduitTest is
     struct BatchIntermediate {
         address from;
         address to;
-        IdAmount[2] idAmounts;
+        IdAmount[10] idAmounts;
     }
 
     modifier resetTokenBalancesBetweenRuns(ConduitTransfer[] memory transfers) {
