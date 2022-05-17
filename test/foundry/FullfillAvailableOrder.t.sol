@@ -12,6 +12,7 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
+import { stdError } from "forge-std/Test.sol";
 
 contract FulfillAvailableOrder is BaseOrderTest {
     struct FuzzInputs {
@@ -29,15 +30,41 @@ contract FulfillAvailableOrder is BaseOrderTest {
     }
 
     function testFulfillAvailableOrderOverflow() public {
-        _testFulfillAvailableOrderOverflow(referenceConsideration);
+        for (uint256 i; i < 4; i++) {
+            // skip 721s
+            if (i == 2) {
+                continue;
+            }
+            _testFulfillAvailableOrderOverflow(consideration, ItemType(i));
+            _testFulfillAvailableOrderOverflow(
+                referenceConsideration,
+                ItemType(i)
+            );
+        }
+    }
+
+    function _configureConsiderationItem(
+        address payable recipient,
+        ItemType itemType,
+        uint256 identifier,
+        uint256 amt
+    ) internal {
+        if (itemType == ItemType.NATIVE) {
+            _configureEthConsiderationItem(recipient, amt);
+        } else if (itemType == ItemType.ERC20) {
+            _configureErc20ConsiderationItem(recipient, amt);
+        } else {
+            _configureErc1155ConsiderationItem(recipient, identifier, amt);
+        }
     }
 
     function _testFulfillAvailableOrderOverflow(
-        ConsiderationInterface _consideration
-    ) public {
+        ConsiderationInterface _consideration,
+        ItemType itemType
+    ) internal resetTokenBalancesBetweenRuns {
         test721_1.mint(alice, 1);
         _configureERC721OfferItem(1);
-        _configureEthConsiderationItem(alice, 100);
+        _configureConsiderationItem(alice, itemType, 1, 100);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -66,9 +93,10 @@ contract FulfillAvailableOrder is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
-        test721_2.mint(bob, 2);
+        test721_1.mint(bob, 2);
         _configureERC721OfferItem(2);
-        _configureEthConsiderationItem(bob, MAX_INT);
+        // try to overflow the aggregated amount of eth sent to alice
+        _configureConsiderationItem(alice, itemType, 1, MAX_INT);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -85,7 +113,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
-            orderParameters,
+            secondOrderParameters,
             _consideration.getNonce(bob)
         );
         bytes memory secondSignature = signOrder(
@@ -99,30 +127,24 @@ contract FulfillAvailableOrder is BaseOrderTest {
         orders[1] = Order(secondOrderParameters, secondSignature);
 
         offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
+        // agregate eth considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
-
-        considerationComponents.push(FulfillmentComponent(0, 1));
-        considerationComponents.push(FulfillmentComponent(1, 1));
-        considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
-
-        considerationComponents.push(FulfillmentComponent(0, 2));
-        considerationComponents.push(FulfillmentComponent(1, 2));
-        considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        vm.expectRevert(stdError.arithmeticError);
         _consideration.fulfillAvailableOrders{ value: 99 }(
             orders,
             offerComponentsArray,
             considerationComponentsArray,
             bytes32(0),
-            2
+            100
         );
     }
 

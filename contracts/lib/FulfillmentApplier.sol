@@ -207,7 +207,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             function throwOverflow() {
                 mstore(0, Panic_error_signature)
-                mstore(Panic_error_offset, Panic_error_length)
+                mstore(Panic_error_offset, Panic_arithmetic)
                 revert(0, Panic_error_length)
             }
 
@@ -480,7 +480,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             function throwOverflow() {
                 mstore(0, Panic_error_signature)
-                mstore(Panic_error_offset, Panic_error_length)
+                mstore(Panic_error_offset, Panic_arithmetic)
                 revert(0, Panic_error_length)
             }
 
