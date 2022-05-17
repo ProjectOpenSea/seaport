@@ -244,55 +244,46 @@ contract CriteriaResolution is CriteriaResolutionErrors {
         uint256 root,
         bytes32[] memory proof
     ) internal pure {
-        // Convert the supplied leaf element from uint256 to bytes32.
-        bytes32 computedHash = bytes32(leaf);
+        bool isValid;
 
-        // Skip overflow check as for loop is indexed starting at zero.
-        unchecked {
-            // Iterate over each proof element.
-            for (uint256 i = 0; i < proof.length; ++i) {
-                // Retrieve the proof element.
-                bytes32 proofElement = proof[i];
-
-                if (computedHash > proofElement) {
-                    // Hash(current element of proof + current computed hash)
-                    computedHash = _efficientHash(proofElement, computedHash);
-                } else {
-                    // Hash(current computed hash + current element of proof)
-                    computedHash = _efficientHash(computedHash, proofElement);
-                }
-            }
-        }
-
-        // Ensure that the final derived hash matches the expected root.
-        if (computedHash != bytes32(root)) {
-            revert InvalidProof();
-        }
-    }
-
-    /**
-     * @dev Internal pure function to efficiently hash two bytes32 values.
-     *
-     * @param a The first component of the hash.
-     * @param b The second component of the hash.
-     *
-     * @return value The hash.
-     */
-    function _efficientHash(bytes32 a, bytes32 b)
-        internal
-        pure
-        returns (bytes32 value)
-    {
-        // Utliize assembly to write directly to scratch space.
         assembly {
-            // Place the first value in the first word of scratch space.
-            mstore(0, a)
+            // Start the hash off as just the starting leaf.
+            let computedHash := leaf
 
-            // Place the second value in the second word of scratch space.
-            mstore(OneWord, b)
+            // Get memory start location of the first element in proof array.
+            let data := add(proof, OneWord)
 
-            // Hash scratch space region containing both values.
-            value := keccak256(0, TwoWords)
+            // Iterate over proof elements to compute root hash.
+            for {
+                let end := add(data, mul(mload(proof), OneWord))
+            } lt(data, end) {
+                data := add(data, OneWord)
+            } {
+                // Get the proof element.
+                let loadedData := mload(data)
+
+                // Sort and store proof element and hash.
+                switch gt(computedHash, loadedData)
+                case 0 {
+                    mstore(0, computedHash)
+                    mstore(0x20, loadedData)
+                }
+                default {
+                    mstore(0, loadedData)
+                    mstore(0x20, computedHash)
+                }
+
+                // Derive the updated hash.
+                computedHash := keccak256(0, TwoWords)
+            }
+
+            // Compare the final hash to the supplied root.
+            isValid := eq(computedHash, root)
+        }
+
+        // Revert if computed hash does not equal supplied root.
+        if (!isValid) {
+            revert InvalidProof();
         }
     }
 }

@@ -286,7 +286,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                 // Get the spent item based on the offer components item index.
                 SpentItem memory offer = orderToExecute.spentItems[itemIndex];
 
-                // Create the Executio0n.
+                // Create the Execution.
                 execution = Execution(
                     ReceivedItem(
                         offer.itemType,
@@ -400,19 +400,19 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      * @dev Internal pure function to check the indicated consideration item matches original item.
      *
      * @param consideration  The consideration to compare
-     * @param receievedItem  The aggregated receieved item
+     * @param receivedItem  The aggregated received item
      *
      * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
      */
     function _checkMatchingConsideration(
         ReceivedItem memory consideration,
-        ReceivedItem memory receievedItem
+        ReceivedItem memory receivedItem
     ) internal pure returns (bool invalidFulfillment) {
         return
-            receievedItem.recipient != consideration.recipient ||
-            receievedItem.itemType != consideration.itemType ||
-            receievedItem.token != consideration.token ||
-            receievedItem.identifier != consideration.identifier;
+            receivedItem.recipient != consideration.recipient ||
+            receivedItem.itemType != consideration.itemType ||
+            receivedItem.token != consideration.token ||
+            receivedItem.identifier != consideration.identifier;
     }
 
     /**

@@ -91,7 +91,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
      */
     function executeBatch1155(
         ConduitBatch1155Transfer[] calldata batchTransfers
-    ) external returns (bytes4 magicValue) {
+    ) external override returns (bytes4 magicValue) {
         // Ensure that the caller has an open channel.
         if (!_channels[msg.sender]) {
             revert ChannelClosed();
