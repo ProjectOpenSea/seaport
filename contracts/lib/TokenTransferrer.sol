@@ -63,9 +63,13 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
             // If the transfer failed or it returned nothing:
             // Group these because they should be uncommon.
-            if or(iszero(success), iszero(returndatasize())) {
+            // Equivalent to `or(iszero(success), iszero(returndatasize()))`
+            // but after it's inverted for JUMPI this expression is cheaper.
+            if iszero(and(success, iszero(iszero(returndatasize())))) {
                 // If the token has no code or the transfer failed:
-                if or(iszero(success), iszero(extcodesize(token))) {
+                // Equivalent to `or(iszero(success), iszero(extcodesize(token)))`
+                // but after it's inverted for JUMPI this expression is cheaper.
+                if iszero(and(iszero(iszero(extcodesize(token))), success)) {
                     // If the transfer failed:
                     if iszero(success) {
                         // If it was due to a revert:
@@ -86,10 +90,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 // msize() to work around a Yul warning that
                                 // prevents accessing msize directly when the IR
                                 // pipeline is activated.
-                                let msizeWords := div(
-                                    mload(FreeMemoryPointerSlot),
-                                    OneWord
-                                )
+                                let msizeWords := div(memPointer, OneWord)
 
                                 // Next, compute the cost of the returndatacopy.
                                 let cost := mul(CostPerWord, returnDataWords)
@@ -183,7 +184,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         )
                         revert(
                             BadReturnValueFromERC20OnTransfer_error_sig_ptr,
-                            TokenTransferGenericFailure_error_length
+                            BadReturnValueFromERC20OnTransfer_error_length
                         )
                     }
 
@@ -264,7 +265,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
                     // directly when the IR pipeline is activated.
-                    let msizeWords := div(mload(FreeMemoryPointerSlot), OneWord)
+                    let msizeWords := div(memPointer, OneWord)
 
                     // Next, compute the cost of the returndatacopy.
                     let cost := mul(CostPerWord, returnDataWords)
@@ -397,7 +398,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
                     // directly when the IR pipeline is activated.
-                    let msizeWords := div(mload(FreeMemoryPointerSlot), OneWord)
+                    let msizeWords := div(memPointer, OneWord)
 
                     // Next, compute the cost of the returndatacopy.
                     let cost := mul(CostPerWord, returnDataWords)
@@ -643,7 +644,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // Note: use transferDataSize in place of msize() to
                         // work around a Yul warning that prevents accessing
                         // msize directly when the IR pipeline is activated.
-                        // The free memory pointer is not used hereh because
+                        // The free memory pointer is not used here because
                         // this function does almost all memory management
                         // manually and does not update it, and transferDataSize
                         // should be the largest memory value used (unless a

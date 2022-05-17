@@ -12,7 +12,7 @@ import { ReentrancyGuard } from "./ReentrancyGuard.sol";
  * @title NonceManager
  * @author 0age
  * @notice NonceManager contains a storage mapping and related functionality
- *         for retreiving and incrementing a per-offerer nonce.
+ *         for retrieving and incrementing a per-offerer nonce.
  */
 contract NonceManager is ConsiderationEventsAndErrors, ReentrancyGuard {
     // Only orders signed using an offerer's current nonce are fulfillable.

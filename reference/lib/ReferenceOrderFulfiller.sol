@@ -364,7 +364,7 @@ contract ReferenceOrderFulfiller is
         pure
         returns (OrderToExecute memory orderToExecute)
     {
-        // Retreive the advanced orders offers.
+        // Retrieve the advanced orders offers.
         OfferItem[] memory offer = advancedOrder.parameters.offer;
 
         // Create an array of spent items equal to the offer length.
@@ -387,7 +387,7 @@ contract ReferenceOrderFulfiller is
             spentItems[i] = spentItem;
         }
 
-        // Retreive the advanced orders considerations.
+        // Retrieve the advanced orders considerations.
         ConsiderationItem[] memory consideration = advancedOrder
             .parameters
             .consideration;
@@ -435,7 +435,7 @@ contract ReferenceOrderFulfiller is
      *
      * @return ordersToExecute The new array of orders.
      */
-    function _convertAdvancedtoOrdersToExecute(
+    function _convertAdvancedToOrdersToExecute(
         AdvancedOrder[] memory advancedOrders
     ) internal pure returns (OrderToExecute[] memory ordersToExecute) {
         // Read the number of orders from memory and place on the stack.
