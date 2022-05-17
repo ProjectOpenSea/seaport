@@ -183,7 +183,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         )
                         revert(
                             BadReturnValueFromERC20OnTransfer_error_sig_ptr,
-                            TokenTransferGenericFailure_error_length
+                            BadReturnValueFromERC20OnTransfer_error_length
                         )
                     }
 
