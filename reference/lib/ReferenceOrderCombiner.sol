@@ -189,7 +189,7 @@ contract ReferenceOrderCombiner is
         for (uint256 i = 0; i < totalOrders; ++i) {
             // Retrieve the current order.
             AdvancedOrder memory advancedOrder = advancedOrders[i];
-            // Retreive the order to execute.
+            // Retrieve the order to execute.
             OrderToExecute memory orderToExecute = ordersToExecute[i];
 
             // Determine if max number orders have already been fulfilled.
@@ -371,7 +371,7 @@ contract ReferenceOrderCombiner is
             // Get the array of spentItems from the orderToExecute struct.
             SpentItem[] memory spentItems = ordersToExecute[i].spentItems;
 
-            // Get the array of spentIreceivedItemstems from the orderToExecute struct.
+            // Get the array of spent receivedItems from the orderToExecute struct.
             ReceivedItem[] memory receivedItems = ordersToExecute[i]
                 .receivedItems;
 
@@ -530,7 +530,7 @@ contract ReferenceOrderCombiner is
                 executionLength
             );
 
-            // Create new array from the exsiting Executions
+            // Create new array from the existing Executions
             for (uint256 i = 0; i < executionLength; ++i) {
                 filteredExecutions[i] = executions[i];
             }
@@ -668,7 +668,7 @@ contract ReferenceOrderCombiner is
      *                          indicated by the order) to transfer any relevant
      *                          tokens on their behalf and each consideration
      *                          recipient must implement `onERC1155Received` in
-     *                          order toreceive ERC1155 tokens. Also note that
+     *                          order to receive ERC1155 tokens. Also note that
      *                          the offer and consideration components for each
      *                          order must have no remainder after multiplying
      *                          the respective amount with the supplied fraction
