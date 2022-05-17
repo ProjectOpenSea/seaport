@@ -45,6 +45,14 @@ contract BaseConduitTest is
     }
 
     modifier resetBatchTokenBalancesBetweenRuns(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) {
+        vm.record();
+        _;
+        resetTokenBalances(batchTransfers);
+    }
+
+    modifier resetTransferAndBatchTransferTokenBalancesBetweenRuns(
         ConduitTransfer[] memory transfers,
         ConduitBatch1155Transfer[] memory batchTransfers
     ) {
@@ -231,7 +239,7 @@ contract BaseConduitTest is
         );
         for (uint256 n = 0; n < batchIntermediate.idAmounts.length; n++) {
             ids[n] = batchIntermediate.idAmounts[n].id;
-            amounts[n] = batchIntermediate.idAmounts[n].amount;
+            amounts[n] = uint256(batchIntermediate.idAmounts[n].amount) + 1;
         }
         address from = batchIntermediate.from;
         address to = batchIntermediate.to;
@@ -259,6 +267,22 @@ contract BaseConduitTest is
             address to = receiver(transfer.to, transfer.itemType);
             transfer.from = from;
             transfer.to = to;
+        }
+    }
+
+    function makeRecipientsSafe(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) internal {
+        for (uint256 i; i < batchTransfers.length; i++) {
+            ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
+            address from = receiver(
+                batchTransfer.from,
+                ConduitItemType.ERC1155
+            );
+            address to = receiver(batchTransfer.to, ConduitItemType.ERC1155);
+            batchTransfer.from = from;
+            batchTransfer.to = to;
+            assertEq(from, batchTransfers[i].from);
         }
     }
 
@@ -306,6 +330,7 @@ contract BaseConduitTest is
                     batchTransfer.amounts[n]
                 );
             }
+            vm.prank(from);
             erc1155.setApprovalForAll(conduitAddress, true);
         }
     }
@@ -378,6 +403,15 @@ contract BaseConduitTest is
         for (uint256 i = 0; i < transfers.length; i++) {
             ConduitTransfer memory transfer = transfers[i];
             _resetStorage(transfer.token);
+        }
+    }
+
+    function resetTokenBalances(
+        ConduitBatch1155Transfer[] memory batchTransfers
+    ) internal {
+        for (uint256 i = 0; i < batchTransfers.length; i++) {
+            ConduitBatch1155Transfer memory batchTransfer = batchTransfers[i];
+            _resetStorage(batchTransfer.token);
         }
     }
 

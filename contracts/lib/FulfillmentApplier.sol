@@ -207,12 +207,12 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             function throwOverflow() {
                 mstore(0, Panic_error_signature)
-                mstore(Panic_error_offset, Panic_error_length)
+                mstore(Panic_error_offset, Panic_arithmetic)
                 revert(0, Panic_error_length)
             }
 
             // Get position in offerComponents head
-            let fulfillmentHeadPtr := add(offerComponents, 0x20)
+            let fulfillmentHeadPtr := add(offerComponents, OneWord)
 
             // Retrieve the order index using the fulfillment pointer.
             let orderIndex := mload(mload(fulfillmentHeadPtr))
@@ -226,7 +226,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // head in the array.
             let orderPtr := mload(
                 // Calculate head position of advancedOrders[orderIndex]
-                add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
+                add(add(advancedOrders, OneWord), mul(orderIndex, OneWord))
             )
 
             // Read the pointer to OrderParameters from the AdvancedOrder
@@ -250,9 +250,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             let offerItemPtr := mload(
                 add(
                     // Get pointer to beginning of receivedItem.
-                    add(offerArrPtr, 0x20),
+                    add(offerArrPtr, OneWord),
                     // Calculate offset to pointer for desired order.
-                    mul(itemIndex, 0x20)
+                    mul(itemIndex, OneWord)
                 )
             )
 
@@ -314,13 +314,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Get position one word past last element in head of array
             let endPtr := add(
                 offerComponents,
-                mul(mload(offerComponents), 0x20)
+                mul(mload(offerComponents), OneWord)
             )
 
             // Iterate over remaining offer components.
             // prettier-ignore
             for {} lt(fulfillmentHeadPtr,  endPtr) {} {
-                fulfillmentHeadPtr := add(fulfillmentHeadPtr, 0x20)
+                fulfillmentHeadPtr := add(fulfillmentHeadPtr, OneWord)
 
                 // Get the order index using the fulfillment pointer.
                 orderIndex := mload(mload(fulfillmentHeadPtr))
@@ -333,8 +333,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Get pointer to AdvancedOrder element.
                 orderPtr := mload(
                     add(
-                        add(advancedOrders, 0x20),
-                        mul(orderIndex, 0x20)
+                        add(advancedOrders, OneWord),
+                        mul(orderIndex, OneWord)
                     )
                 )
 
@@ -357,7 +357,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
 
                 // Get the item index using the fulfillment pointer.
-                itemIndex := mload(add(mload(fulfillmentHeadPtr), 0x20))
+                itemIndex := mload(add(mload(fulfillmentHeadPtr), OneWord))
 
                 // Throw if itemIndex is out of the range of array.
                 if iszero(
@@ -370,9 +370,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 offerItemPtr := mload(
                     add(
                         // Get pointer to beginning of receivedItem.
-                        add(offerArrPtr, 0x20),
+                        add(offerArrPtr, OneWord),
                         // Use offset to pointer for desired order.
-                        mul(itemIndex, 0x20)
+                        mul(itemIndex, OneWord)
                     )
                 )
 
@@ -480,14 +480,14 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             function throwOverflow() {
                 mstore(0, Panic_error_signature)
-                mstore(Panic_error_offset, Panic_error_length)
+                mstore(Panic_error_offset, Panic_arithmetic)
                 revert(0, Panic_error_length)
             }
 
             let amount := 0
 
             // Get position in considerationComponents head
-            let fulfillmentHeadPtr := add(considerationComponents, 0x20)
+            let fulfillmentHeadPtr := add(considerationComponents, OneWord)
 
             // Retrieve the order index using the fulfillment pointer.
             let orderIndex := mload(mload(fulfillmentHeadPtr))
@@ -501,7 +501,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // head in the array.
             let orderPtr := mload(
                 // Calculate head position of advancedOrders[orderIndex]
-                add(add(advancedOrders, 0x20), mul(orderIndex, 0x20))
+                add(add(advancedOrders, OneWord), mul(orderIndex, OneWord))
             )
 
             // Load consideration array pointer.
@@ -527,9 +527,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             let considerationItemPtr := mload(
                 add(
                     // Get pointer to beginning of receivedItem.
-                    add(considerationArrPtr, 0x20),
+                    add(considerationArrPtr, OneWord),
                     // Calculate offset to pointer for desired order.
-                    mul(itemIndex, 0x20)
+                    mul(itemIndex, OneWord)
                 )
             )
 
@@ -587,14 +587,14 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Get position one word past last element in head of array
             let endPtr := add(
                 considerationComponents,
-                mul(mload(considerationComponents), 0x20)
+                mul(mload(considerationComponents), OneWord)
             )
 
             // Iterate over remaining offer components.
             // prettier-ignore
             for {} lt(fulfillmentHeadPtr,  endPtr) {} {
                 // Increment position in considerationComponents head
-                fulfillmentHeadPtr := add(fulfillmentHeadPtr, 0x20)
+                fulfillmentHeadPtr := add(fulfillmentHeadPtr, OneWord)
 
                 // Get the order index using the fulfillment pointer.
                 orderIndex := mload(mload(fulfillmentHeadPtr))
@@ -607,8 +607,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Get pointer to AdvancedOrder element.
                 orderPtr := mload(
                     add(
-                        add(advancedOrders, 0x20),
-                        mul(orderIndex, 0x20)
+                        add(advancedOrders, OneWord),
+                        mul(orderIndex, OneWord)
                     )
                 )
 
@@ -627,7 +627,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
 
                 // Get the item index using the fulfillment pointer.
-                itemIndex := mload(add(mload(fulfillmentHeadPtr), 0x20))
+                itemIndex := mload(add(mload(fulfillmentHeadPtr), OneWord))
 
                 // Check if itemIndex is within the range of array.
                 if iszero(lt(itemIndex, mload(considerationArrPtr))) {
@@ -638,9 +638,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 considerationItemPtr := mload(
                     add(
                         // Get pointer to beginning of receivedItem.
-                        add(considerationArrPtr, 0x20),
+                        add(considerationArrPtr, OneWord),
                         // Use offset to pointer for desired order.
-                        mul(itemIndex, 0x20)
+                        mul(itemIndex, OneWord)
                     )
                 )
 

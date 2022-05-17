@@ -324,22 +324,6 @@ contract GettersAndDerivers is ConsiderationBase {
     }
 
     /**
-     * @dev Internal pure function to retrieve the name of this contract.
-     *
-     * @return The name of this contract.
-     */
-    function _name() internal pure returns (string memory) {
-        // Return the name of the contract.
-        assembly {
-            mstore(0, OneWord) // First element is the offset.
-            // Name is right padded, so it touches the length which is left padded.
-            // This lets us write both values at once
-            mstore(NameLengthPtr, NameWithLength)
-            return(0, ThreeWords) // Return all three words.
-        }
-    }
-
-    /**
      * @dev Internal pure function to efficiently derive an digest to sign for
      *      an order in accordance with EIP-712.
      *
