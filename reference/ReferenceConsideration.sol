@@ -251,7 +251,7 @@ contract ReferenceConsideration is
         );
         // Convert Advanced Orders to Orders To Execute
         OrderToExecute[]
-            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+            memory ordersToExecute = _convertAdvancedToOrdersToExecute(
                 advancedOrders
             );
 
@@ -346,7 +346,7 @@ contract ReferenceConsideration is
     {
         // Convert Advanced Orders to Orders to Execute
         OrderToExecute[]
-            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+            memory ordersToExecute = _convertAdvancedToOrdersToExecute(
                 advancedOrders
             );
 

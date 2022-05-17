@@ -698,7 +698,7 @@ contract ReferenceOrderCombiner is
     ) internal returns (Execution[] memory executions) {
         // Convert Advanced Orders to Orders to Execute
         OrderToExecute[]
-            memory ordersToExecute = _convertAdvancedtoOrdersToExecute(
+            memory ordersToExecute = _convertAdvancedToOrdersToExecute(
                 advancedOrders
             );
 

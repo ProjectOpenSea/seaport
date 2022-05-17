@@ -435,7 +435,7 @@ contract ReferenceOrderFulfiller is
      *
      * @return ordersToExecute The new array of orders.
      */
-    function _convertAdvancedtoOrdersToExecute(
+    function _convertAdvancedToOrdersToExecute(
         AdvancedOrder[] memory advancedOrders
     ) internal pure returns (OrderToExecute[] memory ordersToExecute) {
         // Read the number of orders from memory and place on the stack.
