@@ -63,9 +63,13 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
             // If the transfer failed or it returned nothing:
             // Group these because they should be uncommon.
-            if or(iszero(success), iszero(returndatasize())) {
+            // Equivalent to `or(iszero(success), iszero(returndatasize()))`
+            // but after it's inverted for JUMPI this expression is cheaper.
+            if iszero(and(success, iszero(iszero(returndatasize())))) {
                 // If the token has no code or the transfer failed:
-                if or(iszero(success), iszero(extcodesize(token))) {
+                // Equivalent to `or(iszero(success), iszero(extcodesize(token)))`
+                // but after it's inverted for JUMPI this expression is cheaper.
+                if iszero(and(iszero(iszero(extcodesize(token))), success)) {
                     // If the transfer failed:
                     if iszero(success) {
                         // If it was due to a revert:
