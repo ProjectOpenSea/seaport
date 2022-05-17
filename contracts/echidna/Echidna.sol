@@ -205,8 +205,6 @@ contract Echidna is ERC1155TokenReceiver, EchidnaUtils {
 
     function testFulfillBasicOrder(bytes32 seed) public payable {
         uint256 route = uint256(seed) % 6;
-        uint256 orderType = uint256(seed) % 2;
-        BasicOrderType basicOrderType = BasicOrderType(orderType + (4 * route));
         (
             OrderParameters memory orderParams,
             uint256 totalTokens,
@@ -215,22 +213,31 @@ contract Echidna is ERC1155TokenReceiver, EchidnaUtils {
         ) = createOrderParameters(_seller, _buyer, seed, route, true);
         orderParams.conduitKey = _conduitKeyActive;
 
-        // Sign order on behalf of seller
-        uint256 nonce = _opensea.getNonce(_seller);
-        bytes32 orderHash = _opensea.getOrderHash(
-            convertOrderParametersToOrderComponents(orderParams, nonce)
-        );
-        (, bytes32 domainSeparator, ) = _opensea.information();
-        bytes memory sig = signOrder(orderHash, domainSeparator);
+        BasicOrderParameters memory basicOrder;
+        uint256 value;
+        {
+            uint256 orderType = uint256(seed) % 2;
+            BasicOrderType basicOrderType = BasicOrderType(
+                orderType + (4 * route)
+            );
 
-        BasicOrderParameters
-            memory basicOrder = convertOrderParametersToBasicOrder(
+            // Sign order on behalf of seller
+            uint256 nonce = _opensea.getNonce(_seller);
+            bytes32 orderHash = _opensea.getOrderHash(
+                convertOrderParametersToOrderComponents(orderParams, nonce)
+            );
+            (, bytes32 domainSeparator, ) = _opensea.information();
+            bytes memory sig = signOrder(orderHash, domainSeparator);
+
+            basicOrder = convertOrderParametersToBasicOrder(
                 orderParams,
                 sig,
                 basicOrderType
             );
+            value = uint256(basicOrderType) < 8 ? address(this).balance : 0;
+        }
+
         // Send entire balance for ether orders (should refund)
-        uint256 value = uint256(basicOrderType) < 8 ? address(this).balance : 0;
         (bool success, ) = address(_opensea).call{ value: value }(
             abi.encodeWithSelector(
                 Consideration.fulfillBasicOrder.selector,
