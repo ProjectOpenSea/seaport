@@ -359,6 +359,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
             let memPointer := mload(FreeMemoryPointerSlot)
             let slot0x80 := mload(Slot0x80)
             let slot0xA0 := mload(Slot0xA0)
+            let slot0xC0 := mload(Slot0xC0)
 
             // Write calldata into memory, beginning with function selector.
             mstore(
@@ -453,6 +454,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
             mstore(Slot0x80, slot0x80) // Restore slot 0x80.
             mstore(Slot0xA0, slot0xA0) // Restore slot 0xA0.
+            mstore(Slot0xC0, slot0xC0) // Restore slot 0xC0.
 
             // Restore the original free memory pointer.
             mstore(FreeMemoryPointerSlot, memPointer)
