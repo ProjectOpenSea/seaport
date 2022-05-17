@@ -1,7 +1,7 @@
 import "@rari-capital/solmate/src/tokens/ERC1155.sol";
+
 ///@notice this token is purposefully modified to allow unapproved transfers
 contract NoApprovalERC1155 is ERC1155 {
-
     event TransferSingle1155(
         address indexed operator,
         address indexed from,
@@ -18,7 +18,7 @@ contract NoApprovalERC1155 is ERC1155 {
         uint256[] amounts
     );
 
-    event MintERC1155(uint tokenId, uint amount);
+    event MintERC1155(uint256 tokenId, uint256 amount);
 
     function mint(
         address to,
@@ -33,7 +33,8 @@ contract NoApprovalERC1155 is ERC1155 {
     function uri(uint256) public pure override returns (string memory) {
         return "uri";
     }
-        function safeTransferFrom(
+
+    function safeTransferFrom(
         address from,
         address to,
         uint256 id,
@@ -46,8 +47,13 @@ contract NoApprovalERC1155 is ERC1155 {
         require(
             to.code.length == 0
                 ? to != address(0)
-                : ERC1155TokenReceiver(to).onERC1155Received(msg.sender, from, id, amount, data) ==
-                    ERC1155TokenReceiver.onERC1155Received.selector,
+                : ERC1155TokenReceiver(to).onERC1155Received(
+                    msg.sender,
+                    from,
+                    id,
+                    amount,
+                    data
+                ) == ERC1155TokenReceiver.onERC1155Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -59,7 +65,7 @@ contract NoApprovalERC1155 is ERC1155 {
         uint256[] memory amounts,
         bytes memory data
     ) public override {
-        uint256 idsLength = ids.length; 
+        uint256 idsLength = ids.length;
         require(idsLength == amounts.length, "LENGTH_MISMATCH");
         for (uint256 i = 0; i < idsLength; ) {
             uint256 id = ids[i];
@@ -76,8 +82,13 @@ contract NoApprovalERC1155 is ERC1155 {
         require(
             to.code.length == 0
                 ? to != address(0)
-                : ERC1155TokenReceiver(to).onERC1155BatchReceived(msg.sender, from, ids, amounts, data) ==
-                    ERC1155TokenReceiver.onERC1155BatchReceived.selector,
+                : ERC1155TokenReceiver(to).onERC1155BatchReceived(
+                    msg.sender,
+                    from,
+                    ids,
+                    amounts,
+                    data
+                ) == ERC1155TokenReceiver.onERC1155BatchReceived.selector,
             "UNSAFE_RECIPIENT"
         );
     }
