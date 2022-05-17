@@ -7,7 +7,7 @@ import "../conduit/ConduitController.sol";
 import "./EchidnaUtils.sol";
 
 //install echidna and crytic-compile
-//rm -rf crytic-export artifacts &&  npx hardhat clean && npx hardhat compile && echidna . --contract Echidna --config ./contracts/crytic/echidna.conf.yaml
+//rm -rf crytic-export artifacts &&  npx hardhat clean && npx hardhat compile && echidna . --contract Echidna --config ./contracts/echidna/echidna.conf.yaml
 contract Echidna is ERC1155TokenReceiver, EchidnaUtils {
     address payable immutable _buyer = payable(address(this));
     address payable immutable _seller = payable(0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF); // used to sign with pk 2
@@ -42,8 +42,9 @@ contract Echidna is ERC1155TokenReceiver, EchidnaUtils {
     function toggleConduit(bool toggle) external {
         if (toggle) {
             _conduitKeyActive = bytes32(0);
+        } else {
+            _conduitKeyActive = _conduitKeyCache;
         }
-        _conduitKeyActive = _conduitKeyCache;
     }
 
     function testCancel() public {
