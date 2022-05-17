@@ -291,6 +291,21 @@ contract BaseOrderTest is
         );
     }
 
+    function _configureErc1155ConsiderationItem(
+        address payable recipient,
+        uint256 tokenId,
+        uint256 amount
+    ) internal {
+        _configureConsiderationItem(
+            ItemType.ERC1155,
+            address(test1155_1),
+            tokenId,
+            amount,
+            amount,
+            recipient
+        );
+    }
+
     function _configureEthOfferItem(uint256 paymentAmount) internal {
         _configureOfferItem(
             ItemType.NATIVE,
