@@ -305,7 +305,7 @@ contract BasicOrderFulfiller is OrderValidator {
      *                                     consideration item on the order.
      * @param additionalRecipientsItemType The item type of any additional
      *                                     consideration item on the order.
-     * @param additionalRecipientsToken    The ERC20 token contract adddress (if
+     * @param additionalRecipientsToken    The ERC20 token contract address (if
      *                                     applicable) for any additional
      *                                     consideration item on the order.
      * @param offeredItemType              The item type of the offered item on

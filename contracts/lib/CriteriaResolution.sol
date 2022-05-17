@@ -247,19 +247,22 @@ contract CriteriaResolution is CriteriaResolutionErrors {
         bool isValid;
 
         assembly {
-            let computedHash := leaf // Start the hash off as just the starting leaf.
+            // Start the hash off as just the starting leaf.
+            let computedHash := leaf
 
-            // Get the memory start location of the first element in the proof array.
-            let data := add(proof, 0x20)
+            // Get memory start location of the first element in proof array.
+            let data := add(proof, OneWord)
 
             // Iterate over proof elements to compute root hash.
             for {
-                let end := add(data, mul(mload(proof), 0x20))
+                let end := add(data, mul(mload(proof), OneWord))
             } lt(data, end) {
-                data := add(data, 0x20)
+                data := add(data, OneWord)
             } {
+                // Get the proof element.
                 let loadedData := mload(data)
 
+                // Sort and store proof element and hash.
                 switch gt(computedHash, loadedData)
                 case 0 {
                     mstore(0, computedHash)
@@ -270,12 +273,17 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                     mstore(0x20, computedHash)
                 }
 
-                computedHash := keccak256(0, 0x40)
+                // Derive the updated hash.
+                computedHash := keccak256(0, TwoWords)
             }
 
+            // Compare the final hash to the supplied root.
             isValid := eq(computedHash, root)
         }
 
-        if (!isValid) revert InvalidProof();
+        // Revert if computed hash does not equal supplied root.
+        if (!isValid) {
+            revert InvalidProof();
+        }
     }
 }

@@ -539,7 +539,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      *                                     consideration item on the order.
      * @param additionalRecipientsItemType The item type of any additional
      *                                     consideration item on the order.
-     * @param additionalRecipientsToken    The ERC20 token contract adddress (if
+     * @param additionalRecipientsToken    The ERC20 token contract address (if
      *                                     applicable) for any additional
      *                                     consideration item on the order.
      * @param offeredItemType              The item type of the offered item on
@@ -656,7 +656,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                     additionalRecipient.amount,
                     additionalRecipient.recipient
                 );
-                // Add additonal Received items to the
+                // Add additional Received items to the
                 // OrderFulfilled ReceivedItem[].
                 consideration[recipientCount + 1] = additionalReceivedItem;
 
@@ -669,7 +669,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                     continue;
                 }
 
-                // Create a new consideration item for each qdditional recipient.
+                // Create a new consideration item for each additional recipient.
                 additionalRecipientItem = ConsiderationItem(
                     fulfillmentItemTypes.additionalRecipientsItemType,
                     fulfillmentItemTypes.additionalRecipientsToken,
@@ -698,7 +698,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
              *  The considerationHashes array now contains
              *  all consideration Item hashes.
              *
-             *  The consideration array now contains all receieved
+             *  The consideration array now contains all received
              *  items excluding tips for OrderFulfilled Event.
              */
 
@@ -727,7 +727,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                     additionalRecipient.amount,
                     additionalRecipient.recipient
                 );
-                // Add additonal received items to the
+                // Add additional received items to the
                 // OrderFulfilled ReceivedItem[].
                 consideration[additionalTips + 1] = additionalReceivedItem;
             }

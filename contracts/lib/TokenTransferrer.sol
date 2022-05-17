@@ -643,7 +643,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // Note: use transferDataSize in place of msize() to
                         // work around a Yul warning that prevents accessing
                         // msize directly when the IR pipeline is activated.
-                        // The free memory pointer is not used hereh because
+                        // The free memory pointer is not used here because
                         // this function does almost all memory management
                         // manually and does not update it, and transferDataSize
                         // should be the largest memory value used (unless a

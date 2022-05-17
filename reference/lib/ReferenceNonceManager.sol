@@ -12,7 +12,7 @@ import { ReferenceReentrancyGuard } from "./ReferenceReentrancyGuard.sol";
  * @title NonceManager
  * @author 0age
  * @notice NonceManager contains a storage mapping and related functionality
- *         for retreiving and incrementing a per-offerer nonce.
+ *         for retrieving and incrementing a per-offerer nonce.
  */
 contract ReferenceNonceManager is
     ConsiderationEventsAndErrors,
