@@ -90,10 +90,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 // msize() to work around a Yul warning that
                                 // prevents accessing msize directly when the IR
                                 // pipeline is activated.
-                                let msizeWords := div(
-                                    mload(FreeMemoryPointerSlot),
-                                    OneWord
-                                )
+                                let msizeWords := div(memPointer, OneWord)
 
                                 // Next, compute the cost of the returndatacopy.
                                 let cost := mul(CostPerWord, returnDataWords)
@@ -268,7 +265,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
                     // directly when the IR pipeline is activated.
-                    let msizeWords := div(mload(FreeMemoryPointerSlot), OneWord)
+                    let msizeWords := div(memPointer, OneWord)
 
                     // Next, compute the cost of the returndatacopy.
                     let cost := mul(CostPerWord, returnDataWords)
@@ -401,7 +398,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
                     // directly when the IR pipeline is activated.
-                    let msizeWords := div(mload(FreeMemoryPointerSlot), OneWord)
+                    let msizeWords := div(memPointer, OneWord)
 
                     // Next, compute the cost of the returndatacopy.
                     let cost := mul(CostPerWord, returnDataWords)
