@@ -5,13 +5,14 @@ pragma solidity 0.8.13;
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, FulfillmentComponent, CriteriaResolver } from "../../contracts/lib/ConsiderationStructs.sol";
+import { Order, AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, FulfillmentComponent, CriteriaResolver } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
+import { stdError } from "forge-std/Test.sol";
 
 contract FulfillAvailableAdvancedOrder is BaseOrderTest {
     struct FuzzInputs {
@@ -26,6 +27,23 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
     struct Context {
         ConsiderationInterface consideration;
         FuzzInputs args;
+    }
+
+    function testFulfillAvailableAdvancedOrderOverflow() public {
+        for (uint256 i; i < 4; i++) {
+            // skip 721s
+            if (i == 2) {
+                continue;
+            }
+            _testFulfillAvailableAdvancedOrdersOverflow(
+                consideration,
+                ItemType(i)
+            );
+            _testFulfillAvailableAdvancedOrdersOverflow(
+                referenceConsideration,
+                ItemType(i)
+            );
+        }
     }
 
     function testFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToSingleErc721(
@@ -56,6 +74,112 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             amount,
             numerator,
             denominator
+        );
+    }
+
+    function _testFulfillAvailableAdvancedOrdersOverflow(
+        ConsiderationInterface _consideration,
+        ItemType itemType
+    ) internal resetTokenBalancesBetweenRuns {
+        test721_1.mint(alice, 1);
+        _configureERC721OfferItem(1);
+        _configureConsiderationItem(alice, itemType, 1, 100);
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory firstOrderComponents = getOrderComponents(
+            orderParameters,
+            _consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            _consideration,
+            alicePk,
+            _consideration.getOrderHash(firstOrderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        test721_1.mint(bob, 2);
+        _configureERC721OfferItem(2);
+        // try to overflow the aggregated amount of eth sent to alice
+        _configureConsiderationItem(alice, itemType, 1, MAX_INT);
+
+        OrderParameters memory secondOrderParameters = OrderParameters(
+            address(bob),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory secondOrderComponents = getOrderComponents(
+            secondOrderParameters,
+            _consideration.getNonce(bob)
+        );
+        bytes memory secondSignature = signOrder(
+            _consideration,
+            bobPk,
+            _consideration.getOrderHash(secondOrderComponents)
+        );
+
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
+        advancedOrders[0] = AdvancedOrder(
+            orderParameters,
+            uint120(1),
+            uint120(1),
+            signature,
+            "0x"
+        );
+        advancedOrders[1] = AdvancedOrder(
+            secondOrderParameters,
+            uint120(1),
+            uint120(1),
+            secondSignature,
+            "0x"
+        );
+
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
+
+        // agregate eth considerations together
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        CriteriaResolver[] memory criteriaResolvers;
+
+        vm.expectRevert(stdError.arithmeticError);
+        _consideration.fulfillAvailableAdvancedOrders{ value: 99 }(
+            advancedOrders,
+            criteriaResolvers,
+            offerComponentsArray,
+            considerationComponentsArray,
+            bytes32(0),
+            100
         );
     }
 
@@ -146,16 +270,16 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 0));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 1));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 2));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
         assertTrue(considerationComponentsArray.length == 3);
@@ -300,16 +424,16 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 0));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 1));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 2));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
         assertTrue(considerationComponentsArray.length == 3);

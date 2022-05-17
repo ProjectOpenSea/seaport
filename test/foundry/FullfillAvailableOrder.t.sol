@@ -43,21 +43,6 @@ contract FulfillAvailableOrder is BaseOrderTest {
         }
     }
 
-    function _configureConsiderationItem(
-        address payable recipient,
-        ItemType itemType,
-        uint256 identifier,
-        uint256 amt
-    ) internal {
-        if (itemType == ItemType.NATIVE) {
-            _configureEthConsiderationItem(recipient, amt);
-        } else if (itemType == ItemType.ERC20) {
-            _configureErc20ConsiderationItem(recipient, amt);
-        } else {
-            _configureErc1155ConsiderationItem(recipient, identifier, amt);
-        }
-    }
-
     function _testFulfillAvailableOrderOverflow(
         ConsiderationInterface _consideration,
         ItemType itemType
@@ -173,22 +158,22 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
-        FuzzInputs memory args,
-        uint240 amount,
-        uint8 numOrders
-    ) public {
-        _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
-            Context(referenceConsideration, args),
-            amount,
-            numOrders
-        );
-        _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
-            Context(consideration, args),
-            amount,
-            numOrders
-        );
-    }
+    // function testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+    //     FuzzInputs memory args,
+    //     uint240 amount,
+    //     uint8 numOrders
+    // ) public {
+    //     _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+    //         Context(referenceConsideration, args),
+    //         amount,
+    //         numOrders
+    //     );
+    //     _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+    //         Context(consideration, args),
+    //         amount,
+    //         numOrders
+    //     );
+    // }
 
     function _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
         Context memory context
@@ -287,16 +272,16 @@ contract FulfillAvailableOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 0));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 1));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 2));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
         assertTrue(considerationComponentsArray.length == 3);
@@ -445,19 +430,19 @@ contract FulfillAvailableOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 0));
-        firstConsiderationComponents.push(FulfillmentComponent(1, 0));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 1));
-        firstConsiderationComponents.push(FulfillmentComponent(1, 1));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 1));
+        considerationComponents.push(FulfillmentComponent(1, 1));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        firstConsiderationComponents.push(FulfillmentComponent(0, 2));
-        firstConsiderationComponents.push(FulfillmentComponent(1, 2));
-        considerationComponentsArray.push(firstConsiderationComponents);
+        considerationComponents.push(FulfillmentComponent(0, 2));
+        considerationComponents.push(FulfillmentComponent(1, 2));
+        considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
         context.consideration.fulfillAvailableOrders{
@@ -473,136 +458,136 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
-        Context memory context,
-        uint240 amount,
-        uint8 numOrders
-    )
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
-    {
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(amount > 0 && numOrders > 0);
-        vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
-        );
-        vm.assume(
-            context.args.paymentAmts[0] % numOrders == 0 &&
-                context.args.paymentAmts[1] % numOrders == 0 &&
-                context.args.paymentAmts[2] % numOrders == 0
-        );
+    // function _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+    //     Context memory context,
+    //     uint240 amount,
+    //     uint8 numOrders
+    // )
+    //     internal
+    //     onlyPayable(context.args.zone)
+    //     topUp
+    //     resetTokenBalancesBetweenRuns
+    // {
+    //     vm.assume(
+    //         context.args.paymentAmts[0] > 0 &&
+    //             context.args.paymentAmts[1] > 0 &&
+    //             context.args.paymentAmts[2] > 0
+    //     );
+    //     vm.assume(amount > 0 && numOrders > 0);
+    //     vm.assume(
+    //         uint256(context.args.paymentAmts[0]) +
+    //             uint256(context.args.paymentAmts[1]) +
+    //             uint256(context.args.paymentAmts[2]) <=
+    //             2**128 - 1
+    //     );
+    //     vm.assume(
+    //         context.args.paymentAmts[0] % numOrders == 0 &&
+    //             context.args.paymentAmts[1] % numOrders == 0 &&
+    //             context.args.paymentAmts[2] % numOrders == 0
+    //     );
 
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    //     bytes32 conduitKey = context.args.useConduit
+    //         ? conduitKeyOne
+    //         : bytes32(0);
 
-        test1155_1.mint(alice, context.args.id, uint256(amount) * numOrders);
+    //     test1155_1.mint(alice, context.args.id, uint256(amount) * numOrders);
 
-        offerItems.push(
-            OfferItem(
-                ItemType.ERC1155,
-                address(test1155_1),
-                context.args.id,
-                amount,
-                amount
-            )
-        );
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                uint256(context.args.paymentAmts[0]) / numOrders,
-                uint256(context.args.paymentAmts[0]) / numOrders,
-                payable(alice)
-            )
-        );
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                uint256(context.args.paymentAmts[1]) / numOrders,
-                uint256(context.args.paymentAmts[1]) / numOrders,
-                payable(context.args.zone)
-            )
-        );
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                uint256(context.args.paymentAmts[2]) / numOrders,
-                uint256(context.args.paymentAmts[2]) / numOrders,
-                payable(cal)
-            )
-        );
+    //     offerItems.push(
+    //         OfferItem(
+    //             ItemType.ERC1155,
+    //             address(test1155_1),
+    //             context.args.id,
+    //             amount,
+    //             amount
+    //         )
+    //     );
+    //     considerationItems.push(
+    //         ConsiderationItem(
+    //             ItemType.NATIVE,
+    //             address(0),
+    //             0,
+    //             uint256(context.args.paymentAmts[0]) / numOrders,
+    //             uint256(context.args.paymentAmts[0]) / numOrders,
+    //             payable(alice)
+    //         )
+    //     );
+    //     considerationItems.push(
+    //         ConsiderationItem(
+    //             ItemType.NATIVE,
+    //             address(0),
+    //             0,
+    //             uint256(context.args.paymentAmts[1]) / numOrders,
+    //             uint256(context.args.paymentAmts[1]) / numOrders,
+    //             payable(context.args.zone)
+    //         )
+    //     );
+    //     considerationItems.push(
+    //         ConsiderationItem(
+    //             ItemType.NATIVE,
+    //             address(0),
+    //             0,
+    //             uint256(context.args.paymentAmts[2]) / numOrders,
+    //             uint256(context.args.paymentAmts[2]) / numOrders,
+    //             payable(cal)
+    //         )
+    //     );
 
-        Order[] memory orders = new Order[](numOrders + 1);
+    //     Order[] memory orders = new Order[](numOrders + 1);
 
-        for (uint256 i = 0; i < numOrders + 1; i++) {
-            OrderParameters memory orderParameters = OrderParameters(
-                address(alice),
-                context.args.zone,
-                offerItems,
-                considerationItems,
-                OrderType.FULL_OPEN,
-                block.timestamp,
-                block.timestamp + 1,
-                context.args.zoneHash,
-                context.args.salt + i,
-                conduitKey,
-                considerationItems.length
-            );
+    //     for (uint256 i = 0; i < numOrders + 1; i++) {
+    //         OrderParameters memory orderParameters = OrderParameters(
+    //             address(alice),
+    //             context.args.zone,
+    //             offerItems,
+    //             considerationItems,
+    //             OrderType.FULL_OPEN,
+    //             block.timestamp,
+    //             block.timestamp + 1,
+    //             context.args.zoneHash,
+    //             context.args.salt + i,
+    //             conduitKey,
+    //             considerationItems.length
+    //         );
 
-            OrderComponents memory orderComponents = getOrderComponents(
-                orderParameters,
-                context.consideration.getNonce(alice)
-            );
+    //         OrderComponents memory orderComponents = getOrderComponents(
+    //             orderParameters,
+    //             context.consideration.getNonce(alice)
+    //         );
 
-            bytes memory signature = signOrder(
-                context.consideration,
-                alicePk,
-                context.consideration.getOrderHash(orderComponents)
-            );
+    //         bytes memory signature = signOrder(
+    //             context.consideration,
+    //             alicePk,
+    //             context.consideration.getOrderHash(orderComponents)
+    //         );
 
-            orders[i] = Order(orderParameters, signature);
+    //         orders[i] = Order(orderParameters, signature);
 
-            offerComponents.push(FulfillmentComponent(i, 0));
-            firstConsiderationComponents.push(FulfillmentComponent(i, 0));
-            secondConsiderationComponents.push(FulfillmentComponent(i, 1));
-            thirdConsiderationComponents.push(FulfillmentComponent(i, 2));
-        }
+    //         offerComponents.push(FulfillmentComponent(i, 0));
+    //         firstConsiderationComponents.push(FulfillmentComponent(i, 0));
+    //         secondConsiderationComponents.push(FulfillmentComponent(i, 1));
+    //         thirdConsiderationComponents.push(FulfillmentComponent(i, 2));
+    //     }
 
-        offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+    //     offerComponentsArray.push(offerComponents);
+    //     resetOfferComponents();
 
-        considerationComponentsArray.push(firstConsiderationComponents);
-        considerationComponentsArray.push(secondConsiderationComponents);
-        considerationComponentsArray.push(thirdConsiderationComponents);
-        resetConsiderationComponents();
+    //     considerationComponentsArray.push(firstConsiderationComponents);
+    //     considerationComponentsArray.push(secondConsiderationComponents);
+    //     considerationComponentsArray.push(thirdConsiderationComponents);
+    //     resetConsiderationComponents();
 
-        context.consideration.fulfillAvailableOrders{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
-        }(
-            orders,
-            offerComponentsArray,
-            considerationComponentsArray,
-            conduitKey,
-            numOrders
-        );
-    }
+    //     context.consideration.fulfillAvailableOrders{
+    //         value: context.args.paymentAmts[0] +
+    //             context.args.paymentAmts[1] +
+    //             context.args.paymentAmts[2]
+    //     }(
+    //         orders,
+    //         offerComponentsArray,
+    //         considerationComponentsArray,
+    //         conduitKey,
+    //         numOrders
+    //     );
+    // }
 
     // function _testFulfillAndAggregateMultipleOrderTypesViaFulfillAvailableOrdersEthToErc1155(
     //     Context memory context,

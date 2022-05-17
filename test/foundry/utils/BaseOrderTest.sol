@@ -53,9 +53,7 @@ contract BaseOrderTest is
     ConsiderationItem[] considerationItems;
 
     FulfillmentComponent[] offerComponents;
-    FulfillmentComponent[] firstConsiderationComponents;
-    FulfillmentComponent[] secondConsiderationComponents;
-    FulfillmentComponent[] thirdConsiderationComponents;
+    FulfillmentComponent[] considerationComponents;
 
     FulfillmentComponent[][] offerComponentsArray;
     FulfillmentComponent[][] considerationComponentsArray;
@@ -167,9 +165,7 @@ contract BaseOrderTest is
     }
 
     function resetConsiderationComponents() internal {
-        delete firstConsiderationComponents;
-        delete secondConsiderationComponents;
-        delete thirdConsiderationComponents;
+        delete considerationComponents;
     }
 
     function _configureConsiderationItem(
@@ -187,6 +183,21 @@ contract BaseOrderTest is
         considerationItem.endAmount = endAmount;
         considerationItem.recipient = recipient;
         considerationItems.push(considerationItem);
+    }
+
+    function _configureConsiderationItem(
+        address payable recipient,
+        ItemType itemType,
+        uint256 identifier,
+        uint256 amt
+    ) internal {
+        if (itemType == ItemType.NATIVE) {
+            _configureEthConsiderationItem(recipient, amt);
+        } else if (itemType == ItemType.ERC20) {
+            _configureErc20ConsiderationItem(recipient, amt);
+        } else {
+            _configureErc1155ConsiderationItem(recipient, identifier, amt);
+        }
     }
 
     function _configureOfferItem(
