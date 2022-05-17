@@ -62,6 +62,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   let conduitImplementation;
   let conduitOne;
   let conduitKeyOne;
+  let directMarketplaceContract;
 
   const buildResolver = (
     orderIndex,
@@ -1314,7 +1315,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     // Deploy marketplace contract through efficient create2 factory
     const marketplaceContractFactory = await ethers.getContractFactory(
-      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration"
+      process.env.REFERENCE ? "ReferenceConsideration" : "Seaport"
+    );
+
+    directMarketplaceContract = await deployContract(
+      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
+      owner,
+      conduitController.address
     );
 
     const marketplaceContractAddress = await create2Factory.findCreate2Address(
@@ -1335,7 +1342,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     const { gasUsed } = await tx.wait(); // as of now: 5_479_569
 
     marketplaceContract = await ethers.getContractAt(
-      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
+      process.env.REFERENCE ? "ReferenceConsideration" : "Seaport",
       marketplaceContractAddress,
       owner
     );
@@ -1362,7 +1369,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     // Required for EIP712 signing
     domainData = {
-      name: "Consideration",
+      name: process.env.REFERENCE ? "Consideration" : "Seaport",
       version: VERSION,
       chainId: chainId,
       verifyingContract: marketplaceContract.address,
@@ -1697,10 +1704,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   describe("Getter tests", async () => {
     it("gets correct name", async () => {
       const name = await marketplaceContract.name();
-      expect(name).to.equal("Consideration");
+      expect(name).to.equal(
+        process.env.REFERENCE ? "Consideration" : "Seaport"
+      );
+
+      const directName = await directMarketplaceContract.name();
+      expect(directName).to.equal("Consideration");
     });
     it("gets correct version, domain separator and conduit controller", async () => {
-      const name = "Consideration";
+      const name = process.env.REFERENCE ? "Consideration" : "Seaport";
       const {
         version,
         domainSeparator,

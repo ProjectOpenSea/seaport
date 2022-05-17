@@ -11,6 +11,8 @@ import {
     ConsiderationEventsAndErrors
 } from "../interfaces/ConsiderationEventsAndErrors.sol";
 
+import "./ConsiderationConstants.sol";
+
 /**
  * @title ConsiderationBase
  * @author 0age
@@ -54,7 +56,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
 
         // Store the current chainId and derive the current domain separator.
         _CHAIN_ID = block.chainid;
-        _DOMAIN_SEPARATOR = _deriveInitialDomainSeparator();
+        _DOMAIN_SEPARATOR = _deriveDomainSeparator();
 
         // Set the supplied conduit controller.
         _CONDUIT_CONTROLLER = ConduitControllerInterface(conduitController);
@@ -66,26 +68,11 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     }
 
     /**
-     * @dev Internal view function to derive the initial EIP-712 domain
-     *      separator.
-     *
-     * @return The derived domain separator.
-     */
-    function _deriveInitialDomainSeparator()
-        internal
-        view
-        virtual
-        returns (bytes32)
-    {
-        return _deriveDomainSeparator();
-    }
-
-    /**
      * @dev Internal view function to derive the EIP-712 domain separator.
      *
      * @return The derived domain separator.
      */
-    function _deriveDomainSeparator() internal view virtual returns (bytes32) {
+    function _deriveDomainSeparator() internal view returns (bytes32) {
         // prettier-ignore
         return keccak256(
             abi.encode(
@@ -96,6 +83,34 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
                 address(this)
             )
         );
+    }
+
+    /**
+     * @dev Internal pure function to retrieve the default name of this
+     *      contract and return.
+     *
+     * @return The name of this contract.
+     */
+    function _name() internal pure virtual returns (string memory) {
+        // Return the name of the contract.
+        assembly {
+            mstore(0, OneWord) // First element is the offset.
+            // Name is right padded, so it touches the length which is left
+            // padded. This enables writing both values at once.
+            mstore(NameLengthPtr, NameWithLength)
+            return(0, ThreeWords) // Return all three words.
+        }
+    }
+
+    /**
+     * @dev Internal pure function to retrieve the default name of this contract
+     *      as a string that can be used internally.
+     *
+     * @return The name of this contract.
+     */
+    function _nameString() internal pure virtual returns (string memory) {
+        // Return the name of the contract.
+        return "Consideration";
     }
 
     /**
@@ -125,7 +140,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         )
     {
         // Derive hash of the name of the contract.
-        nameHash = keccak256(bytes("Consideration"));
+        nameHash = keccak256(bytes(_nameString()));
 
         // Derive hash of the version string of the contract.
         versionHash = keccak256(bytes("1"));
