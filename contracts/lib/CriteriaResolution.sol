@@ -283,7 +283,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
         pure
         returns (bytes32 value)
     {
-        // Utliize assembly to write directly to scratch space.
+        // Utilize assembly to write directly to scratch space.
         assembly {
             // Place the first value in the first word of scratch space.
             mstore(0, a)
