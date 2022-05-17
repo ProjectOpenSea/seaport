@@ -53,7 +53,7 @@ contract ConduitExecuteBatch1155Test is BaseConduitTest {
         bytes4 magicValue = context.conduit.executeBatch1155(
             context.batchTransfers
         );
-        assertEq(magicValue, "8df25d92");
+        assertEq(magicValue, Conduit.executeBatch1155.selector);
 
         for (uint256 i = 0; i < context.batchTransfers.length; i++) {
             ConduitBatch1155Transfer memory batchTransfer = context

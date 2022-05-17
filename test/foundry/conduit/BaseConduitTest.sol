@@ -35,7 +35,7 @@ contract BaseConduitTest is
     struct BatchIntermediate {
         address from;
         address to;
-        IdAmount[10] idAmounts;
+        IdAmount[2] idAmounts;
     }
 
     modifier resetTokenBalancesBetweenRuns(ConduitTransfer[] memory transfers) {
@@ -282,6 +282,7 @@ contract BaseConduitTest is
             address to = receiver(batchTransfer.to, ConduitItemType.ERC1155);
             batchTransfer.from = from;
             batchTransfer.to = to;
+            assertEq(from, batchTransfers[i].from);
         }
     }
 
@@ -329,6 +330,7 @@ contract BaseConduitTest is
                     batchTransfer.amounts[n]
                 );
             }
+            vm.prank(from);
             erc1155.setApprovalForAll(conduitAddress, true);
         }
     }
