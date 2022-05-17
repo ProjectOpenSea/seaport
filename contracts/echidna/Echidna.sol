@@ -334,7 +334,7 @@ contract Echidna is ERC1155TokenReceiver, EchidnaUtils {
         uint256[] calldata ids,
         uint256[] calldata amounts,
         bytes calldata data
-    ) external returns (bytes4) {
+    ) external override returns (bytes4) {
         return ERC1155TokenReceiver.onERC1155BatchReceived.selector;
     }
 

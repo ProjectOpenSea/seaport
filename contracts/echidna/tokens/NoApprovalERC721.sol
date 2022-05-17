@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.7;
+
 import "@rari-capital/solmate/src/tokens/ERC721.sol";
 
 ///@notice this token is purposefully modified to allow unapproved transfers
@@ -24,13 +27,13 @@ contract NoApprovalERC721 is ERC721("Test721", "TST721") {
         address to,
         uint256 id
     ) public override {
-        require(from == ownerOf[id], "WRONG_FROM");
+        require(from == ownerOf(id), "WRONG_FROM");
         require(to != address(0), "INVALID_RECIPIENT");
         unchecked {
             balanceOf[from]--;
             balanceOf[to]++;
         }
-        ownerOf[id] = to;
+        _ownerOf[id] = to;
         emit TransferERC721(from, to, id);
     }
 }
