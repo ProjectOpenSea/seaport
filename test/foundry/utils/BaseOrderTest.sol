@@ -202,6 +202,20 @@ contract BaseOrderTest is
 
     function _configureOfferItem(
         ItemType itemType,
+        uint256 identifier,
+        uint256 amt
+    ) internal {
+        if (itemType == ItemType.NATIVE) {
+            _configureEthOfferItem(amt);
+        } else if (itemType == ItemType.ERC20) {
+            _configureERC20OfferItem(amt);
+        } else {
+            _configureERC1155OfferItem(identifier, amt);
+        }
+    }
+
+    function _configureOfferItem(
+        ItemType itemType,
         address token,
         uint256 identifier,
         uint256 startAmount,
@@ -229,6 +243,10 @@ contract BaseOrderTest is
             amount,
             amount
         );
+    }
+
+    function _configureERC20OfferItem(uint256 amount) internal {
+        _configureOfferItem(ItemType.ERC20, address(token1), 0, amount, amount);
     }
 
     function _configureERC1155OfferItem(

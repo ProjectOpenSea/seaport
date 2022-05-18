@@ -2,16 +2,14 @@
 
 pragma solidity 0.8.13;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { Order, Fulfillment } from "../../contracts/lib/ConsiderationStructs.sol";
+import { OrderType, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
+import { Order, Fulfillment, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, CriteriaResolver, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
-import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
-import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
+import { stdError } from "forge-std/Test.sol";
 
 contract MatchOrders is BaseOrderTest {
     struct FuzzInputsCommon {
@@ -37,6 +35,166 @@ contract MatchOrders is BaseOrderTest {
         _testMatchOrdersSingleErc721OfferSingleEthConsideration(
             Context(consideration, inputs)
         );
+    }
+
+    function testMatchOrdersOverflowConsiderationSide() public {
+        // start at 1 to skip eth
+        for (uint256 i = 1; i < 4; i++) {
+            // skip 721s
+            if (i == 2) {
+                continue;
+            }
+            _testMatchOrdersOverflowConsiderationSide(
+                consideration,
+                ItemType(i)
+            );
+            _testMatchOrdersOverflowConsiderationSide(
+                referenceConsideration,
+                ItemType(i)
+            );
+        }
+    }
+
+    function _testMatchOrdersOverflowConsiderationSide(
+        ConsiderationInterface _consideration,
+        ItemType itemType
+    ) internal resetTokenBalancesBetweenRuns {
+        test721_1.mint(alice, 1);
+        _configureERC721OfferItem(1);
+        _configureConsiderationItem(alice, itemType, 1, 100);
+
+        OrderParameters memory firstOrderParameters = OrderParameters(
+            address(alice),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory firstOrderComponents = getOrderComponents(
+            firstOrderParameters,
+            _consideration.getNonce(alice)
+        );
+        bytes memory firstSignature = signOrder(
+            _consideration,
+            alicePk,
+            _consideration.getOrderHash(firstOrderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        test721_1.mint(bob, 2);
+        _configureERC721OfferItem(2);
+        _configureConsiderationItem(alice, itemType, 1, 2**256 - 1);
+
+        OrderParameters memory secondOrderParameters = OrderParameters(
+            address(bob),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory secondOrderComponents = getOrderComponents(
+            secondOrderParameters,
+            _consideration.getNonce(bob)
+        );
+        bytes memory secondSignature = signOrder(
+            _consideration,
+            bobPk,
+            _consideration.getOrderHash(secondOrderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        _configureOfferItem(itemType, 1, 99);
+        _configureErc721ConsiderationItem(alice, 1);
+        _configureErc721ConsiderationItem(bob, 2);
+
+        OrderParameters memory thirdOrderParameters = OrderParameters(
+            address(bob),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory thirdOrderComponents = getOrderComponents(
+            thirdOrderParameters,
+            _consideration.getNonce(bob)
+        );
+
+        bytes memory thirdSignature = signOrder(
+            _consideration,
+            bobPk,
+            _consideration.getOrderHash(thirdOrderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        Order[] memory orders = new Order[](3);
+        orders[0] = Order(firstOrderParameters, firstSignature);
+        orders[1] = Order(secondOrderParameters, secondSignature);
+        orders[2] = Order(thirdOrderParameters, thirdSignature);
+
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(2, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(2, 1);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        fulfillmentComponent = FulfillmentComponent(2, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        vm.expectRevert(stdError.arithmeticError);
+        _consideration.matchOrders{ value: 99 }(orders, fulfillments);
     }
 
     function _testMatchOrdersSingleErc721OfferSingleEthConsideration(
@@ -175,16 +333,25 @@ contract MatchOrders is BaseOrderTest {
 
         fulfillmentComponent = FulfillmentComponent(0, 0);
         fulfillmentComponents.push(fulfillmentComponent);
-        firstFulfillment.offerComponents = fulfillmentComponents;
-        secondFulfillment.considerationComponents = fulfillmentComponents;
+        fulfillment.offerComponents = fulfillmentComponents;
         delete fulfillmentComponents;
         fulfillmentComponent = FulfillmentComponent(1, 0);
         fulfillmentComponents.push(fulfillmentComponent);
-        firstFulfillment.considerationComponents = fulfillmentComponents;
-        secondFulfillment.offerComponents = fulfillmentComponents;
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
 
-        fulfillments.push(firstFulfillment);
-        fulfillments.push(secondFulfillment);
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
 
         context.consideration.matchOrders{
             value: context.args.paymentAmts[0] +
