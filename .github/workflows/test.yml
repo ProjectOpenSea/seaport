@@ -178,8 +178,12 @@ jobs:
         cache: 'npm'
     - name: Install dependencies
       run: yarn install
+    - name: Remove crytic artifacts
+      run: rm -rf crytic-export artifacts
+    - name: Hardhat clean
+      run: npx hardhat clean
     - name: Compile contracts
-      run: yarn build
+      run: npx hardhat compile
     - name: Run Echidna
       uses: crytic/echidna-action@v2
       with:
@@ -187,3 +191,4 @@ jobs:
         files: .
         contract: Echidna
         config: ./echidna/echidna.conf.yaml
+        crytic-args: --hardhat-ignore-compile
