@@ -26,7 +26,9 @@ import "./ConsiderationConstants.sol";
 /**
  * @title OrderFulfiller
  * @author 0age
- * @notice OrderFulfiller contains logic related to order fulfillment.
+ * @notice OrderFulfiller contains logic related to order fulfillment where a
+ *         single order is being fulfilled and where basic order fulfillment is
+ *         not available as an option.
  */
 contract OrderFulfiller is
     BasicOrderFulfiller,
@@ -95,6 +97,8 @@ contract OrderFulfiller is
 
         // Create an array with length 1 containing the order.
         AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](1);
+
+        // Populate the order as the first and only element of the new array.
         advancedOrders[0] = advancedOrder;
 
         // Apply criteria resolvers using generated orders and details arrays.
@@ -163,9 +167,14 @@ contract OrderFulfiller is
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
-        bytes memory accumulator = new bytes(32);
+        // Initialize an accumulator array. From this point forward, no new
+        // memory regions can be safely allocated until the accumulator is no
+        // longer being utilized, as the accumulator operates in an open-ended
+        // fashion from this memory pointer; existing memory may still be
+        // accessed and modified, however.
+        bytes memory accumulator = new bytes(AccumulatorDisarmed);
 
-        // As of solidity 0.6.0, inline assembly can not directly access function
+        // As of solidity 0.6.0, inline assembly cannot directly access function
         // definitions, but can still access locally scoped function variables.
         // This means that in order to recast the type of a function, we need to
         // create a local variable to reference the internal function definition
@@ -192,14 +201,14 @@ contract OrderFulfiller is
                 internal _transferOfferItem;
 
             {
-                // Assign _transfer function to a new function pointer (it takes a
-                // ReceivedItem as its initial argument)
+                // Assign _transfer function to a new function pointer (it takes
+                // a ReceivedItem as its initial argument)
                 function(ReceivedItem memory, address, bytes32, bytes memory)
                     internal _transferReceivedItem = _transfer;
 
                 // Utilize assembly to override the virtual function pointer.
                 assembly {
-                    // Cast initial ReceivedItem argument type to an OfferItem type.
+                    // Cast initial ReceivedItem type to an OfferItem type.
                     _transferOfferItem := _transferReceivedItem
                 }
             }
@@ -224,9 +233,12 @@ contract OrderFulfiller is
                 // Utilize assembly to set overloaded offerItem arguments.
                 assembly {
                     // Write derived fractional amount to startAmount as amount.
-                    mstore(add(offerItem, 0x60), amount)
+                    mstore(add(offerItem, ReceivedItem_amount_offset), amount)
                     // Write fulfiller (i.e. caller) to endAmount as recipient.
-                    mstore(add(offerItem, 0x80), caller())
+                    mstore(
+                        add(offerItem, ReceivedItem_recipient_offset),
+                        caller()
+                    )
                 }
 
                 // Reduce available value if offer spent ETH or a native token.
@@ -278,19 +290,19 @@ contract OrderFulfiller is
             function(ConsiderationItem memory, address, bytes32, bytes memory)
                 internal _transferConsiderationItem;
             {
-                // Reassign _transfer function to a new function pointer (it takes a
-                /// ReceivedItem as its initial argument).
+                // Reassign _transfer function to a new function pointer (it
+                // takes a ReceivedItem as its initial argument).
                 function(ReceivedItem memory, address, bytes32, bytes memory)
                     internal _transferReceivedItem = _transfer;
 
                 // Utilize assembly to override the virtual function pointer.
                 assembly {
-                    // Cast ReceivedItem argument type to ConsiderationItem type.
+                    // Cast ReceivedItem type to ConsiderationItem type.
                     _transferConsiderationItem := _transferReceivedItem
                 }
             }
 
-            // Iterate over each consideration on the order.
+            // Iterate over each consideration item on the order.
             for (uint256 i = 0; i < orderParameters.consideration.length; ) {
                 // Retrieve the consideration item.
                 ConsiderationItem memory considerationItem = (
@@ -312,12 +324,20 @@ contract OrderFulfiller is
                 // Use assembly to set overloaded considerationItem arguments.
                 assembly {
                     // Write derived fractional amount to startAmount as amount.
-                    mstore(add(considerationItem, 0x60), amount)
+                    mstore(
+                        add(considerationItem, ReceivedItem_amount_offset),
+                        amount
+                    )
 
                     // Write original recipient to endAmount as recipient.
                     mstore(
-                        add(considerationItem, 0x80),
-                        mload(add(considerationItem, 0xa0))
+                        add(considerationItem, ReceivedItem_recipient_offset),
+                        mload(
+                            add(
+                                considerationItem,
+                                ConsiderationItem_recipient_offset
+                            )
+                        )
                     )
                 }
 

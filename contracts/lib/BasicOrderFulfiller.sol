@@ -188,7 +188,12 @@ contract BasicOrderFulfiller is OrderValidator {
                 parameters.additionalRecipients
             );
         } else {
-            bytes memory accumulator = new bytes(32);
+            // Initialize an accumulator array. From this point forward, no new
+            // memory regions can be safely allocated until the accumulator is
+            // no longer being utilized, as the accumulator operates in an
+            // open-ended fashion from this memory pointer; existing memory may
+            // still be accessed and modified, however.
+            bytes memory accumulator = new bytes(AccumulatorDisarmed);
 
             if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
                 // Transfer ERC721 to caller using offerer's conduit preference.

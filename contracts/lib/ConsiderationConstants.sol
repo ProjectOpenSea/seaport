@@ -59,7 +59,6 @@ uint256 constant Common_amount_offset = 0x60;
 uint256 constant ReceivedItem_size = 0xa0;
 uint256 constant ReceivedItem_amount_offset = 0x60;
 uint256 constant ReceivedItem_recipient_offset = 0x80;
-uint256 constant ConsiderationItem_recipient_offset = 0xa0;
 
 uint256 constant ReceivedItem_CommonParams_size = 0x60;
 

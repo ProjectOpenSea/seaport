@@ -610,7 +610,12 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
-        bytes memory accumulator = new bytes(32);
+        // Initialize an accumulator array. From this point forward, no new
+        // memory regions can be safely allocated until the accumulator is no
+        // longer being utilized, as the accumulator operates in an open-ended
+        // fashion from this memory pointer; existing memory may still be
+        // accessed and modified, however.
+        bytes memory accumulator = new bytes(AccumulatorDisarmed);
 
         // Iterate over each execution.
         for (uint256 i = 0; i < executions.length; ) {
