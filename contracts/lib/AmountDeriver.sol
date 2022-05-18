@@ -52,11 +52,12 @@ contract AmountDeriver is AmountDerivationErrors {
             }
 
             // Aggregate new amounts weighted by time with rounding factor
-            uint256 totalBeforeDivision = ((startAmount * remaining) +
-                (endAmount * elapsed) +
-                extraCeiling);
+            // prettier-ignore
+            uint256 totalBeforeDivision = (
+                (startAmount * remaining) + (endAmount * elapsed) + extraCeiling
+            );
 
-            // Division is performed without zero check as it cannot be zero.
+            // Division performed with no zero check as duration cannot be zero.
             uint256 newAmount;
             assembly {
                 newAmount := div(totalBeforeDivision, duration)
@@ -76,7 +77,8 @@ contract AmountDeriver is AmountDerivationErrors {
      *
      * @param numerator   A value indicating the portion of the order that
      *                    should be filled.
-     * @param denominator A value indicating the total size of the order.
+     * @param denominator A value indicating the total size of the order. Note
+     *                    that this value cannot be equal to zero.
      * @param value       The value for which to compute the fraction.
      *
      * @return newValue The value after applying the fraction.
@@ -91,19 +93,26 @@ contract AmountDeriver is AmountDerivationErrors {
             return value;
         }
 
-        // Multiply the numerator by the value and ensure no overflow occurs.
-        uint256 valueTimesNumerator = value * numerator;
-
-        // Divide (Note: denominator must not be zero!) and check for remainder.
+        // Ensure fraction can be applied to the value with no remainder. Note
+        // that the denominator cannot be zero.
         bool exact;
         assembly {
-            newValue := div(valueTimesNumerator, denominator)
+            // Ensure new value contains no remainder via mulmod operator.
             exact := iszero(mulmod(value, numerator, denominator))
         }
 
         // Ensure that division gave a final result with no remainder.
         if (!exact) {
             revert InexactFraction();
+        }
+
+        // Multiply the numerator by the value and ensure no overflow occurs.
+        uint256 valueTimesNumerator = value * numerator;
+
+        // Divide and check for remainder. Note that denominator cannot be zero.
+        assembly {
+            // Perform division without zero check.
+            newValue := div(valueTimesNumerator, denominator)
         }
     }
 
@@ -134,9 +143,10 @@ contract AmountDeriver is AmountDerivationErrors {
     ) internal pure returns (uint256 amount) {
         // If start amount equals end amount, apply fraction to end amount.
         if (startAmount == endAmount) {
+            // Apply fraction to end amount.
             amount = _getFraction(numerator, denominator, endAmount);
         } else {
-            // Otherwise, apply fraction to both to extrapolate final amount.
+            // Otherwise, apply fraction to both and extrapolate final amount.
             amount = _locateCurrentAmount(
                 _getFraction(numerator, denominator, startAmount),
                 _getFraction(numerator, denominator, endAmount),
