@@ -338,8 +338,16 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         // used from this point on and can be repurposed to fit
                         // the layout of a ReceivedItem.
                         mstore(
-                            add(considerationItem, 0x80), // endAmount
-                            mload(add(considerationItem, 0xa0)) // recipient
+                            add(
+                                considerationItem,
+                                ReceivedItem_recipient_offset // old endAmount
+                            ),
+                            mload(
+                                add(
+                                    considerationItem,
+                                    ConsiderationItem_recipient_offset
+                                )
+                            )
                         )
                     }
                 }
