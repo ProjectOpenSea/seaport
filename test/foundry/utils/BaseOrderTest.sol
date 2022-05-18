@@ -169,23 +169,6 @@ contract BaseOrderTest is
     }
 
     function _configureConsiderationItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount,
-        address payable recipient
-    ) internal {
-        considerationItem.itemType = itemType;
-        considerationItem.token = token;
-        considerationItem.identifierOrCriteria = identifier;
-        considerationItem.startAmount = startAmount;
-        considerationItem.endAmount = endAmount;
-        considerationItem.recipient = recipient;
-        considerationItems.push(considerationItem);
-    }
-
-    function _configureConsiderationItem(
         address payable recipient,
         ItemType itemType,
         uint256 identifier,
@@ -195,8 +178,10 @@ contract BaseOrderTest is
             _configureEthConsiderationItem(recipient, amt);
         } else if (itemType == ItemType.ERC20) {
             _configureErc20ConsiderationItem(recipient, amt);
-        } else {
+        } else if (itemType == ItemType.ERC1155) {
             _configureErc1155ConsiderationItem(recipient, identifier, amt);
+        } else {
+            _configureErc721ConsiderationItem(recipient, identifier);
         }
     }
 
@@ -209,24 +194,11 @@ contract BaseOrderTest is
             _configureEthOfferItem(amt);
         } else if (itemType == ItemType.ERC20) {
             _configureERC20OfferItem(amt);
-        } else {
+        } else if (itemType == ItemType.ERC1155) {
             _configureERC1155OfferItem(identifier, amt);
+        } else {
+            _configureERC721OfferItem(identifier);
         }
-    }
-
-    function _configureOfferItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        offerItem.itemType = itemType;
-        offerItem.token = token;
-        offerItem.identifierOrCriteria = identifier;
-        offerItem.startAmount = startAmount;
-        offerItem.endAmount = endAmount;
-        offerItems.push(offerItem);
     }
 
     function _configureERC721OfferItem(uint256 tokenId) internal {
@@ -260,6 +232,16 @@ contract BaseOrderTest is
             tokenId,
             startAmount,
             endAmount
+        );
+    }
+
+    function _configureEthOfferItem(uint256 paymentAmount) internal {
+        _configureOfferItem(
+            ItemType.NATIVE,
+            address(0),
+            0,
+            paymentAmount,
+            paymentAmount
         );
     }
 
@@ -335,14 +317,36 @@ contract BaseOrderTest is
         );
     }
 
-    function _configureEthOfferItem(uint256 paymentAmount) internal {
-        _configureOfferItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            paymentAmount,
-            paymentAmount
-        );
+    function _configureOfferItem(
+        ItemType itemType,
+        address token,
+        uint256 identifier,
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal {
+        offerItem.itemType = itemType;
+        offerItem.token = token;
+        offerItem.identifierOrCriteria = identifier;
+        offerItem.startAmount = startAmount;
+        offerItem.endAmount = endAmount;
+        offerItems.push(offerItem);
+    }
+
+    function _configureConsiderationItem(
+        ItemType itemType,
+        address token,
+        uint256 identifier,
+        uint256 startAmount,
+        uint256 endAmount,
+        address payable recipient
+    ) internal {
+        considerationItem.itemType = itemType;
+        considerationItem.token = token;
+        considerationItem.identifierOrCriteria = identifier;
+        considerationItem.startAmount = startAmount;
+        considerationItem.endAmount = endAmount;
+        considerationItem.recipient = recipient;
+        considerationItems.push(considerationItem);
     }
 
     /**

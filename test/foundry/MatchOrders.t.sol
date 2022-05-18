@@ -78,7 +78,7 @@ contract MatchOrders is BaseOrderTest {
         _configureErc721ConsiderationItem(alice, 1);
 
         OrderParameters memory firstOrderParameters = OrderParameters(
-            address(alice),
+            address(bob),
             address(0),
             offerItems,
             considerationItems,
@@ -93,11 +93,11 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             firstOrderParameters,
-            _consideration.getNonce(alice)
+            _consideration.getNonce(bob)
         );
         bytes memory firstSignature = signOrder(
             _consideration,
-            alicePk,
+            bobPk,
             _consideration.getOrderHash(firstOrderComponents)
         );
 
@@ -105,7 +105,7 @@ contract MatchOrders is BaseOrderTest {
         delete considerationItems;
 
         _configureOfferItem(itemType, 1, 2**256 - 1);
-        _configureErc721ConsiderationItem(bob, 2);
+        _configureErc721ConsiderationItem(alice, 2);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -134,14 +134,14 @@ contract MatchOrders is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
-        test721_1.mint(bob, 1);
-        test721_1.mint(bob, 2);
+        test721_1.mint(alice, 1);
+        test721_1.mint(alice, 2);
         _configureERC721OfferItem(1);
         _configureERC721OfferItem(2);
-        _configureConsiderationItem(alice, itemType, 1, 99);
+        _configureConsiderationItem(bob, itemType, 1, 99);
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
-            address(bob),
+            address(alice),
             address(0),
             offerItems,
             considerationItems,
@@ -156,12 +156,12 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
             thirdOrderParameters,
-            _consideration.getNonce(bob)
+            _consideration.getNonce(alice)
         );
 
         bytes memory thirdSignature = signOrder(
             _consideration,
-            bobPk,
+            alicePk,
             _consideration.getOrderHash(thirdOrderComponents)
         );
 
