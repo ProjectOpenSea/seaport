@@ -3,15 +3,13 @@
 pragma solidity 0.8.13;
 
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { Order, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
-import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
-import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
+import { stdError } from "forge-std/Test.sol";
 
 contract FulfillAvailableOrder is BaseOrderTest {
     struct FuzzInputs {
@@ -28,6 +26,40 @@ contract FulfillAvailableOrder is BaseOrderTest {
         FuzzInputs args;
     }
 
+    function testFulfillAvailableOrdersOverflowOfferSide() public {
+        for (uint256 i; i < 4; i++) {
+            // skip 721s
+            if (i == 2) {
+                continue;
+            }
+            _testFulfillAvailableOrdersOverflowOfferSide(
+                consideration,
+                ItemType(i)
+            );
+            _testFulfillAvailableOrdersOverflowOfferSide(
+                referenceConsideration,
+                ItemType(i)
+            );
+        }
+    }
+
+    function testFulfillAvailableOrdersOverflowConsiderationSide() public {
+        for (uint256 i; i < 4; i++) {
+            // skip 721s
+            if (i == 2) {
+                continue;
+            }
+            _testFulfillAvailableOrdersOverflowConsiderationSide(
+                consideration,
+                ItemType(i)
+            );
+            _testFulfillAvailableOrdersOverflowConsiderationSide(
+                referenceConsideration,
+                ItemType(i)
+            );
+        }
+    }
+
     function testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
         FuzzInputs memory args
     ) public {
@@ -39,17 +71,200 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+    function testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
         FuzzInputs memory args,
         uint240 amount
     ) public {
-        _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+        _testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
             Context(referenceConsideration, args),
             amount
         );
-        _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+        _testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
             Context(consideration, args),
             amount
+        );
+    }
+
+    function _testFulfillAvailableOrdersOverflowOfferSide(
+        ConsiderationInterface _consideration,
+        ItemType itemType
+    ) internal resetTokenBalancesBetweenRuns {
+        // mint consideration nfts to the test contract
+        test721_1.mint(address(this), 1);
+        test721_1.mint(address(this), 2);
+
+        _configureOfferItem(itemType, 1, 100);
+        _configureConsiderationItem(alice, ItemType.ERC721, 1, 1);
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory firstOrderComponents = getOrderComponents(
+            orderParameters,
+            _consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            _consideration,
+            alicePk,
+            _consideration.getOrderHash(firstOrderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        // try to overflow the aggregated amount of tokens sent to alice
+        _configureOfferItem(itemType, 1, MAX_INT);
+        _configureConsiderationItem(bob, ItemType.ERC721, 2, 1);
+
+        OrderParameters memory secondOrderParameters = OrderParameters(
+            address(alice),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory secondOrderComponents = getOrderComponents(
+            secondOrderParameters,
+            _consideration.getNonce(alice)
+        );
+        bytes memory secondSignature = signOrder(
+            _consideration,
+            alicePk,
+            _consideration.getOrderHash(secondOrderComponents)
+        );
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = Order(orderParameters, signature);
+        orders[1] = Order(secondOrderParameters, secondSignature);
+
+        // agregate offers together
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        vm.expectRevert(stdError.arithmeticError);
+        _consideration.fulfillAvailableOrders(
+            orders,
+            offerComponentsArray,
+            considerationComponentsArray,
+            bytes32(0),
+            100
+        );
+    }
+
+    function _testFulfillAvailableOrdersOverflowConsiderationSide(
+        ConsiderationInterface _consideration,
+        ItemType itemType
+    ) internal resetTokenBalancesBetweenRuns {
+        test721_1.mint(alice, 1);
+        _configureOfferItem(ItemType.ERC721, 1, 1);
+        _configureConsiderationItem(alice, itemType, 1, 100);
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory firstOrderComponents = getOrderComponents(
+            orderParameters,
+            _consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            _consideration,
+            alicePk,
+            _consideration.getOrderHash(firstOrderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        test721_1.mint(bob, 2);
+        _configureOfferItem(ItemType.ERC721, 2, 1);
+        // try to overflow the aggregated amount of tokens sent to alice
+        _configureConsiderationItem(alice, itemType, 1, MAX_INT);
+
+        OrderParameters memory secondOrderParameters = OrderParameters(
+            address(bob),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory secondOrderComponents = getOrderComponents(
+            secondOrderParameters,
+            _consideration.getNonce(bob)
+        );
+        bytes memory secondSignature = signOrder(
+            _consideration,
+            bobPk,
+            _consideration.getOrderHash(secondOrderComponents)
+        );
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = Order(orderParameters, signature);
+        orders[1] = Order(secondOrderParameters, secondSignature);
+
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
+
+        // agregate considerations together
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+        vm.expectRevert(stdError.arithmeticError);
+        _consideration.fulfillAvailableOrders{ value: 99 }(
+            orders,
+            offerComponentsArray,
+            considerationComponentsArray,
+            bytes32(0),
+            100
         );
     }
 
@@ -177,7 +392,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
     }
 
-    function _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
+    function _testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
         Context memory context,
         uint240 amount
     )
