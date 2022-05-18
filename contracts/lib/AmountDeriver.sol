@@ -74,6 +74,9 @@ contract AmountDeriver is AmountDerivationErrors {
     /**
      * @dev Internal pure function to return a fraction of a given value and to
      *      ensure the resultant value does not have any fractional component.
+     *      Note that this function assumes that zero will never be supplied as
+     *      the denominator parameter; invalid / undefined behavior will result
+     *      should a denominator of zero be provided.
      *
      * @param numerator   A value indicating the portion of the order that
      *                    should be filled.
@@ -98,6 +101,7 @@ contract AmountDeriver is AmountDerivationErrors {
         bool exact;
         assembly {
             // Ensure new value contains no remainder via mulmod operator.
+            // Credit to @hrkrshnn + @axic for proposing this optimal solution.
             exact := iszero(mulmod(value, numerator, denominator))
         }
 
