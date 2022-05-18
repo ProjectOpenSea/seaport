@@ -186,5 +186,5 @@ jobs:
         solc-version: 0.8.13
         files: .
         contract: Echidna
-        config: ./echidna/echidna.conf.yml
+        config: ./echidna/echidna.conf.yaml
         crytic-args: --hardhat-ignore-compile
