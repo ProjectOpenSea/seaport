@@ -1374,17 +1374,22 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "ConduitController"
       );
 
+      if (!hre.__SOLIDITY_COVERAGE_RUNNING) {
+        expect(
+          ethers.utils.keccak256(conduitControllerFactory.bytecode)
+        ).to.equal(deployConstants.CONDUIT_CONTROLLER_CREATION_HASH);
+      }
+
       const conduitControllerAddress = await create2Factory.findCreate2Address(
         deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
         conduitControllerFactory.bytecode
       );
 
-      // TODO: Add back when recomputing deployment address
-      // if (!hre.__SOLIDITY_COVERAGE_RUNNING) {
-      //   expect(conduitControllerAddress).to.equal(
-      //     deployConstants.CONDUIT_CONTROLLER_ADDRESS
-      //   );
-      // }
+      if (!hre.__SOLIDITY_COVERAGE_RUNNING) {
+        expect(conduitControllerAddress).to.equal(
+          deployConstants.CONDUIT_CONTROLLER_ADDRESS
+        );
+      }
 
       await create2Factory.safeCreate2(
         deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
@@ -1424,14 +1429,29 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       conduitController.address
     );
 
+    if (!hre.__SOLIDITY_COVERAGE_RUNNING && !process.env.REFERENCE) {
+      expect(
+        ethers.utils.keccak256(
+          marketplaceContractFactory.bytecode +
+            conduitController.address.slice(2).padStart(64, "0")
+        )
+      ).to.equal(deployConstants.MARKETPLACE_CONTRACT_CREATION_HASH);
+    }
+
     const marketplaceContractAddress = await create2Factory.findCreate2Address(
-      ethers.constants.HashZero, // TODO: find a good one
+      deployConstants.MARKETPLACE_CONTRACT_CREATION_SALT,
       marketplaceContractFactory.bytecode +
         conduitController.address.slice(2).padStart(64, "0")
     );
 
+    if (!hre.__SOLIDITY_COVERAGE_RUNNING && !process.env.REFERENCE) {
+      expect(marketplaceContractAddress).to.equal(
+        deployConstants.MARKETPLACE_CONTRACT_ADDRESS
+      );
+    }
+
     const tx = await create2Factory.safeCreate2(
-      ethers.constants.HashZero, // TODO: find a good one
+      deployConstants.MARKETPLACE_CONTRACT_CREATION_SALT,
       marketplaceContractFactory.bytecode +
         conduitController.address.slice(2).padStart(64, "0"),
       {
