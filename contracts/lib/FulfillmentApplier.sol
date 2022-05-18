@@ -192,13 +192,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         FulfillmentComponent[] memory offerComponents,
         Execution memory execution
     ) internal view {
-        // Declare a variable for the final aggregated item amount.
-        uint256 amount;
-        // uint g1 = gasleft();
-
-        // Declare a variable indicating whether the aggregation is invalid.
-        // bool invalidFulfillment;
-
         assembly {
             function throwInvalidFulfillmentComponentData() {
                 mstore(0, InvalidFulfillmentComponentData_error_signature)
@@ -255,6 +248,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     mul(itemIndex, OneWord)
                 )
             )
+
+            // Declare a variable for the final aggregated item amount.
+            let amount := 0
 
             // Create variable to track errors encountered with amount
             let errorBuffer := 0
@@ -484,8 +480,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 revert(0, Panic_error_length)
             }
 
-            let amount := 0
-
             // Get position in considerationComponents head
             let fulfillmentHeadPtr := add(considerationComponents, OneWord)
 
@@ -532,6 +526,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     mul(itemIndex, OneWord)
                 )
             )
+
+            // Declare a variable for the final aggregated item amount.
+            let amount := 0
 
             // Create variable to track errors encountered with amount
             let errorBuffer := 0
