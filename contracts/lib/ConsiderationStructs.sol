@@ -10,7 +10,7 @@ import {
 } from "./ConsiderationEnums.sol";
 
 /**
- * @dev An order contains ten components: an offerer, a zone (or account that
+ * @dev An order contains eleven components: an offerer, a zone (or account that
  *      can cancel the order or restrict who can fulfill the order depending on
  *      the type), the order type (specifying partial fill support as well as
  *      restricted order status), the start and end time, a hash that will be
