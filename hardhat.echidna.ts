@@ -31,33 +31,11 @@ const config: HardhatUserConfig = {
           viaIR: true,
           optimizer: {
             enabled: true,
-            runs: 15000,
+            runs: 200,
           },
         },
       },
     ],
-    overrides: {
-      "contracts/conduit/Conduit.sol": {
-        version: "0.8.13",
-        settings: {
-          viaIR: true,
-          optimizer: {
-            enabled: true,
-            runs: 1000000,
-          },
-        },
-      },
-      "contracts/conduit/ConduitController.sol": {
-        version: "0.8.13",
-        settings: {
-          viaIR: true,
-          optimizer: {
-            enabled: true,
-            runs: 1000000,
-          },
-        },
-      },
-    },
   },
   networks: {
     hardhat: {
@@ -69,7 +47,7 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
-  paths: { cache: "hh-cache" },
+  paths: { sources: "echidna", cache: "hh-cache" },
 };
 
 export default config;

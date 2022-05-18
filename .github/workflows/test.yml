@@ -184,6 +184,8 @@ jobs:
       run: npx hardhat clean
     - name: Compile contracts
       run: npx hardhat compile
+    - name: Compile echidna
+      run: npx hardhat compile --config hardhat.echidna.ts
     - name: Run Echidna
       uses: crytic/echidna-action@v2
       with:
