@@ -338,8 +338,16 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         // used from this point on and can be repurposed to fit
                         // the layout of a ReceivedItem.
                         mstore(
-                            add(considerationItem, 0x80), // endAmount
-                            mload(add(considerationItem, 0xa0)) // recipient
+                            add(
+                                considerationItem,
+                                ReceivedItem_recipient_offset // old endAmount
+                            ),
+                            mload(
+                                add(
+                                    considerationItem,
+                                    ConsiderationItem_recipient_offset
+                                )
+                            )
                         )
                     }
                 }
@@ -602,7 +610,12 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
-        bytes memory accumulator = new bytes(32);
+        // Initialize an accumulator array. From this point forward, no new
+        // memory regions can be safely allocated until the accumulator is no
+        // longer being utilized, as the accumulator operates in an open-ended
+        // fashion from this memory pointer; existing memory may still be
+        // accessed and modified, however.
+        bytes memory accumulator = new bytes(AccumulatorDisarmed);
 
         // Iterate over each execution.
         for (uint256 i = 0; i < executions.length; ) {
