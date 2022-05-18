@@ -98,6 +98,8 @@ uint256 constant AdvancedOrder_numerator_offset = 0x20;
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
+uint256 constant FourWords = 0x80;
+uint256 constant FiveWords = 0xa0;
 
 uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
@@ -192,7 +194,7 @@ uint256 constant BasicOrder_startTime_cdPtr = 0x144;
 // uint256 constant BasicOrder_zoneHash_cdPtr = 0x184;
 // uint256 constant BasicOrder_salt_cdPtr = 0x1a4;
 // uint256 constant BasicOrder_offererConduit_cdPtr = 0x1c4;
-// uint256 constant BasicOrder_fulfillerConduit_cdPtr = 0x1e4;
+uint256 constant BasicOrder_fulfillerConduit_cdPtr = 0x1e4;
 uint256 constant BasicOrder_totalOriginalAdditionalRecipients_cdPtr = 0x204;
 uint256 constant BasicOrder_additionalRecipients_head_cdPtr = 0x224;
 uint256 constant BasicOrder_signature_cdPtr = 0x244;
