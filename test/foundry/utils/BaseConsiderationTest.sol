@@ -10,6 +10,7 @@ import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { ReferenceConduitController } from "../../../reference/conduit/ReferenceConduitController.sol";
 import { ReferenceConsideration } from "../../../reference/ReferenceConsideration.sol";
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
+import { Consideration } from "../../../contracts/Consideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
 contract BaseConsiderationTest is Test {
@@ -84,11 +85,14 @@ contract BaseConsiderationTest is Test {
                 "optimized-out/ConduitController.sol/ConduitController.json"
             )
         );
+        // consideration = ConsiderationInterface(
+        //     deployCode(
+        //         "optimized-out/Consideration.sol/Consideration.json",
+        //         abi.encode(address(conduitController))
+        //     )
+        // );
         consideration = ConsiderationInterface(
-            deployCode(
-                "optimized-out/Consideration.sol/Consideration.json",
-                abi.encode(address(conduitController))
-            )
+            new Consideration(address(conduitController))
         );
 
         //create conduit, update channel

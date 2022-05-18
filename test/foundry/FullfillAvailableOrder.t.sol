@@ -3,15 +3,12 @@
 pragma solidity 0.8.13;
 
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { Order, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
-import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
-import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 import { stdError } from "forge-std/Test.sol";
 
 contract FulfillAvailableOrder is BaseOrderTest {
@@ -29,26 +26,164 @@ contract FulfillAvailableOrder is BaseOrderTest {
         FuzzInputs args;
     }
 
-    function testFulfillAvailableOrderOverflow() public {
+    function testFulfillAvailableOrdersOverflowOfferSide() public {
         for (uint256 i; i < 4; i++) {
             // skip 721s
             if (i == 2) {
                 continue;
             }
-            _testFulfillAvailableOrderOverflow(consideration, ItemType(i));
-            _testFulfillAvailableOrderOverflow(
+            _testFulfillAvailableOrdersOverflowOfferSide(
+                consideration,
+                ItemType(i)
+            );
+            _testFulfillAvailableOrdersOverflowOfferSide(
                 referenceConsideration,
                 ItemType(i)
             );
         }
     }
 
-    function _testFulfillAvailableOrderOverflow(
+    function testFulfillAvailableOrdersOverflowConsiderationSide() public {
+        for (uint256 i; i < 4; i++) {
+            // skip 721s
+            if (i == 2) {
+                continue;
+            }
+            _testFulfillAvailableOrdersOverflowConsiderationSide(
+                consideration,
+                ItemType(i)
+            );
+            _testFulfillAvailableOrdersOverflowConsiderationSide(
+                referenceConsideration,
+                ItemType(i)
+            );
+        }
+    }
+
+    function testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
+        FuzzInputs memory args
+    ) public {
+        _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
+            Context(referenceConsideration, args)
+        );
+        _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
+            Context(consideration, args)
+        );
+    }
+
+    function testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
+        FuzzInputs memory args,
+        uint240 amount
+    ) public {
+        _testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
+            Context(referenceConsideration, args),
+            amount
+        );
+        _testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
+            Context(consideration, args),
+            amount
+        );
+    }
+
+    function _testFulfillAvailableOrdersOverflowOfferSide(
+        ConsiderationInterface _consideration,
+        ItemType itemType
+    ) internal resetTokenBalancesBetweenRuns {
+        // mint consideration nfts to the test contract
+        test721_1.mint(address(this), 1);
+        test721_1.mint(address(this), 2);
+
+        _configureOfferItem(itemType, 1, 100);
+        _configureConsiderationItem(alice, ItemType.ERC721, 1, 1);
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory firstOrderComponents = getOrderComponents(
+            orderParameters,
+            _consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            _consideration,
+            alicePk,
+            _consideration.getOrderHash(firstOrderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        // try to overflow the aggregated amount of tokens sent to alice
+        _configureOfferItem(itemType, 1, MAX_INT);
+        _configureConsiderationItem(bob, ItemType.ERC721, 2, 1);
+
+        OrderParameters memory secondOrderParameters = OrderParameters(
+            address(bob),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory secondOrderComponents = getOrderComponents(
+            secondOrderParameters,
+            _consideration.getNonce(bob)
+        );
+        bytes memory secondSignature = signOrder(
+            _consideration,
+            bobPk,
+            _consideration.getOrderHash(secondOrderComponents)
+        );
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = Order(orderParameters, signature);
+        orders[1] = Order(secondOrderParameters, secondSignature);
+
+        // agregate offers together
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
+
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        vm.expectRevert(stdError.arithmeticError);
+        _consideration.fulfillAvailableOrders(
+            orders,
+            offerComponentsArray,
+            considerationComponentsArray,
+            bytes32(0),
+            100
+        );
+    }
+
+    function _testFulfillAvailableOrdersOverflowConsiderationSide(
         ConsiderationInterface _consideration,
         ItemType itemType
     ) internal resetTokenBalancesBetweenRuns {
         test721_1.mint(alice, 1);
-        _configureERC721OfferItem(1);
+        _configureOfferItem(ItemType.ERC721, 1, 1);
         _configureConsiderationItem(alice, itemType, 1, 100);
 
         OrderParameters memory orderParameters = OrderParameters(
@@ -79,8 +214,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        _configureERC721OfferItem(2);
-        // try to overflow the aggregated amount of eth sent to alice
+        _configureOfferItem(ItemType.ERC721, 2, 1);
+        // try to overflow the aggregated amount of tokens sent to alice
         _configureConsiderationItem(alice, itemType, 1, MAX_INT);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
@@ -118,7 +253,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        // agregate eth considerations together
+        // agregate considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
@@ -132,48 +267,6 @@ contract FulfillAvailableOrder is BaseOrderTest {
             100
         );
     }
-
-    function testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-        FuzzInputs memory args
-    ) public {
-        _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-            Context(referenceConsideration, args)
-        );
-        _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-            Context(consideration, args)
-        );
-    }
-
-    function testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
-        FuzzInputs memory args,
-        uint240 amount
-    ) public {
-        _testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
-            Context(referenceConsideration, args),
-            amount
-        );
-        _testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
-            Context(consideration, args),
-            amount
-        );
-    }
-
-    // function testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
-    //     FuzzInputs memory args,
-    //     uint240 amount,
-    //     uint8 numOrders
-    // ) public {
-    //     _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
-    //         Context(referenceConsideration, args),
-    //         amount,
-    //         numOrders
-    //     );
-    //     _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
-    //         Context(consideration, args),
-    //         amount,
-    //         numOrders
-    //     );
-    // }
 
     function _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
         Context memory context
@@ -457,210 +550,4 @@ contract FulfillAvailableOrder is BaseOrderTest {
             100
         );
     }
-
-    // function _testFulfillAndAggregateMultipleOrdersViaFulfillAvailableOrdersEthToErc1155(
-    //     Context memory context,
-    //     uint240 amount,
-    //     uint8 numOrders
-    // )
-    //     internal
-    //     onlyPayable(context.args.zone)
-    //     topUp
-    //     resetTokenBalancesBetweenRuns
-    // {
-    //     vm.assume(
-    //         context.args.paymentAmts[0] > 0 &&
-    //             context.args.paymentAmts[1] > 0 &&
-    //             context.args.paymentAmts[2] > 0
-    //     );
-    //     vm.assume(amount > 0 && numOrders > 0);
-    //     vm.assume(
-    //         uint256(context.args.paymentAmts[0]) +
-    //             uint256(context.args.paymentAmts[1]) +
-    //             uint256(context.args.paymentAmts[2]) <=
-    //             2**128 - 1
-    //     );
-    //     vm.assume(
-    //         context.args.paymentAmts[0] % numOrders == 0 &&
-    //             context.args.paymentAmts[1] % numOrders == 0 &&
-    //             context.args.paymentAmts[2] % numOrders == 0
-    //     );
-
-    //     bytes32 conduitKey = context.args.useConduit
-    //         ? conduitKeyOne
-    //         : bytes32(0);
-
-    //     test1155_1.mint(alice, context.args.id, uint256(amount) * numOrders);
-
-    //     offerItems.push(
-    //         OfferItem(
-    //             ItemType.ERC1155,
-    //             address(test1155_1),
-    //             context.args.id,
-    //             amount,
-    //             amount
-    //         )
-    //     );
-    //     considerationItems.push(
-    //         ConsiderationItem(
-    //             ItemType.NATIVE,
-    //             address(0),
-    //             0,
-    //             uint256(context.args.paymentAmts[0]) / numOrders,
-    //             uint256(context.args.paymentAmts[0]) / numOrders,
-    //             payable(alice)
-    //         )
-    //     );
-    //     considerationItems.push(
-    //         ConsiderationItem(
-    //             ItemType.NATIVE,
-    //             address(0),
-    //             0,
-    //             uint256(context.args.paymentAmts[1]) / numOrders,
-    //             uint256(context.args.paymentAmts[1]) / numOrders,
-    //             payable(context.args.zone)
-    //         )
-    //     );
-    //     considerationItems.push(
-    //         ConsiderationItem(
-    //             ItemType.NATIVE,
-    //             address(0),
-    //             0,
-    //             uint256(context.args.paymentAmts[2]) / numOrders,
-    //             uint256(context.args.paymentAmts[2]) / numOrders,
-    //             payable(cal)
-    //         )
-    //     );
-
-    //     Order[] memory orders = new Order[](numOrders + 1);
-
-    //     for (uint256 i = 0; i < numOrders + 1; i++) {
-    //         OrderParameters memory orderParameters = OrderParameters(
-    //             address(alice),
-    //             context.args.zone,
-    //             offerItems,
-    //             considerationItems,
-    //             OrderType.FULL_OPEN,
-    //             block.timestamp,
-    //             block.timestamp + 1,
-    //             context.args.zoneHash,
-    //             context.args.salt + i,
-    //             conduitKey,
-    //             considerationItems.length
-    //         );
-
-    //         OrderComponents memory orderComponents = getOrderComponents(
-    //             orderParameters,
-    //             context.consideration.getNonce(alice)
-    //         );
-
-    //         bytes memory signature = signOrder(
-    //             context.consideration,
-    //             alicePk,
-    //             context.consideration.getOrderHash(orderComponents)
-    //         );
-
-    //         orders[i] = Order(orderParameters, signature);
-
-    //         offerComponents.push(FulfillmentComponent(i, 0));
-    //         firstConsiderationComponents.push(FulfillmentComponent(i, 0));
-    //         secondConsiderationComponents.push(FulfillmentComponent(i, 1));
-    //         thirdConsiderationComponents.push(FulfillmentComponent(i, 2));
-    //     }
-
-    //     offerComponentsArray.push(offerComponents);
-    //     resetOfferComponents();
-
-    //     considerationComponentsArray.push(firstConsiderationComponents);
-    //     considerationComponentsArray.push(secondConsiderationComponents);
-    //     considerationComponentsArray.push(thirdConsiderationComponents);
-    //     resetConsiderationComponents();
-
-    //     context.consideration.fulfillAvailableOrders{
-    //         value: context.args.paymentAmts[0] +
-    //             context.args.paymentAmts[1] +
-    //             context.args.paymentAmts[2]
-    //     }(
-    //         orders,
-    //         offerComponentsArray,
-    //         considerationComponentsArray,
-    //         conduitKey,
-    //         numOrders
-    //     );
-    // }
-
-    // function _testFulfillAndAggregateMultipleOrderTypesViaFulfillAvailableOrdersEthToErc1155(
-    //     Context memory context,
-    //     uint128 amount,
-    //     uint8[4] memory orderTypes
-    // )
-    //     internal
-    //     onlyPayable(context.args.zone)
-    //     topUp
-    //     resetTokenBalancesBetweenRuns
-    // {
-    //     vm.assume(
-    //         context.args.paymentAmts[0] > 0 &&
-    //             context.args.paymentAmts[1] > 0 &&
-    //             context.args.paymentAmts[2] > 0
-    //     );
-    //     vm.assume(amount > 0);
-    //     vm.assume(
-    //         uint256(context.args.paymentAmts[0]) +
-    //             uint256(context.args.paymentAmts[1]) +
-    //             uint256(context.args.paymentAmts[2]) <=
-    //             2**128 - 1
-    //     );
-    //     vm.assume(
-    //         context.args.paymentAmts[0] % numOrders == 0 &&
-    //             context.args.paymentAmts[1] % numOrders == 0 &&
-    //             context.args.paymentAmts[2] % numOrders == 0
-    //     );
-
-    //     bytes32 conduitKey = context.args.useConduit
-    //         ? conduitKeyOne
-    //         : bytes32(0);
-
-    //     test1155_1.mint(alice, context.args.id, uint256(amount) * numOrders);
-
-    //     offerItems.push(
-    //         OfferItem(
-    //             ItemType.ERC1155,
-    //             address(test1155_1),
-    //             context.args.id,
-    //             amount,
-    //             amount
-    //         )
-    //     );
-    //     considerationItems.push(
-    //         ConsiderationItem(
-    //             ItemType.NATIVE,
-    //             address(0),
-    //             0,
-    //             uint256(context.args.paymentAmts[0]) / numOrders,
-    //             uint256(context.args.paymentAmts[0]) / numOrders,
-    //             payable(alice)
-    //         )
-    //     );
-    //     considerationItems.push(
-    //         ConsiderationItem(
-    //             ItemType.NATIVE,
-    //             address(0),
-    //             0,
-    //             uint256(context.args.paymentAmts[1]) / numOrders,
-    //             uint256(context.args.paymentAmts[1]) / numOrders,
-    //             payable(context.args.zone)
-    //         )
-    //     );
-    //     considerationItems.push(
-    //         ConsiderationItem(
-    //             ItemType.NATIVE,
-    //             address(0),
-    //             0,
-    //             uint256(context.args.paymentAmts[2]) / numOrders,
-    //             uint256(context.args.paymentAmts[2]) / numOrders,
-    //             payable(cal)
-    //         )
-    //     );
-    // }
 }
