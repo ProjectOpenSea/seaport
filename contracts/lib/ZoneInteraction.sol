@@ -13,7 +13,7 @@ import "./ConsiderationConstants.sol";
 // prettier-ignore
 import {
     ZoneInteractionErrors
-} from "contracts/interfaces/ZoneInteractionErrors.sol";
+} from "../interfaces/ZoneInteractionErrors.sol";
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
