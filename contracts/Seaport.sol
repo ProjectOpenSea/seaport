@@ -45,7 +45,7 @@ contract Seaport is Consideration {
 
     /**
      * @dev Internal pure function to retrieve the name of this contract as a
-     *      string that can be used internally.
+     *      string that will be used to derive the name hash in the constructor.
      *
      * @return The name of this contract as a string.
      */

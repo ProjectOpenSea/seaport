@@ -26,6 +26,7 @@ contract LowLevelHelpers {
         returns (bool success)
     {
         assembly {
+            // Perform the staticcall.
             success := staticcall(
                 gas(),
                 target,

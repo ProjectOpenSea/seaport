@@ -98,6 +98,8 @@ uint256 constant AdvancedOrder_numerator_offset = 0x20;
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
+uint256 constant FourWords = 0x80;
+uint256 constant FiveWords = 0xa0;
 
 uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
@@ -186,13 +188,13 @@ uint256 constant BasicOrder_zone_cdPtr = 0xa4;
 uint256 constant BasicOrder_offerToken_cdPtr = 0xc4;
 // uint256 constant BasicOrder_offerIdentifier_cdPtr = 0xe4;
 uint256 constant BasicOrder_offerAmount_cdPtr = 0x104;
-// uint256 constant BasicOrder_basicOrderType_cdPtr = 0x124;
+uint256 constant BasicOrder_basicOrderType_cdPtr = 0x124;
 uint256 constant BasicOrder_startTime_cdPtr = 0x144;
 // uint256 constant BasicOrder_endTime_cdPtr = 0x164;
 // uint256 constant BasicOrder_zoneHash_cdPtr = 0x184;
 // uint256 constant BasicOrder_salt_cdPtr = 0x1a4;
-// uint256 constant BasicOrder_offererConduit_cdPtr = 0x1c4;
-// uint256 constant BasicOrder_fulfillerConduit_cdPtr = 0x1e4;
+uint256 constant BasicOrder_offererConduit_cdPtr = 0x1c4;
+uint256 constant BasicOrder_fulfillerConduit_cdPtr = 0x1e4;
 uint256 constant BasicOrder_totalOriginalAdditionalRecipients_cdPtr = 0x204;
 uint256 constant BasicOrder_additionalRecipients_head_cdPtr = 0x224;
 uint256 constant BasicOrder_signature_cdPtr = 0x244;
@@ -321,3 +323,21 @@ uint256 constant Conduit_execute_transferIdentifier_ptr = 0xc4;
 uint256 constant Conduit_execute_transferAmount_ptr = 0xe4;
 
 uint256 constant OneConduitExecute_size = 0x104;
+
+// Sentinel value to indicate that the conduit accumulator is not armed.
+uint256 constant AccumulatorDisarmed = 0x20;
+uint256 constant AccumulatorArmed = 0x40;
+uint256 constant Accumulator_conduitKey_ptr = 0x20;
+uint256 constant Accumulator_selector_ptr = 0x40;
+uint256 constant Accumulator_array_offset_ptr = 0x44;
+uint256 constant Accumulator_array_length_ptr = 0x64;
+
+uint256 constant Accumulator_itemSizeOffsetDifference = 0x3c;
+
+uint256 constant Accumulator_array_offset = 0x20;
+uint256 constant Conduit_transferItem_size = 0xc0;
+uint256 constant Conduit_transferItem_token_ptr = 0x20;
+uint256 constant Conduit_transferItem_from_ptr = 0x40;
+uint256 constant Conduit_transferItem_to_ptr = 0x60;
+uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
+uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
