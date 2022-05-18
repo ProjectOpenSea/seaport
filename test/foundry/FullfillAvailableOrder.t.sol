@@ -128,7 +128,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         _configureConsiderationItem(bob, ItemType.ERC721, 2, 1);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
-            address(bob),
+            address(alice),
             address(0),
             offerItems,
             considerationItems,
@@ -143,11 +143,11 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            _consideration.getNonce(bob)
+            _consideration.getNonce(alice)
         );
         bytes memory secondSignature = signOrder(
             _consideration,
-            bobPk,
+            alicePk,
             _consideration.getOrderHash(secondOrderComponents)
         );
 

@@ -85,14 +85,11 @@ contract BaseConsiderationTest is Test {
                 "optimized-out/ConduitController.sol/ConduitController.json"
             )
         );
-        // consideration = ConsiderationInterface(
-        //     deployCode(
-        //         "optimized-out/Consideration.sol/Consideration.json",
-        //         abi.encode(address(conduitController))
-        //     )
-        // );
         consideration = ConsiderationInterface(
-            new Consideration(address(conduitController))
+            deployCode(
+                "optimized-out/Consideration.sol/Consideration.json",
+                abi.encode(address(conduitController))
+            )
         );
 
         //create conduit, update channel
