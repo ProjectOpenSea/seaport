@@ -5,6 +5,7 @@ pragma solidity 0.8.13;
 import { OrderType, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
 import { Order, Fulfillment, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
+import { ConsiderationEventsAndErrors } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
@@ -68,6 +69,17 @@ contract MatchOrders is BaseOrderTest {
                 ItemType(i)
             );
         }
+    }
+
+    function testMatchOrdersAscendingConsiderationAmount(
+        FuzzInputsCommon memory inputs
+    ) public {
+        _testMatchOrdersAscendingConsiderationAmount(
+            Context(referenceConsideration, inputs)
+        );
+        _testMatchOrdersAscendingConsiderationAmount(
+            Context(consideration, inputs)
+        );
     }
 
     function _testMatchOrdersOverflowOrderSide(
@@ -351,7 +363,7 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillment;
 
         vm.expectRevert(stdError.arithmeticError);
-        _consideration.matchOrders{ value: 99 }(orders, fulfillments);
+        _consideration.matchOrders(orders, fulfillments);
     }
 
     function _testMatchOrdersSingleErc721OfferSingleEthConsideration(
@@ -394,8 +406,8 @@ contract MatchOrders is BaseOrderTest {
             )
         );
 
-        OrderComponents memory orderComponents = OrderComponents(
-            alice,
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
             context.args.zone,
             offerItems,
             considerationItems,
@@ -405,8 +417,14 @@ contract MatchOrders is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
+            considerationItems.length
+        );
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
             context.consideration.getNonce(alice)
         );
+
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
@@ -437,39 +455,6 @@ contract MatchOrders is BaseOrderTest {
             payable(cal)
         );
 
-        OrderComponents memory mirrorOrderComponents = OrderComponents(
-            cal,
-            context.args.zone,
-            mirrorOfferItems,
-            mirrorConsiderationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            context.consideration.getNonce(cal)
-        );
-        bytes memory mirrorSignature = signOrder(
-            context.consideration,
-            calPk,
-            context.consideration.getOrderHash(mirrorOrderComponents)
-        );
-
-        OrderParameters memory orderParameters = OrderParameters(
-            address(alice),
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            considerationItems.length
-        );
-
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(cal),
             context.args.zone,
@@ -482,6 +467,16 @@ contract MatchOrders is BaseOrderTest {
             context.args.salt,
             conduitKey,
             mirrorConsiderationItems.length
+        );
+        OrderComponents memory mirrorOrderComponents = getOrderComponents(
+            mirrorOrderParameters,
+            context.consideration.getNonce(cal)
+        );
+
+        bytes memory mirrorSignature = signOrder(
+            context.consideration,
+            calPk,
+            context.consideration.getOrderHash(mirrorOrderComponents)
         );
 
         Order[] memory orders = new Order[](2);
@@ -515,5 +510,158 @@ contract MatchOrders is BaseOrderTest {
                 context.args.paymentAmts[1] +
                 context.args.paymentAmts[2]
         }(orders, fulfillments);
+    }
+
+    function _testMatchOrdersAscendingConsiderationAmount(
+        Context memory context
+    ) internal resetTokenBalancesBetweenRuns {
+        vm.assume(
+            context.args.paymentAmts[0] > 0 &&
+                context.args.paymentAmts[1] > 0 &&
+                context.args.paymentAmts[2] > 0
+        );
+        vm.assume(
+            uint256(context.args.paymentAmts[0]) *
+                2 +
+                uint256(context.args.paymentAmts[1]) +
+                uint256(context.args.paymentAmts[2]) <=
+                2**128 - 1
+        );
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test721_1.mint(alice, context.args.id);
+
+        _configureOfferItem(ItemType.ERC721, context.args.id, 1);
+        // set endAmount to 2 * startAmount
+        _configureEthConsiderationItem(
+            alice,
+            context.args.paymentAmts[0],
+            context.args.paymentAmts[0] * 2
+        );
+        _configureEthConsiderationItem(alice, context.args.paymentAmts[1]);
+        _configureEthConsiderationItem(alice, context.args.paymentAmts[2]);
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        // minimum amount of eth required to match orders at endTime
+        uint256 sumOfPaymentAmts = uint256(context.args.paymentAmts[0]) *
+            2 +
+            context.args.paymentAmts[1] +
+            context.args.paymentAmts[2];
+
+        // aggregate original order's eth consideration items into one mirror offer item
+        _configureOfferItem(ItemType.NATIVE, 0, sumOfPaymentAmts);
+
+        // push the original order's offer item into mirrorConsiderationItems
+        _configureConsiderationItem(cal, ItemType.ERC721, context.args.id, 1);
+
+        OrderParameters memory mirrorOrderParameters = OrderParameters(
+            address(cal),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+        OrderComponents memory mirrorOrderComponents = getOrderComponents(
+            mirrorOrderParameters,
+            context.consideration.getNonce(cal)
+        );
+
+        bytes memory mirrorSignature = signOrder(
+            context.consideration,
+            calPk,
+            context.consideration.getOrderHash(mirrorOrderComponents)
+        );
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = Order(orderParameters, signature);
+        orders[1] = Order(mirrorOrderParameters, mirrorSignature);
+
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillmentComponent = FulfillmentComponent(0, 1);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillmentComponent = FulfillmentComponent(0, 2);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        delete offerItems;
+        delete considerationItems;
+
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        // set blockTimestamp to right before endTime and set insufficient value for transaction
+        vm.warp(block.timestamp + 999);
+        vm.expectRevert(
+            ConsiderationEventsAndErrors.InsufficientEtherSupplied.selector
+        );
+        context.consideration.matchOrders{
+            value: context.args.paymentAmts[0] +
+                context.args.paymentAmts[1] +
+                context.args.paymentAmts[2]
+        }(orders, fulfillments);
+
+        // set transaction value to sum of eth consideration items (including endAmount of considerationItem[0])
+        context.consideration.matchOrders{ value: sumOfPaymentAmts }(
+            orders,
+            fulfillments
+        );
+        (, , uint256 totalFilled, uint256 totalSize) = context
+            .consideration
+            .getOrderStatus(orderHash);
+        assertEq(totalFilled, 1);
+        assertEq(totalSize, 1);
     }
 }
