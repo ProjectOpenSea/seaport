@@ -89,6 +89,7 @@ contract Assertions is
      * @param amount The amount to check.
      */
     function _assertNonZeroAmount(uint256 amount) internal pure {
+        // Revert if the supplied amont is equal to zero.
         if (amount == 0) {
             revert MissingItemAmount();
         }
@@ -114,12 +115,12 @@ contract Assertions is
              * 3. Signature offset == 0x260 + (recipients.length * 0x40)
              */
             validOffsets := and(
-                // Order parameters have offset of 0x20
+                // Order parameters at calldata 0x04 must have offset of 0x20.
                 eq(
                     calldataload(BasicOrder_parameters_cdPtr),
                     BasicOrder_parameters_ptr
                 ),
-                // Additional recipients have offset of 0x240
+                // Additional recipients at cd 0x224 must have offset of 0x240.
                 eq(
                     calldataload(BasicOrder_additionalRecipients_head_cdPtr),
                     BasicOrder_additionalRecipients_head_ptr
@@ -128,15 +129,17 @@ contract Assertions is
             validOffsets := and(
                 validOffsets,
                 eq(
-                    // Load signature offset from calldata
+                    // Load signature offset from calldata 0x244.
                     calldataload(BasicOrder_signature_cdPtr),
-                    // Calculate expected offset: start of recipients + len * 64
+                    // Derive expected offset as start of recipients + len * 64.
                     add(
                         BasicOrder_signature_ptr,
                         mul(
+                            // Additional recipients length at calldata 0x264.
                             calldataload(
                                 BasicOrder_additionalRecipients_length_cdPtr
                             ),
+                            // Each additional recipient has a length of 0x40.
                             AdditionalRecipients_size
                         )
                     )
