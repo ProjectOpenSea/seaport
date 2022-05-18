@@ -323,3 +323,21 @@ uint256 constant Conduit_execute_transferIdentifier_ptr = 0xc4;
 uint256 constant Conduit_execute_transferAmount_ptr = 0xe4;
 
 uint256 constant OneConduitExecute_size = 0x104;
+
+// Sentinel value to indicate that the conduit accumulator is not armed.
+uint256 constant AccumulatorDisarmed = 0x20;
+uint256 constant AccumulatorArmed = 0x40;
+uint256 constant Accumulator_conduitKey_ptr = 0x20;
+uint256 constant Accumulator_selector_ptr = 0x40;
+uint256 constant Accumulator_array_offset_ptr = 0x44;
+uint256 constant Accumulator_array_length_ptr = 0x64;
+
+uint256 constant Accumulator_itemSizeOffsetDifference = 0x3c;
+
+uint256 constant Accumulator_array_offset = 0x20;
+uint256 constant Conduit_transferItem_size = 0xc0;
+uint256 constant Conduit_transferItem_token_ptr = 0x20;
+uint256 constant Conduit_transferItem_from_ptr = 0x40;
+uint256 constant Conduit_transferItem_to_ptr = 0x60;
+uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
+uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
