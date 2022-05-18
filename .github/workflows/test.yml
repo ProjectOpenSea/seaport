@@ -187,4 +187,3 @@ jobs:
         files: .
         contract: Echidna
         config: ./echidna/echidna.conf.yaml
-        crytic-args: --hardhat-ignore-compile
