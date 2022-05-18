@@ -114,15 +114,15 @@ contract BaseOrderTest is
         // _resetStorage(address(consideration));
         _resetTokensAndEthForTestAccounts();
         // todo: don't delete these between runs, do setup outside of test logic
-        // delete offerItems;
-        // delete considerationItems;
-        // delete offerComponentsArray;
-        // delete considerationComponentsArray;
-        // delete fulfillments;
-        // delete firstFulfillment;
-        // delete secondFulfillment;
-        // delete fulfillmentComponent;
-        // delete fulfillmentComponents;
+        delete offerItems;
+        delete considerationItems;
+        delete offerComponentsArray;
+        delete considerationComponentsArray;
+        delete fulfillments;
+        delete firstFulfillment;
+        delete secondFulfillment;
+        delete fulfillmentComponent;
+        delete fulfillmentComponents;
     }
 
     function setUp() public virtual override {
