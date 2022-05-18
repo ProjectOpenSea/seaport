@@ -35,6 +35,12 @@ out = 'optimized-out'
 via_ir = false
 fuzz_runs = 1000
 
+[echidna]
+out = 'echidna-out'
+via_ir = true
+src = 'echidna'
+test = 'echidna'
+
 [local-ffi]
 via_ir = false
 fuzz_runs = 5000

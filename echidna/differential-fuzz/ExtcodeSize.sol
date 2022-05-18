@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "../../test/TestERC20.sol";
+import "../../contracts/test/TestERC20.sol";
 
 // echidna-test-2.0 . --contract ExtcodeSize  --test-mode assertion
 contract ExtcodeSize {

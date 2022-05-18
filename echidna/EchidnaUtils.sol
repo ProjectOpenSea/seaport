@@ -2,8 +2,8 @@
 pragma solidity >=0.8.7;
 
 import "./EchidnaOrderUtils.sol";
-import "../interfaces/ConsiderationInterface.sol";
-import { OrderType } from "../lib/ConsiderationEnums.sol";
+import "../contracts/interfaces/ConsiderationInterface.sol";
+import { OrderType } from "../contracts/lib/ConsiderationEnums.sol";
 
 import "./tokens/NoApprovalERC20.sol";
 import "./tokens/NoApprovalERC721.sol";

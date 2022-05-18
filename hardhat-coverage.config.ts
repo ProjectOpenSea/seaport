@@ -25,7 +25,7 @@ const config: HardhatUserConfig = {
       },
     ],
     overrides: {
-      "contracts/echidna/Echidna.sol": {
+      "echidna/Echidna.sol": {
         version: "0.8.13",
         settings: {
           viaIR: true,

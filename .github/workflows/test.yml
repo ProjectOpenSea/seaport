@@ -165,3 +165,26 @@ jobs:
         with:
           path: "./coverage/lcov.info"
           min_coverage: 100
+
+  echidna:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Use Node.js 16
+      uses: actions/setup-node@v2
+      with:
+        node-version: 16
+        cache: 'npm'
+    - name: Install dependencies
+      run: yarn install
+    - name: Compile contracts
+      run: yarn build
+    - name: Run Echidna
+      uses: crytic/echidna-action@v2
+      with:
+        solc-version: 0.8.13
+        files: .
+        contract: Echidna
+        config: ./echidna/echidna.conf.yml
+        crytic-args: --hardhat-ignore-compile

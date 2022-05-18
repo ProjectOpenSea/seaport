@@ -17,7 +17,7 @@ cache
 out
 reference-out
 optimized-out
-reference-working
+echidna-out
 
 .DS_Store
 

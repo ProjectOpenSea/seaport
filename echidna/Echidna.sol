@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "../Consideration.sol";
-import "../conduit/Conduit.sol";
-import "../conduit/ConduitController.sol";
+import "../contracts/Consideration.sol";
+import "../contracts/conduit/Conduit.sol";
+import "../contracts/conduit/ConduitController.sol";
 import "./EchidnaUtils.sol";
 
 //install echidna and crytic-compile

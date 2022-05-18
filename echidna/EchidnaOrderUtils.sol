@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.7;
 
-import { ItemType, BasicOrderType } from "../lib/ConsiderationEnums.sol";
+import { ItemType, BasicOrderType } from "../contracts/lib/ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -11,7 +11,7 @@ import {
     ConsiderationItem,
     OfferItem,
     AdditionalRecipient
-} from "../lib/ConsiderationStructs.sol";
+} from "../contracts/lib/ConsiderationStructs.sol";
 
 contract EchidnaOrderUtils {
     function convertOrderParametersToOrderComponents(
