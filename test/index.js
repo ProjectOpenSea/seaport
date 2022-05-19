@@ -7590,8 +7590,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           buildOrderStatus(true, false, 1, 1)
         );
       });
-      it.skip("Ascending consideration amount (match)", async () => {});
-      it.skip("Ascending amount + partial fill (standard)", async () => {});
       it.skip("Ascending amount + partial fill (match)", async () => {});
       it.skip("Descending offer amount (standard)", async () => {
         // Seller mints nft
