@@ -88,6 +88,17 @@ contract MatchOrders is BaseOrderTest {
         }
     }
 
+    function testMatchOrdersAscendingOfferAmount(
+        FuzzInputsAscendingDescending memory inputs
+    ) public {
+        _testMatchOrdersAscendingOfferAmount(
+            ContextAscendingDescending(referenceConsideration, inputs)
+        );
+        _testMatchOrdersAscendingOfferAmount(
+            ContextAscendingDescending(consideration, inputs)
+        );
+    }
+
     function testMatchOrdersAscendingConsiderationAmount(
         FuzzInputsAscendingDescending memory inputs
     ) public {
@@ -551,6 +562,133 @@ contract MatchOrders is BaseOrderTest {
         }(orders, fulfillments);
     }
 
+    function _testMatchOrdersAscendingOfferAmount(
+        ContextAscendingDescending memory context
+    ) internal resetTokenBalancesBetweenRuns {
+        vm.assume(context.args.amount > 100);
+        vm.assume(uint256(context.args.amount) * 2 <= 2**128 - 1);
+        vm.assume(context.args.warp > 10 && context.args.warp < 1000);
+
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test721_1.mint(bob, context.args.id);
+
+        _configureOfferItem(
+            ItemType.ERC20,
+            0,
+            context.args.amount,
+            context.args.amount * 2
+        );
+        _configureConsiderationItem(alice, ItemType.ERC721, context.args.id, 1);
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        uint256 currentAmount = _locateCurrentAmount(
+            context.args.amount, // start amount
+            context.args.amount * 2, // end amount
+            context.args.warp, // elapsed
+            1000 - context.args.warp, // remaining
+            1000, // duration
+            false // roundUp
+        );
+
+        _configureOfferItem(ItemType.ERC721, context.args.id, 1);
+        _configureConsiderationItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            currentAmount,
+            currentAmount,
+            bob
+        );
+
+        OrderParameters memory mirrorOrderParameters = OrderParameters(
+            address(bob),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+        OrderComponents memory mirrorOrderComponents = getOrderComponents(
+            mirrorOrderParameters,
+            context.consideration.getNonce(bob)
+        );
+
+        bytes memory mirrorSignature = signOrder(
+            context.consideration,
+            bobPk,
+            context.consideration.getOrderHash(mirrorOrderComponents)
+        );
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = Order(orderParameters, signature);
+        orders[1] = Order(mirrorOrderParameters, mirrorSignature);
+
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        vm.warp(block.timestamp + context.args.warp);
+
+        uint256 balanceBeforeOrder = token1.balanceOf(bob);
+        context.consideration.matchOrders(orders, fulfillments);
+        uint256 balanceAfterOrder = token1.balanceOf(bob);
+        // check the difference in alice's balance is equal to endAmount of offer item
+        assertEq(balanceAfterOrder - balanceBeforeOrder, currentAmount);
+    }
+
     function _testMatchOrdersAscendingConsiderationAmount(
         ContextAscendingDescending memory context
     ) internal resetTokenBalancesBetweenRuns {
@@ -612,8 +750,6 @@ contract MatchOrders is BaseOrderTest {
             true // roundUp
         );
         _configureOfferItem(ItemType.ERC20, 0, currentAmount, currentAmount);
-
-        // push the original order's offer item into mirrorConsiderationItems
         _configureConsiderationItem(bob, ItemType.ERC721, context.args.id, 1);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
@@ -694,7 +830,7 @@ contract MatchOrders is BaseOrderTest {
             context.args.amount * 2,
             context.args.amount
         );
-        _configureConsiderationItem(alice, ItemType.ERC721, context.args.id, 1);
+        _configureErc721ConsiderationItem(alice, context.args.id);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
