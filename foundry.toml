@@ -8,7 +8,7 @@ remappings = [
     'ds-test=lib/ds-test/src/',
     'forge-std=lib/forge-std/src/',
 ]
-fuzz_runs = 5000
+fuzz_runs = 1000
 fuzz_max_global_rejects = 2_000_000
 fuzz_max_local_rejects = 10_000
 optimizer_runs = 15000

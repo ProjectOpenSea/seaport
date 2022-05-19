@@ -10,9 +10,10 @@ import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+import { AmountDeriver } from "../../contracts/lib/AmountDeriver.sol";
 import { stdError } from "forge-std/Test.sol";
 
-contract MatchOrders is BaseOrderTest {
+contract MatchOrders is BaseOrderTest, AmountDeriver {
     struct FuzzInputsCommon {
         address zone;
         uint256 id;
@@ -22,10 +23,27 @@ contract MatchOrders is BaseOrderTest {
         bool useConduit;
     }
 
+    struct FuzzInputsAscendingDescending {
+        address zone;
+        uint256 id;
+        bytes32 zoneHash;
+        uint256 salt;
+        uint128 amount;
+        bool useConduit;
+        uint256 warp;
+    }
+
     struct Context {
         ConsiderationInterface consideration;
         FuzzInputsCommon args;
     }
+
+    struct ContextAscendingDescending {
+        ConsiderationInterface consideration;
+        FuzzInputsAscendingDescending args;
+    }
+
+    event Transfer(address from, address to, uint256 amount);
 
     function testMatchOrdersSingleErc721OfferSingleEthConsideration(
         FuzzInputsCommon memory inputs
@@ -85,9 +103,20 @@ contract MatchOrders is BaseOrderTest {
     function testMatchOrdersDescendingOfferAmount(
         FuzzInputsCommon memory inputs
     ) public {
-        _testMatchOrdersDescendingOfferAmount(Context(consideration, inputs));
         _testMatchOrdersDescendingOfferAmount(
             Context(referenceConsideration, inputs)
+        );
+        _testMatchOrdersDescendingOfferAmount(Context(consideration, inputs));
+    }
+
+    function testMatchOrdersDescendingConsiderationAmount(
+        FuzzInputsAscendingDescending memory inputs
+    ) public {
+        _testMatchOrdersDescendingConsiderationAmount(
+            ContextAscendingDescending(referenceConsideration, inputs)
+        );
+        _testMatchOrdersDescendingConsiderationAmount(
+            ContextAscendingDescending(consideration, inputs)
         );
     }
 
@@ -768,23 +797,182 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
+        uint256 balaceBeforeOrder = token1.balanceOf(bob);
+
         // set timeStamp to endTime
         vm.warp(block.timestamp + 999);
         context.consideration.matchOrders(orders, fulfillments);
+
+        uint256 balanceAfterOrder = token1.balanceOf(bob);
+        // check the difference in balance is equal to endAmount of offer item
         assertEq(
-            orders[1].parameters.consideration[0].endAmount,
+            balanceAfterOrder - balaceBeforeOrder,
             context.args.paymentAmts[0]
         );
-        assertEq(
-            orders[0].parameters.offer[0].endAmount,
-            orders[1].parameters.consideration[0].endAmount
+        delete offerItems;
+        delete considerationItems;
+    }
+
+    function _testMatchOrdersDescendingConsiderationAmount(
+        ContextAscendingDescending memory context
+    ) internal resetTokenBalancesBetweenRuns {
+        vm.assume(context.args.amount > 100);
+        vm.assume(uint256(context.args.amount) * 2 <= 2**128 - 1);
+        vm.assume(context.args.warp > 10 && context.args.warp < 1000);
+
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test721_1.mint(alice, context.args.id);
+
+        assert(considerationItems.length == 0);
+
+        _configureOfferItem(ItemType.ERC721, context.args.id, 1);
+        considerationItems.push(
+            ConsiderationItem(
+                ItemType.ERC20,
+                address(token1),
+                1,
+                context.args.amount * 2, // start amount
+                context.args.amount, // end amount
+                alice
+            )
+        );
+        emit log_named_uint(
+            "Consideration Start Amount: ",
+            considerationItems[0].startAmount
+        );
+        emit log_named_uint(
+            "Consideration End Amount: ",
+            considerationItems[0].endAmount
+        );
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
         );
 
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
-        (, , uint256 totalFilled, uint256 totalSize) = context
-            .consideration
-            .getOrderStatus(orderHash);
-        assertEq(totalFilled, 1);
-        assertEq(totalSize, 1);
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        vm.warp(block.timestamp + context.args.warp);
+        uint256 currentAmount = _locateCurrentAmount(
+            context.args.amount * 2,
+            context.args.amount,
+            context.args.warp,
+            1000 - context.args.warp,
+            1000,
+            true
+        );
+        emit log_named_uint("Current Amount: ", currentAmount);
+
+        _configureOfferItem(
+            ItemType.ERC20,
+            address(token1),
+            1,
+            currentAmount,
+            currentAmount
+        );
+        _configureConsiderationItem(bob, ItemType.ERC721, context.args.id, 1);
+
+        OrderParameters memory mirrorOrderParameters = OrderParameters(
+            address(bob),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+
+        OrderComponents memory mirrorOrderComponents = getOrderComponents(
+            mirrorOrderParameters,
+            context.consideration.getNonce(bob)
+        );
+
+        bytes memory mirrorSignature = signOrder(
+            context.consideration,
+            bobPk,
+            context.consideration.getOrderHash(mirrorOrderComponents)
+        );
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = Order(orderParameters, signature);
+        orders[1] = Order(mirrorOrderParameters, mirrorSignature);
+        emit log_named_uint(
+            "Mirror Offer Start Amount: ",
+            mirrorOrderParameters.offer[0].startAmount
+        );
+        emit log_named_uint(
+            "Mirror Offer End Amount: ",
+            mirrorOrderParameters.offer[0].endAmount
+        );
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        uint256 balanceBeforeOrder = token1.balanceOf(alice);
+        context.consideration.matchOrders(orders, fulfillments);
+
+        uint256 balanceAfterOrder = token1.balanceOf(alice);
+        // check the difference in alice's balance is equal to endAmount of offer item
+        assertEq(balanceAfterOrder - balanceBeforeOrder, currentAmount);
     }
+
+    // function _testMatchOrdersDescendingOfferPartialFill(Context memory context)
+    //     internal
+    // {
+    //     vm.assume(
+    //         context.args.paymentAmts[0] > 0 &&
+    //             context.args.paymentAmts[1] > 0 &&
+    //             context.args.paymentAmts[2] > 0
+    //     );
+    //     vm.assume(uint256(context.args.paymentAmts[0]) * 2 <= 2**128 - 1);
+
+    //     bytes32 conduitKey = context.args.useConduit
+    //         ? conduitKeyOne
+    //         : bytes32(0);
+    // }
 }
