@@ -24,6 +24,18 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+    overrides: {
+      "contracts/echidna/Echidna.sol": {
+        version: "0.8.13",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+    },
   },
   networks: {
     hardhat: {

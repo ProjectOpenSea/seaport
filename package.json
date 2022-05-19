@@ -17,7 +17,7 @@
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.4",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
-    "@rari-capital/solmate": "^6.2.0",
+    "@rari-capital/solmate": "^6.3.0",
     "@typechain/ethers-v5": "^10.0.0",
     "@typechain/hardhat": "^6.0.0",
     "@types/chai": "^4.3.0",
