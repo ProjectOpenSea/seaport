@@ -675,7 +675,8 @@ contract MatchOrders is BaseOrderTest {
     }
 
     function _testMatchOrdersDescendingOfferAmount(Context memory context)
-        internal resetTokenBalancesBetweenRuns
+        internal
+        resetTokenBalancesBetweenRuns
     {
         vm.assume(
             context.args.paymentAmts[0] > 0 &&
