@@ -188,17 +188,26 @@ contract BaseOrderTest is
     function _configureOfferItem(
         ItemType itemType,
         uint256 identifier,
-        uint256 amt
+        uint256 startAmount,
+        uint256 endAmount
     ) internal {
         if (itemType == ItemType.NATIVE) {
-            _configureEthOfferItem(amt);
+            _configureEthOfferItem(startAmount, endAmount);
         } else if (itemType == ItemType.ERC20) {
-            _configureERC20OfferItem(amt);
+            _configureERC20OfferItem(startAmount, endAmount);
         } else if (itemType == ItemType.ERC1155) {
-            _configureERC1155OfferItem(identifier, amt);
+            _configureERC1155OfferItem(identifier, startAmount, endAmount);
         } else {
             _configureERC721OfferItem(identifier);
         }
+    }
+
+    function _configureOfferItem(
+        ItemType itemType,
+        uint256 identifier,
+        uint256 amt
+    ) internal {
+        _configureOfferItem(itemType, identifier, amt, amt);
     }
 
     function _configureERC721OfferItem(uint256 tokenId) internal {
@@ -217,8 +226,20 @@ contract BaseOrderTest is
         );
     }
 
+    function _configureERC20OfferItem(uint256 startAmount, uint256 endAmount)
+        internal
+    {
+        _configureOfferItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            startAmount,
+            endAmount
+        );
+    }
+
     function _configureERC20OfferItem(uint256 amount) internal {
-        _configureOfferItem(ItemType.ERC20, address(token1), 0, amount, amount);
+        _configureERC20OfferItem(amount, amount);
     }
 
     function _configureERC1155OfferItem(
@@ -235,14 +256,20 @@ contract BaseOrderTest is
         );
     }
 
-    function _configureEthOfferItem(uint256 paymentAmount) internal {
+    function _configureEthOfferItem(uint256 startAmount, uint256 endAmount)
+        internal
+    {
         _configureOfferItem(
             ItemType.NATIVE,
             address(0),
             0,
-            paymentAmount,
-            paymentAmount
+            startAmount,
+            endAmount
         );
+    }
+
+    function _configureEthOfferItem(uint256 paymentAmount) internal {
+        _configureEthOfferItem(paymentAmount, paymentAmount);
     }
 
     function _configureEthConsiderationItem(
