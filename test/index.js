@@ -16191,22 +16191,4 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
   });
-
-  describe("Auctions for single nft items", async () => {
-    describe("English auction", async () => {});
-    describe("Dutch auction", async () => {});
-  });
-
-  // Is this a thing?
-  describe("Auctions for mixed item bundles", async () => {
-    describe("English auction", async () => {});
-    describe("Dutch auction", async () => {});
-  });
-
-  describe("Multiple nfts being sold or bought", async () => {
-    describe("Bundles", async () => {});
-    describe("Partial fills", async () => {});
-  });
-
-  //   Etc this is a brain dump
 });
