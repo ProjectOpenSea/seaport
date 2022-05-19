@@ -1078,19 +1078,4 @@ contract MatchOrders is BaseOrderTest {
         // check the difference in alice's balance is equal to endAmount of offer item
         assertEq(balanceAfterOrder - balanceBeforeOrder, currentAmount);
     }
-
-    // function _testMatchOrdersDescendingOfferPartialFill(Context memory context)
-    //     internal
-    // {
-    //     vm.assume(
-    //         context.args.paymentAmts[0] > 0 &&
-    //             context.args.paymentAmts[1] > 0 &&
-    //             context.args.paymentAmts[2] > 0
-    //     );
-    //     vm.assume(uint256(context.args.paymentAmts[0]) * 2 <= 2**128 - 1);
-
-    //     bytes32 conduitKey = context.args.useConduit
-    //         ? conduitKeyOne
-    //         : bytes32(0);
-    // }
 }
