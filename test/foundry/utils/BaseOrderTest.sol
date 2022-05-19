@@ -235,13 +235,19 @@ contract BaseOrderTest is
         );
     }
 
-    function _configureEthOfferItem(uint256 paymentAmount) internal {
+    function _configureEthOfferItem(uint256 amt) internal {
+        _configureOfferItem(ItemType.NATIVE, address(0), 0, amt, amt);
+    }
+
+    function _configureEthOfferItem(uint256 startAmount, uint256 endAmount)
+        internal
+    {
         _configureOfferItem(
             ItemType.NATIVE,
             address(0),
             0,
-            paymentAmount,
-            paymentAmount
+            startAmount,
+            endAmount
         );
     }
 
@@ -367,6 +373,77 @@ contract BaseOrderTest is
         vm.label(address(test1155_1), "test1155_1");
 
         emit log("Deployed test token contracts");
+    }
+
+    function toConsiderationItems(
+        OfferItem[] memory _offerItems,
+        address payable receiver
+    ) internal pure returns (ConsiderationItem[] memory) {
+        ConsiderationItem[]
+            memory _considerationItems = new ConsiderationItem[](
+                _offerItems.length
+            );
+        for (uint256 i = 0; i < _offerItems.length; i++) {
+            _considerationItems[i] = ConsiderationItem(
+                _offerItems[i].itemType,
+                _offerItems[i].token,
+                _offerItems[i].identifierOrCriteria,
+                _offerItems[i].startAmount,
+                _offerItems[i].endAmount,
+                receiver
+            );
+        }
+        return _considerationItems;
+    }
+
+    function toOfferItems(ConsiderationItem[] memory _considerationItems)
+        internal
+        pure
+        returns (OfferItem[] memory)
+    {
+        OfferItem[] memory _offerItems = new OfferItem[](
+            _considerationItems.length
+        );
+        for (uint256 i = 0; i < _offerItems.length; i++) {
+            _offerItems[i] = OfferItem(
+                _considerationItems[i].itemType,
+                _considerationItems[i].token,
+                _considerationItems[i].identifierOrCriteria,
+                _considerationItems[i].startAmount,
+                _considerationItems[i].endAmount
+            );
+        }
+        return _offerItems;
+    }
+
+    function createMirrorOrderParameters(
+        OrderParameters memory orderParameters,
+        address payable offerer,
+        address zone,
+        bytes32 conduitKey
+    ) public pure returns (OrderParameters memory) {
+        OfferItem[] memory _offerItems = toOfferItems(
+            orderParameters.consideration
+        );
+        ConsiderationItem[] memory _considerationItems = toConsiderationItems(
+            orderParameters.offer,
+            offerer
+        );
+
+        OrderParameters memory _mirrorOrderParameters = OrderParameters(
+            offerer,
+            zone,
+            _offerItems,
+            _considerationItems,
+            orderParameters.orderType,
+            orderParameters.startTime,
+            orderParameters.endTime,
+            orderParameters.zoneHash,
+            orderParameters.salt,
+            conduitKey,
+            _considerationItems.length
+        );
+        return _mirrorOrderParameters;
     }
 
     /**
