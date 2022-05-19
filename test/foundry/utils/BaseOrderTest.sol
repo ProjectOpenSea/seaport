@@ -77,6 +77,14 @@ contract BaseOrderTest is
 
     uint256 internal globalTokenId;
 
+    event TransferSingle(
+        address indexed operator,
+        address indexed from,
+        address indexed to,
+        uint256 id,
+        uint256 value
+    );
+
     struct RestoreERC20Balance {
         address token;
         address who;
