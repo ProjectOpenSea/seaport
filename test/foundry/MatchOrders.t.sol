@@ -10,10 +10,9 @@ import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
-import { AmountDeriver } from "../../contracts/lib/AmountDeriver.sol";
 import { stdError } from "forge-std/Test.sol";
 
-contract MatchOrders is BaseOrderTest, AmountDeriver {
+contract MatchOrders is BaseOrderTest {
     struct FuzzInputsCommon {
         address zone;
         uint256 id;
