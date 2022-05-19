@@ -7738,8 +7738,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           buildOrderStatus(true, false, 1, 1)
         );
       });
-      it.skip("Descending offer amount (match)", async () => {});
-      it.skip("Descending consideration amount (match)", async () => {});
       it.skip("Descending amount + partial fill (standard)", async () => {});
       it.skip("Descending amount + partial fill (match)", async () => {});
     });
