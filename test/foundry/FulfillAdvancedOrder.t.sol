@@ -13,8 +13,13 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 import { Merkle } from "murky/Merkle.sol";
+import { ConsiderationEventsAndErrors } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
+import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 contract FulfillAdvancedOrder is BaseOrderTest {
+    using ArithmeticUtil for uint256;
+    using ArithmeticUtil for uint128;
+    using ArithmeticUtil for uint120;
     // todo: add numer/denom, swap if numer > denom
     struct FuzzInputs {
         uint256 tokenId;
@@ -32,6 +37,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     struct Context {
         ConsiderationInterface consideration;
         FuzzInputs args;
+        uint256 tokenAmount;
     }
 
     modifier validateInputs(FuzzInputs memory args) {
@@ -52,9 +58,126 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         _;
     }
 
+    function testAdvancedPartialAscendingConsiderationAmount1155(
+        FuzzInputs memory inputs,
+        uint128 tokenId
+    ) public {
+        _testAdvancedPartialAscendingConsiderationAmount1155(
+            Context(referenceConsideration, inputs, tokenId)
+        );
+        _testAdvancedPartialAscendingConsiderationAmount1155(
+            Context(consideration, inputs, tokenId)
+        );
+    }
+
+    function _testAdvancedPartialAscendingConsiderationAmount1155(
+        Context memory context
+    ) internal resetTokenBalancesBetweenRuns {
+        vm.assume(
+            context.args.paymentAmounts[0] > 0 &&
+                context.args.paymentAmounts[1] > 0 &&
+                context.args.paymentAmounts[2] > 0
+        );
+        uint256 sumOfPaymentAmounts = (context.args.paymentAmounts[0].mul(4))
+            .add((context.args.paymentAmounts[1].mul(2)))
+            .add((context.args.paymentAmounts[2].mul(2)));
+        vm.assume(sumOfPaymentAmounts <= 2**128 - 1);
+
+        vm.assume(context.tokenAmount > 0);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test1155_1.mint(
+            alice,
+            context.args.tokenId,
+            uint256(context.tokenAmount) * 1000
+        );
+
+        _configureOfferItem(
+            ItemType.ERC1155,
+            context.args.tokenId,
+            uint256(context.tokenAmount) * 1000
+        );
+        // set endAmount to 2 * startAmount
+        _configureEthConsiderationItem(
+            alice,
+            context.args.paymentAmounts[0] * uint256(2),
+            context.args.paymentAmounts[0] * uint256(4)
+        );
+        _configureEthConsiderationItem(
+            alice,
+            context.args.paymentAmounts[1] * uint256(2)
+        );
+        _configureEthConsiderationItem(
+            alice,
+            context.args.paymentAmounts[2] * uint256(2)
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.PARTIAL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        AdvancedOrder memory advancedOrder = AdvancedOrder(
+            orderParameters,
+            1,
+            2,
+            signature,
+            ""
+        );
+
+        // set blockTimestamp to right before endTime and set insufficient value for transaction
+        vm.warp(block.timestamp + 999);
+        vm.expectRevert(
+            ConsiderationEventsAndErrors.InsufficientEtherSupplied.selector
+        );
+        context.consideration.fulfillAdvancedOrder{
+            value: uint256(context.args.paymentAmounts[0]) +
+                context.args.paymentAmounts[1] +
+                context.args.paymentAmounts[2]
+        }(advancedOrder, new CriteriaResolver[](0), bytes32(0));
+
+        // set transaction value to sum of eth consideration items (including endAmount of considerationItem[0])
+        context.consideration.fulfillAdvancedOrder{
+            value: sumOfPaymentAmounts
+        }(advancedOrder, new CriteriaResolver[](0), bytes32(0));
+
+        (, , uint256 totalFilled, uint256 totalSize) = context
+            .consideration
+            .getOrderStatus(orderHash);
+        assertEq(totalFilled, 1);
+        assertEq(totalSize, 2);
+    }
+
     function testAdvancedPartial1155(FuzzInputs memory args) public {
-        _advancedPartial1155(Context(consideration, args));
-        _advancedPartial1155(Context(referenceConsideration, args));
+        _advancedPartial1155(Context(consideration, args, 0));
+        _advancedPartial1155(Context(referenceConsideration, args, 0));
     }
 
     function testAdvancedPartial1155Static() public {
