@@ -41,7 +41,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         bytes32 s;
         uint8 v;
 
-        // If signature contains 64 bytes, parse as EIP-2098 signature. (r+s&v)
+        // If signature contains 64 bytes, parse as EIP-2098 signature (r+s&v).
         if (signature.length == 64) {
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
@@ -60,8 +60,8 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // Extract yParity from highest bit of vs and add 27 to get v.
                 v := add(shr(255, vs), 27)
             }
-            // If signature is 65 bytes, parse as a standard signature. (r+s+v)
         } else if (signature.length == 65) {
+            // If signature is 65 bytes, parse as a standard signature (r+s+v).
             // Read each parameter directly from the signature's memory region.
             assembly {
                 // Place first word on the stack at r.
@@ -78,8 +78,8 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             if (v != 27 && v != 28) {
                 revert BadSignatureV(v);
             }
-            // For all other signature lengths, try verification via EIP-1271.
         } else {
+            // For all other signature lengths, try verification via EIP-1271.
             // Attempt EIP-1271 static call to signer in case it's a contract.
             _assertValidEIP1271Signature(signer, digest, signature);
 
@@ -102,7 +102,11 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
     /**
      * @dev Internal view function to verify the signature of an order using
-     *      ERC-1271 (i.e. contract signatures via `isValidSignature`).
+     *      ERC-1271 (i.e. contract signatures via `isValidSignature`). Note
+     *      that, in contrast to standard ECDSA signatures, 1271 signatures may
+     *      be valid in certain contexts and invalid in others, or vice versa;
+     *      orders that validate signatures ahead of time must explicitly cancel
+     *      those orders to invalidate them.
      *
      * @param signer    The signer for the order.
      * @param digest    The signature digest, derived from the domain separator

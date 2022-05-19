@@ -78,10 +78,10 @@ contract OrderValidator is Executor, ZoneInteraction {
      *      fill, and update its status. The desired fill amount is supplied as
      *      a fraction, as is the returned amount to fill.
      *
-     * @param advancedOrder    The order to fulfill as well as the fraction to
-     *                         fill. Note that all offer and consideration
-     *                         amounts must divide with no remainder in order
-     *                         for a partial fill to be valid.
+     * @param advancedOrder     The order to fulfill as well as the fraction to
+     *                          fill. Note that all offer and consideration
+     *                          amounts must divide with no remainder in order
+     *                          for a partial fill to be valid.
      * @param criteriaResolvers An array where each element contains a reference
      *                          to a specific offer or consideration, a token
      *                          identifier, and a proof that the supplied token
@@ -89,12 +89,12 @@ contract OrderValidator is Executor, ZoneInteraction {
      *                          root. Note that a criteria of zero indicates
      *                          that any (transferrable) token identifier is
      *                          valid and that no proof needs to be supplied.
-     * @param revertOnInvalid  A boolean indicating whether to revert if the
-     *                         order is invalid due to the time or order status.
-     * @param priorOrderHashes The order hashes of each order supplied prior to
-     *                         the current order as part of a "match" variety of
-     *                         order fulfillment (e.g. this array will be empty
-     *                         for single or "fulfill available").
+     * @param revertOnInvalid   A boolean indicating whether to revert if the
+     *                          order is invalid due to the time or status.
+     * @param priorOrderHashes  The order hashes of each order supplied prior to
+     *                          the current order as part of a "match" variety
+     *                          of order fulfillment (e.g. this array will be
+     *                          empty for single or "fulfill available").
      *
      * @return orderHash      The order hash.
      * @return newNumerator   A value indicating the portion of the order that
@@ -244,16 +244,18 @@ contract OrderValidator is Executor, ZoneInteraction {
 
     /**
      * @dev Internal function to cancel an arbitrary number of orders. Note that
-     *      only the offerer or the zone of a given order may cancel it.
+     *      only the offerer or the zone of a given order may cancel it. Callers
+     *      should ensure that the intended order was cancelled by calling
+     *      `getOrderStatus` and confirming that `isCancelled` returns `true`.
      *
      * @param orders The orders to cancel.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully cancelled.
+     * @return cancelled A boolean indicating whether the supplied orders were
+     *                   successfully cancelled.
      */
     function _cancel(OrderComponents[] calldata orders)
         internal
-        returns (bool)
+        returns (bool cancelled)
     {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
@@ -309,21 +311,29 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
         }
 
-        return true;
+        // Return a boolean indicating that orders were successfully cancelled.
+        cancelled = true;
     }
 
     /**
      * @dev Internal function to validate an arbitrary number of orders, thereby
-     *      registering them as valid and allowing the fulfiller to skip
-     *      verification. Note that anyone can validate a signed order but only
-     *      the offerer can validate an order without supplying a signature.
+     *      registering their signatures as valid and allowing the fulfiller to
+     *      skip signature verification on fulfillment. Note that validated
+     *      orders may still be unfulfillable due to invalid item amounts or
+     *      other factors; callers should determine whether validated orders are
+     *      fulfillable by simulating the fulfillment call prior to execution.
+     *      Also note that anyone can validate a signed order, but only the
+     *      offerer can validate an order without supplying a signature.
      *
      * @param orders The orders to validate.
      *
-     * @return A boolean indicating whether the supplied orders were
-     *         successfully validated.
+     * @return validated A boolean indicating whether the supplied orders were
+     *                   successfully validated.
      */
-    function _validate(Order[] calldata orders) internal returns (bool) {
+    function _validate(Order[] calldata orders)
+        internal
+        returns (bool validated)
+    {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
@@ -384,7 +394,8 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
         }
 
-        return true;
+        // Return a boolean indicating that orders were successfully validated.
+        validated = true;
     }
 
     /**
@@ -444,7 +455,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         // The "full" order types are even, while "partial" order types are odd.
         // Bitwise and by 1 is equivalent to modulo by 2, but 2 gas cheaper.
         assembly {
-            // Same thing as uint256(orderType) & 1 == 0
+            // Equivalent to `uint256(orderType) & 1 == 0`.
             isFullOrder := iszero(and(orderType, 1))
         }
     }

@@ -1,8 +1,6 @@
-![Consideration](img/consideration-banner.png)
+# Seaport
 
-# Consideration
-
-Consideration is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items. Each order contains an arbitrary number of items that the offerer is willing to give (the "offer") along with an arbitrary number of items that must be received along with their respective receivers (the "consideration").
+Seaport is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items. Each order contains an arbitrary number of items that the offerer is willing to give (the "offer") along with an arbitrary number of items that must be received along with their respective receivers (the "consideration").
 
 ## Order
 
@@ -25,7 +23,7 @@ Each order contains eleven key components:
 - The `endTime` indicates the block timestamp at which the order expires. This value and the `startTime` are used in conjunction with the `startAmount` and `endAmount` of each item to derive their current amount.
 - The `zoneHash` represents an arbitrary 32-byte value that will be supplied to the zone when fulfilling restricted orders that the zone can utilize when making a determination on whether to authorize the order.
 - The `salt` represents an arbitrary source of entropy for the order.
-- The `conduitKey` is a `bytes32` value that indicates what conduit, if any, should be utilized as a source for token approvals when performing transfers. By default (i.e. when `conduitKey` is set to the zero hash), the offerer will grant ERC20, ERC721, and ERC1155 token approvals to Consideration directly so that it can perform any transfers specified by the order during fulfillment. In contrast, an offerer that elects to utilize a conduit will grant token approvals to the conduit contract corresponding to the supplied conduit key, and Consideration will then instruct that conduit to transfer the respective tokens.
+- The `conduitKey` is a `bytes32` value that indicates what conduit, if any, should be utilized as a source for token approvals when performing transfers. By default (i.e. when `conduitKey` is set to the zero hash), the offerer will grant ERC20, ERC721, and ERC1155 token approvals to Seaport directly so that it can perform any transfers specified by the order during fulfillment. In contrast, an offerer that elects to utilize a conduit will grant token approvals to the conduit contract corresponding to the supplied conduit key, and Seaport will then instruct that conduit to transfer the respective tokens.
 - The `nonce` indicates a value that must match the current nonce for the given offerer.
 
 ## Order Fulfillment
@@ -43,7 +41,7 @@ Orders are fulfilled via one of four methods:
    - If the order has an ERC721 item, that item has an amount of `1`.
    - If the order has multiple consideration items and all consideration items other than the first consideration item have the same item type as the offered item, the offered item amount is not less than the sum of all consideration item amounts excluding the first consideration item amount.
 - Calling one of two "fulfill available" functions, `fulfillAvailableOrders` and `fulfillAvailableAdvancedOrders`, where a group of orders are supplied alongside a group of fulfillments specifying which offer items can be aggregated into distinct transfers and which consideration items can be accordingly aggregated, and where any orders that have been cancelled, have an invalid time, or have already been fully filled will be skipped without causing the rest of the available orders to revert. Additionally, any remaining orders will be skipped once `maximumFulfilled` available orders have been located. Similar to the standard fulfillment method, all offer items will be transferred from the respective offerer to the fulfiller, then all consideration items will be transferred from the fulfiller to the named recipient.
-- Calling one of two "match" functions, `matchOrders` and `matchAdvancedOrders`, where a group of explicit orders are supplied alongside a group of fulfillments specifying which offer items to apply to which consideration items (and with the "advanced" case operating in a similar fashion to the standard method, but supporting partial fills via supplied `numerator` and `denominator` fractional values as well as an optional `extraData` argument that will be supplied as part of a call to the `isValidOrderIncludingExtraData` view function on the zone when fulfilling restricted order types). Note that orders fulfilled in this manner do not have an explicit fulfiller; instead, Consideration will simply ensure coincidence of wants across each order.
+- Calling one of two "match" functions, `matchOrders` and `matchAdvancedOrders`, where a group of explicit orders are supplied alongside a group of fulfillments specifying which offer items to apply to which consideration items (and with the "advanced" case operating in a similar fashion to the standard method, but supporting partial fills via supplied `numerator` and `denominator` fractional values as well as an optional `extraData` argument that will be supplied as part of a call to the `isValidOrderIncludingExtraData` view function on the zone when fulfilling restricted order types). Note that orders fulfilled in this manner do not have an explicit fulfiller; instead, Seaport will simply ensure coincidence of wants across each order.
 
 While the standard method can technically be used for fulfilling any order, it suffers from key efficiency limitations in certain scenarios:
 - It requires additional calldata compared to the basic method for simple "hot paths".
@@ -54,25 +52,25 @@ While the standard method can technically be used for fulfilling any order, it s
 
 When creating an offer, the following requirements should be checked to ensure that the order will be fulfillable:
 - The offerer should have sufficient balance of all offered items.
-- If the order does not indicate to use a conduit, the offerer should have sufficient approvals set for the Consideration contract for all offered ERC20, ERC721, and ERC1155 items.
+- If the order does not indicate to use a conduit, the offerer should have sufficient approvals set for the Seaport contract for all offered ERC20, ERC721, and ERC1155 items.
 - If the order _does_ indicate to use a conduit, the offerer should have sufficient approvals set for the respective conduit contract for all offered ERC20, ERC721 and ERC1155 items.
 
 When fulfilling a _basic_ order, the following requirements need to be checked to ensure that the order will be fulfillable:
 - The above checks need to be performed to ensure that the offerer still has sufficient balance and approvals.
 - The fulfiller should have sufficient balance of all consideration items _except for those with an item type that matches the order's offered item type_ — by way of example, if the fulfilled order offers an ERC20 item and requires an ERC721 item to the offerer and the same ERC20 item to another recipient, the fulfiller needs to own the ERC721 item but does not need to own the ERC20 item as it will be sourced from the offerer.
-- If the fulfiller does not elect to utilize a conduit, they need to have sufficient approvals set for the Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order _except for ERC20 items with an item type that matches the order's offered item type_.
+- If the fulfiller does not elect to utilize a conduit, they need to have sufficient approvals set for the Seaport contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order _except for ERC20 items with an item type that matches the order's offered item type_.
 - If the fulfiller _does_ elect to utilize a conduit, they need to have sufficient approvals set for their respective conduit for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order _except for ERC20 items with an item type that matches the order's offered item type_.
 - If the fulfilled order specifies Ether (or other native tokens) as consideration items, the fulfiller must be able to supply the sum total of those items as `msg.value`.
 
 When fulfilling a _standard_ order, the following requirements need to be checked to ensure that the order will be fulfillable:
 - The above checks need to be performed to ensure that the offerer still has sufficient balance and approvals.
 - The fulfiller should have sufficient balance of all consideration items _after receiving all offered items_ — by way of example, if the fulfilled order offers an ERC20 item and requires an ERC721 item to the offerer and the same ERC20 item to another recipient with an amount less than or equal to the offered amount, the fulfiller does not need to own the ERC20 item as it will first be received from the offerer.
-- If the fulfiller does not elect to utilize a conduit, they need to have sufficient approvals set for the Consideration contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
+- If the fulfiller does not elect to utilize a conduit, they need to have sufficient approvals set for the Seaport contract for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
 - If the fulfiller _does_ elect to utilize a conduit, they need to have sufficient approvals set for their respective conduit for all ERC20, ERC721, and ERC1155 consideration items on the fulfilled order.
 - If the fulfilled order specifies Ether (or other native tokens) as consideration items, the fulfiller must be able to supply the sum total of those items as `msg.value`.
 
 When fulfilling a set of _match_ orders, the following requirements need to be checked to ensure that the order will be fulfillable:
-- Each account that sources the ERC20, ERC721, or ERC1155 item for an execution that will be performed as part of the fulfillment must have sufficient balance and approval on Consideration or the indicated conduit at the time the execution is triggered. Note that prior executions may supply the necessary balance for subsequent executions.
+- Each account that sources the ERC20, ERC721, or ERC1155 item for an execution that will be performed as part of the fulfillment must have sufficient balance and approval on Seaport or the indicated conduit at the time the execution is triggered. Note that prior executions may supply the necessary balance for subsequent executions.
 - The sum total of all executions involving Ether (or other native tokens) must be supplied as `msg.value`. Note that executions where the offerer and the recipient are the same account will be filtered out of the final execution set.
 
 ### Partial Fills
@@ -116,9 +114,9 @@ When fulfilling an order via `fulfillOrder` or `fulfillAdvancedOrder`:
   6. Emit OrderFulfilled event
      - Include updated items (i.e. after amount adjustment and criteria resolution)
   7. Transfer offer items from offerer to caller
-     - Use either conduit or Consideration directly to source approvals, depending on order type
+     - Use either conduit or Seaport directly to source approvals, depending on order type
   8. Transfer consideration items from caller to respective recipients
-     - Use either conduit or Consideration directly to source approvals, depending on the fulfiller's stated preference
+     - Use either conduit or Seaport directly to source approvals, depending on the fulfiller's stated preference
 
 > Note: `fulfillBasicOrder` works in a similar fashion, with a few exceptions: it reconstructs the order from a subset of order elements, skips linear fit amount adjustment and criteria resolution, requires that the full order amount be fillable, and performs a more minimal set of transfers by default when the offer item shares the same type and token as additional consideration items.
 
@@ -133,7 +131,7 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
      - Return a single execution for each fulfillment
   8. Scan each consideration item and ensure that none still have a nonzero amount remaining
   9. Perform transfers as part of each execution
-      - Use either conduit or Consideration directly to source approvals, depending on the original order type
+      - Use either conduit or Seaport directly to source approvals, depending on the original order type
       - Ignore each execution where `to == from` or `amount == 0` *(NOTE: the current implementation does not perform this last optimization)*
 
 ## Known Limitations and Workarounds

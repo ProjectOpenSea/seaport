@@ -1379,13 +1379,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitControllerFactory.bytecode
       );
 
-      // TODO: Add back when recomputing deployment address
-      // if (!hre.__SOLIDITY_COVERAGE_RUNNING) {
-      //   expect(conduitControllerAddress).to.equal(
-      //     deployConstants.CONDUIT_CONTROLLER_ADDRESS
-      //   );
-      // }
-
       await create2Factory.safeCreate2(
         deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
         conduitControllerFactory.bytecode,
@@ -1425,13 +1418,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     );
 
     const marketplaceContractAddress = await create2Factory.findCreate2Address(
-      ethers.constants.HashZero, // TODO: find a good one
+      deployConstants.MARKETPLACE_CONTRACT_CREATION_SALT,
       marketplaceContractFactory.bytecode +
         conduitController.address.slice(2).padStart(64, "0")
     );
 
     const tx = await create2Factory.safeCreate2(
-      ethers.constants.HashZero, // TODO: find a good one
+      deployConstants.MARKETPLACE_CONTRACT_CREATION_SALT,
       marketplaceContractFactory.bytecode +
         conduitController.address.slice(2).padStart(64, "0"),
       {

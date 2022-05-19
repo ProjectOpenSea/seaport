@@ -57,13 +57,17 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
 
+        // Declare a new Execution struct.
         Execution memory considerationExecution;
-        // Validate & aggregate consideration items to Execution object.
+
+        // Validate & aggregate consideration items to new Execution object.
         _aggregateValidFulfillmentConsiderationItems(
             advancedOrders,
             considerationComponents,
             considerationExecution
         );
+
+        // Retrieve the consideration item from the execution struct.
         ReceivedItem memory considerationItem = considerationExecution.item;
 
         // Validate & aggregate offer items to Execution object.
@@ -151,7 +155,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // If the fulfillment components are offer components...
             if (side == Side.OFFER) {
                 // Return execution for aggregated items provided by offerer.
-                // prettier-ignore
                 _aggregateValidFulfillmentOfferItems(
                     advancedOrders,
                     fulfillmentComponents,
@@ -161,15 +164,20 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Otherwise, fulfillment components are consideration
                 // components. Return execution for aggregated items provided by
                 // the fulfiller.
-                // prettier-ignore
                 _aggregateValidFulfillmentConsiderationItems(
                     advancedOrders,
                     fulfillmentComponents,
                     execution
                 );
+
+                // Set the caller as the offerer on the execution.
                 execution.offerer = msg.sender;
+
+                // Set fulfiller conduit key as the conduit key on execution.
                 execution.conduitKey = fulfillerConduitKey;
             }
+
+            // Set the offerer as the receipient if execution amount is nonzero.
             if (execution.item.amount == 0) {
                 execution.item.recipient = payable(execution.offerer);
             }
@@ -192,26 +200,29 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         FulfillmentComponent[] memory offerComponents,
         Execution memory execution
     ) internal view {
-        // Declare a variable for the final aggregated item amount.
-        uint256 amount;
-        // uint g1 = gasleft();
-
-        // Declare a variable indicating whether the aggregation is invalid.
-        // bool invalidFulfillment;
-
         assembly {
+            // Declare function for reverts on invalid fulfillment data.
             function throwInvalidFulfillmentComponentData() {
+                // Store the InvalidFulfillmentComponentData error signature.
                 mstore(0, InvalidFulfillmentComponentData_error_signature)
+
+                // Return, supplying InvalidFulfillmentComponentData signature.
                 revert(0, InvalidFulfillmentComponentData_error_len)
             }
 
+            // Declare function for reverts due to arithmetic overflows.
             function throwOverflow() {
+                // Store the Panic error signature.
                 mstore(0, Panic_error_signature)
+
+                // Store the arithmetic (0x11) panic code as initial argument.
                 mstore(Panic_error_offset, Panic_arithmetic)
+
+                // Return, supplying Panic signature and arithmetic code.
                 revert(0, Panic_error_length)
             }
 
-            // Get position in offerComponents head
+            // Get position in offerComponents head.
             let fulfillmentHeadPtr := add(offerComponents, OneWord)
 
             // Retrieve the order index using the fulfillment pointer.
@@ -222,17 +233,16 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 throwInvalidFulfillmentComponentData()
             }
 
-            // Read the pointer to advancedOrders[orderIndex] from its
-            // head in the array.
+            // Read advancedOrders[orderIndex] pointer from its array head.
             let orderPtr := mload(
-                // Calculate head position of advancedOrders[orderIndex]
+                // Calculate head position of advancedOrders[orderIndex].
                 add(add(advancedOrders, OneWord), mul(orderIndex, OneWord))
             )
 
-            // Read the pointer to OrderParameters from the AdvancedOrder
+            // Read the pointer to OrderParameters from the AdvancedOrder.
             let paramsPtr := mload(orderPtr)
 
-            // Load offer array pointer.
+            // Load the offer array pointer.
             let offerArrPtr := mload(
                 add(paramsPtr, OrderParameters_offer_head_offset)
             )
@@ -246,6 +256,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             if iszero(lt(itemIndex, mload(offerArrPtr))) {
                 throwInvalidFulfillmentComponentData()
             }
+
             // Retrieve consideration item pointer using the item index.
             let offerItemPtr := mload(
                 add(
@@ -256,19 +267,24 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
             )
 
-            // Create variable to track errors encountered with amount
+            // Declare a variable for the final aggregated item amount.
+            let amount := 0
+
+            // Create variable to track errors encountered with amount.
             let errorBuffer := 0
 
-            // Only add offer amount to execution amount if numerator
-            // is greater than zero
+            // Only add offer amount to execution amount on a nonzero numerator.
             if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
                 // Retrieve amount pointer using consideration item pointer.
                 let amountPtr := add(offerItemPtr, Common_amount_offset)
+
                 // Set the amount.
                 amount := mload(amountPtr)
+
                 // Zero out amount on item to indicate it is credited.
                 mstore(amountPtr, 0)
-                // Buffer indicating whether issues were found
+
+                // Buffer indicating whether issues were found.
                 errorBuffer := iszero(amount)
             }
 
@@ -305,13 +321,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 mload(add(paramsPtr, OrderParameters_conduit_offset))
             )
 
-            // Calculate the hash of (itemType, token, identifier)
+            // Calculate the hash of (itemType, token, identifier).
             let dataHash := keccak256(
                 receivedItemPtr,
                 ReceivedItem_CommonParams_size
             )
 
-            // Get position one word past last element in head of array
+            // Get position one word past last element in head of array.
             let endPtr := add(
                 offerComponents,
                 mul(mload(offerComponents), OneWord)
@@ -320,6 +336,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Iterate over remaining offer components.
             // prettier-ignore
             for {} lt(fulfillmentHeadPtr,  endPtr) {} {
+                // Increment the pointer to the fulfillment head by one word.
                 fulfillmentHeadPtr := add(fulfillmentHeadPtr, OneWord)
 
                 // Get the order index using the fulfillment pointer.
@@ -345,7 +362,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                   continue
                 }
 
-                // Read the pointer to OrderParameters from the AdvancedOrder
+                // Read the pointer to OrderParameters from the AdvancedOrder.
                 paramsPtr := mload(orderPtr)
 
                 // Load offer array pointer.
@@ -382,10 +399,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                       Common_amount_offset
                 )
 
-                // Add offer amount to execution amount
+                // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Update error buffer. 1 = zero amount, 2 = overflow
+                // Update error buffer (1 = zero amount, 2 = overflow).
                 errorBuffer := or(
                   errorBuffer,
                   or(
@@ -394,11 +411,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                   )
                 )
 
-                // Update sum
+                // Update the amount to the new, summed amount.
                 amount := newAmount
 
-                // Zero out amount on original item to indicate it
-                // is credited.
+                // Zero out amount on original item to indicate it is credited.
                 mstore(amountPtr, 0)
 
                 // Ensure the indicated item matches original item.
@@ -428,26 +444,34 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                               )
                           )
                         ),
-                        // itemType, token, identifier must match
+                        // The itemType, token, and identifier must match.
                         eq(
-                          dataHash,
-                          keccak256(offerItemPtr, ReceivedItem_CommonParams_size)
+                            dataHash,
+                            keccak256(
+                                offerItemPtr,
+                                ReceivedItem_CommonParams_size
+                            )
                         )
                     )
                 ) {
-                  throwInvalidFulfillmentComponentData()
+                    // Throw if any of the requirements are not met.
+                    throwInvalidFulfillmentComponentData()
                 }
             }
-            // Write final amount to execution
+            // Write final amount to execution.
             mstore(add(mload(execution), Common_amount_offset), amount)
 
+            // Determine if an error code is contained in the error buffer.
             switch errorBuffer
             case 1 {
+                // Store the MissingItemAmount error signature.
                 mstore(0, MissingItemAmount_error_signature)
+
+                // Return, supplying MissingItemAmount signature.
                 revert(0, MissingItemAmount_error_len)
             }
             case 2 {
-                // If the sum overflowed, panic
+                // If the sum overflowed, panic.
                 throwOverflow()
             }
         }
@@ -473,20 +497,28 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
     ) internal pure {
         // Utilize assembly in order to efficiently aggregate the items.
         assembly {
+            // Declare function for reverts on invalid fulfillment data.
             function throwInvalidFulfillmentComponentData() {
+                // Store the InvalidFulfillmentComponentData error signature.
                 mstore(0, InvalidFulfillmentComponentData_error_signature)
+
+                // Return, supplying InvalidFulfillmentComponentData signature.
                 revert(0, InvalidFulfillmentComponentData_error_len)
             }
 
+            // Declare function for reverts due to arithmetic overflows.
             function throwOverflow() {
+                // Store the Panic error signature.
                 mstore(0, Panic_error_signature)
+
+                // Store the arithmetic (0x11) panic code as initial argument.
                 mstore(Panic_error_offset, Panic_arithmetic)
+
+                // Return, supplying Panic signature and arithmetic code.
                 revert(0, Panic_error_length)
             }
 
-            let amount := 0
-
-            // Get position in considerationComponents head
+            // Get position in considerationComponents head.
             let fulfillmentHeadPtr := add(considerationComponents, OneWord)
 
             // Retrieve the order index using the fulfillment pointer.
@@ -497,17 +529,16 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 throwInvalidFulfillmentComponentData()
             }
 
-            // Read the pointer to advancedOrders[orderIndex] from its
-            // head in the array.
+            // Read advancedOrders[orderIndex] pointer from its array head.
             let orderPtr := mload(
-                // Calculate head position of advancedOrders[orderIndex]
+                // Calculate head position of advancedOrders[orderIndex].
                 add(add(advancedOrders, OneWord), mul(orderIndex, OneWord))
             )
 
             // Load consideration array pointer.
             let considerationArrPtr := mload(
                 add(
-                    // Read the pointer to OrderParameters from the AdvancedOrder
+                    // Read pointer to OrderParameters from the AdvancedOrder.
                     mload(orderPtr),
                     OrderParameters_consideration_head_offset
                 )
@@ -533,23 +564,29 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
             )
 
-            // Create variable to track errors encountered with amount
+            // Declare a variable for the final aggregated item amount.
+            let amount := 0
+
+            // Create variable to track errors encountered with amount.
             let errorBuffer := 0
 
-            // Only add consideration amount to execution amount if numerator
-            // is greater than zero
+            // Only add consideration amount to execution amount if numerator is
+            // greater than zero.
             if mload(add(orderPtr, AdvancedOrder_numerator_offset)) {
                 // Retrieve amount pointer using consideration item pointer.
                 let amountPtr := add(considerationItemPtr, Common_amount_offset)
+
                 // Set the amount.
                 amount := mload(amountPtr)
-                // Set error bit if amount is zero
+
+                // Set error bit if amount is zero.
                 errorBuffer := iszero(amount)
+
                 // Zero out amount on item to indicate it is credited.
                 mstore(amountPtr, 0)
             }
 
-            // Retrieve ReceivedItem pointer from Execution
+            // Retrieve ReceivedItem pointer from Execution.
             let receivedItem := mload(execution)
 
             // Set the item type on the received item.
@@ -578,13 +615,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 )
             )
 
-            // Calculate the hash of (itemType, token, identifier)
+            // Calculate the hash of (itemType, token, identifier).
             let dataHash := keccak256(
                 receivedItem,
                 ReceivedItem_CommonParams_size
             )
 
-            // Get position one word past last element in head of array
+            // Get position one word past last element in head of array.
             let endPtr := add(
                 considerationComponents,
                 mul(mload(considerationComponents), OneWord)
@@ -593,7 +630,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Iterate over remaining offer components.
             // prettier-ignore
             for {} lt(fulfillmentHeadPtr,  endPtr) {} {
-                // Increment position in considerationComponents head
+                // Increment position in considerationComponents head.
                 fulfillmentHeadPtr := add(fulfillmentHeadPtr, OneWord)
 
                 // Get the order index using the fulfillment pointer.
@@ -612,8 +649,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     )
                 )
 
-                // Don't handle fulfillment if numerator is 0
-                if iszero(mload(add(orderPtr, AdvancedOrder_numerator_offset))) {
+                // Only continue if numerator is not zero.
+                if iszero(
+                    mload(add(orderPtr, AdvancedOrder_numerator_offset))
+                ) {
                   continue
                 }
 
@@ -650,10 +689,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                       Common_amount_offset
                 )
 
-                // Add offer amount to execution amount
+                // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Check if addition overflows
+                // Update error buffer (1 = zero amount, 2 = overflow).
                 errorBuffer := or(
                   errorBuffer,
                   or(
@@ -662,7 +701,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                   )
                 )
 
-                // Update sum
+                // Update the amount to the new, summed amount.
                 amount := newAmount
 
                 // Zero out amount on original item to indicate it is credited.
@@ -686,26 +725,34 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                                 )
                             )
                         ),
-                        // itemType, token, identifier must match
+                        // The itemType, token, identifier must match.
                         eq(
                           dataHash,
-                          keccak256(considerationItemPtr, ReceivedItem_CommonParams_size)
+                          keccak256(
+                            considerationItemPtr,
+                            ReceivedItem_CommonParams_size
+                          )
                         )
                     )
                 ) {
+                    // Throw if any of the requirements are not met.
                     throwInvalidFulfillmentComponentData()
                 }
             }
-            // Write final amount to execution
+            // Write final amount to execution.
             mstore(add(receivedItem, Common_amount_offset), amount)
 
+            // Determine if an error code is contained in the error buffer.
             switch errorBuffer
             case 1 {
+                // Store the MissingItemAmount error signature.
                 mstore(0, MissingItemAmount_error_signature)
+
+                // Return, supplying MissingItemAmount signature.
                 revert(0, MissingItemAmount_error_len)
             }
             case 2 {
-                // If the sum overflowed, panic
+                // If the sum overflowed, panic.
                 throwOverflow()
             }
         }

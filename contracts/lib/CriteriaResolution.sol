@@ -224,8 +224,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
         pure
         returns (bool withCriteria)
     {
-        // ERC721WithCriteria is item type 4. ERC1155WithCriteria is item type
-        // 5.
+        // ERC721WithCriteria is ItemType 4. ERC1155WithCriteria is ItemType 5.
         assembly {
             withCriteria := gt(itemType, 3)
         }
@@ -265,12 +264,12 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 // Sort and store proof element and hash.
                 switch gt(computedHash, loadedData)
                 case 0 {
-                    mstore(0, computedHash)
-                    mstore(0x20, loadedData)
+                    mstore(0, computedHash) // Place existing hash first.
+                    mstore(0x20, loadedData) // Place new hash next.
                 }
                 default {
-                    mstore(0, loadedData)
-                    mstore(0x20, computedHash)
+                    mstore(0, loadedData) // Place new hash first.
+                    mstore(0x20, computedHash) // Place existing hash next.
                 }
 
                 // Derive the updated hash.

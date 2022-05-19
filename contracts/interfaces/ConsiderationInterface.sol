@@ -316,7 +316,9 @@ interface ConsiderationInterface {
 
     /**
      * @notice Cancel an arbitrary number of orders. Note that only the offerer
-     * or the zone of a given order may cancel it.
+     *         or the zone of a given order may cancel it. Callers should ensure
+     *         that the intended order was cancelled by calling `getOrderStatus`
+     *         and confirming that `isCancelled` returns `true`.
      *
      * @param orders The orders to cancel.
      *
@@ -328,9 +330,13 @@ interface ConsiderationInterface {
         returns (bool cancelled);
 
     /**
-     * @notice Validate an arbitrary number of orders, thereby registering them
-     *         as valid and allowing the fulfiller to skip verification. Note
-     *         that anyone can validate a signed order but only the offerer can
+     * @notice Validate an arbitrary number of orders, thereby registering their
+     *         signatures as valid and allowing the fulfiller to skip signature
+     *         verification on fulfillment. Note that validated orders may still
+     *         be unfulfillable due to invalid item amounts or other factors;
+     *         callers should determine whether validated orders are fulfillable
+     *         by simulating the fulfillment call prior to execution. Also note
+     *         that anyone can validate a signed order, but only the offerer can
      *         validate an order without supplying a signature.
      *
      * @param orders The orders to validate.
