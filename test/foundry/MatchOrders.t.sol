@@ -82,6 +82,15 @@ contract MatchOrders is BaseOrderTest {
         );
     }
 
+    function testMatchOrdersDescendingOfferAmount(
+        FuzzInputsCommon memory inputs
+    ) public {
+        _testMatchOrdersDescendingOfferAmount(Context(consideration, inputs));
+        _testMatchOrdersDescendingOfferAmount(
+            Context(referenceConsideration, inputs)
+        );
+    }
+
     function _testMatchOrdersOverflowOrderSide(
         ConsiderationInterface _consideration,
         ItemType itemType
@@ -658,6 +667,120 @@ contract MatchOrders is BaseOrderTest {
             orders,
             fulfillments
         );
+        (, , uint256 totalFilled, uint256 totalSize) = context
+            .consideration
+            .getOrderStatus(orderHash);
+        assertEq(totalFilled, 1);
+        assertEq(totalSize, 1);
+    }
+
+    function _testMatchOrdersDescendingOfferAmount(Context memory context)
+        internal
+        resetTokenBalancesBetweenRuns
+    {
+        vm.assume(
+            context.args.paymentAmts[0] > 0 &&
+                context.args.paymentAmts[1] > 0 &&
+                context.args.paymentAmts[2] > 0
+        );
+        vm.assume(uint256(context.args.paymentAmts[0]) * 2 <= 2**128 - 1);
+
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test721_1.mint(bob, context.args.id);
+
+        _configureOfferItem(
+            ItemType.ERC20,
+            context.args.paymentAmts[0] * 2,
+            context.args.paymentAmts[0]
+        );
+        _configureConsiderationItem(alice, ItemType.ERC721, context.args.id, 1);
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        OrderParameters
+            memory mirrorOrderParameters = createMirrorOrderParameters(
+                orderParameters,
+                bob,
+                context.args.zone,
+                conduitKey
+            );
+
+        OrderComponents memory mirrorOrderComponents = getOrderComponents(
+            mirrorOrderParameters,
+            context.consideration.getNonce(bob)
+        );
+
+        bytes memory mirrorSignature = signOrder(
+            context.consideration,
+            bobPk,
+            context.consideration.getOrderHash(mirrorOrderComponents)
+        );
+
+        Order[] memory orders = new Order[](2);
+        orders[0] = Order(orderParameters, signature);
+        orders[1] = Order(mirrorOrderParameters, mirrorSignature);
+
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        // set timeStamp to endTime
+        vm.warp(block.timestamp + 999);
+        context.consideration.matchOrders(orders, fulfillments);
+        assertEq(
+            orders[1].parameters.consideration[0].endAmount,
+            context.args.paymentAmts[0]
+        );
+        assertEq(
+            orders[0].parameters.offer[0].endAmount,
+            orders[1].parameters.consideration[0].endAmount
+        );
+
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         (, , uint256 totalFilled, uint256 totalSize) = context
             .consideration
             .getOrderStatus(orderHash);

@@ -396,6 +396,77 @@ contract BaseOrderTest is
         emit log("Deployed test token contracts");
     }
 
+    function toConsiderationItems(
+        OfferItem[] memory _offerItems,
+        address payable receiver
+    ) internal pure returns (ConsiderationItem[] memory) {
+        ConsiderationItem[]
+            memory _considerationItems = new ConsiderationItem[](
+                _offerItems.length
+            );
+        for (uint256 i = 0; i < _offerItems.length; i++) {
+            _considerationItems[i] = ConsiderationItem(
+                _offerItems[i].itemType,
+                _offerItems[i].token,
+                _offerItems[i].identifierOrCriteria,
+                _offerItems[i].startAmount,
+                _offerItems[i].endAmount,
+                receiver
+            );
+        }
+        return _considerationItems;
+    }
+
+    function toOfferItems(ConsiderationItem[] memory _considerationItems)
+        internal
+        pure
+        returns (OfferItem[] memory)
+    {
+        OfferItem[] memory _offerItems = new OfferItem[](
+            _considerationItems.length
+        );
+        for (uint256 i = 0; i < _offerItems.length; i++) {
+            _offerItems[i] = OfferItem(
+                _considerationItems[i].itemType,
+                _considerationItems[i].token,
+                _considerationItems[i].identifierOrCriteria,
+                _considerationItems[i].startAmount,
+                _considerationItems[i].endAmount
+            );
+        }
+        return _offerItems;
+    }
+
+    function createMirrorOrderParameters(
+        OrderParameters memory orderParameters,
+        address payable offerer,
+        address zone,
+        bytes32 conduitKey
+    ) public pure returns (OrderParameters memory) {
+        OfferItem[] memory _offerItems = toOfferItems(
+            orderParameters.consideration
+        );
+        ConsiderationItem[] memory _considerationItems = toConsiderationItems(
+            orderParameters.offer,
+            offerer
+        );
+
+        OrderParameters memory _mirrorOrderParameters = OrderParameters(
+            offerer,
+            zone,
+            _offerItems,
+            _considerationItems,
+            orderParameters.orderType,
+            orderParameters.startTime,
+            orderParameters.endTime,
+            orderParameters.zoneHash,
+            orderParameters.salt,
+            conduitKey,
+            _considerationItems.length
+        );
+        return _mirrorOrderParameters;
+    }
+
     /**
     @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s 
     */
