@@ -7738,7 +7738,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           buildOrderStatus(true, false, 1, 1)
         );
       });
-      it.skip("Descending amount + partial fill (standard)", async () => {});
       it.skip("Descending amount + partial fill (match)", async () => {});
     });
 
@@ -16190,7 +16189,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.reverted;
         }
       });
-      it.skip("Reverts on reentrancy (test all the other permutations)", async () => {});
     });
   });
 
