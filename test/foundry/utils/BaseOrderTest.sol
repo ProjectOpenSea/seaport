@@ -11,6 +11,7 @@ import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
 import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
@@ -19,6 +20,9 @@ contract BaseOrderTest is
     ERC1155Recipient
 {
     using stdStorage for StdStorage;
+    using ArithmeticUtil for uint256;
+    using ArithmeticUtil for uint128;
+    using ArithmeticUtil for uint120;
 
     uint256 constant MAX_INT = ~uint256(0);
 
@@ -128,6 +132,28 @@ contract BaseOrderTest is
         delete secondFulfillment;
         delete fulfillmentComponent;
         delete fulfillmentComponents;
+    }
+
+    modifier sumNotGreaterThanMaxInt128(uint256[] memory _values) {
+        {
+            uint256 sum = 0;
+            for (uint256 i; i < _values.length; i++) {
+                sum += _values[i];
+            }
+            vm.assume(sum <= uint128(MAX_INT));
+        }
+        _;
+    }
+
+    modifier sum3NotGreaterThanMaxInt128(uint128[3] memory _values) {
+        {
+            uint256 sum = 0;
+            for (uint256 i; i < _values.length; i++) {
+                sum += _values[i];
+            }
+            vm.assume(sum <= uint128(MAX_INT));
+        }
+        _;
     }
 
     function setUp() public virtual override {

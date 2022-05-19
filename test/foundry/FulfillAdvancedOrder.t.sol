@@ -20,7 +20,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
-    // todo: add numer/denom, swap if numer > denom
+
     struct FuzzInputs {
         uint256 tokenId;
         address zone;
@@ -47,10 +47,9 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 args.paymentAmounts[2] > 0
         );
         vm.assume(
-            uint256(args.paymentAmounts[0]) +
-                uint256(args.paymentAmounts[1]) +
-                uint256(args.paymentAmounts[2]) <=
-                2**120 - 1
+            args.paymentAmounts[0].add(args.paymentAmounts[1]).add(
+                args.paymentAmounts[2]
+            ) <= 2**120 - 1
         );
         vm.assume(args.offerAmt > 0);
         vm.assume(args.numer <= args.denom);
@@ -205,27 +204,27 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         test1155_1.mint(
             alice,
             context.args.tokenId,
-            uint256(context.tokenAmount) * 1000
+            context.tokenAmount.mul(1000)
         );
 
         _configureOfferItem(
             ItemType.ERC1155,
             context.args.tokenId,
-            uint256(context.tokenAmount) * 1000
+            context.tokenAmount.mul(1000)
         );
         // set endAmount to 2 * startAmount
         _configureEthConsiderationItem(
             alice,
-            context.args.paymentAmounts[0] * uint256(2),
-            context.args.paymentAmounts[0] * uint256(4)
+            context.args.paymentAmounts[0].mul(2),
+            context.args.paymentAmounts[0].mul(4)
         );
         _configureEthConsiderationItem(
             alice,
-            context.args.paymentAmounts[1] * uint256(2)
+            context.args.paymentAmounts[1].mul(2)
         );
         _configureEthConsiderationItem(
             alice,
-            context.args.paymentAmounts[2] * uint256(2)
+            context.args.paymentAmounts[2].mul(2)
         );
 
         OrderParameters memory orderParameters = OrderParameters(
@@ -272,9 +271,11 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             ConsiderationEventsAndErrors.InsufficientEtherSupplied.selector
         );
         context.consideration.fulfillAdvancedOrder{
-            value: uint256(context.args.paymentAmounts[0]) +
-                context.args.paymentAmounts[1] +
-                context.args.paymentAmounts[2]
+            value: context
+                .args
+                .paymentAmounts[0]
+                .add(context.args.paymentAmounts[1])
+                .add(context.args.paymentAmounts[2])
         }(advancedOrder, new CriteriaResolver[](0), bytes32(0));
 
         // set transaction value to sum of eth consideration items (including endAmount of considerationItem[0])
@@ -294,13 +295,13 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         _advancedPartial1155(Context(referenceConsideration, args, 0));
     }
 
-    function testAdvancedPartial1155Static() public {
+    function testSingleAdvancedPartial1155() public {
         test1155_1.mint(alice, 1, 10);
 
-        _configureERC1155OfferItem(1, uint256(10));
-        _configureEthConsiderationItem(alice, uint256(10));
-        _configureEthConsiderationItem(payable(address(0)), uint256(10));
-        _configureEthConsiderationItem(cal, uint256(10));
+        _configureERC1155OfferItem(1, 10);
+        _configureEthConsiderationItem(alice, 10);
+        _configureEthConsiderationItem(payable(address(0)), 10);
+        _configureEthConsiderationItem(cal, 10);
         uint256 nonce = referenceConsideration.getNonce(alice);
         OrderComponents memory orderComponents = OrderComponents(
             alice,
@@ -354,17 +355,6 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        // vm.assume(context.args.fulfillAmt > 0);
-        // vm.assume(
-        //     context.args.offerAmt > context.args.fulfillAmt
-        // );
-        // todo: swap fulfillment and tokenAmount if we exceed global rejects with above assume
-        // if (context.args.offerAmt < context.args.fulfillAmt) {
-        //     uint256 temp = context.args.fulfillAmt;
-        //     context.args.fulfillAmt = context.args.offerAmt;
-        //     context.args.offerAmt = temp;
-        // }
-
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -376,21 +366,18 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             context.args.denom // mint 256x as many
         );
 
-        _configureERC1155OfferItem(
-            context.args.tokenId,
-            uint256(context.args.denom)
-        );
+        _configureERC1155OfferItem(context.args.tokenId, context.args.denom);
         _configureEthConsiderationItem(
             alice,
-            context.args.paymentAmounts[0] * uint256(context.args.denom)
+            context.args.paymentAmounts[0].mul(context.args.denom)
         );
         _configureEthConsiderationItem(
             payable(context.args.zone),
-            context.args.paymentAmounts[1] * uint256(context.args.denom)
+            context.args.paymentAmounts[1].mul(context.args.denom)
         );
         _configureEthConsiderationItem(
             cal,
-            context.args.paymentAmounts[2] * uint256(context.args.denom)
+            context.args.paymentAmounts[2].mul(context.args.denom)
         );
 
         OrderComponents memory orderComponents = OrderComponents(

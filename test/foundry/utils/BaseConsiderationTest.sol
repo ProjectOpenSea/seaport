@@ -172,6 +172,46 @@ contract BaseConsiderationTest is Test {
         uint256 _pkOfSigner,
         bytes32 _orderHash
     ) internal returns (bytes memory) {
+        (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
+            _consideration,
+            _pkOfSigner,
+            _orderHash
+        );
+        return abi.encodePacked(r, s, v);
+    }
+
+    function signOrder2098(
+        ConsiderationInterface _consideration,
+        uint256 _pkOfSigner,
+        bytes32 _orderHash
+    ) internal returns (bytes memory) {
+        (bytes32 r, bytes32 s, uint8 v) = getSignatureComponents(
+            _consideration,
+            _pkOfSigner,
+            _orderHash
+        );
+        uint256 yParity;
+        if (v == 27) {
+            yParity = 0;
+        } else {
+            yParity = 1;
+        }
+        uint256 yParityAndS = (yParity << 255) | uint256(s);
+        return abi.encodePacked(r, yParityAndS);
+    }
+
+    function getSignatureComponents(
+        ConsiderationInterface _consideration,
+        uint256 _pkOfSigner,
+        bytes32 _orderHash
+    )
+        internal
+        returns (
+            bytes32,
+            bytes32,
+            uint8
+        )
+    {
         (, bytes32 domainSeparator, ) = _consideration.information();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             _pkOfSigner,
@@ -179,7 +219,7 @@ contract BaseConsiderationTest is Test {
                 abi.encodePacked(bytes2(0x1901), domainSeparator, _orderHash)
             )
         );
-        return abi.encodePacked(r, s, v);
+        return (r, s, v);
     }
 
     /**
