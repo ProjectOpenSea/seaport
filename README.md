@@ -23,10 +23,19 @@ Seaport deployment addresses:
 
 | Network          | Address                                    |
 | ---------------- | ------------------------------------------ |
-| Ethereum Mainnet | [0x00000000006ce100a8b5ed8edf18ceef9e500697](https://etherscan.io/address/0x00000000006cee72100d161c57ada5bb2be1ca79#code) |
-| Polygon Mainnet  | [0x00000000006ce100a8b5ed8edf18ceef9e500697](https://polygonscan.com/address/0x00000000006CEE72100D161c57ADA5Bb2be1CA79) |
-| Goerli           | [0x00000000006ce100a8b5ed8edf18ceef9e500697](https://goerli.etherscan.io/address/0x00000000006cee72100d161c57ada5bb2be1ca79#code) |
-| Rinkeby          | [0x00000000006ce100a8b5ed8edf18ceef9e500697](https://rinkeby.etherscan.io/address/0x00000000006cee72100d161c57ada5bb2be1ca79#code) |
+| Ethereum Mainnet | [0x00000000006CEE72100D161c57ADA5Bb2be1CA79](https://etherscan.io/address/0x00000000006cee72100d161c57ada5bb2be1ca79#code) |
+| Polygon Mainnet  | [0x00000000006CEE72100D161c57ADA5Bb2be1CA79](https://polygonscan.com/address/0x00000000006CEE72100D161c57ADA5Bb2be1CA79) |
+| Goerli           | [0x00000000006CEE72100D161c57ADA5Bb2be1CA79](https://goerli.etherscan.io/address/0x00000000006cee72100d161c57ada5bb2be1ca79#code) |
+| Rinkeby          | [0x00000000006CEE72100D161c57ADA5Bb2be1CA79](https://rinkeby.etherscan.io/address/0x00000000006cee72100d161c57ada5bb2be1ca79#code) |
+
+Conduit Controller deployment addresses:
+
+| Network          | Address                                    |
+| ---------------- | ------------------------------------------ |
+| Ethereum Mainnet | [0x00000000006cE100a8b5eD8eDf18ceeF9e500697](https://etherscan.io/address/0x00000000006ce100a8b5ed8edf18ceef9e500697#code) |
+| Polygon Mainnet  | [0x00000000006cE100a8b5eD8eDf18ceeF9e500697](https://polygonscan.com/address/0x00000000006ce100a8b5ed8edf18ceef9e500697) |
+| Goerli           | [0x00000000006cE100a8b5eD8eDf18ceeF9e500697](https://goerli.etherscan.io/address/0x00000000006ce100a8b5ed8edf18ceef9e500697) |
+| Rinkeby          | [0x00000000006cE100a8b5eD8eDf18ceeF9e500697](https://rinkeby.etherscan.io/address/0x00000000006ce100a8b5ed8edf18ceef9e500697) |
 
 ## Install
 
