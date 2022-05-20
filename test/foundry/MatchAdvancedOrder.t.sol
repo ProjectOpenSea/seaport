@@ -14,8 +14,13 @@ import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 import { Merkle } from "../../lib/murky/src/Merkle.sol";
 import { stdError } from "forge-std/Test.sol";
+import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 contract MatchAdvancedOrder is BaseOrderTest {
+    using ArithmeticUtil for uint256;
+    using ArithmeticUtil for uint128;
+    using ArithmeticUtil for uint120;
+
     struct FuzzInputs {
         address zone;
         uint256 id;
@@ -96,10 +101,10 @@ contract MatchAdvancedOrder is BaseOrderTest {
         FuzzInputsAscendingDescending memory args
     ) public {
         _testMatchOrdersAscendingDescendingOfferAmountPartialFill(
-            ContextAscendingDescending(referenceConsideration, args)
+            ContextAscendingDescending(consideration, args)
         );
         _testMatchOrdersAscendingDescendingOfferAmountPartialFill(
-            ContextAscendingDescending(consideration, args)
+            ContextAscendingDescending(referenceConsideration, args)
         );
     }
 
@@ -587,24 +592,35 @@ contract MatchAdvancedOrder is BaseOrderTest {
             ? conduitKeyOne
             : bytes32(0);
 
-        test721_1.mint(bob, context.args.id);
+        test1155_1.mint(bob, context.args.id, 20);
+        token1.mint(
+            alice,
+            context.args.baseEnd > context.args.baseStart
+                ? context.args.baseEnd.mul(20)
+                : context.args.baseStart.mul(20)
+        );
 
         emit log_named_uint(
             "start amount * final multiplier",
-            context.args.baseStart * 2 * 10
+            context.args.baseStart.mul(20)
         );
         emit log_named_uint(
             "end amount * final multiplier",
-            context.args.baseEnd * 2 * 10
+            context.args.baseEnd.mul(20)
         );
         // multiply start and end amounts by multiplier and fractional component
         _configureOfferItem(
             ItemType.ERC20,
             0,
-            context.args.baseStart * 20,
-            context.args.baseEnd * 20
+            context.args.baseStart.mul(20),
+            context.args.baseEnd.mul(20)
         );
-        _configureConsiderationItem(alice, ItemType.ERC721, context.args.id, 1);
+        _configureConsiderationItem(
+            alice,
+            ItemType.ERC1155,
+            context.args.id,
+            20
+        );
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -636,8 +652,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         // current amount should be mean of start and end amounts
         uint256 currentAmount = _locateCurrentAmount(
-            context.args.baseStart * 20, // start amount
-            context.args.baseEnd * 20, // end amount
+            context.args.baseStart.mul(20), // start amount
+            context.args.baseEnd.mul(20), // end amount
             500, // elapsed
             500, // remaining
             1000, // duration
@@ -647,10 +663,10 @@ contract MatchAdvancedOrder is BaseOrderTest {
         emit log_named_uint("current amount", currentAmount);
         emit log_named_uint(
             "current amount scaled down by partial fill",
-            (currentAmount * 2) / 10
+            currentAmount.mul(2) / 10
         );
 
-        _configureOfferItem(ItemType.ERC721, context.args.id, 1);
+        _configureERC1155OfferItem(context.args.id, 20);
         // create mirror consideration item with current amount
         _configureConsiderationItem(
             ItemType.ERC20,
@@ -666,7 +682,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
             context.args.zone,
             offerItems,
             considerationItems,
-            OrderType.FULL_OPEN,
+            OrderType.PARTIAL_OPEN,
             block.timestamp,
             block.timestamp + 1000,
             context.args.zoneHash,
@@ -719,7 +735,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
-        vm.warp(500);
+        vm.warp(block.timestamp + 500);
 
         uint256 balanceBeforeOrder = token1.balanceOf(bob);
         context.consideration.matchAdvancedOrders(
@@ -731,7 +747,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         // check the difference in alice's balance is equal to partial fill of current amount
         assertEq(
             balanceAfterOrder - balanceBeforeOrder,
-            (currentAmount * 2) / 10
+            currentAmount.mul(2) / 10
         );
     }
 }
