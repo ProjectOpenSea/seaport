@@ -1,8 +1,6 @@
 # Seaport
 
-Seaport is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items. Each order contains an arbitrary number of items that the offerer is willing to give (the "offer") along with an arbitrary number of items that must be received along with their respective receivers (the "consideration").
-
-For more information and a deeper dive on how Seaport works, check out the repo's [Docs](Docs.md) file, or the full Seaport Documentation.
+Seaport is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items.
 
 ## Table of Contents
 
@@ -11,6 +9,12 @@ For more information and a deeper dive on how Seaport works, check out the repo'
 - [Usage](#usage)
 - [Contributing](#contributing)
 - [License](#license)
+
+## Background
+
+Seaport is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items. Each order contains an arbitrary number of items that the offerer is willing to give (the "offer") along with an arbitrary number of items that must be received along with their respective receivers (the "consideration").
+
+For more information and a deeper dive on how Seaport works, check out the repo's [Docs](Docs.md) file, or the full Seaport Documentation.
 
 ## Install
 
