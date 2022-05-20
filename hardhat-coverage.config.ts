@@ -25,9 +25,6 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-  paths: {
-    sources: "./contracts",
-  },
   networks: {
     hardhat: {
       blockGasLimit: 30_000_000,

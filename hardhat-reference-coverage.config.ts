@@ -37,7 +37,7 @@ const config: HardhatUserConfig = {
   },
   paths: {
     sources: "./reference",
-    cache: "./hh-cache-ref",
+    cache: "hh-cache-ref",
     artifacts: "./artifacts-ref",
   },
 };
