@@ -6,8 +6,8 @@ Documentation around creating orders, fulfillment, and interacting with Seaport.
 
 - [Order](#order)
 - [Order Fulfillment](#order-fulfillment)
-- [Sequence of Events](#sequenceofevents)
-- [Known Limitations And Workarounds](knownlimitationsandworkarounds)
+- [Sequence of Events](#sequence-of-events)
+- [Known Limitations And Workarounds](known-limitations-and-workarounds)
 
 ## Order
 
