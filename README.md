@@ -15,20 +15,18 @@ Seaport is a marketplace contract for safely and efficiently creating and fulfil
 
 Seaport is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items. Each order contains an arbitrary number of items that the offerer is willing to give (the "offer") along with an arbitrary number of items that must be received along with their respective receivers (the "consideration").
 
-See the [documentation](docs/SeaportDocumentation.md) and the [interface documentation](https://docs.opensea.io/v2.0/reference/seaport-overview) for more information on Seaport.
-
-The Seaport interface can be found [here](reference/lib/SeaportInterface.sol).
+See the [documentation](docs/SeaportDocumentation.md), the [interface](contracts/interfaces/SeaportInterface.sol), and the full [interface documentation](https://docs.opensea.io/v2.0/reference/seaport-overview) for more information on Seaport.
 
 ## Deployments
 
-Seaport deployment addresses
+Seaport deployment addresses:
 
 | Network          | Address                                    |
 | ---------------- | ------------------------------------------ |
-| Ethereum Mainnet | 0x00000000006ce100a8b5ed8edf18ceef9e500697 |
-| Polygon Mainnet  | 0x00000000006ce100a8b5ed8edf18ceef9e500697 |
-| Goerli           | 0x00000000006ce100a8b5ed8edf18ceef9e500697 |
-| Rinkeby          | 0x00000000006ce100a8b5ed8edf18ceef9e500697 |
+| Ethereum Mainnet | [0x00000000006ce100a8b5ed8edf18ceef9e500697](https://etherscan.io/address/0x00000000006cee72100d161c57ada5bb2be1ca79#code) |
+| Polygon Mainnet  | [0x00000000006ce100a8b5ed8edf18ceef9e500697](https://polygonscan.com/address/0x00000000006CEE72100D161c57ADA5Bb2be1CA79) |
+| Goerli           | [0x00000000006ce100a8b5ed8edf18ceef9e500697](https://goerli.etherscan.io/address/0x00000000006cee72100d161c57ada5bb2be1ca79#code) |
+| Rinkeby          | [0x00000000006ce100a8b5ed8edf18ceef9e500697](https://rinkeby.etherscan.io/address/0x00000000006cee72100d161c57ada5bb2be1ca79#code) |
 
 ## Install
 
