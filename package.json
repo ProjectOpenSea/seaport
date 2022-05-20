@@ -1,7 +1,7 @@
 {
   "name": "seaport",
   "version": "1.0.1",
-  "description": "Seaport is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items. Each order contains an arbitrary number of items that the offerer is willing to give (the \"offer\") along with an arbitrary number of items that must be received along with their respective receivers (the \"consideration\").",
+  "description": "Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs. Each listing contains an arbitrary number of items that the offerer is willing to give (the \"offer\") along with an arbitrary number of items that must be received along with their respective receivers (the \"consideration\").",
   "main": "contracts/Seaport.sol",
   "author": "0age",
   "license": "MIT",
