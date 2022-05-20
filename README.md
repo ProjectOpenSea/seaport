@@ -10,6 +10,7 @@ Seaport is a new marketplace protocol for safely and efficiently buying and sell
 - [Deployments](#deployments)
 - [Install](#install)
 - [Usage](#usage)
+- [Audits](audits)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -126,6 +127,10 @@ Lint checks utilize prettier, prettier-plugin-solidity, and solhint.
 "prettier": "^2.5.1",
 "prettier-plugin-solidity": "^1.0.0-beta.19",
 ```
+
+## Audits
+
+OpenSea engaged Trail of Bits to audit the security of Seaport. From April 18th to May 12th 2022, a team of Trail of Bits consultants conducted a security review of Seaport, and found 0 High and 0 Medium level issues. Their [full report is available here](https://github.com/trailofbits/publications/blob/master/reviews/SeaportProtocol.pdf).
 
 ## Contributing
 
