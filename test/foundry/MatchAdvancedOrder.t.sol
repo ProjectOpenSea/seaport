@@ -14,8 +14,13 @@ import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 import { Merkle } from "../../lib/murky/src/Merkle.sol";
 import { stdError } from "forge-std/Test.sol";
+import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 contract MatchAdvancedOrder is BaseOrderTest {
+    using ArithmeticUtil for uint256;
+    using ArithmeticUtil for uint128;
+    using ArithmeticUtil for uint120;
+
     struct FuzzInputs {
         address zone;
         uint256 id;
@@ -24,10 +29,25 @@ contract MatchAdvancedOrder is BaseOrderTest {
         uint128 amount;
         bool useConduit;
     }
-
+    struct FuzzInputsAscendingDescending {
+        address zone;
+        uint256 id;
+        bytes32 zoneHash;
+        uint256 salt;
+        uint128 baseStart;
+        uint128 baseEnd;
+        uint120 multiplier;
+        uint120 fractionalComponent;
+        bool useConduit;
+        uint256 warp;
+    }
     struct Context {
         ConsiderationInterface consideration;
         FuzzInputs args;
+    }
+    struct ContextAscendingDescending {
+        ConsiderationInterface consideration;
+        FuzzInputsAscendingDescending args;
     }
 
     function testMatchAdvancedOrdersOverflowOrderSide() public {
@@ -74,6 +94,28 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
         _testMatchAdvancedOrdersWithEmptyCriteriaEthToErc721(
             Context(consideration, args)
+        );
+    }
+
+    function testMatchOrdersAscendingDescendingOfferAmountPartialFill(
+        FuzzInputsAscendingDescending memory args
+    ) public {
+        _testMatchOrdersAscendingDescendingOfferAmountPartialFill(
+            ContextAscendingDescending(consideration, args)
+        );
+        _testMatchOrdersAscendingDescendingOfferAmountPartialFill(
+            ContextAscendingDescending(referenceConsideration, args)
+        );
+    }
+
+    function testMatchOrdersAscendingDescendingConsiderationAmountPartialFill(
+        FuzzInputsAscendingDescending memory args
+    ) public {
+        _testMatchOrdersAscendingDescendingConsiderationAmountPartialFill(
+            ContextAscendingDescending(consideration, args)
+        );
+        _testMatchOrdersAscendingDescendingConsiderationAmountPartialFill(
+            ContextAscendingDescending(referenceConsideration, args)
         );
     }
 
@@ -546,6 +588,347 @@ contract MatchAdvancedOrder is BaseOrderTest {
             advancedOrders,
             new CriteriaResolver[](0), // no criteria resolvers
             fulfillments
+        );
+    }
+
+    function _testMatchOrdersAscendingDescendingOfferAmountPartialFill(
+        ContextAscendingDescending memory context
+    ) internal resetTokenBalancesBetweenRuns {
+        vm.assume(context.args.baseStart != context.args.baseEnd);
+        vm.assume(context.args.baseStart > 0 && context.args.baseEnd > 0);
+
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test1155_1.mint(bob, context.args.id, 20);
+        token1.mint(
+            alice,
+            context.args.baseEnd > context.args.baseStart
+                ? context.args.baseEnd.mul(20)
+                : context.args.baseStart.mul(20)
+        );
+
+        emit log_named_uint(
+            "start amount * final multiplier",
+            context.args.baseStart.mul(20)
+        );
+        emit log_named_uint(
+            "end amount * final multiplier",
+            context.args.baseEnd.mul(20)
+        );
+        // multiply start and end amounts by multiplier and fractional component
+        _configureOfferItem(
+            ItemType.ERC20,
+            0,
+            context.args.baseStart.mul(20),
+            context.args.baseEnd.mul(20)
+        );
+        _configureConsiderationItem(
+            alice,
+            ItemType.ERC1155,
+            context.args.id,
+            20
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.PARTIAL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        // current amount should be mean of start and end amounts
+        uint256 currentAmount = _locateCurrentAmount(
+            context.args.baseStart.mul(20), // start amount
+            context.args.baseEnd.mul(20), // end amount
+            500, // elapsed
+            500, // remaining
+            1000, // duration
+            false // roundUp
+        );
+
+        emit log_named_uint("current amount", currentAmount);
+        emit log_named_uint(
+            "current amount scaled down by partial fill",
+            currentAmount.mul(2) / 10
+        );
+
+        _configureERC1155OfferItem(context.args.id, 20);
+        // create mirror consideration item with current amount
+        _configureConsiderationItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            currentAmount,
+            currentAmount,
+            bob
+        );
+
+        OrderParameters memory mirrorOrderParameters = OrderParameters(
+            address(bob),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.PARTIAL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+        OrderComponents memory mirrorOrderComponents = getOrderComponents(
+            mirrorOrderParameters,
+            context.consideration.getNonce(bob)
+        );
+
+        bytes memory mirrorSignature = signOrder(
+            context.consideration,
+            bobPk,
+            context.consideration.getOrderHash(mirrorOrderComponents)
+        );
+
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        // create advanced order with multiplier and fractional component as numerator and denominator
+        orders[0] = AdvancedOrder(orderParameters, 2, 10, signature, "0x");
+        // also tried scaling down current amount and passing in full open order
+        orders[1] = AdvancedOrder(
+            mirrorOrderParameters,
+            2,
+            10,
+            mirrorSignature,
+            "0x"
+        );
+
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        vm.warp(block.timestamp + 500);
+
+        uint256 balanceBeforeOrder = token1.balanceOf(bob);
+        context.consideration.matchAdvancedOrders(
+            orders,
+            new CriteriaResolver[](0),
+            fulfillments
+        );
+        uint256 balanceAfterOrder = token1.balanceOf(bob);
+        // check the difference in alice's balance is equal to partial fill of current amount
+        assertEq(
+            balanceAfterOrder - balanceBeforeOrder,
+            currentAmount.mul(2) / 10
+        );
+    }
+
+    function _testMatchOrdersAscendingDescendingConsiderationAmountPartialFill(
+        ContextAscendingDescending memory context
+    ) internal resetTokenBalancesBetweenRuns {
+        vm.assume(context.args.baseStart != context.args.baseEnd);
+        vm.assume(context.args.baseStart > 0 && context.args.baseEnd > 0);
+
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test1155_1.mint(alice, context.args.id, 20);
+        token1.mint(
+            bob,
+            context.args.baseEnd > context.args.baseStart
+                ? context.args.baseEnd.mul(20)
+                : context.args.baseStart.mul(20)
+        );
+
+        emit log_named_uint(
+            "start amount * final multiplier",
+            context.args.baseStart.mul(20)
+        );
+        emit log_named_uint(
+            "end amount * final multiplier",
+            context.args.baseEnd.mul(20)
+        );
+        // multiply start and end amounts by multiplier and fractional component
+        _configureOfferItem(ItemType.ERC1155, context.args.id, 20, 20);
+        _configureConsiderationItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            context.args.baseStart.mul(20),
+            context.args.baseEnd.mul(20),
+            alice
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.PARTIAL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        // current amount should be mean of start and end amounts
+        uint256 currentAmount = _locateCurrentAmount(
+            context.args.baseStart.mul(20), // start amount
+            context.args.baseEnd.mul(20), // end amount
+            500, // elapsed
+            500, // remaining
+            1000, // duration
+            false // roundUp
+        );
+
+        emit log_named_uint("current amount", currentAmount);
+        emit log_named_uint(
+            "current amount scaled down by partial fill",
+            currentAmount.mul(2) / 10
+        );
+
+        _configureOfferItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            currentAmount,
+            currentAmount
+        );
+        // create mirror consideration item with current amount
+        _configureConsiderationItem(
+            ItemType.ERC1155,
+            address(test1155_1),
+            context.args.id,
+            20,
+            20,
+            bob
+        );
+
+        OrderParameters memory mirrorOrderParameters = OrderParameters(
+            address(bob),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.PARTIAL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
+            considerationItems.length
+        );
+        OrderComponents memory mirrorOrderComponents = getOrderComponents(
+            mirrorOrderParameters,
+            context.consideration.getNonce(bob)
+        );
+
+        bytes memory mirrorSignature = signOrder(
+            context.consideration,
+            bobPk,
+            context.consideration.getOrderHash(mirrorOrderComponents)
+        );
+
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        // create advanced order with multiplier and fractional component as numerator and denominator
+        orders[0] = AdvancedOrder(orderParameters, 2, 10, signature, "0x");
+        // also tried scaling down current amount and passing in full open order
+        orders[1] = AdvancedOrder(
+            mirrorOrderParameters,
+            2,
+            10,
+            mirrorSignature,
+            "0x"
+        );
+
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        fulfillmentComponent = FulfillmentComponent(1, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.offerComponents = fulfillmentComponents;
+        delete fulfillmentComponents;
+        fulfillmentComponent = FulfillmentComponent(0, 0);
+        fulfillmentComponents.push(fulfillmentComponent);
+        fulfillment.considerationComponents = fulfillmentComponents;
+        fulfillments.push(fulfillment);
+        delete fulfillmentComponents;
+        delete fulfillment;
+
+        vm.warp(block.timestamp + 500);
+
+        uint256 balanceBeforeOrder = token1.balanceOf(alice);
+        context.consideration.matchAdvancedOrders(
+            orders,
+            new CriteriaResolver[](0),
+            fulfillments
+        );
+        uint256 balanceAfterOrder = token1.balanceOf(alice);
+        // check the difference in alice's balance is equal to partial fill of current amount
+        assertEq(
+            balanceAfterOrder - balanceBeforeOrder,
+            currentAmount.mul(2) / 10
         );
     }
 }

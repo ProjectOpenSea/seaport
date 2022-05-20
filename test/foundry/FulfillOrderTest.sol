@@ -12,8 +12,14 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
+import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 contract FulfillOrderTest is BaseOrderTest {
+    using ArithmeticUtil for uint256;
+    using ArithmeticUtil for uint128;
+    using ArithmeticUtil for uint120;
+    using ArithmeticUtil for uint8;
+
     struct FuzzInputsCommon {
         address zone;
         uint128 id;
@@ -29,15 +35,236 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 erc1155amt;
         uint128 tipAmt;
         uint8 numTips;
+        uint120 startAmount;
+        uint120 endAmount;
+        uint16 warpAmount;
+    }
+
+    function testFulfillAscendingDescendingOffer(
+        FuzzInputsCommon memory inputs,
+        uint120 startAmount,
+        uint120 endAmount,
+        uint16 warpAmount
+    ) public {
+        vm.assume(
+            inputs.paymentAmts[0] > 0 &&
+                inputs.paymentAmts[1] > 0 &&
+                inputs.paymentAmts[2] > 0
+        );
+        vm.assume(
+            inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
+                inputs.paymentAmts[2]
+            ) <= 2**128 - 1
+        );
+        vm.assume(startAmount > 0 && endAmount > 0);
+        _testFulfillAscendingDescendingOffer(
+            Context(
+                referenceConsideration,
+                inputs,
+                0,
+                0,
+                0,
+                startAmount,
+                endAmount,
+                warpAmount % 1000
+            )
+        );
+        _testFulfillAscendingDescendingOffer(
+            Context(
+                consideration,
+                inputs,
+                0,
+                0,
+                0,
+                startAmount,
+                endAmount,
+                warpAmount % 1000
+            )
+        );
+    }
+
+    function _testFulfillAscendingDescendingOffer(Context memory context)
+        internal
+        onlyPayable(context.args.zone)
+        topUp
+        resetTokenBalancesBetweenRuns
+    {
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+        token1.mint(
+            alice,
+            (
+                context.endAmount > context.startAmount
+                    ? context.endAmount
+                    : context.startAmount
+            ).mul(1000)
+        );
+        _configureERC20OfferItem(
+            context.startAmount.mul(1000),
+            context.endAmount.mul(1000)
+        );
+        _configureEthConsiderationItem(alice, 1000);
+        OrderParameters memory orderParameters = OrderParameters(
+            alice,
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            bytes32(0),
+            context.args.salt,
+            conduitKey,
+            1
+        );
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        vm.warp(block.timestamp + context.warpAmount);
+        uint256 expectedAmount = _locateCurrentAmount(
+            context.startAmount.mul(1000),
+            context.endAmount.mul(1000),
+            context.warpAmount,
+            1000 - context.warpAmount,
+            1000,
+            true // for consideration
+        );
+        vm.expectEmit(true, true, true, false, address(token1));
+        emit Transfer(alice, address(this), expectedAmount);
+        context.consideration.fulfillOrder{ value: 1000 }(
+            Order(orderParameters, signature),
+            conduitKey
+        );
+    }
+
+    function testFulfillAscendingDescendingConsideration(
+        FuzzInputsCommon memory inputs,
+        uint256 erc1155amt,
+        uint120 startAmount,
+        uint120 endAmount,
+        uint16 warpAmount
+    ) public {
+        vm.assume(
+            inputs.paymentAmts[0] > 0 &&
+                inputs.paymentAmts[1] > 0 &&
+                inputs.paymentAmts[2] > 0
+        );
+        vm.assume(
+            inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
+                inputs.paymentAmts[2]
+            ) <= 2**128 - 1
+        );
+        vm.assume(startAmount > 0 && endAmount > 0);
+        vm.assume(erc1155amt > 0);
+        _testFulfillAscendingDescendingConsideration(
+            Context(
+                referenceConsideration,
+                inputs,
+                erc1155amt,
+                0,
+                0,
+                startAmount,
+                endAmount,
+                warpAmount % 1000
+            )
+        );
+        _testFulfillAscendingDescendingConsideration(
+            Context(
+                consideration,
+                inputs,
+                erc1155amt,
+                0,
+                0,
+                startAmount,
+                endAmount,
+                warpAmount % 1000
+            )
+        );
+    }
+
+    function _testFulfillAscendingDescendingConsideration(
+        Context memory context
+    )
+        internal
+        onlyPayable(context.args.zone)
+        topUp
+        resetTokenBalancesBetweenRuns
+    {
+        context.warpAmount %= 1000;
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test1155_1.mint(alice, context.args.id, context.erc1155amt);
+        _configureERC1155OfferItem(context.args.id, context.erc1155amt);
+
+        _configureErc20ConsiderationItem(
+            alice,
+            context.startAmount.mul(1000),
+            context.endAmount.mul(1000)
+        );
+        OrderParameters memory orderParameters = OrderParameters(
+            alice,
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1000,
+            bytes32(0),
+            context.args.salt,
+            conduitKey,
+            1
+        );
+        delete offerItems;
+        delete considerationItems;
+
+        OrderComponents memory orderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        vm.warp(block.timestamp + context.warpAmount);
+        uint256 expectedAmount = _locateCurrentAmount(
+            context.startAmount.mul(1000),
+            context.endAmount.mul(1000),
+            context.warpAmount,
+            1000 - context.warpAmount,
+            1000,
+            true // for consideration
+        );
+        token1.mint(address(this), expectedAmount);
+        vm.expectEmit(true, true, true, false, address(token1));
+        emit Transfer(address(this), address(alice), expectedAmount);
+        context.consideration.fulfillOrder(
+            Order(orderParameters, signature),
+            conduitKey
+        );
     }
 
     function testFulfillOrderEthToErc721(FuzzInputsCommon memory inputs)
         public
     {
         _testFulfillOrderEthToErc721(
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceConsideration, inputs, 0, 0, 0, 0, 0, 0)
         );
-        _testFulfillOrderEthToErc721(Context(consideration, inputs, 0, 0, 0));
+        _testFulfillOrderEthToErc721(
+            Context(consideration, inputs, 0, 0, 0, 0, 0, 0)
+        );
     }
 
     function testFulfillOrderEthToErc1155(
@@ -45,10 +272,10 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 tokenAmount
     ) public {
         _testFulfillOrderEthToErc1155(
-            Context(referenceConsideration, inputs, tokenAmount, 0, 0)
+            Context(referenceConsideration, inputs, tokenAmount, 0, 0, 0, 0, 0)
         );
         _testFulfillOrderEthToErc1155(
-            Context(consideration, inputs, tokenAmount, 0, 0)
+            Context(consideration, inputs, tokenAmount, 0, 0, 0, 0, 0)
         );
     }
 
@@ -57,10 +284,10 @@ contract FulfillOrderTest is BaseOrderTest {
         uint128 tipAmt
     ) public {
         _testFulfillOrderEthToErc721WithSingleEthTip(
-            Context(referenceConsideration, inputs, 0, tipAmt, 0)
+            Context(referenceConsideration, inputs, 0, tipAmt, 0, 0, 0, 0)
         );
         _testFulfillOrderEthToErc721WithSingleEthTip(
-            Context(consideration, inputs, 0, tipAmt, 0)
+            Context(consideration, inputs, 0, tipAmt, 0, 0, 0, 0)
         );
     }
 
@@ -70,10 +297,19 @@ contract FulfillOrderTest is BaseOrderTest {
         uint128 tipAmt
     ) public {
         _testFulfillOrderEthToErc1155WithSingleEthTip(
-            Context(referenceConsideration, inputs, tokenAmt, tipAmt, 0)
+            Context(
+                referenceConsideration,
+                inputs,
+                tokenAmt,
+                tipAmt,
+                0,
+                0,
+                0,
+                0
+            )
         );
         _testFulfillOrderEthToErc1155WithSingleEthTip(
-            Context(consideration, inputs, tokenAmt, tipAmt, 0)
+            Context(consideration, inputs, tokenAmt, tipAmt, 0, 0, 0, 0)
         );
     }
 
@@ -82,10 +318,10 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc721WithMultipleEthTips(
-            Context(referenceConsideration, inputs, 0, 0, numTips)
+            Context(referenceConsideration, inputs, 0, 0, numTips, 0, 0, 0)
         );
         _testFulfillOrderEthToErc721WithMultipleEthTips(
-            Context(consideration, inputs, 0, 0, numTips)
+            Context(consideration, inputs, 0, 0, numTips, 0, 0, 0)
         );
     }
 
@@ -95,10 +331,19 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc1155WithMultipleEthTips(
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(
+                referenceConsideration,
+                inputs,
+                tokenAmt,
+                0,
+                numTips,
+                0,
+                0,
+                0
+            )
         );
         _testFulfillOrderEthToErc1155WithMultipleEthTips(
-            Context(consideration, inputs, tokenAmt, 0, numTips)
+            Context(consideration, inputs, tokenAmt, 0, numTips, 0, 0, 0)
         );
     }
 
@@ -107,10 +352,10 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 tokenAmt
     ) public {
         _testFulfillOrderSingleErc20ToSingleErc1155(
-            Context(referenceConsideration, inputs, tokenAmt, 0, 0)
+            Context(referenceConsideration, inputs, tokenAmt, 0, 0, 0, 0, 0)
         );
         _testFulfillOrderSingleErc20ToSingleErc1155(
-            Context(consideration, inputs, tokenAmt, 0, 0)
+            Context(consideration, inputs, tokenAmt, 0, 0, 0, 0, 0)
         );
     }
 
@@ -119,10 +364,10 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc721WithErc721Tips(
-            Context(referenceConsideration, inputs, 0, 0, numTips)
+            Context(referenceConsideration, inputs, 0, 0, numTips, 0, 0, 0)
         );
         _testFulfillOrderEthToErc721WithErc721Tips(
-            Context(consideration, inputs, 0, 0, numTips)
+            Context(consideration, inputs, 0, 0, numTips, 0, 0, 0)
         );
     }
 
@@ -132,10 +377,19 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc1155WithErc721Tips(
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(
+                referenceConsideration,
+                inputs,
+                tokenAmt,
+                0,
+                numTips,
+                0,
+                0,
+                0
+            )
         );
         _testFulfillOrderEthToErc1155WithErc721Tips(
-            Context(consideration, inputs, tokenAmt, 0, numTips)
+            Context(consideration, inputs, tokenAmt, 0, numTips, 0, 0, 0)
         );
     }
 
@@ -144,10 +398,10 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc721WithErc1155Tips(
-            Context(referenceConsideration, inputs, 0, 0, numTips)
+            Context(referenceConsideration, inputs, 0, 0, numTips, 0, 0, 0)
         );
         _testFulfillOrderEthToErc721WithErc1155Tips(
-            Context(consideration, inputs, 0, 0, numTips)
+            Context(consideration, inputs, 0, 0, numTips, 0, 0, 0)
         );
     }
 
@@ -157,10 +411,19 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc1155WithErc1155Tips(
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(
+                referenceConsideration,
+                inputs,
+                tokenAmt,
+                0,
+                numTips,
+                0,
+                0,
+                0
+            )
         );
         _testFulfillOrderEthToErc1155WithErc1155Tips(
-            Context(consideration, inputs, tokenAmt, 0, numTips)
+            Context(consideration, inputs, tokenAmt, 0, numTips, 0, 0, 0)
         );
     }
 
@@ -168,10 +431,10 @@ contract FulfillOrderTest is BaseOrderTest {
         FuzzInputsCommon memory inputs
     ) public {
         _testFulfillOrderEthToErc721WithErc20Tips(
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceConsideration, inputs, 0, 0, 0, 0, 0, 0)
         );
         _testFulfillOrderEthToErc721WithErc20Tips(
-            Context(consideration, inputs, 0, 0, 0)
+            Context(consideration, inputs, 0, 0, 0, 0, 0, 0)
         );
     }
 
@@ -181,10 +444,19 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc1155WithErc20Tips(
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(
+                referenceConsideration,
+                inputs,
+                tokenAmt,
+                0,
+                numTips,
+                0,
+                0,
+                0
+            )
         );
         _testFulfillOrderEthToErc1155WithErc20Tips(
-            Context(consideration, inputs, tokenAmt, 0, numTips)
+            Context(consideration, inputs, tokenAmt, 0, numTips, 0, 0, 0)
         );
     }
 
@@ -192,10 +464,10 @@ contract FulfillOrderTest is BaseOrderTest {
         FuzzInputsCommon memory inputs
     ) public {
         _testFulfillOrderEthToErc721FullRestricted(
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceConsideration, inputs, 0, 0, 0, 0, 0, 0)
         );
         _testFulfillOrderEthToErc721FullRestricted(
-            Context(consideration, inputs, 0, 0, 0)
+            Context(consideration, inputs, 0, 0, 0, 0, 0, 0)
         );
     }
 
@@ -211,10 +483,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -235,8 +506,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -245,8 +516,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -255,8 +526,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -293,9 +564,11 @@ contract FulfillOrderTest is BaseOrderTest {
             considerationItems.length
         );
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -312,10 +585,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -337,8 +609,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -347,8 +619,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -357,8 +629,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -395,9 +667,11 @@ contract FulfillOrderTest is BaseOrderTest {
             considerationItems.length
         );
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -414,10 +688,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -440,8 +713,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -450,8 +723,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -460,8 +733,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -499,9 +772,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -520,11 +795,12 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.tipAmt > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) +
-                uint256(context.tipAmt) <=
-                2**128 - 1
+            context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
+                .add(context.tipAmt) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -545,8 +821,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -555,8 +831,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -565,8 +841,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -617,10 +893,12 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2] +
-                context.tipAmt
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
+                .add(context.tipAmt)
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -640,11 +918,12 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.tipAmt > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) +
-                uint256(context.tipAmt) <=
-                2**128 - 1
+            context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
+                .add(context.tipAmt) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -667,8 +946,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -677,8 +956,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -687,8 +966,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -739,10 +1018,12 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2] +
-                context.tipAmt
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
+                .add(context.tipAmt)
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -761,10 +1042,12 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) +
-                uint256(context.numTips) *
+            context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
+                .add(context.numTips) *
                 ((1 + context.numTips) / 2) <= // avg of tip amounts from 1 to numberOfTips eth
                 2**128 - 1
         );
@@ -788,8 +1071,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -798,8 +1081,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -808,8 +1091,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -865,10 +1148,12 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2] +
-                sumOfTips
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
+                .add(sumOfTips)
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -888,10 +1173,12 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) +
-                uint256(context.numTips) *
+            context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
+                .add(context.numTips) *
                 ((1 + context.numTips) / 2) <= // avg of tip amounts from 1 to numberOfTips eth
                 2**128 - 1
         );
@@ -916,8 +1203,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -926,8 +1213,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -936,8 +1223,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -994,10 +1281,12 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2] +
-                sumOfTips
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
+                .add(sumOfTips)
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -1014,10 +1303,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -1038,8 +1326,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -1048,8 +1336,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -1058,8 +1346,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -1115,9 +1403,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -1135,10 +1425,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -1160,8 +1449,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -1170,8 +1459,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -1180,8 +1469,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -1237,9 +1526,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -1256,10 +1547,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -1281,8 +1571,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -1291,8 +1581,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -1301,8 +1591,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -1326,15 +1616,15 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        for (uint256 i = 1; i < context.numTips + uint256(1); i++) {
+        for (uint256 i = 1; i < context.numTips.add(1); i++) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
-            test1155_1.mint(address(this), context.args.id + uint256(i), i);
+            test1155_1.mint(address(this), context.args.id.add(i), i);
             considerationItems.push(
                 ConsiderationItem(
                     ItemType.ERC1155,
                     address(test1155_1),
-                    context.args.id + uint256(i),
+                    context.args.id.add(i),
                     i,
                     i,
                     payable(tipAddr)
@@ -1357,9 +1647,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -1379,10 +1671,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
 
         bytes32 conduitKey = context.args.useConduit
@@ -1404,8 +1695,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -1414,8 +1705,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -1424,8 +1715,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -1449,15 +1740,15 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        for (uint256 i = 1; i < context.numTips + uint256(1); i++) {
+        for (uint256 i = 1; i < context.numTips.add(1); i++) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
-            test1155_1.mint(address(this), context.args.id + uint256(i), i);
+            test1155_1.mint(address(this), context.args.id.add(i), i);
             considerationItems.push(
                 ConsiderationItem(
                     ItemType.ERC1155,
                     address(test1155_1),
-                    context.args.id + uint256(i),
+                    context.args.id.add(i),
                     i,
                     i,
                     payable(tipAddr)
@@ -1480,9 +1771,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -1498,10 +1791,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -1523,8 +1815,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -1533,8 +1825,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -1543,8 +1835,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -1568,7 +1860,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        for (uint256 i = 1; i < context.numTips + uint256(1); i++) {
+        for (uint256 i = 1; i < context.numTips.add(1); i++) {
             uint256 tipPk = i;
             address tipAddr = vm.addr(tipPk);
             considerationItems.push(
@@ -1598,9 +1890,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -1618,10 +1912,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
 
         bytes32 conduitKey = context.args.useConduit
@@ -1644,8 +1937,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -1654,8 +1947,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -1664,8 +1957,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -1689,7 +1982,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        for (uint256 i = 1; i < context.numTips + uint256(1); i++) {
+        for (uint256 i = 1; i < context.numTips.add(1); i++) {
             uint256 tipPk = i;
             address tipAddr = vm.addr(tipPk);
             considerationItems.push(
@@ -1719,9 +2012,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 
@@ -1737,10 +2032,9 @@ contract FulfillOrderTest is BaseOrderTest {
                 context.args.paymentAmts[2] > 0
         );
         vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
+            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
+                context.args.paymentAmts[2]
+            ) <= 2**128 - 1
         );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -1761,8 +2055,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[0]),
-                uint256(context.args.paymentAmts[0]),
+                context.args.paymentAmts[0],
+                context.args.paymentAmts[0],
                 payable(alice)
             )
         );
@@ -1771,8 +2065,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[1]),
-                uint256(context.args.paymentAmts[1]),
+                context.args.paymentAmts[1],
+                context.args.paymentAmts[1],
                 payable(context.args.zone)
             )
         );
@@ -1781,8 +2075,8 @@ contract FulfillOrderTest is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                uint256(context.args.paymentAmts[2]),
-                uint256(context.args.paymentAmts[2]),
+                context.args.paymentAmts[2],
+                context.args.paymentAmts[2],
                 payable(cal)
             )
         );
@@ -1821,9 +2115,11 @@ contract FulfillOrderTest is BaseOrderTest {
         );
         vm.prank(alice);
         context.consideration.fulfillOrder{
-            value: context.args.paymentAmts[0] +
-                context.args.paymentAmts[1] +
-                context.args.paymentAmts[2]
+            value: context
+                .args
+                .paymentAmts[0]
+                .add(context.args.paymentAmts[1])
+                .add(context.args.paymentAmts[2])
         }(Order(orderParameters, signature), conduitKey);
     }
 }

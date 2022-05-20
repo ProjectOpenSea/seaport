@@ -83,6 +83,8 @@ contract BaseOrderTest is
 
     uint256 internal globalTokenId;
 
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
     event TransferSingle(
         address indexed operator,
         address indexed from,
@@ -339,15 +341,27 @@ contract BaseOrderTest is
 
     function _configureErc20ConsiderationItem(
         address payable receiver,
-        uint256 paymentAmount
+        uint256 startAmount,
+        uint256 endAmount
     ) internal {
         _configureConsiderationItem(
             ItemType.ERC20,
             address(token1),
             0,
-            paymentAmount,
-            paymentAmount,
+            startAmount,
+            endAmount,
             receiver
+        );
+    }
+
+    function _configureErc20ConsiderationItem(
+        address payable receiver,
+        uint256 paymentAmount
+    ) internal {
+        _configureErc20ConsiderationItem(
+            receiver,
+            paymentAmount,
+            paymentAmount
         );
     }
 

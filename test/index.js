@@ -7581,7 +7581,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           buildOrderStatus(true, false, 1, 1)
         );
       });
-      w;
     });
 
     describe("Sequenced Orders", async () => {

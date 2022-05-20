@@ -42,8 +42,6 @@ contract MatchOrders is BaseOrderTest {
         FuzzInputsAscendingDescending args;
     }
 
-    event Transfer(address from, address to, uint256 amount);
-
     function testMatchOrdersSingleErc721OfferSingleEthConsideration(
         FuzzInputsCommon memory inputs
     ) public {
