@@ -96,11 +96,29 @@ To install dependencies:
 forge install
 ```
 
-To run tests:
+To precompile contracts:
+
+The optimized contracts are compiled using the IR pipeline, which can take a long time to compile. By default, the differential test suite depends deploys precompiled versions of both the optimized and reference contracts. Precompilation can be done by specifying specific Foundry profiles.
 
 ```bash
-forge test
+FOUNDRY_PROFILE=optimized forge build
+FOUNDRY_PROFILE=reference forge build
 ```
+
+There are three Foundry profiles for running the test suites, which bypass the IR pipeline to speed up compilation. To run tests, run any of the following:
+
+```bash
+FOUNDRY_PROFILE=test forge test # with 5000 fuzz runs
+FOUNDRY_PROFILE=lite forge test # with 1000 fuzz runs
+FOUNDRY_PROFILE=local-ffi forge test # compiles and deploys ReferenceConsideration normally, with 1000 fuzz runs
+```
+
+You may wish to include a `.env` file that `export`s a specific profile when developing locally.
+
+**Note** that stack+debug traces will not be available for precompiled contracts. To facilitate local development, specifying `FOUNDRY_PROFILE=local-ffi` will compile and deploy the reference implementation normally, allowing for stack+debug traces.
+
+**Note** the `local-ffi` profile uses Forge's `ffi` flag. `ffi` can potentially be unsafe, as it allows Forge to execute arbitrary code. Use with caution, and always ensure you trust the code in this repository, especially when working on third-party forks.
+
 
 The following modifiers are also available:
 
@@ -110,7 +128,7 @@ The following modifiers are also available:
 - Level 5 (-vvvvv): Stack traces and setup traces are always displayed.
 
 ```bash
-forge test  -vv
+FOUNDRY_PROFILE=test forge test  -vv
 ```
 
 For more information on foundry testing and use, see [Foundry Book installation instructions](https://book.getfoundry.sh/getting-started/installation.html).
