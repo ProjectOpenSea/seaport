@@ -89,9 +89,6 @@ contract FulfillOrderTest is BaseOrderTest {
         topUp
         resetTokenBalancesBetweenRuns
     {
-        emit log_named_uint("start amount", context.startAmount);
-        emit log_named_uint("end amount", context.startAmount);
-
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
