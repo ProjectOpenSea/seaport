@@ -5,6 +5,7 @@ Seaport is a marketplace contract for safely and efficiently creating and fulfil
 ## Table of Contents
 
 - [Background](#background)
+- [Deployments](#deployments)
 - [Install](#install)
 - [Usage](#usage)
 - [Contributing](#contributing)
@@ -17,6 +18,17 @@ Seaport is a marketplace contract for safely and efficiently creating and fulfil
 See the [documentation](docs/SeaportDocumentation.md) and the [interface documentation](https://docs.opensea.io/v2.0/reference/seaport-overview) for more information on Seaport.
 
 The Seaport interface can be found [here](reference/lib/SeaportInterface.sol).
+
+## Deployments
+
+Seaport deployment addresses
+
+| Network          | Address                                    |
+| ---------------- | ------------------------------------------ |
+| Ethereum Mainnet | 0x00000000006ce100a8b5ed8edf18ceef9e500697 |
+| Polygon Mainnet  | 0x00000000006ce100a8b5ed8edf18ceef9e500697 |
+| Goerli           | 0x00000000006ce100a8b5ed8edf18ceef9e500697 |
+| Rinkeby          | 0x00000000006ce100a8b5ed8edf18ceef9e500697 |
 
 ## Install
 
