@@ -5,7 +5,7 @@
   "main": "contracts/Seaport.sol",
   "author": "0age",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "engines": {
     "node": ">=16.0.0"
   },
