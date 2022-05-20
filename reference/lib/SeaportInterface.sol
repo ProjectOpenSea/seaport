@@ -15,18 +15,17 @@ import {
 } from "../lib/ConsiderationStructs.sol";
 
 /**
- * @title ConsiderationInterface
+ * @title SeaportInterface
  * @author 0age
  * @custom:version 1
- * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
- *         It minimizes external calls to the greatest extent possible and
- *         provides lightweight methods for common routes as well as more
- *         flexible methods for composing advanced orders.
+ * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace. It
+ *         minimizes external calls to the greatest extent possible and provides
+ *         lightweight methods for common routes as well as more flexible
+ *         methods for composing advanced orders.
  *
- * @dev ConsiderationInterface contains all external function interfaces for
- *      Consideration.
+ * @dev SeaportInterface contains all external function interfaces for Seaport.
  */
-interface ConsiderationInterface {
+interface SeaportInterface {
     /**
      * @notice Fulfill an order offering an ERC721 token by supplying Ether (or
      *         the native token for the given chain) as consideration for the
