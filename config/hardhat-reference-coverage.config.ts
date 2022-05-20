@@ -36,7 +36,7 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   paths: {
-    sources: "./reference",
+    sources: "../reference",
     cache: "hh-cache-ref",
     artifacts: "./artifacts-ref",
   },
