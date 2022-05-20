@@ -1,43 +1,74 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.7;
+pragma solidity 0.8.13;
 
 // prettier-ignore
 import {
-    BasicOrderParameters,
+    ConsiderationInterface
+} from "../interfaces/ConsiderationInterface.sol";
+
+// prettier-ignore
+import {
     OrderComponents,
-    Fulfillment,
-    FulfillmentComponent,
-    Execution,
+    BasicOrderParameters,
+    OrderParameters,
     Order,
     AdvancedOrder,
     OrderStatus,
-    CriteriaResolver
-} from "../lib/ConsiderationStructs.sol";
+    CriteriaResolver,
+    Fulfillment,
+    FulfillmentComponent,
+    Execution
+} from "./ConsiderationStructs.sol";
+
+import { OrderCombiner } from "./OrderCombiner.sol";
 
 /**
- * @title ConsiderationInterface
+ * @title Consideration
  * @author 0age
+ * @custom:coauthor d1ll0n
+ * @custom:coauthor transmissions11
  * @custom:version 1
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
  *         provides lightweight methods for common routes as well as more
- *         flexible methods for composing advanced orders.
- *
- * @dev ConsiderationInterface contains all external function interfaces for
- *      Consideration.
+ *         flexible methods for composing advanced orders or groups of orders.
+ *         Each order contains an arbitrary number of items that may be spent
+ *         (the "offer") along with an arbitrary number of items that must be
+ *         received back by the indicated recipients (the "consideration").
  */
-interface ConsiderationInterface {
+contract Consideration is ConsiderationInterface, OrderCombiner {
     /**
-     * @notice Fulfill an order offering an ERC721 token by supplying Ether (or
-     *         the native token for the given chain) as consideration for the
-     *         order. An arbitrary number of "additional recipients" may also be
-     *         supplied which will each receive native tokens from the fulfiller
-     *         as consideration.
+     * @notice Derive and set hashes, reference chainId, and associated domain
+     *         separator during deployment.
+     *
+     * @param conduitController A contract that deploys conduits, or proxies
+     *                          that may optionally be used to transfer approved
+     *                          ERC20/721/1155 tokens.
+     */
+    constructor(address conduitController) OrderCombiner(conduitController) {}
+
+    /**
+     * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
+     *         supplying Ether (or other native tokens), ERC20 tokens, an ERC721
+     *         item, or an ERC1155 item as consideration. Six permutations are
+     *         supported: Native token to ERC721, Native token to ERC1155, ERC20
+     *         to ERC721, ERC20 to ERC1155, ERC721 to ERC20, and ERC1155 to
+     *         ERC20 (with native tokens supplied as msg.value). For an order to
+     *         be eligible for fulfillment via this method, it must contain a
+     *         single offer item (though that item may have a greater amount if
+     *         the item is not an ERC721). An arbitrary number of "additional
+     *         recipients" may also be supplied which will each receive native
+     *         tokens or ERC20 items from the fulfiller as consideration. Refer
+     *         to the documentation for a more comprehensive summary of how to
+     *         utilize this method and what orders are compatible with it.
      *
      * @param parameters Additional information on the fulfilled order. Note
-     *                   that the offerer must first approve this contract (or
-     *                   their preferred conduit if indicated by the order) for
-     *                   their offered ERC721 token to be transferred.
+     *                   that the offerer and the fulfiller must first approve
+     *                   this contract (or their chosen conduit if indicated)
+     *                   before any tokens can be transferred. Also note that
+     *                   contract recipients of ERC1155 consideration items must
+     *                   implement `onERC1155Received` in order to receive those
+     *                   items.
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
@@ -45,7 +76,12 @@ interface ConsiderationInterface {
     function fulfillBasicOrder(BasicOrderParameters calldata parameters)
         external
         payable
-        returns (bool fulfilled);
+        override
+        returns (bool fulfilled)
+    {
+        // Validate and fulfill the basic order.
+        fulfilled = _validateAndFulfillBasicOrder(parameters);
+    }
 
     /**
      * @notice Fulfill an order with an arbitrary number of items for offer and
@@ -63,8 +99,8 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
-     *                            should be used, with direct approvals set on
-     *                            Consideration.
+     *                            should be used (and direct approvals set on
+     *                            Consideration).
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
@@ -72,7 +108,16 @@ interface ConsiderationInterface {
     function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
         payable
-        returns (bool fulfilled);
+        override
+        returns (bool fulfilled)
+    {
+        // Convert order to "advanced" order, then validate and fulfill it.
+        fulfilled = _validateAndFulfillAdvancedOrder(
+            _convertOrderToAdvanced(order),
+            new CriteriaResolver[](0), // No criteria resolvers supplied.
+            fulfillerConduitKey
+        );
+    }
 
     /**
      * @notice Fill an order, fully or partially, with an arbitrary number of
@@ -82,9 +127,9 @@ interface ConsiderationInterface {
      * @param advancedOrder       The order to fulfill along with the fraction
      *                            of the order to attempt to fill. Note that
      *                            both the offerer and the fulfiller must first
-     *                            approve this contract (or their preferred
-     *                            conduit if indicated by the order) to transfer
-     *                            any relevant tokens on their behalf and that
+     *                            approve this contract (or their conduit if
+     *                            indicated by the order) to transfer any
+     *                            relevant tokens on their behalf and that
      *                            contracts must implement `onERC1155Received`
      *                            to receive ERC1155 tokens as consideration.
      *                            Also note that all offer and consideration
@@ -105,8 +150,8 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
-     *                            should be used, with direct approvals set on
-     *                            Consideration.
+     *                            should be used (and direct approvals set on
+     *                            Consideration).
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
@@ -115,7 +160,14 @@ interface ConsiderationInterface {
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
         bytes32 fulfillerConduitKey
-    ) external payable returns (bool fulfilled);
+    ) external payable override returns (bool fulfilled) {
+        // Validate and fulfill the order.
+        fulfilled = _validateAndFulfillAdvancedOrder(
+            advancedOrder,
+            criteriaResolvers,
+            fulfillerConduitKey
+        );
+    }
 
     /**
      * @notice Attempt to fill a group of orders, each with an arbitrary number
@@ -149,8 +201,8 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used, with
-     *                                  direct approvals set on this contract.
+     *                                  that no conduit should be used (and
+     *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders An array of booleans indicating if each order
@@ -169,7 +221,20 @@ interface ConsiderationInterface {
     )
         external
         payable
-        returns (bool[] memory availableOrders, Execution[] memory executions);
+        override
+        returns (bool[] memory availableOrders, Execution[] memory executions)
+    {
+        // Convert orders to "advanced" orders and fulfill all available orders.
+        return
+            _fulfillAvailableAdvancedOrders(
+                _convertOrdersToAdvanced(orders), // Convert to advanced orders.
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                offerFulfillments,
+                considerationFulfillments,
+                fulfillerConduitKey,
+                maximumFulfilled
+            );
+    }
 
     /**
      * @notice Attempt to fill a group of orders, fully or partially, with an
@@ -188,11 +253,11 @@ interface ConsiderationInterface {
      *                                  fraction of those orders to attempt to
      *                                  fill. Note that both the offerer and the
      *                                  fulfiller must first approve this
-     *                                  contract (or their preferred conduit if
-     *                                  indicated by the order) to transfer any
-     *                                  relevant tokens on their behalf and that
+     *                                  contract (or their conduit if indicated
+     *                                  by the order) to transfer any relevant
+     *                                  tokens on their behalf and that
      *                                  contracts must implement
-     *                                  `onERC1155Received` to enable receipt of
+     *                                  `onERC1155Received` in order to receive
      *                                  ERC1155 tokens as consideration. Also
      *                                  note that all offer and consideration
      *                                  components must have no remainder after
@@ -221,8 +286,8 @@ interface ConsiderationInterface {
      * @param fulfillerConduitKey       A bytes32 value indicating what conduit,
      *                                  if any, to source the fulfiller's token
      *                                  approvals from. The zero hash signifies
-     *                                  that no conduit should be used, with
-     *                                  direct approvals set on this contract.
+     *                                  that no conduit should be used (and
+     *                                  direct approvals set on Consideration).
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders An array of booleans indicating if each order
@@ -233,7 +298,7 @@ interface ConsiderationInterface {
      *                         orders.
      */
     function fulfillAvailableAdvancedOrders(
-        AdvancedOrder[] calldata advancedOrders,
+        AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
@@ -242,26 +307,40 @@ interface ConsiderationInterface {
     )
         external
         payable
-        returns (bool[] memory availableOrders, Execution[] memory executions);
+        override
+        returns (bool[] memory availableOrders, Execution[] memory executions)
+    {
+        // Fulfill all available orders.
+        return
+            _fulfillAvailableAdvancedOrders(
+                advancedOrders,
+                criteriaResolvers,
+                offerFulfillments,
+                considerationFulfillments,
+                fulfillerConduitKey,
+                maximumFulfilled
+            );
+    }
 
     /**
      * @notice Match an arbitrary number of orders, each with an arbitrary
-     *         number of items for offer and consideration along with as set of
+     *         number of items for offer and consideration along with a set of
      *         fulfillments allocating offer components to consideration
      *         components. Note that this function does not support
      *         criteria-based or partial filling of orders (though filling the
      *         remainder of a partially-filled order is supported).
      *
-     * @param orders       The orders to match. Note that both the offerer and
-     *                     fulfiller on each order must first approve this
-     *                     contract (or their conduit if indicated by the order)
-     *                     to transfer any relevant tokens on their behalf and
-     *                     each consideration recipient must implement
-     *                     `onERC1155Received` to enable ERC1155 token receipt.
-     * @param fulfillments An array of elements allocating offer components to
-     *                     consideration components. Note that each
-     *                     consideration component must be fully met for the
-     *                     match operation to be valid.
+     * @param orders            The orders to match. Note that both the offerer
+     *                          and fulfiller on each order must first approve
+     *                          this contract (or their conduit if indicated by
+     *                          the order) to transfer any relevant tokens on
+     *                          their behalf and each consideration recipient
+     *                          must implement `onERC1155Received` in order to
+     *                          receive ERC1155 tokens.
+     * @param fulfillments      An array of elements allocating offer components
+     *                          to consideration components. Note that each
+     *                          consideration component must be fully met in
+     *                          order for the match operation to be valid.
      *
      * @return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
@@ -270,7 +349,15 @@ interface ConsiderationInterface {
     function matchOrders(
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (Execution[] memory executions);
+    ) external payable override returns (Execution[] memory executions) {
+        // Convert to advanced, validate, and match orders using fulfillments.
+        return
+            _matchAdvancedOrders(
+                _convertOrdersToAdvanced(orders),
+                new CriteriaResolver[](0), // No criteria resolvers supplied.
+                fulfillments
+            );
+    }
 
     /**
      * @notice Match an arbitrary number of full or partial orders, each with an
@@ -279,13 +366,13 @@ interface ConsiderationInterface {
      *         associated proofs as well as fulfillments allocating offer
      *         components to consideration components.
      *
-     * @param orders            The advanced orders to match. Note that both the
+     * @param advancedOrders    The advanced orders to match. Note that both the
      *                          offerer and fulfiller on each order must first
-     *                          approve this contract (or a preferred conduit if
+     *                          approve this contract (or their conduit if
      *                          indicated by the order) to transfer any relevant
      *                          tokens on their behalf and each consideration
      *                          recipient must implement `onERC1155Received` in
-     *                          order toreceive ERC1155 tokens. Also note that
+     *                          order to receive ERC1155 tokens. Also note that
      *                          the offer and consideration components for each
      *                          order must have no remainder after multiplying
      *                          the respective amount with the supplied fraction
@@ -309,10 +396,18 @@ interface ConsiderationInterface {
      *                    orders.
      */
     function matchAdvancedOrders(
-        AdvancedOrder[] calldata orders,
+        AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (Execution[] memory executions);
+    ) external payable override returns (Execution[] memory executions) {
+        // Validate and match the advanced orders using supplied fulfillments.
+        return
+            _matchAdvancedOrders(
+                advancedOrders,
+                criteriaResolvers,
+                fulfillments
+            );
+    }
 
     /**
      * @notice Cancel an arbitrary number of orders. Note that only the offerer
@@ -327,7 +422,12 @@ interface ConsiderationInterface {
      */
     function cancel(OrderComponents[] calldata orders)
         external
-        returns (bool cancelled);
+        override
+        returns (bool cancelled)
+    {
+        // Cancel the orders.
+        cancelled = _cancel(orders);
+    }
 
     /**
      * @notice Validate an arbitrary number of orders, thereby registering their
@@ -346,7 +446,12 @@ interface ConsiderationInterface {
      */
     function validate(Order[] calldata orders)
         external
-        returns (bool validated);
+        override
+        returns (bool validated)
+    {
+        // Validate the orders.
+        validated = _validate(orders);
+    }
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
@@ -355,7 +460,10 @@ interface ConsiderationInterface {
      *
      * @return newNonce The new nonce.
      */
-    function incrementNonce() external returns (uint256 newNonce);
+    function incrementNonce() external override returns (uint256 newNonce) {
+        // Increment current nonce for the supplied offerer.
+        newNonce = _incrementNonce();
+    }
 
     /**
      * @notice Retrieve the order hash for a given order.
@@ -367,7 +475,27 @@ interface ConsiderationInterface {
     function getOrderHash(OrderComponents calldata order)
         external
         view
-        returns (bytes32 orderHash);
+        override
+        returns (bytes32 orderHash)
+    {
+        // Derive order hash by supplying order parameters along with the nonce.
+        orderHash = _deriveOrderHash(
+            OrderParameters(
+                order.offerer,
+                order.zone,
+                order.offer,
+                order.consideration,
+                order.orderType,
+                order.startTime,
+                order.endTime,
+                order.zoneHash,
+                order.salt,
+                order.conduitKey,
+                order.consideration.length
+            ),
+            order.nonce
+        );
+    }
 
     /**
      * @notice Retrieve the status of a given order by hash, including whether
@@ -389,12 +517,17 @@ interface ConsiderationInterface {
     function getOrderStatus(bytes32 orderHash)
         external
         view
+        override
         returns (
             bool isValidated,
             bool isCancelled,
             uint256 totalFilled,
             uint256 totalSize
-        );
+        )
+    {
+        // Retrieve the order status using the order hash.
+        return _getOrderStatus(orderHash);
+    }
 
     /**
      * @notice Retrieve the current nonce for a given offerer.
@@ -403,7 +536,15 @@ interface ConsiderationInterface {
      *
      * @return nonce The current nonce.
      */
-    function getNonce(address offerer) external view returns (uint256 nonce);
+    function getNonce(address offerer)
+        external
+        view
+        override
+        returns (uint256 nonce)
+    {
+        // Return the nonce for the supplied offerer.
+        nonce = _getNonce(offerer);
+    }
 
     /**
      * @notice Retrieve configuration information for this contract.
@@ -415,16 +556,29 @@ interface ConsiderationInterface {
     function information()
         external
         view
+        override
         returns (
             string memory version,
             bytes32 domainSeparator,
             address conduitController
-        );
+        )
+    {
+        // Return the information for this contract.
+        return _information();
+    }
 
     /**
      * @notice Retrieve the name of this contract.
      *
      * @return contractName The name of this contract.
      */
-    function name() external view returns (string memory contractName);
+    function name()
+        external
+        pure
+        override
+        returns (string memory contractName)
+    {
+        // Return the name of the contract.
+        contractName = _name();
+    }
 }
