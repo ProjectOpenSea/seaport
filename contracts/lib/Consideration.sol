@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 // prettier-ignore
 import {
     ConsiderationInterface
-} from "./interfaces/ConsiderationInterface.sol";
+} from "../interfaces/ConsiderationInterface.sol";
 
 // prettier-ignore
 import {
@@ -18,9 +18,9 @@ import {
     Fulfillment,
     FulfillmentComponent,
     Execution
-} from "./lib/ConsiderationStructs.sol";
+} from "./ConsiderationStructs.sol";
 
-import { OrderCombiner } from "./lib/OrderCombiner.sol";
+import { OrderCombiner } from "./OrderCombiner.sol";
 
 /**
  * @title Consideration

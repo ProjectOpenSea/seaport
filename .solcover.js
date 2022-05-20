@@ -9,6 +9,7 @@ module.exports = {
     "interfaces/ConsiderationEventsAndErrors.sol",
     "interfaces/ConsiderationInterface.sol",
     "interfaces/EIP1271Interface.sol",
+    "interfaces/SeaportInterface.sol",
     "interfaces/ZoneInterface.sol",
     "lib/ConsiderationConstants.sol",
     "lib/ConsiderationEnums.sol",
