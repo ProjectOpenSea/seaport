@@ -10,7 +10,7 @@ Seaport is a new marketplace protocol for safely and efficiently buying and sell
 - [Deployments](#deployments)
 - [Install](#install)
 - [Usage](#usage)
-- [Audits](audits)
+- [Audits](#audits)
 - [Contributing](#contributing)
 - [License](#license)
 
