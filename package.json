@@ -1,11 +1,11 @@
 {
-  "name": "consideration",
-  "version": "0.0.1",
-  "description": "Consideration is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items. Each order contains an arbitrary number of items that the offerer is willing to give (the \"offer\") along with an arbitrary number of items that must be received along with their respective receivers (the \"consideration\").",
-  "main": "contracts/Consideration.sol",
+  "name": "seaport",
+  "version": "1.0.1",
+  "description": "Seaport is a marketplace protocol for safely and efficiently buying and selling NFTs. Each listing contains an arbitrary number of items that the offerer is willing to give (the \"offer\") along with an arbitrary number of items that must be received along with their respective receivers (the \"consideration\").",
+  "main": "contracts/Seaport.sol",
   "author": "0age",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "engines": {
     "node": ">=16.0.0"
   },
@@ -55,14 +55,14 @@
     "yargs-parser": ">=5.0.1"
   },
   "scripts": {
-    "build": "hardhat compile",
-    "build:ref": "hardhat compile --config hardhat-reference.config.ts",
-    "test": "hardhat test",
-    "test:ref": "REFERENCE=true hardhat test --config hardhat-reference.config.ts",
-    "profile": "REPORT_GAS=true hardhat test",
-    "coverage": "hardhat coverage --config hardhat-coverage.config.ts",
-    "coverage:ref": "REFERENCE=true hardhat coverage --config hardhat-reference-coverage.config.ts --solcoverjs ./.solcover-reference.js",
-    "lint:check": "prettier --check **.sol && prettier --check **.js && prettier --check **.ts && hardhat compile && npx solhint 'contracts/**/*.sol'",
+    "build": "hardhat compile --config ./hardhat.config.ts",
+    "build:ref": "hardhat compile --config ./hardhat-reference.config.ts",
+    "test": "hardhat test --config ./hardhat.config.ts",
+    "test:ref": "REFERENCE=true hardhat test --config ./hardhat-reference.config.ts",
+    "profile": "REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
+    "coverage": "hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",
+    "coverage:ref": "REFERENCE=true hardhat coverage --config ./hardhat-reference-coverage.config.ts --solcoverjs ./config/.solcover-reference.js",
+    "lint:check": "prettier --check **.sol && prettier --check **.js && prettier --check **.ts && hardhat compile --config ./hardhat.config.ts && npx solhint --config ./config/.solhint.json --ignore-path ./config/.solhintignore 'contracts/**/*.sol'",
     "lint:fix": "prettier --write **.sol && prettier --write **.js && prettier --write **.ts",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
@@ -72,5 +72,56 @@
     "*.sol": "prettier --write",
     "*.js": "prettier --write",
     "*.ts": "prettier --write"
-  }
+  },
+  "prettier": {
+    "overrides": [
+      {
+        "files": "*.sol",
+        "options": {
+          "tabWidth": 4,
+          "printWidth": 80,
+          "bracketSpacing": true
+        }
+      }
+    ]
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": false,
+      "es2021": true,
+      "mocha": true,
+      "node": true
+    },
+    "plugins": [
+      "@typescript-eslint",
+      "import"
+    ],
+    "extends": [
+      "standard",
+      "plugin:prettier/recommended",
+      "eslint:recommended",
+      "plugin:import/recommended",
+      "plugin:import/typescript"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "ecmaVersion": 12
+    },
+    "rules": {
+      "node/no-unsupported-features/es-syntax": [
+        "error",
+        {
+          "ignores": [
+            "modules"
+          ]
+        }
+      ]
+    }
+  },
+  "eslintIgnore": [
+    "node_modules",
+    "artifacts",
+    "cache",
+    "coverage"
+  ]
 }

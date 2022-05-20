@@ -5652,7 +5652,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           buildOrderStatus(false, true, 0, 0)
         );
       });
-      it.skip("Can cancel an order signed with a nonce ahead of the current nonce", async () => {});
     });
 
     describe("Increment Nonce", async () => {
@@ -5934,7 +5933,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it.skip("Can increment nonce and activate an order signed with a nonce ahead of the current nonce", async () => {});
     });
   });
 
