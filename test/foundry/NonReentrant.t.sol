@@ -320,10 +320,10 @@ contract NonReentrantTest is BaseOrderTest {
     {
         test1155_1.mint(address(this), tokenId, 10);
 
-        _configureERC1155OfferItem(tokenId, uint256(10));
-        _configureEthConsiderationItem(payable(this), uint256(10));
-        _configureEthConsiderationItem(payable(0), uint256(10));
-        _configureEthConsiderationItem(alice, uint256(10));
+        _configureERC1155OfferItem(tokenId, 10);
+        _configureEthConsiderationItem(payable(this), 10);
+        _configureEthConsiderationItem(payable(0), 10);
+        _configureEthConsiderationItem(alice, 10);
         uint256 nonce = currentConsideration.getNonce(address(this));
 
         OrderParameters memory _orderParameters = getOrderParameters(

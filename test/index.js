@@ -7583,8 +7583,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           buildOrderStatus(true, false, 1, 1)
         );
       });
-      it.skip("Ascending consideration amount (match)", async () => {});
-      it.skip("Ascending amount + partial fill (standard)", async () => {});
       it.skip("Ascending amount + partial fill (match)", async () => {});
       it.skip("Descending offer amount (standard)", async () => {
         // Seller mints nft
@@ -7740,9 +7738,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           buildOrderStatus(true, false, 1, 1)
         );
       });
-      it.skip("Descending offer amount (match)", async () => {});
-      it.skip("Descending consideration amount (match)", async () => {});
-      it.skip("Descending amount + partial fill (standard)", async () => {});
       it.skip("Descending amount + partial fill (match)", async () => {});
     });
 
@@ -16194,25 +16189,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ).to.be.reverted;
         }
       });
-      it.skip("Reverts on reentrancy (test all the other permutations)", async () => {});
     });
   });
-
-  describe("Auctions for single nft items", async () => {
-    describe("English auction", async () => {});
-    describe("Dutch auction", async () => {});
-  });
-
-  // Is this a thing?
-  describe("Auctions for mixed item bundles", async () => {
-    describe("English auction", async () => {});
-    describe("Dutch auction", async () => {});
-  });
-
-  describe("Multiple nfts being sold or bought", async () => {
-    describe("Bundles", async () => {});
-    describe("Partial fills", async () => {});
-  });
-
-  //   Etc this is a brain dump
 });

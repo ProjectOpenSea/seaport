@@ -11,14 +11,20 @@ import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
 import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ArithmeticUtil } from "./ArithmeticUtil.sol";
+import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
 contract BaseOrderTest is
     BaseConsiderationTest,
+    AmountDeriver,
     ERC721Recipient,
     ERC1155Recipient
 {
     using stdStorage for StdStorage;
+    using ArithmeticUtil for uint256;
+    using ArithmeticUtil for uint128;
+    using ArithmeticUtil for uint120;
 
     uint256 constant MAX_INT = ~uint256(0);
 
@@ -77,6 +83,14 @@ contract BaseOrderTest is
 
     uint256 internal globalTokenId;
 
+    event TransferSingle(
+        address indexed operator,
+        address indexed from,
+        address indexed to,
+        uint256 id,
+        uint256 value
+    );
+
     struct RestoreERC20Balance {
         address token;
         address who;
@@ -120,6 +134,28 @@ contract BaseOrderTest is
         delete secondFulfillment;
         delete fulfillmentComponent;
         delete fulfillmentComponents;
+    }
+
+    modifier sumNotGreaterThanMaxInt128(uint256[] memory _values) {
+        {
+            uint256 sum = 0;
+            for (uint256 i; i < _values.length; i++) {
+                sum += _values[i];
+            }
+            vm.assume(sum <= uint128(MAX_INT));
+        }
+        _;
+    }
+
+    modifier sum3NotGreaterThanMaxInt128(uint128[3] memory _values) {
+        {
+            uint256 sum = 0;
+            for (uint256 i; i < _values.length; i++) {
+                sum += _values[i];
+            }
+            vm.assume(sum <= uint128(MAX_INT));
+        }
+        _;
     }
 
     function setUp() public virtual override {
@@ -188,17 +224,26 @@ contract BaseOrderTest is
     function _configureOfferItem(
         ItemType itemType,
         uint256 identifier,
-        uint256 amt
+        uint256 startAmount,
+        uint256 endAmount
     ) internal {
         if (itemType == ItemType.NATIVE) {
-            _configureEthOfferItem(amt);
+            _configureEthOfferItem(startAmount, endAmount);
         } else if (itemType == ItemType.ERC20) {
-            _configureERC20OfferItem(amt);
+            _configureERC20OfferItem(startAmount, endAmount);
         } else if (itemType == ItemType.ERC1155) {
-            _configureERC1155OfferItem(identifier, amt);
+            _configureERC1155OfferItem(identifier, startAmount, endAmount);
         } else {
             _configureERC721OfferItem(identifier);
         }
+    }
+
+    function _configureOfferItem(
+        ItemType itemType,
+        uint256 identifier,
+        uint256 amt
+    ) internal {
+        _configureOfferItem(itemType, identifier, amt, amt);
     }
 
     function _configureERC721OfferItem(uint256 tokenId) internal {
@@ -217,8 +262,20 @@ contract BaseOrderTest is
         );
     }
 
+    function _configureERC20OfferItem(uint256 startAmount, uint256 endAmount)
+        internal
+    {
+        _configureOfferItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            startAmount,
+            endAmount
+        );
+    }
+
     function _configureERC20OfferItem(uint256 amount) internal {
-        _configureOfferItem(ItemType.ERC20, address(token1), 0, amount, amount);
+        _configureERC20OfferItem(amount, amount);
     }
 
     function _configureERC1155OfferItem(
@@ -235,14 +292,20 @@ contract BaseOrderTest is
         );
     }
 
-    function _configureEthOfferItem(uint256 paymentAmount) internal {
+    function _configureEthOfferItem(uint256 startAmount, uint256 endAmount)
+        internal
+    {
         _configureOfferItem(
             ItemType.NATIVE,
             address(0),
             0,
-            paymentAmount,
-            paymentAmount
+            startAmount,
+            endAmount
         );
+    }
+
+    function _configureEthOfferItem(uint256 paymentAmount) internal {
+        _configureEthOfferItem(paymentAmount, paymentAmount);
     }
 
     function _configureEthConsiderationItem(
@@ -367,6 +430,77 @@ contract BaseOrderTest is
         vm.label(address(test1155_1), "test1155_1");
 
         emit log("Deployed test token contracts");
+    }
+
+    function toConsiderationItems(
+        OfferItem[] memory _offerItems,
+        address payable receiver
+    ) internal pure returns (ConsiderationItem[] memory) {
+        ConsiderationItem[]
+            memory _considerationItems = new ConsiderationItem[](
+                _offerItems.length
+            );
+        for (uint256 i = 0; i < _offerItems.length; i++) {
+            _considerationItems[i] = ConsiderationItem(
+                _offerItems[i].itemType,
+                _offerItems[i].token,
+                _offerItems[i].identifierOrCriteria,
+                _offerItems[i].startAmount,
+                _offerItems[i].endAmount,
+                receiver
+            );
+        }
+        return _considerationItems;
+    }
+
+    function toOfferItems(ConsiderationItem[] memory _considerationItems)
+        internal
+        pure
+        returns (OfferItem[] memory)
+    {
+        OfferItem[] memory _offerItems = new OfferItem[](
+            _considerationItems.length
+        );
+        for (uint256 i = 0; i < _offerItems.length; i++) {
+            _offerItems[i] = OfferItem(
+                _considerationItems[i].itemType,
+                _considerationItems[i].token,
+                _considerationItems[i].identifierOrCriteria,
+                _considerationItems[i].startAmount,
+                _considerationItems[i].endAmount
+            );
+        }
+        return _offerItems;
+    }
+
+    function createMirrorOrderParameters(
+        OrderParameters memory orderParameters,
+        address payable offerer,
+        address zone,
+        bytes32 conduitKey
+    ) public pure returns (OrderParameters memory) {
+        OfferItem[] memory _offerItems = toOfferItems(
+            orderParameters.consideration
+        );
+        ConsiderationItem[] memory _considerationItems = toConsiderationItems(
+            orderParameters.offer,
+            offerer
+        );
+
+        OrderParameters memory _mirrorOrderParameters = OrderParameters(
+            offerer,
+            zone,
+            _offerItems,
+            _considerationItems,
+            orderParameters.orderType,
+            orderParameters.startTime,
+            orderParameters.endTime,
+            orderParameters.zoneHash,
+            orderParameters.salt,
+            conduitKey,
+            _considerationItems.length
+        );
+        return _mirrorOrderParameters;
     }
 
     /**
