@@ -16,6 +16,8 @@ Seaport is a marketplace contract for safely and efficiently creating and fulfil
 
 For more information and a deeper dive on how Seaport works, check out the repo's [Docs](Docs.md) file, or the full [Seaport Overview Documentation](https://docs.opensea.io/v2.0/reference/seaport-overview).
 
+The Seaport interface can be found [here](reference/lib/SeaportInterface.sol).
+
 ## Install
 
 Seaport uses several libraries for testing.
