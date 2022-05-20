@@ -14,7 +14,7 @@ Seaport is a marketplace contract for safely and efficiently creating and fulfil
 
 Seaport is a marketplace contract for safely and efficiently creating and fulfilling orders for ERC721 and ERC1155 items. Each order contains an arbitrary number of items that the offerer is willing to give (the "offer") along with an arbitrary number of items that must be received along with their respective receivers (the "consideration").
 
-For more information and a deeper dive on how Seaport works, check out the repo's [Docs](Docs.md) file, or the full Seaport Documentation.
+For more information and a deeper dive on how Seaport works, check out the repo's [Docs](Docs.md) file, or the full [Seaport Overview Documentation](https://docs.opensea.io/v2.0/reference/seaport-overview).
 
 ## Install
 
