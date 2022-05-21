@@ -14,8 +14,11 @@ import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest {
+    using ArithmeticUtil for uint128;
+
     BasicOrderParameters basicOrderParameters;
     OrderComponents orderComponents;
 
@@ -32,67 +35,89 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         uint128 tokenAmount;
     }
 
-    function testBasicEthTo721(FuzzInputsCommon memory inputs) public {
+    modifier validateInputs(Context memory context) {
+        vm.assume(context.args.paymentAmount > 0);
+        _;
+    }
+
+    modifier validateInputsWithAmount(Context memory context) {
+        vm.assume(context.args.paymentAmount > 0);
+        vm.assume(context.tokenAmount > 0);
+        _;
+    }
+
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
+    }
+
+    function testBasicEthTo721(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(Context(consideration, inputs, 0))
+    {
         _configureERC721OfferItem(inputs.tokenId);
         _configureEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo721(inputs);
 
-        _testBasicEthTo721_new(Context(consideration, inputs, 0));
-        _configureERC721OfferItem(inputs.tokenId);
-        _configureEthConsiderationItem(alice, inputs.paymentAmount);
-        _testBasicEthTo721_new(Context(referenceConsideration, inputs, 0));
+        test(this.basicEthTo721, Context(consideration, inputs, 0));
+        test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
     }
 
-    function testBasicErc20To721(FuzzInputsCommon memory inputs) public {
+    function testBasicErc20To721(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(Context(consideration, inputs, 0))
+    {
         _configureERC721OfferItem(inputs.tokenId);
         _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersErc20To721(inputs);
 
-        _testBasicErc20To721_new(Context(consideration, inputs, 0));
-        _configureERC721OfferItem(inputs.tokenId);
-        _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
-        _testBasicErc20To721_new(Context(referenceConsideration, inputs, 0));
+        test(this.basicErc20To721, Context(consideration, inputs, 0));
+        test(this.basicErc20To721, Context(referenceConsideration, inputs, 0));
     }
 
     function testBasicEthTo1155(
         FuzzInputsCommon memory inputs,
         uint128 tokenAmount
-    ) public {
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
         _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
         _configureEthConsiderationItem(alice, inputs.paymentAmount);
-
         _configureBasicOrderParametersEthTo1155(inputs, tokenAmount);
-        _testBasicEthTo1155_new(
+
+        test(this.basicEthTo1155, Context(consideration, inputs, tokenAmount));
+        test(
+            this.basicEthTo1155,
             Context(referenceConsideration, inputs, tokenAmount)
         );
-        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
-        _configureEthConsiderationItem(alice, inputs.paymentAmount);
-        _testBasicEthTo1155_new(Context(consideration, inputs, tokenAmount));
     }
 
     function testBasicErc20To1155(
         FuzzInputsCommon memory inputs,
         uint128 tokenAmount
-    ) public {
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
         _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
         _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
-
         _configureBasicOrderParametersErc20To1155(inputs, tokenAmount);
-        _testBasicErc20To1155_new(
+
+        test(
+            this.basicErc20To1155,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this.basicErc20To1155,
             Context(referenceConsideration, inputs, tokenAmount)
         );
-        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
-        _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
-        _testBasicErc20To1155_new(Context(consideration, inputs, tokenAmount));
     }
 
-    function _testBasicErc20To1155_new(Context memory context)
-        internal
-        resetTokenBalancesBetweenRuns
-    {
-        vm.assume(context.args.paymentAmount > 0);
-        vm.assume(context.tokenAmount > 0);
-
+    function basicErc20To1155(Context memory context) external stateless {
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
         _configureOrderComponents(
@@ -112,15 +137,13 @@ contract FulfillBasicOrderTest is BaseOrderTest {
 
         basicOrderParameters.signature = signature;
         context.consideration.fulfillBasicOrder(basicOrderParameters);
+        assertEq(
+            context.tokenAmount,
+            test1155_1.balanceOf(address(this), context.args.tokenId)
+        );
     }
 
-    function _testBasicEthTo1155_new(Context memory context)
-        internal
-        resetTokenBalancesBetweenRuns
-    {
-        vm.assume(context.args.paymentAmount > 0);
-        vm.assume(context.tokenAmount > 0);
-
+    function basicEthTo1155(Context memory context) external stateless {
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
         _configureOrderComponents(
@@ -142,14 +165,13 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         context.consideration.fulfillBasicOrder{
             value: context.args.paymentAmount
         }(basicOrderParameters);
+        assertEq(
+            context.tokenAmount,
+            test1155_1.balanceOf(address(this), context.args.tokenId)
+        );
     }
 
-    function _testBasicEthTo721_new(Context memory context)
-        internal
-        resetTokenBalancesBetweenRuns
-    {
-        vm.assume(context.args.paymentAmount > 0);
-
+    function basicEthTo721(Context memory context) external stateless {
         test721_1.mint(alice, context.args.tokenId);
 
         _configureOrderComponents(
@@ -171,14 +193,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         context.consideration.fulfillBasicOrder{
             value: context.args.paymentAmount
         }(basicOrderParameters);
+        assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
     }
 
-    function _testBasicErc20To721_new(Context memory context)
-        internal
-        resetTokenBalancesBetweenRuns
-    {
-        vm.assume(context.args.paymentAmount > 0);
-
+    function basicErc20To721(Context memory context) external stateless {
         test721_1.mint(alice, context.args.tokenId);
 
         _configureOrderComponents(
@@ -198,6 +216,11 @@ contract FulfillBasicOrderTest is BaseOrderTest {
 
         basicOrderParameters.signature = signature;
         context.consideration.fulfillBasicOrder(basicOrderParameters);
+        assertEq(
+            context.args.paymentAmount.add(uint128(MAX_INT)),
+            token1.balanceOf(address(alice))
+        );
+        assertEq(address(this), test721_1.ownerOf(context.args.tokenId));
     }
 
     function _configureBasicOrderParametersEthTo721(
