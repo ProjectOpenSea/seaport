@@ -39,6 +39,9 @@ contract Verifiers is Assertions, SignatureVerification {
         uint256 endTime,
         bool revertOnInvalid
     ) internal view returns (bool valid) {
+        // Default to true if the order time is valid
+        valid = true;
+
         // Revert if order's timespan hasn't started yet or has already ended.
         if (startTime > block.timestamp || endTime <= block.timestamp) {
             // Only revert if revertOnInvalid has been supplied as true.
@@ -46,12 +49,10 @@ contract Verifiers is Assertions, SignatureVerification {
                 revert InvalidTime();
             }
 
-            // Return false as the order is invalid.
-            return false;
+            // Set to false as the order is invalid.
+            valid = false;
         }
 
-        // Return true as the order time is valid.
-        valid = true;
     }
 
     /**
