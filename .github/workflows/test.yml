@@ -1,11 +1,6 @@
 name: Consideration Test CI
 
-on:
-  push:
-    branches: [ $default-branch ]
-  pull_request:
-    branches: 
-      - "**"
+on: [push, pull_request]
 
 concurrency:
   group: ${{github.workflow}}-${{github.ref}}
