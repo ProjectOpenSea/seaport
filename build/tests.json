@@ -1,0 +1,15 @@
+{
+  "contracts": {
+    "Greeter": "ea689d3fd4761669c00201bb4df89ab5a23469e5"
+  },
+  "tests": {
+    "test/brownie/test_greeter.py": {
+      "coverage": false,
+      "isolated": false,
+      "results": "..",
+      "sha1": "adcf3f20619e234ea53fed61bc71ee95b960a0db",
+      "txhash": []
+    }
+  },
+  "tx": {}
+}
