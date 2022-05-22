@@ -1,10 +1,10 @@
 project_structure:
-    build: build
-    contracts: contracts/vyper
-    interfaces: interfaces
-    reports: reports
-    scripts: scripts
-    tests: test
+    build: vyper/build
+    contracts: vyper/contracts/
+    interfaces: vyper/interfaces
+    reports: vyper/reports
+    scripts: vyper/scripts
+    tests: vyper/tests
 
 networks:
     default: development

@@ -26,4 +26,4 @@ reference-working
 __pycache__
 
 # vyper build files
-build/
+vyper/build/
