@@ -8,7 +8,6 @@ contract ExcessReturnDataRecipient {
         revertDataSize = size;
     }
 
-
     // Code created with the help of Stack Exchange question
     // https://ethereum.stackexchange.com/questions/8086
     // Question by Doug King:
