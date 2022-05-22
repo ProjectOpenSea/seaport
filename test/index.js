@@ -1408,11 +1408,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     // Deploy marketplace contract through efficient create2 factory
     const marketplaceContractFactory = await ethers.getContractFactory(
-      process.env.REFERENCE ? "ReferenceConsideration" : "Seaport"
+      process.env.REFERENCE ? "ReferenceSeaport" : "Seaport"
     );
 
     directMarketplaceContract = await deployContract(
-      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
+      process.env.REFERENCE ? "ReferenceSeaport" : "Consideration",
       owner,
       conduitController.address
     );
@@ -1435,7 +1435,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     const { gasUsed } = await tx.wait(); // as of now: 5_479_569
 
     marketplaceContract = await ethers.getContractAt(
-      process.env.REFERENCE ? "ReferenceConsideration" : "Seaport",
+      process.env.REFERENCE ? "ReferenceSeaport" : "Seaport",
       marketplaceContractAddress,
       owner
     );

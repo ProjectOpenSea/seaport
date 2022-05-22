@@ -48,7 +48,7 @@ contract MatchOrders is BaseOrderTest {
         FuzzInputsCommon memory inputs
     ) public {
         _testMatchOrdersSingleErc721OfferSingleEthConsideration(
-            Context(referenceConsideration, inputs)
+            Context(referenceSeaport, inputs)
         );
         _testMatchOrdersSingleErc721OfferSingleEthConsideration(
             Context(consideration, inputs)
@@ -64,7 +64,7 @@ contract MatchOrders is BaseOrderTest {
             }
             _testMatchOrdersOverflowOrderSide(consideration, ItemType(i));
             _testMatchOrdersOverflowOrderSide(
-                referenceConsideration,
+                referenceSeaport,
                 ItemType(i)
             );
         }
@@ -82,7 +82,7 @@ contract MatchOrders is BaseOrderTest {
                 ItemType(i)
             );
             _testMatchOrdersOverflowConsiderationSide(
-                referenceConsideration,
+                referenceSeaport,
                 ItemType(i)
             );
         }
@@ -92,7 +92,7 @@ contract MatchOrders is BaseOrderTest {
         FuzzInputsAscendingDescending memory inputs
     ) public {
         _testMatchOrdersAscendingOfferAmount(
-            ContextAscendingDescending(referenceConsideration, inputs)
+            ContextAscendingDescending(referenceSeaport, inputs)
         );
         _testMatchOrdersAscendingOfferAmount(
             ContextAscendingDescending(consideration, inputs)
@@ -103,7 +103,7 @@ contract MatchOrders is BaseOrderTest {
         FuzzInputsAscendingDescending memory inputs
     ) public {
         _testMatchOrdersAscendingConsiderationAmount(
-            ContextAscendingDescending(referenceConsideration, inputs)
+            ContextAscendingDescending(referenceSeaport, inputs)
         );
         _testMatchOrdersAscendingConsiderationAmount(
             ContextAscendingDescending(consideration, inputs)
@@ -114,7 +114,7 @@ contract MatchOrders is BaseOrderTest {
         FuzzInputsAscendingDescending memory inputs
     ) public {
         _testMatchOrdersDescendingOfferAmount(
-            ContextAscendingDescending(referenceConsideration, inputs)
+            ContextAscendingDescending(referenceSeaport, inputs)
         );
         _testMatchOrdersDescendingOfferAmount(
             ContextAscendingDescending(consideration, inputs)
@@ -125,7 +125,7 @@ contract MatchOrders is BaseOrderTest {
         FuzzInputsAscendingDescending memory inputs
     ) public {
         _testMatchOrdersDescendingConsiderationAmount(
-            ContextAscendingDescending(referenceConsideration, inputs)
+            ContextAscendingDescending(referenceSeaport, inputs)
         );
         _testMatchOrdersDescendingConsiderationAmount(
             ContextAscendingDescending(consideration, inputs)

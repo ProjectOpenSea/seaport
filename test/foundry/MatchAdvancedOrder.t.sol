@@ -42,7 +42,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
                 ItemType(i)
             );
             _testMatchAdvancedOrdersOverflowOrderSide(
-                referenceConsideration,
+                referenceSeaport,
                 ItemType(i)
             );
         }
@@ -60,7 +60,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
                 ItemType(i)
             );
             _testMatchAdvancedOrdersOverflowConsiderationSide(
-                referenceConsideration,
+                referenceSeaport,
                 ItemType(i)
             );
         }
@@ -70,7 +70,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         FuzzInputs memory args
     ) public {
         _testMatchAdvancedOrdersWithEmptyCriteriaEthToErc721(
-            Context(referenceConsideration, args)
+            Context(referenceSeaport, args)
         );
         _testMatchAdvancedOrdersWithEmptyCriteriaEthToErc721(
             Context(consideration, args)

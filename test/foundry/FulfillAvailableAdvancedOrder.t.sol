@@ -40,7 +40,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
                 ItemType(i)
             );
             _testFulfillAvailableAdvancedOrdersOverflow(
-                referenceConsideration,
+                referenceSeaport,
                 ItemType(i)
             );
         }
@@ -50,7 +50,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         FuzzInputs memory args
     ) public {
         _testFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToSingleErc721(
-            Context(referenceConsideration, args)
+            Context(referenceSeaport, args)
         );
         _testFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToSingleErc721(
             Context(consideration, args)
@@ -64,7 +64,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         uint80 denominator
     ) public {
         _testPartialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
-            Context(referenceConsideration, args),
+            Context(referenceSeaport, args),
             amount,
             numerator,
             denominator

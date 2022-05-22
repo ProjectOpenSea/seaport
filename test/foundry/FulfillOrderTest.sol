@@ -35,7 +35,7 @@ contract FulfillOrderTest is BaseOrderTest {
         public
     {
         _testFulfillOrderEthToErc721(
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceSeaport, inputs, 0, 0, 0)
         );
         _testFulfillOrderEthToErc721(Context(consideration, inputs, 0, 0, 0));
     }
@@ -45,7 +45,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 tokenAmount
     ) public {
         _testFulfillOrderEthToErc1155(
-            Context(referenceConsideration, inputs, tokenAmount, 0, 0)
+            Context(referenceSeaport, inputs, tokenAmount, 0, 0)
         );
         _testFulfillOrderEthToErc1155(
             Context(consideration, inputs, tokenAmount, 0, 0)
@@ -57,7 +57,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint128 tipAmt
     ) public {
         _testFulfillOrderEthToErc721WithSingleEthTip(
-            Context(referenceConsideration, inputs, 0, tipAmt, 0)
+            Context(referenceSeaport, inputs, 0, tipAmt, 0)
         );
         _testFulfillOrderEthToErc721WithSingleEthTip(
             Context(consideration, inputs, 0, tipAmt, 0)
@@ -70,7 +70,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint128 tipAmt
     ) public {
         _testFulfillOrderEthToErc1155WithSingleEthTip(
-            Context(referenceConsideration, inputs, tokenAmt, tipAmt, 0)
+            Context(referenceSeaport, inputs, tokenAmt, tipAmt, 0)
         );
         _testFulfillOrderEthToErc1155WithSingleEthTip(
             Context(consideration, inputs, tokenAmt, tipAmt, 0)
@@ -82,7 +82,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc721WithMultipleEthTips(
-            Context(referenceConsideration, inputs, 0, 0, numTips)
+            Context(referenceSeaport, inputs, 0, 0, numTips)
         );
         _testFulfillOrderEthToErc721WithMultipleEthTips(
             Context(consideration, inputs, 0, 0, numTips)
@@ -95,7 +95,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc1155WithMultipleEthTips(
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(referenceSeaport, inputs, tokenAmt, 0, numTips)
         );
         _testFulfillOrderEthToErc1155WithMultipleEthTips(
             Context(consideration, inputs, tokenAmt, 0, numTips)
@@ -107,7 +107,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 tokenAmt
     ) public {
         _testFulfillOrderSingleErc20ToSingleErc1155(
-            Context(referenceConsideration, inputs, tokenAmt, 0, 0)
+            Context(referenceSeaport, inputs, tokenAmt, 0, 0)
         );
         _testFulfillOrderSingleErc20ToSingleErc1155(
             Context(consideration, inputs, tokenAmt, 0, 0)
@@ -119,7 +119,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc721WithErc721Tips(
-            Context(referenceConsideration, inputs, 0, 0, numTips)
+            Context(referenceSeaport, inputs, 0, 0, numTips)
         );
         _testFulfillOrderEthToErc721WithErc721Tips(
             Context(consideration, inputs, 0, 0, numTips)
@@ -132,7 +132,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc1155WithErc721Tips(
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(referenceSeaport, inputs, tokenAmt, 0, numTips)
         );
         _testFulfillOrderEthToErc1155WithErc721Tips(
             Context(consideration, inputs, tokenAmt, 0, numTips)
@@ -144,7 +144,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc721WithErc1155Tips(
-            Context(referenceConsideration, inputs, 0, 0, numTips)
+            Context(referenceSeaport, inputs, 0, 0, numTips)
         );
         _testFulfillOrderEthToErc721WithErc1155Tips(
             Context(consideration, inputs, 0, 0, numTips)
@@ -157,7 +157,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc1155WithErc1155Tips(
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(referenceSeaport, inputs, tokenAmt, 0, numTips)
         );
         _testFulfillOrderEthToErc1155WithErc1155Tips(
             Context(consideration, inputs, tokenAmt, 0, numTips)
@@ -168,7 +168,7 @@ contract FulfillOrderTest is BaseOrderTest {
         FuzzInputsCommon memory inputs
     ) public {
         _testFulfillOrderEthToErc721WithErc20Tips(
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceSeaport, inputs, 0, 0, 0)
         );
         _testFulfillOrderEthToErc721WithErc20Tips(
             Context(consideration, inputs, 0, 0, 0)
@@ -181,7 +181,7 @@ contract FulfillOrderTest is BaseOrderTest {
         uint8 numTips
     ) public {
         _testFulfillOrderEthToErc1155WithErc20Tips(
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(referenceSeaport, inputs, tokenAmt, 0, numTips)
         );
         _testFulfillOrderEthToErc1155WithErc20Tips(
             Context(consideration, inputs, tokenAmt, 0, numTips)
@@ -192,7 +192,7 @@ contract FulfillOrderTest is BaseOrderTest {
         FuzzInputsCommon memory inputs
     ) public {
         _testFulfillOrderEthToErc721FullRestricted(
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceSeaport, inputs, 0, 0, 0)
         );
         _testFulfillOrderEthToErc721FullRestricted(
             Context(consideration, inputs, 0, 0, 0)

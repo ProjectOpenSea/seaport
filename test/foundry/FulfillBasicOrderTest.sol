@@ -40,7 +40,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         _testBasicEthTo721_new(Context(consideration, inputs, 0));
         _configureERC721OfferItem(inputs.tokenId);
         _configureEthConsiderationItem(alice, inputs.paymentAmount);
-        _testBasicEthTo721_new(Context(referenceConsideration, inputs, 0));
+        _testBasicEthTo721_new(Context(referenceSeaport, inputs, 0));
     }
 
     function testBasicErc20To721(FuzzInputsCommon memory inputs) public {
@@ -51,7 +51,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         _testBasicErc20To721_new(Context(consideration, inputs, 0));
         _configureERC721OfferItem(inputs.tokenId);
         _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
-        _testBasicErc20To721_new(Context(referenceConsideration, inputs, 0));
+        _testBasicErc20To721_new(Context(referenceSeaport, inputs, 0));
     }
 
     function testBasicEthTo1155(
@@ -63,7 +63,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
 
         _configureBasicOrderParametersEthTo1155(inputs, tokenAmount);
         _testBasicEthTo1155_new(
-            Context(referenceConsideration, inputs, tokenAmount)
+            Context(referenceSeaport, inputs, tokenAmount)
         );
         _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
         _configureEthConsiderationItem(alice, inputs.paymentAmount);
@@ -79,7 +79,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
 
         _configureBasicOrderParametersErc20To1155(inputs, tokenAmount);
         _testBasicErc20To1155_new(
-            Context(referenceConsideration, inputs, tokenAmount)
+            Context(referenceSeaport, inputs, tokenAmount)
         );
         _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
         _configureErc20ConsiderationItem(alice, inputs.paymentAmount);

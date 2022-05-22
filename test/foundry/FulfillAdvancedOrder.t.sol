@@ -75,12 +75,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         vm.assume(tokenAmount > 0);
         _testAdvancedPartialAscendingOfferAmount1155(
-            Context(
-                referenceConsideration,
-                inputs,
-                tokenAmount,
-                warpAmount % 1000
-            )
+            Context(referenceSeaport, inputs, tokenAmount, warpAmount % 1000)
         );
         _testAdvancedPartialAscendingOfferAmount1155(
             Context(consideration, inputs, tokenAmount, warpAmount % 1000)
@@ -196,7 +191,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         uint128 tokenId
     ) public {
         _testAdvancedPartialAscendingConsiderationAmount1155(
-            Context(referenceConsideration, inputs, tokenId, 0)
+            Context(referenceSeaport, inputs, tokenId, 0)
         );
         _testAdvancedPartialAscendingConsiderationAmount1155(
             Context(consideration, inputs, tokenId, 0)
@@ -312,7 +307,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
     function testAdvancedPartial1155(FuzzInputs memory args) public {
         _advancedPartial1155(Context(consideration, args, 0, 0));
-        _advancedPartial1155(Context(referenceConsideration, args, 0, 0));
+        _advancedPartial1155(Context(referenceSeaport, args, 0, 0));
     }
 
     function testSingleAdvancedPartial1155() public {
@@ -322,7 +317,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         _configureEthConsiderationItem(alice, 10);
         _configureEthConsiderationItem(payable(address(0)), 10);
         _configureEthConsiderationItem(cal, 10);
-        uint256 nonce = referenceConsideration.getNonce(alice);
+        uint256 nonce = referenceSeaport.getNonce(alice);
         OrderComponents memory orderComponents = OrderComponents(
             alice,
             address(0),
@@ -336,12 +331,10 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             bytes32(0),
             nonce
         );
-        bytes32 orderHash = referenceConsideration.getOrderHash(
-            orderComponents
-        );
+        bytes32 orderHash = referenceSeaport.getOrderHash(orderComponents);
 
         bytes memory signature = signOrder(
-            referenceConsideration,
+            referenceSeaport,
             alicePk,
             orderHash
         );
@@ -361,7 +354,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
         uint256 value = 30;
 
-        referenceConsideration.fulfillAdvancedOrder{ value: value }(
+        referenceSeaport.fulfillAdvancedOrder{ value: value }(
             AdvancedOrder(orderParameters, 1, 1, signature, ""),
             new CriteriaResolver[](0),
             bytes32(0)

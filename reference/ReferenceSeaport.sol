@@ -25,7 +25,7 @@ import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
 import { OrderToExecute, AccumulatorStruct } from "./lib/ReferenceConsiderationStructs.sol";
 
 /**
- * @title ReferenceConsideration
+ * @title ReferenceSeaport
  * @author 0age
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11

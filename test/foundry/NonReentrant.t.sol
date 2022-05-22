@@ -74,7 +74,7 @@ contract NonReentrantTest is BaseOrderTest {
                     EntryPoint(i),
                     ReentryPoint(j)
                 );
-                _testNonReentrant(Context(referenceConsideration, inputs));
+                _testNonReentrant(Context(referenceSeaport, inputs));
                 _testNonReentrant(Context(consideration, inputs));
             }
         }

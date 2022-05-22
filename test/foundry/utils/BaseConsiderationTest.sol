@@ -8,7 +8,7 @@ import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } f
 import { Test } from "forge-std/Test.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { ReferenceConduitController } from "../../../reference/conduit/ReferenceConduitController.sol";
-import { ReferenceConsideration } from "../../../reference/ReferenceConsideration.sol";
+import { ReferenceSeaport } from "../../../reference/ReferenceSeaport.sol";
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 import { Consideration } from "../../../contracts/lib/Consideration.sol";
 
@@ -17,7 +17,7 @@ contract BaseConsiderationTest is Test {
     using stdStorage for StdStorage;
 
     ConsiderationInterface consideration;
-    ConsiderationInterface referenceConsideration;
+    ConsiderationInterface referenceSeaport;
     bytes32 conduitKeyOne;
     ConduitController conduitController;
     ConduitController referenceConduitController;
@@ -52,7 +52,7 @@ contract BaseConsiderationTest is Test {
             address(referenceConduitController),
             "referenceConduitController"
         );
-        vm.label(address(referenceConsideration), "referenceConsideration");
+        vm.label(address(referenceSeaport), "referenceSeaport");
         vm.label(address(referenceConduit), "referenceConduit");
     }
 
@@ -60,10 +60,8 @@ contract BaseConsiderationTest is Test {
         referenceConduitController = ConduitController(
             address(new ReferenceConduitController())
         );
-        referenceConsideration = ConsiderationInterface(
-            address(
-                new ReferenceConsideration(address(referenceConduitController))
-            )
+        referenceSeaport = ConsiderationInterface(
+            address(new ReferenceSeaport(address(referenceConduitController)))
         );
         referenceConduit = Conduit(
             referenceConduitController.createConduit(
@@ -73,7 +71,7 @@ contract BaseConsiderationTest is Test {
         );
         referenceConduitController.updateChannel(
             address(referenceConduit),
-            address(referenceConsideration),
+            address(referenceSeaport),
             true
         );
     }
@@ -110,9 +108,9 @@ contract BaseConsiderationTest is Test {
                 "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
             )
         );
-        referenceConsideration = ConsiderationInterface(
+        referenceSeaport = ConsiderationInterface(
             deployCode(
-                "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json",
+                "reference-out/ReferenceSeaport.sol/ReferenceConsideration.json",
                 abi.encode(address(referenceConduitController))
             )
         );
@@ -126,7 +124,7 @@ contract BaseConsiderationTest is Test {
         );
         referenceConduitController.updateChannel(
             address(referenceConduit),
-            address(referenceConsideration),
+            address(referenceSeaport),
             true
         );
     }

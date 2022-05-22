@@ -11,7 +11,7 @@ export async function deployContract<C extends Contract>(
   ...args: any[]
 ): Promise<C> {
   const references = new Map<string, string>([
-    ["Consideration", "ReferenceConsideration"],
+    ["Consideration", "ReferenceSeaport"],
     ["Conduit", "ReferenceConduit"],
     ["ConduitController", "ReferenceConduitController"],
   ]);

@@ -37,7 +37,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
                 ItemType(i)
             );
             _testFulfillAvailableOrdersOverflowOfferSide(
-                referenceConsideration,
+                referenceSeaport,
                 ItemType(i)
             );
         }
@@ -54,7 +54,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
                 ItemType(i)
             );
             _testFulfillAvailableOrdersOverflowConsiderationSide(
-                referenceConsideration,
+                referenceSeaport,
                 ItemType(i)
             );
         }
@@ -64,7 +64,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         FuzzInputs memory args
     ) public {
         _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
-            Context(referenceConsideration, args)
+            Context(referenceSeaport, args)
         );
         _testSingleOrderViaFulfillAvailableOrdersEthToSingleErc721(
             Context(consideration, args)
@@ -76,7 +76,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         uint240 amount
     ) public {
         _testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
-            Context(referenceConsideration, args),
+            Context(referenceSeaport, args),
             amount
         );
         _testFulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155(
