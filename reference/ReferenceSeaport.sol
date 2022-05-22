@@ -38,10 +38,7 @@ import { OrderToExecute, AccumulatorStruct } from "./lib/ReferenceConsiderationS
  *         (the "offer") along with an arbitrary number of items that must be
  *         received back by the indicated recipients (the "consideration").
  */
-contract ReferenceConsideration is
-    ConsiderationInterface,
-    ReferenceOrderCombiner
-{
+contract ReferenceSeaport is ConsiderationInterface, ReferenceOrderCombiner {
     /**
      * @notice Derive and set hashes, reference chainId, and associated domain
      *         separator during deployment.
