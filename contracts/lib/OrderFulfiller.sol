@@ -43,7 +43,7 @@ contract OrderFulfiller is
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
      *
-     * @dev You can cut out 10 opcodes in the creation-time EVM bytecode
+     * @notice You can cut out 10 opcodes in the creation-time EVM bytecode
      * if you declare a constructor `payable`.
      *
      * For more in-depth information see here:

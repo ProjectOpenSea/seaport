@@ -55,8 +55,14 @@ contract ReferenceConsiderationBase is
      *                                    proxies that may optionally be used to
      *                                    transfer approved ERC20+721+1155
      *                                    tokens.
+     *
+     * @notice You can cut out 10 opcodes in the creation-time EVM bytecode
+     * if you declare a constructor `payable`.
+     *
+     * For more in-depth information see here:
+     * https://forum.openzeppelin.com/t/a-collection-of-gas-optimisation-tricks/19966/5
      */
-    constructor(address conduitController) {
+    constructor(address conduitController) payable {
         // Derive name and version hashes alongside required EIP-712 typehashes.
         (
             _NAME_HASH,

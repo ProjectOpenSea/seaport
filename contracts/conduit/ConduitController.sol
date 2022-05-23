@@ -29,7 +29,7 @@ contract ConduitController is ConduitControllerInterface {
      * @dev Initialize contract by deploying a conduit and setting the creation
      *      code and runtime code hashes as immutable arguments.
      *
-     * @dev You can cut out 10 opcodes in the creation-time EVM bytecode
+     * @notice You can cut out 10 opcodes in the creation-time EVM bytecode
      * if you declare a constructor `payable`.
      *
      * For more in-depth information see here:

@@ -29,7 +29,14 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
 
     mapping(address => bool) private _channels;
 
-    constructor() {
+    /**
+     * @dev You can cut out 10 opcodes in the creation-time EVM bytecode
+     * if you declare a constructor `payable`.
+     *
+     * For more in-depth information see here:
+     * https://forum.openzeppelin.com/t/a-collection-of-gas-optimisation-tricks/19966/5
+     */
+    constructor() payable {
         _controller = msg.sender;
     }
 

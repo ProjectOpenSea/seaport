@@ -18,7 +18,7 @@ contract ReentrancyGuard is ReentrancyErrors {
     /**
      * @dev Initialize the reentrancy guard during deployment.
      *
-     * @dev You can cut out 10 opcodes in the creation-time EVM bytecode
+     * @notice You can cut out 10 opcodes in the creation-time EVM bytecode
      * if you declare a constructor `payable`.
      *
      * For more in-depth information see here:
