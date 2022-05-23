@@ -96,6 +96,7 @@ To install dependencies:
 forge install
 ```
 
+
 To precompile contracts:
 
 The optimized contracts are compiled using the IR pipeline, which can take a long time to compile. By default, the differential test suite depends deploys precompiled versions of both the optimized and reference contracts. Precompilation can be done by specifying specific Foundry profiles.
@@ -145,6 +146,22 @@ Lint checks utilize prettier, prettier-plugin-solidity, and solhint.
 "prettier": "^2.5.1",
 "prettier-plugin-solidity": "^1.0.0-beta.19",
 ```
+
+### Brownie Tests
+
+Seaport also includes a suite of tests written in python with Brownie.
+
+To install brownie
+
+```bash
+pip3 install -r requirements.txt
+```
+
+Other Dependencies
+
+* [python3](https://www.python.org/downloads/release/python-368/) tested with version [3.9.5](https://www.python.org/downloads/release/python-395/)
+* [ganache](https://github.com/trufflesuite/ganache) - tested with version [7.0.2](https://github.com/trufflesuite/ganache/tree/v7.0.2)
+
 
 ## Audits
 

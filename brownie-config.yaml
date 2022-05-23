@@ -1,0 +1,12 @@
+networks:
+    default: hardhat
+
+project_structure:
+    build: vyper/build
+    contracts: vyper/contracts/
+    interfaces: vyper/interfaces
+    reports: vyper/reports
+    scripts: vyper/scripts
+    tests: vyper/tests
+
+autofetch_sources: true

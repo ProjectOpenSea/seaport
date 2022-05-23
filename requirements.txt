@@ -1,0 +1,1 @@
+eth-brownie==1.18.1

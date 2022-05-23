@@ -24,3 +24,6 @@ reference-working
 # VScode
 .vscode
 __pycache__
+
+# vyper build files
+vyper/build/
