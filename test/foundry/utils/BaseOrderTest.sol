@@ -53,6 +53,9 @@ contract BaseOrderTest is
     TestERC1155[] erc1155s;
     address[] accounts;
 
+    OrderParameters orderParameters;
+    OrderComponents orderComponents;
+
     OfferItem offerItem;
     ConsiderationItem considerationItem;
     OfferItem[] offerItems;
@@ -424,6 +427,44 @@ contract BaseOrderTest is
         considerationItem.endAmount = endAmount;
         considerationItem.recipient = recipient;
         considerationItems.push(considerationItem);
+    }
+
+    function _configureOrderParametersFullOpenConstantAmounts(
+        address offerer,
+        address zone,
+        bytes32 zoneHash,
+        uint256 salt,
+        bytes32 conduitKey
+    ) internal {
+        orderParameters.offerer = offerer;
+        orderParameters.zone = zone;
+        orderParameters.offer = offerItems;
+        orderParameters.consideration = considerationItems;
+        orderParameters.orderType = OrderType.FULL_OPEN;
+        orderParameters.startTime = block.timestamp;
+        orderParameters.endTime = block.timestamp + 1;
+        orderParameters.zoneHash = zoneHash;
+        orderParameters.salt = salt;
+        orderParameters.conduitKey = conduitKey;
+        orderParameters.totalOriginalConsiderationItems = considerationItems
+            .length;
+    }
+
+    /**
+    @dev configures order components based on order parameters in storage and nonce param
+     */
+    function _configureOrderComponents(uint256 nonce) internal {
+        orderComponents.offerer = orderParameters.offerer;
+        orderComponents.zone = orderParameters.zone;
+        orderComponents.offer = orderParameters.offer;
+        orderComponents.consideration = orderParameters.consideration;
+        orderComponents.orderType = orderParameters.orderType;
+        orderComponents.startTime = orderParameters.startTime;
+        orderComponents.endTime = orderParameters.endTime;
+        orderComponents.zoneHash = orderParameters.zoneHash;
+        orderComponents.salt = orderParameters.salt;
+        orderComponents.conduitKey = orderParameters.conduitKey;
+        orderComponents.nonce = nonce;
     }
 
     /**
