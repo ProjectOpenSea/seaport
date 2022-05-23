@@ -7,6 +7,6 @@ project_structure:
     interfaces: vyper/interfaces
     reports: vyper/reports
     scripts: vyper/scripts
-    tests: vyper/test
+    tests: vyper/tests
 
 autofetch_sources: true
