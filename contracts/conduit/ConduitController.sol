@@ -28,8 +28,14 @@ contract ConduitController is ConduitControllerInterface {
     /**
      * @dev Initialize contract by deploying a conduit and setting the creation
      *      code and runtime code hashes as immutable arguments.
+     *
+     * @dev You can cut out 10 opcodes in the creation-time EVM bytecode
+     * if you declare a constructor `payable`.
+     *
+     * For more in-depth information see here:
+     * https://forum.openzeppelin.com/t/a-collection-of-gas-optimisation-tricks/19966/5
      */
-    constructor() {
+    constructor() payable {
         // Derive the conduit creation code hash and set it as an immutable.
         _CONDUIT_CREATION_CODE_HASH = keccak256(type(Conduit).creationCode);
 

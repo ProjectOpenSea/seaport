@@ -25,8 +25,17 @@ contract Seaport is Consideration {
      * @param conduitController A contract that deploys conduits, or proxies
      *                          that may optionally be used to transfer approved
      *                          ERC20/721/1155 tokens.
+     *
+     * @dev You can cut out 10 opcodes in the creation-time EVM bytecode
+     * if you declare a constructor `payable`.
+     *
+     * For more in-depth information see here:
+     * https://forum.openzeppelin.com/t/a-collection-of-gas-optimisation-tricks/19966/5
      */
-    constructor(address conduitController) Consideration(conduitController) {}
+    constructor(address conduitController)
+        payable
+        Consideration(conduitController)
+    {}
 
     /**
      * @dev Internal pure function to retrieve and return the name of this

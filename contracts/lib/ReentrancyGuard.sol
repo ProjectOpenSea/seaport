@@ -17,8 +17,14 @@ contract ReentrancyGuard is ReentrancyErrors {
 
     /**
      * @dev Initialize the reentrancy guard during deployment.
+     *
+     * @dev You can cut out 10 opcodes in the creation-time EVM bytecode
+     * if you declare a constructor `payable`.
+     *
+     * For more in-depth information see here:
+     * https://forum.openzeppelin.com/t/a-collection-of-gas-optimisation-tricks/19966/5
      */
-    constructor() {
+    constructor() payable {
         // Initialize the reentrancy guard in a cleared state.
         _reentrancyGuard = _NOT_ENTERED;
     }
