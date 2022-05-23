@@ -42,6 +42,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     }
 
     modifier validateInputs(FuzzInputs memory args) {
+        vm.assume(args.offerAmt > 0);
         vm.assume(
             args.paymentAmounts[0] > 0 &&
                 args.paymentAmounts[1] > 0 &&
@@ -52,29 +53,46 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 args.paymentAmounts[2]
             ) <= 2**120 - 1
         );
-        vm.assume(args.offerAmt > 0);
-        vm.assume(args.numer <= args.denom);
-        vm.assume(args.numer > 0);
         _;
+    }
+
+    modifier validateNumerDenom(FuzzInputs memory args) {
+        vm.assume(args.numer > 0 && args.denom > 0);
+        if (args.numer > args.denom) {
+            uint8 temp = args.denom;
+            args.denom = args.numer;
+            args.numer = temp;
+        }
+        vm.assume(
+            args.paymentAmounts[0] > 0 &&
+                args.paymentAmounts[1] > 0 &&
+                args.paymentAmounts[2] > 0
+        );
+        vm.assume(
+            args.paymentAmounts[0].add(args.paymentAmounts[1]).add(
+                args.paymentAmounts[2]
+            ) <= 2**120 - 1
+        );
+        _;
+    }
+
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
     }
 
     function testAdvancedPartialAscendingOfferAmount1155(
         FuzzInputs memory inputs,
         uint128 tokenAmount,
         uint256 warpAmount
-    ) public {
-        vm.assume(
-            inputs.paymentAmounts[0] > 0 &&
-                inputs.paymentAmounts[1] > 0 &&
-                inputs.paymentAmounts[2] > 0
-        );
-        uint256 sumOfPaymentAmounts = (inputs.paymentAmounts[0].mul(2))
-            .add(inputs.paymentAmounts[1].mul(2))
-            .add(inputs.paymentAmounts[2].mul(2));
-        vm.assume(sumOfPaymentAmounts <= 2**128 - 1);
-
+    ) public validateInputs(inputs) {
         vm.assume(tokenAmount > 0);
-        _testAdvancedPartialAscendingOfferAmount1155(
+
+        test(
+            this.advancedPartialAscendingOfferAmount1155,
             Context(
                 referenceConsideration,
                 inputs,
@@ -82,14 +100,16 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 warpAmount % 1000
             )
         );
-        _testAdvancedPartialAscendingOfferAmount1155(
+        test(
+            this.advancedPartialAscendingOfferAmount1155,
             Context(consideration, inputs, tokenAmount, warpAmount % 1000)
         );
     }
 
-    function _testAdvancedPartialAscendingOfferAmount1155(
-        Context memory context
-    ) internal resetTokenBalancesBetweenRuns {
+    function advancedPartialAscendingOfferAmount1155(Context memory context)
+        external
+        stateless
+    {
         uint256 sumOfPaymentAmounts = (context.args.paymentAmounts[0].mul(2))
             .add(context.args.paymentAmounts[1].mul(2))
             .add(context.args.paymentAmounts[2].mul(2));
@@ -193,30 +213,22 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
     function testAdvancedPartialAscendingConsiderationAmount1155(
         FuzzInputs memory inputs,
-        uint128 tokenId
-    ) public {
-        _testAdvancedPartialAscendingConsiderationAmount1155(
-            Context(referenceConsideration, inputs, tokenId, 0)
+        uint128 tokenAmount
+    ) public validateInputs(inputs) {
+        vm.assume(tokenAmount>0);
+        test(this.advancedPartialAscendingConsiderationAmount1155,
+            Context(referenceConsideration, inputs, tokenAmount, 0)
         );
-        _testAdvancedPartialAscendingConsiderationAmount1155(
-            Context(consideration, inputs, tokenId, 0)
+        test(this.advancedPartialAscendingConsiderationAmount1155,
+            Context(consideration, inputs, tokenAmount, 0)
         );
     }
 
-    function _testAdvancedPartialAscendingConsiderationAmount1155(
+    function advancedPartialAscendingConsiderationAmount1155(
         Context memory context
-    ) internal resetTokenBalancesBetweenRuns {
-        vm.assume(
-            context.args.paymentAmounts[0] > 0 &&
-                context.args.paymentAmounts[1] > 0 &&
-                context.args.paymentAmounts[2] > 0
-        );
-        uint256 sumOfPaymentAmounts = (context.args.paymentAmounts[0].mul(4))
-            .add((context.args.paymentAmounts[1].mul(2)))
-            .add((context.args.paymentAmounts[2].mul(2)));
-        vm.assume(sumOfPaymentAmounts <= 2**128 - 1);
+    ) external stateless {
 
-        vm.assume(context.tokenAmount > 0);
+
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -298,6 +310,11 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 .add(context.args.paymentAmounts[2])
         }(advancedOrder, new CriteriaResolver[](0), bytes32(0));
 
+
+        uint256 sumOfPaymentAmounts = (context.args.paymentAmounts[0].mul(4))
+            .add((context.args.paymentAmounts[1].mul(2)))
+            .add((context.args.paymentAmounts[2].mul(2)));
+
         // set transaction value to sum of eth consideration items (including endAmount of considerationItem[0])
         context.consideration.fulfillAdvancedOrder{
             value: sumOfPaymentAmounts
@@ -310,9 +327,12 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         assertEq(totalSize, 2);
     }
 
-    function testAdvancedPartial1155(FuzzInputs memory args) public {
-        _advancedPartial1155(Context(consideration, args, 0, 0));
-        _advancedPartial1155(Context(referenceConsideration, args, 0, 0));
+    function testAdvancedPartial1155(FuzzInputs memory args) public     
+        validateInputs(args)
+        validateNumerDenom(args)
+        onlyPayable(args.zone) {
+        test(this.advancedPartial1155,Context(consideration, args, 0, 0));
+        test(this.advancedPartial1155,Context(referenceConsideration, args, 0, 0));
     }
 
     function testSingleAdvancedPartial1155() public {
@@ -368,12 +388,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function _advancedPartial1155(Context memory context)
-        internal
-        validateInputs(context.args)
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function advancedPartial1155(Context memory context)
+        external stateless 
     {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne

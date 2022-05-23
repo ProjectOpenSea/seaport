@@ -46,25 +46,12 @@ contract NonReentrantTest is BaseOrderTest {
 
     event BytesReason(bytes data);
 
-    modifier resetStorageState() {
-        _;
-        delete additionalRecipients;
-        delete considerationComponentsArray;
-        delete considerationItems;
-        delete currentConsideration;
-        delete fulfillment;
-        delete fulfillmentComponent;
-        delete fulfillmentComponents;
-        delete offerComponents;
-        delete offerComponentsArray;
-        delete offerItems;
-        delete order;
-        delete orderComponents;
-        delete orderParameters;
-        delete orders;
-        delete recipient;
-        delete reentryPoint;
-        delete basicOrderParameters;
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
     }
 
     function testNonReentrant() public {
@@ -74,17 +61,16 @@ contract NonReentrantTest is BaseOrderTest {
                     EntryPoint(i),
                     ReentryPoint(j)
                 );
-                _testNonReentrant(Context(referenceConsideration, inputs));
-                _testNonReentrant(Context(consideration, inputs));
+                test(
+                    this.nonReentrant,
+                    Context(referenceConsideration, inputs)
+                );
+                test(this.nonReentrant, Context(consideration, inputs));
             }
         }
     }
 
-    function _testNonReentrant(Context memory context)
-        internal
-        resetTokenBalancesBetweenRuns
-        resetStorageState
-    {
+    function nonReentrant(Context memory context) external stateless {
         currentConsideration = context.consideration;
         reentryPoint = context.args.reentryPoint;
         _entryPoint(context.args.entryPoint, 2, false);
@@ -491,9 +477,6 @@ contract NonReentrantTest is BaseOrderTest {
             alicePk,
             orderHash
         );
-        delete fulfillmentComponents;
-        delete offerComponentsArray;
-        delete considerationComponentsArray;
 
         fulfillmentComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(fulfillmentComponents);
