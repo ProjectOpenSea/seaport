@@ -1,4 +1,0 @@
-testMode: assertion 
-coverage: true
-corpusDir: "e2e-cvg"
-initialize: "ops/init.json"
