@@ -482,49 +482,10 @@ contract MatchOrders is BaseOrderTest {
 
         test721_1.mint(alice, context.args.id);
 
-        offerItems.push(
-            OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
-                context.args.id,
-                1,
-                1
-            )
-        );
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                uint256(1),
-                uint256(1),
-                payable(alice)
-            )
-        );
-
-        OrderParameters memory orderParameters = OrderParameters(
-            address(alice),
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            considerationItems.length
-        );
-
-        OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getNonce(alice)
-        );
-
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
-            context.consideration.getOrderHash(orderComponents)
+            context.consideration.getOrderHash(baseOrderComponents)
         );
 
         OfferItem[] memory mirrorOfferItems = new OfferItem[](1);
@@ -576,7 +537,7 @@ contract MatchOrders is BaseOrderTest {
         );
 
         Order[] memory orders = new Order[](2);
-        orders[0] = Order(orderParameters, signature);
+        orders[0] = Order(baseOrderParameters, signature);
         orders[1] = Order(mirrorOrderParameters, mirrorSignature);
 
         fulfillmentComponent = FulfillmentComponent(0, 0);
