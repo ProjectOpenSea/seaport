@@ -10,7 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol"
+import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
@@ -54,8 +54,8 @@ contract BaseOrderTest is
     TestERC1155[] erc1155s;
     address[] accounts;
 
-    OrderParameters orderParameters;
-    OrderComponents orderComponents;
+    OrderParameters baseOrderParameters;
+    OrderComponents baseOrderComponents;
 
     OfferItem offerItem;
     ConsiderationItem considerationItem;
@@ -435,19 +435,21 @@ contract BaseOrderTest is
         address zone,
         bytes32 zoneHash,
         uint256 salt,
-        bytes32 conduitKey
+        bool useConduit
     ) internal {
-        orderParameters.offerer = offerer;
-        orderParameters.zone = zone;
-        orderParameters.offer = offerItems;
-        orderParameters.consideration = considerationItems;
-        orderParameters.orderType = OrderType.FULL_OPEN;
-        orderParameters.startTime = block.timestamp;
-        orderParameters.endTime = block.timestamp + 1;
-        orderParameters.zoneHash = zoneHash;
-        orderParameters.salt = salt;
-        orderParameters.conduitKey = conduitKey;
-        orderParameters.totalOriginalConsiderationItems = considerationItems
+        bytes32 conduitKey = useConduit ? conduitKeyOne : bytes32(0);
+
+        baseOrderParameters.offerer = offerer;
+        baseOrderParameters.zone = zone;
+        baseOrderParameters.offer = offerItems;
+        baseOrderParameters.consideration = considerationItems;
+        baseOrderParameters.orderType = OrderType.FULL_OPEN;
+        baseOrderParameters.startTime = block.timestamp;
+        baseOrderParameters.endTime = block.timestamp + 1;
+        baseOrderParameters.zoneHash = zoneHash;
+        baseOrderParameters.salt = salt;
+        baseOrderParameters.conduitKey = conduitKey;
+        baseOrderParameters.totalOriginalConsiderationItems = considerationItems
             .length;
     }
 
@@ -455,17 +457,17 @@ contract BaseOrderTest is
     @dev configures order components based on order parameters in storage and nonce param
      */
     function _configureOrderComponents(uint256 nonce) internal {
-        orderComponents.offerer = orderParameters.offerer;
-        orderComponents.zone = orderParameters.zone;
-        orderComponents.offer = orderParameters.offer;
-        orderComponents.consideration = orderParameters.consideration;
-        orderComponents.orderType = orderParameters.orderType;
-        orderComponents.startTime = orderParameters.startTime;
-        orderComponents.endTime = orderParameters.endTime;
-        orderComponents.zoneHash = orderParameters.zoneHash;
-        orderComponents.salt = orderParameters.salt;
-        orderComponents.conduitKey = orderParameters.conduitKey;
-        orderComponents.nonce = nonce;
+        baseOrderComponents.offerer = baseOrderParameters.offerer;
+        baseOrderComponents.zone = baseOrderParameters.zone;
+        baseOrderComponents.offer = baseOrderParameters.offer;
+        baseOrderComponents.consideration = baseOrderParameters.consideration;
+        baseOrderComponents.orderType = baseOrderParameters.orderType;
+        baseOrderComponents.startTime = baseOrderParameters.startTime;
+        baseOrderComponents.endTime = baseOrderParameters.endTime;
+        baseOrderComponents.zoneHash = baseOrderParameters.zoneHash;
+        baseOrderComponents.salt = baseOrderParameters.salt;
+        baseOrderComponents.conduitKey = baseOrderParameters.conduitKey;
+        baseOrderComponents.nonce = nonce;
     }
 
     /**
