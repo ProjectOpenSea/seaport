@@ -110,6 +110,7 @@ contract BaseOrderTest is
                 success := call(gas(), _addr, 1, 0, 0, 0, 0)
             }
             vm.assume(success);
+            vm.deal(address(this), uint128(MAX_INT));
         }
         _;
     }

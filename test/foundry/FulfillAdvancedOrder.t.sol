@@ -215,11 +215,13 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         FuzzInputs memory inputs,
         uint128 tokenAmount
     ) public validateInputs(inputs) {
-        vm.assume(tokenAmount>0);
-        test(this.advancedPartialAscendingConsiderationAmount1155,
+        vm.assume(tokenAmount > 0);
+        test(
+            this.advancedPartialAscendingConsiderationAmount1155,
             Context(referenceConsideration, inputs, tokenAmount, 0)
         );
-        test(this.advancedPartialAscendingConsiderationAmount1155,
+        test(
+            this.advancedPartialAscendingConsiderationAmount1155,
             Context(consideration, inputs, tokenAmount, 0)
         );
     }
@@ -227,8 +229,6 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     function advancedPartialAscendingConsiderationAmount1155(
         Context memory context
     ) external stateless {
-
-
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -310,7 +310,6 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 .add(context.args.paymentAmounts[2])
         }(advancedOrder, new CriteriaResolver[](0), bytes32(0));
 
-
         uint256 sumOfPaymentAmounts = (context.args.paymentAmounts[0].mul(4))
             .add((context.args.paymentAmounts[1].mul(2)))
             .add((context.args.paymentAmounts[2].mul(2)));
@@ -327,12 +326,17 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         assertEq(totalSize, 2);
     }
 
-    function testAdvancedPartial1155(FuzzInputs memory args) public     
+    function testAdvancedPartial1155(FuzzInputs memory args)
+        public
         validateInputs(args)
         validateNumerDenom(args)
-        onlyPayable(args.zone) {
-        test(this.advancedPartial1155,Context(consideration, args, 0, 0));
-        test(this.advancedPartial1155,Context(referenceConsideration, args, 0, 0));
+        onlyPayable(args.zone)
+    {
+        test(this.advancedPartial1155, Context(consideration, args, 0, 0));
+        test(
+            this.advancedPartial1155,
+            Context(referenceConsideration, args, 0, 0)
+        );
     }
 
     function testSingleAdvancedPartial1155() public {
@@ -388,9 +392,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function advancedPartial1155(Context memory context)
-        external stateless 
-    {
+    function advancedPartial1155(Context memory context) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
