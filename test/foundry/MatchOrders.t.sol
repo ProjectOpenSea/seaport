@@ -67,6 +67,16 @@ contract MatchOrders is BaseOrderTest {
         }
     }
 
+    function testOverflow(
+        function(Context memory, ItemType) external fn,
+        Context memory context,
+        ItemType itemType
+    ) internal {
+        try fn(context, itemType) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
+    }
+
     // function testMatchOrdersSingleErc721OfferSingleEthConsideration(
     //     FuzzInputsCommon memory inputs
     // ) public {
@@ -101,18 +111,38 @@ contract MatchOrders is BaseOrderTest {
         );
     }
 
-    function testMatchOrdersOverflowOrderSide() public {
-        // start at 1 to skip eth
+    // function testMatchOrdersOverflowOrderSide() public {
+    //     // start at 1 to skip eth
+    //     for (uint256 i = 1; i < 4; i++) {
+    //         // skip 721s
+    //         if (i == 2) {
+    //             continue;
+    //         }
+    //         matchOrdersOverflowOrderSide(consideration, ItemType(i));
+    //         matchOrdersOverflowOrderSide(referenceConsideration, ItemType(i));
+    //     }
+    // }
+
+    function testMatchOrdersOverflowOfferSide(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(Context(consideration, inputs))
+    {
         for (uint256 i = 1; i < 4; i++) {
-            // skip 721s
             if (i == 2) {
                 continue;
             }
-            _testMatchOrdersOverflowOrderSide(consideration, ItemType(i));
-            _testMatchOrdersOverflowOrderSide(
-                referenceConsideration,
+            testOverflow(
+                this.matchOrdersOverflowOfferSide,
+                Context(referenceConsideration, inputs),
                 ItemType(i)
             );
+            testOverflow(
+                this.matchOrdersOverflowOfferSide,
+                Context(consideration, inputs),
+                ItemType(i)
+            );
+            delete offerItems;
+            delete considerationItems;
         }
     }
 
@@ -178,35 +208,24 @@ contract MatchOrders is BaseOrderTest {
         );
     }
 
-    function _testMatchOrdersOverflowOrderSide(
-        ConsiderationInterface _consideration,
+    function matchOrdersOverflowOfferSide(
+        Context memory context,
         ItemType itemType
-    ) internal resetTokenBalancesBetweenRuns {
+    ) external stateless {
         _configureOfferItem(itemType, 1, 100);
         _configureErc721ConsiderationItem(alice, 1);
-
-        OrderParameters memory firstOrderParameters = OrderParameters(
-            address(bob),
-            address(0),
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            bytes32(0),
-            0,
-            bytes32(0),
-            considerationItems.length
+        _configureOrderParametersFullOpenConstantAmounts(
+            bob,
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            context.args.useConduit
         );
-
-        OrderComponents memory firstOrderComponents = getOrderComponents(
-            firstOrderParameters,
-            _consideration.getNonce(bob)
-        );
-        bytes memory firstSignature = signOrder(
-            _consideration,
+        _configureOrderComponents(consideration.getNonce(bob));
+        bytes memory baseSignature = signOrder(
+            context.consideration,
             bobPk,
-            _consideration.getOrderHash(firstOrderComponents)
+            context.consideration.getOrderHash(baseOrderComponents)
         );
 
         delete offerItems;
@@ -231,12 +250,12 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            _consideration.getNonce(bob)
+            context.consideration.getNonce(bob)
         );
         bytes memory secondSignature = signOrder(
-            _consideration,
+            context.consideration,
             bobPk,
-            _consideration.getOrderHash(secondOrderComponents)
+            context.consideration.getOrderHash(secondOrderComponents)
         );
 
         delete offerItems;
@@ -264,20 +283,20 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
             thirdOrderParameters,
-            _consideration.getNonce(alice)
+            context.consideration.getNonce(alice)
         );
 
         bytes memory thirdSignature = signOrder(
-            _consideration,
+            context.consideration,
             alicePk,
-            _consideration.getOrderHash(thirdOrderComponents)
+            context.consideration.getOrderHash(thirdOrderComponents)
         );
 
         delete offerItems;
         delete considerationItems;
 
         Order[] memory orders = new Order[](3);
-        orders[0] = Order(firstOrderParameters, firstSignature);
+        orders[0] = Order(baseOrderParameters, baseSignature);
         orders[1] = Order(secondOrderParameters, secondSignature);
         orders[2] = Order(thirdOrderParameters, thirdSignature);
 
@@ -317,7 +336,7 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillment;
 
         vm.expectRevert(stdError.arithmeticError);
-        _consideration.matchOrders{ value: 99 }(orders, fulfillments);
+        context.consideration.matchOrders{ value: 99 }(orders, fulfillments);
     }
 
     function _testMatchOrdersOverflowConsiderationSide(
@@ -488,43 +507,14 @@ contract MatchOrders is BaseOrderTest {
             context.consideration.getOrderHash(baseOrderComponents)
         );
 
-        OfferItem[] memory mirrorOfferItems = new OfferItem[](1);
+        OrderParameters
+            memory mirrorOrderParameters = createMirrorOrderParameters(
+                baseOrderParameters,
+                cal,
+                context.args.zone,
+                conduitKey
+            );
 
-        // push the original order's consideration item into mirrorOfferItems
-        mirrorOfferItems[0] = OfferItem(
-            considerationItems[0].itemType,
-            considerationItems[0].token,
-            considerationItems[0].identifierOrCriteria,
-            considerationItems[0].startAmount,
-            considerationItems[0].endAmount
-        );
-
-        ConsiderationItem[]
-            memory mirrorConsiderationItems = new ConsiderationItem[](1);
-
-        // push the original order's offer item into mirrorConsiderationItems
-        mirrorConsiderationItems[0] = ConsiderationItem(
-            offerItems[0].itemType,
-            offerItems[0].token,
-            offerItems[0].identifierOrCriteria,
-            offerItems[0].startAmount,
-            offerItems[0].endAmount,
-            payable(cal)
-        );
-
-        OrderParameters memory mirrorOrderParameters = OrderParameters(
-            address(cal),
-            context.args.zone,
-            mirrorOfferItems,
-            mirrorConsiderationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            mirrorConsiderationItems.length
-        );
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
             mirrorOrderParameters,
             context.consideration.getNonce(cal)

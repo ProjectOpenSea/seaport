@@ -20,7 +20,9 @@ contract DifferentialTest is Test {
     }
 
     function assertPass(bytes memory reason) internal {
-        assertEq(keccak256(reason), PASSING_HASH);
+        if (keccak256(reason) != PASSING_HASH) {
+            revert();
+        }
     }
 
     function revertWithFailureStatus() internal {
