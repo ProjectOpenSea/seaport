@@ -10,6 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
+import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
@@ -52,6 +53,9 @@ contract BaseOrderTest is
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
     address[] accounts;
+
+    OrderParameters baseOrderParameters;
+    OrderComponents baseOrderComponents;
 
     OfferItem offerItem;
     ConsiderationItem considerationItem;
@@ -424,6 +428,46 @@ contract BaseOrderTest is
         considerationItem.endAmount = endAmount;
         considerationItem.recipient = recipient;
         considerationItems.push(considerationItem);
+    }
+
+    function _configureOrderParametersFullOpenConstantAmounts(
+        address offerer,
+        address zone,
+        bytes32 zoneHash,
+        uint256 salt,
+        bool useConduit
+    ) internal {
+        bytes32 conduitKey = useConduit ? conduitKeyOne : bytes32(0);
+
+        baseOrderParameters.offerer = offerer;
+        baseOrderParameters.zone = zone;
+        baseOrderParameters.offer = offerItems;
+        baseOrderParameters.consideration = considerationItems;
+        baseOrderParameters.orderType = OrderType.FULL_OPEN;
+        baseOrderParameters.startTime = block.timestamp;
+        baseOrderParameters.endTime = block.timestamp + 1;
+        baseOrderParameters.zoneHash = zoneHash;
+        baseOrderParameters.salt = salt;
+        baseOrderParameters.conduitKey = conduitKey;
+        baseOrderParameters.totalOriginalConsiderationItems = considerationItems
+            .length;
+    }
+
+    /**
+    @dev configures order components based on order parameters in storage and nonce param
+     */
+    function _configureOrderComponents(uint256 nonce) internal {
+        baseOrderComponents.offerer = baseOrderParameters.offerer;
+        baseOrderComponents.zone = baseOrderParameters.zone;
+        baseOrderComponents.offer = baseOrderParameters.offer;
+        baseOrderComponents.consideration = baseOrderParameters.consideration;
+        baseOrderComponents.orderType = baseOrderParameters.orderType;
+        baseOrderComponents.startTime = baseOrderParameters.startTime;
+        baseOrderComponents.endTime = baseOrderParameters.endTime;
+        baseOrderComponents.zoneHash = baseOrderParameters.zoneHash;
+        baseOrderComponents.salt = baseOrderParameters.salt;
+        baseOrderComponents.conduitKey = baseOrderParameters.conduitKey;
+        baseOrderComponents.nonce = nonce;
     }
 
     /**

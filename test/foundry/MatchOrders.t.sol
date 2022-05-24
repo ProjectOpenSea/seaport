@@ -10,9 +10,11 @@ import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 import { stdError } from "forge-std/Test.sol";
 
 contract MatchOrders is BaseOrderTest {
+    using ArithmeticUtil for uint128;
     struct FuzzInputsCommon {
         address zone;
         uint256 id;
@@ -42,14 +44,60 @@ contract MatchOrders is BaseOrderTest {
         FuzzInputsAscendingDescending args;
     }
 
+    modifier validateInputs(Context memory context) {
+        vm.assume(
+            context.args.paymentAmts[0] > 0 &&
+                context.args.paymentAmts[1] > 0 &&
+                context.args.paymentAmts[2] > 0
+        );
+        vm.assume(
+            uint256(context.args.paymentAmts[0]) +
+                uint256(context.args.paymentAmts[1]) +
+                uint256(context.args.paymentAmts[2]) <=
+                2**128 - 1
+        );
+        _;
+    }
+
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
+    }
+
+    // function testMatchOrdersSingleErc721OfferSingleEthConsideration(
+    //     FuzzInputsCommon memory inputs
+    // ) public {
+    //     _testMatchOrdersSingleErc721OfferSingleEthConsideration(
+    //         Context(referenceConsideration, inputs)
+    //     );
+    //     _testMatchOrdersSingleErc721OfferSingleEthConsideration(
+    //         Context(consideration, inputs)
+    //     );
+    // }
+
     function testMatchOrdersSingleErc721OfferSingleEthConsideration(
         FuzzInputsCommon memory inputs
-    ) public {
-        _testMatchOrdersSingleErc721OfferSingleEthConsideration(
-            Context(referenceConsideration, inputs)
+    ) public validateInputs(Context(consideration, inputs)) {
+        _configureERC721OfferItem(inputs.id);
+        _configureEthConsiderationItem(alice, 1);
+        _configureOrderParametersFullOpenConstantAmounts(
+            alice,
+            inputs.zone,
+            inputs.zoneHash,
+            inputs.salt,
+            inputs.useConduit
         );
-        _testMatchOrdersSingleErc721OfferSingleEthConsideration(
+        _configureOrderComponents(consideration.getNonce(alice));
+        test(
+            this.matchOrdersSingleErc721OfferSingleEthConsideration,
             Context(consideration, inputs)
+        );
+        test(
+            this.matchOrdersSingleErc721OfferSingleEthConsideration,
+            Context(referenceConsideration, inputs)
         );
     }
 
@@ -414,9 +462,9 @@ contract MatchOrders is BaseOrderTest {
         _consideration.matchOrders(orders, fulfillments);
     }
 
-    function _testMatchOrdersSingleErc721OfferSingleEthConsideration(
+    function matchOrdersSingleErc721OfferSingleEthConsideration(
         Context memory context
-    ) internal resetTokenBalancesBetweenRuns {
+    ) external stateless {
         vm.assume(
             context.args.paymentAmts[0] > 0 &&
                 context.args.paymentAmts[1] > 0 &&
@@ -434,49 +482,10 @@ contract MatchOrders is BaseOrderTest {
 
         test721_1.mint(alice, context.args.id);
 
-        offerItems.push(
-            OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
-                context.args.id,
-                1,
-                1
-            )
-        );
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.NATIVE,
-                address(0),
-                0,
-                uint256(1),
-                uint256(1),
-                payable(alice)
-            )
-        );
-
-        OrderParameters memory orderParameters = OrderParameters(
-            address(alice),
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            considerationItems.length
-        );
-
-        OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getNonce(alice)
-        );
-
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
-            context.consideration.getOrderHash(orderComponents)
+            context.consideration.getOrderHash(baseOrderComponents)
         );
 
         OfferItem[] memory mirrorOfferItems = new OfferItem[](1);
@@ -528,7 +537,7 @@ contract MatchOrders is BaseOrderTest {
         );
 
         Order[] memory orders = new Order[](2);
-        orders[0] = Order(orderParameters, signature);
+        orders[0] = Order(baseOrderParameters, signature);
         orders[1] = Order(mirrorOrderParameters, mirrorSignature);
 
         fulfillmentComponent = FulfillmentComponent(0, 0);
