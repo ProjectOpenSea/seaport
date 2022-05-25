@@ -126,13 +126,13 @@ def _applyFraction(
         )
     else:
         # Otherwise, apply fraction to both to extrapolate final amount.
-        amount: uint256 = self._locateCurrentAmount(
-            _getFraction(
+        amount = self._locateCurrentAmount(
+            self._getFraction(
                 fractionData.numerator,
                 fractionData.denominator,
                 startAmount
             ),
-            _getFraction(
+            self._getFraction(
                 fractionData.numerator,
                 fractionData.denominator,
                 endAmount
