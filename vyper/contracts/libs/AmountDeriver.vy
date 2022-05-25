@@ -98,7 +98,7 @@ def _getFraction(
     return newValue
 
 @internal
-@pure
+@view # Change to @pure once https://github.com/vyperlang/vyper/issues/2870 is fixed.
 def _applyFraction(
     startAmount: uint256,
     endAmount: uint256,
