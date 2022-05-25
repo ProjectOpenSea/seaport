@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 
 import { HardhatUserConfig, subtask } from "hardhat/config";
+import "@nomiclabs/hardhat-vyper";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
@@ -69,7 +70,11 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
-  paths: { cache: "hh-cache" },
+  paths: { 
+    sources: "./vyper/contracts",
+    cache: "hh-cache",
+    artifacts: "./vyper/artifacts"
+  }
 };
 
 export default config;
