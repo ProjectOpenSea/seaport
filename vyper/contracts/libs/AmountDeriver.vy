@@ -91,9 +91,7 @@ def _getFraction(
     newValue: uint256 = valueTimesNumerator / denominator
 
     # Ensure that division gave a final result with no remainder.
-    exact: bool = ((newValue * denominator) / numerator) == val
-    if not exact:
-        raise "inexact fraction"
+    assert ((newValue * denominator) / numerator) == val, "inexact fraction"
 
     return newValue
 
