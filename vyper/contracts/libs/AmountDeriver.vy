@@ -40,27 +40,26 @@ def _locateCurrentAmount(
     @return The current amount.
     """
     # Only modify end amount if it doesn't already equal start amount.
-    if startAmount != endAmount:
-        # Leave extra amount to add for rounding at zero (i.e. round down).
-        extraCeiling: uint256 = 0
+    if startAmount == endAmount:
+        return endAmount
 
-        # If rounding up, set rounding factor to one less than denominator.
-        if roundUp:
-            extraCeiling = duration - 1
+    # Leave extra amount to add for rounding at zero (i.e. round down).
+    extraCeiling: uint256 = 0
 
-        # Aggregate new amounts weighted by time with rounding factor.
-        totalBeforeDivision: uint256 = ((startAmount * remaining) +
-            (endAmount * elapsed) +
-            extraCeiling)
+    # If rounding up, set rounding factor to one less than denominator.
+    if roundUp:
+        extraCeiling = duration - 1
 
-        # Division is performed without zero check as it cannot be zero.
-        newAmount: uint256 = totalBeforeDivision / duration
+    # Aggregate new amounts weighted by time with rounding factor.
+    totalBeforeDivision: uint256 = ((startAmount * remaining) +
+        (endAmount * elapsed) +
+        extraCeiling)
 
-        # Return the current amount (expressed as endAmount internally).
-        return newAmount
+    # Division is performed without zero check as it cannot be zero.
+    newAmount: uint256 = totalBeforeDivision / duration
 
-    # Return the original amount (now expressed as endAmount internally).
-    return endAmount
+    # Return the current amount (expressed as endAmount internally).
+    return newAmount
 
 @internal
 @pure
