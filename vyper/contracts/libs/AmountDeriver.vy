@@ -56,7 +56,7 @@ def _locateCurrentAmount(
         extraCeiling)
 
     # Division is performed without zero check as it cannot be zero.
-    newAmount: uint256 = totalBeforeDivision / duration
+    newAmount: uint256 = unsafe_div(totalBeforeDivision, duration)
 
     # Return the current amount (expressed as endAmount internally).
     return newAmount
