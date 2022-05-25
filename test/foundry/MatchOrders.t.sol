@@ -59,9 +59,27 @@ contract MatchOrders is BaseOrderTest {
         _;
     }
 
+    modifier validateInputsAscendingDescending(
+        ContextAscendingDescending memory context
+    ) {
+        vm.assume(context.args.amount > 100);
+        vm.assume(uint256(context.args.amount) * 2 <= 2**128 - 1);
+        vm.assume(context.args.warp > 10 && context.args.warp < 1000);
+        _;
+    }
+
     function test(function(Context memory) external fn, Context memory context)
         internal
     {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
+    }
+
+    function testAscendingDescending(
+        function(ContextAscendingDescending memory) external fn,
+        ContextAscendingDescending memory context
+    ) internal {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
@@ -77,23 +95,12 @@ contract MatchOrders is BaseOrderTest {
         }
     }
 
-    // function testMatchOrdersSingleErc721OfferSingleEthConsideration(
-    //     FuzzInputsCommon memory inputs
-    // ) public {
-    //     _testMatchOrdersSingleErc721OfferSingleEthConsideration(
-    //         Context(referenceConsideration, inputs)
-    //     );
-    //     _testMatchOrdersSingleErc721OfferSingleEthConsideration(
-    //         Context(consideration, inputs)
-    //     );
-    // }
-
     function testMatchOrdersSingleErc721OfferSingleEthConsideration(
         FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs)) {
         _configureERC721OfferItem(inputs.id);
         _configureEthConsiderationItem(alice, 1);
-        _configureOrderParametersFullOpenConstantAmounts(
+        _configureOrderParameters(
             alice,
             inputs.zone,
             inputs.zoneHash,
@@ -111,22 +118,9 @@ contract MatchOrders is BaseOrderTest {
         );
     }
 
-    // function testMatchOrdersOverflowOrderSide() public {
-    //     // start at 1 to skip eth
-    //     for (uint256 i = 1; i < 4; i++) {
-    //         // skip 721s
-    //         if (i == 2) {
-    //             continue;
-    //         }
-    //         matchOrdersOverflowOrderSide(consideration, ItemType(i));
-    //         matchOrdersOverflowOrderSide(referenceConsideration, ItemType(i));
-    //     }
-    // }
-
     function testMatchOrdersOverflowOfferSide(FuzzInputsCommon memory inputs)
         public
         validateInputs(Context(consideration, inputs))
-        onlyPayable(inputs.zone)
     {
         for (uint256 i = 1; i < 4; i++) {
             if (i == 2) {
@@ -147,64 +141,165 @@ contract MatchOrders is BaseOrderTest {
         }
     }
 
-    function testMatchOrdersOverflowConsiderationSide() public {
+    function testMatchOrdersOverflowConsiderationSide(
+        FuzzInputsCommon memory inputs
+    ) public validateInputs(Context(consideration, inputs)) {
         // start at 1 to skip eth
         for (uint256 i = 1; i < 4; i++) {
-            // skip 721s
             if (i == 2) {
                 continue;
             }
-            _testMatchOrdersOverflowConsiderationSide(
-                consideration,
+            testOverflow(
+                this.matchOrdersOverflowConsiderationSide,
+                Context(referenceConsideration, inputs),
                 ItemType(i)
             );
-            _testMatchOrdersOverflowConsiderationSide(
-                referenceConsideration,
+            testOverflow(
+                this.matchOrdersOverflowConsiderationSide,
+                Context(consideration, inputs),
                 ItemType(i)
             );
+            delete offerItems;
+            delete considerationItems;
         }
     }
 
     function testMatchOrdersAscendingOfferAmount(
         FuzzInputsAscendingDescending memory inputs
-    ) public {
-        _testMatchOrdersAscendingOfferAmount(
+    )
+        public
+        validateInputsAscendingDescending(
+            ContextAscendingDescending(consideration, inputs)
+        )
+    {
+        _configureOfferItem(
+            ItemType.ERC20,
+            0,
+            inputs.amount,
+            inputs.amount * 2
+        );
+        _configureConsiderationItem(alice, ItemType.ERC721, inputs.id, 1);
+        _configureOrderParametersSetEndTime(
+            alice,
+            inputs.zone,
+            1001,
+            inputs.zoneHash,
+            inputs.salt,
+            inputs.useConduit
+        );
+        _configureOrderComponents(consideration.getNonce(alice));
+        testAscendingDescending(
+            this.matchOrdersAscendingOfferAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
         );
-        _testMatchOrdersAscendingOfferAmount(
+        testAscendingDescending(
+            this.matchOrdersAscendingOfferAmount,
             ContextAscendingDescending(consideration, inputs)
         );
     }
 
     function testMatchOrdersAscendingConsiderationAmount(
         FuzzInputsAscendingDescending memory inputs
-    ) public {
-        _testMatchOrdersAscendingConsiderationAmount(
+    )
+        public
+        validateInputsAscendingDescending(
+            ContextAscendingDescending(consideration, inputs)
+        )
+    {
+        _configureOfferItem(ItemType.ERC721, inputs.id, 1);
+        _configureConsiderationItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            inputs.amount,
+            inputs.amount * 2,
+            alice
+        );
+        _configureOrderParametersSetEndTime(
+            alice,
+            inputs.zone,
+            1001,
+            inputs.zoneHash,
+            inputs.salt,
+            inputs.useConduit
+        );
+        _configureOrderComponents(consideration.getNonce(alice));
+        testAscendingDescending(
+            this.matchOrdersAscendingConsiderationAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
         );
-        _testMatchOrdersAscendingConsiderationAmount(
+        testAscendingDescending(
+            this.matchOrdersAscendingConsiderationAmount,
             ContextAscendingDescending(consideration, inputs)
         );
     }
 
     function testMatchOrdersDescendingOfferAmount(
         FuzzInputsAscendingDescending memory inputs
-    ) public {
-        _testMatchOrdersDescendingOfferAmount(
+    )
+        public
+        validateInputsAscendingDescending(
+            ContextAscendingDescending(consideration, inputs)
+        )
+    {
+        _configureOfferItem(
+            ItemType.ERC20,
+            0,
+            inputs.amount * 2,
+            inputs.amount
+        );
+        _configureErc721ConsiderationItem(alice, inputs.id);
+        _configureOrderParametersSetEndTime(
+            alice,
+            inputs.zone,
+            1001,
+            inputs.zoneHash,
+            inputs.salt,
+            inputs.useConduit
+        );
+        _configureOrderComponents(consideration.getNonce(alice));
+        testAscendingDescending(
+            this.matchOrdersDescendingOfferAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
         );
-        _testMatchOrdersDescendingOfferAmount(
+        testAscendingDescending(
+            this.matchOrdersDescendingOfferAmount,
             ContextAscendingDescending(consideration, inputs)
         );
     }
 
     function testMatchOrdersDescendingConsiderationAmount(
         FuzzInputsAscendingDescending memory inputs
-    ) public {
-        _testMatchOrdersDescendingConsiderationAmount(
+    )
+        public
+        validateInputsAscendingDescending(
+            ContextAscendingDescending(consideration, inputs)
+        )
+    {
+        _configureOfferItem(ItemType.ERC721, inputs.id, 1);
+        _configureConsiderationItem(
+            ItemType.ERC20,
+            address(token1),
+            0,
+            inputs.amount * 2,
+            inputs.amount,
+            alice
+        );
+        _configureOrderParametersSetEndTime(
+            alice,
+            inputs.zone,
+            1001,
+            inputs.zoneHash,
+            inputs.salt,
+            inputs.useConduit
+        );
+        _configureOrderComponents(consideration.getNonce(alice));
+        testAscendingDescending(
+            this.matchOrdersDescendingConsiderationAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
         );
-        _testMatchOrdersDescendingConsiderationAmount(
+        testAscendingDescending(
+            this.matchOrdersDescendingConsiderationAmount,
             ContextAscendingDescending(consideration, inputs)
         );
     }
@@ -219,7 +314,7 @@ contract MatchOrders is BaseOrderTest {
 
         _configureOfferItem(itemType, 1, 100);
         _configureErc721ConsiderationItem(alice, 1);
-        _configureOrderParametersFullOpenConstantAmounts(
+        _configureOrderParameters(
             bob,
             context.args.zone,
             context.args.zoneHash,
@@ -344,36 +439,40 @@ contract MatchOrders is BaseOrderTest {
         context.consideration.matchOrders{ value: 99 }(orders, fulfillments);
     }
 
-    function _testMatchOrdersOverflowConsiderationSide(
-        ConsiderationInterface _consideration,
+    function matchOrdersOverflowConsiderationSide(
+        Context memory context,
         ItemType itemType
-    ) internal resetTokenBalancesBetweenRuns {
+    ) external stateless {
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
         test721_1.mint(alice, 1);
         _configureERC721OfferItem(1);
         _configureConsiderationItem(alice, itemType, 1, 100);
 
         OrderParameters memory firstOrderParameters = OrderParameters(
             address(alice),
-            address(0),
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            bytes32(0),
-            0,
-            bytes32(0),
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
             considerationItems.length
         );
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             firstOrderParameters,
-            _consideration.getNonce(alice)
+            context.consideration.getNonce(alice)
         );
         bytes memory firstSignature = signOrder(
-            _consideration,
+            context.consideration,
             alicePk,
-            _consideration.getOrderHash(firstOrderComponents)
+            context.consideration.getOrderHash(firstOrderComponents)
         );
 
         delete offerItems;
@@ -385,26 +484,26 @@ contract MatchOrders is BaseOrderTest {
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
-            address(0),
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            bytes32(0),
-            0,
-            bytes32(0),
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
             considerationItems.length
         );
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            _consideration.getNonce(bob)
+            context.consideration.getNonce(bob)
         );
         bytes memory secondSignature = signOrder(
-            _consideration,
+            context.consideration,
             bobPk,
-            _consideration.getOrderHash(secondOrderComponents)
+            context.consideration.getOrderHash(secondOrderComponents)
         );
 
         delete offerItems;
@@ -416,27 +515,27 @@ contract MatchOrders is BaseOrderTest {
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
             address(bob),
-            address(0),
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            bytes32(0),
-            0,
-            bytes32(0),
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
             considerationItems.length
         );
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
             thirdOrderParameters,
-            _consideration.getNonce(bob)
+            context.consideration.getNonce(bob)
         );
 
         bytes memory thirdSignature = signOrder(
-            _consideration,
+            context.consideration,
             bobPk,
-            _consideration.getOrderHash(thirdOrderComponents)
+            context.consideration.getOrderHash(thirdOrderComponents)
         );
 
         delete offerItems;
@@ -483,23 +582,12 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillment;
 
         vm.expectRevert(stdError.arithmeticError);
-        _consideration.matchOrders(orders, fulfillments);
+        context.consideration.matchOrders(orders, fulfillments);
     }
 
     function matchOrdersSingleErc721OfferSingleEthConsideration(
         Context memory context
     ) external stateless {
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            uint256(context.args.paymentAmts[0]) +
-                uint256(context.args.paymentAmts[1]) +
-                uint256(context.args.paymentAmts[2]) <=
-                2**128 - 1
-        );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -564,50 +652,19 @@ contract MatchOrders is BaseOrderTest {
         }(orders, fulfillments);
     }
 
-    function _testMatchOrdersAscendingOfferAmount(
+    function matchOrdersAscendingOfferAmount(
         ContextAscendingDescending memory context
-    ) internal resetTokenBalancesBetweenRuns {
-        vm.assume(context.args.amount > 100);
-        vm.assume(uint256(context.args.amount) * 2 <= 2**128 - 1);
-        vm.assume(context.args.warp > 10 && context.args.warp < 1000);
-
+    ) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
         test721_1.mint(bob, context.args.id);
 
-        _configureOfferItem(
-            ItemType.ERC20,
-            0,
-            context.args.amount,
-            context.args.amount * 2
-        );
-        _configureConsiderationItem(alice, ItemType.ERC721, context.args.id, 1);
-
-        OrderParameters memory orderParameters = OrderParameters(
-            address(alice),
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            considerationItems.length
-        );
-
-        OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getNonce(alice)
-        );
-
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
-            context.consideration.getOrderHash(orderComponents)
+            context.consideration.getOrderHash(baseOrderComponents)
         );
 
         delete offerItems;
@@ -638,8 +695,8 @@ contract MatchOrders is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            1,
+            1001,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -657,7 +714,7 @@ contract MatchOrders is BaseOrderTest {
         );
 
         Order[] memory orders = new Order[](2);
-        orders[0] = Order(orderParameters, signature);
+        orders[0] = Order(baseOrderParameters, signature);
         orders[1] = Order(mirrorOrderParameters, mirrorSignature);
 
         fulfillmentComponent = FulfillmentComponent(0, 0);
@@ -682,7 +739,7 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
-        vm.warp(block.timestamp + context.args.warp);
+        vm.warp(1 + context.args.warp);
 
         uint256 balanceBeforeOrder = token1.balanceOf(bob);
         context.consideration.matchOrders(orders, fulfillments);
@@ -691,53 +748,19 @@ contract MatchOrders is BaseOrderTest {
         assertEq(balanceAfterOrder - balanceBeforeOrder, currentAmount);
     }
 
-    function _testMatchOrdersAscendingConsiderationAmount(
+    function matchOrdersAscendingConsiderationAmount(
         ContextAscendingDescending memory context
-    ) internal resetTokenBalancesBetweenRuns {
-        vm.assume(context.args.amount > 100);
-        vm.assume(uint256(context.args.amount) * 2 <= 2**128 - 1);
-        vm.assume(context.args.warp > 10 && context.args.warp < 1000);
-
+    ) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
 
-        _configureOfferItem(ItemType.ERC721, context.args.id, 1);
-        // set endAmount to 2 * startAmount
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            context.args.amount,
-            context.args.amount * 2,
-            alice
-        );
-
-        OrderParameters memory orderParameters = OrderParameters(
-            address(alice),
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            considerationItems.length
-        );
-
-        OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getNonce(alice)
-        );
-
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
-            context.consideration.getOrderHash(orderComponents)
+            context.consideration.getOrderHash(baseOrderComponents)
         );
 
         delete offerItems;
@@ -760,8 +783,8 @@ contract MatchOrders is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            1,
+            1001,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -779,7 +802,7 @@ contract MatchOrders is BaseOrderTest {
         );
 
         Order[] memory orders = new Order[](2);
-        orders[0] = Order(orderParameters, signature);
+        orders[0] = Order(baseOrderParameters, signature);
         orders[1] = Order(mirrorOrderParameters, mirrorSignature);
 
         fulfillmentComponent = FulfillmentComponent(0, 0);
@@ -804,7 +827,7 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
-        vm.warp(block.timestamp + context.args.warp);
+        vm.warp(1 + context.args.warp);
 
         uint256 balanceBeforeOrder = token1.balanceOf(alice);
         context.consideration.matchOrders(orders, fulfillments);
@@ -813,50 +836,19 @@ contract MatchOrders is BaseOrderTest {
         assertEq(balanceAfterOrder - balanceBeforeOrder, currentAmount);
     }
 
-    function _testMatchOrdersDescendingOfferAmount(
+    function matchOrdersDescendingOfferAmount(
         ContextAscendingDescending memory context
-    ) internal resetTokenBalancesBetweenRuns {
-        vm.assume(context.args.amount > 100);
-        vm.assume(uint256(context.args.amount) * 2 <= 2**128 - 1);
-        vm.assume(context.args.warp > 10 && context.args.warp < 1000);
-
+    ) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
         test721_1.mint(bob, context.args.id);
 
-        _configureOfferItem(
-            ItemType.ERC20,
-            0,
-            context.args.amount * 2,
-            context.args.amount
-        );
-        _configureErc721ConsiderationItem(alice, context.args.id);
-
-        OrderParameters memory orderParameters = OrderParameters(
-            address(alice),
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            considerationItems.length
-        );
-
-        OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getNonce(alice)
-        );
-
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
-            context.consideration.getOrderHash(orderComponents)
+            context.consideration.getOrderHash(baseOrderComponents)
         );
 
         delete offerItems;
@@ -887,8 +879,8 @@ contract MatchOrders is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            1,
+            1001,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -907,7 +899,7 @@ contract MatchOrders is BaseOrderTest {
         );
 
         Order[] memory orders = new Order[](2);
-        orders[0] = Order(orderParameters, signature);
+        orders[0] = Order(baseOrderParameters, signature);
         orders[1] = Order(mirrorOrderParameters, mirrorSignature);
 
         fulfillmentComponent = FulfillmentComponent(0, 0);
@@ -932,7 +924,7 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
-        vm.warp(block.timestamp + context.args.warp);
+        vm.warp(1 + context.args.warp);
 
         uint256 balaceBeforeOrder = token1.balanceOf(bob);
         context.consideration.matchOrders(orders, fulfillments);
@@ -941,61 +933,24 @@ contract MatchOrders is BaseOrderTest {
         assertEq(balanceAfterOrder - balaceBeforeOrder, currentAmount);
     }
 
-    function _testMatchOrdersDescendingConsiderationAmount(
+    function matchOrdersDescendingConsiderationAmount(
         ContextAscendingDescending memory context
-    ) internal resetTokenBalancesBetweenRuns {
-        vm.assume(context.args.amount > 100);
-        vm.assume(uint256(context.args.amount) * 2 <= 2**128 - 1);
-        vm.assume(context.args.warp > 10 && context.args.warp < 1000);
-
+    ) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
         test721_1.mint(alice, context.args.id);
 
-        assert(considerationItems.length == 0);
-
-        _configureOfferItem(ItemType.ERC721, context.args.id, 1);
-        considerationItems.push(
-            ConsiderationItem(
-                ItemType.ERC20,
-                address(token1),
-                1,
-                context.args.amount * 2, // start amount
-                context.args.amount, // end amount
-                alice
-            )
-        );
-        OrderParameters memory orderParameters = OrderParameters(
-            address(alice),
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            considerationItems.length
-        );
-
-        OrderComponents memory orderComponents = getOrderComponents(
-            orderParameters,
-            context.consideration.getNonce(alice)
-        );
-
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
-            context.consideration.getOrderHash(orderComponents)
+            context.consideration.getOrderHash(baseOrderComponents)
         );
 
         delete offerItems;
         delete considerationItems;
 
-        vm.warp(block.timestamp + context.args.warp);
         uint256 currentAmount = _locateCurrentAmount(
             context.args.amount * 2,
             context.args.amount,
@@ -1009,7 +964,7 @@ contract MatchOrders is BaseOrderTest {
         _configureOfferItem(
             ItemType.ERC20,
             address(token1),
-            1,
+            0,
             currentAmount,
             currentAmount
         );
@@ -1021,8 +976,8 @@ contract MatchOrders is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            1,
+            1001,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -1041,16 +996,9 @@ contract MatchOrders is BaseOrderTest {
         );
 
         Order[] memory orders = new Order[](2);
-        orders[0] = Order(orderParameters, signature);
+        orders[0] = Order(baseOrderParameters, signature);
         orders[1] = Order(mirrorOrderParameters, mirrorSignature);
-        emit log_named_uint(
-            "Mirror Offer Start Amount: ",
-            mirrorOrderParameters.offer[0].startAmount
-        );
-        emit log_named_uint(
-            "Mirror Offer End Amount: ",
-            mirrorOrderParameters.offer[0].endAmount
-        );
+
         fulfillmentComponent = FulfillmentComponent(0, 0);
         fulfillmentComponents.push(fulfillmentComponent);
         fulfillment.offerComponents = fulfillmentComponents;
@@ -1073,6 +1021,7 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
+        vm.warp(1 + context.args.warp);
         uint256 balanceBeforeOrder = token1.balanceOf(alice);
         context.consideration.matchOrders(orders, fulfillments);
 
