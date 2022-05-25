@@ -1,6 +1,5 @@
 # @version 0.3.3
 
-from vyper.interfaces import ERC20
 from vyper.interfaces import ERC721
 
 interface ERC1155:
@@ -16,7 +15,18 @@ struct ConduitBatch1155Transfer:
 
 @internal
 def _performERC20Transfer(token: address, _from: address, to: address, amount: uint256):
-    assert ERC20(token).transferFrom(_from, to, amount)
+    _response: Bytes[32] = raw_call(
+        token,
+        _abi_encode(
+            _from,
+            to,
+            amount,
+            method=method_id("transferFrom(address,address,uint256)")
+        ),
+        max_outsize=32
+    )  
+    if len(_response) > 0:
+        assert convert(_response, bool) 
 
 @internal
 def _performERC721Transfer(token: address, _from: address, to: address, identifier: uint256):
