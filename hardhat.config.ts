@@ -24,7 +24,7 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
-const getPath = () => {
+const getPaths = () => {
   const target = process.env.TARGET
 
   switch (target) {
@@ -88,7 +88,7 @@ const config: HardhatUserConfig = {
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
   
-  paths: getPath()
+  paths: getPaths()
     
   }
 
