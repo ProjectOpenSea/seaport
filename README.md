@@ -59,6 +59,12 @@ yarn test
 yarn coverage
 ```
 
+To run tests against vyper contracts, use
+```
+TARGET='vyper'
+```
+as environment variable
+
 > Note: artifacts and cache folders may occasionally need to be removed between standard and coverage test runs.
 
 To run hardhat tests against reference contracts:
