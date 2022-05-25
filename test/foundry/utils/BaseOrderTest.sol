@@ -433,7 +433,7 @@ contract BaseOrderTest is
         considerationItems.push(considerationItem);
     }
 
-    function _configureOrderParametersFullOpenConstantAmounts(
+    function _configureOrderParameters(
         address offerer,
         address zone,
         bytes32 zoneHash,
@@ -453,6 +453,18 @@ contract BaseOrderTest is
         baseOrderParameters.conduitKey = conduitKey;
         baseOrderParameters.totalOriginalConsiderationItems = considerationItems
             .length;
+    }
+
+    function _configureOrderParametersSetEndTime(
+        address offerer,
+        address zone,
+        uint256 endTime,
+        bytes32 zoneHash,
+        uint256 salt,
+        bool useConduit
+    ) internal {
+        _configureOrderParameters(offerer, zone, zoneHash, salt, useConduit);
+        baseOrderParameters.endTime = endTime;
     }
 
     /**
