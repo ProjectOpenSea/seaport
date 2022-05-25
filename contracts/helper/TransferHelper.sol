@@ -9,5 +9,12 @@ import "./TransferHelperStructs.sol";
  * @notice TransferHelper is a trivial ETH/ERC20/ERC721/ERC1155 marketplace
  */
 contract TransferHelper {
-    function bulkTransfer() public returns (bool) {}
+    function bulkTransfer() public returns (bool) {
+        TransferHelperItem memory item = TransferHelperItem({
+            token: address(0),
+            tokenIdentifier: 0,
+            amount: 0
+        });
+        // TODO do something
+    }
 }
