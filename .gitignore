@@ -27,3 +27,6 @@ __pycache__
 
 # vyper build files
 vyper/build/
+
+# python virtualenv
+env
