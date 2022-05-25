@@ -126,6 +126,7 @@ contract MatchOrders is BaseOrderTest {
     function testMatchOrdersOverflowOfferSide(FuzzInputsCommon memory inputs)
         public
         validateInputs(Context(consideration, inputs))
+        onlyPayable(inputs.zone)
     {
         for (uint256 i = 1; i < 4; i++) {
             if (i == 2) {
@@ -212,6 +213,10 @@ contract MatchOrders is BaseOrderTest {
         Context memory context,
         ItemType itemType
     ) external stateless {
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
         _configureOfferItem(itemType, 1, 100);
         _configureErc721ConsiderationItem(alice, 1);
         _configureOrderParametersFullOpenConstantAmounts(
@@ -236,15 +241,15 @@ contract MatchOrders is BaseOrderTest {
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
-            address(0),
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            bytes32(0),
-            0,
-            bytes32(0),
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
             considerationItems.length
         );
 
@@ -269,15 +274,15 @@ contract MatchOrders is BaseOrderTest {
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
             address(alice),
-            address(0),
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.FULL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            bytes32(0),
-            0,
-            bytes32(0),
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
             considerationItems.length
         );
 

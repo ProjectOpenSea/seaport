@@ -441,7 +441,6 @@ contract BaseOrderTest is
         bool useConduit
     ) internal {
         bytes32 conduitKey = useConduit ? conduitKeyOne : bytes32(0);
-
         baseOrderParameters.offerer = offerer;
         baseOrderParameters.zone = zone;
         baseOrderParameters.offer = offerItems;
