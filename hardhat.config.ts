@@ -7,7 +7,6 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 
-
 dotenv.config();
 
 import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
@@ -25,17 +24,16 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
 // Go to https://hardhat.org/config/ to learn more
 
 const getPaths = () => {
-  const target = process.env.TARGET
+  const target = process.env.TARGET;
 
   switch (target) {
-    case 'vyper':
-      return { artifacts: './vyper/artifacts', sources: './vyper/contracts' }
+    case "vyper":
+      return { artifacts: "./vyper/artifacts", sources: "./vyper/contracts" };
 
     default:
-      return { cache: 'hh-cache' }
+      return { cache: "hh-cache" };
   }
-}
-
+};
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -87,10 +85,8 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
-  
-  paths: getPaths()
-    
-  }
 
+  paths: getPaths(),
+};
 
 export default config;
