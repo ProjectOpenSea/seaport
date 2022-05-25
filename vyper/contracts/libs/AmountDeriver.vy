@@ -1,4 +1,4 @@
-# @version 0.3.1
+# @version 0.3.3
 
 """
 @dev  A struct containing the data used to apply a
