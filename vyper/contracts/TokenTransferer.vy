@@ -16,7 +16,7 @@ struct ConduitBatch1155Transfer:
 
 @internal
 def _performERC20Transfer(token: address, _from: address, to: address, amount: uint256):
-    ERC20(token).transferFrom(_from, to, amount)
+    assert ERC20(token).transferFrom(_from, to, amount)
 
 @internal
 def _performERC721Transfer(token: address, _from: address, to: address, identifier: uint256):
