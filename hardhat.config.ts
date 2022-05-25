@@ -70,7 +70,11 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
-  paths: { cache: "hh-cache" },
+  paths: { 
+    sources: "./vyper/contracts",
+    cache: "hh-cache",
+    artifacts: "./vyper/artifacts"
+  }
 };
 
 export default config;
