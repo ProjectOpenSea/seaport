@@ -21,7 +21,7 @@ def _performERC20Transfer(token: address, _from: address, to: address, amount: u
             _from,
             to,
             amount,
-            method=method_id("transferFrom(address,address,uint256)")
+            method_id=method_id("transferFrom(address,address,uint256)")
         ),
         max_outsize=32
     )  
