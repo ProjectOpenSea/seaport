@@ -6,6 +6,8 @@ import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
 
+import { AdvancedOrder } from "../lib/ConsiderationStructs.sol";
+
 /*
  * Basic example Zone, that approves every order.
  * Can be self-destructed to pause orders using it as a zone, by its deployer.
@@ -56,10 +58,13 @@ contract GlobalPausable is ZoneInterface {
     function executeRestrictedOffer() external {
         //only the deployer is allowed to call this.
         require(msg.sender == deployer);
+
+        //Create seaport object
+        Consideration seaport = ConsiderationInterface(_seaport);
     }
 
     //self descructs this contract, safely stopping orders from using this as a zone.
-    function kill() {
+    function kill() external {
         require(msg.sender == deployer);
 
         //TODO nuke it, motha'fucka
