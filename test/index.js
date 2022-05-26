@@ -776,6 +776,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     );
 
     await whileImpersonating(owner.address, provider, async () => {
+      await expect(
+        conduitController
+          .connect(owner)
+          .createConduit(tempConduitKey, constants.AddressZero)
+      ).to.be.revertedWith("InvalidInitialOwner");
+
       await conduitController
         .connect(owner)
         .createConduit(tempConduitKey, owner.address);
@@ -10764,9 +10770,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(isOpen).to.be.true;
 
       // No-op
-      await conduitController
-        .connect(owner)
-        .updateChannel(conduitOne.address, marketplaceContract.address, true);
+      await expect(
+        conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, marketplaceContract.address, true)
+      ).to.be.reverted; // ChannelStatusAlreadySet
 
       isOpen = await conduitController.getChannelStatus(
         conduitOne.address,
@@ -10955,6 +10963,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       await expect(
         conduitController
+          .connect(owner)
+          .transferOwnership(conduitOne.address, buyer.address)
+      ).to.be.revertedWith(
+        "NewPotentialOwnerAlreadySet",
+        conduitOne.address,
+        buyer.address
+      );
+
+      await expect(
+        conduitController
           .connect(buyer)
           .cancelOwnershipTransfer(conduitOne.address)
       ).to.be.revertedWith("CallerIsNotOwner", conduitOne.address);
@@ -10969,6 +10987,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitOne.address
       );
       expect(potentialOwner).to.equal(constants.AddressZero);
+
+      await expect(
+        conduitController
+          .connect(owner)
+          .cancelOwnershipTransfer(conduitOne.address)
+      ).to.be.revertedWith("NoPotentialOwnerCurrentlySet", conduitOne.address);
 
       await conduitController.transferOwnership(
         conduitOne.address,
