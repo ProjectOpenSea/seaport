@@ -10,13 +10,14 @@ import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 import { ConduitControllerInterface } from "../interfaces/ConduitControllerInterface.sol";
 
 import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
+import { TransferHelperInterface } from "../interfaces/TransferHelperInterface.sol";
 
 /**
  * @title TransferHelper
  * @author stuckinaboot, stephankmin
  * @notice TransferHelper is a utility contract for transferring ERC20/ERC721/ERC1155 items in bulk to a specific recipient
  */
-contract TransferHelper is TokenTransferrer {
+contract TransferHelper is TransferHelperInterface, TokenTransferrer {
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
 
@@ -37,7 +38,7 @@ contract TransferHelper is TokenTransferrer {
         TransferHelperItem[] calldata items,
         address recipient,
         bytes32 conduitKey
-    ) public returns (bytes4) {
+    ) external returns (bytes4) {
         // if no conduit, call TokenTransferrer
         if (conduitKey == bytes32(0)) {
             for (uint256 i; i < items.length; i++) {
