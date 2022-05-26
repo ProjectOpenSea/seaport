@@ -24,6 +24,14 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
         ConduitBatch1155Transfer[] batchTransfers;
     }
 
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
+    }
+
     function testExecuteWithBatch1155(FuzzInputs memory inputs) public {
         ConduitTransfer[] memory transfers = new ConduitTransfer[](0);
         for (uint8 i = 0; i < inputs.transferIntermediates.length; i++) {
@@ -47,34 +55,22 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
         }
         makeRecipientsSafe(transfers);
         makeRecipientsSafe(batchTransfers);
-        mintTokensAndSetTokenApprovalsForConduit(
-            transfers,
-            address(referenceConduit)
-        );
+        mintTokensAndSetTokenApprovalsForConduit(transfers);
         updateExpectedTokenBalances(transfers);
-        mintTokensAndSetTokenApprovalsForConduit(
-            batchTransfers,
-            address(referenceConduit)
-        );
+        mintTokensAndSetTokenApprovalsForConduit(batchTransfers);
         updateExpectedTokenBalances(batchTransfers);
-        _testExecuteWithBatch1155(
+
+        test(
+            this.executeWithBatch1155,
             Context(referenceConduit, transfers, batchTransfers)
         );
-        mintTokensAndSetTokenApprovalsForConduit(transfers, address(conduit));
-        mintTokensAndSetTokenApprovalsForConduit(
-            batchTransfers,
-            address(conduit)
+        test(
+            this.executeWithBatch1155,
+            Context(conduit, transfers, batchTransfers)
         );
-        _testExecuteWithBatch1155(Context(conduit, transfers, batchTransfers));
     }
 
-    function _testExecuteWithBatch1155(Context memory context)
-        internal
-        resetTransferAndBatchTransferTokenBalancesBetweenRuns(
-            context.transfers,
-            context.batchTransfers
-        )
-    {
+    function executeWithBatch1155(Context memory context) external stateless {
         bytes4 magicValue = context.conduit.executeWithBatch1155(
             context.transfers,
             context.batchTransfers

@@ -21,6 +21,14 @@ contract ConduitExecuteBatch1155Test is BaseConduitTest {
         ConduitBatch1155Transfer[] batchTransfers;
     }
 
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
+    }
+
     function testExecuteBatch1155(FuzzInputs memory inputs) public {
         ConduitBatch1155Transfer[]
             memory batchTransfers = new ConduitBatch1155Transfer[](0);
@@ -33,23 +41,13 @@ contract ConduitExecuteBatch1155Test is BaseConduitTest {
             );
         }
         makeRecipientsSafe(batchTransfers);
-        mintTokensAndSetTokenApprovalsForConduit(
-            batchTransfers,
-            address(referenceConduit)
-        );
+        mintTokensAndSetTokenApprovalsForConduit(batchTransfers);
         updateExpectedTokenBalances(batchTransfers);
-        _testExecuteBatch1155(Context(referenceConduit, batchTransfers));
-        mintTokensAndSetTokenApprovalsForConduit(
-            batchTransfers,
-            address(conduit)
-        );
-        _testExecuteBatch1155(Context(conduit, batchTransfers));
+        test(this.executeBatch1155, Context(referenceConduit, batchTransfers));
+        test(this.executeBatch1155, Context(conduit, batchTransfers));
     }
 
-    function _testExecuteBatch1155(Context memory context)
-        internal
-        resetBatchTokenBalancesBetweenRuns(context.batchTransfers)
-    {
+    function executeBatch1155(Context memory context) external stateless {
         bytes4 magicValue = context.conduit.executeBatch1155(
             context.batchTransfers
         );
