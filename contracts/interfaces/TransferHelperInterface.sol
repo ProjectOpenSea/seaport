@@ -5,6 +5,12 @@ import { TransferHelperItem } from "../helper/TransferHelperStructs.sol";
 
 interface TransferHelperInterface {
     /**
+     * @dev Revert with an error when attempting to execute transfers with a
+     *      NATIVE itemType.
+     */
+    error InvalidItemType();
+
+    /**
      * @notice Transfer multiple items to a single recipient.
      *
      * @param items The items to transfer.

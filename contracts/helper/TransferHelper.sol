@@ -10,6 +10,7 @@ import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 import { ConduitControllerInterface } from "../interfaces/ConduitControllerInterface.sol";
 
 import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
+
 import { TransferHelperInterface } from "../interfaces/TransferHelperInterface.sol";
 
 /**
@@ -34,34 +35,77 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         );
     }
 
+    /**
+     * @notice Transfer multiple items to a single recipient.
+     *
+     * @param items The items to transfer.
+     * @param recipient  The address the items should be transferred to.
+     * @param conduitKey  The key of the conduit through which the bulk transfer should occur.
+     */
     function bulkTransfer(
         TransferHelperItem[] calldata items,
         address recipient,
         bytes32 conduitKey
-    ) external returns (bytes4) {
-        // if no conduit, call TokenTransferrer
+    ) external returns (bytes4 magicValue) {
+        // Retrieve total number of transfers and place on stack.
+        uint256 numTransfers = items.length;
+
+        // If no conduitKey is given, call TokenTransferrer to perform transfers.
         if (conduitKey == bytes32(0)) {
-            for (uint256 i; i < items.length; i++) {
-                TransferHelperItem calldata item = items[i];
-                if (item.itemType == ConduitItemType.NATIVE) {
-                    continue;
-                } else if (item.itemType == ConduitItemType.ERC20) {
-                    _performERC20Transfer(
-                        item.token,
-                        msg.sender,
-                        recipient,
-                        item.amount
-                    );
-                } else if (item.itemType == ConduitItemType.ERC721) {
-                    _performERC721Transfer(
-                        item.token,
-                        msg.sender,
-                        recipient,
-                        item.tokenIdentifier
-                    );
-                } else {
-                    // do we have to check for ERC721 and ERC1155 with criteria?
-                    _performERC1155Transfer(
+            // Skip overflow checks as all for loops are indexed starting at zero.
+            unchecked {
+                // Iterate over each transfer.
+                for (uint256 i = 0; i < numTransfers; ++i) {
+                    // Retrieve the transfer in question.
+                    TransferHelperItem calldata item = items[i];
+
+                    // Perform a transfer based on the transfer's item type.
+                    // Ensure that the item being transferred is not a native token.
+                    if (item.itemType == ConduitItemType.NATIVE) {
+                        revert InvalidItemType();
+                    } else if (item.itemType == ConduitItemType.ERC20) {
+                        _performERC20Transfer(
+                            item.token,
+                            msg.sender,
+                            recipient,
+                            item.amount
+                        );
+                    } else if (item.itemType == ConduitItemType.ERC721) {
+                        _performERC721Transfer(
+                            item.token,
+                            msg.sender,
+                            recipient,
+                            item.tokenIdentifier
+                        );
+                    } else {
+                        _performERC1155Transfer(
+                            item.token,
+                            msg.sender,
+                            recipient,
+                            item.tokenIdentifier,
+                            item.amount
+                        );
+                    }
+                }
+            }
+        }
+        // If a conduitKey is given, derive the conduit address from conduitKey and call the conduit to perform transfers.
+        else {
+            (address conduit, ) = _CONDUIT_CONTROLLER.getConduit(conduitKey);
+            ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
+                numTransfers
+            );
+
+            // Skip overflow checks as all for loops are indexed starting at zero.
+            unchecked {
+                // Iterate over each transfer.
+                for (uint256 i = 0; i < numTransfers; ++i) {
+                    // Retrieve the transfer in question.
+                    TransferHelperItem calldata item = items[i];
+
+                    // Create a ConduitTransfer corresponding to each TransferHelperItem.
+                    conduitTransfers[i] = ConduitTransfer(
+                        item.itemType,
                         item.token,
                         msg.sender,
                         recipient,
@@ -70,28 +114,12 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     );
                 }
             }
-        }
-        // if conduit, derive conduit address from key
-        else {
-            (address conduit, ) = _CONDUIT_CONTROLLER.getConduit(conduitKey);
-            ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
-                items.length
-            );
-            // modify TransferHelperItems to ConduitTranfsers
-            for (uint256 i; i < items.length; i++) {
-                TransferHelperItem calldata item = items[i];
-                conduitTransfers[i] = ConduitTransfer(
-                    item.itemType,
-                    item.token,
-                    msg.sender,
-                    recipient,
-                    item.tokenIdentifier,
-                    item.amount
-                );
-            }
+
+            // Call the conduit and execute bulk transfers.
             ConduitInterface(conduit).execute(conduitTransfers);
         }
 
-        return this.bulkTransfer.selector;
+        // Return a magic value indicating that the transfers were performed.
+        magicValue = this.bulkTransfer.selector;
     }
 }
