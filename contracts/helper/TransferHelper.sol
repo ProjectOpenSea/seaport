@@ -35,7 +35,7 @@ contract TransferHelper is TokenTransferrer {
         bytes32 conduitKey
     ) public returns (bytes4) {
         // if no conduit, call TokenTransferrer
-        if (conduitKey == 0) {
+        if (conduitKey == bytes32(0)) {
             for (uint256 i; i < items.length; i++) {
                 TransferHelperItem calldata item = items[i];
                 if (item.itemType == ConduitItemType.NATIVE) {
@@ -86,6 +86,7 @@ contract TransferHelper is TokenTransferrer {
             }
             ConduitInterface(conduit).execute(conduitTransfers); // TODO: pass in conduitTransfers as calldata
         }
-        
+
         return this.bulkTransfer.selector;
     }
+}
