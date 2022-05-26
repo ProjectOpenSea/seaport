@@ -480,7 +480,13 @@ contract TokenTransferrer is TokenTransferrerErrors {
      *      originator to a given recipient. Sufficient approvals must be set on
      *      the contract performing the transfer and contract recipients must
      *      implement onReceived to indicate that they are willing to accept the
-     *      transfer.
+     *      transfer. NOTE: this function is not memory-safe; it will overwrite
+     *      existing memory, restore the free memory pointer to the default
+     *      value, and overrite the zero slot. This function should only be
+     *      called once memory is no longer required and when uninitialized
+     *      arrays are not utilized, and memory should be considered fully
+     *      corrupted (aside from the existence of a free memory pointer) after
+     *      calling this function.
      *
      * @param batchTransfers The group of 1155 batch transfers to perform.
      */

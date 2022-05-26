@@ -10963,6 +10963,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       await expect(
         conduitController
+          .connect(owner)
+          .transferOwnership(conduitOne.address, buyer.address)
+      ).to.be.revertedWith(
+        "NewPotentialOwnerAlreadySet",
+        conduitOne.address,
+        buyer.address
+      );
+
+      await expect(
+        conduitController
           .connect(buyer)
           .cancelOwnershipTransfer(conduitOne.address)
       ).to.be.revertedWith("CallerIsNotOwner", conduitOne.address);
@@ -10977,6 +10987,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitOne.address
       );
       expect(potentialOwner).to.equal(constants.AddressZero);
+
+      await expect(
+        conduitController
+          .connect(owner)
+          .cancelOwnershipTransfer(conduitOne.address)
+      ).to.be.revertedWith("NoPotentialOwnerCurrentlySet", conduitOne.address);
 
       await conduitController.transferOwnership(
         conduitOne.address,

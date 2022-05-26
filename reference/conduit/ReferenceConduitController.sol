@@ -202,6 +202,11 @@ contract ReferenceConduitController is ConduitControllerInterface {
             revert NewPotentialOwnerIsZeroAddress(conduit);
         }
 
+        // Ensure the new potential owner is not already set.
+        if (newPotentialOwner == _conduits[conduit].potentialOwner) {
+            revert NewPotentialOwnerAlreadySet(conduit, newPotentialOwner);
+        }
+
         // Emit an event indicating that the potential owner has been updated.
         emit PotentialOwnerUpdated(conduit, newPotentialOwner);
 
@@ -219,6 +224,11 @@ contract ReferenceConduitController is ConduitControllerInterface {
     function cancelOwnershipTransfer(address conduit) external override {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
+
+        // Ensure that ownership transfer is currently possible.
+        if (_conduits[conduit].potentialOwner == address(0)) {
+            revert NoPotentialOwnerCurrentlySet(conduit);
+        }
 
         // Emit an event indicating that the potential owner has been cleared.
         emit PotentialOwnerUpdated(conduit, address(0));

@@ -46,14 +46,9 @@ interface ConduitControllerInterface {
      * @dev Emit an event whenever a conduit owner registers a new potential
      *      owner for that conduit.
      *
-     * @param conduit           The conduit for which ownership may now be
-     *                          transferred.
      * @param newPotentialOwner The new potential owner of the conduit.
      */
-    event PotentialOwnerUpdated(
-        address indexed conduit,
-        address indexed newPotentialOwner
-    );
+    event PotentialOwnerUpdated(address indexed newPotentialOwner);
 
     /**
      * @dev Revert with an error when attempting to create a new conduit using a
@@ -67,6 +62,21 @@ interface ConduitControllerInterface {
      *      initial owner address is supplied.
      */
     error InvalidInitialOwner();
+
+    /**
+     * @dev Revert with an error when attempting to set a new potential owner
+     *      that is already set.
+     */
+    error NewPotentialOwnerAlreadySet(
+        address conduit,
+        address newPotentialOwner
+    );
+
+    /**
+     * @dev Revert with an error when attempting to cancel ownership transfer
+     *      when no new potential owner is currently set.
+     */
+    error NoPotentialOwnerCurrentlySet(address conduit);
 
     /**
      * @dev Revert with an error when attempting to interact with a conduit that
