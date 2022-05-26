@@ -25,7 +25,7 @@ out = 'reference-out'
 test = 'reference'
 
 [optimized]
-solc = '0.8.14'
+solc = '0.8.13'
 out = 'optimized-out'
 
 [test]
