@@ -776,6 +776,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     );
 
     await whileImpersonating(owner.address, provider, async () => {
+      await expect(
+        conduitController
+          .connect(owner)
+          .createConduit(tempConduitKey, constants.AddressZero)
+      ).to.be.revertedWith("InvalidInitialOwner");
+
       await conduitController
         .connect(owner)
         .createConduit(tempConduitKey, owner.address);
