@@ -223,17 +223,4 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         );
         return (r, s, v);
     }
-
-    /**
-     * @dev reset all storage written at an address thus far to 0; will overwrite totalSupply()for ERC20s but that should be fine
-     *      with the goal of resetting the balances and owners of tokens - but note: should be careful about approvals, etc
-     *
-     *      note: must be called in conjunction with vm.record()
-     */
-    function _resetStorage(address _addr) internal {
-        (, bytes32[] memory writeSlots) = vm.accesses(_addr);
-        for (uint256 i = 0; i < writeSlots.length; i++) {
-            vm.store(_addr, writeSlots[i], bytes32(0));
-        }
-    }
 }

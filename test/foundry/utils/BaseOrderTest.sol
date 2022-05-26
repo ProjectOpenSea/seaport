@@ -50,11 +50,9 @@ contract BaseOrderTest is
     TestERC1155 internal test1155_2;
     TestERC1155 internal test1155_3;
 
-    address[] allTokens;
     TestERC20[] erc20s;
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
-    address[] accounts;
 
     OrderParameters baseOrderParameters;
     OrderComponents baseOrderComponents;
@@ -117,63 +115,8 @@ contract BaseOrderTest is
         _;
     }
 
-    /**
-    @dev top up eth of this contract to uint128(MAX_INT) to avoid fuzz failures
-     */
-    modifier topUp() {
-        vm.deal(address(this), uint128(MAX_INT));
-        _;
-    }
-
-    /**
-     * @dev hook to record storage writes and reset token balances in between differential runs
-     */
-
-    modifier resetTokenBalancesBetweenRuns() {
-        vm.record();
-        _;
-        _resetTokensAndEthForTestAccounts();
-        // todo: don't delete these between runs, do setup outside of test logic
-        delete offerItems;
-        delete considerationItems;
-        delete offerComponentsArray;
-        delete considerationComponentsArray;
-        delete fulfillments;
-        delete firstFulfillment;
-        delete secondFulfillment;
-        delete fulfillmentComponent;
-        delete fulfillmentComponents;
-    }
-
-    modifier sumNotGreaterThanMaxInt128(uint256[] memory _values) {
-        {
-            uint256 sum = 0;
-            for (uint256 i; i < _values.length; i++) {
-                sum += _values[i];
-            }
-            vm.assume(sum <= uint128(MAX_INT));
-        }
-        _;
-    }
-
-    modifier sum3NotGreaterThanMaxInt128(uint128[3] memory _values) {
-        {
-            uint256 sum = 0;
-            for (uint256 i; i < _values.length; i++) {
-                sum += _values[i];
-            }
-            vm.assume(sum <= uint128(MAX_INT));
-        }
-        _;
-    }
-
     function setUp() public virtual override {
         super.setUp();
-        delete offerItems;
-        delete considerationItems;
-        delete offerComponentsArray;
-        delete considerationComponentsArray;
-        delete fulfillments;
 
         vm.label(alice, "alice");
         vm.label(bob, "bob");
@@ -181,24 +124,11 @@ contract BaseOrderTest is
         vm.label(address(this), "testContract");
 
         _deployTestTokenContracts();
-        accounts = [alice, bob, cal, address(this)];
         erc20s = [token1, token2, token3];
         erc721s = [test721_1, test721_2, test721_3];
         erc1155s = [test1155_1, test1155_2, test1155_3];
-        allTokens = [
-            address(token1),
-            address(token2),
-            address(token3),
-            address(test721_1),
-            address(test721_2),
-            address(test721_3),
-            address(test1155_1),
-            address(test1155_2),
-            address(test1155_3)
-        ];
 
         // allocate funds and tokens to test addresses
-        globalTokenId = 1;
         allocateTokensAndApprovals(address(this), uint128(MAX_INT));
         allocateTokensAndApprovals(alice, uint128(MAX_INT));
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
@@ -584,58 +514,6 @@ contract BaseOrderTest is
                 parameters.conduitKey,
                 nonce
             );
-    }
-
-    /**
-     * @dev reset written token storage slots to 0 and reinitialize uint128(MAX_INT) erc20 balances for 3 test accounts and this
-     */
-    function _resetTokensAndEthForTestAccounts() internal {
-        _resetTokensStorage();
-        _restoreERC20Balances();
-        _restoreEthBalances();
-    }
-
-    function _restoreEthBalances() internal {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            vm.deal(accounts[i], uint128(MAX_INT));
-        }
-    }
-
-    function _resetTokensStorage() internal {
-        for (uint256 i = 0; i < allTokens.length; i++) {
-            _resetStorage(allTokens[i]);
-        }
-    }
-
-    /**
-     * @dev restore erc20 balances for all accounts
-     */
-    function _restoreERC20Balances() internal {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            _restoreERC20BalancesForAddress(accounts[i]);
-        }
-    }
-
-    /**
-     * @dev restore all erc20 balances for a given address
-     */
-    function _restoreERC20BalancesForAddress(address _who) internal {
-        for (uint256 i = 0; i < erc20s.length; i++) {
-            _restoreERC20Balance(RestoreERC20Balance(address(erc20s[i]), _who));
-        }
-    }
-
-    /**
-     * @dev reset token balance for an address to uint128(MAX_INT)
-     */
-    function _restoreERC20Balance(
-        RestoreERC20Balance memory restoreErc20Balance
-    ) internal {
-        stdstore
-            .target(restoreErc20Balance.token)
-            .sig("balanceOf(address)")
-            .with_key(restoreErc20Balance.who)
-            .checked_write(uint128(MAX_INT));
     }
 
     receive() external payable virtual {}
