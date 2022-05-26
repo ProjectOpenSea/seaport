@@ -15,40 +15,38 @@ contract TransferHelperTest is BaseOrderTest {
     function setUp() public override {
         super.setUp();
         transferHelper = new TransferHelper(address(conduitController));
-        testErc20 = new TestERC20();
-        testErc20.mint(address(this), 20);
-        testErc20.approve(address(transferHelper), MAX_INT);
-        testErc20.approve(address(conduit), MAX_INT);
-        testErc20.approve(address(referenceConduit), MAX_INT);
+        token1.mint(address(this), 20);
+        _setApprovals(address(this));
     }
 
-    // function _setApprovals(address _owner) internal override {
-    //     vm.startPrank(_owner);
-    //     for (uint256 i = 0; i < erc20s.length; i++) {
-    //         erc20s[i].approve(_owner, MAX_INT);
-    //     }
-    //     for (uint256 i = 0; i < erc1155s.length; i++) {
-    //         erc1155s[i].setApprovalForAll(_owner, true);
-    //     }
-    //     for (uint256 i = 0; i < erc721s.length; i++) {
-    //         erc721s[i].setApprovalForAll(_owner, true);
-    //     }
-    //     vm.stopPrank();
-    //     emit log_named_address(
-    //         "Owner proxy approved for all tokens from",
-    //         _owner
-    //     );
-    //     emit log_named_address(
-    //         "Consideration approved for all tokens from",
-    //         _owner
-    //     );
-    // }
+    function _setApprovals(address _owner) internal override {
+        super._setApprovals(_owner);
+        vm.startPrank(_owner);
+        for (uint256 i = 0; i < erc20s.length; i++) {
+            erc20s[i].approve(address(transferHelper), MAX_INT);
+        }
+        for (uint256 i = 0; i < erc1155s.length; i++) {
+            erc1155s[i].setApprovalForAll(address(transferHelper), true);
+        }
+        for (uint256 i = 0; i < erc721s.length; i++) {
+            erc721s[i].setApprovalForAll(address(transferHelper), true);
+        }
+        vm.stopPrank();
+        emit log_named_address(
+            "Owner proxy approved for all tokens from",
+            _owner
+        );
+        emit log_named_address(
+            "Consideration approved for all tokens from",
+            _owner
+        );
+    }
 
     function testBulkTransfer() public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = TransferHelperItem(
             ConduitItemType.ERC20,
-            address(testErc20),
+            address(token1),
             1,
             20
         );
