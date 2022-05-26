@@ -8,55 +8,6 @@ IS_VALID_SIGNATURE_SELECTOR: constant(bytes4) = 0x1626ba7e
 EIP2098_allButHighestBitMask: constant(
     bytes32) = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 
-
-@internal
-@view
-def _staticcall(target: address, callData: Bytes[512]) -> (bool):
-    """
-     @dev Internal view function to staticcall an arbitrary target with given
-          calldata. Note that no data is written to memory and no contract
-          size check is performed.
-
-     @param target   The account to staticcall.
-     @param callData The calldata to supply when staticcalling the target.
-
-     @return success The status of the staticcall to the target.
-     """
-    success: bool = raw_call(
-        target,
-        callData,
-        is_static_call=True,
-        revert_on_failure=False
-    )
-    return success
-
-
-@internal
-@view
-def _revertWithReasonIfOneIsReturned():
-    """
-    @dev Internal view function to revert and pass along the revert reason if
-         data was returned by the last call and that the size of that data
-         does not exceed the currently allocated memory size.
-    """
-    raise "Not Implemented"
-
-
-@internal
-@pure
-def _doesNotMatchMagic(expected: bytes4) -> (bool):
-    """
-    @dev Internal pure function to determine if the first word of returndata
-        matches an expected magic value.
-
-    @param expected The expected magic value.
-
-    @return A boolean indicating whether the expected value matches the one
-            located in the first word of returndata.
-    """
-    raise "Not Implemented"
-
-
 @internal
 @view
 def _assertValidEIP1271Signature(signer: address, digest: bytes32, signature: Bytes[100]):
