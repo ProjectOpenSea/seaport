@@ -61,6 +61,11 @@ contract ReferenceConduitController is ConduitControllerInterface {
         override
         returns (address conduit)
     {
+        // Ensure that an initial owner has been supplied.
+        if (initialOwner == address(0)) {
+            revert InvalidInitialOwner();
+        }
+
         // If the first 20 bytes of the conduit key do not match the caller...
         if (address(uint160(bytes20(conduitKey))) != msg.sender) {
             // Revert with an error indicating that the creator is invalid.
