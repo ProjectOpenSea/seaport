@@ -55,10 +55,15 @@ contract GlobalPausable is ZoneInterface {
         cancelled = seaport.cancel(orders);
     }
 
-    //self descructs this contract, safely stopping orders from using this as a zone.
+    /**
+     * Self-descructs this contract, safely stopping orders from using this as a zone.
+     * Oders with this address as a zone are bricked until the Deployer makes a new zone
+     * with the same address as this one.
+     */
     function kill() external {
         require(msg.sender == deployer);
 
-        //TODO nuke it, motha'fucka
+        //There shouldn't be any eth on the zone, but in case there is, send it to the deployer address.
+        selfdestruct(payable(msg.sender));
     }
 }
