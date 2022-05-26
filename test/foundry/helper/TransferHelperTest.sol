@@ -50,7 +50,7 @@ contract TransferHelperTest is BaseOrderTest {
     function testBulkTransfer() public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = TransferHelperItem(
-            ConduitItemType.NATIVE,
+            ConduitItemType.ERC20,
             address(token1),
             1,
             20
