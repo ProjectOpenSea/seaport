@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.14;
+pragma solidity 0.8.13;
 
 import { ERC1155TokenReceiver } from "@rari-capital/solmate/src/tokens/ERC1155.sol";
 
