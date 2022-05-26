@@ -10764,9 +10764,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(isOpen).to.be.true;
 
       // No-op
-      await conduitController
-        .connect(owner)
-        .updateChannel(conduitOne.address, marketplaceContract.address, true);
+      await expect(
+        conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, marketplaceContract.address, true)
+      ).to.be.reverted; // ChannelStatusAlreadySet
 
       isOpen = await conduitController.getChannelStatus(
         conduitOne.address,

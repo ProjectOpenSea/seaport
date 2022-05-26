@@ -63,6 +63,12 @@ interface ConduitControllerInterface {
     error InvalidCreator();
 
     /**
+     * @dev Revert with an error when attempting to create a new conduit when no
+     *      initial owner address is supplied.
+     */
+    error InvalidInitialOwner();
+
+    /**
      * @dev Revert with an error when attempting to interact with a conduit that
      *      does not yet exist.
      */

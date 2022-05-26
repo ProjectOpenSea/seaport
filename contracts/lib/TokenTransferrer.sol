@@ -80,9 +80,10 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 // Ensure that sufficient gas is available to
                                 // copy returndata while expanding memory where
                                 // necessary. Start by computing the word size
-                                // of returndata and allocated memory.
+                                // of returndata and allocated memory. Round up
+                                // to the nearest full word.
                                 let returnDataWords := div(
-                                    returndatasize(),
+                                    add(returndatasize(), AlmostOneWord),
                                     OneWord
                                 )
 
@@ -210,7 +211,9 @@ contract TokenTransferrer is TokenTransferrerErrors {
     /**
      * @dev Internal function to transfer an ERC721 token from a given
      *      originator to a given recipient. Sufficient approvals must be set on
-     *      the contract performing the transfer.
+     *      the contract performing the transfer. Note that this function does
+     *      not check whether the receiver can accept the ERC721 token (i.e. it
+     *      does not use `safeTransferFrom`).
      *
      * @param token      The ERC721 token to transfer.
      * @param from       The originator of the transfer.
@@ -260,7 +263,11 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Ensure that sufficient gas is available to copy
                     // returndata while expanding memory where necessary. Start
                     // by computing word size of returndata & allocated memory.
-                    let returnDataWords := div(returndatasize(), OneWord)
+                    // Round up to the nearest full word.
+                    let returnDataWords := div(
+                        add(returndatasize(), AlmostOneWord),
+                        OneWord
+                    )
 
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
@@ -394,7 +401,11 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Ensure that sufficient gas is available to copy
                     // returndata while expanding memory where necessary. Start
                     // by computing word size of returndata & allocated memory.
-                    let returnDataWords := div(returndatasize(), OneWord)
+                    // Round up to the nearest full word.
+                    let returnDataWords := div(
+                        add(returndatasize(), AlmostOneWord),
+                        OneWord
+                    )
 
                     // Note: use the free memory pointer in place of msize() to
                     // work around a Yul warning that prevents accessing msize
@@ -640,8 +651,11 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         // Ensure that sufficient gas is available to copy
                         // returndata while expanding memory where necessary.
                         // Start by computing word size of returndata and
-                        // allocated memory.
-                        let returnDataWords := div(returndatasize(), OneWord)
+                        // allocated memory. Round up to the nearest full word.
+                        let returnDataWords := div(
+                            add(returndatasize(), AlmostOneWord),
+                            OneWord
+                        )
 
                         // Note: use transferDataSize in place of msize() to
                         // work around a Yul warning that prevents accessing
