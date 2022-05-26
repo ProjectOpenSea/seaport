@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 /**
  * @dev Enum of functions that set the reentrancy guard

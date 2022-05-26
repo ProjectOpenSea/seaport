@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 import { ConduitController } from "../../../contracts/conduit/ConduitController.sol";
 import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
