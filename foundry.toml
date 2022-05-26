@@ -21,15 +21,15 @@ solc = '0.8.7'
 via_ir = false
 src = 'reference'
 out = 'reference-out'
-# specify something so it doesn't try to compile the 0.8.13 files in test/foundry
+# specify something so it doesn't try to compile the 0.8.14 files in test/foundry
 test = 'reference'
 
 [optimized]
-solc = '0.8.13'
+solc = '0.8.14'
 out = 'optimized-out'
 
 [test]
-solc = '0.8.13'
+solc = '0.8.14'
 via_ir = false
 src = 'test/foundry'
 

@@ -26,7 +26,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.13",
+        version: "0.8.14",
         settings: {
           viaIR: true,
           optimizer: {
@@ -38,7 +38,7 @@ const config: HardhatUserConfig = {
     ],
     overrides: {
       "contracts/conduit/Conduit.sol": {
-        version: "0.8.13",
+        version: "0.8.14",
         settings: {
           viaIR: true,
           optimizer: {
@@ -48,7 +48,7 @@ const config: HardhatUserConfig = {
         },
       },
       "contracts/conduit/ConduitController.sol": {
-        version: "0.8.13",
+        version: "0.8.14",
         settings: {
           viaIR: true,
           optimizer: {
