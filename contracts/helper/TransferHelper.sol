@@ -3,6 +3,7 @@ pragma solidity 0.8.13;
 
 import "./TransferHelperStructs.sol";
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
+import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 import { ConduitControllerInterface } from "../interfaces/ConduitControllerInterface.sol";
 import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
 
@@ -32,7 +33,7 @@ contract TransferHelper is TokenTransferrer {
         TransferHelperItem[] calldata items,
         address recipient,
         bytes32 conduitKey
-    ) public returns (bool) {
+    ) public returns (bytes4) {
         // if no conduit, call TokenTransferrer
         if (conduitKey == 0) {
             for (uint256 i; i < items.length; i++) {
@@ -83,7 +84,8 @@ contract TransferHelper is TokenTransferrer {
                     item.amount
                 );
             }
-            conduit.execute(conduitTransfers); // TODO: pass in conduitTransfers as calldata
+            ConduitInterface(conduit).execute(conduitTransfers); // TODO: pass in conduitTransfers as calldata
         }
+        
+        return this.bulkTransfer.selector;
     }
-}
