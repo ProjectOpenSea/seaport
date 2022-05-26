@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
+// prettier-ignore
 import "./TransferHelperStructs.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
