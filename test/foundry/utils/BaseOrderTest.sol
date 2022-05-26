@@ -448,7 +448,7 @@ contract BaseOrderTest is
         _setApprovals(_to);
     }
 
-    function _setApprovals(address _owner) internal {
+    function _setApprovals(address _owner) internal virtual {
         vm.startPrank(_owner);
         for (uint256 i = 0; i < erc20s.length; i++) {
             erc20s[i].approve(address(consideration), MAX_INT);

@@ -84,7 +84,7 @@ contract TransferHelper is TokenTransferrer {
                     item.amount
                 );
             }
-            ConduitInterface(conduit).execute(conduitTransfers); // TODO: pass in conduitTransfers as calldata
+            ConduitInterface(conduit).execute(conduitTransfers);
         }
 
         return this.bulkTransfer.selector;

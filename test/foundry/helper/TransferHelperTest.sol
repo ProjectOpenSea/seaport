@@ -8,7 +8,7 @@ import { TransferHelper } from "../../../contracts/helper/TransferHelper.sol";
 import { TransferHelperItem } from "../../../contracts/helper/TransferHelperStructs.sol";
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
-contract TransferHelperTest is BaseConsiderationTest {
+contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
     TestERC20 testErc20;
 
@@ -16,8 +16,33 @@ contract TransferHelperTest is BaseConsiderationTest {
         super.setUp();
         transferHelper = new TransferHelper(address(conduitController));
         testErc20 = new TestERC20();
-        testErc20.mint(msg.sender, 20);
+        testErc20.mint(address(this), 20);
+        testErc20.approve(address(transferHelper), MAX_INT);
+        testErc20.approve(address(conduit), MAX_INT);
+        testErc20.approve(address(referenceConduit), MAX_INT);
     }
+
+    // function _setApprovals(address _owner) internal override {
+    //     vm.startPrank(_owner);
+    //     for (uint256 i = 0; i < erc20s.length; i++) {
+    //         erc20s[i].approve(_owner, MAX_INT);
+    //     }
+    //     for (uint256 i = 0; i < erc1155s.length; i++) {
+    //         erc1155s[i].setApprovalForAll(_owner, true);
+    //     }
+    //     for (uint256 i = 0; i < erc721s.length; i++) {
+    //         erc721s[i].setApprovalForAll(_owner, true);
+    //     }
+    //     vm.stopPrank();
+    //     emit log_named_address(
+    //         "Owner proxy approved for all tokens from",
+    //         _owner
+    //     );
+    //     emit log_named_address(
+    //         "Consideration approved for all tokens from",
+    //         _owner
+    //     );
+    // }
 
     function testBulkTransfer() public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
