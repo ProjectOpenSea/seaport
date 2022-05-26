@@ -7,7 +7,7 @@ pragma solidity >=0.8.7;
  *
  */
 
-import { GlobalPausable } from "GlobalPausable.sol";
+import { GlobalPausable } from "./GlobalPausable.sol";
 
 contract DeployerGlobalPausable {
     //owns this deployer and can activate the kill switch for the GlobalPausable
@@ -22,9 +22,33 @@ contract DeployerGlobalPausable {
         deployerOwner = _deployerOwner;
     }
 
+    //Deploy a GlobalPausable at. Should be an efficient address
     function createZone(bytes32 salt) {
-        //create2 to control what address to deploy a GlobalPausable at. Should be an efficient address
-        //TODO create2
+        // This complicated expression just tells you how the address
+        // can be pre-computed. It is just there for illustration.
+        // You actually only need ``new D{salt: salt}(arg)``.
+        address derivedAddress = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff),
+                            address(this),
+                            salt,
+                            keccak256(
+                                abi.encodePacked(
+                                    type(GlobalPausable).creationCode,
+                                    abi.encode(address(this)) //GlobalPausable takes an address as a constructor param.
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+
+        GlobalPausable zone = new GlobalPausable{ salt: salt }(address(this));
+        require(address(zone) == derivedAddress, "Unexpected Derived address");
     }
 
     //pause Seaport by self destructing GlobalPausable

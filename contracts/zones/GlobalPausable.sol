@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.7;
 
-import { ZoneInterface } from "../interfaces/ZoneInterface";
+import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
-import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol"
-
-//TODO ascii art of geodude exploding
+import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
 
 /*
  * Basic example Zone, that approves every order.
@@ -17,7 +15,6 @@ contract GlobalPausable is ZoneInterface {
     address internal immutable deployer;
 
     constructor() {
-      //TODO double check this does what I think it does 
         deployer = msg.sender;
     }
 
@@ -43,19 +40,22 @@ contract GlobalPausable is ZoneInterface {
     }
 
     //The zone can cancel orders which have agreed to use it as a zone
-    function cancelOrder(address _seaport, OrderComponents[] calldata orders) external returns (bool cancelled) {
-      //only the deployer is allowed to call this.
-      require(msg.sender == deployer);
+    function cancelOrder(address _seaport, OrderComponents[] calldata orders)
+        external
+        returns (bool cancelled)
+    {
+        //only the deployer is allowed to call this.
+        require(msg.sender == deployer);
 
-      //Create seaport object
-      Consideration seaport = ConsiderationInterface(_seaport);
+        //Create seaport object
+        Consideration seaport = ConsiderationInterface(_seaport);
 
-      cancelled = seaport.cancel(order);
-
+        cancelled = seaport.cancel(order);
     }
 
     function executeRestrictedOffer() external {
-      require
+        //only the deployer is allowed to call this.
+        require(msg.sender == deployer);
     }
 
     //self descructs this contract, safely stopping orders from using this as a zone.
