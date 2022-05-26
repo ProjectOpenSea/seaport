@@ -9,6 +9,8 @@ pragma solidity >=0.8.7;
 
 import { GlobalPausable } from "./GlobalPausable.sol";
 
+import { OrderComponents } from "../lib/ConsiderationStructs.sol";
+
 contract DeployerGlobalPausable {
     //owns this deployer and can activate the kill switch for the GlobalPausable
     address public deployerOwner;
@@ -23,7 +25,9 @@ contract DeployerGlobalPausable {
     }
 
     //Deploy a GlobalPausable at. Should be an efficient address
-    function createZone(bytes32 salt) {
+    function createZone(bytes32 salt) external {
+        require(msg.sender == deployerOwner);
+
         // This complicated expression just tells you how the address
         // can be pre-computed. It is just there for illustration.
         // You actually only need ``new D{salt: salt}(arg)``.
@@ -53,12 +57,19 @@ contract DeployerGlobalPausable {
 
     //pause Seaport by self destructing GlobalPausable
     function killSwitch(address) external returns (bool) {
-        require(msg.sender = deployerOwner);
+        require(msg.sender == deployerOwner);
     }
 
-    function cancelOrderZone() {}
+    function cancelOrderZone(
+        address _globalPausableAddress,
+        address _seaportAddress,
+        OrderComponents[] calldata orders
+    ) external {
+        require(msg.sender == deployerOwner);
 
-    function executeRestrictedOrderZone() {}
+        GlobalPausable gp = GlobalPausable(_globalPausableAddress);
+        gp.cancelOrder(_seaportAddress, orders);
+    }
 
     /**
      * @notice Initiate Zone ownership transfer by assigning a new potential

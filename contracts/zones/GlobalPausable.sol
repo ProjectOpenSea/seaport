@@ -6,7 +6,7 @@ import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
 
-import { AdvancedOrder } from "../lib/ConsiderationStructs.sol";
+import { AdvancedOrder, CriteriaResolver, OrderComponents } from "../lib/ConsiderationStructs.sol";
 
 /*
  * Basic example Zone, that approves every order.
@@ -16,8 +16,8 @@ import { AdvancedOrder } from "../lib/ConsiderationStructs.sol";
 contract GlobalPausable is ZoneInterface {
     address internal immutable deployer;
 
-    constructor() {
-        deployer = msg.sender;
+    constructor(address owner) {
+        deployer = owner;
     }
 
     // Called by Seaport whenever extraData is not provided by the caller.
@@ -27,7 +27,7 @@ contract GlobalPausable is ZoneInterface {
         address offerer,
         bytes32 zoneHash
     ) external view returns (bytes4 validOrderMagicValue) {
-        validOrderMagicValue = 1;
+        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 
     // Called by Seaport whenever any extraData is provided by the caller.
@@ -38,7 +38,7 @@ contract GlobalPausable is ZoneInterface {
         bytes32[] calldata priorOrderHashes,
         CriteriaResolver[] calldata criteriaResolvers
     ) external view returns (bytes4 validOrderMagicValue) {
-        validOrderMagicValue = 1;
+        validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 
     //The zone can cancel orders which have agreed to use it as a zone
@@ -50,17 +50,9 @@ contract GlobalPausable is ZoneInterface {
         require(msg.sender == deployer);
 
         //Create seaport object
-        Consideration seaport = ConsiderationInterface(_seaport);
+        ConsiderationInterface seaport = ConsiderationInterface(_seaport);
 
-        cancelled = seaport.cancel(order);
-    }
-
-    function executeRestrictedOffer() external {
-        //only the deployer is allowed to call this.
-        require(msg.sender == deployer);
-
-        //Create seaport object
-        Consideration seaport = ConsiderationInterface(_seaport);
+        cancelled = seaport.cancel(orders);
     }
 
     //self descructs this contract, safely stopping orders from using this as a zone.

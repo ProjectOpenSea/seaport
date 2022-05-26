@@ -9,6 +9,23 @@ An example zone contract implementation can be found at `/contracts/zones/Global
 
 The `GlobalPausable` contract can be used by its deployer to cancel specific orders, execute fulfillment on restricted order, and pause all orders which use it as a zone.
 
+## Further implementation
+
+We could use something like this, to allow the owner of the zone to execute restricted orders, but its not entirely necessary
+
+```
+function executeRestrictedOrderZone(
+    address _globalPausableAddress,
+    address _seaportAddress,
+    OrderComponents[] calldata orders
+) external {
+    require(msg.sender == deployerOwner);
+
+    GlobalPausable gp = GlobalPausable(_globalPausableAddress);
+    gp.executeRestrictedOffer(_seaportAddress, orders);
+}
+```
+
 ## Ideas
 
 Zones are a powerful addition to the idea of simple marketplaces. By adding additional logic to approve / reject Seaport orders, many new applications are possible. Zones could potentially be used by new marketplaces built on top of Seaport to:

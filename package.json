@@ -66,7 +66,8 @@
     "lint:fix": "prettier --write **.sol && prettier --write **.js && prettier --write **.ts",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "test:zone": "hardhat compile"
   },
   "lint-staged": {
     "*.sol": "prettier --write",
