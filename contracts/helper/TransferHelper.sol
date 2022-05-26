@@ -2,15 +2,19 @@
 pragma solidity 0.8.13;
 
 import "./TransferHelperStructs.sol";
+
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
+
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+
 import { ConduitControllerInterface } from "../interfaces/ConduitControllerInterface.sol";
+
 import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
 
 /**
  * @title TransferHelper
  * @author stuckinaboot, stephankmin
- * @notice TransferHelper is a trivial ETH/ERC20/ERC721/ERC1155 marketplace
+ * @notice TransferHelper is a utility contract for transferring ERC20/ERC721/ERC1155 items in bulk to a specific recipient
  */
 contract TransferHelper is TokenTransferrer {
     // Allow for interaction with the conduit controller.

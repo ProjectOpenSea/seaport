@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
-
+// prettier-ignore
 import { BaseConsiderationTest } from "../utils/BaseConsiderationTest.sol";
+
 import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
+
 import { ConduitItemType } from "../../../contracts/conduit/lib/ConduitEnums.sol";
+
 import { TransferHelper } from "../../../contracts/helper/TransferHelper.sol";
+
 import { TransferHelperItem } from "../../../contracts/helper/TransferHelperStructs.sol";
+
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 
 contract TransferHelperTest is BaseOrderTest {
@@ -45,7 +50,7 @@ contract TransferHelperTest is BaseOrderTest {
     function testBulkTransfer() public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = TransferHelperItem(
-            ConduitItemType.ERC20,
+            ConduitItemType.NATIVE,
             address(token1),
             1,
             20
