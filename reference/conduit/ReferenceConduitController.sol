@@ -208,7 +208,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
         }
 
         // Emit an event indicating that the potential owner has been updated.
-        emit PotentialOwnerUpdated(conduit, newPotentialOwner);
+        emit PotentialOwnerUpdated(newPotentialOwner);
 
         // Set the new potential owner as the potential owner of the conduit.
         _conduits[conduit].potentialOwner = newPotentialOwner;
@@ -231,7 +231,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
         }
 
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(conduit, address(0));
+        emit PotentialOwnerUpdated(address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;
@@ -255,7 +255,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
         }
 
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(conduit, address(0));
+        emit PotentialOwnerUpdated(address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;
