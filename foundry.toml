@@ -29,7 +29,7 @@ solc = '0.8.14'
 out = 'optimized-out'
 
 [test]
-solc = '0.8.14'
+solc = '0.8.13'
 via_ir = false
 src = 'test/foundry'
 
