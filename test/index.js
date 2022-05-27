@@ -1371,7 +1371,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       conduitImplementation = await ethers.getContractFactory(
         "ReferenceConduit"
       );
-      conduitController = await deployContract("ConduitController", owner.address);
+      conduitController = await deployContract(
+        "ConduitController",
+        owner
+      );
     } else {
       conduitImplementation = await ethers.getContractFactory("Conduit");
 
@@ -1452,7 +1455,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     await resetTokens();
 
-    stubZone = await deployContract("TestZone", owner.address);
+    stubZone = await deployContract("TestZone", owner);
 
     tokenByType = [
       {
