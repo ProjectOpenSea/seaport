@@ -793,15 +793,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       case 0:
         break;
       case 1: // ERC20
-        tempContract = await deployContract("TestERC20", owner);
+        tempContract = await deployContract("TestERC20", owner.address);
         break;
       case 2: // ERC721
       case 4: // ERC721_WITH_CRITERIA
-        tempContract = await deployContract("TestERC721", owner);
+        tempContract = await deployContract("TestERC721", owner.address);
         break;
       case 3: // ERC1155
       case 5: // ERC1155_WITH_CRITERIA
-        tempContract = await deployContract("TestERC1155", owner);
+        tempContract = await deployContract("TestERC1155", owner.address);
         break;
     }
     return tempContract;
@@ -10184,7 +10184,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       let itemsToCreate = 64;
-      let numERC20s = randomInt(itemsToCreate - 2);
+      let numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
       let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
       let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
