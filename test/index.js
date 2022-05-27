@@ -1365,7 +1365,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
 
-    reenterer = await deployContract("Reenterer", owner.address);
+    reenterer = await deployContract("Reenterer", owner);
 
     if (process.env.REFERENCE) {
       conduitImplementation = await ethers.getContractFactory(
@@ -1419,7 +1419,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     directMarketplaceContract = await deployContract(
       process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
-      owner.address,
+      owner,
       conduitController.address
     );
 
