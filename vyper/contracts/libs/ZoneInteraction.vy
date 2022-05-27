@@ -62,7 +62,7 @@ struct CriteriaResolver:
     side: uint256
     index: uint256
     identifier: uint256
-    criteriaProof: DynArray[bytes32, 10]
+    criteriaProof: DynArray[bytes32, 15]
 
 
 IS_VALID_ORDER_MAGIC_VALUE: constant(bytes4) = 0x0e1d31dc
