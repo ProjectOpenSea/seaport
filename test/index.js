@@ -1371,10 +1371,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       conduitImplementation = await ethers.getContractFactory(
         "ReferenceConduit"
       );
-      conduitController = await deployContract(
-        "ConduitController",
-        owner
-      );
+      conduitController = await deployContract("ConduitController", owner);
     } else {
       conduitImplementation = await ethers.getContractFactory("Conduit");
 
