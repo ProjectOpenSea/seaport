@@ -1359,13 +1359,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
 
-    reenterer = await deployContract("Reenterer", owner);
+    reenterer = await deployContract("Reenterer", owner.address);
 
     if (process.env.REFERENCE) {
       conduitImplementation = await ethers.getContractFactory(
         "ReferenceConduit"
       );
-      conduitController = await deployContract("ConduitController", owner);
+      conduitController = await deployContract("ConduitController", owner.address);
     } else {
       conduitImplementation = await ethers.getContractFactory("Conduit");
 
@@ -1413,7 +1413,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     directMarketplaceContract = await deployContract(
       process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
-      owner,
+      owner.address,
       conduitController.address
     );
 
@@ -1446,7 +1446,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     await resetTokens();
 
-    stubZone = await deployContract("TestZone", owner);
+    stubZone = await deployContract("TestZone", owner.address);
 
     tokenByType = [
       {
@@ -10184,7 +10184,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       let itemsToCreate = 64;
-      let numERC20s = randomInt(itemsToCreate - 2);
+      let numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
       let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
       let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
