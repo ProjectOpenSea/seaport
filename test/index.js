@@ -10190,7 +10190,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       let itemsToCreate = 64;
-      let numERC20s = randomInt(itemsToCreate - 2);
+      let numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
       let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
       let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
