@@ -3,6 +3,9 @@
 from ..interfaces import ConduitControllerInterface
 
 MAX_BYTE_LENGTH: constant(uint8) = 100
+OFFER_ITEM_TYPE_STRING_LENGTH: constant(uint8) = 106
+CONSIDERATION_ITEM_TYPE_STRING_LENGTH: constant(uint8) = 132
+ORDER_COMPONENT_PARTIAL_TYPE_STRING_LENGTH: constant(uint8) = 210
 
 # Precompute hashes, original chainId, and domain separator on deployment.
 _NAME_HASH: immutable(bytes32)
@@ -67,7 +70,9 @@ def _deriveTypehashes() -> (bytes32,bytes32,bytes32,bytes32,bytes32,bytes32):
     versionHash: bytes32 = keccak256(convert("1", Bytes))
 
     # Construct the OfferItem type string.
-    offerItemTypeString: Bytes[MAX_BYTE_LENGTH] = _abi_encode(
+    offerItemTypeString: Bytes[
+        OFFER_ITEM_TYPE_STRING_LENGTH
+    ] = _abi_encode(
         concat(
             "OfferItem(",
                 "uint8 itemType,",
@@ -80,7 +85,9 @@ def _deriveTypehashes() -> (bytes32,bytes32,bytes32,bytes32,bytes32,bytes32):
     )
 
     # Construct the ConsiderationItem type string.
-    considerationItemTypeString: Bytes[MAX_BYTE_LENGTH] = _abi_encode(
+    considerationItemTypeString: Bytes[
+        CONSIDERATION_ITEM_TYPE_STRING_LENGTH
+    ] = _abi_encode(
         concat(
             "ConsiderationItem(",
                 "uint8 itemType,",
@@ -94,7 +101,9 @@ def _deriveTypehashes() -> (bytes32,bytes32,bytes32,bytes32,bytes32,bytes32):
     )
 
     # Construct the OrderComponents type string, not including the above.
-    orderComponentsPartialTypeString: Bytes[MAX_BYTE_LENGTH] = _abi_encode(
+    orderComponentsPartialTypeString: Bytes[
+        ORDER_COMPONENT_PARTIAL_TYPE_STRING_LENGTH
+    ] = _abi_encode(
         concat(
             "OrderComponents(",
                 "address offerer,",
