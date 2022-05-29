@@ -26,6 +26,14 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
     // Cache the conduit creation code hash used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
 
+    /**
+     * @dev Set the supplied conduit controller and retrieve its conduit creation code hash.
+     *
+     *
+     * @param conduitController A contract that deploys conduits, or proxies
+     *                          that may optionally be used to transfer approved
+     *                          ERC20/721/1155 tokens.
+     */
     constructor(address conduitController) {
         // Set the supplied conduit controller.
         _CONDUIT_CONTROLLER = ConduitControllerInterface(conduitController);
@@ -90,7 +98,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 }
             }
         }
-        // If a conduitKey is given, derive the conduit address from conduitKey and call the conduit to perform transfers.
+        // If a conduitKey is given, derive the conduit address from the conduitKey and call the conduit to perform transfers.
         else {
             (address conduit, ) = _CONDUIT_CONTROLLER.getConduit(conduitKey);
             ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
