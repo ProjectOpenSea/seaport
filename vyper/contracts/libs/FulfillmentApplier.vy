@@ -122,6 +122,8 @@ def _aggregateValidFulfillmentConsiderationItems(
             invalidFulfillment: considerationComponents[startIndex].orderIndex >= len(ordersToExecute)
         })
 
+    assert not potentialCandidate.invalidFulfillment, "invalid fulfillment component data"
+
     receivedItem: ReceivedItem = ReceivedItem({
         itemType: 0,
         token: ZERO_ADDRESS,
@@ -130,64 +132,65 @@ def _aggregateValidFulfillmentConsiderationItems(
         recipient: ZERO_ADDRESS
     })
 
-    if not potentialCandidate.invalidFulfillment:
-        # Retrieve relevant item using order index.
-        orderToExecute: OrderToExecute = ordersToExecute[potentialCandidate.orderIndex]
-        # Ensure that the item index is not out of range.
-        potentialCandidate.invalidFulfillment = \
-            potentialCandidate.invalidFulfillment or \
-            (potentialCandidate.itemIndex >= len(orderToExecute.receivedItems))
-        if not potentialCandidate.invalidFulfillment:
+    # Retrieve relevant item using order index.
+    orderToExecute: OrderToExecute = ordersToExecute[potentialCandidate.orderIndex]
+    # Ensure that the item index is not out of range.
+    potentialCandidate.invalidFulfillment = \
+        potentialCandidate.invalidFulfillment or \
+        (potentialCandidate.itemIndex >= len(orderToExecute.receivedItems))
+
+    assert not potentialCandidate.invalidFulfillment, "invalid fulfillment component data"
+
+    # Retrieve relevant item using item index.
+    consideration: ReceivedItem = orderToExecute.receivedItems[potentialCandidate.itemIndex]
+
+    # Create the received item.
+    receivedItem = ReceivedItem({
+        itemType: consideration.itemType,
+        token: consideration.token,
+        identifier: consideration.identifier,
+        amount: consideration.amount,
+        recipient: consideration.recipient
+    })
+
+    # Zero out amount on original offerItem to indicate it is spent
+    consideration.amount = 0
+
+    # Loop through the consideration components and validate
+    # their fulfillment.
+    for component in considerationComponents:
+        # Get the order index and item index of the consideration component.
+        potentialCandidate.orderIndex = component.orderIndex
+        potentialCandidate.itemIndex = component.itemIndex
+
+        # Ensure that the order index is not out of range.
+        potentialCandidate.invalidFulfillment = potentialCandidate.orderIndex >= len(ordersToExecute)
+        # Break if invalid
+        if potentialCandidate.invalidFulfillment:
+            break
+
+        # Get the order based on consideration components order index.
+        orderToExecute = ordersToExecute[potentialCandidate.orderIndex]
+        # Confirm this is a fulfilled order.
+        if orderToExecute.numerator != 0:
+            # Ensure that the item index is not out of range.
+            potentialCandidate.invalidFulfillment = \
+                (potentialCandidate.itemIndex >= len(orderToExecute.receivedItems))
+            # Break if invalid
+            if potentialCandidate.invalidFulfillment:
+                break
+
             # Retrieve relevant item using item index.
-            consideration: ReceivedItem = orderToExecute.receivedItems[potentialCandidate.itemIndex]
-
-            # Create the received item.
-            receivedItem = ReceivedItem({
-                itemType: consideration.itemType,
-                token: consideration.token,
-                identifier: consideration.identifier,
-                amount: consideration.amount,
-                recipient: consideration.recipient
-            })
-
-            # Zero out amount on original offerItem to indicate it is spent
+            consideration = orderToExecute.receivedItems[potentialCandidate.itemIndex]
+            # Updating Received Item Amount
+            receivedItem.amount = receivedItem.amount + consideration.amount
+            # Zero out amount on original consideration item to indicate it is spent
             consideration.amount = 0
-
-            # Loop through the consideration components and validate
-            # their fulfillment.
-            for component in considerationComponents:
-                # Get the order index and item index of the consideration component.
-                potentialCandidate.orderIndex = component.orderIndex
-                potentialCandidate.itemIndex = component.itemIndex
-
-                # Ensure that the order index is not out of range.
-                potentialCandidate.invalidFulfillment = potentialCandidate.orderIndex >= len(ordersToExecute)
-                # Break if invalid
-                if potentialCandidate.invalidFulfillment:
-                    break
-
-                # Get the order based on consideration components order index.
-                orderToExecute = ordersToExecute[potentialCandidate.orderIndex]
-                # Confirm this is a fulfilled order.
-                if orderToExecute.numerator != 0:
-                    # Ensure that the item index is not out of range.
-                    potentialCandidate.invalidFulfillment = \
-                        (potentialCandidate.itemIndex >= len(orderToExecute.receivedItems))
-                    # Break if invalid
-                    if potentialCandidate.invalidFulfillment:
-                        break
-
-                    # Retrieve relevant item using item index.
-                    consideration = orderToExecute.receivedItems[potentialCandidate.itemIndex]
-                    # Updating Received Item Amount
-                    receivedItem.amount = receivedItem.amount + consideration.amount
-                    # Zero out amount on original consideration item to indicate it is spent
-                    consideration.amount = 0
-                    # Ensure the indicated consideration item matches original item.
-                    potentialCandidate.invalidFulfillment = self._checkMatchingConsideration(
-                        consideration,
-                        receivedItem
-                    )
+            # Ensure the indicated consideration item matches original item.
+            potentialCandidate.invalidFulfillment = self._checkMatchingConsideration(
+                consideration,
+                receivedItem
+            )
 
     # Revert if an order/item was out of range or was not aggregatable.
     assert not potentialCandidate.invalidFulfillment, "invalid fulfillment component data"
@@ -256,65 +259,68 @@ def _aggregateValidFulfillmentOfferItems(
     # Declare a variable indicating whether the aggregation is invalid.
     # Ensure that the order index is not out of range.
     invalidFulfillment: bool = (orderIndex >= len(ordersToExecute))
-    if not invalidFulfillment:
+
+    assert not invalidFulfillment, "InvalidFulfillmentComponentData"
+
+    # Get the order based on offer components order index.
+    orderToExecute: OrderToExecute = ordersToExecute[orderIndex]
+    # Ensure that the item index is not out of range.
+    invalidFulfillment = invalidFulfillment or \
+        (itemIndex >= len(orderToExecute.spentItems))
+
+    assert not invalidFulfillment, "InvalidFulfillmentComponentData"
+
+    # Get the spent item based on the offer components item index.
+    offer: SpentItem = orderToExecute.spentItems[itemIndex]
+
+    # Create the Execution.
+    execution = Execution({
+        item: ReceivedItem({
+            itemType: offer.itemType,
+            token: offer.token,
+            identifier: offer.identifier,
+            amount: offer.amount,
+            recipient: msg.sender
+        }),
+        offerer: orderToExecute.offerer,
+        conduitKey: orderToExecute.conduitKey
+    })
+
+    # Zero out amount on original offerItem to indicate it is spent
+    offer.amount = 0
+
+    # Loop through the offer components, checking for validity.
+    for component in offerComponents:
+        # Get the order index and item index of the offer component.
+        orderIndex = component.orderIndex
+        itemIndex = component.itemIndex
+
+        # Ensure that the order index is not out of range.
+        invalidFulfillment = orderIndex >= len(ordersToExecute)
+        if invalidFulfillment:
+            break
         # Get the order based on offer components order index.
-        orderToExecute: OrderToExecute = ordersToExecute[orderIndex]
-        # Ensure that the item index is not out of range.
-        invalidFulfillment = invalidFulfillment or \
-            (itemIndex >= len(orderToExecute.spentItems))
+        orderToExecute = ordersToExecute[orderIndex]
+        if orderToExecute.numerator != 0:
+            # Ensure that the item index is not out of range.
+            invalidFulfillment = (itemIndex >=
+                len(orderToExecute.spentItems))
+            # Break if invalid
+            if invalidFulfillment:
+                break
 
-        if not invalidFulfillment:
             # Get the spent item based on the offer components item index.
-            offer: SpentItem = orderToExecute.spentItems[itemIndex]
-
-            # Create the Execution.
-            execution = Execution({
-                item: ReceivedItem({
-                    itemType: offer.itemType,
-                    token: offer.token,
-                    identifier: offer.identifier,
-                    amount: offer.amount,
-                    recipient: msg.sender
-                }),
-                offerer: orderToExecute.offerer,
-                conduitKey: orderToExecute.conduitKey
-            })
-
-            # Zero out amount on original offerItem to indicate it is spent
+            offer = orderToExecute.spentItems[itemIndex]
+            # Update the Received Item Amount.
+            execution.item.amount = execution.item.amount + offer.amount
+            # Zero out amount on original offerItem to indicate it is spent,
             offer.amount = 0
-
-            # Loop through the offer components, checking for validity.
-            for component in offerComponents:
-                # Get the order index and item index of the offer component.
-                orderIndex = component.orderIndex
-                itemIndex = component.itemIndex
-
-                # Ensure that the order index is not out of range.
-                invalidFulfillment = orderIndex >= len(ordersToExecute)                # Break if invalid
-                if invalidFulfillment:
-                    break
-                # Get the order based on offer components order index.
-                orderToExecute = ordersToExecute[orderIndex]
-                if orderToExecute.numerator != 0:
-                    # Ensure that the item index is not out of range.
-                    invalidFulfillment = (itemIndex >=
-                        len(orderToExecute.spentItems))
-                    # Break if invalid
-                    if invalidFulfillment:
-                        break
-
-                    # Get the spent item based on the offer components item index.
-                    offer = orderToExecute.spentItems[itemIndex]
-                    # Update the Received Item Amount.
-                    execution.item.amount = execution.item.amount + offer.amount
-                    # Zero out amount on original offerItem to indicate it is spent,
-                    offer.amount = 0
-                    # Ensure the indicated offer item matches original item.
-                    invalidFulfillment = self._checkMatchingOffer(
-                        orderToExecute,
-                        offer,
-                        execution
-                    )
+            # Ensure the indicated offer item matches original item.
+            invalidFulfillment = self._checkMatchingOffer(
+                orderToExecute,
+                offer,
+                execution
+            )
 
     # Revert if an order/item was out of range or was not aggregatable.
     assert not invalidFulfillment, "InvalidFulfillmentComponentData"
