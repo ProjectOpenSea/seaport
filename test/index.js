@@ -9908,7 +9908,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Executes transfers (many token types) with a conduit", async () => {
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       let itemsToCreate = 64;
-      let numERC20s = randomInt(itemsToCreate - 2);
+      let numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
       let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
       let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
@@ -9930,9 +9930,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC20Contract,
           sender,
           1,
-          tempConduit.address,
-          sender.address,
-          recipient.address
+          tempConduit.address
         );
         erc20Contracts[i] = tempERC20Contract;
         erc20Transfers[i] = erc20Transfer;
@@ -9947,9 +9945,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC721Contract,
           sender,
           2,
-          tempConduit.address,
-          sender.address,
-          recipient.address
+          tempConduit.address
         );
         erc721Contracts[i] = tempERC721Contract;
         erc721Transfers[i] = erc721Transfer;
@@ -9964,18 +9960,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC1155Contract,
           sender,
           3,
-          tempConduit.address,
-          sender.address,
-          recipient.address
+          tempConduit.address
         );
         erc1155Contracts[i] = tempERC1155Contract;
         erc1155Transfers[i] = erc1155Transfer;
       }
 
-      let transferHelperItems = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
+      let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
       let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
       // Send the bulk transfers
-      await tempTransferHelper.connect(sender).bulkTransfer(transferHelperItems, recipient, tempConduitKey);
+      await tempTransferHelper.connect(sender).bulkTransfer(transfers, recipient.address, tempConduitKey);
 
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
