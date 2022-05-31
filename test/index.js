@@ -9862,6 +9862,152 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
+  describe("TransferHelper tests", async () => {
+    let sender;
+    let recipient;
+    let senderContract;
+    let recipientContract;
+    let tempTransferHelper;
+    let tempConduit;
+    let tempConduitKey;
+
+    beforeEach(async () => {
+      // Setup basic buyer/seller wallets with ETH
+      sender = new ethers.Wallet(randomHex(32), provider);
+      recipient = new ethers.Wallet(randomHex(32), provider);
+      zone = new ethers.Wallet(randomHex(32), provider);
+
+      senderContract = await EIP1271WalletFactory.deploy(sender.address);
+      recipientContract = await EIP1271WalletFactory.deploy(recipient.address);
+
+      // Create a conduit key with a random salt and store to pass into bulkTransfer
+      tempConduitKey = owner.address + randomHex(12).slice(2);
+
+      const { conduit: tempConduitAddress } = await conduitController.getConduit(
+        tempConduitKey
+      );
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .createConduit(tempConduitKey, owner.address);
+      });
+
+      tempConduit = conduitImplementation.attach(tempConduitAddress);
+
+      await Promise.all(
+        [sender, recipient, zone, senderContract, recipientContract].map((wallet) =>
+          faucet(wallet.address, provider)
+        )
+      );
+
+      // Deploy a new TransferHelper with the tempConduitController address
+      tempTransferHelper = await deployContract("TransferHelper", owner, conduitController.address);
+    });
+
+    it("Executes transfers (many token types) with a conduit", async () => {
+      // Get 3 Numbers that's value adds to Item Amount and minimum 1.
+      let itemsToCreate = 64;
+      let numERC20s = randomInt(itemsToCreate - 2);
+      let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+
+      let erc20Contracts = [numERC20s];
+      let erc20Transfers = [numERC20s];
+
+      let erc721Contracts = [numEC721s];
+      let erc721Transfers = [numEC721s];
+
+      let erc1155Contracts = [numERC1155s];
+      let erc1155Transfers = [numERC1155s];
+
+      // Create numERC20s amount of ERC20 objects
+      for (let i = 0; i < numERC20s; i++) {
+        // Deploy Contract
+        let tempERC20Contract = await deployContracts(1);
+        // Create/Approve X amount of  ERC20s
+        let erc20Transfer = await createTransferHelperItemWithApproval(
+          tempERC20Contract,
+          sender,
+          1,
+          tempConduit.address,
+          sender.address,
+          recipient.address
+        );
+        erc20Contracts[i] = tempERC20Contract;
+        erc20Transfers[i] = erc20Transfer;
+      }
+
+      // Create numEC721s amount of ERC20 objects
+      for (let i = 0; i < numEC721s; i++) {
+        // Deploy Contract
+        let tempERC721Contract = await deployContracts(2);
+        // Create/Approve numEC721s amount of  ERC721s
+        let erc721Transfer = await createTransferHelperItemWithApproval(
+          tempERC721Contract,
+          sender,
+          2,
+          tempConduit.address,
+          sender.address,
+          recipient.address
+        );
+        erc721Contracts[i] = tempERC721Contract;
+        erc721Transfers[i] = erc721Transfer;
+      }
+
+      // Create numERC1155s amount of ERC1155 objects
+      for (let i = 0; i < numERC1155s; i++) {
+        // Deploy Contract
+        let tempERC1155Contract = await deployContracts(3);
+        // Create/Approve numERC1155s amount of ERC1155s
+        let erc1155Transfer = await createTransferHelperItemWithApproval(
+          tempERC1155Contract,
+          sender,
+          3,
+          tempConduit.address,
+          sender.address,
+          recipient.address
+        );
+        erc1155Contracts[i] = tempERC1155Contract;
+        erc1155Transfers[i] = erc1155Transfer;
+      }
+
+      let transferHelperItems = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
+      let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
+      // Send the bulk transfers
+      await tempTransferHelper.connect(sender).bulkTransfer(transferHelperItems, recipient, tempConduitKey);
+
+      // Loop through all transfer to do ownership/balance checks
+      for (let i = 0; i < transfers.length; i++) {
+        // Get Itemtype, token, from, to, amount, identifier
+        itemType = transfers[i].itemType;
+        token = contracts[i];
+        from = transfers[i].from;
+        to = transfers[i].to;
+        amount = transfers[i].amount;
+        identifier = transfers[i].identifier;
+
+        switch (itemType) {
+          case 1: // ERC20
+            // Check balance
+            expect(await token.balanceOf(from)).to.equal(0);
+            expect(await token.balanceOf(to)).to.equal(amount);
+            break;
+          case 2: // ERC721
+          case 4: // ERC721_WITH_CRITERIA
+            expect(await token.ownerOf(identifier)).to.equal(to);
+            break;
+          case 3: // ERC1155
+          case 5: // ERC1155_WITH_CRITERIA
+            // Check balance
+            expect(await token.balanceOf(from, identifier)).to.equal(0);
+            expect(await token.balanceOf(to, identifier)).to.equal(amount);
+            break;
+        }
+      }
+    });
+  });
+
   describe("Reverts", async () => {
     let seller;
     let buyer;
