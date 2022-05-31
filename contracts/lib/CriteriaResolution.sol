@@ -246,8 +246,9 @@ contract CriteriaResolution is CriteriaResolutionErrors {
         bool isValid;
 
         assembly {
-            // Start the hash off as just the starting leaf.
-            let computedHash := leaf
+            // Start the hash off as the hash of the starting leaf.
+            mstore(0, leaf)
+            let computedHash := keccak256(0, 0x20)
 
             // Get memory start location of the first element in proof array.
             let data := add(proof, OneWord)
