@@ -8,7 +8,7 @@ pragma solidity >=0.8.7;
  *      offset or pointer to the body of a dynamic type. In calldata, the head
  *      is always an offset (relative to the parent object), while in memory,
  *      the head is always the pointer to the body. More information found here:
- *      https://docs.soliditylang.org/en/v0.8.13/abi-spec.html#argument-encoding
+ *      https://docs.soliditylang.org/en/v0.8.14/abi-spec.html#argument-encoding
  *        - Note that the length of an array is separate from and precedes the
  *          head of the array.
  *
@@ -33,6 +33,7 @@ pragma solidity >=0.8.7;
  *      codebase but have been left in for readability.
  */
 
+uint256 constant AlmostOneWord = 0x19;
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;

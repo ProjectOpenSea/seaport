@@ -776,6 +776,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     );
 
     await whileImpersonating(owner.address, provider, async () => {
+      await expect(
+        conduitController
+          .connect(owner)
+          .createConduit(tempConduitKey, constants.AddressZero)
+      ).to.be.revertedWith("InvalidInitialOwner");
+
       await conduitController
         .connect(owner)
         .createConduit(tempConduitKey, owner.address);
@@ -793,15 +799,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       case 0:
         break;
       case 1: // ERC20
-        tempContract = await deployContract("TestERC20", owner);
+        tempContract = await deployContract("TestERC20", owner.address);
         break;
       case 2: // ERC721
       case 4: // ERC721_WITH_CRITERIA
-        tempContract = await deployContract("TestERC721", owner);
+        tempContract = await deployContract("TestERC721", owner.address);
         break;
       case 3: // ERC1155
       case 5: // ERC1155_WITH_CRITERIA
-        tempContract = await deployContract("TestERC1155", owner);
+        tempContract = await deployContract("TestERC1155", owner.address);
         break;
     }
     return tempContract;
@@ -10184,7 +10190,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       let itemsToCreate = 64;
-      let numERC20s = randomInt(itemsToCreate - 2);
+      let numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
       let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
       let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
@@ -10764,9 +10770,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(isOpen).to.be.true;
 
       // No-op
-      await conduitController
-        .connect(owner)
-        .updateChannel(conduitOne.address, marketplaceContract.address, true);
+      await expect(
+        conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, marketplaceContract.address, true)
+      ).to.be.reverted; // ChannelStatusAlreadySet
 
       isOpen = await conduitController.getChannelStatus(
         conduitOne.address,
@@ -10955,6 +10963,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       await expect(
         conduitController
+          .connect(owner)
+          .transferOwnership(conduitOne.address, buyer.address)
+      ).to.be.revertedWith(
+        "NewPotentialOwnerAlreadySet",
+        conduitOne.address,
+        buyer.address
+      );
+
+      await expect(
+        conduitController
           .connect(buyer)
           .cancelOwnershipTransfer(conduitOne.address)
       ).to.be.revertedWith("CallerIsNotOwner", conduitOne.address);
@@ -10969,6 +10987,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitOne.address
       );
       expect(potentialOwner).to.equal(constants.AddressZero);
+
+      await expect(
+        conduitController
+          .connect(owner)
+          .cancelOwnershipTransfer(conduitOne.address)
+      ).to.be.revertedWith("NoPotentialOwnerCurrentlySet", conduitOne.address);
 
       await conduitController.transferOwnership(
         conduitOne.address,

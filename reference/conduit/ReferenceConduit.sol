@@ -39,7 +39,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         returns (bytes4 magicValue)
     {
         if (!_channels[msg.sender]) {
-            revert ChannelClosed();
+            revert ChannelClosed(msg.sender);
         }
 
         uint256 totalStandardTransfers = transfers.length;
@@ -60,7 +60,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         ConduitBatch1155Transfer[] calldata batchTransfers
     ) external override returns (bytes4 magicValue) {
         if (!_channels[msg.sender]) {
-            revert ChannelClosed();
+            revert ChannelClosed(msg.sender);
         }
 
         uint256 totalBatchTransfers = batchTransfers.length;
@@ -82,7 +82,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         ConduitBatch1155Transfer[] calldata batchTransfers
     ) external override returns (bytes4 magicValue) {
         if (!_channels[msg.sender]) {
-            revert ChannelClosed();
+            revert ChannelClosed(msg.sender);
         }
 
         uint256 totalStandardTransfers = standardTransfers.length;
@@ -113,6 +113,11 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
     function updateChannel(address channel, bool isOpen) external override {
         if (msg.sender != _controller) {
             revert InvalidController();
+        }
+
+        // Ensure that the channel does not already have the indicated status.
+        if (_channels[channel] == isOpen) {
+            revert ChannelStatusAlreadySet(channel, isOpen);
         }
 
         _channels[channel] = isOpen;
