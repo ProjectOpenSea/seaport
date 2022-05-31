@@ -47,14 +47,28 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testBulkTransfer() public {
+    function testBulkTransferERC20() public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        uint256 amount = 20;
         items[0] = TransferHelperItem(
             ConduitItemType.ERC20,
             address(token1),
             1,
-            20
+            amount
         );
-        transferHelper.bulkTransfer(items, address(1), bytes32(0));
+        address from = address(this);
+        address to = address(1);
+
+        // Get initial balances
+        // TODO create helper fn that takes in an arbitrary token ID
+        // and list of addresses and returns a list of balances
+        uint256 fromBalanceBeforeTransfer = token1.balanceOf(from);
+        uint256 toBalanceBeforeTransfer = token1.balanceOf(to);
+
+        transferHelper.bulkTransfer(items, to, bytes32(0));
+
+        // Check final balances
+        assertEq(token1.balanceOf(from), fromBalanceBeforeTransfer - amount);
+        assertEq(token1.balanceOf(to), toBalanceBeforeTransfer + amount);
     }
 }
