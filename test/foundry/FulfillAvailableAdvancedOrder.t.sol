@@ -95,6 +95,23 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         }
     }
 
+    function testFulfillAvailableAdvancedOrderMissingItemAmount() public {
+        for (uint256 i; i < 4; i++) {
+            // skip 721s
+            if (i == 2) {
+                continue;
+            }
+            test(
+                this.fulfillAvailableAdvancedOrdersMissingItemAmount,
+                Context(consideration, empty, ItemType(i))
+            );
+            test(
+                this.fulfillAvailableAdvancedOrdersMissingItemAmount,
+                Context(referenceConsideration, empty, ItemType(i))
+            );
+        }
+    }
+
     function testFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToSingleErc721(
         FuzzInputs memory args
     ) public validateInputs(args) onlyPayable(args.zone) {
@@ -162,7 +179,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         test721_1.mint(bob, 2);
         _configureERC721OfferItem(2);
-        // try to overflow the aggregated amount of eth sent to alice
+        // try to overflow the aggregated amount sent to alice
         _configureConsiderationItem(alice, context.itemType, 1, MAX_INT);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
@@ -221,6 +238,113 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         CriteriaResolver[] memory criteriaResolvers;
 
         vm.expectRevert(stdError.arithmeticError);
+        context.consideration.fulfillAvailableAdvancedOrders{ value: 99 }(
+            advancedOrders,
+            criteriaResolvers,
+            offerComponentsArray,
+            considerationComponentsArray,
+            bytes32(0),
+            100
+        );
+    }
+
+    function fulfillAvailableAdvancedOrdersMissingItemAmount(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(alice, 1);
+        _configureERC721OfferItem(1);
+        _configureConsiderationItem(alice, context.itemType, 1, 100);
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory firstOrderComponents = getOrderComponents(
+            orderParameters,
+            context.consideration.getNonce(alice)
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(firstOrderComponents)
+        );
+
+        delete offerItems;
+        delete considerationItems;
+
+        test721_1.mint(bob, 2);
+        _configureERC721OfferItem(2);
+        // try to overflow the aggregated amount sent to alice
+        _configureConsiderationItem(alice, context.itemType, 1, MAX_INT);
+        _configureConsiderationItem(alice, context.itemType, 1, 0);
+
+        OrderParameters memory secondOrderParameters = OrderParameters(
+            address(bob),
+            address(0),
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            bytes32(0),
+            0,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        OrderComponents memory secondOrderComponents = getOrderComponents(
+            secondOrderParameters,
+            context.consideration.getNonce(bob)
+        );
+        bytes memory secondSignature = signOrder(
+            context.consideration,
+            bobPk,
+            context.consideration.getOrderHash(secondOrderComponents)
+        );
+
+        AdvancedOrder[] memory advancedOrders = new AdvancedOrder[](2);
+        advancedOrders[0] = AdvancedOrder(
+            orderParameters,
+            uint120(1),
+            uint120(1),
+            signature,
+            "0x"
+        );
+        advancedOrders[1] = AdvancedOrder(
+            secondOrderParameters,
+            uint120(1),
+            uint120(1),
+            secondSignature,
+            "0x"
+        );
+
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        resetOfferComponents();
+
+        // agregate eth considerations together
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponents.push(FulfillmentComponent(1, 1));
+        considerationComponentsArray.push(considerationComponents);
+        resetConsiderationComponents();
+
+        CriteriaResolver[] memory criteriaResolvers;
+
+        vm.expectRevert(abi.encodeWithSignature("MissingItemAmount()"));
         context.consideration.fulfillAvailableAdvancedOrders{ value: 99 }(
             advancedOrders,
             criteriaResolvers,
