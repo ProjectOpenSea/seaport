@@ -74,7 +74,7 @@ contract TransferHelperTest is BaseOrderTest {
     function balanceOfTransferItemForAddress(
         TransferHelperItem memory item,
         address addr
-    ) public returns (uint256) {
+    ) internal view returns (uint256) {
         if (item.itemType == ConduitItemType.ERC20) {
             return TestERC20(item.token).balanceOf(addr);
         } else if (item.itemType == ConduitItemType.ERC721) {
@@ -96,7 +96,7 @@ contract TransferHelperTest is BaseOrderTest {
         TransferHelperItem memory item,
         address from,
         address to
-    ) public returns (FromToBalance memory) {
+    ) internal view returns (FromToBalance memory) {
         return
             FromToBalance(
                 balanceOfTransferItemForAddress(item, from),
