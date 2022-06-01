@@ -85,6 +85,9 @@ contract TransferHelperTest is BaseOrderTest {
         } else if (item.itemType == ConduitItemType.ERC1155) {
             return
                 TestERC1155(item.token).balanceOf(addr, item.tokenIdentifier);
+        } else if (item.itemType == ConduitItemType.NATIVE) {
+            // Balance for native does not matter as don't support native transfers so just return dummy value.
+            return 0;
         }
         revert();
     }
@@ -104,17 +107,24 @@ contract TransferHelperTest is BaseOrderTest {
     function performSingleItemTransferAndCheckBalances(
         TransferHelperItem memory item,
         address from,
-        address to
+        address to,
+        bool expectInvalidItemTypeRevert
     ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = item;
-        performMultiItemTransferAndCheckBalances(items, from, to);
+        performMultiItemTransferAndCheckBalances(
+            items,
+            from,
+            to,
+            expectInvalidItemTypeRevert
+        );
     }
 
     function performMultiItemTransferAndCheckBalances(
         TransferHelperItem[] memory items,
         address from,
-        address to
+        address to,
+        bool expectInvalidItemTypeRevert
     ) public {
         vm.startPrank(from);
 
@@ -131,6 +141,9 @@ contract TransferHelperTest is BaseOrderTest {
         }
 
         // Perform transfer
+        if (expectInvalidItemTypeRevert) {
+            vm.expectRevert(TransferHelperInterface.InvalidItemType.selector);
+        }
         transferHelper.bulkTransfer(items, to, bytes32(0));
 
         // Get balances after transfer
@@ -143,6 +156,20 @@ contract TransferHelperTest is BaseOrderTest {
                 from,
                 to
             );
+        }
+
+        if (expectInvalidItemTypeRevert) {
+            // If revert is expected, balances should not have changed.
+            for (uint256 i = 0; i < items.length; i++) {
+                assert(
+                    beforeTransferBalances[i].from ==
+                        afterTransferBalances[i].from
+                );
+                assert(
+                    beforeTransferBalances[i].to == afterTransferBalances[i].to
+                );
+            }
+            return;
         }
 
         // Check after transfer balances are as expected by calculating difference against before transfer balances.
@@ -169,7 +196,7 @@ contract TransferHelperTest is BaseOrderTest {
             1,
             20
         );
-        performSingleItemTransferAndCheckBalances(item, alice, bob);
+        performSingleItemTransferAndCheckBalances(item, alice, bob, false);
     }
 
     function testBulkTransferERC721() public {
@@ -179,8 +206,8 @@ contract TransferHelperTest is BaseOrderTest {
             1,
             1
         );
-        address to = address(1);
-        performSingleItemTransferAndCheckBalances(item, alice, bob);
+
+        performSingleItemTransferAndCheckBalances(item, alice, bob, false);
     }
 
     function testBulkTransferERC721toBobThenCal() public {
@@ -190,8 +217,8 @@ contract TransferHelperTest is BaseOrderTest {
             1,
             1
         );
-        performSingleItemTransferAndCheckBalances(item, alice, bob);
-        performSingleItemTransferAndCheckBalances(item, bob, cal);
+        performSingleItemTransferAndCheckBalances(item, alice, bob, false);
+        performSingleItemTransferAndCheckBalances(item, bob, cal, false);
     }
 
     function testBulkTransferERC1155() public {
@@ -201,7 +228,7 @@ contract TransferHelperTest is BaseOrderTest {
             1,
             20
         );
-        performSingleItemTransferAndCheckBalances(item, alice, bob);
+        performSingleItemTransferAndCheckBalances(item, alice, bob, false);
     }
 
     function testBulkTransferERC1155andERC721() public {
@@ -219,7 +246,7 @@ contract TransferHelperTest is BaseOrderTest {
             1
         );
 
-        performMultiItemTransferAndCheckBalances(items, alice, bob);
+        performMultiItemTransferAndCheckBalances(items, alice, bob, false);
     }
 
     function testBulkTransferERC1155andERC721andERC20() public {
@@ -243,7 +270,7 @@ contract TransferHelperTest is BaseOrderTest {
             8
         );
 
-        performMultiItemTransferAndCheckBalances(items, alice, bob);
+        performMultiItemTransferAndCheckBalances(items, alice, bob, false);
     }
 
     function testBulkTransferMultipleERC721() public {
@@ -258,7 +285,7 @@ contract TransferHelperTest is BaseOrderTest {
             );
         }
 
-        performMultiItemTransferAndCheckBalances(items, alice, bob);
+        performMultiItemTransferAndCheckBalances(items, alice, bob, false);
     }
 
     function testBulkTransferMultipleERC721andMultipleERC1155() public {
@@ -284,12 +311,12 @@ contract TransferHelperTest is BaseOrderTest {
             }
         }
 
-        performMultiItemTransferAndCheckBalances(items, alice, bob);
+        performMultiItemTransferAndCheckBalances(items, alice, bob, false);
     }
 
     // Test reverts
 
-    function testRevertBulkTransferETH() public {
+    function testRevertBulkTransferETHonly() public {
         TransferHelperItem memory item = TransferHelperItem(
             ConduitItemType.NATIVE,
             address(0),
@@ -297,10 +324,7 @@ contract TransferHelperTest is BaseOrderTest {
             20
         );
 
-        // TODO check for custom error, I tried TransferHelperInterface.InvalidItemType.selector
-        // but that didn't work
-        vm.expectRevert();
-        performSingleItemTransferAndCheckBalances(item, alice, bob);
+        performSingleItemTransferAndCheckBalances(item, alice, bob, true);
     }
 
     function testRevertBulkTransferETHandERC721() public {
@@ -318,9 +342,6 @@ contract TransferHelperTest is BaseOrderTest {
             1
         );
 
-        // TODO check for custom error, I tried TransferHelperInterface.InvalidItemType.selector
-        // but that didn't work
-        vm.expectRevert();
-        performMultiItemTransferAndCheckBalances(items, alice, bob);
+        performMultiItemTransferAndCheckBalances(items, alice, bob, true);
     }
 }
