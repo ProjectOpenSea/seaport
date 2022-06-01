@@ -370,4 +370,6 @@ contract TransferHelperTest is BaseOrderTest {
 
         performMultiItemTransferAndCheckBalances(items, alice, bob, true);
     }
+
+    // TODO add tests using a conduit other than 0x0 conduit
 }
