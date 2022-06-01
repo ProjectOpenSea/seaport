@@ -21,8 +21,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: yarn install
-      - run: yarn build
+      - run: npm install
+      - run: npm run build
 
   lint:
     name: Run Linters
@@ -38,8 +38,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: yarn install
-      - run: yarn lint:check
+      - run: npm install
+      - run: npm run lint:check
 
   test:
     name: Run Tests
@@ -55,8 +55,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: yarn install
-      - run: yarn test
+      - run: npm install
+      - run: npm run test
 
   reference-test:
     name: Run Reference Tests
@@ -75,8 +75,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: yarn install
-      - run: yarn test:ref
+      - run: npm install
+      - run: npm run test:ref
 
   forge-lite:
     name: Run "Lite" Forge Tests (via_ir = false; fuzz_runs = 1000)
@@ -139,8 +139,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: yarn install
-      - run: yarn coverage
+      - run: npm install
+      - run: npm run coverage
       - uses: VeryGoodOpenSource/very_good_coverage@v1
         with:
           path: "./coverage/lcov.info"
@@ -163,8 +163,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: yarn install
-      - run: yarn coverage:ref
+      - run: npm install
+      - run: npm run coverage:ref
       - uses: VeryGoodOpenSource/very_good_coverage@v1
         with:
           path: "./coverage/lcov.info"
