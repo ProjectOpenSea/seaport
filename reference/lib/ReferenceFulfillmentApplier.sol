@@ -278,9 +278,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             // Get the order based on offer components order index.
             OrderToExecute memory orderToExecute = ordersToExecute[orderIndex];
             // Ensure that the item index is not out of range.
-            invalidFulfillment =
-                invalidFulfillment ||
-                (itemIndex >= orderToExecute.spentItems.length);
+            invalidFulfillment = (itemIndex >= orderToExecute.spentItems.length);
 
             if (!invalidFulfillment) {
                 // Get the spent item based on the offer components item index.

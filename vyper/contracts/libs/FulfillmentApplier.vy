@@ -124,13 +124,7 @@ def _aggregateValidFulfillmentConsiderationItems(
 
     assert not potentialCandidate.invalidFulfillment, "invalid fulfillment component data"
 
-    receivedItem: ReceivedItem = ReceivedItem({
-        itemType: 0,
-        token: ZERO_ADDRESS,
-        identifier: 0,
-        amount: 0,
-        recipient: ZERO_ADDRESS
-    })
+    receivedItem: ReceivedItem = empty(ReceivedItem)
 
     # Retrieve relevant item using order index.
     orderToExecute: OrderToExecute = ordersToExecute[potentialCandidate.orderIndex]
@@ -213,11 +207,11 @@ def _checkMatchingOffer(
     @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
     """
     return \
-        execution.item.identifier != offer.identifier or \
-        execution.offerer != orderToExecute.offerer or \
-        execution.conduitKey != orderToExecute.conduitKey or \
-        execution.item.itemType != offer.itemType or \
-        execution.item.token != offer.token
+        execution.item.identifier == offer.identifier and \
+        execution.offerer == orderToExecute.offerer and \
+        execution.conduitKey == orderToExecute.conduitKey and \
+        execution.item.itemType == offer.itemType and \
+        execution.item.token == offer.token
 
 @internal
 @view
@@ -244,32 +238,10 @@ def _aggregateValidFulfillmentOfferItems(
     orderIndex: uint256 = offerComponents[startIndex].orderIndex
     itemIndex: uint256 = offerComponents[startIndex].itemIndex
 
-    execution: Execution = Execution({
-        item: ReceivedItem({
-            itemType: 0,
-            token: ZERO_ADDRESS,
-            identifier: 0,
-            amount: 0,
-            recipient: ZERO_ADDRESS
-        }),
-        offerer: ZERO_ADDRESS,
-        conduitKey: EMPTY_BYTES32
-    })
-
-    # Declare a variable indicating whether the aggregation is invalid.
-    # Ensure that the order index is not out of range.
-    invalidFulfillment: bool = (orderIndex >= len(ordersToExecute))
-
-    assert not invalidFulfillment, "InvalidFulfillmentComponentData"
+    execution: Execution = empty(Execution)
 
     # Get the order based on offer components order index.
     orderToExecute: OrderToExecute = ordersToExecute[orderIndex]
-    # Ensure that the item index is not out of range.
-    invalidFulfillment = invalidFulfillment or \
-        (itemIndex >= len(orderToExecute.spentItems))
-
-    assert not invalidFulfillment, "InvalidFulfillmentComponentData"
-
     # Get the spent item based on the offer components item index.
     offer: SpentItem = orderToExecute.spentItems[itemIndex]
 
@@ -295,20 +267,9 @@ def _aggregateValidFulfillmentOfferItems(
         orderIndex = component.orderIndex
         itemIndex = component.itemIndex
 
-        # Ensure that the order index is not out of range.
-        invalidFulfillment = orderIndex >= len(ordersToExecute)
-        if invalidFulfillment:
-            break
         # Get the order based on offer components order index.
         orderToExecute = ordersToExecute[orderIndex]
         if orderToExecute.numerator != 0:
-            # Ensure that the item index is not out of range.
-            invalidFulfillment = (itemIndex >=
-                len(orderToExecute.spentItems))
-            # Break if invalid
-            if invalidFulfillment:
-                break
-
             # Get the spent item based on the offer components item index.
             offer = orderToExecute.spentItems[itemIndex]
             # Update the Received Item Amount.
@@ -316,14 +277,14 @@ def _aggregateValidFulfillmentOfferItems(
             # Zero out amount on original offerItem to indicate it is spent,
             offer.amount = 0
             # Ensure the indicated offer item matches original item.
-            invalidFulfillment = self._checkMatchingOffer(
+            validFulfillment = self._checkMatchingOffer(
                 orderToExecute,
                 offer,
                 execution
             )
 
     # Revert if an order/item was out of range or was not aggregatable.
-    assert not invalidFulfillment, "InvalidFulfillmentComponentData"
+    assert validFulfillment, "InvalidFulfillmentComponentData"
 
     return execution
 
@@ -510,18 +471,7 @@ def _aggregateAvailable(
     if nextComponentIndex == 0:
         # Return with an empty execution element that will be filtered.
         # prettier-ignore
-        return Execution({
-            item: ReceivedItem({
-                itemType: 0,
-                token: ZERO_ADDRESS,
-                identifier: 0,
-                amount: 0,
-                recipient: ZERO_ADDRESS
-            }),
-            offerer: ZERO_ADDRESS,
-            conduitKey: EMPTY_BYTES32
-        })
-
+        return empty(Execution)
 
     # If the fulfillment components are offer components...
     if side == SIDE_OFFER:
