@@ -30,17 +30,15 @@ contract TransferHelperTest is BaseOrderTest {
         super.setUp();
         transferHelper = new TransferHelper(address(conduitController));
 
-        // Mint initial tokens for testing.
-        address thisAddress = address(this);
-        token1.mint(thisAddress, 20);
-        // Mint ERC721 and ERC1155 with token IDs 0 to 9 to thisAddress
+        // Mint initial tokens to alice for tests.
+        token1.mint(alice, 20);
+        // Mint ERC721 and ERC1155 with token IDs 0 to 9 to alice
         for (uint256 i = 0; i < 10; i++) {
-            test721_1.mint(thisAddress, i);
-            test1155_1.mint(thisAddress, i, 20);
+            test721_1.mint(alice, i);
+            test1155_1.mint(alice, i, 20);
         }
 
         // Allow transfer helper to perform transfers for these addresses.
-        _setApprovals(thisAddress);
         _setApprovals(alice);
         _setApprovals(bob);
         _setApprovals(cal);
@@ -169,7 +167,7 @@ contract TransferHelperTest is BaseOrderTest {
             1,
             20
         );
-        performSingleItemTransferAndCheckBalances(item, address(this), alice);
+        performSingleItemTransferAndCheckBalances(item, alice, bob);
     }
 
     function testBulkTransferERC721() public {
@@ -180,18 +178,18 @@ contract TransferHelperTest is BaseOrderTest {
             1
         );
         address to = address(1);
-        performSingleItemTransferAndCheckBalances(item, address(this), alice);
+        performSingleItemTransferAndCheckBalances(item, alice, bob);
     }
 
-    function testBulkTransferERC721toAlicethenBob() public {
+    function testBulkTransferERC721toBobThenCal() public {
         TransferHelperItem memory item = TransferHelperItem(
             ConduitItemType.ERC721,
             address(test721_1),
             1,
             1
         );
-        performSingleItemTransferAndCheckBalances(item, address(this), alice);
         performSingleItemTransferAndCheckBalances(item, alice, bob);
+        performSingleItemTransferAndCheckBalances(item, bob, cal);
     }
 
     function testBulkTransferERC1155() public {
@@ -201,7 +199,7 @@ contract TransferHelperTest is BaseOrderTest {
             1,
             20
         );
-        performSingleItemTransferAndCheckBalances(item, address(this), alice);
+        performSingleItemTransferAndCheckBalances(item, alice, bob);
     }
 
     function testBulkTransferERC1155andERC721() public {
@@ -219,7 +217,7 @@ contract TransferHelperTest is BaseOrderTest {
             1
         );
 
-        performMultiItemTransferAndCheckBalances(items, address(this), alice);
+        performMultiItemTransferAndCheckBalances(items, alice, bob);
     }
 
     function testBulkTransferERC1155andERC721andERC20() public {
@@ -243,7 +241,7 @@ contract TransferHelperTest is BaseOrderTest {
             8
         );
 
-        performMultiItemTransferAndCheckBalances(items, address(this), alice);
+        performMultiItemTransferAndCheckBalances(items, alice, bob);
     }
 
     function testBulkTransferMultipleERC721() public {
@@ -258,6 +256,6 @@ contract TransferHelperTest is BaseOrderTest {
             );
         }
 
-        performMultiItemTransferAndCheckBalances(items, address(this), alice);
+        performMultiItemTransferAndCheckBalances(items, alice, bob);
     }
 }
