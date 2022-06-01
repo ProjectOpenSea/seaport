@@ -13,7 +13,6 @@ contract NonReentrantTest is BaseOrderTest {
     BasicOrderParameters basicOrderParameters;
     OrderComponents orderComponents;
     AdditionalRecipient recipient;
-    AdditionalRecipient[] additionalRecipients;
     OrderParameters orderParameters;
     Order order;
     Order[] orders;

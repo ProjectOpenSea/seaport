@@ -38,11 +38,10 @@ out = 'optimized-out'
 via_ir = false
 fuzz_runs = 1000
 
-[local-ffi]
+[local]
 via_ir = false
-fuzz_runs = 5000
+fuzz_runs = 1000
 src = 'reference'
 out = 'reference-out'
-ffi = true
 
 # See more config options https://github.com/gakonst/foundry/tree/master/config

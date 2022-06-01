@@ -31,21 +31,8 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         vm.label(address(this), "testContract");
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
-        string[] memory args = new string[](2);
-        args[0] = "echo";
-        args[1] = "-n";
-        // if ffi is enabled, this will not enter the catch block.
-        // assume that the local foundry profile is specified, and deploy
-        // reference normally, so stack traces and debugger have source map,
-        // with the caveat that reference contracts will have been compiled
-        // with 0.8.14
-        try vm.ffi(args) {
-            emit log("Deploying reference from import");
-            _deployAndConfigureReferenceConsideration();
-        } catch (bytes memory) {
-            emit log("Deploying reference from precompiled source");
-            _deployAndConfigurePrecompiledReferenceConsideration();
-        }
+        emit log("Deploying reference from precompiled source");
+        _deployAndConfigurePrecompiledReferenceConsideration();
 
         vm.label(address(conduitController), "conduitController");
         vm.label(address(consideration), "consideration");
@@ -56,28 +43,6 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         );
         vm.label(address(referenceConsideration), "referenceConsideration");
         vm.label(address(referenceConduit), "referenceConduit");
-    }
-
-    function _deployAndConfigureReferenceConsideration() public {
-        referenceConduitController = ConduitController(
-            address(new ReferenceConduitController())
-        );
-        referenceConsideration = ConsiderationInterface(
-            address(
-                new ReferenceConsideration(address(referenceConduitController))
-            )
-        );
-        referenceConduit = Conduit(
-            referenceConduitController.createConduit(
-                conduitKeyOne,
-                address(this)
-            )
-        );
-        referenceConduitController.updateChannel(
-            address(referenceConduit),
-            address(referenceConsideration),
-            true
-        );
     }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source

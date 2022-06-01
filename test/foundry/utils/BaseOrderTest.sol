@@ -12,7 +12,7 @@ import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
 import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { StructCopier } from "./StructCopier.sol";
-import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
@@ -84,6 +84,8 @@ contract BaseOrderTest is
     FulfillmentComponent fulfillmentComponent;
     FulfillmentComponent[] fulfillmentComponents;
     Fulfillment fulfillment;
+
+    AdditionalRecipient[] additionalRecipients;
 
     uint256 internal globalTokenId;
 
