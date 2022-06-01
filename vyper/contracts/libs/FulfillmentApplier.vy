@@ -61,7 +61,7 @@ struct Execution:
 struct ConsiderationItemIndicesAndValidity:
     orderIndex: uint256
     itemIndex: uint256
-    invalidFulfillment: bool
+    validFulfillment: bool
 
 # --- Side Enum ---
 
@@ -119,21 +119,15 @@ def _aggregateValidFulfillmentConsiderationItems(
             orderIndex: considerationComponents[startIndex].orderIndex,
             itemIndex: considerationComponents[startIndex].itemIndex,
             # Ensure that order index is in range.
-            invalidFulfillment: considerationComponents[startIndex].orderIndex >= len(ordersToExecute)
+            validFulfillment: considerationComponents[startIndex].orderIndex < len(ordersToExecute)
         })
 
-    assert not potentialCandidate.invalidFulfillment, "invalid fulfillment component data"
+    assert potentialCandidate.validFulfillment, "invalid fulfillment component data"
 
     receivedItem: ReceivedItem = empty(ReceivedItem)
 
     # Retrieve relevant item using order index.
     orderToExecute: OrderToExecute = ordersToExecute[potentialCandidate.orderIndex]
-    # Ensure that the item index is not out of range.
-    potentialCandidate.invalidFulfillment = \
-        potentialCandidate.invalidFulfillment or \
-        (potentialCandidate.itemIndex >= len(orderToExecute.receivedItems))
-
-    assert not potentialCandidate.invalidFulfillment, "invalid fulfillment component data"
 
     # Retrieve relevant item using item index.
     consideration: ReceivedItem = orderToExecute.receivedItems[potentialCandidate.itemIndex]
@@ -157,23 +151,10 @@ def _aggregateValidFulfillmentConsiderationItems(
         potentialCandidate.orderIndex = component.orderIndex
         potentialCandidate.itemIndex = component.itemIndex
 
-        # Ensure that the order index is not out of range.
-        potentialCandidate.invalidFulfillment = potentialCandidate.orderIndex >= len(ordersToExecute)
-        # Break if invalid
-        if potentialCandidate.invalidFulfillment:
-            break
-
         # Get the order based on consideration components order index.
         orderToExecute = ordersToExecute[potentialCandidate.orderIndex]
         # Confirm this is a fulfilled order.
         if orderToExecute.numerator != 0:
-            # Ensure that the item index is not out of range.
-            potentialCandidate.invalidFulfillment = \
-                (potentialCandidate.itemIndex >= len(orderToExecute.receivedItems))
-            # Break if invalid
-            if potentialCandidate.invalidFulfillment:
-                break
-
             # Retrieve relevant item using item index.
             consideration = orderToExecute.receivedItems[potentialCandidate.itemIndex]
             # Updating Received Item Amount
@@ -181,13 +162,13 @@ def _aggregateValidFulfillmentConsiderationItems(
             # Zero out amount on original consideration item to indicate it is spent
             consideration.amount = 0
             # Ensure the indicated consideration item matches original item.
-            potentialCandidate.invalidFulfillment = self._checkMatchingConsideration(
+            potentialCandidate.validFulfillment = self._checkMatchingConsideration(
                 consideration,
                 receivedItem
             )
 
     # Revert if an order/item was out of range or was not aggregatable.
-    assert not potentialCandidate.invalidFulfillment, "invalid fulfillment component data"
+    assert potentialCandidate.validFulfillment, "invalid fulfillment component data"
     return receivedItem
 
 @internal
