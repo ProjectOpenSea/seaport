@@ -9892,18 +9892,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       const { conduit: tempConduitAddress } = await conduitController.getConduit(
         tempConduitKey
       );
-      console.log("temp conduit address: ", tempConduitAddress);
 
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
           .connect(owner)
           .createConduit(tempConduitKey, owner.address);
       });
-
-      const { conduit: secondTempConduitAddress } = await conduitController.getConduit(
-        tempConduitKey
-      );
-      console.log("confirm temp conduit address: ", secondTempConduitAddress);
 
       tempConduit = conduitImplementation.attach(tempConduitAddress);
 
@@ -9915,7 +9909,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Deploy a new TransferHelper with the tempConduitController address
       tempTransferHelper = await deployContract("TransferHelper", owner, conduitController.address);
-      console.log("temp transfer helper address: ", tempTransferHelper.address);
 
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController.connect(owner).updateChannel(tempConduit.address, tempTransferHelper.address, true);
@@ -9986,18 +9979,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
       let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
       // Send the bulk transfers
-      // console.log("transfers:", transfers);
-      const transfer = { itemType: 1, token: contracts[4].address, tokenIdentifier: 0, amount: toBN(1) };
-      console.log("transfer: ", transfer);
       await tempTransferHelper.connect(sender).bulkTransfer(transfers, recipient.address, tempConduitKey);
-      console.log("after bulk transfer");
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, amount, identifier
         itemType = transfers[i].itemType;
         token = contracts[i];
         amount = transfers[i].amount;
-        identifier = transfers[i].identifier;
+        identifier = transfers[i].tokenIdentifier;
 
         switch (itemType) {
           case 1: // ERC20
@@ -10007,7 +9996,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             break;
           case 2: // ERC721
           case 4: // ERC721_WITH_CRITERIA
-            expect(await token.ownerOf(identifier)).to.equal(to);
+            expect(await token.ownerOf(identifier)).to.equal(recipient.address);
             break;
           case 3: // ERC1155
           case 5: // ERC1155_WITH_CRITERIA
@@ -10044,7 +10033,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC20Contract,
           sender,
           1,
-          tempTransferHelper.address
+          tempConduit.address
         );
         erc20Contracts[i] = tempERC20Contract;
         erc20Transfers[i] = erc20Transfer;
@@ -10059,7 +10048,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC721Contract,
           sender,
           2,
-          tempTransferHelper.address
+          tempConduit.address
         );
         erc721Contracts[i] = tempERC721Contract;
         erc721Transfers[i] = erc721Transfer;
@@ -10074,7 +10063,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC1155Contract,
           sender,
           3,
-          tempTransferHelper.address
+          tempConduit.address
         );
         erc1155Contracts[i] = tempERC1155Contract;
         erc1155Transfers[i] = erc1155Transfer;

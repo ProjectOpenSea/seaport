@@ -107,6 +107,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         }
         // If a conduitKey is given, derive the conduit address from the conduitKey and call the conduit to perform transfers.
         else {
+            // TODO: derive conduit address from creation hashes
             // Derive address from deployer, conduit key and creation code hash.
             // address conduit = address(
             //     uint160(
@@ -114,7 +115,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             //             keccak256(
             //                 abi.encodePacked(
             //                     bytes1(0xff),
-            //                     _CONDUIT_CONTROLLER,
+            //                     address(this),
             //                     conduitKey,
             //                     _CONDUIT_CREATION_CODE_HASH
             //                 )
@@ -122,6 +123,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             //         )
             //     )
             // );
+
+            // Derive conduit address from conduit key
             (address conduit, ) = _CONDUIT_CONTROLLER.getConduit(conduitKey);
             ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
                 numTransfers
@@ -145,9 +148,11 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     );
                 }
             }
-            assert(items.length == conduitTransfers.length);
             // Call the conduit and execute bulk transfers.
-            magicValue = ConduitInterface(conduit).execute(conduitTransfers);
+            ConduitInterface(conduit).execute(conduitTransfers);
         }
+
+        // Return a magic value indicating that the transfers were performed.
+        magicValue = this.bulkTransfer.selector;
     }
 }
