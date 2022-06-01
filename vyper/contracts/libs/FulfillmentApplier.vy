@@ -436,9 +436,6 @@ def _aggregateAvailable(
 
     @return execution The transfer performed as a result of the fulfillment.
     """
-    # Retrieve orders array length and place on the stack.
-    totalOrders: uint256 = len(ordersToExecute)
-
     # Retrieve fulfillment components array length and place on stack.
     totalFulfillmentComponents: uint256 = len(fulfillmentComponents)
 
@@ -453,9 +450,6 @@ def _aggregateAvailable(
     for component in fulfillmentComponents:
         # Retrieve the fulfillment component index.
         orderIndex: uint256 = component.orderIndex
-
-        # Ensure that the order index is in range.
-        assert orderIndex < totalOrders, "InvalidFulfillmentComponentData"
 
         # If order is being fulfilled (i.e. it is still available)...
         if ordersToExecute[orderIndex].numerator != 0:
