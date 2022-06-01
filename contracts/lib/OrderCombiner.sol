@@ -95,6 +95,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param recipient                 The intended recipient for all received
+     *                                  items.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders An array of booleans indicating if each order
@@ -110,6 +112,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
         bytes32 fulfillerConduitKey,
+        address recipient,
         uint256 maximumFulfilled
     )
         internal
@@ -128,7 +131,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             advancedOrders,
             offerFulfillments,
             considerationFulfillments,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient
         );
 
         // Return order fulfillment details and executions.
@@ -434,6 +438,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used, with
      *                                  direct approvals set on Consideration.
+     * @param recipient                 The intended recipient for all received
+     *                                  items.
      *
      * @return availableOrders An array of booleans indicating if each order
      *                         with an index corresponding to the index of the
@@ -446,7 +452,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     )
         internal
         returns (bool[] memory availableOrders, Execution[] memory executions)
@@ -481,7 +488,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     advancedOrders,
                     Side.OFFER,
                     components,
-                    fulfillerConduitKey
+                    fulfillerConduitKey,
+                    recipient
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -506,7 +514,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     advancedOrders,
                     Side.CONSIDERATION,
                     components,
-                    fulfillerConduitKey
+                    fulfillerConduitKey,
+                    recipient // unused
                 );
 
                 // If offerer and recipient on the execution are the same...

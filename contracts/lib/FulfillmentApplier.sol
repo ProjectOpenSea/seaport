@@ -31,7 +31,7 @@ import {
  */
 contract FulfillmentApplier is FulfillmentApplicationErrors {
     /**
-     * @dev Internal view function to match offer items to consideration items
+     * @dev Internal pure function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
      *
      * @param advancedOrders          The orders to match.
@@ -49,7 +49,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] calldata offerComponents,
         FulfillmentComponent[] calldata considerationComponents
-    ) internal view returns (Execution memory execution) {
+    ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
             offerComponents.length == 0 || considerationComponents.length == 0
@@ -74,7 +74,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         _aggregateValidFulfillmentOfferItems(
             advancedOrders,
             offerComponents,
-            execution
+            execution,
+            address(0) // unused
         );
 
         // Ensure offer and consideration share types, tokens and identifiers.
@@ -135,6 +136,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      *                              approvals from. The zero hash signifies that
      *                              no conduit should be used, with approvals
      *                              set directly on this contract.
+     * @param recipient             The intended recipient for all received
+     *                              items.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -142,7 +145,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         AdvancedOrder[] memory advancedOrders,
         Side side,
         FulfillmentComponent[] memory fulfillmentComponents,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal view returns (Execution memory execution) {
         // Skip overflow / underflow checks; conditions checked or unreachable.
         unchecked {
@@ -158,7 +162,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 _aggregateValidFulfillmentOfferItems(
                     advancedOrders,
                     fulfillmentComponents,
-                    execution
+                    execution,
+                    recipient
                 );
             } else {
                 // Otherwise, fulfillment components are consideration
@@ -177,7 +182,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 execution.conduitKey = fulfillerConduitKey;
             }
 
-            // Set the offerer as the receipient if execution amount is nonzero.
+            // Set the offerer as the receipient if execution amount is zero.
             if (execution.item.amount == 0) {
                 execution.item.recipient = payable(execution.offerer);
             }
@@ -194,12 +199,14 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      *                        indicating the order index and item index of each
      *                        candidate offer item for aggregation.
      * @param execution       The execution to apply the aggregation to.
+     * @param recipient       The intended recipient for all received items.
      */
     function _aggregateValidFulfillmentOfferItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
-        Execution memory execution
-    ) internal view {
+        Execution memory execution,
+        address recipient
+    ) internal pure {
         assembly {
             // Declare function for reverts on invalid fulfillment data.
             function throwInvalidFulfillmentComponentData() {
@@ -291,10 +298,10 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Retrieve the received item pointer.
             let receivedItemPtr := mload(execution)
 
-            // Set the caller as the recipient on the received item.
+            // Set the recipient on the received item.
             mstore(
                 add(receivedItemPtr, ReceivedItem_recipient_offset),
-                caller()
+                recipient
             )
 
             // Set the item type on the received item.

@@ -69,13 +69,15 @@ contract OrderFulfiller is
      *                            from. The zero hash signifies that no conduit
      *                            should be used, with direct approvals set on
      *                            Consideration.
+     * @param recipient           The intended recipient for all received items.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function _validateAndFulfillAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -113,7 +115,8 @@ contract OrderFulfiller is
             fillNumerator,
             fillDenominator,
             orderParameters.conduitKey,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -151,13 +154,15 @@ contract OrderFulfiller is
      *                            from. The zero hash signifies that no conduit
      *                            should be used, with direct approvals set on
      *                            Consideration.
+     * @param recipient           The intended recipient for all received items.
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
         bytes32 offererConduitKey,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal {
         // Derive order duration, time elapsed, and time remaining.
         uint256 duration = orderParameters.endTime - orderParameters.startTime;
@@ -234,10 +239,10 @@ contract OrderFulfiller is
                 assembly {
                     // Write derived fractional amount to startAmount as amount.
                     mstore(add(offerItem, ReceivedItem_amount_offset), amount)
-                    // Write fulfiller (i.e. caller) to endAmount as recipient.
+                    // Write recipient to endAmount.
                     mstore(
                         add(offerItem, ReceivedItem_recipient_offset),
-                        caller()
+                        recipient
                     )
                 }
 
@@ -254,7 +259,7 @@ contract OrderFulfiller is
                     }
                 }
 
-                // Transfer the item from the offerer to the caller.
+                // Transfer the item from the offerer to the recipient.
                 _transferOfferItem(
                     offerItem,
                     orderParameters.offerer,
