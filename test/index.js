@@ -9889,9 +9889,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create a conduit key with a random salt and store to pass into bulkTransfer
       tempConduitKey = owner.address + randomHex(12).slice(2);
 
-      const { conduit: tempConduitAddress } = await conduitController.getConduit(
-        tempConduitKey
-      );
+      const { conduit: tempConduitAddress } =
+        await conduitController.getConduit(tempConduitKey);
 
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
@@ -9902,16 +9901,22 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       tempConduit = conduitImplementation.attach(tempConduitAddress);
 
       await Promise.all(
-        [sender, recipient, zone, senderContract, recipientContract].map((wallet) =>
-          faucet(wallet.address, provider)
+        [sender, recipient, zone, senderContract, recipientContract].map(
+          (wallet) => faucet(wallet.address, provider)
         )
       );
 
       // Deploy a new TransferHelper with the tempConduitController address
-      tempTransferHelper = await deployContract("TransferHelper", owner, conduitController.address);
+      tempTransferHelper = await deployContract(
+        "TransferHelper",
+        owner,
+        conduitController.address
+      );
 
       await whileImpersonating(owner.address, provider, async () => {
-        await conduitController.connect(owner).updateChannel(tempConduit.address, tempTransferHelper.address, true);
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, tempTransferHelper.address, true);
       });
     });
 
@@ -9979,7 +9984,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
       let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
       // Send the bulk transfers
-      await tempTransferHelper.connect(sender).bulkTransfer(transfers, recipient.address, tempConduitKey);
+      await tempTransferHelper
+        .connect(sender)
+        .bulkTransfer(transfers, recipient.address, tempConduitKey);
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, amount, identifier
@@ -10001,8 +10008,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           case 3: // ERC1155
           case 5: // ERC1155_WITH_CRITERIA
             // Check balance
-            expect(await token.balanceOf(sender.address, identifier)).to.equal(0);
-            expect(await token.balanceOf(recipient.address, identifier)).to.equal(amount);
+            expect(await token.balanceOf(sender.address, identifier)).to.equal(
+              0
+            );
+            expect(
+              await token.balanceOf(recipient.address, identifier)
+            ).to.equal(amount);
             break;
         }
       }
@@ -10072,7 +10083,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
       let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
       // Send the bulk transfers
-      await tempTransferHelper.connect(sender).bulkTransfer(transfers, recipient.address, ethers.utils.formatBytes32String(""));
+      await tempTransferHelper
+        .connect(sender)
+        .bulkTransfer(
+          transfers,
+          recipient.address,
+          ethers.utils.formatBytes32String("")
+        );
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, amount, identifier
@@ -10094,12 +10111,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           case 3: // ERC1155
           case 5: // ERC1155_WITH_CRITERIA
             // Check balance
-            expect(await token.balanceOf(sender.address, identifier)).to.equal(0);
-            expect(await token.balanceOf(recipient.address, identifier)).to.equal(amount);
+            expect(await token.balanceOf(sender.address, identifier)).to.equal(
+              0
+            );
+            expect(
+              await token.balanceOf(recipient.address, identifier)
+            ).to.equal(amount);
             break;
         }
       }
-    })
+    });
   });
 
   describe("Reverts", async () => {
