@@ -222,6 +222,30 @@ contract TransferHelperTest is BaseOrderTest {
         performMultiItemTransferAndCheckBalances(items, address(this), alice);
     }
 
+    function testBulkTransferERC1155andERC721andERC20() public {
+        TransferHelperItem[] memory items = new TransferHelperItem[](3);
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC1155,
+            address(test1155_1),
+            1,
+            20
+        );
+        items[1] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(test721_1),
+            1,
+            1
+        );
+        items[2] = TransferHelperItem(
+            ConduitItemType.ERC20,
+            address(token1),
+            1,
+            8
+        );
+
+        performMultiItemTransferAndCheckBalances(items, address(this), alice);
+    }
+
     function testBulkTransferMultipleERC721() public {
         uint256 numItems = 3;
         TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
