@@ -167,8 +167,9 @@ def _aggregateValidFulfillmentConsiderationItems(
                 receivedItem
             )
 
-    # Revert if an order/item was out of range or was not aggregatable.
-    assert potentialCandidate.validFulfillment, "invalid fulfillment component data"
+            # Revert if an order/item was not aggregatable.
+            assert potentialCandidate.validFulfillment, "invalid fulfillment component data"
+
     return receivedItem
 
 @internal
@@ -264,8 +265,8 @@ def _aggregateValidFulfillmentOfferItems(
                 execution
             )
 
-    # Revert if an order/item was out of range or was not aggregatable.
-    assert validFulfillment, "InvalidFulfillmentComponentData"
+            # Revert if an order/item was not aggregatable.
+            assert validFulfillment, "InvalidFulfillmentComponentData"
 
     return execution
 
