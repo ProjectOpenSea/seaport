@@ -310,7 +310,7 @@ def _applyFulfillment(
     @return execution The transfer performed as a result of the fulfillment.
     """
     # Ensure 1+ of both offer and consideration components are supplied.
-    assert len(offerComponents) == 0 or len(considerationComponents) == 0,\
+    assert len(offerComponents) != 0 and len(considerationComponents) != 0,\
         "offer and consideration required on fulfillment"
 
     # Validate and aggregate consideration items and store the result as a
