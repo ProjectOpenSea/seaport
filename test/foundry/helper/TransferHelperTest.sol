@@ -24,6 +24,7 @@ contract TransferHelperTest is BaseOrderTest {
         address thisAddress = address(this);
         token1.mint(thisAddress, 20);
         test721_1.mint(thisAddress, 1);
+        test1155_1.mint(thisAddress, 1, 20);
         _setApprovals(thisAddress);
     }
 
@@ -98,5 +99,37 @@ contract TransferHelperTest is BaseOrderTest {
         // Check final balances
         address ownerAfterTransfer = test721_1.ownerOf(1);
         assertEq(ownerAfterTransfer, to);
+    }
+
+    function testBulkTransferERC1155() public {
+        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        uint256 amount = 20;
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC1155,
+            address(test1155_1),
+            1,
+            amount
+        );
+        address from = address(this);
+        address to = address(1);
+        uint256 tokenId = 1;
+
+        // Get initial balances
+        // TODO create helper fn that takes in an arbitrary token ID
+        // and list of addresses and returns a list of balances
+        uint256 fromBalanceBeforeTransfer = test1155_1.balanceOf(from, tokenId);
+        uint256 toBalanceBeforeTransfer = test1155_1.balanceOf(to, tokenId);
+
+        transferHelper.bulkTransfer(items, to, bytes32(0));
+
+        // Check final balances
+        assertEq(
+            test1155_1.balanceOf(from, tokenId),
+            fromBalanceBeforeTransfer - amount
+        );
+        assertEq(
+            test1155_1.balanceOf(to, tokenId),
+            toBalanceBeforeTransfer + amount
+        );
     }
 }
