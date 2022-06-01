@@ -160,7 +160,7 @@ contract TransferHelperTest is BaseOrderTest {
         vm.stopPrank();
     }
 
-    // Tests
+    // Test successful transfers
 
     function testBulkTransferERC20() public {
         TransferHelperItem memory item = TransferHelperItem(
@@ -261,6 +261,34 @@ contract TransferHelperTest is BaseOrderTest {
         performMultiItemTransferAndCheckBalances(items, alice, bob);
     }
 
+    function testBulkTransferMultipleERC721andMultipleERC1155() public {
+        uint256 numItems = 6;
+        TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
+
+        // Fill items such that the items are [ERC721, ERC1155, ERC721, ...]
+        for (uint256 i = 0; i < numItems; i++) {
+            if (i % 2 == 0) {
+                items[i] = TransferHelperItem(
+                    ConduitItemType.ERC721,
+                    address(test721_1),
+                    i,
+                    1
+                );
+            } else {
+                items[i] = TransferHelperItem(
+                    ConduitItemType.ERC1155,
+                    address(test1155_1),
+                    i,
+                    20
+                );
+            }
+        }
+
+        performMultiItemTransferAndCheckBalances(items, alice, bob);
+    }
+
+    // Test reverts
+
     function testRevertBulkTransferETH() public {
         TransferHelperItem memory item = TransferHelperItem(
             ConduitItemType.NATIVE,
@@ -273,5 +301,26 @@ contract TransferHelperTest is BaseOrderTest {
         // but that didn't work
         vm.expectRevert();
         performSingleItemTransferAndCheckBalances(item, alice, bob);
+    }
+
+    function testRevertBulkTransferETHandERC721() public {
+        TransferHelperItem[] memory items = new TransferHelperItem[](2);
+        items[0] = TransferHelperItem(
+            ConduitItemType.NATIVE,
+            address(0),
+            1,
+            20
+        );
+        items[1] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(test721_1),
+            1,
+            1
+        );
+
+        // TODO check for custom error, I tried TransferHelperInterface.InvalidItemType.selector
+        // but that didn't work
+        vm.expectRevert();
+        performMultiItemTransferAndCheckBalances(items, alice, bob);
     }
 }
