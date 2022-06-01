@@ -108,27 +108,24 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         // If a conduitKey is given, derive the conduit address from the conduitKey and call the conduit to perform transfers.
         else {
             // Derive address from deployer, conduit key and creation code hash.
-            address conduit = address(
-                uint160(
-                    uint256(
-                        keccak256(
-                            abi.encodePacked(
-                                bytes1(0xff),
-                                address(this),
-                                conduitKey,
-                                _CONDUIT_CREATION_CODE_HASH
-                            )
-                        )
-                    )
-                )
-            );
-
-            // Determine whether conduit exists by retrieving its runtime code.
-            bool exists = (conduit.codehash == _CONDUIT_RUNTIME_CODE_HASH);
+            // address conduit = address(
+            //     uint160(
+            //         uint256(
+            //             keccak256(
+            //                 abi.encodePacked(
+            //                     bytes1(0xff),
+            //                     _CONDUIT_CONTROLLER,
+            //                     conduitKey,
+            //                     _CONDUIT_CREATION_CODE_HASH
+            //                 )
+            //             )
+            //         )
+            //     )
+            // );
+            (address conduit, ) = _CONDUIT_CONTROLLER.getConduit(conduitKey);
             ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
                 numTransfers
             );
-            require(exists, "Conduit does not exist");
 
             // Skip overflow checks as all for loops are indexed starting at zero.
             unchecked {
@@ -148,12 +145,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     );
                 }
             }
-
+            assert(items.length == conduitTransfers.length);
             // Call the conduit and execute bulk transfers.
-            ConduitInterface(conduit).execute(conduitTransfers);
+            magicValue = ConduitInterface(conduit).execute(conduitTransfers);
         }
-
-        // Return a magic value indicating that the transfers were performed.
-        magicValue = this.bulkTransfer.selector;
     }
 }
