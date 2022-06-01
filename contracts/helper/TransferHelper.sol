@@ -10,6 +10,8 @@ import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 import { ConduitControllerInterface } from "../interfaces/ConduitControllerInterface.sol";
 
+import { Conduit } from "../conduit/Conduit.sol";
+
 import { ConduitTransfer } from "../conduit/lib/ConduitStructs.sol";
 
 import { TransferHelperInterface } from "../interfaces/TransferHelperInterface.sol";
@@ -23,8 +25,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
 
-    // Cache the conduit creation code hash used by the conduit controller.
+    // Cache the conduit creation hashes used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
+    bytes32 internal immutable _CONDUIT_RUNTIME_CODE_HASH;
 
     /**
      * @dev Set the supplied conduit controller and retrieve its conduit creation code hash.
@@ -38,10 +41,14 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         // Set the supplied conduit controller.
         _CONDUIT_CONTROLLER = ConduitControllerInterface(conduitController);
 
-        // Retrieve the conduit creation code hash from the supplied controller.
-        (_CONDUIT_CREATION_CODE_HASH, ) = (
-            _CONDUIT_CONTROLLER.getConduitCodeHashes()
-        );
+        // Derive the conduit creation code hash and set it as an immutable.
+        _CONDUIT_CREATION_CODE_HASH = keccak256(type(Conduit).creationCode);
+
+        // Deploy a conduit with the zero hash as the salt.
+        Conduit zeroConduit = new Conduit{ salt: bytes32(0) }();
+
+        // Retrieve the conduit runtime code hash and set it as an immutable.
+        _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
     }
 
     /**
@@ -69,7 +76,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     TransferHelperItem calldata item = items[i];
 
                     // Perform a transfer based on the transfer's item type.
-                    // Ensure that the item being transferred is not a native token.
+                    // Revert if the item being transferred is not a native token.
                     if (item.itemType == ConduitItemType.NATIVE) {
                         revert InvalidItemType();
                     } else if (item.itemType == ConduitItemType.ERC20) {
@@ -100,10 +107,28 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         }
         // If a conduitKey is given, derive the conduit address from the conduitKey and call the conduit to perform transfers.
         else {
-            (address conduit, ) = _CONDUIT_CONTROLLER.getConduit(conduitKey);
+            // Derive address from deployer, conduit key and creation code hash.
+            address conduit = address(
+                uint160(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                bytes1(0xff),
+                                address(this),
+                                conduitKey,
+                                _CONDUIT_CREATION_CODE_HASH
+                            )
+                        )
+                    )
+                )
+            );
+
+            // Determine whether conduit exists by retrieving its runtime code.
+            bool exists = (conduit.codehash == _CONDUIT_RUNTIME_CODE_HASH);
             ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
                 numTransfers
             );
+            require(exists, "Conduit does not exist");
 
             // Skip overflow checks as all for loops are indexed starting at zero.
             unchecked {
