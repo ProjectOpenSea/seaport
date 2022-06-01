@@ -12,6 +12,8 @@ import { TransferHelper } from "../../../contracts/helper/TransferHelper.sol";
 import { TransferHelperItem } from "../../../contracts/helper/TransferHelperStructs.sol";
 
 import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
+import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
+import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
@@ -51,6 +53,35 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
+    function balanceOfTransferItemForAddress(
+        TransferHelperItem memory item,
+        address addr
+    ) public returns (uint256) {
+        if (item.itemType == ConduitItemType.ERC20) {
+            return TestERC20(item.token).balanceOf(addr);
+        } else if (item.itemType == ConduitItemType.ERC721) {
+            return
+                TestERC721(item.token).ownerOf(item.tokenIdentifier) == addr
+                    ? 1
+                    : 0;
+        } else if (item.itemType == ConduitItemType.ERC1155) {
+            return
+                TestERC1155(item.token).balanceOf(addr, item.tokenIdentifier);
+        }
+        revert();
+    }
+
+    function balanceOfTransferItemForFromTo(
+        TransferHelperItem memory item,
+        address from,
+        address to
+    ) public returns (uint256 fromBalance, uint256 toBalance) {
+        return (
+            balanceOfTransferItemForAddress(item, from),
+            balanceOfTransferItemForAddress(item, to)
+        );
+    }
+
     function testBulkTransferERC20() public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         uint256 amount = 20;
@@ -63,17 +94,20 @@ contract TransferHelperTest is BaseOrderTest {
         address from = address(this);
         address to = address(1);
 
-        // Get initial balances
-        // TODO create helper fn that takes in an arbitrary token ID
-        // and list of addresses and returns a list of balances
-        uint256 fromBalanceBeforeTransfer = token1.balanceOf(from);
-        uint256 toBalanceBeforeTransfer = token1.balanceOf(to);
+        (
+            uint256 fromBalanceBeforeTransfer,
+            uint256 toBalanceBeforeTransfer
+        ) = balanceOfTransferItemForFromTo(items[0], from, to);
 
         transferHelper.bulkTransfer(items, to, bytes32(0));
 
+        (
+            uint256 fromBalanceAfterTransfer,
+            uint256 toBalanceAfterTransfer
+        ) = balanceOfTransferItemForFromTo(items[0], from, to);
         // Check final balances
-        assertEq(token1.balanceOf(from), fromBalanceBeforeTransfer - amount);
-        assertEq(token1.balanceOf(to), toBalanceBeforeTransfer + amount);
+        assertEq(fromBalanceAfterTransfer, fromBalanceBeforeTransfer - amount);
+        assertEq(toBalanceAfterTransfer, toBalanceBeforeTransfer + amount);
     }
 
     function testBulkTransferERC721() public {
