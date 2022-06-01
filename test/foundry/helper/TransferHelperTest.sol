@@ -82,88 +82,67 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testBulkTransferERC20() public {
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
-        uint256 amount = 20;
-        items[0] = TransferHelperItem(
-            ConduitItemType.ERC20,
-            address(token1),
-            1,
-            amount
-        );
+    function performSingleTransferFromThisAndCheckBalances(
+        // TODO allow specifying an arbitrary number of items
+        TransferHelperItem memory item,
+        address to
+    ) public {
+        // TODO make more flexible to allow passing in a from and using prank
+        // to get the msg.sender/tx.origin to be the from
         address from = address(this);
-        address to = address(1);
 
+        // Get initial balances
         (
             uint256 fromBalanceBeforeTransfer,
             uint256 toBalanceBeforeTransfer
-        ) = balanceOfTransferItemForFromTo(items[0], from, to);
+        ) = balanceOfTransferItemForFromTo(item, from, to);
 
+        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        items[0] = item;
         transferHelper.bulkTransfer(items, to, bytes32(0));
 
         (
             uint256 fromBalanceAfterTransfer,
             uint256 toBalanceAfterTransfer
-        ) = balanceOfTransferItemForFromTo(items[0], from, to);
-        // Check final balances
-        assertEq(fromBalanceAfterTransfer, fromBalanceBeforeTransfer - amount);
-        assertEq(toBalanceAfterTransfer, toBalanceBeforeTransfer + amount);
+        ) = balanceOfTransferItemForFromTo(item, from, to);
+        // Check final balances by calculating difference against initial
+        assertEq(
+            fromBalanceAfterTransfer,
+            fromBalanceBeforeTransfer - item.amount
+        );
+        assertEq(toBalanceAfterTransfer, toBalanceBeforeTransfer + item.amount);
+    }
+
+    function testBulkTransferERC20() public {
+        TransferHelperItem memory item = TransferHelperItem(
+            ConduitItemType.ERC20,
+            address(token1),
+            1,
+            20
+        );
+        address to = address(1);
+        performSingleTransferFromThisAndCheckBalances(item, to);
     }
 
     function testBulkTransferERC721() public {
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
-        uint256 amount = 1;
-        items[0] = TransferHelperItem(
+        TransferHelperItem memory item = TransferHelperItem(
             ConduitItemType.ERC721,
             address(test721_1),
             1,
             1
         );
-        address from = address(this);
         address to = address(1);
-
-        // Get initial balances
-        // TODO create helper fn that takes in an arbitrary token ID
-        // and list of addresses and returns a list of balances
-        address ownerBeforeTransfer = test721_1.ownerOf(1);
-        assertEq(ownerBeforeTransfer, from);
-
-        transferHelper.bulkTransfer(items, to, bytes32(0));
-
-        // Check final balances
-        address ownerAfterTransfer = test721_1.ownerOf(1);
-        assertEq(ownerAfterTransfer, to);
+        performSingleTransferFromThisAndCheckBalances(item, to);
     }
 
     function testBulkTransferERC1155() public {
-        TransferHelperItem[] memory items = new TransferHelperItem[](1);
-        uint256 amount = 20;
-        items[0] = TransferHelperItem(
+        TransferHelperItem memory item = TransferHelperItem(
             ConduitItemType.ERC1155,
             address(test1155_1),
             1,
-            amount
+            20
         );
-        address from = address(this);
         address to = address(1);
-        uint256 tokenId = 1;
-
-        // Get initial balances
-        // TODO create helper fn that takes in an arbitrary token ID
-        // and list of addresses and returns a list of balances
-        uint256 fromBalanceBeforeTransfer = test1155_1.balanceOf(from, tokenId);
-        uint256 toBalanceBeforeTransfer = test1155_1.balanceOf(to, tokenId);
-
-        transferHelper.bulkTransfer(items, to, bytes32(0));
-
-        // Check final balances
-        assertEq(
-            test1155_1.balanceOf(from, tokenId),
-            fromBalanceBeforeTransfer - amount
-        );
-        assertEq(
-            test1155_1.balanceOf(to, tokenId),
-            toBalanceBeforeTransfer + amount
-        );
+        performSingleTransferFromThisAndCheckBalances(item, to);
     }
 }
