@@ -19,15 +19,28 @@ contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
     TestERC20 testErc20;
 
+    struct FromToBalance {
+        // Balance of from address.
+        uint256 from;
+        // Balance of to address.
+        uint256 to;
+    }
+
     function setUp() public override {
         super.setUp();
         transferHelper = new TransferHelper(address(conduitController));
 
+        // Mint initial tokens for testing.
         address thisAddress = address(this);
         token1.mint(thisAddress, 20);
         test721_1.mint(thisAddress, 1);
         test1155_1.mint(thisAddress, 1, 20);
+
+        // Allow transfer helper to perform transfers for these addresses.
         _setApprovals(thisAddress);
+        _setApprovals(alice);
+        _setApprovals(bob);
+        _setApprovals(cal);
     }
 
     function _setApprovals(address _owner) internal override {
@@ -75,43 +88,85 @@ contract TransferHelperTest is BaseOrderTest {
         TransferHelperItem memory item,
         address from,
         address to
-    ) public returns (uint256 fromBalance, uint256 toBalance) {
-        return (
-            balanceOfTransferItemForAddress(item, from),
-            balanceOfTransferItemForAddress(item, to)
-        );
+    ) public returns (FromToBalance memory) {
+        return
+            FromToBalance(
+                balanceOfTransferItemForAddress(item, from),
+                balanceOfTransferItemForAddress(item, to)
+            );
     }
 
-    function performSingleTransferFromThisAndCheckBalances(
+    function performSingleItemTransferAndCheckBalances(
         // TODO allow specifying an arbitrary number of items
         TransferHelperItem memory item,
+        address from,
         address to
     ) public {
-        // TODO make more flexible to allow passing in a from and using prank
-        // to get the msg.sender/tx.origin to be the from
-        address from = address(this);
+        vm.startPrank(from);
 
         // Get initial balances
-        (
-            uint256 fromBalanceBeforeTransfer,
-            uint256 toBalanceBeforeTransfer
-        ) = balanceOfTransferItemForFromTo(item, from, to);
+        FromToBalance
+            memory beforeTransferBalance = balanceOfTransferItemForFromTo(
+                item,
+                from,
+                to
+            );
 
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = item;
+
         transferHelper.bulkTransfer(items, to, bytes32(0));
 
-        (
-            uint256 fromBalanceAfterTransfer,
-            uint256 toBalanceAfterTransfer
-        ) = balanceOfTransferItemForFromTo(item, from, to);
-        // Check final balances by calculating difference against initial
+        FromToBalance
+            memory afterTransferBalance = balanceOfTransferItemForFromTo(
+                item,
+                from,
+                to
+            );
+
+        // Check final balances by calculating difference against before transfer balances.
         assertEq(
-            fromBalanceAfterTransfer,
-            fromBalanceBeforeTransfer - item.amount
+            afterTransferBalance.from,
+            beforeTransferBalance.from - item.amount
         );
-        assertEq(toBalanceAfterTransfer, toBalanceBeforeTransfer + item.amount);
+        assertEq(
+            afterTransferBalance.to,
+            beforeTransferBalance.to + item.amount
+        );
+        vm.stopPrank();
     }
+
+    // function performMultiItemTransferAndCheckBalances(
+    //     TransferHelperItem[] memory items,
+    //     address from,
+    //     address to
+    // ) public {
+    //     vm.startPrank(from);
+
+    //     // Get initial balances
+    //     (
+    //         uint256 fromBalanceBeforeTransfer,
+    //         uint256 toBalanceBeforeTransfer
+    //     ) = balanceOfTransferItemForFromTo(item, from, to);
+
+    //     TransferHelperItem[] memory items = new TransferHelperItem[](1);
+    //     items[0] = item;
+
+    //     transferHelper.bulkTransfer(items, to, bytes32(0));
+
+    //     (
+    //         uint256 fromBalanceAfterTransfer,
+    //         uint256 toBalanceAfterTransfer
+    //     ) = balanceOfTransferItemForFromTo(item, from, to);
+
+    //     // Check final balances by calculating difference against before transfer balances.
+    //     assertEq(
+    //         fromBalanceAfterTransfer,
+    //         fromBalanceBeforeTransfer - item.amount
+    //     );
+    //     assertEq(toBalanceAfterTransfer, toBalanceBeforeTransfer + item.amount);
+    //     vm.stopPrank();
+    // }
 
     function testBulkTransferERC20() public {
         TransferHelperItem memory item = TransferHelperItem(
@@ -121,7 +176,7 @@ contract TransferHelperTest is BaseOrderTest {
             20
         );
         address to = address(1);
-        performSingleTransferFromThisAndCheckBalances(item, to);
+        performSingleItemTransferAndCheckBalances(item, address(this), to);
     }
 
     function testBulkTransferERC721() public {
@@ -132,7 +187,22 @@ contract TransferHelperTest is BaseOrderTest {
             1
         );
         address to = address(1);
-        performSingleTransferFromThisAndCheckBalances(item, to);
+        performSingleItemTransferAndCheckBalances(item, address(this), to);
+    }
+
+    function testBulkTransferERC721toUserBthenUserC() public {
+        TransferHelperItem memory item = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(test721_1),
+            1,
+            1
+        );
+        address userA = address(this);
+        address userB = address(1);
+        address userC = address(2);
+        _setApprovals(userB);
+        performSingleItemTransferAndCheckBalances(item, userA, userB);
+        performSingleItemTransferAndCheckBalances(item, userB, userC);
     }
 
     function testBulkTransferERC1155() public {
@@ -143,6 +213,6 @@ contract TransferHelperTest is BaseOrderTest {
             20
         );
         address to = address(1);
-        performSingleTransferFromThisAndCheckBalances(item, to);
+        performSingleItemTransferAndCheckBalances(item, address(this), to);
     }
 }
