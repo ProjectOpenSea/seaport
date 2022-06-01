@@ -15,6 +15,8 @@ import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
+import { TransferHelperInterface } from "../../../contracts/interfaces/TransferHelperInterface.sol";
+
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
     TestERC20 testErc20;
@@ -257,5 +259,19 @@ contract TransferHelperTest is BaseOrderTest {
         }
 
         performMultiItemTransferAndCheckBalances(items, alice, bob);
+    }
+
+    function testRevertBulkTransferETH() public {
+        TransferHelperItem memory item = TransferHelperItem(
+            ConduitItemType.NATIVE,
+            address(0),
+            1,
+            20
+        );
+
+        // TODO check for custom error, I tried TransferHelperInterface.InvalidItemType.selector
+        // but that didn't work
+        vm.expectRevert();
+        performSingleItemTransferAndCheckBalances(item, alice, bob);
     }
 }
