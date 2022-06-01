@@ -9986,7 +9986,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
       let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
       // Send the bulk transfers
-      console.log("transfers:", transfers);
+      // console.log("transfers:", transfers);
+      const transfer = { itemType: 1, token: contracts[4].address, tokenIdentifier: 0, amount: toBN(1) };
+      console.log("transfer: ", transfer);
       await tempTransferHelper.connect(sender).bulkTransfer(transfers, recipient.address, tempConduitKey);
       console.log("after bulk transfer");
       // Loop through all transfer to do ownership/balance checks
@@ -10081,16 +10083,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
       let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
       // Send the bulk transfers
-      console.log("transfers:", transfers);
-      await tempTransferHelper.connect(sender).bulkTransfer(transfers, recipient.address, "0x");
-      console.log("2");
+      await tempTransferHelper.connect(sender).bulkTransfer(transfers, recipient.address, ethers.utils.formatBytes32String(""));
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, amount, identifier
         itemType = transfers[i].itemType;
         token = contracts[i];
         amount = transfers[i].amount;
-        identifier = transfers[i].identifier;
+        identifier = transfers[i].tokenIdentifier;
 
         switch (itemType) {
           case 1: // ERC20
@@ -10100,7 +10100,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             break;
           case 2: // ERC721
           case 4: // ERC721_WITH_CRITERIA
-            expect(await token.ownerOf(identifier)).to.equal(to);
+            expect(await token.ownerOf(identifier)).to.equal(recipient.address);
             break;
           case 3: // ERC1155
           case 5: // ERC1155_WITH_CRITERIA
