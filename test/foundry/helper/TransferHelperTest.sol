@@ -37,6 +37,8 @@ contract TransferHelperTest is BaseOrderTest {
         // Mint ERC721 and ERC1155 with token IDs 0 to 9 to alice
         for (uint256 i = 0; i < 10; i++) {
             test721_1.mint(alice, i);
+            test721_2.mint(alice, i);
+            test721_3.mint(alice, i);
             test1155_1.mint(alice, i, 20);
         }
 
@@ -273,7 +275,7 @@ contract TransferHelperTest is BaseOrderTest {
         performMultiItemTransferAndCheckBalances(items, alice, bob, false);
     }
 
-    function testBulkTransferMultipleERC721() public {
+    function testBulkTransferMultipleERC721SameContract() public {
         uint256 numItems = 3;
         TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
         for (uint256 i = 0; i < numItems; i++) {
@@ -284,6 +286,30 @@ contract TransferHelperTest is BaseOrderTest {
                 1
             );
         }
+
+        performMultiItemTransferAndCheckBalances(items, alice, bob, false);
+    }
+
+    function testBulkTransferMultipleERC721DifferentContracts() public {
+        TransferHelperItem[] memory items = new TransferHelperItem[](3);
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(test721_1),
+            1,
+            1
+        );
+        items[1] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(test721_2),
+            2,
+            1
+        );
+        items[2] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(test721_3),
+            3,
+            1
+        );
 
         performMultiItemTransferAndCheckBalances(items, alice, bob, false);
     }
