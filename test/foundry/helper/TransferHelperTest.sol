@@ -20,8 +20,11 @@ contract TransferHelperTest is BaseOrderTest {
     function setUp() public override {
         super.setUp();
         transferHelper = new TransferHelper(address(conduitController));
-        token1.mint(address(this), 20);
-        _setApprovals(address(this));
+
+        address thisAddress = address(this);
+        token1.mint(thisAddress, 20);
+        test721_1.mint(thisAddress, 1);
+        _setApprovals(thisAddress);
     }
 
     function _setApprovals(address _owner) internal override {
@@ -70,5 +73,30 @@ contract TransferHelperTest is BaseOrderTest {
         // Check final balances
         assertEq(token1.balanceOf(from), fromBalanceBeforeTransfer - amount);
         assertEq(token1.balanceOf(to), toBalanceBeforeTransfer + amount);
+    }
+
+    function testBulkTransferERC721() public {
+        TransferHelperItem[] memory items = new TransferHelperItem[](1);
+        uint256 amount = 1;
+        items[0] = TransferHelperItem(
+            ConduitItemType.ERC721,
+            address(test721_1),
+            1,
+            1
+        );
+        address from = address(this);
+        address to = address(1);
+
+        // Get initial balances
+        // TODO create helper fn that takes in an arbitrary token ID
+        // and list of addresses and returns a list of balances
+        address ownerBeforeTransfer = test721_1.ownerOf(1);
+        assertEq(ownerBeforeTransfer, from);
+
+        transferHelper.bulkTransfer(items, to, bytes32(0));
+
+        // Check final balances
+        address ownerAfterTransfer = test721_1.ownerOf(1);
+        assertEq(ownerAfterTransfer, to);
     }
 }
