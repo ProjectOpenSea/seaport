@@ -217,41 +217,44 @@ contract OrderFulfiller is
                 OfferItem memory offerItem = orderParameters.offer[i];
                 // Declare a nested scope to minimize stack depth.
                 {
-                  // Apply fill fraction to derive offer item amount to transfer.
-                  uint256 amount = _applyFraction(
-                      offerItem.startAmount,
-                      offerItem.endAmount,
-                      numerator,
-                      denominator,
-                      elapsed,
-                      remaining,
-                      duration,
-                      false
-                  );
+                    // Apply fill fraction to derive offer item amount to transfer.
+                    uint256 amount = _applyFraction(
+                        offerItem.startAmount,
+                        offerItem.endAmount,
+                        numerator,
+                        denominator,
+                        elapsed,
+                        remaining,
+                        duration,
+                        false
+                    );
 
-                  // Utilize assembly to set overloaded offerItem arguments.
-                  assembly {
-                      // Write derived fractional amount to startAmount as amount.
-                      mstore(add(offerItem, ReceivedItem_amount_offset), amount)
-                      // Write recipient to endAmount.
-                      mstore(
-                          add(offerItem, ReceivedItem_recipient_offset),
-                          recipient
-                      )
-                  }
+                    // Utilize assembly to set overloaded offerItem arguments.
+                    assembly {
+                        // Write derived fractional amount to startAmount as amount.
+                        mstore(
+                            add(offerItem, ReceivedItem_amount_offset),
+                            amount
+                        )
+                        // Write recipient to endAmount.
+                        mstore(
+                            add(offerItem, ReceivedItem_recipient_offset),
+                            recipient
+                        )
+                    }
 
-                  // Reduce available value if offer spent ETH or a native token.
-                  if (offerItem.itemType == ItemType.NATIVE) {
-                      // Ensure that sufficient native tokens are still available.
-                      if (amount > etherRemaining) {
-                          revert InsufficientEtherSupplied();
-                      }
+                    // Reduce available value if offer spent ETH or a native token.
+                    if (offerItem.itemType == ItemType.NATIVE) {
+                        // Ensure that sufficient native tokens are still available.
+                        if (amount > etherRemaining) {
+                            revert InsufficientEtherSupplied();
+                        }
 
-                      // Skip underflow check as a comparison has just been made.
-                      unchecked {
-                          etherRemaining -= amount;
-                      }
-                  }
+                        // Skip underflow check as a comparison has just been made.
+                        unchecked {
+                            etherRemaining -= amount;
+                        }
+                    }
                 }
 
                 // Transfer the item from the offerer to the recipient.
