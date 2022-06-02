@@ -157,7 +157,6 @@ contract ReferenceOrderFulfiller is
         FractionData memory fractionData = FractionData(
             numerator,
             denominator,
-            offererConduitKey,
             fulfillerConduitKey,
             (orderParameters.endTime - orderParameters.startTime),
             (block.timestamp - orderParameters.startTime),
