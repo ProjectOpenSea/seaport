@@ -300,7 +300,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         offer.token,
                         offer.identifier,
                         offer.amount,
-                        payable(msg.sender)
+                        payable(address(0))
                     ),
                     orderToExecute.offerer,
                     orderToExecute.conduitKey
