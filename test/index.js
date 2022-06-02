@@ -858,7 +858,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   ) => {
     let identifier = 0;
     let amount;
-    let token = contract.address;
+    const token = contract.address;
 
     switch (itemType) {
       case 0:
@@ -947,6 +947,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       order,
       orderHash,
       fulfiller,
+      recipient,
       fulfillerConduitKey,
     } of orderGroups) {
       const duration = toBN(order.parameters.endTime).sub(
@@ -963,7 +964,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           orderHash: x.args.orderHash,
           offerer: x.args.offerer,
           zone: x.args.zone,
-          fulfiller: x.args.fulfiller,
+          recipient: x.args.recipient,
           offer: x.args.offer.map((y) => ({
             itemType: y.itemType,
             token: y.token,
@@ -994,7 +995,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(event.orderHash).to.equal(orderHash);
       expect(event.offerer).to.equal(order.parameters.offerer);
       expect(event.zone).to.equal(order.parameters.zone);
-      expect(event.recipient).to.equal(fulfiller);
+      expect(event.recipient).to.equal(recipient || fulfiller);
 
       const { offerer, conduitKey, consideration, offer } = order.parameters;
       const compareEventItems = async (
@@ -1095,7 +1096,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           await checkTransferEvent(
             tx,
-            { ...item, amount, recipient: receipt.from },
+            { ...item, amount, recipient: recipient || receipt.from },
             {
               offerer,
               conduitKey,
@@ -1142,7 +1143,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 x.signature === "Transfer(address,address,uint256)" &&
                 x.args.from === event.offerer &&
                 (fulfiller !== constants.AddressZero
-                  ? x.args.to === fulfiller
+                  ? x.args.to === recipient || fulfiller
                   : true)
             );
 
@@ -1476,7 +1477,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       additonalPayouts,
       criteriaResolvers,
       fn,
-      multiplier = 1
+      multiplier = 1,
+      recipient = null
     ) => {
       const ordersClone = JSON.parse(JSON.stringify(ordersArray));
       for (const [i, order] of Object.entries(ordersClone)) {
@@ -2075,6 +2077,48 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 order,
                 orderHash,
                 fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ETH (standard with restricted order, specified recipient and extra data)", async () => {
+          const nftId = await mintAndApprove721(
+            seller,
+            marketplaceContract.address
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getItemETH(parseEther("10"), parseEther("10"), seller.address),
+            getItemETH(parseEther("1"), parseEther("1"), zone.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            stubZone,
+            offer,
+            consideration,
+            2 // FULL_RESTRICTED
+          );
+
+          order.extraData = "0x1234";
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toKey(false), owner.address, {
+                value,
+              });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+                recipient: owner.address,
               },
             ]);
 
@@ -9013,6 +9057,60 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
+      it("Can fulfill a single order via fulfillAvailableAdvancedOrders with recipient specified", async () => {
+        // Seller mints nft
+        const nftId = await mintAndApprove721(
+          seller,
+          marketplaceContract.address
+        );
+
+        const offer = [getTestItem721(nftId)];
+
+        const consideration = [
+          getItemETH(parseEther("10"), parseEther("10"), seller.address),
+          getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const offerComponents = [[[0, 0]]];
+
+        const considerationComponents = [[[0, 0]], [[0, 1]]];
+
+        await withBalanceChecks([order], 0, null, async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [order],
+              [],
+              offerComponents,
+              considerationComponents,
+              toKey(false),
+              owner.address,
+              100,
+              {
+                value,
+              }
+            );
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(tx, receipt, [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              recipient: owner.address,
+            },
+          ]);
+
+          return receipt;
+        });
+      });
       it("Can fulfill and aggregate multiple orders via fulfillAvailableOrders", async () => {
         // Seller mints nft
         const { nftId, amount } = await mintAndApprove1155(
@@ -10236,7 +10334,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       // Create/Approve X amount of  ERC20s
-      let erc20Transfer = await createTransferWithApproval(
+      const erc20Transfer = await createTransferWithApproval(
         testERC20,
         seller,
         1,
@@ -10246,7 +10344,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // Create/Approve Y amount of  ERC721s
-      let erc721Transfer = await createTransferWithApproval(
+      const erc721Transfer = await createTransferWithApproval(
         testERC721,
         seller,
         2,
@@ -10256,7 +10354,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // Create/Approve Z amount of ERC1155s
-      let erc1155Transfer = await createTransferWithApproval(
+      const erc1155Transfer = await createTransferWithApproval(
         testERC1155,
         seller,
         3,
@@ -10296,26 +10394,26 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
-      let itemsToCreate = 64;
-      let numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
-      let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
-      let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+      const itemsToCreate = 64;
+      const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
+      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
-      let erc20Contracts = [numERC20s];
-      let erc20Transfers = [numERC20s];
+      const erc20Contracts = [numERC20s];
+      const erc20Transfers = [numERC20s];
 
-      let erc721Contracts = [numEC721s];
-      let erc721Transfers = [numEC721s];
+      const erc721Contracts = [numEC721s];
+      const erc721Transfers = [numEC721s];
 
-      let erc1155Contracts = [numERC1155s];
-      let erc1155Transfers = [numERC1155s];
+      const erc1155Contracts = [numERC1155s];
+      const erc1155Transfers = [numERC1155s];
 
       // Create numERC20s amount of ERC20 objects
       for (let i = 0; i < numERC20s; i++) {
         // Deploy Contract
-        let tempERC20Contract = await deployContracts(1);
+        const tempERC20Contract = await deployContracts(1);
         // Create/Approve X amount of  ERC20s
-        let erc20Transfer = await createTransferWithApproval(
+        const erc20Transfer = await createTransferWithApproval(
           tempERC20Contract,
           seller,
           1,
@@ -10330,9 +10428,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numEC721s amount of ERC20 objects
       for (let i = 0; i < numEC721s; i++) {
         // Deploy Contract
-        let tempERC721Contract = await deployContracts(2);
+        const tempERC721Contract = await deployContracts(2);
         // Create/Approve numEC721s amount of  ERC721s
-        let erc721Transfer = await createTransferWithApproval(
+        const erc721Transfer = await createTransferWithApproval(
           tempERC721Contract,
           seller,
           2,
@@ -10347,9 +10445,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numERC1155s amount of ERC1155 objects
       for (let i = 0; i < numERC1155s; i++) {
         // Deploy Contract
-        let tempERC1155Contract = await deployContracts(3);
+        const tempERC1155Contract = await deployContracts(3);
         // Create/Approve numERC1155s amount of ERC1155s
-        let erc1155Transfer = await createTransferWithApproval(
+        const erc1155Transfer = await createTransferWithApproval(
           tempERC1155Contract,
           seller,
           3,
@@ -10361,8 +10459,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Transfers[i] = erc1155Transfer;
       }
 
-      let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
-      let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
+      const transfers = erc20Transfers.concat(
+        erc721Transfers,
+        erc1155Transfers
+      );
+      const contracts = erc20Contracts.concat(
+        erc721Contracts,
+        erc1155Contracts
+      );
       // Send the transfers
       await tempConduit.connect(seller).execute(transfers);
 
