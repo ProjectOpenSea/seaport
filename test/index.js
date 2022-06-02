@@ -10121,6 +10121,32 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         }
       }
     });
+
+    it("Reverts on native token transfers", async () => {
+      let ethTransferHelperItems = [
+        {
+          itemType: 0,
+          token: ethers.constants.AddressZero,
+          tokenIdentifier: 0,
+          amount: 10,
+        },
+        {
+          itemType: 0,
+          token: ethers.constants.AddressZero,
+          tokenIdentifier: 0,
+          amount: 20,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            ethTransferHelperItems,
+            recipient.address,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith("InvalidItemType");
+    });
   });
 
   describe("Reverts", async () => {
