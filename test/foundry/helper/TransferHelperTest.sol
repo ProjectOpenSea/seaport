@@ -548,5 +548,6 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    // TODO add test for ERC721 attempt to transfer more than 1 reverting
+    // TODO add test for solo ERC721 attempt to transfer more than 1 reverting
+    // TODO add test for ERC721 and other tokens attempt to transfer more than 1 reverting
 }
