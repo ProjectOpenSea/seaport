@@ -62,7 +62,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         TransferHelperItem[] calldata items,
         address recipient,
         bytes32 conduitKey
-    ) external returns (bytes4 magicValue) {
+    ) external override returns (bytes4 magicValue) {
         // Retrieve total number of transfers and place on stack.
         uint256 numTransfers = items.length;
 
