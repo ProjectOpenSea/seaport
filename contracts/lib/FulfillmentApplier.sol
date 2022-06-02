@@ -70,12 +70,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         // Retrieve the consideration item from the execution struct.
         ReceivedItem memory considerationItem = considerationExecution.item;
 
+        // Recipient does not need to be specified because it will always be set
+        // to that of the consideration.
         // Validate & aggregate offer items to Execution object.
         _aggregateValidFulfillmentOfferItems(
             advancedOrders,
             offerComponents,
-            execution,
-            address(0) // unused
+            execution
         );
 
         // Ensure offer and consideration share types, tokens and identifiers.
@@ -158,12 +159,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             // If the fulfillment components are offer components...
             if (side == Side.OFFER) {
+                // Set recipient on the execution item
+                execution.item.recipient = payable(recipient);
                 // Return execution for aggregated items provided by offerer.
                 _aggregateValidFulfillmentOfferItems(
                     advancedOrders,
                     fulfillmentComponents,
-                    execution,
-                    recipient
+                    execution
                 );
             } else {
                 // Otherwise, fulfillment components are consideration
@@ -182,9 +184,11 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 execution.conduitKey = fulfillerConduitKey;
             }
 
-            // Set the offerer as the receipient if execution amount is zero.
+            // Set the offerer and receipient to null address if execution amount is zero.
+            // This will cause the execution item to be skipped.
             if (execution.item.amount == 0) {
-                execution.item.recipient = payable(execution.offerer);
+                execution.offerer = address(0);
+                execution.item.recipient = payable(0);
             }
         }
     }
@@ -199,13 +203,11 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      *                        indicating the order index and item index of each
      *                        candidate offer item for aggregation.
      * @param execution       The execution to apply the aggregation to.
-     * @param recipient       The intended recipient for all received items.
      */
     function _aggregateValidFulfillmentOfferItems(
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
-        Execution memory execution,
-        address recipient
+        Execution memory execution
     ) internal pure {
         assembly {
             // Declare function for reverts on invalid fulfillment data.
@@ -297,12 +299,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             // Retrieve the received item pointer.
             let receivedItemPtr := mload(execution)
-
-            // Set the recipient on the received item.
-            mstore(
-                add(receivedItemPtr, ReceivedItem_recipient_offset),
-                recipient
-            )
 
             // Set the item type on the received item.
             mstore(receivedItemPtr, mload(offerItemPtr))
