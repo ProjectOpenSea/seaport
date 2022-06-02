@@ -417,7 +417,8 @@ contract TransferHelperTest is BaseOrderTest {
                 inputs.amounts[i],
                 // Same token index for all items since this is testing from same contract
                 inputs.tokenIndex[0],
-                // Ensure we are transferring different token identifiers
+                // Each item has a different token identifier as alice only owns one ERC721 token
+                // for each identifier for this particular contract
                 i
             );
         }
