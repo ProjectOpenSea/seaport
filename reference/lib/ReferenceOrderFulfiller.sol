@@ -199,7 +199,7 @@ contract ReferenceOrderFulfiller is
                     offerItem.token,
                     offerItem.identifierOrCriteria,
                     amount,
-                    payable(msg.sender)
+                    payable(recipient)
                 );
 
                 // Create Spent Item for the OrderFulfilled event.
