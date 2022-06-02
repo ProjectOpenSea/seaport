@@ -223,14 +223,6 @@ contract TransferHelperTest is BaseOrderTest {
         vm.stopPrank();
     }
 
-    function getFuzzedAmountInRange(uint256 amount, uint256 max)
-        internal
-        pure
-        returns (uint256)
-    {
-        return amount % max;
-    }
-
     function getFuzzedItem(
         ConduitItemType itemType,
         uint256 fuzzAmount,
