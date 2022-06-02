@@ -376,7 +376,7 @@ contract TransferHelperTest is BaseOrderTest {
 
     function testBulkTransferERC1155andERC721andERC20(
         FuzzInputsCommon memory inputs
-    ) public {
+    ) public resetTokenBalancesBetweenRuns {
         TransferHelperItem[] memory items = new TransferHelperItem[](3);
         items[0] = getFuzzedItem(
             ConduitItemType.ERC1155,
@@ -408,7 +408,11 @@ contract TransferHelperTest is BaseOrderTest {
 
     function testBulkTransferMultipleERC721SameContract(
         FuzzInputsCommon memory inputs
-    ) public {
+    )
+        public
+        // TODO is this reset needed?
+        resetTokenBalancesBetweenRuns
+    {
         uint256 numItems = 3;
         TransferHelperItem[] memory items = new TransferHelperItem[](numItems);
         for (uint256 i = 0; i < numItems; i++) {
