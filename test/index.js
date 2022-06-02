@@ -994,7 +994,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(event.orderHash).to.equal(orderHash);
       expect(event.offerer).to.equal(order.parameters.offerer);
       expect(event.zone).to.equal(order.parameters.zone);
-      expect(event.fulfiller).to.equal(fulfiller);
+      expect(event.recipient).to.equal(fulfiller);
 
       const { offerer, conduitKey, consideration, offer } = order.parameters;
       const compareEventItems = async (
