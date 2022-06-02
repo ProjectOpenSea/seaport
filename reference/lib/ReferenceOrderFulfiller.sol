@@ -173,6 +173,9 @@ contract ReferenceOrderFulfiller is
         // Get the offerer of the order.
         address offerer = orderParameters.offerer;
 
+        // Get the conduitKey of the order
+        bytes32 conduitKey = orderParameters.conduitKey;
+
         // Create the array to store the spent items for event.
         orderToExecute.spentItems = new SpentItem[](
             orderParameters.offer.length
@@ -221,12 +224,7 @@ contract ReferenceOrderFulfiller is
                 }
 
                 // Transfer the item from the offerer to the recipient.
-                _transfer(
-                    receivedItem,
-                    offerer,
-                    orderParameters.conduitKey,
-                    accumulatorStruct
-                );
+                _transfer(receivedItem, offerer, conduitKey, accumulatorStruct);
             }
         }
 
