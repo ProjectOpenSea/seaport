@@ -124,7 +124,7 @@ contract OrderFulfiller is
             orderHash,
             orderParameters.offerer,
             orderParameters.zone,
-            msg.sender,
+            recipient,
             orderParameters.offer,
             orderParameters.consideration
         );

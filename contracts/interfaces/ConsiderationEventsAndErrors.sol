@@ -15,9 +15,11 @@ interface ConsiderationEventsAndErrors {
      * @param orderHash     The hash of the fulfilled order.
      * @param offerer       The offerer of the fulfilled order.
      * @param zone          The zone of the fulfilled order.
-     * @param fulfiller     The fulfiller of the order, or the null address if
-     *                      there is no specific fulfiller (i.e. the order is
-     *                      part of a group of orders).
+     * @param recipient     The recipient of each spent item on the fulfilled
+     *                      order, or the null address if there is no specific
+     *                      fulfiller (i.e. the order is part of a group of
+     *                      orders). Defaults to the caller unless explicitly
+     *                      specified otherwise by the fulfiller.
      * @param offer         The offer items spent as part of the order.
      * @param consideration The consideration items received as part of the
      *                      order along with the recipients of each item.
@@ -26,7 +28,7 @@ interface ConsiderationEventsAndErrors {
         bytes32 orderHash,
         address indexed offerer,
         address indexed zone,
-        address fulfiller,
+        address recipient,
         SpentItem[] offer,
         ReceivedItem[] consideration
     );
