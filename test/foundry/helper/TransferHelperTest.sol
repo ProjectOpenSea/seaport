@@ -55,12 +55,16 @@ contract TransferHelperTest is BaseOrderTest {
         }
 
         // Mint ERC721 and ERC1155 with token IDs 0 to numTokenIdentifiers - 1 to alice
-        for (uint256 i = 0; i < numTokenIdentifiers; i++) {
+        for (
+            uint256 tokenIdentifier = 0;
+            tokenIdentifier < numTokenIdentifiers;
+            tokenIdentifier++
+        ) {
             for (uint256 j = 0; j < erc721s.length; j++) {
-                erc721s[j].mint(alice, i);
+                erc721s[j].mint(alice, tokenIdentifier);
             }
-            for (uint256 j = 0; j < erc721s.length; j++) {
-                erc1155s[j].mint(alice, i, numFungibleTokens);
+            for (uint256 j = 0; j < erc1155s.length; j++) {
+                erc1155s[j].mint(alice, tokenIdentifier, numFungibleTokens);
             }
         }
 
