@@ -9907,6 +9907,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // Deploy a new TransferHelper with the tempConduitController address
+      transferHelperFactory = await ethers.getContractFactory("TransferHelper");
       tempTransferHelper = await deployContract(
         "TransferHelper",
         owner,
