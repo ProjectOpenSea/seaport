@@ -275,7 +275,7 @@ contract ReferenceOrderFulfiller is
                 _transfer(
                     receivedItem,
                     msg.sender,
-                    orderParameters.conduitKey,
+                    conduitKey,
                     accumulatorStruct
                 );
             }
