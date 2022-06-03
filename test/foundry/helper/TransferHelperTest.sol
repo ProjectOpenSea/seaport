@@ -23,12 +23,12 @@ import { TransferHelperInterface } from "../../../contracts/interfaces/TransferH
 
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
-    // Total supply of fungible tokens to be used in tests for all fungible tokens
-    uint256 constant numFungibleTokens = 1e6;
-    // Total number of token identifiers to mint tokens for for ERC721s and ERC1155s
-    uint256 constant numTokenIdentifiers = 10;
-    // Constant bytes used for expecting revert with no message
-    bytes constant revertDataNoMessage = "revert no message";
+    // Total supply of fungible tokens to be used in tests for all fungible tokens.
+    uint256 constant TOTAL_FUNGIBLE_TOKENS = 1e6;
+    // Total number of token identifiers to mint tokens for for ERC721s and ERC1155s.
+    uint256 constant TOTAL_TOKEN_IDENTIFERS = 10;
+    // Constant bytes used for expecting revert with no message.
+    bytes constant REVERT_DATA_NO_MSG = "revert no message";
 
     struct FromToBalance {
         // Balance of from address.
@@ -54,13 +54,13 @@ contract TransferHelperTest is BaseOrderTest {
 
         // Mint initial tokens to alice for tests.
         for (uint256 tokenIdx = 0; tokenIdx < erc20s.length; tokenIdx++) {
-            erc20s[tokenIdx].mint(alice, numFungibleTokens);
+            erc20s[tokenIdx].mint(alice, TOTAL_FUNGIBLE_TOKENS);
         }
 
-        // Mint ERC721 and ERC1155 with token IDs 0 to numTokenIdentifiers - 1 to alice
+        // Mint ERC721 and ERC1155 with token IDs 0 to TOTAL_TOKEN_IDENTIFERS - 1 to alice
         for (
             uint256 tokenIdentifier = 0;
-            tokenIdentifier < numTokenIdentifiers;
+            tokenIdentifier < TOTAL_TOKEN_IDENTIFERS;
             tokenIdentifier++
         ) {
             for (uint256 tokenIdx = 0; tokenIdx < erc721s.length; tokenIdx++) {
@@ -70,7 +70,7 @@ contract TransferHelperTest is BaseOrderTest {
                 erc1155s[tokenIdx].mint(
                     alice,
                     tokenIdentifier,
-                    numFungibleTokens
+                    TOTAL_FUNGIBLE_TOKENS
                 );
             }
         }
@@ -191,7 +191,7 @@ contract TransferHelperTest is BaseOrderTest {
         // Register expected revert if present.
         if (
             // Compare hashes as we cannot directly compare bytes memory with bytes storage.
-            keccak256(expectRevertData) == keccak256(revertDataNoMessage)
+            keccak256(expectRevertData) == keccak256(REVERT_DATA_NO_MSG)
         ) {
             vm.expectRevert();
         } else if (expectRevertData.length > 0) {
@@ -255,8 +255,8 @@ contract TransferHelperTest is BaseOrderTest {
         uint256 fuzzIndex,
         uint256 fuzzIdentifier
     ) internal view returns (TransferHelperItem memory) {
-        uint256 amount = fuzzAmount % numFungibleTokens;
-        uint256 identifier = fuzzIdentifier % numTokenIdentifiers;
+        uint256 amount = fuzzAmount % TOTAL_FUNGIBLE_TOKENS;
+        uint256 identifier = fuzzIdentifier % TOTAL_TOKEN_IDENTIFERS;
         if (itemType == ConduitItemType.ERC20) {
             uint256 index = fuzzIndex % erc20s.length;
             TestERC20 erc20 = erc20s[index];
@@ -303,7 +303,7 @@ contract TransferHelperTest is BaseOrderTest {
             fuzzIndex,
             fuzzIdentifier
         );
-        item.amount = 2 + (fuzzAmount % numFungibleTokens);
+        item.amount = 2 + (fuzzAmount % TOTAL_FUNGIBLE_TOKENS);
         return item;
     }
 
@@ -709,7 +709,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             true,
-            revertDataNoMessage
+            REVERT_DATA_NO_MSG
         );
     }
 }
