@@ -423,33 +423,26 @@ def _aggregateAvailable(
 
     @return execution The transfer performed as a result of the fulfillment.
     """
-    # Retrieve fulfillment components array length and place on stack.
-    totalFulfillmentComponents: uint256 = len(fulfillmentComponents)
-
     # Ensure at least one fulfillment component has been supplied.
-    assert totalFulfillmentComponents != 0, "missing fulfillment component on aggregation"
+    assert len(fulfillmentComponents) != 0, "missing fulfillment component on aggregation"
 
     # Determine component index after first available (0 implies none).
     nextComponentIndex: uint256 = 0
 
     # Iterate over components until finding one with a fulfilled order.
-    index: uint256 = 0
     for component in fulfillmentComponents:
         # Retrieve the fulfillment component index.
         orderIndex: uint256 = component.orderIndex
 
         # If order is being fulfilled (i.e. it is still available)...
         if ordersToExecute[orderIndex].numerator != 0:
-            # Update the next potential component index.
-            nextComponentIndex = index
-
             # Exit the loop.
             break
 
-        index += 1
+        nextComponentIndex += 1
 
     # If no available order was located...
-    if index == len(fulfillmentComponents):
+    if nextComponentIndex == len(fulfillmentComponents):
         # Return with an empty execution element that will be filtered.
         return empty(Execution)
 
