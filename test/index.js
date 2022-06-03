@@ -10434,19 +10434,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       senderContract = await EIP1271WalletFactory.deploy(sender.address);
       recipientContract = await EIP1271WalletFactory.deploy(recipient.address);
 
-      // Create a conduit key with a random salt and store to pass into bulkTransfer
-      // tempConduitKey = owner.address + randomHex(12).slice(2);
-
-      // const { conduit: tempConduitAddress } =
-      //   await conduitController.getConduit(tempConduitKey);
-
-      // await whileImpersonating(owner.address, provider, async () => {
-      //   await conduitController
-      //     .connect(owner)
-      //     .createConduit(tempConduitKey, owner.address);
-      // });
-
-      // tempConduit = conduitImplementation.attach(tempConduitAddress);
       tempConduitKey = owner.address + randomHex(12).slice(2);
       tempConduit = await deployNewConduit(owner, tempConduitKey);
 
