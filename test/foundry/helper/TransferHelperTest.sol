@@ -76,12 +76,16 @@ contract TransferHelperTest is BaseOrderTest {
         _setApprovals(cal);
 
         // Open a channel for transfer helper on the conduit
-        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
-        vm.prank(address(conduitController));
-        ConduitInterface(conduit).updateChannel(address(transferHelper), true);
+        updateConduitChannel(true);
     }
 
     // Helper functions
+
+    function updateConduitChannel(bool open) internal {
+        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
+        vm.prank(address(conduitController));
+        ConduitInterface(conduit).updateChannel(address(transferHelper), open);
+    }
 
     function _setApprovals(address _owner) internal override {
         super._setApprovals(_owner);
@@ -179,9 +183,14 @@ contract TransferHelperTest is BaseOrderTest {
         }
 
         // Perform transfer
-        if (expectRevertSelector != bytes4(0)) {
-            vm.expectRevert(expectRevertSelector);
-        }
+        // if (expectRevertSelector != bytes4(0)) {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ConduitInterface.ChannelClosed.selector,
+                address(transferHelper)
+            )
+        );
+        // }
         transferHelper.bulkTransfer(
             items,
             to,
@@ -655,6 +664,29 @@ contract TransferHelperTest is BaseOrderTest {
             bob,
             true,
             TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+        );
+    }
+
+    function testRevertBulkTransferNotOpenConduitChannel()
+        public
+    // FuzzInputsCommon memory inputs
+    {
+        TransferHelperItem memory item = getFuzzedItem(
+            ConduitItemType.ERC20,
+            1,
+            1,
+            1
+            // inputs.amounts[0],
+            // inputs.tokenIndex[0],
+            // inputs.identifiers[0]
+        );
+        updateConduitChannel(false);
+        performSingleItemTransferAndCheckBalances(
+            item,
+            alice,
+            bob,
+            true,
+            ConduitInterface.ChannelClosed.selector
         );
     }
 }
