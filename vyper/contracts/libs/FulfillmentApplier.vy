@@ -83,10 +83,10 @@ def _checkMatchingConsideration(
     @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
     """
     return (
-        receivedItem.recipient != consideration.recipient or
-        receivedItem.itemType != consideration.itemType or
-        receivedItem.token != consideration.token or
-        receivedItem.identifier != consideration.identifier
+        receivedItem.recipient == consideration.recipient and
+        receivedItem.itemType == consideration.itemType and
+        receivedItem.token == consideration.token and
+        receivedItem.identifier == consideration.identifier
     )
 
 
