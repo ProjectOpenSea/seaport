@@ -269,6 +269,7 @@ contract TransferHelperTest is BaseOrderTest {
                     1
                 );
         }
+        revert();
     }
 
     // Test successful transfers
