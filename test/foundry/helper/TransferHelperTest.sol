@@ -148,7 +148,7 @@ contract TransferHelperTest is BaseOrderTest {
         address from,
         address to,
         bool useConduit,
-        bytes4 expectRevertSelector
+        bytes memory expectRevertData
     ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = item;
@@ -157,7 +157,7 @@ contract TransferHelperTest is BaseOrderTest {
             from,
             to,
             useConduit,
-            expectRevertSelector
+            expectRevertData
         );
     }
 
@@ -166,7 +166,7 @@ contract TransferHelperTest is BaseOrderTest {
         address from,
         address to,
         bool useConduit,
-        bytes4 expectRevertSelector
+        bytes memory expectRevertData
     ) public {
         vm.startPrank(from);
 
@@ -183,14 +183,9 @@ contract TransferHelperTest is BaseOrderTest {
         }
 
         // Perform transfer
-        // if (expectRevertSelector != bytes4(0)) {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ConduitInterface.ChannelClosed.selector,
-                address(transferHelper)
-            )
-        );
-        // }
+        if (expectRevertData.length > 0) {
+            vm.expectRevert(expectRevertData);
+        }
         transferHelper.bulkTransfer(
             items,
             to,
@@ -209,7 +204,7 @@ contract TransferHelperTest is BaseOrderTest {
             );
         }
 
-        if (expectRevertSelector != bytes4(0)) {
+        if (expectRevertData.length > 0) {
             // If revert is expected, balances should not have changed.
             for (uint256 i = 0; i < items.length; i++) {
                 assert(
@@ -315,7 +310,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
     }
 
@@ -332,7 +327,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
     }
 
@@ -351,14 +346,14 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
         performSingleItemTransferAndCheckBalances(
             item,
             bob,
             cal,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
     }
 
@@ -375,7 +370,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
     }
 
@@ -401,7 +396,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
     }
 
@@ -433,7 +428,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
     }
 
@@ -459,7 +454,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
     }
 
@@ -492,7 +487,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
     }
 
@@ -528,7 +523,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            bytes4(0)
+            ""
         );
     }
 
@@ -541,13 +536,7 @@ contract TransferHelperTest is BaseOrderTest {
             inputs.identifiers[0]
         );
 
-        performSingleItemTransferAndCheckBalances(
-            item,
-            alice,
-            bob,
-            false,
-            bytes4(0)
-        );
+        performSingleItemTransferAndCheckBalances(item, alice, bob, false, "");
     }
 
     function testBulkTransferERC721AmountMoreThan1AndERC20NotUsingConduit(
@@ -567,13 +556,7 @@ contract TransferHelperTest is BaseOrderTest {
             inputs.identifiers[1]
         );
 
-        performMultiItemTransferAndCheckBalances(
-            items,
-            alice,
-            bob,
-            false,
-            bytes4(0)
-        );
+        performMultiItemTransferAndCheckBalances(items, alice, bob, false, "");
     }
 
     // Test reverts
@@ -593,7 +576,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            TransferHelperInterface.InvalidItemType.selector
+            abi.encodePacked(TransferHelperInterface.InvalidItemType.selector)
         );
     }
 
@@ -619,7 +602,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            TransferHelperInterface.InvalidItemType.selector
+            abi.encodePacked(TransferHelperInterface.InvalidItemType.selector)
         );
     }
 
@@ -637,7 +620,9 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             true,
-            TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+            abi.encodePacked(
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+            )
         );
     }
 
@@ -663,22 +648,20 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             true,
-            TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+            abi.encodePacked(
+                TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+            )
         );
     }
 
-    function testRevertBulkTransferNotOpenConduitChannel()
-        public
-    // FuzzInputsCommon memory inputs
-    {
+    function testRevertBulkTransferNotOpenConduitChannel(
+        FuzzInputsCommon memory inputs
+    ) public {
         TransferHelperItem memory item = getFuzzedItem(
             ConduitItemType.ERC20,
-            1,
-            1,
-            1
-            // inputs.amounts[0],
-            // inputs.tokenIndex[0],
-            // inputs.identifiers[0]
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
         );
         updateConduitChannel(false);
         performSingleItemTransferAndCheckBalances(
@@ -686,7 +669,10 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             true,
-            ConduitInterface.ChannelClosed.selector
+            abi.encodeWithSelector(
+                ConduitInterface.ChannelClosed.selector,
+                address(transferHelper)
+            )
         );
     }
 }
