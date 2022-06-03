@@ -26,6 +26,7 @@ contract TransferHelperTest is BaseOrderTest {
     TestERC20 testErc20;
     uint256 numFungibleTokens;
     uint256 numTokenIdentifiers;
+    bytes revertDataNoMessage;
 
     struct FromToBalance {
         // Balance of from address.
@@ -47,6 +48,8 @@ contract TransferHelperTest is BaseOrderTest {
 
     function setUp() public override {
         super.setUp();
+        revertDataNoMessage = abi.encodePacked("revert no message");
+
         transferHelper = new TransferHelper(address(conduitController));
 
         // Mint initial tokens to alice for tests.
@@ -182,10 +185,16 @@ contract TransferHelperTest is BaseOrderTest {
             );
         }
 
-        // Perform transfer
-        if (expectRevertData.length > 0) {
+        // Register expected revert if present.
+        if (
+            // Compare hashes as we cannot directly compare bytes memory with bytes storage.
+            keccak256(expectRevertData) == keccak256(revertDataNoMessage)
+        ) {
+            vm.expectRevert();
+        } else if (expectRevertData.length > 0) {
             vm.expectRevert(expectRevertData);
         }
+        // Perform transfer.
         transferHelper.bulkTransfer(
             items,
             to,
@@ -220,7 +229,7 @@ contract TransferHelperTest is BaseOrderTest {
 
         // Check after transfer balances are as expected by calculating difference against before transfer balances.
         for (uint256 i = 0; i < items.length; i++) {
-            // ERC721 should only ever change by amount 1
+            // ERC721 balance should only ever change by amount 1.
             uint256 amount = items[i].itemType == ConduitItemType.ERC721
                 ? 1
                 : items[i].amount;
@@ -673,6 +682,29 @@ contract TransferHelperTest is BaseOrderTest {
                 ConduitInterface.ChannelClosed.selector,
                 address(transferHelper)
             )
+        );
+    }
+
+    function testRevertBulkTransferUnknownConduit(
+        FuzzInputsCommon memory inputs,
+        bytes32 fuzzConduitKey
+    ) public {
+        // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit"
+        vm.assume(fuzzConduitKey != bytes32(0));
+        TransferHelperItem memory item = getFuzzedItem(
+            ConduitItemType.ERC20,
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
+        // Reassign the conduit key that gets passed into TransferHelper to fuzzConduitKey
+        conduitKeyOne = fuzzConduitKey;
+        performSingleItemTransferAndCheckBalances(
+            item,
+            alice,
+            bob,
+            true,
+            revertDataNoMessage
         );
     }
 }
