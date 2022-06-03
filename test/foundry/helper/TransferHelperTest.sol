@@ -216,13 +216,17 @@ contract TransferHelperTest is BaseOrderTest {
 
         // Check after transfer balances are as expected by calculating difference against before transfer balances.
         for (uint256 i = 0; i < items.length; i++) {
+            // ERC721 should only ever change by amount 1
+            uint256 amount = items[i].itemType == ConduitItemType.ERC721
+                ? 1
+                : items[i].amount;
             assertEq(
                 afterTransferBalances[i].from,
-                beforeTransferBalances[i].from - items[i].amount
+                beforeTransferBalances[i].from - amount
             );
             assertEq(
                 afterTransferBalances[i].to,
-                beforeTransferBalances[i].to + items[i].amount
+                beforeTransferBalances[i].to + amount
             );
         }
 
@@ -270,6 +274,21 @@ contract TransferHelperTest is BaseOrderTest {
                 );
         }
         revert();
+    }
+
+    function getFuzzedERC721WithAmountGreaterThan1(
+        uint256 fuzzAmount,
+        uint256 fuzzIndex,
+        uint256 fuzzIdentifier
+    ) internal view returns (TransferHelperItem memory) {
+        TransferHelperItem memory item = getFuzzedItem(
+            ConduitItemType.ERC721,
+            fuzzAmount,
+            fuzzIndex,
+            fuzzIdentifier
+        );
+        item.amount = 2 + (fuzzAmount % numFungibleTokens);
+        return item;
     }
 
     // Test successful transfers
@@ -504,6 +523,50 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
+    function testBulkTransferERC721AmountMoreThan1NotUsingConduit(
+        FuzzInputsCommon memory inputs
+    ) public {
+        TransferHelperItem memory item = getFuzzedERC721WithAmountGreaterThan1(
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
+
+        performSingleItemTransferAndCheckBalances(
+            item,
+            alice,
+            bob,
+            false,
+            bytes4(0)
+        );
+    }
+
+    function testBulkTransferERC721AmountMoreThan1AndERC20NotUsingConduit(
+        FuzzInputsCommon memory inputs
+    ) public {
+        TransferHelperItem[] memory items = new TransferHelperItem[](2);
+        items[0] = getFuzzedERC721WithAmountGreaterThan1(
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
+
+        items[1] = getFuzzedItem(
+            ConduitItemType.ERC20,
+            inputs.amounts[1],
+            inputs.tokenIndex[1],
+            inputs.identifiers[1]
+        );
+
+        performMultiItemTransferAndCheckBalances(
+            items,
+            alice,
+            bob,
+            false,
+            bytes4(0)
+        );
+    }
+
     // Test reverts
 
     function testRevertBulkTransferETHonly(FuzzInputsCommon memory inputs)
@@ -551,17 +614,14 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertBulkTransferERC721AmountMoreThan1WhenUsingConduit(
+    function testRevertBulkTransferERC721AmountMoreThan1UsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
-        TransferHelperItem memory item = getFuzzedItem(
-            ConduitItemType.ERC721,
+        TransferHelperItem memory item = getFuzzedERC721WithAmountGreaterThan1(
             inputs.amounts[0],
             inputs.tokenIndex[0],
             inputs.identifiers[0]
         );
-        // Ensure amount is at least 2
-        item.amount += 2;
 
         performSingleItemTransferAndCheckBalances(
             item,
@@ -572,18 +632,15 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertBulkTransferERC721AmountMoreThan1AndERC20WhenUsingConduit(
+    function testRevertBulkTransferERC721AmountMoreThan1AndERC20UsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](2);
-        items[0] = getFuzzedItem(
-            ConduitItemType.ERC721,
+        items[0] = getFuzzedERC721WithAmountGreaterThan1(
             inputs.amounts[0],
             inputs.tokenIndex[0],
             inputs.identifiers[0]
         );
-        // Ensure amount is at least 2
-        items[0].amount += 2;
 
         items[1] = getFuzzedItem(
             ConduitItemType.ERC20,
