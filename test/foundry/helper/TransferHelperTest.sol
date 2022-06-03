@@ -17,6 +17,8 @@ import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
 
+import { TokenTransferrerErrors } from "../../../contracts/interfaces/TokenTransferrerErrors.sol";
+
 import { TransferHelperInterface } from "../../../contracts/interfaces/TransferHelperInterface.sol";
 
 contract TransferHelperTest is BaseOrderTest {
@@ -142,7 +144,7 @@ contract TransferHelperTest is BaseOrderTest {
         address from,
         address to,
         bool useConduit,
-        bool expectInvalidItemTypeRevert
+        bytes4 expectRevertSelector
     ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](1);
         items[0] = item;
@@ -151,7 +153,7 @@ contract TransferHelperTest is BaseOrderTest {
             from,
             to,
             useConduit,
-            expectInvalidItemTypeRevert
+            expectRevertSelector
         );
     }
 
@@ -160,7 +162,7 @@ contract TransferHelperTest is BaseOrderTest {
         address from,
         address to,
         bool useConduit,
-        bool expectInvalidItemTypeRevert
+        bytes4 expectRevertSelector
     ) public {
         vm.startPrank(from);
 
@@ -177,8 +179,8 @@ contract TransferHelperTest is BaseOrderTest {
         }
 
         // Perform transfer
-        if (expectInvalidItemTypeRevert) {
-            vm.expectRevert(TransferHelperInterface.InvalidItemType.selector);
+        if (expectRevertSelector != bytes4(0)) {
+            vm.expectRevert(expectRevertSelector);
         }
         transferHelper.bulkTransfer(
             items,
@@ -198,7 +200,7 @@ contract TransferHelperTest is BaseOrderTest {
             );
         }
 
-        if (expectInvalidItemTypeRevert) {
+        if (expectRevertSelector != bytes4(0)) {
             // If revert is expected, balances should not have changed.
             for (uint256 i = 0; i < items.length; i++) {
                 assert(
@@ -284,7 +286,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
     }
 
@@ -301,7 +303,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
     }
 
@@ -320,14 +322,14 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
         performSingleItemTransferAndCheckBalances(
             item,
             bob,
             cal,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
     }
 
@@ -344,7 +346,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
     }
 
@@ -370,7 +372,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
     }
 
@@ -402,7 +404,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
     }
 
@@ -428,7 +430,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
     }
 
@@ -461,7 +463,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
     }
 
@@ -497,7 +499,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            false
+            bytes4(0)
         );
     }
 
@@ -518,7 +520,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            true
+            TransferHelperInterface.InvalidItemType.selector
         );
     }
 
@@ -544,10 +546,57 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             inputs.useConduit,
-            true
+            TransferHelperInterface.InvalidItemType.selector
         );
     }
 
-    // TODO add test for solo ERC721 attempt to transfer more than 1 reverting
-    // TODO add test for ERC721 and other tokens attempt to transfer more than 1 reverting
+    function testRevertBulkTransferERC721MultipleQuantityWhenUsingConduit(
+        FuzzInputsCommon memory inputs
+    ) public {
+        TransferHelperItem memory item = getFuzzedItem(
+            ConduitItemType.ERC721,
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
+        // Ensure amount is at least 2
+        item.amount += 2;
+
+        performSingleItemTransferAndCheckBalances(
+            item,
+            alice,
+            bob,
+            true,
+            TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+        );
+    }
+
+    function testRevertBulkTransferERC721MultipleQuantityAndERC20WhenUsingConduit(
+        FuzzInputsCommon memory inputs
+    ) public {
+        TransferHelperItem[] memory items = new TransferHelperItem[](2);
+        items[0] = getFuzzedItem(
+            ConduitItemType.ERC721,
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
+        // Ensure amount is at least 2
+        items[0].amount += 2;
+
+        items[1] = getFuzzedItem(
+            ConduitItemType.ERC20,
+            inputs.amounts[1],
+            inputs.tokenIndex[1],
+            inputs.identifiers[1]
+        );
+
+        performMultiItemTransferAndCheckBalances(
+            items,
+            alice,
+            bob,
+            true,
+            TokenTransferrerErrors.InvalidERC721TransferAmount.selector
+        );
+    }
 }
