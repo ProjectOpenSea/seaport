@@ -244,6 +244,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             offerComponentsArray,
             considerationComponentsArray,
             bytes32(0),
+            address(0),
             100
         );
     }
@@ -474,6 +475,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             offerComponentsArray,
             considerationComponentsArray,
             conduitKey,
+            address(0),
             100
         );
     }
@@ -602,6 +604,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             offerComponentsArray,
             considerationComponentsArray,
             conduitKey,
+            address(0),
             100
         );
 

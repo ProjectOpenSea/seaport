@@ -127,7 +127,8 @@ contract ReferenceConsideration is
         fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            msg.sender
         );
     }
 
@@ -164,6 +165,9 @@ contract ReferenceConsideration is
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
      *                            Consideration).
+     * @param recipient           The intended recipient for all received items,
+     *                            with `address(0)` indicating that the caller
+     *                            should receive the items.
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   fulfilled.
@@ -171,7 +175,8 @@ contract ReferenceConsideration is
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     )
         external
         payable
@@ -184,7 +189,8 @@ contract ReferenceConsideration is
         fulfilled = _validateAndFulfillAdvancedOrder(
             advancedOrder,
             criteriaResolvers,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient == address(0) ? msg.sender : recipient
         );
     }
 
@@ -264,6 +270,7 @@ contract ReferenceConsideration is
                 offerFulfillments,
                 considerationFulfillments,
                 fulfillerConduitKey,
+                msg.sender,
                 maximumFulfilled
             );
     }
@@ -335,6 +342,7 @@ contract ReferenceConsideration is
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
         bytes32 fulfillerConduitKey,
+        address recipient,
         uint256 maximumFulfilled
     )
         external
@@ -359,6 +367,7 @@ contract ReferenceConsideration is
                 offerFulfillments,
                 considerationFulfillments,
                 fulfillerConduitKey,
+                recipient == address(0) ? msg.sender : recipient,
                 maximumFulfilled
             );
     }
