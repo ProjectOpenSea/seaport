@@ -82,11 +82,12 @@ def _checkMatchingConsideration(
 
     @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
     """
-    return \
-        receivedItem.recipient != consideration.recipient or \
-        receivedItem.itemType != consideration.itemType or \
-        receivedItem.token != consideration.token or \
+    return (
+        receivedItem.recipient != consideration.recipient or
+        receivedItem.itemType != consideration.itemType or
+        receivedItem.token != consideration.token or
         receivedItem.identifier != consideration.identifier
+    )
 
 
 @internal
@@ -114,13 +115,14 @@ def _aggregateValidFulfillmentConsiderationItems(
     @return receivedItem The aggregated consideration items.
     """
     # Declare struct into avoid declaring multiple local variables
-    potentialCandidate: ConsiderationItemIndicesAndValidity = \
+    potentialCandidate: ConsiderationItemIndicesAndValidity = (
         ConsiderationItemIndicesAndValidity({
             orderIndex: considerationComponents[startIndex].orderIndex,
             itemIndex: considerationComponents[startIndex].itemIndex,
             # Ensure that order index is in range.
             validFulfillment: considerationComponents[startIndex].orderIndex < len(ordersToExecute)
         })
+    )
 
     assert potentialCandidate.validFulfillment, "invalid fulfillment component data"
 
@@ -188,12 +190,13 @@ def _checkMatchingOffer(
 
     @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
     """
-    return \
-        execution.item.identifier == offer.identifier and \
-        execution.offerer == orderToExecute.offerer and \
-        execution.conduitKey == orderToExecute.conduitKey and \
-        execution.item.itemType == offer.itemType and \
+    return (
+        execution.item.identifier == offer.identifier and
+        execution.offerer == orderToExecute.offerer and
+        execution.conduitKey == orderToExecute.conduitKey and
+        execution.item.itemType == offer.itemType and
         execution.item.token == offer.token
+    )
 
 @internal
 @view
@@ -259,7 +262,7 @@ def _aggregateValidFulfillmentOfferItems(
             # Zero out amount on original offerItem to indicate it is spent,
             offer.amount = 0
             # Ensure the indicated offer item matches original item.
-            validFulfillment = self._checkMatchingOffer(
+            validFulfillment: bool = self._checkMatchingOffer(
                 orderToExecute,
                 offer,
                 execution
@@ -312,33 +315,35 @@ def _applyFulfillment(
     )
 
     # Ensure offer and consideration share types, tokens and identifiers.
-    assert execution.item.itemType == considerationItem.itemType \
-        and execution.item.token == considerationItem.token \
-        and execution.item.identifier == considerationItem.identifier, \
+    assert (execution.item.itemType == considerationItem.itemType
+        and execution.item.token == considerationItem.token
+        and execution.item.identifier == considerationItem.identifier),\
         "mismatched fulfillment offer and consideration components"
 
     # If total consideration amount exceeds the offer amount...
     if considerationItem.amount > execution.item.amount:
         # Retrieve the first consideration component from the fulfillment.
-        targetComponent: FulfillmentComponent = (
-            considerationComponents[0]
-        )
+        targetComponent: FulfillmentComponent = considerationComponents[0]
 
         # Add excess consideration item amount to original array of orders.
-        ordersToExecute[targetComponent.orderIndex]\
-            .receivedItems[targetComponent.itemIndex]\
-            .amount = considerationItem.amount - execution.item.amount
+        (
+            ordersToExecute[targetComponent.orderIndex]
+                .receivedItems[targetComponent.itemIndex]
+                .amount
+        ) = considerationItem.amount - execution.item.amount
 
         # Reduce total consideration amount to equal the offer amount.
         considerationItem.amount = execution.item.amount
     else:
         # Retrieve the first offer component from the fulfillment.
-        targetComponent: FulfillmentComponent = (offerComponents[0])
+        targetComponent: FulfillmentComponent = offerComponents[0]
 
         # Add excess offer item amount to the original array of orders.
-        ordersToExecute[targetComponent.orderIndex]\
-            .spentItems[targetComponent.itemIndex]\
-            .amount = execution.item.amount - considerationItem.amount
+        (
+            ordersToExecute[targetComponent.orderIndex]
+                .spentItems[targetComponent.itemIndex]
+                .amount
+        ) = execution.item.amount - considerationItem.amount
 
     # Reuse execution struct with consideration amount and recipient.
     execution.item.amount = considerationItem.amount
@@ -436,7 +441,7 @@ def _aggregateAvailable(
         # If order is being fulfilled (i.e. it is still available)...
         if ordersToExecute[orderIndex].numerator != 0:
             # Update the next potential component index.
-            nextComponentIndex = index + 1
+            nextComponentIndex = index
 
             # Exit the loop.
             break
@@ -444,28 +449,25 @@ def _aggregateAvailable(
         index += 1
 
     # If no available order was located...
-    if nextComponentIndex == 0:
+    if index == len(fulfillmentComponents):
         # Return with an empty execution element that will be filtered.
-        # prettier-ignore
         return empty(Execution)
 
     # If the fulfillment components are offer components...
     if side == SIDE_OFFER:
         # Return execution for aggregated items provided by offerer.
-        # prettier-ignore
         return self._aggregateValidFulfillmentOfferItems(
             ordersToExecute,
             fulfillmentComponents,
-            nextComponentIndex - 1
+            nextComponentIndex
         )
     else:
         # Otherwise, fulfillment components are consideration
         # components. Return execution for aggregated items provided by
         # the fulfiller.
-        # prettier-ignore
         return self._aggregateConsiderationItems(
             ordersToExecute,
             fulfillmentComponents,
-            nextComponentIndex - 1,
+            nextComponentIndex,
             fulfillerConduitKey
         )
