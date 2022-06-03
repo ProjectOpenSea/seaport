@@ -40,13 +40,6 @@ contract ConduitController is ConduitControllerInterface {
         _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
     }
 
-    function getConduitCreationCodeHash() external view returns (bytes32) {
-        assert(
-            keccak256(type(Conduit).creationCode) == _CONDUIT_CREATION_CODE_HASH
-        );
-        return keccak256(type(Conduit).creationCode); //;_CONDUIT_CREATION_CODE_HASH;
-    }
-
     /**
      * @notice Deploy a new conduit using a supplied conduit key and assigning
      *         an initial owner for the deployed conduit. Note that the first

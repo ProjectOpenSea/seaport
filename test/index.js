@@ -10472,7 +10472,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Executes transfers (many token types) with a conduit", async () => {
-      console.log("HEYY!!");
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
       const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
@@ -10542,24 +10541,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Contracts
       );
       // Send the bulk transfers
-      // TODO debug
-      // So far I've confirmed conduitController.address matches the _CONDUIT_CONTROLLER
-      // in TransferHelper
-      // It's the conduit getConduitCreationCodeHash that's different!
-      console.log(
-        "woah bar",
-        tempConduit.address,
-        conduitController.address,
-        "foobar",
-        await tempTransferHelper.connect(sender).getConduit(tempConduitKey),
-        {
-          "transfer helper hash": await tempTransferHelper
-            .connect(sender)
-            .getConduitCreationCodeHash(),
-          "conduit controller cc hash":
-            await conduitController.getConduitCreationCodeHash(),
-        }
-      );
       await tempTransferHelper
         .connect(sender)
         .bulkTransfer(transfers, recipient.address, tempConduitKey);
