@@ -2,16 +2,9 @@
 const { expect } = require("chai");
 const {
   constants,
-<<<<<<< HEAD
   utils: { parseEther, keccak256, toUtf8Bytes },
-=======
-  utils: { parseEther, keccak256, toUtf8Bytes, recoverAddress },
   Contract,
-<<<<<<< HEAD
   BigNumber,
->>>>>>> progress
-=======
->>>>>>> prettier cleanup
 } = require("ethers");
 const { ethers, network } = require("hardhat");
 const { faucet, whileImpersonating } = require("./utils/impersonate");
@@ -9490,11 +9483,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numERC20s amount of ERC20 objects
       for (let i = 0; i < numERC20s; i++) {
         // Deploy Contract
-<<<<<<< HEAD
         const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-=======
-        const tempERC20Contract = await deployContracts(1);
->>>>>>> prettier cleanup
         // Create/Approve X amount of  ERC20s
         const erc20Transfer = await createTransferWithApproval(
           tempERC20Contract,
@@ -9511,11 +9500,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numEC721s amount of ERC20 objects
       for (let i = 0; i < numEC721s; i++) {
         // Deploy Contract
-<<<<<<< HEAD
         const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-=======
-        const tempERC721Contract = await deployContracts(2);
->>>>>>> prettier cleanup
         // Create/Approve numEC721s amount of  ERC721s
         const erc721Transfer = await createTransferWithApproval(
           tempERC721Contract,
@@ -9532,13 +9517,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numERC1155s amount of ERC1155 objects
       for (let i = 0; i < numERC1155s; i++) {
         // Deploy Contract
-<<<<<<< HEAD
         const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
           owner
         );
-=======
-        const tempERC1155Contract = await deployContracts(3);
->>>>>>> prettier cleanup
         // Create/Approve numERC1155s amount of ERC1155s
         const erc1155Transfer = await createTransferWithApproval(
           tempERC1155Contract,
@@ -10454,18 +10435,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       recipientContract = await EIP1271WalletFactory.deploy(recipient.address);
 
       // Create a conduit key with a random salt and store to pass into bulkTransfer
+      // tempConduitKey = owner.address + randomHex(12).slice(2);
+
+      // const { conduit: tempConduitAddress } =
+      //   await conduitController.getConduit(tempConduitKey);
+
+      // await whileImpersonating(owner.address, provider, async () => {
+      //   await conduitController
+      //     .connect(owner)
+      //     .createConduit(tempConduitKey, owner.address);
+      // });
+
+      // tempConduit = conduitImplementation.attach(tempConduitAddress);
       tempConduitKey = owner.address + randomHex(12).slice(2);
-
-      const { conduit: tempConduitAddress } =
-        await conduitController.getConduit(tempConduitKey);
-
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .createConduit(tempConduitKey, owner.address);
-      });
-
-      tempConduit = conduitImplementation.attach(tempConduitAddress);
+      tempConduit = await deployNewConduit(owner, tempConduitKey);
 
       await Promise.all(
         [sender, recipient, zone, senderContract, recipientContract].map(
@@ -10474,7 +10457,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // Deploy a new TransferHelper with the tempConduitController address
-      transferHelperFactory = await ethers.getContractFactory("TransferHelper");
+      const transferHelperFactory = await ethers.getContractFactory(
+        "TransferHelper"
+      );
       tempTransferHelper = await transferHelperFactory.deploy(
         conduitController.address
       );
@@ -10487,6 +10472,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Executes transfers (many token types) with a conduit", async () => {
+      console.log("HEYY!!");
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 10;
       const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
@@ -10556,6 +10542,24 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Contracts
       );
       // Send the bulk transfers
+      // TODO debug
+      // So far I've confirmed conduitController.address matches the _CONDUIT_CONTROLLER
+      // in TransferHelper
+      // It's the conduit getConduitCreationCodeHash that's different!
+      console.log(
+        "woah bar",
+        tempConduit.address,
+        conduitController.address,
+        "foobar",
+        await tempTransferHelper.connect(sender).getConduit(tempConduitKey),
+        {
+          "transfer helper hash": await tempTransferHelper
+            .connect(sender)
+            .getConduitCreationCodeHash(),
+          "conduit controller cc hash":
+            await conduitController.getConduitCreationCodeHash(),
+        }
+      );
       await tempTransferHelper
         .connect(sender)
         .bulkTransfer(transfers, recipient.address, tempConduitKey);

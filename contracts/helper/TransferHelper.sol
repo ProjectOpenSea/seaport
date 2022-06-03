@@ -51,6 +51,28 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
     }
 
+    function getConduitCreationCodeHash() external view returns (bytes32) {
+        return keccak256(type(Conduit).creationCode);
+    }
+
+    function getConduit(bytes32 conduitKey) external view returns (address) {
+        return
+            address(
+                uint160(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                bytes1(0xff),
+                                address(_CONDUIT_CONTROLLER),
+                                conduitKey,
+                                _CONDUIT_CREATION_CODE_HASH
+                            )
+                        )
+                    )
+                )
+            );
+    }
+
     /**
      * @notice Transfer multiple items to a single recipient.
      *
@@ -107,21 +129,26 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         }
         // If a conduitKey is given, derive the conduit address from the conduitKey and call the conduit to perform transfers.
         else {
+            // TODO: derive conduit address from creation hashes
             // Derive address from deployer, conduit key and creation code hash.
-            address conduit = address(
-                uint160(
-                    uint256(
-                        keccak256(
-                            abi.encodePacked(
-                                bytes1(0xff),
-                                address(_CONDUIT_CONTROLLER),
-                                conduitKey,
-                                _CONDUIT_CREATION_CODE_HASH
-                            )
-                        )
-                    )
-                )
-            );
+            // address conduit = address(
+            //     uint160(
+            //         uint256(
+            //             keccak256(
+            //                 abi.encodePacked(
+            //                     bytes1(0xff),
+            //                     address(_CONDUIT_CONTROLLER),
+            //                     conduitKey,
+            //                     _CONDUIT_CREATION_CODE_HASH
+            //                 )
+            //             )
+            //         )
+            //     )
+            // );
+            address conduit = this.getConduit(conduitKey);
+
+            // Derive conduit address from conduit key
+            // (address conduit, ) = _CONDUIT_CONTROLLER.getConduit(conduitKey);
             ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
                 numTransfers
             );
