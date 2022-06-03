@@ -23,10 +23,12 @@ import { TransferHelperInterface } from "../../../contracts/interfaces/TransferH
 
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
-    TestERC20 testErc20;
-    uint256 numFungibleTokens;
-    uint256 numTokenIdentifiers;
-    bytes revertDataNoMessage;
+    // Total supply of fungible tokens to be used in tests for all fungible tokens
+    uint256 constant numFungibleTokens = 1e6;
+    // Total number of token identifiers to mint tokens for for ERC721s and ERC1155s
+    uint256 constant numTokenIdentifiers = 10;
+    // Constant bytes used for expecting revert with no message
+    bytes constant revertDataNoMessage = "revert no message";
 
     struct FromToBalance {
         // Balance of from address.
@@ -42,21 +44,17 @@ contract TransferHelperTest is BaseOrderTest {
         uint256[10] amounts;
         // Identifiers that can be used for the tokenIdentifier field on TransferHelperItem
         uint256[10] identifiers;
-        // Indexes that can be used to select tokens from erc20s/erc721s/erc1155s
+        // Indexes that can be used to select tokens from the arrays erc20s/erc721s/erc1155s
         uint256[10] tokenIndex;
     }
 
     function setUp() public override {
         super.setUp();
-        revertDataNoMessage = abi.encodePacked("revert no message");
-
         transferHelper = new TransferHelper(address(conduitController));
 
         // Mint initial tokens to alice for tests.
-        numFungibleTokens = 1e6;
-        numTokenIdentifiers = 10;
-        for (uint256 i = 0; i < erc20s.length; i++) {
-            erc20s[i].mint(alice, numFungibleTokens);
+        for (uint256 tokenIdx = 0; tokenIdx < erc20s.length; tokenIdx++) {
+            erc20s[tokenIdx].mint(alice, numFungibleTokens);
         }
 
         // Mint ERC721 and ERC1155 with token IDs 0 to numTokenIdentifiers - 1 to alice
@@ -65,11 +63,15 @@ contract TransferHelperTest is BaseOrderTest {
             tokenIdentifier < numTokenIdentifiers;
             tokenIdentifier++
         ) {
-            for (uint256 j = 0; j < erc721s.length; j++) {
-                erc721s[j].mint(alice, tokenIdentifier);
+            for (uint256 tokenIdx = 0; tokenIdx < erc721s.length; tokenIdx++) {
+                erc721s[tokenIdx].mint(alice, tokenIdentifier);
             }
-            for (uint256 j = 0; j < erc1155s.length; j++) {
-                erc1155s[j].mint(alice, tokenIdentifier, numFungibleTokens);
+            for (uint256 tokenIdx = 0; tokenIdx < erc1155s.length; tokenIdx++) {
+                erc1155s[tokenIdx].mint(
+                    alice,
+                    tokenIdentifier,
+                    numFungibleTokens
+                );
             }
         }
 
@@ -131,6 +133,7 @@ contract TransferHelperTest is BaseOrderTest {
             // Balance for native does not matter as don't support native transfers so just return dummy value.
             return 0;
         }
+        // Revert on unsupported ConduitItemType.
         revert();
     }
 
@@ -691,7 +694,7 @@ contract TransferHelperTest is BaseOrderTest {
         FuzzInputsCommon memory inputs,
         bytes32 fuzzConduitKey
     ) public {
-        // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit"
+        // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit".
         vm.assume(fuzzConduitKey != bytes32(0));
         TransferHelperItem memory item = _getFuzzedTransferItem(
             ConduitItemType.ERC20,
@@ -699,7 +702,7 @@ contract TransferHelperTest is BaseOrderTest {
             inputs.tokenIndex[0],
             inputs.identifiers[0]
         );
-        // Reassign the conduit key that gets passed into TransferHelper to fuzzConduitKey
+        // Reassign the conduit key that gets passed into TransferHelper to fuzzConduitKey.
         conduitKeyOne = fuzzConduitKey;
         _performSingleItemTransferAndCheckBalances(
             item,
