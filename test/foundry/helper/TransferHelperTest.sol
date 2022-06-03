@@ -550,7 +550,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertBulkTransferERC721MultipleQuantityWhenUsingConduit(
+    function testRevertBulkTransferERC721AmountMoreThan1WhenUsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
         TransferHelperItem memory item = getFuzzedItem(
@@ -571,7 +571,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testRevertBulkTransferERC721MultipleQuantityAndERC20WhenUsingConduit(
+    function testRevertBulkTransferERC721AmountMoreThan1AndERC20WhenUsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](2);
