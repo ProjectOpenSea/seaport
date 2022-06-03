@@ -50,7 +50,8 @@ contract TransferHelperTest is BaseOrderTest {
 
     function setUp() public override {
         super.setUp();
-        transferHelper = new TransferHelper(address(conduitController));
+        _deployAndConfigurePrecompiledTransferHelper();
+        vm.label(address(transferHelper), "transferHelper");
 
         // Mint initial tokens to alice for tests.
         for (uint256 tokenIdx = 0; tokenIdx < erc20s.length; tokenIdx++) {
@@ -84,6 +85,19 @@ contract TransferHelperTest is BaseOrderTest {
         _updateConduitChannel(true);
     }
 
+    /**
+     * @dev TransferHelper depends on precomputed Conduit creation code hash, which will differ
+     * if tests are run with different compiler settings (which they are by default)
+     */
+    function _deployAndConfigurePrecompiledTransferHelper() public {
+        transferHelper = TransferHelper(
+            deployCode(
+                "optimized-out/TransferHelper.sol/TransferHelper.json",
+                abi.encode(address(conduitController))
+            )
+        );
+    }
+
     // Helper functions
 
     function _setApprovals(address _owner) internal override {
@@ -110,9 +124,9 @@ contract TransferHelperTest is BaseOrderTest {
     }
 
     function _updateConduitChannel(bool open) internal {
-        (address conduit, ) = conduitController.getConduit(conduitKeyOne);
+        (address _conduit, ) = conduitController.getConduit(conduitKeyOne);
         vm.prank(address(conduitController));
-        ConduitInterface(conduit).updateChannel(address(transferHelper), open);
+        ConduitInterface(_conduit).updateChannel(address(transferHelper), open);
     }
 
     function _balanceOfTransferItemForAddress(
