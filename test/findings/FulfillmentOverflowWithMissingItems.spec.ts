@@ -33,7 +33,10 @@ describe("Fulfillment applier allows overflow when a missing item is provided", 
     });
   });
 
-  before(async () => {
+  before(async function () {
+    if (process.env.REFERENCE) {
+      this.skip();
+    }
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
     ({

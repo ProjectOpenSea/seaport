@@ -37,7 +37,10 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
     });
   });
 
-  before(async () => {
+  before(async function () {
+    if (process.env.REFERENCE) {
+      this.skip();
+    }
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
     carol = await getWalletWithEther();

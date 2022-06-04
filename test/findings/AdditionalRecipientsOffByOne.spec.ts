@@ -36,7 +36,10 @@ describe("Additional recipients off by one error allows skipping second consider
     });
   });
 
-  before(async () => {
+  before(async function () {
+    if (process.env.REFERENCE) {
+      this.skip();
+    }
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
     carol = await getWalletWithEther();
