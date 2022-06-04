@@ -8,7 +8,6 @@ import {
   Conduit__factory,
   ImmutableCreate2FactoryInterface,
 } from "../../../typechain-types";
-import { ReferenceConduit__factory } from "../../../typechain-types/factories/reference/conduit";
 import { deployContract } from "../contracts";
 import { randomHex } from "../encoding";
 import { whileImpersonating } from "../impersonate";
@@ -20,11 +19,11 @@ export const conduitFixture = async (
   owner: Wallet
 ) => {
   let conduitController: ConduitController;
-  let conduitImplementation: Conduit__factory | ReferenceConduit__factory;
+  let conduitImplementation: Conduit__factory;
   if (process.env.REFERENCE) {
     conduitImplementation = (await ethers.getContractFactory(
       "ReferenceConduit"
-    )) as ReferenceConduit__factory;
+    )) as Conduit__factory;
     conduitController = await deployContract("ConduitController", owner as any);
   } else {
     conduitImplementation = await ethers.getContractFactory("Conduit");
