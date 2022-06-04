@@ -27,7 +27,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
 
     // Cache the conduit creation hashes used by the conduit controller.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
-    bytes32 internal immutable _CONDUIT_RUNTIME_CODE_HASH;
 
     /**
      * @dev Set the supplied conduit controller and retrieve its conduit creation code hash.
@@ -43,12 +42,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
 
         // Derive the conduit creation code hash and set it as an immutable.
         _CONDUIT_CREATION_CODE_HASH = keccak256(type(Conduit).creationCode);
-
-        // Deploy a conduit with the zero hash as the salt.
-        Conduit zeroConduit = new Conduit{ salt: bytes32(0) }();
-
-        // Retrieve the conduit runtime code hash and set it as an immutable.
-        _CONDUIT_RUNTIME_CODE_HASH = address(zeroConduit).codehash;
     }
 
     /**
