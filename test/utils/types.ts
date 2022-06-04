@@ -17,7 +17,7 @@ export type CriteriaResolver = {
   side: 0 | 1;
   index: number;
   identifier: BigNumber;
-  criteriaProof: BigNumberish[];
+  criteriaProof: string[];
 };
 
 export type BasicOrderParameters = {
