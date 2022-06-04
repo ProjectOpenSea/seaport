@@ -3,10 +3,10 @@ import { constants, Wallet } from "ethers";
 import { keccak256, recoverAddress } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
 import {
-  Conduit,
-  ConduitController,
+  ConduitInterface,
+  ConduitControllerInterface,
   ImmutableCreate2FactoryInterface,
-  Seaport,
+  ConsiderationInterface,
   TestZone,
 } from "../../../typechain-types";
 import { deployContract } from "../contracts";
@@ -31,8 +31,8 @@ const VERSION = !process.env.REFERENCE ? "1" : "rc.1";
 
 export async function marketplaceFixture(
   create2Factory: ImmutableCreate2FactoryInterface,
-  conduitController: ConduitController,
-  conduitOne: Conduit,
+  conduitController: ConduitControllerInterface,
+  conduitOne: ConduitInterface,
   chainId: number,
   owner: Wallet
 ) {
@@ -72,7 +72,7 @@ export async function marketplaceFixture(
     process.env.REFERENCE ? "ReferenceConsideration" : "Seaport",
     marketplaceContractAddress,
     owner
-  )) as Seaport;
+  )) as ConsiderationInterface;
 
   await conduitController
     .connect(owner)

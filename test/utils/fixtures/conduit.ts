@@ -48,11 +48,11 @@ export const conduitFixture = async (
       }
     );
 
-    conduitController = await ethers.getContractAt(
+    conduitController = (await ethers.getContractAt(
       "ConduitController",
       conduitControllerAddress,
       owner
-    );
+    )) as any;
   }
   const conduitCodeHash = keccak256(conduitImplementation.bytecode);
 
