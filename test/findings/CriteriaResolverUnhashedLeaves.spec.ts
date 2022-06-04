@@ -12,7 +12,7 @@ import { getWalletWithEther } from "../utils/impersonate";
 import { AdvancedOrder } from "../utils/types";
 const { merkleTree } = require("../utils/criteria");
 
-const IS_FIXED = true;
+const IS_FIXED = false;
 
 describe("Criteria resolver allows root hash to be given as a leaf", async () => {
   let alice: Wallet;
