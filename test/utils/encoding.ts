@@ -1,7 +1,17 @@
 import { randomBytes as nodeRandomBytes } from "crypto";
 import { utils, BigNumber, constants, ContractTransaction } from "ethers";
-import { getAddress } from "ethers/lib/utils";
-import { BasicOrderParameters, BigNumberish, Order } from "./types";
+import { getAddress, keccak256, toUtf8Bytes } from "ethers/lib/utils";
+import {
+  BasicOrderParameters,
+  BigNumberish,
+  CriteriaResolver,
+  FulfillmentComponent,
+  Order,
+  OrderComponents,
+} from "./types";
+
+export { BigNumberish };
+
 const SeededRNG = require("./seeded-rng");
 
 const GAS_REPORT_MODE = process.env.REPORT_GAS;
@@ -146,3 +156,197 @@ export const getItem721 = (
     endAmount,
     recipient
   );
+
+export const toFulfillmentComponents = (
+  arr: number[][]
+): FulfillmentComponent[] =>
+  arr.map(([orderIndex, itemIndex]) => ({ orderIndex, itemIndex }));
+
+export const toFulfillment = (
+  offerArr: number[][],
+  considerationsArr: number[][]
+): {
+  offerComponents: FulfillmentComponent[];
+  considerationComponents: FulfillmentComponent[];
+} => ({
+  offerComponents: toFulfillmentComponents(offerArr),
+  considerationComponents: toFulfillmentComponents(considerationsArr),
+});
+
+export const buildResolver = (
+  orderIndex: number,
+  side: 0 | 1,
+  index: number,
+  identifier: BigNumber,
+  criteriaProof: BigNumberish[]
+): CriteriaResolver => ({
+  orderIndex,
+  side,
+  index,
+  identifier,
+  criteriaProof,
+});
+
+export const calculateOrderHash = (orderComponents: OrderComponents) => {
+  const offerItemTypeString =
+    "OfferItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)";
+  const considerationItemTypeString =
+    "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)";
+  const orderComponentsPartialTypeString =
+    "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,bytes32 conduitKey,uint256 nonce)";
+  const orderTypeString = `${orderComponentsPartialTypeString}${considerationItemTypeString}${offerItemTypeString}`;
+
+  const offerItemTypeHash = keccak256(toUtf8Bytes(offerItemTypeString));
+  const considerationItemTypeHash = keccak256(
+    toUtf8Bytes(considerationItemTypeString)
+  );
+  const orderTypeHash = keccak256(toUtf8Bytes(orderTypeString));
+
+  const offerHash = keccak256(
+    "0x" +
+      orderComponents.offer
+        .map((offerItem) => {
+          return keccak256(
+            "0x" +
+              [
+                offerItemTypeHash.slice(2),
+                offerItem.itemType.toString().padStart(64, "0"),
+                offerItem.token.slice(2).padStart(64, "0"),
+                toBN(offerItem.identifierOrCriteria)
+                  .toHexString()
+                  .slice(2)
+                  .padStart(64, "0"),
+                toBN(offerItem.startAmount)
+                  .toHexString()
+                  .slice(2)
+                  .padStart(64, "0"),
+                toBN(offerItem.endAmount)
+                  .toHexString()
+                  .slice(2)
+                  .padStart(64, "0"),
+              ].join("")
+          ).slice(2);
+        })
+        .join("")
+  );
+
+  const considerationHash = keccak256(
+    "0x" +
+      orderComponents.consideration
+        .map((considerationItem) => {
+          return keccak256(
+            "0x" +
+              [
+                considerationItemTypeHash.slice(2),
+                considerationItem.itemType.toString().padStart(64, "0"),
+                considerationItem.token.slice(2).padStart(64, "0"),
+                toBN(considerationItem.identifierOrCriteria)
+                  .toHexString()
+                  .slice(2)
+                  .padStart(64, "0"),
+                toBN(considerationItem.startAmount)
+                  .toHexString()
+                  .slice(2)
+                  .padStart(64, "0"),
+                toBN(considerationItem.endAmount)
+                  .toHexString()
+                  .slice(2)
+                  .padStart(64, "0"),
+                considerationItem.recipient.slice(2).padStart(64, "0"),
+              ].join("")
+          ).slice(2);
+        })
+        .join("")
+  );
+
+  const derivedOrderHash = keccak256(
+    "0x" +
+      [
+        orderTypeHash.slice(2),
+        orderComponents.offerer.slice(2).padStart(64, "0"),
+        orderComponents.zone.slice(2).padStart(64, "0"),
+        offerHash.slice(2),
+        considerationHash.slice(2),
+        orderComponents.orderType.toString().padStart(64, "0"),
+        toBN(orderComponents.startTime)
+          .toHexString()
+          .slice(2)
+          .padStart(64, "0"),
+        toBN(orderComponents.endTime).toHexString().slice(2).padStart(64, "0"),
+        orderComponents.zoneHash.slice(2),
+        orderComponents.salt.slice(2).padStart(64, "0"),
+        orderComponents.conduitKey.slice(2).padStart(64, "0"),
+        toBN(orderComponents.nonce).toHexString().slice(2).padStart(64, "0"),
+      ].join("")
+  );
+
+  return derivedOrderHash;
+};
+
+export const getBasicOrderExecutions = (
+  order: Order,
+  fulfiller: string,
+  fulfillerConduitKey: string
+) => {
+  const { offerer, conduitKey, offer, consideration } = order.parameters;
+  const offerItem = offer[0];
+  const considerationItem = consideration[0];
+  const executions = [
+    {
+      item: {
+        ...offerItem,
+        amount: offerItem.endAmount,
+        recipient: fulfiller,
+      },
+      offerer: offerer,
+      conduitKey: conduitKey,
+    },
+    {
+      item: {
+        ...considerationItem,
+        amount: considerationItem.endAmount,
+      },
+      offerer: fulfiller,
+      conduitKey: fulfillerConduitKey,
+    },
+  ];
+  if (consideration.length > 1) {
+    for (const additionalRecipient of consideration.slice(1)) {
+      const execution = {
+        item: {
+          ...additionalRecipient,
+          amount: additionalRecipient.endAmount,
+        },
+        offerer: fulfiller,
+        conduitKey: fulfillerConduitKey,
+      };
+      if (additionalRecipient.itemType === offerItem.itemType) {
+        execution.offerer = offerer;
+        execution.conduitKey = conduitKey;
+        executions[0].item.amount = executions[0].item.amount.sub(
+          execution.item.amount
+        );
+      }
+      executions.push(execution);
+    }
+  }
+  return executions;
+};
+
+export const defaultBuyNowMirrorFulfillment = [
+  [[[0, 0]], [[1, 0]]],
+  [[[1, 0]], [[0, 0]]],
+  [[[1, 0]], [[0, 1]]],
+  [[[1, 0]], [[0, 2]]],
+].map(([offerArr, considerationArr]) =>
+  toFulfillment(offerArr, considerationArr)
+);
+
+export const defaultAcceptOfferMirrorFulfillment = [
+  [[[1, 0]], [[0, 0]]],
+  [[[0, 0]], [[1, 0]]],
+  [[[0, 0]], [[0, 1]]],
+  [[[0, 0]], [[0, 2]]],
+].map(([offerArr, considerationArr]) =>
+  toFulfillment(offerArr, considerationArr)
+);
