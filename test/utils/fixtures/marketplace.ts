@@ -123,12 +123,12 @@ export async function marketplaceFixture(
 
   const createOrder = async (
     offerer: Wallet,
-    zone: Wallet | undefined = undefined,
+    zone: Wallet | undefined | string = undefined,
     offer: OfferItem[],
     consideration: ConsiderationItem[],
     orderType: number,
     criteriaResolvers?: CriteriaResolver[],
-    timeFlag?: string,
+    timeFlag?: string | null,
     signer?: Wallet,
     zoneHash = constants.HashZero,
     conduitKey = constants.HashZero,
@@ -144,7 +144,9 @@ export async function marketplaceFixture(
 
     const orderParameters = {
       offerer: offerer.address,
-      zone: !extraCheap ? (zone as Wallet).address : constants.AddressZero,
+      zone: !extraCheap
+        ? (zone as Wallet).address || (zone as string)
+        : constants.AddressZero,
       offer,
       consideration,
       totalOriginalConsiderationItems: consideration.length,
