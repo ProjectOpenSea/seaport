@@ -37,11 +37,15 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
      *                          ERC20/721/1155 tokens.
      */
     constructor(address conduitController) {
-        // Set the supplied conduit controller.
-        _CONDUIT_CONTROLLER = ConduitControllerInterface(conduitController);
+        // Get the conduit creation code hash from the supplied conduit controller and
+        // set the conduit creation code hash as an immutable.
+        ConduitControllerInterface controller = ConduitControllerInterface(
+            conduitController
+        );
+        (_CONDUIT_CREATION_CODE_HASH, ) = controller.getConduitCodeHashes();
 
-        // Derive the conduit creation code hash and set it as an immutable.
-        _CONDUIT_CREATION_CODE_HASH = keccak256(type(Conduit).creationCode);
+        // Set the supplied conduit controller.
+        _CONDUIT_CONTROLLER = controller;
     }
 
     /**
