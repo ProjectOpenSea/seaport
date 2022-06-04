@@ -13,6 +13,7 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 import { Merkle } from "murky/Merkle.sol";
+import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
 import { ConsiderationEventsAndErrors } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
@@ -20,7 +21,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
-
+    using ArithmeticUtil for uint8;
     struct FuzzInputs {
         uint256 tokenId;
         address zone;
@@ -28,6 +29,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         uint256 salt;
         uint16 offerAmt;
         // uint16 fulfillAmt;
+        address recipient;
         uint120[3] paymentAmounts;
         bool useConduit;
         uint8 numer;
@@ -42,6 +44,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     }
 
     modifier validateInputs(FuzzInputs memory args) {
+        vm.assume(args.offerAmt > 0);
         vm.assume(
             args.paymentAmounts[0] > 0 &&
                 args.paymentAmounts[1] > 0 &&
@@ -52,29 +55,66 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 args.paymentAmounts[2]
             ) <= 2**120 - 1
         );
-        vm.assume(args.offerAmt > 0);
-        vm.assume(args.numer <= args.denom);
-        vm.assume(args.numer > 0);
         _;
+    }
+
+    modifier validateNumerDenom(FuzzInputs memory args) {
+        vm.assume(args.numer > 0 && args.denom > 0);
+        if (args.numer > args.denom) {
+            uint8 temp = args.denom;
+            args.denom = args.numer;
+            args.numer = temp;
+        }
+        vm.assume(
+            args.paymentAmounts[0] > 0 &&
+                args.paymentAmounts[1] > 0 &&
+                args.paymentAmounts[2] > 0
+        );
+        vm.assume(
+            args.paymentAmounts[0].add(args.paymentAmounts[1]).add(
+                args.paymentAmounts[2]
+            ) <= 2**120 - 1
+        );
+        _;
+    }
+
+    modifier only1155Receiver(address recipient) {
+        vm.assume(recipient != address(0));
+        if (recipient.code.length > 0) {
+            try
+                ERC1155Recipient(recipient).onERC1155Received(
+                    address(1),
+                    address(1),
+                    1,
+                    1,
+                    ""
+                )
+            returns (bytes4 response) {
+                vm.assume(response == onERC1155Received.selector);
+            } catch (bytes memory reason) {
+                vm.assume(false);
+            }
+        }
+        _;
+    }
+
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
     }
 
     function testAdvancedPartialAscendingOfferAmount1155(
         FuzzInputs memory inputs,
         uint128 tokenAmount,
         uint256 warpAmount
-    ) public {
-        vm.assume(
-            inputs.paymentAmounts[0] > 0 &&
-                inputs.paymentAmounts[1] > 0 &&
-                inputs.paymentAmounts[2] > 0
-        );
-        uint256 sumOfPaymentAmounts = (inputs.paymentAmounts[0].mul(2))
-            .add(inputs.paymentAmounts[1].mul(2))
-            .add(inputs.paymentAmounts[2].mul(2));
-        vm.assume(sumOfPaymentAmounts <= 2**128 - 1);
-
+    ) public validateInputs(inputs) {
         vm.assume(tokenAmount > 0);
-        _testAdvancedPartialAscendingOfferAmount1155(
+
+        test(
+            this.advancedPartialAscendingOfferAmount1155,
             Context(
                 referenceConsideration,
                 inputs,
@@ -82,14 +122,16 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 warpAmount % 1000
             )
         );
-        _testAdvancedPartialAscendingOfferAmount1155(
+        test(
+            this.advancedPartialAscendingOfferAmount1155,
             Context(consideration, inputs, tokenAmount, warpAmount % 1000)
         );
     }
 
-    function _testAdvancedPartialAscendingOfferAmount1155(
-        Context memory context
-    ) internal resetTokenBalancesBetweenRuns {
+    function advancedPartialAscendingOfferAmount1155(Context memory context)
+        external
+        stateless
+    {
         uint256 sumOfPaymentAmounts = (context.args.paymentAmounts[0].mul(2))
             .add(context.args.paymentAmounts[1].mul(2))
             .add(context.args.paymentAmounts[2].mul(2));
@@ -183,7 +225,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
         context.consideration.fulfillAdvancedOrder{
             value: sumOfPaymentAmounts
-        }(advancedOrder, new CriteriaResolver[](0), bytes32(0));
+        }(advancedOrder, new CriteriaResolver[](0), bytes32(0), address(0));
         (, , uint256 totalFilled, uint256 totalSize) = context
             .consideration
             .getOrderStatus(orderHash);
@@ -193,30 +235,22 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
     function testAdvancedPartialAscendingConsiderationAmount1155(
         FuzzInputs memory inputs,
-        uint128 tokenId
-    ) public {
-        _testAdvancedPartialAscendingConsiderationAmount1155(
-            Context(referenceConsideration, inputs, tokenId, 0)
+        uint128 tokenAmount
+    ) public validateInputs(inputs) {
+        vm.assume(tokenAmount > 0);
+        test(
+            this.advancedPartialAscendingConsiderationAmount1155,
+            Context(referenceConsideration, inputs, tokenAmount, 0)
         );
-        _testAdvancedPartialAscendingConsiderationAmount1155(
-            Context(consideration, inputs, tokenId, 0)
+        test(
+            this.advancedPartialAscendingConsiderationAmount1155,
+            Context(consideration, inputs, tokenAmount, 0)
         );
     }
 
-    function _testAdvancedPartialAscendingConsiderationAmount1155(
+    function advancedPartialAscendingConsiderationAmount1155(
         Context memory context
-    ) internal resetTokenBalancesBetweenRuns {
-        vm.assume(
-            context.args.paymentAmounts[0] > 0 &&
-                context.args.paymentAmounts[1] > 0 &&
-                context.args.paymentAmounts[2] > 0
-        );
-        uint256 sumOfPaymentAmounts = (context.args.paymentAmounts[0].mul(4))
-            .add((context.args.paymentAmounts[1].mul(2)))
-            .add((context.args.paymentAmounts[2].mul(2)));
-        vm.assume(sumOfPaymentAmounts <= 2**128 - 1);
-
-        vm.assume(context.tokenAmount > 0);
+    ) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -296,12 +330,16 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 .paymentAmounts[0]
                 .add(context.args.paymentAmounts[1])
                 .add(context.args.paymentAmounts[2])
-        }(advancedOrder, new CriteriaResolver[](0), bytes32(0));
+        }(advancedOrder, new CriteriaResolver[](0), bytes32(0), address(0));
+
+        uint256 sumOfPaymentAmounts = (context.args.paymentAmounts[0].mul(4))
+            .add((context.args.paymentAmounts[1].mul(2)))
+            .add((context.args.paymentAmounts[2].mul(2)));
 
         // set transaction value to sum of eth consideration items (including endAmount of considerationItem[0])
         context.consideration.fulfillAdvancedOrder{
             value: sumOfPaymentAmounts
-        }(advancedOrder, new CriteriaResolver[](0), bytes32(0));
+        }(advancedOrder, new CriteriaResolver[](0), bytes32(0), address(0));
 
         (, , uint256 totalFilled, uint256 totalSize) = context
             .consideration
@@ -310,71 +348,108 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         assertEq(totalSize, 2);
     }
 
-    function testAdvancedPartial1155(FuzzInputs memory args) public {
-        _advancedPartial1155(Context(consideration, args, 0, 0));
-        _advancedPartial1155(Context(referenceConsideration, args, 0, 0));
+    function testSingleAdvancedPartial1155(
+        FuzzInputs memory inputs,
+        uint128 tokenAmount
+    )
+        public
+        validateInputs(inputs)
+        validateNumerDenom(inputs)
+        onlyPayable(inputs.zone)
+        only1155Receiver(inputs.recipient)
+    {
+        vm.assume(tokenAmount > 0);
+
+        test(
+            this.singleAdvancedPartial1155,
+            Context(consideration, inputs, tokenAmount, 0)
+        );
+        test(
+            this.singleAdvancedPartial1155,
+            Context(referenceConsideration, inputs, tokenAmount, 0)
+        );
     }
 
-    function testSingleAdvancedPartial1155() public {
-        test1155_1.mint(alice, 1, 10);
+    function singleAdvancedPartial1155(Context memory context)
+        external
+        stateless
+    {
+        vm.assume(
+            context.args.recipient != address(0) &&
+                context.args.recipient != address(test1155_1)
+        );
 
-        _configureERC1155OfferItem(1, 10);
+        bytes32 conduitKey = context.args.useConduit
+            ? conduitKeyOne
+            : bytes32(0);
+
+        test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
+
+        _configureERC1155OfferItem(context.args.tokenId, context.tokenAmount);
+        _configureEthConsiderationItem(payable(0), 10);
         _configureEthConsiderationItem(alice, 10);
-        _configureEthConsiderationItem(payable(address(0)), 10);
-        _configureEthConsiderationItem(cal, 10);
+        _configureEthConsiderationItem(bob, 10);
         uint256 nonce = referenceConsideration.getNonce(alice);
         OrderComponents memory orderComponents = OrderComponents(
             alice,
-            address(0),
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            bytes32(0),
-            0,
-            bytes32(0),
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
             nonce
         );
-        bytes32 orderHash = referenceConsideration.getOrderHash(
-            orderComponents
-        );
+        bytes32 orderHash = consideration.getOrderHash(orderComponents);
 
-        bytes memory signature = signOrder(
-            referenceConsideration,
-            alicePk,
-            orderHash
-        );
+        bytes memory signature = signOrder(consideration, alicePk, orderHash);
 
         OrderParameters memory orderParameters = OrderParameters(
             alice,
-            address(0),
+            context.args.zone,
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
             block.timestamp,
             block.timestamp + 1,
-            bytes32(0),
-            0,
-            bytes32(0),
+            context.args.zoneHash,
+            context.args.salt,
+            conduitKey,
             3
         );
         uint256 value = 30;
 
-        referenceConsideration.fulfillAdvancedOrder{ value: value }(
+        consideration.fulfillAdvancedOrder{ value: value }(
             AdvancedOrder(orderParameters, 1, 1, signature, ""),
             new CriteriaResolver[](0),
-            bytes32(0)
+            bytes32(0),
+            context.args.recipient
+        );
+
+        assertEq(
+            context.tokenAmount,
+            test1155_1.balanceOf(context.args.recipient, context.args.tokenId)
         );
     }
 
-    function _advancedPartial1155(Context memory context)
-        internal
-        validateInputs(context.args)
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function testAdvancedPartial1155(FuzzInputs memory args)
+        public
+        validateInputs(args)
+        validateNumerDenom(args)
+        onlyPayable(args.zone)
+        only1155Receiver(args.recipient)
     {
+        test(this.advancedPartial1155, Context(consideration, args, 0, 0));
+        test(
+            this.advancedPartial1155,
+            Context(referenceConsideration, args, 0, 0)
+        );
+    }
+
+    function advancedPartial1155(Context memory context) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -464,7 +539,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 ""
             ),
             new CriteriaResolver[](0),
-            conduitKey
+            conduitKey,
+            context.args.recipient
         );
 
         {
@@ -478,6 +554,13 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             assertFalse(isCancelled);
             assertEq(totalFilled, context.args.numer);
             assertEq(totalSize, context.args.denom);
+            assertEq(
+                context.args.numer,
+                test1155_1.balanceOf(
+                    context.args.recipient,
+                    context.args.tokenId
+                )
+            );
         }
     }
 }
