@@ -4,7 +4,7 @@ const {
   constants,
   utils: { parseEther, keccak256, toUtf8Bytes },
 } = require("ethers");
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const { faucet, whileImpersonating } = require("./utils/impersonate");
 const { merkleTree } = require("./utils/criteria");
 const {
@@ -96,6 +96,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         value,
       });
   };
+
+  after(async () => {
+    await network.provider.request({
+      method: "hardhat_reset",
+    });
+  });
 
   before(async () => {
     owner = new ethers.Wallet(randomHex(32), provider);
