@@ -353,16 +353,8 @@ contract ReferenceOrderCombiner is
 
         // Apply criteria resolvers to each order as applicable.
         _applyCriteriaResolvers(ordersToExecute, criteriaResolvers);
-        // Determine the fulfiller (revertOnInvalid ? address(0) : msg.sender).
-        address fulfiller;
-        if (revertOnInvalid) {
-            fulfiller = address(0);
-        } else {
-            fulfiller = msg.sender;
-        }
 
         // Emit an event for each order signifying that it has been fulfilled.
-
         // Iterate over each order.
         for (uint256 i = 0; i < totalOrders; ++i) {
             // Do not emit an event if no order hash is present.

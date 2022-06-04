@@ -137,7 +137,12 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
     function testFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
         FuzzInputs memory args
-    ) public validateInputs(args) onlyPayable(args.zone) {
+    )
+        public
+        validateInputs(args)
+        onlyPayable(args.zone)
+        only1155Receiver(args.recipient)
+    {
         test(
             this
                 .fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
@@ -382,7 +387,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
     function fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
         Context memory context
-    ) external stateless only1155Receiver(context.args.recipient) {
+    ) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
