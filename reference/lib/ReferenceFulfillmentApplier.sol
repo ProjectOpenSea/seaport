@@ -52,7 +52,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] calldata offerComponents,
         FulfillmentComponent[] calldata considerationComponents
-    ) internal pure returns (Execution memory execution) {
+    ) internal view returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
             offerComponents.length == 0 || considerationComponents.length == 0
@@ -273,7 +273,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory offerComponents,
         uint256 startIndex
-    ) internal pure returns (Execution memory execution) {
+    ) internal view returns (Execution memory execution) {
         // Get the order index and item index of the offer component.
         uint256 orderIndex = offerComponents[startIndex].orderIndex;
         uint256 itemIndex = offerComponents[startIndex].itemIndex;
@@ -300,7 +300,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         offer.token,
                         offer.identifier,
                         offer.amount,
-                        payable(address(0))
+                        payable(msg.sender)
                     ),
                     orderToExecute.offerer,
                     orderToExecute.conduitKey
