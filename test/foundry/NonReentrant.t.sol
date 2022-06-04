@@ -130,7 +130,8 @@ contract NonReentrantTest is BaseOrderTest {
             currentConsideration.fulfillAdvancedOrder{ value: value }(
                 _order,
                 criteriaResolvers,
-                fulfillerConduitKey
+                fulfillerConduitKey,
+                address(0)
             );
         } else if (entryPoint == EntryPoint.FulfillAvailableOrders) {
             (
@@ -172,6 +173,7 @@ contract NonReentrantTest is BaseOrderTest {
                 _offerFulfillments,
                 _considerationFulfillments,
                 fulfillerConduitKey,
+                address(0),
                 maximumFulfilled
             );
         } else if (entryPoint == EntryPoint.MatchOrders) {

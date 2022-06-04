@@ -13,6 +13,7 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 import { Merkle } from "murky/Merkle.sol";
+import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
 import { ConsiderationEventsAndErrors } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
@@ -20,7 +21,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
-
+    using ArithmeticUtil for uint8;
     struct FuzzInputs {
         uint256 tokenId;
         address zone;
@@ -74,6 +75,26 @@ contract FulfillAdvancedOrder is BaseOrderTest {
                 args.paymentAmounts[2]
             ) <= 2**120 - 1
         );
+        _;
+    }
+
+    modifier only1155Receiver(address recipient) {
+        vm.assume(recipient != address(0));
+        if (recipient.code.length > 0) {
+            try
+                ERC1155Recipient(recipient).onERC1155Received(
+                    address(1),
+                    address(1),
+                    1,
+                    1,
+                    ""
+                )
+            returns (bytes4 response) {
+                vm.assume(response == onERC1155Received.selector);
+            } catch (bytes memory reason) {
+                vm.assume(false);
+            }
+        }
         _;
     }
 
@@ -335,6 +356,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         validateInputs(inputs)
         validateNumerDenom(inputs)
         onlyPayable(inputs.zone)
+        only1155Receiver(inputs.recipient)
     {
         vm.assume(tokenAmount > 0);
 
@@ -418,6 +440,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         validateInputs(args)
         validateNumerDenom(args)
         onlyPayable(args.zone)
+        only1155Receiver(args.recipient)
     {
         test(this.advancedPartial1155, Context(consideration, args, 0, 0));
         test(
@@ -531,6 +554,13 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             assertFalse(isCancelled);
             assertEq(totalFilled, context.args.numer);
             assertEq(totalSize, context.args.denom);
+            assertEq(
+                context.args.numer,
+                test1155_1.balanceOf(
+                    context.args.recipient,
+                    context.args.tokenId
+                )
+            );
         }
     }
 }
