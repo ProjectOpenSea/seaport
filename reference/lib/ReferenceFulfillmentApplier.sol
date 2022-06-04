@@ -86,7 +86,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         ) = _aggregateValidFulfillmentOfferItems(
             ordersToExecute,
             offerComponents,
-            0
+            0,
+            address(0) // unused
         );
 
         // Ensure offer and consideration share types, tokens and identifiers.
@@ -210,14 +211,13 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
 
         // If the fulfillment components are offer components...
         if (side == Side.OFFER) {
-            // Set recipient on the execution item
-            execution.item.recipient = payable(recipient);
             // Return execution for aggregated items provided by offerer.
             // prettier-ignore
             return _aggregateValidFulfillmentOfferItems(
                 ordersToExecute,
                 fulfillmentComponents,
-                nextComponentIndex - 1
+                nextComponentIndex - 1,
+                recipient
             );
         } else {
             // Otherwise, fulfillment components are consideration
@@ -272,7 +272,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     function _aggregateValidFulfillmentOfferItems(
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory offerComponents,
-        uint256 startIndex
+        uint256 startIndex,
+        address recipient
     ) internal view returns (Execution memory execution) {
         // Get the order index and item index of the offer component.
         uint256 orderIndex = offerComponents[startIndex].orderIndex;
@@ -300,7 +301,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         offer.token,
                         offer.identifier,
                         offer.amount,
-                        payable(msg.sender)
+                        payable(recipient)
                     ),
                     orderToExecute.offerer,
                     orderToExecute.conduitKey
