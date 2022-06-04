@@ -52,8 +52,8 @@ contract LowLevelHelpers {
                 // while expanding memory where necessary. Start by computing
                 // the word size of returndata and allocated memory.
                 let returnDataWords := div(
-                  add(returndatasize(), AlmostOneWord),
-                  OneWord
+                    add(returndatasize(), AlmostOneWord),
+                    OneWord
                 )
 
                 // Note: use the free memory pointer in place of msize() to work
