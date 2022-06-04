@@ -826,3 +826,5 @@ export async function seaportFixture(owner: Wallet) {
     checkExpectedEvents,
   };
 }
+
+export type SeaportFixtures = Awaited<ReturnType<typeof seaportFixture>>;

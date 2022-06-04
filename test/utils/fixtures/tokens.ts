@@ -35,7 +35,7 @@ export const fixtureERC20 = async (signer: JsonRpcSigner) => {
   const getTestItem20 = (
     startAmount: BigNumberish = 50,
     endAmount: BigNumberish = 50,
-    recipient: string,
+    recipient?: string,
     token = testERC20.address
   ) =>
     getOfferOrConsiderationItem(1, token, 0, startAmount, endAmount, recipient);
@@ -86,7 +86,7 @@ export const fixtureERC721 = async (signer: JsonRpcSigner) => {
     identifierOrCriteria: BigNumberish,
     startAmount: BigNumberish = 1,
     endAmount: BigNumberish = 1,
-    recipient: string,
+    recipient?: string,
     token = testERC721.address
   ) =>
     getOfferOrConsiderationItem(
@@ -102,7 +102,7 @@ export const fixtureERC721 = async (signer: JsonRpcSigner) => {
     identifierOrCriteria: BigNumberish,
     startAmount: BigNumberish = 1,
     endAmount: BigNumberish = 1,
-    recipient: string
+    recipient?: string
   ) =>
     getOfferOrConsiderationItem(
       4,
@@ -173,7 +173,7 @@ export const fixtureERC1155 = async (signer: JsonRpcSigner) => {
     identifierOrCriteria: BigNumberish,
     startAmount: BigNumberish = 1,
     endAmount: BigNumberish = 1,
-    recipient: string
+    recipient?: string
   ) =>
     getOfferOrConsiderationItem(
       5,
@@ -189,7 +189,7 @@ export const fixtureERC1155 = async (signer: JsonRpcSigner) => {
     startAmount: BigNumberish,
     endAmount: BigNumberish,
     token = testERC1155.address,
-    recipient: string
+    recipient?: string
   ) =>
     getOfferOrConsiderationItem(
       3,
