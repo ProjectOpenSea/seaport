@@ -202,7 +202,7 @@ export const buildResolver = (
   side: 0 | 1,
   index: number,
   identifier: BigNumber,
-  criteriaProof: BigNumberish[]
+  criteriaProof: string[]
 ): CriteriaResolver => ({
   orderIndex,
   side,
