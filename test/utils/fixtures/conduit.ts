@@ -1,11 +1,10 @@
 /* eslint-disable camelcase */
 import { expect } from "chai";
-import { constants, Wallet } from "ethers";
+import { constants, ContractFactory, Wallet } from "ethers";
 import { getCreate2Address, keccak256 } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
 import {
-  ConduitController,
-  Conduit__factory,
+  ConduitControllerInterface,
   ImmutableCreate2FactoryInterface,
 } from "../../../typechain-types";
 import { deployContract } from "../contracts";
@@ -18,12 +17,12 @@ export const conduitFixture = async (
   create2Factory: ImmutableCreate2FactoryInterface,
   owner: Wallet
 ) => {
-  let conduitController: ConduitController;
-  let conduitImplementation: Conduit__factory;
+  let conduitController: ConduitControllerInterface;
+  let conduitImplementation: ContractFactory;
   if (process.env.REFERENCE) {
     conduitImplementation = (await ethers.getContractFactory(
       "ReferenceConduit"
-    )) as Conduit__factory;
+    )) as ContractFactory;
     conduitController = await deployContract("ConduitController", owner as any);
   } else {
     conduitImplementation = await ethers.getContractFactory("Conduit");
