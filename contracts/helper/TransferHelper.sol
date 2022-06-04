@@ -108,10 +108,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         // If a conduitKey is given, derive the conduit address from the conduitKey and call the conduit to perform transfers.
         else {
             // Derive address from deployer, conduit key and creation code hash.
-            // TODO comment out conduitDerived and just use conduit and all tests pass
-            (address conduit, ) = _CONDUIT_CONTROLLER.getConduit(conduitKey);
-            // TODO get this working
-            address conduitDerived = address(
+            address conduit = address(
                 uint160(
                     uint256(
                         keccak256(
@@ -125,7 +122,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     )
                 )
             );
-            require(conduit == conduitDerived, toString(conduit));
 
             ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
                 numTransfers
