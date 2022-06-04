@@ -56,6 +56,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
+      - run: yarn build
       - run: yarn test
 
   reference-test:
@@ -76,6 +77,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
+      - run: yarn build
+      - run: yarn build:ref
       - run: yarn test:ref
 
   forge-lite:
@@ -140,6 +143,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
+      - run: yarn build
       - run: yarn coverage
       - uses: VeryGoodOpenSource/very_good_coverage@v1
         with:
@@ -164,6 +168,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: yarn install
+      - run: yarn build
+      - run: yarn build:ref
       - run: yarn coverage:ref
       - uses: VeryGoodOpenSource/very_good_coverage@v1
         with:
