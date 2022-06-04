@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { constants, Wallet } from "ethers";
+import { network } from "hardhat";
 import {
   ConsiderationInterface,
   TestERC20,
@@ -25,6 +26,12 @@ describe("Fulfillment applier allows overflow when a missing item is provided", 
   let getTestItem20: SeaportFixtures["getTestItem20"];
   let getTestItem721: SeaportFixtures["getTestItem721"];
   let createOrder: SeaportFixtures["createOrder"];
+
+  after(async () => {
+    await network.provider.request({
+      method: "hardhat_reset",
+    });
+  });
 
   before(async () => {
     alice = await getWalletWithEther();

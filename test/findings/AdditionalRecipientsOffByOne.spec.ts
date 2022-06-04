@@ -11,6 +11,7 @@ import { getWalletWithEther } from "../utils/impersonate";
 import { AdvancedOrder, ConsiderationItem } from "../utils/types";
 import { getScuffedContract } from "scuffed-abi";
 import { hexZeroPad } from "ethers/lib/utils";
+import { ethers, network } from "hardhat";
 
 const IS_FIXED = false;
 
@@ -28,6 +29,12 @@ describe("additionalRecipients off by one error", async () => {
   let getTestItem20: SeaportFixtures["getTestItem20"];
   let getTestItem721: SeaportFixtures["getTestItem721"];
   let createOrder: SeaportFixtures["createOrder"];
+
+  after(async () => {
+    await network.provider.request({
+      method: "hardhat_reset",
+    });
+  });
 
   before(async () => {
     alice = await getWalletWithEther();
