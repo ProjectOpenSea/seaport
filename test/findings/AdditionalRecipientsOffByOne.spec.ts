@@ -15,7 +15,7 @@ import { ethers, network } from "hardhat";
 
 const IS_FIXED = false;
 
-describe("additionalRecipients off by one error", async () => {
+describe("Additional recipients off by one error allows skipping second consideration", async () => {
   let alice: Wallet;
   let bob: Wallet;
   let carol: Wallet;
