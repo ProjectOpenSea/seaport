@@ -44,7 +44,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         );
         (_CONDUIT_CREATION_CODE_HASH, ) = controller.getConduitCodeHashes();
 
-        // Set the supplied conduit controller.
+        // Set the supplied conduit controller as an immutable.
         _CONDUIT_CONTROLLER = controller;
     }
 
