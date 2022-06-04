@@ -13,7 +13,7 @@ import { AdvancedOrder, ConsiderationItem } from "../utils/types";
 
 const IS_FIXED = false;
 
-describe("additionalRecipients off by one error", async () => {
+describe("Partial fill fractions can overflow to reset an order", async () => {
   let alice: Wallet;
   let bob: Wallet;
   let carol: Wallet;
@@ -99,7 +99,7 @@ describe("additionalRecipients off by one error", async () => {
   });
 
   describe("Bob partially fills 1/2 of Alice's order", () => {
-    it("Bob receives 1 NFT", async () => {
+    it("Bob receives one 1155 token", async () => {
       order.numerator = 1;
       order.denominator = 2;
       await marketplaceContract
@@ -122,7 +122,7 @@ describe("additionalRecipients off by one error", async () => {
         .fulfillAdvancedOrder(order, [], toKey(false));
     });
 
-    it("Carol receives 1 NFT from Alice", async () => {
+    it("Carol receives one 1155 token from Alice", async () => {
       expect(await testERC1155.balanceOf(carol.address, 1)).to.eq(1);
       expect(await testERC1155.balanceOf(alice.address, 1)).to.eq(8);
     });
@@ -155,7 +155,7 @@ describe("additionalRecipients off by one error", async () => {
         }
       });
 
-      it("Carol receives Alice's remaining 8 NFTs", async () => {
+      it("Carol receives Alice's remaining eight 1155 tokens", async () => {
         expect(await testERC1155.balanceOf(carol.address, 1)).to.eq(9);
         expect(await testERC1155.balanceOf(alice.address, 1)).to.eq(0);
       });
