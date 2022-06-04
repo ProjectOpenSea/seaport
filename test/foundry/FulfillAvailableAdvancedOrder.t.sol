@@ -12,6 +12,7 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
+import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
 import { stdError } from "forge-std/Test.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
@@ -42,6 +43,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
     }
 
     modifier validateInputs(FuzzInputs memory inputs) {
+        vm.assume(inputs.amount > 0);
         vm.assume(
             inputs.paymentAmts[0] > 0 &&
                 inputs.paymentAmts[1] > 0 &&
@@ -68,6 +70,26 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
                 inputs.paymentAmts[2].mul(inputs.denom) <=
                 2**128 - 1
         );
+        _;
+    }
+
+    modifier only1155Receiver(address recipient) {
+        vm.assume(recipient != address(0));
+        if (recipient.code.length > 0) {
+            try
+                ERC1155Recipient(recipient).onERC1155Received(
+                    address(1),
+                    address(1),
+                    1,
+                    1,
+                    ""
+                )
+            returns (bytes4 response) {
+                vm.assume(response == onERC1155Received.selector);
+            } catch (bytes memory reason) {
+                vm.assume(false);
+            }
+        }
         _;
     }
 
@@ -113,17 +135,17 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         }
     }
 
-    function testFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToSingleErc721(
+    function testFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
         FuzzInputs memory args
     ) public validateInputs(args) onlyPayable(args.zone) {
         test(
             this
-                .fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToSingleErc721,
+                .fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
             Context(referenceConsideration, args, ItemType(0))
         );
         test(
             this
-                .fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToSingleErc721,
+                .fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
             Context(consideration, args, ItemType(0))
         );
     }
@@ -358,21 +380,21 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToSingleErc721(
+    function fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
         Context memory context
-    ) external stateless {
+    ) external stateless only1155Receiver(context.args.recipient) {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
-        test721_1.mint(alice, context.args.id);
+        test1155_1.mint(alice, context.args.id, context.args.amount);
         offerItems.push(
             OfferItem(
-                ItemType.ERC721,
-                address(test721_1),
+                ItemType.ERC1155,
+                address(test1155_1),
                 context.args.id,
-                1,
-                1
+                context.args.amount,
+                context.args.amount
             )
         );
         considerationItems.push(
@@ -380,8 +402,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                context.args.paymentAmts[0],
-                context.args.paymentAmts[0],
+                10,
+                10,
                 payable(alice)
             )
         );
@@ -390,8 +412,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                context.args.paymentAmts[1],
-                context.args.paymentAmts[1],
+                10,
+                10,
                 payable(context.args.zone)
             )
         );
@@ -400,8 +422,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
                 ItemType.NATIVE,
                 address(0),
                 0,
-                context.args.paymentAmts[2],
-                context.args.paymentAmts[2],
+                10,
+                10,
                 payable(cal)
             )
         );
@@ -464,21 +486,20 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             signature,
             "0x"
         );
-        uint256 value = context
-            .args
-            .paymentAmts[0]
-            .add(context.args.paymentAmts[1])
-            .add(context.args.paymentAmts[2]);
-        CriteriaResolver[] memory criteriaResolvers = new CriteriaResolver[](0);
 
-        context.consideration.fulfillAvailableAdvancedOrders{ value: value }(
+        context.consideration.fulfillAvailableAdvancedOrders{ value: 30 }(
             advancedOrders,
-            criteriaResolvers,
+            new CriteriaResolver[](0),
             offerComponentsArray,
             considerationComponentsArray,
             conduitKey,
-            address(0),
+            bob,
             100
+        );
+
+        assertEq(
+            test1155_1.balanceOf(bob, context.args.id),
+            context.args.amount
         );
     }
 
