@@ -14,7 +14,6 @@ const {
   toKey,
   convertSignatureToEIP2098,
   getBasicOrderParameters,
-  getOfferOrConsiderationItem,
   getItemETH,
   toBN,
   randomBN,
@@ -22,6 +21,8 @@ const {
   toFulfillmentComponents,
   getBasicOrderExecutions,
   buildResolver,
+  defaultBuyNowMirrorFulfillment,
+  defaultAcceptOfferMirrorFulfillment,
 } = require("./utils/encoding");
 const { randomInt } = require("crypto");
 const {
