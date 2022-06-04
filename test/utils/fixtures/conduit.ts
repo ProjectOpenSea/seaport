@@ -2,7 +2,7 @@
 import { expect } from "chai";
 import { constants, Wallet } from "ethers";
 import { getCreate2Address, keccak256 } from "ethers/lib/utils";
-import { ethers } from "hardhat";
+import hre, { ethers } from "hardhat";
 import {
   ConduitController,
   Conduit__factory,
@@ -38,7 +38,11 @@ export const conduitFixture = async (
       conduitControllerFactory.bytecode
     );
 
-    const { gasLimit } = await ethers.provider.getBlock("latest");
+    let { gasLimit } = await ethers.provider.getBlock("latest");
+
+    if ((hre as any).__SOLIDITY_COVERAGE_RUNNING) {
+      gasLimit = ethers.BigNumber.from(300_000_000);
+    }
     await create2Factory.safeCreate2(
       deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
       conduitControllerFactory.bytecode,
