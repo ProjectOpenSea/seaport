@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { expect } from "chai";
-import { constants, ContractFactory, Wallet } from "ethers";
+import { constants, Wallet } from "ethers";
 import { getCreate2Address, keccak256 } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
 import {
@@ -18,11 +18,9 @@ export const conduitFixture = async (
   owner: Wallet
 ) => {
   let conduitController: ConduitControllerInterface;
-  let conduitImplementation: ContractFactory;
+  let conduitImplementation: any;
   if (process.env.REFERENCE) {
-    conduitImplementation = (await ethers.getContractFactory(
-      "ReferenceConduit"
-    )) as ContractFactory;
+    conduitImplementation = await ethers.getContractFactory("ReferenceConduit");
     conduitController = await deployContract("ConduitController", owner as any);
   } else {
     conduitImplementation = await ethers.getContractFactory("Conduit");
