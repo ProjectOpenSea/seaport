@@ -21,6 +21,7 @@ const {
   toFulfillmentComponents,
   getBasicOrderExecutions,
   buildResolver,
+  buildOrderStatus,
   defaultBuyNowMirrorFulfillment,
   defaultAcceptOfferMirrorFulfillment,
 } = require("./utils/encoding");
@@ -35,18 +36,6 @@ const {
 const VERSION = !process.env.REFERENCE ? "1" : "rc.1";
 
 const minRandom = (min) => randomBN(10).add(min);
-
-const buildOrderStatus = (...arr) => {
-  const values = arr.map((v) => (typeof v === "number" ? toBN(v) : v));
-  return ["isValidated", "isCancelled", "totalFilled", "totalSize"].reduce(
-    (obj, key, i) => ({
-      ...obj,
-      [key]: values[i],
-      [i]: values[i],
-    }),
-    {}
-  );
-};
 
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;

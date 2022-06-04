@@ -4,8 +4,10 @@ import { getAddress, keccak256, toUtf8Bytes } from "ethers/lib/utils";
 import {
   BasicOrderParameters,
   BigNumberish,
+  ConsiderationItem,
   CriteriaResolver,
   FulfillmentComponent,
+  OfferItem,
   Order,
   OrderComponents,
 } from "./types";
@@ -109,23 +111,45 @@ export const getBasicOrderParameters = (
   ],
 });
 
-export const getOfferOrConsiderationItem = (
+export function getOfferOrConsiderationItem<
+  RecipientType extends string | undefined = undefined
+>(
   itemType: number = 0,
   token: string = constants.AddressZero,
   identifierOrCriteria: BigNumberish = 0,
   startAmount: BigNumberish = 1,
   endAmount: BigNumberish = 1,
-  recipient?: string
-) => ({
-  ...{
+  recipient?: RecipientType
+): RecipientType extends string ? ConsiderationItem : OfferItem {
+  const offerItem: OfferItem = {
     itemType,
     token,
     identifierOrCriteria: toBN(identifierOrCriteria),
     startAmount: toBN(startAmount),
     endAmount: toBN(endAmount),
-  },
-  ...(recipient ? { recipient } : {}),
-});
+  };
+  if (typeof recipient === "string") {
+    return {
+      ...offerItem,
+      recipient: recipient as string,
+    } as ConsiderationItem;
+  }
+  return offerItem as any;
+}
+
+export const buildOrderStatus = (
+  ...arr: Array<BigNumber | number | boolean>
+) => {
+  const values = arr.map((v) => (typeof v === "number" ? toBN(v) : v));
+  return ["isValidated", "isCancelled", "totalFilled", "totalSize"].reduce(
+    (obj, key, i) => ({
+      ...obj,
+      [key]: values[i],
+      [i]: values[i],
+    }),
+    {}
+  );
+};
 
 export const getItemETH = (
   startAmount: BigNumberish = 1,
