@@ -99,6 +99,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     fulfillments,
     caller,
     value
+
   ) => {
     return marketplaceContract
       .connect(caller)
