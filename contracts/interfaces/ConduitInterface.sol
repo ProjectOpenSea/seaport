@@ -18,7 +18,13 @@ interface ConduitInterface {
      * @dev Revert with an error when attempting to execute transfers using a
      *      caller that does not have an open channel.
      */
-    error ChannelClosed();
+    error ChannelClosed(address channel);
+
+    /**
+     * @dev Revert with an error when attempting to update a channel to the
+     *      current status of that channel.
+     */
+    error ChannelStatusAlreadySet(address channel, bool isOpen);
 
     /**
      * @dev Revert with an error when attempting to execute a transfer for an

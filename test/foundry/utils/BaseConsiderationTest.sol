@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 import { ConduitController } from "../../../contracts/conduit/ConduitController.sol";
 import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
@@ -36,7 +36,7 @@ contract BaseConsiderationTest is Test {
         // assume that the local foundry profile is specified, and deploy
         // reference normally, so stack traces and debugger have source map,
         // with the caveat that reference contracts will have been compiled
-        // with 0.8.13
+        // with 0.8.14
         try vm.ffi(args) {
             emit log("Deploying reference from import");
             _deployAndConfigureReferenceConsideration();
@@ -78,7 +78,8 @@ contract BaseConsiderationTest is Test {
         );
     }
 
-    ///@dev deploy optimized consideration contracts from pre-compiled source (solc-0.8.13, IR pipeline enabled)
+    ///@dev deploy optimized consideration contracts from pre-compiled source
+    //      (solc-0.8.14, IR pipeline enabled)
     function _deployAndConfigurePrecompiledOptimizedConsideration() public {
         conduitController = ConduitController(
             deployCode(

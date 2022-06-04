@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 import { EIP1271Interface } from "../interfaces/EIP1271Interface.sol";
 
