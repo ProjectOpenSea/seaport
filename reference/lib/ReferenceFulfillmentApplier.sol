@@ -274,7 +274,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         FulfillmentComponent[] memory offerComponents,
         uint256 startIndex,
         address recipient
-    ) internal view returns (Execution memory execution) {
+    ) internal pure returns (Execution memory execution) {
         // Get the order index and item index of the offer component.
         uint256 orderIndex = offerComponents[startIndex].orderIndex;
         uint256 itemIndex = offerComponents[startIndex].itemIndex;
