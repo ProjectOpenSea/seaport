@@ -373,7 +373,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         CriteriaResolver[] memory criteriaResolvers;
 
-        vm.expectRevert(abi.encodeWithSignature("MissingItemAmount()"));
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         context.consideration.fulfillAvailableAdvancedOrders{ value: 99 }(
             advancedOrders,
             criteriaResolvers,
