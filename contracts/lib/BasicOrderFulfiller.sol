@@ -291,6 +291,9 @@ contract BasicOrderFulfiller is OrderValidator {
             _triggerIfArmed(accumulator);
         }
 
+        // Clear the reentrancy guard.
+        _clearReentrancyGuard();
+
         return true;
     }
 
@@ -993,9 +996,6 @@ contract BasicOrderFulfiller is OrderValidator {
                 _transferEth(payable(msg.sender), etherRemaining - amount);
             }
         }
-
-        // Clear the reentrancy guard.
-        _clearReentrancyGuard();
     }
 
     /**
@@ -1068,8 +1068,5 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Transfer ERC20 token amount (from account must have proper approval).
         _transferERC20(erc20Token, from, to, amount, conduitKey, accumulator);
-
-        // Clear the reentrancy guard.
-        _clearReentrancyGuard();
     }
 }
