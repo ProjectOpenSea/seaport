@@ -4941,15 +4941,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.denominator = denom1;
 
         await withBalanceChecks([order], 0, [], async () => {
-          const tx = marketplaceContract.connect(buyer).fulfillAdvancedOrder(
-            order,
-            [],
-            toKey(false),
-            {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
               value,
-            },
-            buyer.address
-          );
+            });
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -4978,15 +4974,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.numerator = numer2;
         order.denominator = denom2;
 
-        await marketplaceContract.connect(buyer).fulfillAdvancedOrder(
-          order,
-          [],
-          toKey(false),
-          {
+        await marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
             value,
-          },
-          buyer.address
-        );
+          });
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -5037,15 +5029,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.denominator = prime2;
 
         await withBalanceChecks([order], 0, [], async () => {
-          const tx = marketplaceContract.connect(buyer).fulfillAdvancedOrder(
-            order,
-            [],
-            toKey(false),
-            {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
               value,
-            },
-            buyer.address
-          );
+            });
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -5075,15 +5063,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.denominator = prime3;
 
         await expect(
-          marketplaceContract.connect(buyer).fulfillAdvancedOrder(
-            order,
-            [],
-            toKey(false),
-            {
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
               value,
-            },
-            buyer.address
-          )
+            })
         ).to.be.revertedWith(
           "0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
         );
