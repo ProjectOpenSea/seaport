@@ -172,7 +172,7 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
         const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
-          buildOrderStatus(true, false, toBN(1), toBN(1))
+          buildOrderStatus(true, false, toBN(2), toBN(2))
         );
       });
     }
