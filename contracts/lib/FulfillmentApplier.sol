@@ -461,9 +461,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Write final amount to execution.
             mstore(add(mload(execution), Common_amount_offset), amount)
 
-            // Determine if an error code is contained in the error buffer.
+            // Determine whether the error buffer contains a nonzero error code.
             if errorBuffer {
-                // If errorBuffer is 1, an item had a null amount
+                // If errorBuffer is 1, an item had an amount of zero.
                 if eq(errorBuffer, 1) {
                     // Store the MissingItemAmount error signature.
                     mstore(0, MissingItemAmount_error_signature)
@@ -744,9 +744,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Write final amount to execution.
             mstore(add(receivedItem, Common_amount_offset), amount)
 
-            // Determine if an error code is contained in the error buffer.
+            // Determine whether the error buffer contains a nonzero error code.
             if errorBuffer {
-                // If errorBuffer is 1, an item had a null amount
+                // If errorBuffer is 1, an item had an amount of zero.
                 if eq(errorBuffer, 1) {
                     // Store the MissingItemAmount error signature.
                     mstore(0, MissingItemAmount_error_signature)
