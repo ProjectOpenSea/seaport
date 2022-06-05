@@ -4797,14 +4797,187 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ],
           executions
         );
-        return receipt3;
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(true, false, 10, 10)
+        );
       });
 
-      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+      it("Simplifies fraction when numerator/denominator would overflow", async () => {
+        const numer1 = toBN(2).pow(100);
+        const denom1 = toBN(2).pow(101);
+        const numer2 = toBN(2).pow(20);
+        const denom2 = toBN(2).pow(22);
+        const amt = 8;
+        await mintAndApproveERC20(buyer, marketplaceContract.address, amt);
+        // Seller mints nft
+        const { nftId } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000,
+          undefined,
+          amt
+        );
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(true, false, 10, 10)
-      );
+        const offer = [getTestItem1155(nftId, amt, amt)];
+
+        const consideration = [getTestItem20(amt, amt, seller.address)];
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          undefined,
+          offer,
+          consideration,
+          1, // PARTIAL_OPEN
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          true
+        );
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        // 1/2
+        order.numerator = numer1;
+        order.denominator = denom1;
+
+        await withBalanceChecks([order], 0, [], async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), {
+              value,
+            });
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+                fulfillerConduitKey: toKey(false),
+              },
+            ],
+            null,
+            []
+          );
+
+          return receipt;
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(true, false, numer1, denom1)
+        );
+
+        order.numerator = numer2;
+        order.denominator = denom2;
+
+        await marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(order, [], toKey(false), {
+            value,
+          });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(true, false, toBN(3), toBN(4))
+        );
+      });
+
+      it("Reverts when numerator/denominator overflow", async () => {
+        const prime1 = toBN(2).pow(7).sub(1);
+        const prime2 = toBN(2).pow(61).sub(1);
+        const prime3 = toBN(2).pow(107).sub(1);
+        const amt = prime1.mul(prime2).mul(prime3);
+        await mintAndApproveERC20(buyer, marketplaceContract.address, amt);
+        // Seller mints nft
+        const { nftId } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000,
+          undefined,
+          amt
+        );
+
+        const offer = [getTestItem1155(nftId, amt, amt)];
+
+        const consideration = [getTestItem20(amt, amt, seller.address)];
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          undefined,
+          offer,
+          consideration,
+          1, // PARTIAL_OPEN
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          true
+        );
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        // 1/2
+        order.numerator = 1;
+        order.denominator = prime2;
+
+        await withBalanceChecks([order], 0, [], async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), {
+              value,
+            });
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+                fulfillerConduitKey: toKey(false),
+              },
+            ],
+            null,
+            []
+          );
+
+          return receipt;
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(true, false, toBN(1), prime2)
+        );
+
+        order.numerator = prime1;
+        order.denominator = prime3;
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), {
+              value,
+            })
+        ).to.be.revertedWith(
+          "0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
+        );
+      });
     });
 
     describe("Criteria-based orders", async () => {

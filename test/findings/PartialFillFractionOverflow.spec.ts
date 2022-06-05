@@ -11,7 +11,7 @@ import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
 import { getWalletWithEther } from "../utils/impersonate";
 import { AdvancedOrder, ConsiderationItem } from "../utils/types";
 
-const IS_FIXED = false;
+const IS_FIXED = true;
 
 describe("Partial fill fractions can overflow to reset an order", async () => {
   let alice: Wallet;

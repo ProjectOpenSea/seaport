@@ -31,7 +31,7 @@ const config: HardhatUserConfig = {
           viaIR: true,
           optimizer: {
             enabled: true,
-            runs: 15000,
+            runs: 1000,
           },
         },
       },
@@ -62,6 +62,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       blockGasLimit: 30_000_000,
+      // allowUnlimitedContractSize: true,
     },
   },
   gasReporter: {

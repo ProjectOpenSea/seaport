@@ -195,8 +195,8 @@ contract ReferenceOrderValidator is
         }
 
         // Read filled amount as numerator and denominator and put on the stack.
-        uint256 filledNumerator = orderStatus.numerator;
-        uint256 filledDenominator = orderStatus.denominator;
+        uint256 filledNumerator = uint256(orderStatus.numerator);
+        uint256 filledDenominator = uint256(orderStatus.denominator);
 
         // If order currently has a non-zero denominator it is partially filled.
         if (filledDenominator != 0) {
@@ -222,12 +222,37 @@ contract ReferenceOrderValidator is
                 numerator = denominator - filledNumerator;
             }
 
+            // Increment the filled numerator by the new numerator.
+            filledNumerator += numerator;
+
+            // Ensure fractional amounts are below max uint120.
+            if (
+                filledNumerator > type(uint120).max ||
+                denominator > type(uint120).max
+            ) {
+                // Derive greatest common divisor using euclidean algorithm.
+                uint256 scaleDown = _greatestCommonDivisor(
+                    numerator,
+                    _greatestCommonDivisor(filledNumerator, denominator)
+                );
+
+                // Note: this may not be necessary — need to validate.
+                uint256 safeScaleDown = scaleDown == 0 ? 1 : scaleDown;
+
+                // Scale all fractional values down by gcd.
+                numerator = numerator / safeScaleDown;
+                filledNumerator = filledNumerator / safeScaleDown;
+                denominator = denominator / safeScaleDown;
+
+                // Perform the overflow check a second time.
+                uint256 maxOverhead = type(uint256).max - type(uint120).max;
+                ((filledNumerator + maxOverhead) & (denominator + maxOverhead));
+            }
+
             // Update order status and fill amount, packing struct values.
             _orderStatus[orderHash].isValidated = true;
             _orderStatus[orderHash].isCancelled = false;
-            _orderStatus[orderHash].numerator = uint120(
-                filledNumerator + numerator
-            );
+            _orderStatus[orderHash].numerator = uint120(filledNumerator);
             _orderStatus[orderHash].denominator = uint120(denominator);
         } else {
             // Update order status and fill amount, packing struct values.
@@ -238,7 +263,30 @@ contract ReferenceOrderValidator is
         }
 
         // Return order hash, new numerator and denominator.
-        return (orderHash, numerator, denominator);
+        return (orderHash, uint120(numerator), uint120(denominator));
+    }
+
+    /**
+     * @dev Internal function to derive the greatest common divisor of two
+     *      values using the classical euclidian algorithm.
+     *
+     * @param a The first value.
+     * @param b The second value.
+     *
+     * @return greatestCommonDivisor The greatest common divisor.
+     */
+    function _greatestCommonDivisor(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 greatestCommonDivisor)
+    {
+        while (b > 0) {
+            uint256 c = b;
+            b = a % c;
+            a = c;
+        }
+
+        greatestCommonDivisor = a;
     }
 
     /**
