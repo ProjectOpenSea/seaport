@@ -286,7 +286,6 @@ contract BasicOrderFulfiller is OrderValidator {
                     accumulator
                 );
             }
-
             // Trigger any remaining accumulated transfers via call to conduit.
             _triggerIfArmed(accumulator);
         }

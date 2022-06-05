@@ -63,7 +63,7 @@ interface SeaportInterface {
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used, with direct approvals set on
-     *                            Consideration.
+     *                            Seaport.
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
@@ -105,7 +105,10 @@ interface SeaportInterface {
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used, with direct approvals set on
-     *                            Consideration.
+     *                            Seaport.
+     * @param recipient           The intended recipient for all received items,
+     *                            with `address(0)` indicating that the caller
+     *                            should receive the items.
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
@@ -113,7 +116,8 @@ interface SeaportInterface {
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) external payable returns (bool fulfilled);
 
     /**
@@ -222,6 +226,9 @@ interface SeaportInterface {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used, with
      *                                  direct approvals set on this contract.
+     * @param recipient                 The intended recipient for all received
+     *                                  items, with `address(0)` indicating that
+     *                                  the caller should receive the items.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders An array of booleans indicating if each order
@@ -237,6 +244,7 @@ interface SeaportInterface {
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
         bytes32 fulfillerConduitKey,
+        address recipient,
         uint256 maximumFulfilled
     )
         external

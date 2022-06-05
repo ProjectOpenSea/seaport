@@ -11,7 +11,7 @@ import { getWalletWithEther } from "../utils/impersonate";
 import { AdvancedOrder, ConsiderationItem } from "../utils/types";
 import { getScuffedContract } from "scuffed-abi";
 import { hexZeroPad } from "ethers/lib/utils";
-import { ethers, network } from "hardhat";
+import { network } from "hardhat";
 
 const IS_FIXED = true;
 

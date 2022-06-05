@@ -27,6 +27,9 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 salt;
         uint128[3] paymentAmts;
         bool useConduit;
+        uint120 startAmount;
+        uint120 endAmount;
+        uint16 warpAmount;
     }
 
     struct Context {
@@ -35,59 +38,92 @@ contract FulfillOrderTest is BaseOrderTest {
         uint256 erc1155amt;
         uint128 tipAmt;
         uint8 numTips;
-        uint120 startAmount;
-        uint120 endAmount;
-        uint16 warpAmount;
     }
 
-    function testFulfillAscendingDescendingOffer(
-        FuzzInputsCommon memory inputs,
-        uint120 startAmount,
-        uint120 endAmount,
-        uint16 warpAmount
-    ) public {
-        vm.assume(
-            inputs.paymentAmts[0] > 0 &&
-                inputs.paymentAmts[1] > 0 &&
-                inputs.paymentAmts[2] > 0
-        );
-        vm.assume(
-            inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
-                inputs.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
-        vm.assume(startAmount > 0 && endAmount > 0);
-        _testFulfillAscendingDescendingOffer(
-            Context(
-                referenceConsideration,
-                inputs,
-                0,
-                0,
-                0,
-                startAmount,
-                endAmount,
-                warpAmount % 1000
-            )
-        );
-        _testFulfillAscendingDescendingOffer(
-            Context(
-                consideration,
-                inputs,
-                0,
-                0,
-                0,
-                startAmount,
-                endAmount,
-                warpAmount % 1000
-            )
-        );
-    }
-
-    function _testFulfillAscendingDescendingOffer(Context memory context)
+    function test(function(Context memory) external fn, Context memory context)
         internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
+    }
+
+    modifier validateInputs(FuzzInputsCommon memory args) {
+        vm.assume(
+            args.paymentAmts[0] > 0 &&
+                args.paymentAmts[1] > 0 &&
+                args.paymentAmts[2] > 0
+        );
+        vm.assume(
+            args.paymentAmts[0].add(args.paymentAmts[1]).add(
+                args.paymentAmts[2]
+            ) <= uint128(MAX_INT)
+        );
+        _;
+    }
+
+    modifier validateInputsWithTip(
+        FuzzInputsCommon memory args,
+        uint256 tipAmt
+    ) {
+        vm.assume(
+            args.paymentAmts[0] > 0 &&
+                args.paymentAmts[1] > 0 &&
+                args.paymentAmts[2] > 0 &&
+                tipAmt > 0
+        );
+        vm.assume(
+            args
+                .paymentAmts[0]
+                .add(args.paymentAmts[1])
+                .add(args.paymentAmts[2])
+                .add(tipAmt) <= uint128(MAX_INT)
+        );
+        _;
+    }
+
+    modifier validateInputsWithMultipleTips(
+        FuzzInputsCommon memory args,
+        uint256 numTips
+    ) {
+        {
+            numTips = (numTips % 64) + 1;
+            vm.assume(
+                args.paymentAmts[0] > 0 &&
+                    args.paymentAmts[1] > 0 &&
+                    args.paymentAmts[2] > 0
+            );
+            vm.assume(
+                args
+                    .paymentAmts[0]
+                    .add(args.paymentAmts[1])
+                    .add(args.paymentAmts[2])
+                    .add(numTips.mul(numTips + 1).div(2)) <= uint128(MAX_INT)
+            );
+        }
+        _;
+    }
+
+    function testFulfillAscendingDescendingOffer(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(inputs)
+        onlyPayable(inputs.zone)
+    {
+        vm.assume(inputs.startAmount > 0 && inputs.endAmount > 0);
+        inputs.warpAmount %= 1000;
+        test(
+            this.fulfillAscendingDescendingOffer,
+            Context(referenceConsideration, inputs, 0, 0, 0)
+        );
+        test(
+            this.fulfillAscendingDescendingOffer,
+            Context(consideration, inputs, 0, 0, 0)
+        );
+    }
+
+    function fulfillAscendingDescendingOffer(Context memory context)
+        external
+        stateless
     {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -95,14 +131,14 @@ contract FulfillOrderTest is BaseOrderTest {
         token1.mint(
             alice,
             (
-                context.endAmount > context.startAmount
-                    ? context.endAmount
-                    : context.startAmount
+                context.args.endAmount > context.args.startAmount
+                    ? context.args.endAmount
+                    : context.args.startAmount
             ).mul(1000)
         );
         _configureERC20OfferItem(
-            context.startAmount.mul(1000),
-            context.endAmount.mul(1000)
+            context.args.startAmount.mul(1000),
+            context.args.endAmount.mul(1000)
         );
         _configureEthConsiderationItem(alice, 1000);
         OrderParameters memory orderParameters = OrderParameters(
@@ -129,12 +165,12 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        vm.warp(block.timestamp + context.warpAmount);
+        vm.warp(block.timestamp + context.args.warpAmount);
         uint256 expectedAmount = _locateCurrentAmount(
-            context.startAmount.mul(1000),
-            context.endAmount.mul(1000),
-            context.warpAmount,
-            1000 - context.warpAmount,
+            context.args.startAmount.mul(1000),
+            context.args.endAmount.mul(1000),
+            context.args.warpAmount,
+            1000 - context.args.warpAmount,
             1000,
             true // for consideration
         );
@@ -148,58 +184,25 @@ contract FulfillOrderTest is BaseOrderTest {
 
     function testFulfillAscendingDescendingConsideration(
         FuzzInputsCommon memory inputs,
-        uint256 erc1155amt,
-        uint120 startAmount,
-        uint120 endAmount,
-        uint16 warpAmount
-    ) public {
-        vm.assume(
-            inputs.paymentAmts[0] > 0 &&
-                inputs.paymentAmts[1] > 0 &&
-                inputs.paymentAmts[2] > 0
-        );
-        vm.assume(
-            inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
-                inputs.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
-        vm.assume(startAmount > 0 && endAmount > 0);
+        uint256 erc1155amt
+    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        vm.assume(inputs.startAmount > 0 && inputs.endAmount > 0);
         vm.assume(erc1155amt > 0);
-        _testFulfillAscendingDescendingConsideration(
-            Context(
-                referenceConsideration,
-                inputs,
-                erc1155amt,
-                0,
-                0,
-                startAmount,
-                endAmount,
-                warpAmount % 1000
-            )
+        test(
+            this.fulfillAscendingDescendingConsideration,
+            Context(referenceConsideration, inputs, erc1155amt, 0, 0)
         );
-        _testFulfillAscendingDescendingConsideration(
-            Context(
-                consideration,
-                inputs,
-                erc1155amt,
-                0,
-                0,
-                startAmount,
-                endAmount,
-                warpAmount % 1000
-            )
+        test(
+            this.fulfillAscendingDescendingConsideration,
+            Context(consideration, inputs, erc1155amt, 0, 0)
         );
     }
 
-    function _testFulfillAscendingDescendingConsideration(
-        Context memory context
-    )
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillAscendingDescendingConsideration(Context memory context)
+        external
+        stateless
     {
-        context.warpAmount %= 1000;
+        context.args.warpAmount %= 1000;
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -209,8 +212,8 @@ contract FulfillOrderTest is BaseOrderTest {
 
         _configureErc20ConsiderationItem(
             alice,
-            context.startAmount.mul(1000),
-            context.endAmount.mul(1000)
+            context.args.startAmount.mul(1000),
+            context.args.endAmount.mul(1000)
         );
         OrderParameters memory orderParameters = OrderParameters(
             alice,
@@ -238,12 +241,12 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        vm.warp(block.timestamp + context.warpAmount);
+        vm.warp(block.timestamp + context.args.warpAmount);
         uint256 expectedAmount = _locateCurrentAmount(
-            context.startAmount.mul(1000),
-            context.endAmount.mul(1000),
-            context.warpAmount,
-            1000 - context.warpAmount,
+            context.args.startAmount.mul(1000),
+            context.args.endAmount.mul(1000),
+            context.args.warpAmount,
+            1000 - context.args.warpAmount,
             1000,
             true // for consideration
         );
@@ -258,36 +261,56 @@ contract FulfillOrderTest is BaseOrderTest {
 
     function testFulfillOrderEthToErc721(FuzzInputsCommon memory inputs)
         public
+        validateInputs(inputs)
+        onlyPayable(inputs.zone)
     {
-        _testFulfillOrderEthToErc721(
-            Context(referenceConsideration, inputs, 0, 0, 0, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc721,
+            Context(referenceConsideration, inputs, 0, 0, 0)
         );
-        _testFulfillOrderEthToErc721(
-            Context(consideration, inputs, 0, 0, 0, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc721,
+            Context(consideration, inputs, 0, 0, 0)
         );
     }
 
     function testFulfillOrderEthToErc1155(
         FuzzInputsCommon memory inputs,
         uint256 tokenAmount
-    ) public {
-        _testFulfillOrderEthToErc1155(
-            Context(referenceConsideration, inputs, tokenAmount, 0, 0, 0, 0, 0)
+    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        vm.assume(tokenAmount > 0);
+        test(
+            this.fulfillOrderEthToErc1155,
+            Context(referenceConsideration, inputs, tokenAmount, 0, 0)
         );
-        _testFulfillOrderEthToErc1155(
-            Context(consideration, inputs, tokenAmount, 0, 0, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc1155,
+            Context(consideration, inputs, tokenAmount, 0, 0)
         );
     }
 
     function testFulfillOrderEthToErc721WithSingleTip(
         FuzzInputsCommon memory inputs,
         uint128 tipAmt
-    ) public {
-        _testFulfillOrderEthToErc721WithSingleEthTip(
-            Context(referenceConsideration, inputs, 0, tipAmt, 0, 0, 0, 0)
+    ) public onlyPayable(inputs.zone) {
+        vm.assume(
+            inputs.paymentAmts[0] > 0 &&
+                inputs.paymentAmts[1] > 0 &&
+                inputs.paymentAmts[2] > 0 &&
+                tipAmt > 0
         );
-        _testFulfillOrderEthToErc721WithSingleEthTip(
-            Context(consideration, inputs, 0, tipAmt, 0, 0, 0, 0)
+        vm.assume(
+            inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
+                inputs.paymentAmts[2].add(tipAmt)
+            ) <= uint128(MAX_INT)
+        );
+        test(
+            this.fulfillOrderEthToErc721WithSingleEthTip,
+            Context(referenceConsideration, inputs, 0, tipAmt, 0)
+        );
+        test(
+            this.fulfillOrderEthToErc721WithSingleEthTip,
+            Context(consideration, inputs, 0, tipAmt, 0)
         );
     }
 
@@ -295,33 +318,44 @@ contract FulfillOrderTest is BaseOrderTest {
         FuzzInputsCommon memory inputs,
         uint256 tokenAmt,
         uint128 tipAmt
-    ) public {
-        _testFulfillOrderEthToErc1155WithSingleEthTip(
-            Context(
-                referenceConsideration,
-                inputs,
-                tokenAmt,
-                tipAmt,
-                0,
-                0,
-                0,
-                0
-            )
+    ) public onlyPayable(inputs.zone) {
+        vm.assume(tokenAmt > 0);
+        vm.assume(
+            inputs.paymentAmts[0] > 0 &&
+                inputs.paymentAmts[1] > 0 &&
+                inputs.paymentAmts[2] > 0 &&
+                tipAmt > 0
         );
-        _testFulfillOrderEthToErc1155WithSingleEthTip(
-            Context(consideration, inputs, tokenAmt, tipAmt, 0, 0, 0, 0)
+        vm.assume(
+            inputs.paymentAmts[0].add(inputs.paymentAmts[1]).add(
+                inputs.paymentAmts[2].add(tipAmt)
+            ) <= uint128(MAX_INT)
+        );
+        test(
+            this.fulfillOrderEthToErc1155WithSingleEthTip,
+            Context(referenceConsideration, inputs, tokenAmt, tipAmt, 0)
+        );
+        test(
+            this.fulfillOrderEthToErc1155WithSingleEthTip,
+            Context(consideration, inputs, tokenAmt, tipAmt, 0)
         );
     }
 
     function testFulfillOrderEthToErc721WithMultipleTips(
         FuzzInputsCommon memory inputs,
         uint8 numTips
-    ) public {
-        _testFulfillOrderEthToErc721WithMultipleEthTips(
-            Context(referenceConsideration, inputs, 0, 0, numTips, 0, 0, 0)
+    )
+        public
+        validateInputsWithMultipleTips(inputs, numTips)
+        onlyPayable(inputs.zone)
+    {
+        test(
+            this.fulfillOrderEthToErc721WithMultipleEthTips,
+            Context(referenceConsideration, inputs, 0, 0, numTips)
         );
-        _testFulfillOrderEthToErc721WithMultipleEthTips(
-            Context(consideration, inputs, 0, 0, numTips, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc721WithMultipleEthTips,
+            Context(consideration, inputs, 0, 0, numTips)
         );
     }
 
@@ -329,45 +363,54 @@ contract FulfillOrderTest is BaseOrderTest {
         FuzzInputsCommon memory inputs,
         uint256 tokenAmt,
         uint8 numTips
-    ) public {
-        _testFulfillOrderEthToErc1155WithMultipleEthTips(
-            Context(
-                referenceConsideration,
-                inputs,
-                tokenAmt,
-                0,
-                numTips,
-                0,
-                0,
-                0
-            )
+    )
+        public
+        validateInputsWithMultipleTips(inputs, numTips)
+        onlyPayable(inputs.zone)
+    {
+        vm.assume(tokenAmt > 0);
+
+        test(
+            this.fulfillOrderEthToErc1155WithMultipleEthTips,
+            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
         );
-        _testFulfillOrderEthToErc1155WithMultipleEthTips(
-            Context(consideration, inputs, tokenAmt, 0, numTips, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc1155WithMultipleEthTips,
+            Context(consideration, inputs, tokenAmt, 0, numTips)
         );
     }
 
     function testFulfillOrderSingleErc20ToSingleErc1155(
         FuzzInputsCommon memory inputs,
         uint256 tokenAmt
-    ) public {
-        _testFulfillOrderSingleErc20ToSingleErc1155(
-            Context(referenceConsideration, inputs, tokenAmt, 0, 0, 0, 0, 0)
+    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        vm.assume(tokenAmt > 0);
+        test(
+            this.fulfillOrderSingleErc20ToSingleErc1155,
+            Context(referenceConsideration, inputs, tokenAmt, 0, 0)
         );
-        _testFulfillOrderSingleErc20ToSingleErc1155(
-            Context(consideration, inputs, tokenAmt, 0, 0, 0, 0, 0)
+        test(
+            this.fulfillOrderSingleErc20ToSingleErc1155,
+            Context(consideration, inputs, tokenAmt, 0, 0)
         );
     }
 
     function testFulfillOrderEthToErc721WithErc721Tips(
         FuzzInputsCommon memory inputs,
         uint8 numTips
-    ) public {
-        _testFulfillOrderEthToErc721WithErc721Tips(
-            Context(referenceConsideration, inputs, 0, 0, numTips, 0, 0, 0)
+    )
+        public
+        validateInputsWithMultipleTips(inputs, numTips)
+        onlyPayable(inputs.zone)
+    {
+        vm.assume(numTips > 0);
+        test(
+            this.fulfillOrderEthToErc721WithErc721Tips,
+            Context(referenceConsideration, inputs, 0, 0, numTips)
         );
-        _testFulfillOrderEthToErc721WithErc721Tips(
-            Context(consideration, inputs, 0, 0, numTips, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc721WithErc721Tips,
+            Context(consideration, inputs, 0, 0, numTips)
         );
     }
 
@@ -375,33 +418,33 @@ contract FulfillOrderTest is BaseOrderTest {
         FuzzInputsCommon memory inputs,
         uint256 tokenAmt,
         uint8 numTips
-    ) public {
-        _testFulfillOrderEthToErc1155WithErc721Tips(
-            Context(
-                referenceConsideration,
-                inputs,
-                tokenAmt,
-                0,
-                numTips,
-                0,
-                0,
-                0
-            )
+    )
+        public
+        validateInputsWithMultipleTips(inputs, numTips)
+        onlyPayable(inputs.zone)
+    {
+        vm.assume(tokenAmt > 0);
+        test(
+            this.fulfillOrderEthToErc1155WithErc721Tips,
+            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
         );
-        _testFulfillOrderEthToErc1155WithErc721Tips(
-            Context(consideration, inputs, tokenAmt, 0, numTips, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc1155WithErc721Tips,
+            Context(consideration, inputs, tokenAmt, 0, numTips)
         );
     }
 
     function testFulfillOrderEthToErc721WithErc1155Tips(
         FuzzInputsCommon memory inputs,
         uint8 numTips
-    ) public {
-        _testFulfillOrderEthToErc721WithErc1155Tips(
-            Context(referenceConsideration, inputs, 0, 0, numTips, 0, 0, 0)
+    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        test(
+            this.fulfillOrderEthToErc721WithErc1155Tips,
+            Context(referenceConsideration, inputs, 0, 0, numTips)
         );
-        _testFulfillOrderEthToErc721WithErc1155Tips(
-            Context(consideration, inputs, 0, 0, numTips, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc721WithErc1155Tips,
+            Context(consideration, inputs, 0, 0, numTips)
         );
     }
 
@@ -409,32 +452,28 @@ contract FulfillOrderTest is BaseOrderTest {
         FuzzInputsCommon memory inputs,
         uint256 tokenAmt,
         uint8 numTips
-    ) public {
-        _testFulfillOrderEthToErc1155WithErc1155Tips(
-            Context(
-                referenceConsideration,
-                inputs,
-                tokenAmt,
-                0,
-                numTips,
-                0,
-                0,
-                0
-            )
+    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        vm.assume(tokenAmt > 0);
+        test(
+            this.fulfillOrderEthToErc1155WithErc1155Tips,
+            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
         );
-        _testFulfillOrderEthToErc1155WithErc1155Tips(
-            Context(consideration, inputs, tokenAmt, 0, numTips, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc1155WithErc1155Tips,
+            Context(consideration, inputs, tokenAmt, 0, numTips)
         );
     }
 
     function testFulfillOrderEthToErc721WithErc20Tips(
         FuzzInputsCommon memory inputs
-    ) public {
-        _testFulfillOrderEthToErc721WithErc20Tips(
-            Context(referenceConsideration, inputs, 0, 0, 0, 0, 0, 0)
+    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        test(
+            this.fulfillOrderEthToErc721WithErc20Tips,
+            Context(referenceConsideration, inputs, 0, 0, 0)
         );
-        _testFulfillOrderEthToErc721WithErc20Tips(
-            Context(consideration, inputs, 0, 0, 0, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc721WithErc20Tips,
+            Context(consideration, inputs, 0, 0, 0)
         );
     }
 
@@ -442,51 +481,39 @@ contract FulfillOrderTest is BaseOrderTest {
         FuzzInputsCommon memory inputs,
         uint256 tokenAmt,
         uint8 numTips
-    ) public {
-        _testFulfillOrderEthToErc1155WithErc20Tips(
-            Context(
-                referenceConsideration,
-                inputs,
-                tokenAmt,
-                0,
-                numTips,
-                0,
-                0,
-                0
-            )
+    )
+        public
+        validateInputsWithMultipleTips(inputs, numTips)
+        onlyPayable(inputs.zone)
+    {
+        vm.assume(tokenAmt > 0);
+        test(
+            this.fulfillOrderEthToErc1155WithErc20Tips,
+            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
         );
-        _testFulfillOrderEthToErc1155WithErc20Tips(
-            Context(consideration, inputs, tokenAmt, 0, numTips, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc1155WithErc20Tips,
+            Context(consideration, inputs, tokenAmt, 0, numTips)
         );
     }
 
     function testFulfillOrderEthToErc721FullRestricted(
         FuzzInputsCommon memory inputs
-    ) public {
-        _testFulfillOrderEthToErc721FullRestricted(
-            Context(referenceConsideration, inputs, 0, 0, 0, 0, 0, 0)
+    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        test(
+            this.fulfillOrderEthToErc721FullRestricted,
+            Context(referenceConsideration, inputs, 0, 0, 0)
         );
-        _testFulfillOrderEthToErc721FullRestricted(
-            Context(consideration, inputs, 0, 0, 0, 0, 0, 0)
+        test(
+            this.fulfillOrderEthToErc721FullRestricted,
+            Context(consideration, inputs, 0, 0, 0)
         );
     }
 
-    function _testFulfillOrderEthToErc721(Context memory context)
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc721(Context memory context)
+        external
+        stateless
     {
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -572,23 +599,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc1155(Context memory context)
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc1155(Context memory context)
+        external
+        stateless
     {
-        vm.assume(context.erc1155amt > 0);
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -675,23 +689,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderSingleErc20ToSingleErc1155(Context memory context)
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderSingleErc20ToSingleErc1155(Context memory context)
+        external
+        stateless
     {
-        vm.assume(context.erc1155amt > 0);
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -780,28 +781,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc721WithSingleEthTip(
-        Context memory context
-    )
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc721WithSingleEthTip(Context memory context)
+        external
+        stateless
     {
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0 &&
-                context.tipAmt > 0
-        );
-        vm.assume(
-            context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
-                .add(context.args.paymentAmts[2])
-                .add(context.tipAmt) <= 2**128 - 1
-        );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -902,29 +885,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc1155WithSingleEthTip(
-        Context memory context
-    )
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc1155WithSingleEthTip(Context memory context)
+        external
+        stateless
     {
-        vm.assume(context.erc1155amt > 0);
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0 &&
-                context.tipAmt > 0
-        );
-        vm.assume(
-            context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
-                .add(context.args.paymentAmts[2])
-                .add(context.tipAmt) <= 2**128 - 1
-        );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1027,30 +991,11 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc721WithMultipleEthTips(
-        Context memory context
-    )
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc721WithMultipleEthTips(Context memory context)
+        external
+        stateless
     {
         context.numTips = (context.numTips % 64) + 1;
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
-                .add(context.args.paymentAmts[2])
-                .add(context.numTips) *
-                ((1 + context.numTips) / 2) <= // avg of tip amounts from 1 to numberOfTips eth
-                2**128 - 1
-        );
 
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -1157,31 +1102,12 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc1155WithMultipleEthTips(
-        Context memory context
-    )
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc1155WithMultipleEthTips(Context memory context)
+        external
+        stateless
     {
         context.numTips = (context.numTips % 64) + 1;
-        vm.assume(context.erc1155amt > 0);
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context
-                .args
-                .paymentAmts[0]
-                .add(context.args.paymentAmts[1])
-                .add(context.args.paymentAmts[2])
-                .add(context.numTips) *
-                ((1 + context.numTips) / 2) <= // avg of tip amounts from 1 to numberOfTips eth
-                2**128 - 1
-        );
+
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1290,23 +1216,12 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc721WithErc721Tips(Context memory context)
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc721WithErc721Tips(Context memory context)
+        external
+        stateless
     {
         context.numTips = (context.numTips % 64) + 1;
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
+
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1411,24 +1326,12 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc1155WithErc721Tips(Context memory context)
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc1155WithErc721Tips(Context memory context)
+        external
+        stateless
     {
         context.numTips = (context.numTips % 64) + 1;
-        vm.assume(context.erc1155amt > 0);
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
+
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1534,23 +1437,12 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc721WithErc1155Tips(Context memory context)
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc721WithErc1155Tips(Context memory context)
+        external
+        stateless
     {
         context.numTips = (context.numTips % 64) + 1;
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
+
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1655,26 +1547,11 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc1155WithErc1155Tips(
-        Context memory context
-    )
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc1155WithErc1155Tips(Context memory context)
+        external
+        stateless
     {
         context.numTips = (context.numTips % 64) + 1;
-        vm.assume(context.erc1155amt > 0);
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
 
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -1779,22 +1656,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc721WithErc20Tips(Context memory context)
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc721WithErc20Tips(Context memory context)
+        external
+        stateless
     {
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -1898,24 +1763,11 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc1155WithErc20Tips(Context memory context)
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc1155WithErc20Tips(Context memory context)
+        external
+        stateless
     {
         context.numTips = (context.numTips % 64) + 1;
-        vm.assume(context.erc1155amt > 0);
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
 
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
@@ -2020,22 +1872,10 @@ contract FulfillOrderTest is BaseOrderTest {
         }(Order(orderParameters, signature), conduitKey);
     }
 
-    function _testFulfillOrderEthToErc721FullRestricted(Context memory context)
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
+    function fulfillOrderEthToErc721FullRestricted(Context memory context)
+        external
+        stateless
     {
-        vm.assume(
-            context.args.paymentAmts[0] > 0 &&
-                context.args.paymentAmts[1] > 0 &&
-                context.args.paymentAmts[2] > 0
-        );
-        vm.assume(
-            context.args.paymentAmts[0].add(context.args.paymentAmts[1]).add(
-                context.args.paymentAmts[2]
-            ) <= 2**128 - 1
-        );
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);

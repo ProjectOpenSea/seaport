@@ -34,7 +34,7 @@ import {
  */
 contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     /**
-     * @dev Internal view function to match offer items to consideration items
+     * @dev Internal pure function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
      *
      * @param ordersToExecute         The orders to match.
@@ -60,6 +60,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
 
+        // Recipient does not need to be specified because it will always be set
+        // to that of the consideration.
         // Validate and aggregate consideration items and store the result as a
         // ReceivedItem.
         ReceivedItem memory considerationItem = (
@@ -84,7 +86,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         ) = _aggregateValidFulfillmentOfferItems(
             ordersToExecute,
             offerComponents,
-            0
+            0,
+            address(0) // unused
         );
 
         // Ensure offer and consideration share types, tokens and identifiers.
@@ -143,6 +146,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      *                              approvals from. The zero hash signifies that
      *                              no conduit should be used (and direct
      *                              approvals set on Consideration)
+     * @param recipient             The intended recipient for all received
+     *                              items.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -150,7 +155,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         OrderToExecute[] memory ordersToExecute,
         Side side,
         FulfillmentComponent[] memory fulfillmentComponents,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal view returns (Execution memory execution) {
         // Retrieve orders array length and place on the stack.
         uint256 totalOrders = ordersToExecute.length;
@@ -210,7 +216,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             return _aggregateValidFulfillmentOfferItems(
                 ordersToExecute,
                 fulfillmentComponents,
-                nextComponentIndex - 1
+                nextComponentIndex - 1,
+                recipient
             );
         } else {
             // Otherwise, fulfillment components are consideration
@@ -265,7 +272,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     function _aggregateValidFulfillmentOfferItems(
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory offerComponents,
-        uint256 startIndex
+        uint256 startIndex,
+        address recipient
     ) internal view returns (Execution memory execution) {
         // Get the order index and item index of the offer component.
         uint256 orderIndex = offerComponents[startIndex].orderIndex;
@@ -293,7 +301,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         offer.token,
                         offer.identifier,
                         offer.amount,
-                        payable(msg.sender)
+                        payable(recipient)
                     ),
                     orderToExecute.offerer,
                     orderToExecute.conduitKey

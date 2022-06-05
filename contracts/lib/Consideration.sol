@@ -115,7 +115,8 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            msg.sender
         );
     }
 
@@ -152,6 +153,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
      *                            Consideration).
+     * @param recipient           The intended recipient for all received items,
+     *                            with `address(0)` indicating that the caller
+     *                            should receive the items.
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
@@ -159,13 +163,15 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) external payable override returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
             advancedOrder,
             criteriaResolvers,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient == address(0) ? msg.sender : recipient
         );
     }
 
@@ -232,6 +238,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 offerFulfillments,
                 considerationFulfillments,
                 fulfillerConduitKey,
+                msg.sender,
                 maximumFulfilled
             );
     }
@@ -288,6 +295,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param recipient                 The intended recipient for all received
+     *                                  items, with `address(0)` indicating that
+     *                                  the caller should receive the items.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders An array of booleans indicating if each order
@@ -303,6 +313,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
         bytes32 fulfillerConduitKey,
+        address recipient,
         uint256 maximumFulfilled
     )
         external
@@ -318,6 +329,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 offerFulfillments,
                 considerationFulfillments,
                 fulfillerConduitKey,
+                recipient == address(0) ? msg.sender : recipient,
                 maximumFulfilled
             );
     }
