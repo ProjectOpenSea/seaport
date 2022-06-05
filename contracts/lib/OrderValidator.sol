@@ -13,6 +13,8 @@ import {
     CriteriaResolver
 } from "./ConsiderationStructs.sol";
 
+import "./ConsiderationConstants.sol";
+
 import { Executor } from "./Executor.sol";
 
 import { ZoneInteraction } from "./ZoneInteraction.sol";
@@ -220,14 +222,64 @@ contract OrderValidator is Executor, ZoneInteraction {
                 }
             }
 
+            // Increment the filled numerator by the new numerator.
+            filledNumerator += numerator;
+
+            // Use assembly to ensure fractional amounts are below max uint120.
+            assembly {
+                // Check filledNumerator and denominator for uint120 overflow.
+                if or(
+                    gt(filledNumerator, MaxUint120),
+                    gt(denominator, MaxUint120)
+                ) {
+                    // Derive greatest common divisor using euclidean algorithm.
+                    function gcd(_a, _b) -> out {
+                        for {
+
+                        } gt(_b, 0) {
+
+                        } {
+                            let _c := _b
+                            _b := mod(_a, _c)
+                            _a := _c
+                        }
+                        out := _a
+                    }
+                    let scaleDown := gcd(
+                        numerator,
+                        gcd(filledNumerator, denominator)
+                    )
+
+                    // Note: this may not be necessary — need to validate.
+                    let safeScaleDown := add(scaleDown, iszero(scaleDown))
+
+                    // Scale all fractional values down by gcd.
+                    numerator := div(numerator, safeScaleDown)
+                    filledNumerator := div(filledNumerator, safeScaleDown)
+                    denominator := div(denominator, safeScaleDown)
+
+                    // Perform the overflow check a second time.
+                    if or(
+                        gt(filledNumerator, MaxUint120),
+                        gt(denominator, MaxUint120)
+                    ) {
+                        // Store the Panic error signature.
+                        mstore(0, Panic_error_signature)
+
+                        // Set arithmetic (0x11) panic code as initial argument.
+                        mstore(Panic_error_offset, Panic_arithmetic)
+
+                        // Return, supplying Panic signature & arithmetic code.
+                        revert(0, Panic_error_length)
+                    }
+                }
+            }
             // Skip overflow check: checked above unless numerator is reduced.
             unchecked {
                 // Update order status and fill amount, packing struct values.
                 _orderStatus[orderHash].isValidated = true;
                 _orderStatus[orderHash].isCancelled = false;
-                _orderStatus[orderHash].numerator = uint120(
-                    filledNumerator + numerator
-                );
+                _orderStatus[orderHash].numerator = uint120(filledNumerator);
                 _orderStatus[orderHash].denominator = uint120(denominator);
             }
         } else {
