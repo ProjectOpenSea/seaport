@@ -11,7 +11,7 @@ import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
 import { getWalletWithEther } from "../utils/impersonate";
 import { AdvancedOrder, OfferItem } from "../utils/types";
 
-const IS_FIXED = false;
+const IS_FIXED = true;
 
 describe("Fulfillment applier allows overflow when a missing item is provided", async () => {
   let alice: Wallet;
