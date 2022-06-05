@@ -371,14 +371,15 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
         uint256 root,
         bytes32[] memory proof
     ) internal pure {
-        // Convert the supplied leaf element from uint256 to bytes32.
-        bytes32 computedHash = bytes32(leaf);
+        // Hash the supplied leaf to use as the initial proof element.
+        bytes32 computedHash = keccak256(abi.encodePacked(leaf));
 
         // Iterate over each proof element.
         for (uint256 i = 0; i < proof.length; ++i) {
             // Retrieve the proof element.
             bytes32 proofElement = proof[i];
 
+            // Sort and hash proof elements and update the computed hash.
             if (computedHash <= proofElement) {
                 // Hash(current computed hash + current element of proof)
                 computedHash = keccak256(

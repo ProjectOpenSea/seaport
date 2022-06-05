@@ -310,6 +310,8 @@ uint256 constant Conduit_execute_signature = (
     0x4ce34aa200000000000000000000000000000000000000000000000000000000
 );
 
+uint256 constant MaxUint120 = 0xffffffffffffffffffffffffffffff;
+
 uint256 constant Conduit_execute_ConduitTransfer_ptr = 0x20;
 uint256 constant Conduit_execute_ConduitTransfer_length = 0x01;
 

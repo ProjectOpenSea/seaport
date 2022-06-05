@@ -7,6 +7,19 @@ export type AdditionalRecipient = {
   recipient: string;
 };
 
+export type FulfillmentComponent = {
+  orderIndex: number;
+  itemIndex: number;
+};
+
+export type CriteriaResolver = {
+  orderIndex: number;
+  side: 0 | 1;
+  index: number;
+  identifier: BigNumber;
+  criteriaProof: string[];
+};
+
 export type BasicOrderParameters = {
   considerationToken: string;
   considerationIdentifier: BigNumber;
@@ -17,16 +30,17 @@ export type BasicOrderParameters = {
   offerIdentifier: BigNumber;
   offerAmount: BigNumber;
   basicOrderType: number;
-  startTime: BigNumber;
-  endTime: BigNumber;
+  startTime: string | BigNumber | number;
+  endTime: string | BigNumber | number;
   zoneHash: string;
-  salt: BigNumber;
+  salt: string;
   offererConduitKey: string;
   fulfillerConduitKey: string;
   totalOriginalAdditionalRecipients: BigNumber;
   additionalRecipients: AdditionalRecipient[];
   signature: string;
 };
+
 export type OfferItem = {
   itemType: number;
   token: string;
@@ -43,34 +57,36 @@ export type ConsiderationItem = {
   recipient: string;
 };
 
-export type OrderComponents = {
-  offerer: string;
-  zone: string;
-  offer: OfferItem[];
-  consideration: ConsiderationItem[];
-  orderType: number;
-  startTime: BigNumber;
-  endTime: BigNumber;
-  zoneHash: string;
-  salt: BigNumber;
-  nonce: BigNumber;
-};
-
 export type OrderParameters = {
   offerer: string;
   zone: string;
   offer: OfferItem[];
   consideration: ConsiderationItem[];
   orderType: number;
-  startTime: BigNumber;
-  endTime: BigNumber;
+  startTime: string | BigNumber | number;
+  endTime: string | BigNumber | number;
   zoneHash: string;
-  salt: BigNumber;
+  salt: string;
   conduitKey: string;
-  totalOriginalConsiderationItems: BigNumber;
+  totalOriginalConsiderationItems: string | BigNumber | number;
+};
+
+export type OrderComponents = Omit<
+  OrderParameters,
+  "totalOriginalConsiderationItems"
+> & {
+  nonce: BigNumber;
 };
 
 export type Order = {
   parameters: OrderParameters;
   signature: string;
+};
+
+export type AdvancedOrder = {
+  parameters: OrderParameters;
+  numerator: string | BigNumber | number;
+  denominator: string | BigNumber | number;
+  signature: string;
+  extraData: string;
 };
