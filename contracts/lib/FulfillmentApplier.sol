@@ -462,16 +462,18 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             mstore(add(mload(execution), Common_amount_offset), amount)
 
             // Determine if an error code is contained in the error buffer.
-            switch errorBuffer
-            case 1 {
-                // Store the MissingItemAmount error signature.
-                mstore(0, MissingItemAmount_error_signature)
+            if errorBuffer {
+                // If errorBuffer is 1, an item had a null amount
+                if eq(errorBuffer, 1) {
+                    // Store the MissingItemAmount error signature.
+                    mstore(0, MissingItemAmount_error_signature)
 
-                // Return, supplying MissingItemAmount signature.
-                revert(0, MissingItemAmount_error_len)
-            }
-            case 2 {
-                // If the sum overflowed, panic.
+                    // Return, supplying MissingItemAmount signature.
+                    revert(0, MissingItemAmount_error_len)
+                }
+
+                // If errorBuffer is not 1 or 0, the sum overflowed.
+                // Panic!
                 throwOverflow()
             }
         }
@@ -743,16 +745,18 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             mstore(add(receivedItem, Common_amount_offset), amount)
 
             // Determine if an error code is contained in the error buffer.
-            switch errorBuffer
-            case 1 {
-                // Store the MissingItemAmount error signature.
-                mstore(0, MissingItemAmount_error_signature)
+            if errorBuffer {
+                // If errorBuffer is 1, an item had a null amount
+                if eq(errorBuffer, 1) {
+                    // Store the MissingItemAmount error signature.
+                    mstore(0, MissingItemAmount_error_signature)
 
-                // Return, supplying MissingItemAmount signature.
-                revert(0, MissingItemAmount_error_len)
-            }
-            case 2 {
-                // If the sum overflowed, panic.
+                    // Return, supplying MissingItemAmount signature.
+                    revert(0, MissingItemAmount_error_len)
+                }
+
+                // If errorBuffer is not 1 or 0, the sum overflowed.
+                // Panic!
                 throwOverflow()
             }
         }
