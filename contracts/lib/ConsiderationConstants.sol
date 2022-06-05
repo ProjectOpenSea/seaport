@@ -95,6 +95,7 @@ uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
 uint256 constant AdvancedOrder_numerator_offset = 0x20;
 
+uint256 constant AlmostOneWord = 0x19;
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
