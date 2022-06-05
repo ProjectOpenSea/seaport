@@ -13,7 +13,7 @@ import { getScuffedContract } from "scuffed-abi";
 import { hexZeroPad } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
-const IS_FIXED = false;
+const IS_FIXED = true;
 
 describe("Additional recipients off by one error allows skipping second consideration", async () => {
   let alice: Wallet;
