@@ -95,7 +95,12 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
         const criteriaResolver = buildResolver(0, 1, 0, toBN(root), []);
         await marketplaceContract
           .connect(carol)
-          .fulfillAdvancedOrder(order, [criteriaResolver], toKey(false));
+          .fulfillAdvancedOrder(
+            order,
+            [criteriaResolver],
+            toKey(false),
+            carol.address
+          );
       });
 
       it("Carol receives 1000 DAI from Alice", async () => {
@@ -112,7 +117,12 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
         await expect(
           marketplaceContract
             .connect(carol)
-            .fulfillAdvancedOrder(order, [criteriaResolver], toKey(false))
+            .fulfillAdvancedOrder(
+              order,
+              [criteriaResolver],
+              toKey(false),
+              carol.address
+            )
         ).to.be.revertedWith("InvalidProof");
       });
     }

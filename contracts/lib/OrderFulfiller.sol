@@ -69,13 +69,15 @@ contract OrderFulfiller is
      *                            from. The zero hash signifies that no conduit
      *                            should be used, with direct approvals set on
      *                            Consideration.
+     * @param recipient           The intended recipient for all received items.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function _validateAndFulfillAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -112,8 +114,8 @@ contract OrderFulfiller is
             orderParameters,
             fillNumerator,
             fillDenominator,
-            orderParameters.conduitKey,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -121,7 +123,7 @@ contract OrderFulfiller is
             orderHash,
             orderParameters.offerer,
             orderParameters.zone,
-            msg.sender,
+            recipient,
             orderParameters.offer,
             orderParameters.consideration
         );
@@ -141,23 +143,19 @@ contract OrderFulfiller is
      * @param numerator           A value indicating the portion of the order
      *                            that should be filled.
      * @param denominator         A value indicating the total order size.
-     * @param offererConduitKey   An address indicating what conduit, if any, to
-     *                            source the offerer's token approvals from. The
-     *                            zero hash signifies that no conduit should be
-     *                            used, with direct approvals set on
-     *                            Consideration.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used, with direct approvals set on
      *                            Consideration.
+     * @param recipient           The intended recipient for all received items.
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
-        bytes32 offererConduitKey,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal {
         // Derive order duration, time elapsed, and time remaining.
         uint256 duration = orderParameters.endTime - orderParameters.startTime;
@@ -217,48 +215,53 @@ contract OrderFulfiller is
             for (uint256 i = 0; i < orderParameters.offer.length; ) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
+                // Declare a nested scope to minimize stack depth.
+                {
+                    // Apply fill fraction to derive offer item amount to transfer.
+                    uint256 amount = _applyFraction(
+                        offerItem.startAmount,
+                        offerItem.endAmount,
+                        numerator,
+                        denominator,
+                        elapsed,
+                        remaining,
+                        duration,
+                        false
+                    );
 
-                // Apply fill fraction to derive offer item amount to transfer.
-                uint256 amount = _applyFraction(
-                    offerItem.startAmount,
-                    offerItem.endAmount,
-                    numerator,
-                    denominator,
-                    elapsed,
-                    remaining,
-                    duration,
-                    false
-                );
-
-                // Utilize assembly to set overloaded offerItem arguments.
-                assembly {
-                    // Write derived fractional amount to startAmount as amount.
-                    mstore(add(offerItem, ReceivedItem_amount_offset), amount)
-                    // Write fulfiller (i.e. caller) to endAmount as recipient.
-                    mstore(
-                        add(offerItem, ReceivedItem_recipient_offset),
-                        caller()
-                    )
-                }
-
-                // Reduce available value if offer spent ETH or a native token.
-                if (offerItem.itemType == ItemType.NATIVE) {
-                    // Ensure that sufficient native tokens are still available.
-                    if (amount > etherRemaining) {
-                        revert InsufficientEtherSupplied();
+                    // Utilize assembly to set overloaded offerItem arguments.
+                    assembly {
+                        // Write derived fractional amount to startAmount as amount.
+                        mstore(
+                            add(offerItem, ReceivedItem_amount_offset),
+                            amount
+                        )
+                        // Write recipient to endAmount.
+                        mstore(
+                            add(offerItem, ReceivedItem_recipient_offset),
+                            recipient
+                        )
                     }
 
-                    // Skip underflow check as a comparison has just been made.
-                    unchecked {
-                        etherRemaining -= amount;
+                    // Reduce available value if offer spent ETH or a native token.
+                    if (offerItem.itemType == ItemType.NATIVE) {
+                        // Ensure that sufficient native tokens are still available.
+                        if (amount > etherRemaining) {
+                            revert InsufficientEtherSupplied();
+                        }
+
+                        // Skip underflow check as a comparison has just been made.
+                        unchecked {
+                            etherRemaining -= amount;
+                        }
                     }
                 }
 
-                // Transfer the item from the offerer to the caller.
+                // Transfer the item from the offerer to the recipient.
                 _transferOfferItem(
                     offerItem,
                     orderParameters.offerer,
-                    offererConduitKey,
+                    orderParameters.conduitKey,
                     accumulator
                 );
 

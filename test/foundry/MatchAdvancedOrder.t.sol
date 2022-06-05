@@ -21,6 +21,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
 
+    FuzzInputs empty;
+
     struct FuzzInputs {
         address zone;
         uint256 id;
@@ -44,10 +46,28 @@ contract MatchAdvancedOrder is BaseOrderTest {
     struct Context {
         ConsiderationInterface consideration;
         FuzzInputs args;
+        ItemType itemType;
     }
     struct ContextAscendingDescending {
         ConsiderationInterface consideration;
         FuzzInputsAscendingDescending args;
+    }
+
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
+    }
+
+    function test(
+        function(ContextAscendingDescending memory) external fn,
+        ContextAscendingDescending memory context
+    ) internal {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
     }
 
     function testMatchAdvancedOrdersOverflowOrderSide() public {
@@ -57,13 +77,13 @@ contract MatchAdvancedOrder is BaseOrderTest {
             if (i == 2) {
                 continue;
             }
-            _testMatchAdvancedOrdersOverflowOrderSide(
-                consideration,
-                ItemType(i)
+            test(
+                this.matchAdvancedOrdersOverflowOrderSide,
+                Context(consideration, empty, ItemType(i))
             );
-            _testMatchAdvancedOrdersOverflowOrderSide(
-                referenceConsideration,
-                ItemType(i)
+            test(
+                this.matchAdvancedOrdersOverflowOrderSide,
+                Context(consideration, empty, ItemType(i))
             );
         }
     }
@@ -75,13 +95,13 @@ contract MatchAdvancedOrder is BaseOrderTest {
             if (i == 2) {
                 continue;
             }
-            _testMatchAdvancedOrdersOverflowConsiderationSide(
-                consideration,
-                ItemType(i)
+            test(
+                this.matchAdvancedOrdersOverflowConsiderationSide,
+                Context(consideration, empty, ItemType(i))
             );
-            _testMatchAdvancedOrdersOverflowConsiderationSide(
-                referenceConsideration,
-                ItemType(i)
+            test(
+                this.matchAdvancedOrdersOverflowConsiderationSide,
+                Context(consideration, empty, ItemType(i))
             );
         }
     }
@@ -89,21 +109,28 @@ contract MatchAdvancedOrder is BaseOrderTest {
     function testMatchAdvancedOrdersWithEmptyCriteriaEthToErc721(
         FuzzInputs memory args
     ) public {
-        _testMatchAdvancedOrdersWithEmptyCriteriaEthToErc721(
-            Context(referenceConsideration, args)
+        vm.assume(args.amount > 0);
+        test(
+            this.matchAdvancedOrdersWithEmptyCriteriaEthToErc721,
+            Context(referenceConsideration, args, ItemType(0))
         );
-        _testMatchAdvancedOrdersWithEmptyCriteriaEthToErc721(
-            Context(consideration, args)
+        test(
+            this.matchAdvancedOrdersWithEmptyCriteriaEthToErc721,
+            Context(consideration, args, ItemType(0))
         );
     }
 
     function testMatchOrdersAscendingDescendingOfferAmountPartialFill(
         FuzzInputsAscendingDescending memory args
     ) public {
-        _testMatchOrdersAscendingDescendingOfferAmountPartialFill(
+        vm.assume(args.baseStart != args.baseEnd);
+        vm.assume(args.baseStart > 0 && args.baseEnd > 0);
+        test(
+            this.matchOrdersAscendingDescendingOfferAmountPartialFill,
             ContextAscendingDescending(consideration, args)
         );
-        _testMatchOrdersAscendingDescendingOfferAmountPartialFill(
+        test(
+            this.matchOrdersAscendingDescendingOfferAmountPartialFill,
             ContextAscendingDescending(referenceConsideration, args)
         );
     }
@@ -111,19 +138,23 @@ contract MatchAdvancedOrder is BaseOrderTest {
     function testMatchOrdersAscendingDescendingConsiderationAmountPartialFill(
         FuzzInputsAscendingDescending memory args
     ) public {
-        _testMatchOrdersAscendingDescendingConsiderationAmountPartialFill(
+        vm.assume(args.baseStart != args.baseEnd);
+        vm.assume(args.baseStart > 0 && args.baseEnd > 0);
+        test(
+            this.matchOrdersAscendingDescendingConsiderationAmountPartialFill,
             ContextAscendingDescending(consideration, args)
         );
-        _testMatchOrdersAscendingDescendingConsiderationAmountPartialFill(
+        test(
+            this.matchOrdersAscendingDescendingConsiderationAmountPartialFill,
             ContextAscendingDescending(referenceConsideration, args)
         );
     }
 
-    function _testMatchAdvancedOrdersOverflowOrderSide(
-        ConsiderationInterface _consideration,
-        ItemType itemType
-    ) internal resetTokenBalancesBetweenRuns {
-        _configureOfferItem(itemType, 1, 100);
+    function matchAdvancedOrdersOverflowOrderSide(Context memory context)
+        external
+        stateless
+    {
+        _configureOfferItem(context.itemType, 1, 100);
         _configureErc721ConsiderationItem(alice, 1);
 
         OrderParameters memory firstOrderParameters = OrderParameters(
@@ -142,18 +173,18 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             firstOrderParameters,
-            _consideration.getNonce(bob)
+            context.consideration.getNonce(bob)
         );
         bytes memory firstSignature = signOrder(
-            _consideration,
+            context.consideration,
             bobPk,
-            _consideration.getOrderHash(firstOrderComponents)
+            context.consideration.getOrderHash(firstOrderComponents)
         );
 
         delete offerItems;
         delete considerationItems;
 
-        _configureOfferItem(itemType, 1, 2**256 - 1);
+        _configureOfferItem(context.itemType, 1, 2**256 - 1);
         _configureErc721ConsiderationItem(alice, 2);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
@@ -172,12 +203,12 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            _consideration.getNonce(bob)
+            context.consideration.getNonce(bob)
         );
         bytes memory secondSignature = signOrder(
-            _consideration,
+            context.consideration,
             bobPk,
-            _consideration.getOrderHash(secondOrderComponents)
+            context.consideration.getOrderHash(secondOrderComponents)
         );
 
         delete offerItems;
@@ -187,7 +218,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         test721_1.mint(alice, 2);
         _configureERC721OfferItem(1);
         _configureERC721OfferItem(2);
-        _configureConsiderationItem(bob, itemType, 1, 99);
+        _configureConsiderationItem(bob, context.itemType, 1, 99);
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
             address(alice),
@@ -205,13 +236,13 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
             thirdOrderParameters,
-            _consideration.getNonce(alice)
+            context.consideration.getNonce(alice)
         );
 
         bytes memory thirdSignature = signOrder(
-            _consideration,
+            context.consideration,
             alicePk,
-            _consideration.getOrderHash(thirdOrderComponents)
+            context.consideration.getOrderHash(thirdOrderComponents)
         );
 
         delete offerItems;
@@ -276,20 +307,19 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete fulfillment;
 
         vm.expectRevert(stdError.arithmeticError);
-        _consideration.matchAdvancedOrders{ value: 99 }(
+        context.consideration.matchAdvancedOrders{ value: 99 }(
             advancedOrders,
             new CriteriaResolver[](0),
             fulfillments
         );
     }
 
-    function _testMatchAdvancedOrdersOverflowConsiderationSide(
-        ConsiderationInterface _consideration,
-        ItemType itemType
-    ) internal resetTokenBalancesBetweenRuns {
+    function matchAdvancedOrdersOverflowConsiderationSide(
+        Context memory context
+    ) external stateless {
         test721_1.mint(alice, 1);
         _configureERC721OfferItem(1);
-        _configureConsiderationItem(alice, itemType, 1, 100);
+        _configureConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory firstOrderParameters = OrderParameters(
             address(alice),
@@ -307,12 +337,12 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             firstOrderParameters,
-            _consideration.getNonce(alice)
+            context.consideration.getNonce(alice)
         );
         bytes memory firstSignature = signOrder(
-            _consideration,
+            context.consideration,
             alicePk,
-            _consideration.getOrderHash(firstOrderComponents)
+            context.consideration.getOrderHash(firstOrderComponents)
         );
 
         delete offerItems;
@@ -320,7 +350,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         test721_1.mint(bob, 2);
         _configureERC721OfferItem(2);
-        _configureConsiderationItem(alice, itemType, 1, 2**256 - 1);
+        _configureConsiderationItem(alice, context.itemType, 1, 2**256 - 1);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -338,18 +368,18 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            _consideration.getNonce(bob)
+            context.consideration.getNonce(bob)
         );
         bytes memory secondSignature = signOrder(
-            _consideration,
+            context.consideration,
             bobPk,
-            _consideration.getOrderHash(secondOrderComponents)
+            context.consideration.getOrderHash(secondOrderComponents)
         );
 
         delete offerItems;
         delete considerationItems;
 
-        _configureOfferItem(itemType, 1, 99);
+        _configureOfferItem(context.itemType, 1, 99);
         _configureErc721ConsiderationItem(alice, 1);
         _configureErc721ConsiderationItem(bob, 2);
 
@@ -369,13 +399,13 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
             thirdOrderParameters,
-            _consideration.getNonce(bob)
+            context.consideration.getNonce(bob)
         );
 
         bytes memory thirdSignature = signOrder(
-            _consideration,
+            context.consideration,
             bobPk,
-            _consideration.getOrderHash(thirdOrderComponents)
+            context.consideration.getOrderHash(thirdOrderComponents)
         );
 
         delete offerItems;
@@ -440,23 +470,16 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete fulfillment;
 
         vm.expectRevert(stdError.arithmeticError);
-        _consideration.matchAdvancedOrders{ value: 99 }(
+        context.consideration.matchAdvancedOrders{ value: 99 }(
             advancedOrders,
             new CriteriaResolver[](0),
             fulfillments
         );
     }
 
-    function _testMatchAdvancedOrdersWithEmptyCriteriaEthToErc721(
+    function matchAdvancedOrdersWithEmptyCriteriaEthToErc721(
         Context memory context
-    )
-        internal
-        onlyPayable(context.args.zone)
-        topUp
-        resetTokenBalancesBetweenRuns
-    {
-        vm.assume(context.args.amount > 0);
-
+    ) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -591,12 +614,9 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function _testMatchOrdersAscendingDescendingOfferAmountPartialFill(
+    function matchOrdersAscendingDescendingOfferAmountPartialFill(
         ContextAscendingDescending memory context
-    ) internal resetTokenBalancesBetweenRuns {
-        vm.assume(context.args.baseStart != context.args.baseEnd);
-        vm.assume(context.args.baseStart > 0 && context.args.baseEnd > 0);
-
+    ) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -760,12 +780,9 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function _testMatchOrdersAscendingDescendingConsiderationAmountPartialFill(
+    function matchOrdersAscendingDescendingConsiderationAmountPartialFill(
         ContextAscendingDescending memory context
-    ) internal resetTokenBalancesBetweenRuns {
-        vm.assume(context.args.baseStart != context.args.baseEnd);
-        vm.assume(context.args.baseStart > 0 && context.args.baseEnd > 0);
-
+    ) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);

@@ -109,6 +109,8 @@ contract ReferenceOrderCombiner is
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param recipient                 The intended recipient for all received
+     *                                  items.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders          An array of booleans indicating if each order
@@ -125,6 +127,7 @@ contract ReferenceOrderCombiner is
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
         bytes32 fulfillerConduitKey,
+        address recipient,
         uint256 maximumFulfilled
     )
         internal
@@ -136,7 +139,8 @@ contract ReferenceOrderCombiner is
             ordersToExecute,
             criteriaResolvers,
             false, // Signifies that invalid orders should NOT revert.
-            maximumFulfilled
+            maximumFulfilled,
+            recipient
         );
 
         // Execute transfers.
@@ -144,7 +148,8 @@ contract ReferenceOrderCombiner is
             ordersToExecute,
             offerFulfillments,
             considerationFulfillments,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient
         );
 
         // Return order fulfillment details and executions.
@@ -171,13 +176,15 @@ contract ReferenceOrderCombiner is
      *                          order being invalid; setting this to false will
      *                          instead cause the invalid order to be skipped.
      * @param maximumFulfilled  The maximum number of orders to fulfill.
+     * @param recipient         The intended recipient for all received items.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
         OrderToExecute[] memory ordersToExecute,
         CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid,
-        uint256 maximumFulfilled
+        uint256 maximumFulfilled,
+        address recipient
     ) internal {
         // Read length of orders array and place on the stack.
         uint256 totalOrders = advancedOrders.length;
@@ -346,16 +353,8 @@ contract ReferenceOrderCombiner is
 
         // Apply criteria resolvers to each order as applicable.
         _applyCriteriaResolvers(ordersToExecute, criteriaResolvers);
-        // Determine the fulfiller (revertOnInvalid ? address(0) : msg.sender).
-        address fulfiller;
-        if (revertOnInvalid) {
-            fulfiller = address(0);
-        } else {
-            fulfiller = msg.sender;
-        }
 
         // Emit an event for each order signifying that it has been fulfilled.
-
         // Iterate over each order.
         for (uint256 i = 0; i < totalOrders; ++i) {
             // Do not emit an event if no order hash is present.
@@ -380,7 +379,7 @@ contract ReferenceOrderCombiner is
                 orderHashes[i],
                 orderParameters.offerer,
                 orderParameters.zone,
-                fulfiller,
+                recipient,
                 spentItems,
                 receivedItems
             );
@@ -430,8 +429,10 @@ contract ReferenceOrderCombiner is
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param recipient                 The intended recipient for all received
+     *                                  items.
      *
-     * * @return availableOrders        An array of booleans indicating if each order
+     * @return availableOrders        An array of booleans indicating if each order
      *                                  with an index corresponding to the index of the
      *                                  returned boolean was fulfillable or not.
      * @return executions               An array of elements indicating the sequence of
@@ -442,7 +443,8 @@ contract ReferenceOrderCombiner is
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     )
         internal
         returns (bool[] memory availableOrders, Execution[] memory executions)
@@ -473,7 +475,8 @@ contract ReferenceOrderCombiner is
                 ordersToExecute,
                 Side.OFFER,
                 components,
-                fulfillerConduitKey
+                fulfillerConduitKey,
+                recipient
             );
 
             // If offerer and recipient on the execution are the same...
@@ -498,7 +501,8 @@ contract ReferenceOrderCombiner is
                 ordersToExecute,
                 Side.CONSIDERATION,
                 components,
-                fulfillerConduitKey
+                fulfillerConduitKey,
+                recipient // unused
             );
 
             // If offerer and recipient on the execution are the same...
@@ -708,7 +712,8 @@ contract ReferenceOrderCombiner is
             ordersToExecute,
             criteriaResolvers,
             true, // Signifies that invalid orders should revert.
-            advancedOrders.length
+            advancedOrders.length,
+            address(0)
         );
 
         // Fulfill the orders using the supplied fulfillments.

@@ -74,13 +74,15 @@ contract ReferenceOrderFulfiller is
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
      *                            Consideration).
+     * @param recipient           The intended recipient for all received items.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function _validateAndFulfillAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal returns (bool) {
         // Declare empty bytes32 array (unused, will remain empty).
         bytes32[] memory priorOrderHashes;
@@ -108,8 +110,8 @@ contract ReferenceOrderFulfiller is
             orderParameters,
             fillNumerator,
             fillDenominator,
-            orderParameters.conduitKey,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -117,7 +119,7 @@ contract ReferenceOrderFulfiller is
             orderHash,
             orderParameters.offerer,
             orderParameters.zone,
-            msg.sender,
+            recipient,
             orderToExecute.spentItems,
             orderToExecute.receivedItems
         );
@@ -134,17 +136,12 @@ contract ReferenceOrderFulfiller is
      * @param numerator           A value indicating the portion of the order
      *                            that should be filled.
      * @param denominator         A value indicating the total order size.
-     * @param offererConduitKey   An address indicating what conduit, if any, to
-     *                            source the offerer's token approvals from. The
-     *                            zero hash signifies that no conduit should be
-     *                            used (and direct approvals set on
-     *                            Consideration).
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
      *                            Consideration).
-     *
+     * @param recipient           The intended recipient for all received items.
      * @return orderToExecute     Returns the order of items that are being transferred.
      *                            This will be used for the OrderFulfilled Event.
      */
@@ -152,15 +149,14 @@ contract ReferenceOrderFulfiller is
         OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
-        bytes32 offererConduitKey,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal returns (OrderToExecute memory orderToExecute) {
         // Derive order duration, time elapsed, and time remaining.
         // Store in memory to avoid stack too deep issues.
         FractionData memory fractionData = FractionData(
             numerator,
             denominator,
-            offererConduitKey,
             fulfillerConduitKey,
             (orderParameters.endTime - orderParameters.startTime),
             (block.timestamp - orderParameters.startTime),
@@ -176,6 +172,9 @@ contract ReferenceOrderFulfiller is
 
         // Get the offerer of the order.
         address offerer = orderParameters.offerer;
+
+        // Get the conduitKey of the order
+        bytes32 conduitKey = orderParameters.conduitKey;
 
         // Create the array to store the spent items for event.
         orderToExecute.spentItems = new SpentItem[](
@@ -203,7 +202,7 @@ contract ReferenceOrderFulfiller is
                     offerItem.token,
                     offerItem.identifierOrCriteria,
                     amount,
-                    payable(msg.sender)
+                    payable(recipient)
                 );
 
                 // Create Spent Item for the OrderFulfilled event.
@@ -224,13 +223,8 @@ contract ReferenceOrderFulfiller is
                     etherRemaining -= amount;
                 }
 
-                // Transfer the item from the offerer to the caller.
-                _transfer(
-                    receivedItem,
-                    offerer,
-                    fractionData.offererConduitKey,
-                    accumulatorStruct
-                );
+                // Transfer the item from the offerer to the recipient.
+                _transfer(receivedItem, offerer, conduitKey, accumulatorStruct);
             }
         }
 

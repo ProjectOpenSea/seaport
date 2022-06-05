@@ -95,6 +95,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param recipient                 The intended recipient for all received
+     *                                  items.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders An array of booleans indicating if each order
@@ -110,6 +112,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
         bytes32 fulfillerConduitKey,
+        address recipient,
         uint256 maximumFulfilled
     )
         internal
@@ -120,7 +123,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             advancedOrders,
             criteriaResolvers,
             false, // Signifies that invalid orders should NOT revert.
-            maximumFulfilled
+            maximumFulfilled,
+            recipient
         );
 
         // Aggregate used offer and consideration items and execute transfers.
@@ -128,7 +132,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             advancedOrders,
             offerFulfillments,
             considerationFulfillments,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient
         );
 
         // Return order fulfillment details and executions.
@@ -154,12 +159,14 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                          order being invalid; setting this to false will
      *                          instead cause the invalid order to be skipped.
      * @param maximumFulfilled  The maximum number of orders to fulfill.
+     * @param recipient         The intended recipient for all received items.
      */
     function _validateOrdersAndPrepareToFulfill(
         AdvancedOrder[] memory advancedOrders,
         CriteriaResolver[] memory criteriaResolvers,
         bool revertOnInvalid,
-        uint256 maximumFulfilled
+        uint256 maximumFulfilled,
+        address recipient
     ) internal {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -357,15 +364,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Apply criteria resolvers to each order as applicable.
         _applyCriteriaResolvers(advancedOrders, criteriaResolvers);
 
-        // Determine the fulfiller (revertOnInvalid ? address(0) : msg.sender).
-        address fulfiller;
-
-        // Utilize assembly to operate on revertOnInvalid boolean as an integer.
-        assembly {
-            // Set the fulfiller to the caller if revertOnValid is false.
-            fulfiller := mul(iszero(revertOnInvalid), caller())
-        }
-
         // Emit an event for each order signifying that it has been fulfilled.
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
@@ -386,7 +384,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     orderHashes[i],
                     orderParameters.offerer,
                     orderParameters.zone,
-                    fulfiller,
+                    recipient,
                     orderParameters.offer,
                     orderParameters.consideration
                 );
@@ -434,6 +432,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used, with
      *                                  direct approvals set on Consideration.
+     * @param recipient                 The intended recipient for all received
+     *                                  items.
      *
      * @return availableOrders An array of booleans indicating if each order
      *                         with an index corresponding to the index of the
@@ -446,7 +446,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[][] memory offerFulfillments,
         FulfillmentComponent[][] memory considerationFulfillments,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     )
         internal
         returns (bool[] memory availableOrders, Execution[] memory executions)
@@ -481,7 +482,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     advancedOrders,
                     Side.OFFER,
                     components,
-                    fulfillerConduitKey
+                    fulfillerConduitKey,
+                    recipient
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -506,7 +508,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     advancedOrders,
                     Side.CONSIDERATION,
                     components,
-                    fulfillerConduitKey
+                    fulfillerConduitKey,
+                    address(0) // unused
                 );
 
                 // If offerer and recipient on the execution are the same...
@@ -711,7 +714,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             advancedOrders,
             criteriaResolvers,
             true, // Signifies that invalid orders should revert.
-            advancedOrders.length
+            advancedOrders.length,
+            address(0) // OrderFulfilled event has no recipient when matching.
         );
 
         // Fulfill the orders using the supplied fulfillments.

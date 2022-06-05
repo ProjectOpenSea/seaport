@@ -13,12 +13,13 @@ contract NonReentrantTest is BaseOrderTest {
     BasicOrderParameters basicOrderParameters;
     OrderComponents orderComponents;
     AdditionalRecipient recipient;
-    AdditionalRecipient[] additionalRecipients;
     OrderParameters orderParameters;
     Order order;
     Order[] orders;
     ReentryPoint reentryPoint;
     ConsiderationInterface currentConsideration;
+    bool reentered;
+    bool shouldReenter;
 
     uint256 globalSalt;
 
@@ -46,25 +47,12 @@ contract NonReentrantTest is BaseOrderTest {
 
     event BytesReason(bytes data);
 
-    modifier resetStorageState() {
-        _;
-        delete additionalRecipients;
-        delete considerationComponentsArray;
-        delete considerationItems;
-        delete currentConsideration;
-        delete fulfillment;
-        delete fulfillmentComponent;
-        delete fulfillmentComponents;
-        delete offerComponents;
-        delete offerComponentsArray;
-        delete offerItems;
-        delete order;
-        delete orderComponents;
-        delete orderParameters;
-        delete orders;
-        delete recipient;
-        delete reentryPoint;
-        delete basicOrderParameters;
+    function test(function(Context memory) external fn, Context memory context)
+        internal
+    {
+        try fn(context) {} catch (bytes memory reason) {
+            assertPass(reason);
+        }
     }
 
     function testNonReentrant() public {
@@ -74,23 +62,22 @@ contract NonReentrantTest is BaseOrderTest {
                     EntryPoint(i),
                     ReentryPoint(j)
                 );
-                _testNonReentrant(Context(referenceConsideration, inputs));
-                _testNonReentrant(Context(consideration, inputs));
+                test(
+                    this.nonReentrant,
+                    Context(referenceConsideration, inputs)
+                );
+                test(this.nonReentrant, Context(consideration, inputs));
             }
         }
     }
 
-    function _testNonReentrant(Context memory context)
-        internal
-        resetTokenBalancesBetweenRuns
-        resetStorageState
-    {
+    function nonReentrant(Context memory context) external stateless {
         currentConsideration = context.consideration;
         reentryPoint = context.args.reentryPoint;
-        _entryPoint(context.args.entryPoint, 2, false);
+        this._entryPoint(context.args.entryPoint, 2, false);
 
         // make sure reentry calls are valid by calling with a new token id
-        _reentryPoint(11);
+        this._reentryPoint(11);
     }
 
     // public so we can use try/catch
@@ -103,6 +90,7 @@ contract NonReentrantTest is BaseOrderTest {
             BasicOrderParameters
                 memory _basicOrderParameters = prepareBasicOrder(tokenId);
             if (!reentering) {
+                shouldReenter = true;
                 vm.expectEmit(
                     true,
                     false,
@@ -112,10 +100,8 @@ contract NonReentrantTest is BaseOrderTest {
                 );
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
-
-            currentConsideration.fulfillBasicOrder{ value: 1 }(
-                _basicOrderParameters
-            );
+            currentConsideration.fulfillBasicOrder(_basicOrderParameters);
+            shouldReenter = false;
         } else if (entryPoint == EntryPoint.FulfillOrder) {
             (
                 Order memory params,
@@ -123,7 +109,7 @@ contract NonReentrantTest is BaseOrderTest {
                 uint256 value
             ) = prepareOrder(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, false, address(this));
+                vm.expectEmit(true, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             currentConsideration.fulfillOrder{ value: value }(
@@ -138,13 +124,14 @@ contract NonReentrantTest is BaseOrderTest {
                 uint256 value
             ) = prepareAdvancedOrder(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, false, address(this));
+                vm.expectEmit(true, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             currentConsideration.fulfillAdvancedOrder{ value: value }(
                 _order,
                 criteriaResolvers,
-                fulfillerConduitKey
+                fulfillerConduitKey,
+                address(0)
             );
         } else if (entryPoint == EntryPoint.FulfillAvailableOrders) {
             (
@@ -155,7 +142,7 @@ contract NonReentrantTest is BaseOrderTest {
                 uint256 maximumFulfilled
             ) = prepareAvailableOrders(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, false, address(this));
+                vm.expectEmit(true, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             vm.prank(alice);
@@ -176,7 +163,7 @@ contract NonReentrantTest is BaseOrderTest {
                 uint256 maximumFulfilled
             ) = prepareFulfillAvailableAdvancedOrders(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, false, address(this));
+                vm.expectEmit(true, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             vm.prank(alice);
@@ -186,6 +173,7 @@ contract NonReentrantTest is BaseOrderTest {
                 _offerFulfillments,
                 _considerationFulfillments,
                 fulfillerConduitKey,
+                address(0),
                 maximumFulfilled
             );
         } else if (entryPoint == EntryPoint.MatchOrders) {
@@ -194,7 +182,7 @@ contract NonReentrantTest is BaseOrderTest {
                 Fulfillment[] memory _fulfillments
             ) = prepareMatchOrders(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, false, address(this));
+                vm.expectEmit(true, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             currentConsideration.matchOrders{ value: 1 }(
@@ -208,7 +196,7 @@ contract NonReentrantTest is BaseOrderTest {
                 Fulfillment[] memory _fulfillments
             ) = prepareMatchAdvancedOrders(tokenId);
             if (!reentering) {
-                vm.expectEmit(true, false, false, false, address(this));
+                vm.expectEmit(true, false, false, true, address(this));
                 emit BytesReason(abi.encodeWithSignature("NoReentrantCalls()"));
             }
             currentConsideration.matchAdvancedOrders{ value: 1 }(
@@ -259,12 +247,12 @@ contract NonReentrantTest is BaseOrderTest {
         internal
         returns (BasicOrderParameters memory _basicOrderParameters)
     {
-        test721_1.mint(address(this), tokenId);
+        test1155_1.mint(address(this), tokenId, 2);
 
         offerItems.push(
             OfferItem(
-                ItemType.ERC721, // ItemType
-                address(test721_1), // token
+                ItemType.ERC1155, // ItemType
+                address(test1155_1), // token
                 tokenId, // identifier
                 1, // start amt
                 1 // end amt
@@ -273,8 +261,8 @@ contract NonReentrantTest is BaseOrderTest {
 
         considerationItems.push(
             ConsiderationItem(
-                ItemType.NATIVE, // ItemType
-                address(0), // Token
+                ItemType.ERC20, // ItemType
+                address(token1), // Token
                 0, // identifier
                 1, // start amount
                 1, // end amout
@@ -293,7 +281,7 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.endTime = block.timestamp + 1;
         orderComponents.zoneHash = bytes32(0);
         orderComponents.salt = globalSalt++;
-        orderComponents.conduitKey = bytes32(0);
+        orderComponents.conduitKey = conduitKeyOne;
         orderComponents.nonce = nonce;
 
         bytes32 orderHash = currentConsideration.getOrderHash(orderComponents);
@@ -305,7 +293,7 @@ contract NonReentrantTest is BaseOrderTest {
         return
             toBasicOrderParameters(
                 orderComponents,
-                BasicOrderType.ETH_TO_ERC721_FULL_OPEN,
+                BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN,
                 signature
             );
     }
@@ -427,7 +415,7 @@ contract NonReentrantTest is BaseOrderTest {
                 _order.parameters.zoneHash,
                 _order.parameters.salt,
                 _order.parameters.conduitKey,
-                bytes32(0),
+                _order.parameters.conduitKey,
                 0,
                 new AdditionalRecipient[](0),
                 _order.signature
@@ -455,7 +443,7 @@ contract NonReentrantTest is BaseOrderTest {
                 _order.zoneHash,
                 _order.salt,
                 _order.conduitKey,
-                bytes32(0),
+                _order.conduitKey,
                 0,
                 new AdditionalRecipient[](0),
                 signature
@@ -491,9 +479,6 @@ contract NonReentrantTest is BaseOrderTest {
             alicePk,
             orderHash
         );
-        delete fulfillmentComponents;
-        delete offerComponentsArray;
-        delete considerationComponentsArray;
 
         fulfillmentComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(fulfillmentComponents);
@@ -691,5 +676,19 @@ contract NonReentrantTest is BaseOrderTest {
 
     receive() external payable override {
         _doReenter();
+    }
+
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) public override returns (bytes4) {
+        if (shouldReenter && !reentered) {
+            reentered = true;
+            _doReenter();
+        }
+        return this.onERC1155Received.selector;
     }
 }

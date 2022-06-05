@@ -98,7 +98,7 @@ forge install
 
 To precompile contracts:
 
-The optimized contracts are compiled using the IR pipeline, which can take a long time to compile. By default, the differential test suite depends deploys precompiled versions of both the optimized and reference contracts. Precompilation can be done by specifying specific Foundry profiles.
+The optimized contracts are compiled using the IR pipeline, which can take a long time to compile. By default, the differential test suite deploys precompiled versions of both the optimized and reference contracts. Precompilation can be done by specifying specific Foundry profiles.
 
 ```bash
 FOUNDRY_PROFILE=optimized forge build
