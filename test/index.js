@@ -12222,6 +12222,86 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
         );
       });
+
+      it("Reverts on offer amount overflow when another amount is 0", async () => {
+        const { testERC20: testERC20Two } = await fixtureERC20(owner);
+        // Buyer mints nfts
+        const nftId = await mintAndApprove721(
+          buyer,
+          marketplaceContract.address
+        );
+
+        await testERC20Two.mint(seller.address, constants.MaxUint256);
+        // Seller approves marketplace contract to transfer NFTs
+        await testERC20Two
+          .connect(seller)
+          .approve(marketplaceContract.address, constants.MaxUint256);
+
+        const offer = [
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            undefined,
+            testERC20Two.address
+          ),
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            undefined,
+            testERC20Two.address
+          ),
+          getTestItem20(0, 0, undefined, testERC20Two.address),
+        ];
+
+        const consideration = [getTestItem721(nftId, 1, 1, seller.address)];
+
+        const offer2 = [getTestItem721(nftId, 1, 1)];
+        const consideration2 = [
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            buyer.address,
+            testERC20Two.address
+          ),
+        ];
+
+        const fulfillments = [
+          toFulfillment(
+            [
+              [0, 0],
+              [0, 1],
+              [0, 2],
+            ],
+            [[1, 0]]
+          ),
+          toFulfillment([[1, 0]], [[0, 0]]),
+        ];
+
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          1
+        );
+
+        const { order: order2 } = await createOrder(
+          buyer,
+          zone,
+          offer2,
+          consideration2,
+          1
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(owner)
+            .matchAdvancedOrders([order, order2], [], fulfillments)
+        ).to.be.revertedWith(
+          "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
+        );
+      });
+
       it("Reverts on consideration amount overflow", async () => {
         const { testERC20: testERC20Two } = await fixtureERC20(owner);
         // Buyer mints nfts
@@ -12298,6 +12378,88 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
         );
       });
+
+      it("Reverts on consideration amount overflow when another amount is 0", async () => {
+        const { testERC20: testERC20Two } = await fixtureERC20(owner);
+        // Buyer mints nfts
+        const nftId = await mintAndApprove721(
+          seller,
+          marketplaceContract.address
+        );
+
+        await testERC20Two.mint(buyer.address, constants.MaxUint256);
+        // Seller approves marketplace contract to transfer NFTs
+        await testERC20Two
+          .connect(buyer)
+          .approve(marketplaceContract.address, constants.MaxUint256);
+
+        const offer = [getTestItem721(nftId, 1, 1)];
+
+        const consideration = [
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            seller.address,
+            testERC20Two.address
+          ),
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            seller.address,
+            testERC20Two.address
+          ),
+          getTestItem20(0, 0, seller.address, testERC20Two.address),
+        ];
+
+        const offer2 = [
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            undefined,
+            testERC20Two.address
+          ),
+        ];
+        const consideration2 = [getTestItem721(nftId, 1, 1, buyer.address)];
+
+        const fulfillments = [
+          toFulfillment(
+            [[1, 0]],
+            [
+              [0, 0],
+              [0, 1],
+              [0, 2],
+            ]
+          ),
+          toFulfillment([[0, 0]], [[1, 0]]),
+        ];
+
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          1
+        );
+
+        const { order: order2 } = await createOrder(
+          buyer,
+          zone,
+          offer2,
+          consideration2,
+          1
+        );
+
+        await expect(
+          marketplaceContract.matchAdvancedOrders(
+            [order, order2],
+            [],
+            fulfillments
+          )
+        ).to.be.revertedWith(
+          "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
+        );
+      });
+
       it("Reverts on invalid criteria proof", async () => {
         // Seller mints nfts
         const nftId = randomBN();
