@@ -248,7 +248,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 order,
                 orderHash,
                 fulfiller: buyer.address,
-                fulfillerConduitKey: toKey(false),
               },
             ]);
             return receipt;
@@ -302,6 +301,342 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             seller,
             marketplaceContract.address
           );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getItemETH(parseEther("10"), parseEther("10"), seller.address),
+            getItemETH(parseEther("1"), parseEther("1"), zone.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+
+          // Add a tip
+          order.parameters.consideration.push(
+            getItemETH(parseEther("1"), parseEther("1"), owner.address)
+          );
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillOrder(order, toKey(false), {
+                value: value.add(parseEther("1")),
+              });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ETH (standard with restricted order)", async () => {
+          const nftId = await mintAndApprove721(
+            seller,
+            marketplaceContract.address
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getItemETH(parseEther("10"), parseEther("10"), seller.address),
+            getItemETH(parseEther("1"), parseEther("1"), zone.address),
+            getItemETH(parseEther("1"), parseEther("1"), owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            stubZone,
+            offer,
+            consideration,
+            2 // FULL_RESTRICTED
+          );
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillOrder(order, toKey(false), {
+                value,
+              });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+                fulfillerConduitKey: toKey(false),
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ETH (standard with restricted order and extra data)", async () => {
+          const nftId = await mintAndApprove721(
+            seller,
+            marketplaceContract.address
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getItemETH(parseEther("10"), parseEther("10"), seller.address),
+            getItemETH(parseEther("1"), parseEther("1"), zone.address),
+            getItemETH(parseEther("1"), parseEther("1"), owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            stubZone,
+            offer,
+            consideration,
+            2 // FULL_RESTRICTED
+          );
+
+          order.extraData = "0x1234";
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              );
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ETH (standard with restricted order, specified recipient and extra data)", async () => {
+          const nftId = await mintAndApprove721(
+            seller,
+            marketplaceContract.address
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getItemETH(parseEther("10"), parseEther("10"), seller.address),
+            getItemETH(parseEther("1"), parseEther("1"), zone.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            stubZone,
+            offer,
+            consideration,
+            2 // FULL_RESTRICTED
+          );
+
+          order.extraData = "0x1234";
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toKey(false), owner.address, {
+                value,
+              });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+                recipient: owner.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ETH (basic)", async () => {
+          const nftId = await mintAndApprove721(
+            seller,
+            marketplaceContract.address
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getItemETH(parseEther("10"), parseEther("10"), seller.address),
+            getItemETH(parseEther("1"), parseEther("1"), zone.address),
+            getItemETH(parseEther("1"), parseEther("1"), owner.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            zone,
+            offer,
+            consideration,
+            0 // FULL_OPEN
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            0, // EthForERC721
+            order
+          );
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, {
+                value,
+              });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ETH (basic, minimal and listed off-chain)", async () => {
+          // Seller mints nft
+          const nftId = await mintAndApprove721(
+            seller,
+            marketplaceContract.address
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [getItemETH(toBN(1), toBN(1), seller.address)];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            constants.AddressZero,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            constants.HashZero,
+            true // extraCheap
+          );
+
+          const basicOrderParameters = getBasicOrderParameters(
+            0, // EthForERC721
+            order
+          );
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, {
+                value,
+              });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ETH (basic, minimal and verified on-chain)", async () => {
+          // Seller mints nft
+          const nftId = await mintAndApprove721(
+            seller,
+            marketplaceContract.address
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [getItemETH(toBN(1), toBN(1), seller.address)];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            constants.AddressZero,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
+            constants.HashZero,
+            true // extraCheap
+          );
+
+          // Validate the order from any account
+          await expect(marketplaceContract.connect(owner).validate([order]))
+            .to.emit(marketplaceContract, "OrderValidated")
+            .withArgs(orderHash, seller.address, constants.AddressZero);
+
+          const basicOrderParameters = getBasicOrderParameters(
+            0, // EthForERC721
+            order
+          );
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, {
+                value,
+              });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ETH (standard, minimal and listed off-chain)", async () => {
+          // Seller mints nft
+          const nftId = await mintAndApprove721(
+            seller,
+            marketplaceContract.address
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [getItemETH(toBN(1), toBN(1), seller.address)];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            constants.AddressZero,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller,
+            constants.HashZero,
             constants.HashZero,
             true // extraCheap
           );
@@ -318,6 +653,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 order,
                 orderHash,
                 fulfiller: buyer.address,
+                fulfillerConduitKey: toKey(false),
               },
             ]);
 
@@ -4605,11 +4941,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.denominator = denom1;
 
         await withBalanceChecks([order], 0, [], async () => {
-          const tx = marketplaceContract
-            .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
+          const tx = marketplaceContract.connect(buyer).fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(false),
+            {
               value,
-            });
+            },
+            buyer.address
+          );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -4638,11 +4978,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.numerator = numer2;
         order.denominator = denom2;
 
-        await marketplaceContract
-          .connect(buyer)
-          .fulfillAdvancedOrder(order, [], toKey(false), {
+        await marketplaceContract.connect(buyer).fulfillAdvancedOrder(
+          order,
+          [],
+          toKey(false),
+          {
             value,
-          });
+          },
+          buyer.address
+        );
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
@@ -4693,11 +5037,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.denominator = prime2;
 
         await withBalanceChecks([order], 0, [], async () => {
-          const tx = marketplaceContract
-            .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
+          const tx = marketplaceContract.connect(buyer).fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(false),
+            {
               value,
-            });
+            },
+            buyer.address
+          );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -4727,11 +5075,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.denominator = prime3;
 
         await expect(
-          marketplaceContract
-            .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
+          marketplaceContract.connect(buyer).fulfillAdvancedOrder(
+            order,
+            [],
+            toKey(false),
+            {
               value,
-            })
+            },
+            buyer.address
+          )
         ).to.be.revertedWith(
           "0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
         );
