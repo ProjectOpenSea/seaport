@@ -509,7 +509,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     Side.CONSIDERATION,
                     components,
                     fulfillerConduitKey,
-                    recipient // unused
+                    recipient
                 );
 
                 // If offerer and recipient on the execution are the same...
