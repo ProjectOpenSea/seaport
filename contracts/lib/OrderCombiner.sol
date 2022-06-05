@@ -715,7 +715,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             criteriaResolvers,
             true, // Signifies that invalid orders should revert.
             advancedOrders.length,
-            address(0)
+            address(0) // OrderFulfilled event has no recipient when matching.
         );
 
         // Fulfill the orders using the supplied fulfillments.
