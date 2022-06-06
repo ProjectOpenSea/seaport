@@ -567,7 +567,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 // Determine the total calldata size for the call to transfer.
                 let transferDataSize := add(
                     BatchTransfer1155Params_data_length_basePtr,
-                    mul(idsLength, TwoWords)
+                    idsAndAmountsSize
                 )
 
                 // Copy second section of calldata (including dynamic values).
@@ -720,24 +720,24 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Write the token.
                     mstore(ERC1155BatchTransferGenericFailure_token_ptr, token)
 
-                    // Move the ids and amounts offsets forward a word.
+                    // Increase the offset to ids by 32.
                     mstore(
                         BatchTransfer1155Params_ids_head_ptr,
-                        ConduitBatch1155Transfer_amounts_head_offset
+                        ERC1155BatchTransferGenericFailure_ids_offset
                     )
+
+                    // Increase the offset to amounts by 32.
                     mstore(
                         BatchTransfer1155Params_amounts_head_ptr,
                         add(
-                            OneWord,
+                            0x20,
                             mload(BatchTransfer1155Params_amounts_head_ptr)
                         )
                     )
 
-                    // Return modified region with one fewer word at the end.
-                    revert(
-                        0,
-                        add(transferDataSize, BatchTransfer1155Params_ptr)
-                    )
+                    // Return modified region. The total size stays the same because
+                    // `token` uses the same number of bytes as `data.length`.
+                    revert(0, transferDataSize)
                 }
             }
 
