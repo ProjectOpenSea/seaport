@@ -236,7 +236,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     function gcd(_a, _b) -> out {
                         for {
 
-                        } gt(_b, 0) {
+                        } _b {
 
                         } {
                             let _c := _b
