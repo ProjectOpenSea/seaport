@@ -98,6 +98,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
   };
 
+  after(async () => {
+    await ethers.network.provider.request({
+      method: "hardhat_reset",
+    });
+  });
+
   before(async () => {
     owner = new ethers.Wallet(randomHex(32), provider);
 
