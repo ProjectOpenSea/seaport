@@ -19,7 +19,8 @@ import { TransferHelperInterface } from "../interfaces/TransferHelperInterface.s
 /**
  * @title TransferHelper
  * @author stuckinaboot, stephankmin
- * @notice TransferHelper is a utility contract for transferring ERC20/ERC721/ERC1155 items in bulk to a specific recipient
+ * @notice TransferHelper is a utility contract for transferring
+ *         ERC20/ERC721/ERC1155 items in bulk to a specific recipient
  */
 contract TransferHelper is TransferHelperInterface, TokenTransferrer {
     // Allow for interaction with the conduit controller.
@@ -29,7 +30,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
 
     /**
-     * @dev Set the supplied conduit controller and retrieve its conduit creation code hash.
+     * @dev Set the supplied conduit controller and retrieve its
+     * conduit creation code hash.
      *
      *
      * @param conduitController A contract that deploys conduits, or proxies
@@ -37,8 +39,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
      *                          ERC20/721/1155 tokens.
      */
     constructor(address conduitController) {
-        // Get the conduit creation code hash from the supplied conduit controller and
-        // set the conduit creation code hash as an immutable.
+        // Get the conduit creation code hash from the supplied
+        // conduit controller and set the conduit creation code hash
+        // as an immutable.
         ConduitControllerInterface controller = ConduitControllerInterface(
             conduitController
         );
@@ -53,7 +56,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
      *
      * @param items The items to transfer.
      * @param recipient  The address the items should be transferred to.
-     * @param conduitKey  The key of the conduit through which the bulk transfer should occur.
+     * @param conduitKey  The key of the conduit through which the
+     *                    bulk transfer should occur.
      */
     function bulkTransfer(
         TransferHelperItem[] calldata items,
@@ -63,9 +67,11 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         // Retrieve total number of transfers and place on stack.
         uint256 numTransfers = items.length;
 
-        // If no conduitKey is given, call TokenTransferrer to perform transfers.
+        // If no conduitKey is given, call TokenTransferrer
+        // to perform transfers.
         if (conduitKey == bytes32(0)) {
-            // Skip overflow checks as all for loops are indexed starting at zero.
+            // Skip overflow checks as all for loops are
+            // indexed starting at zero.
             unchecked {
                 // Iterate over each transfer.
                 for (uint256 i = 0; i < numTransfers; ++i) {
@@ -73,7 +79,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     TransferHelperItem calldata item = items[i];
 
                     // Perform a transfer based on the transfer's item type.
-                    // Revert if the item being transferred is not a native token.
+                    // Revert if the item being transferred
+                    // is not a native token.
                     if (item.itemType == ConduitItemType.NATIVE) {
                         revert InvalidItemType();
                     } else if (item.itemType == ConduitItemType.ERC20) {
@@ -102,7 +109,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 }
             }
         }
-        // If a conduitKey is given, derive the conduit address from the conduitKey and call the conduit to perform transfers.
+        // If a conduitKey is given, derive the conduit address from
+        // the conduitKey and call the conduit to perform transfers.
         else {
             // Derive address from deployer, conduit key and creation code hash.
             address conduit = address(
