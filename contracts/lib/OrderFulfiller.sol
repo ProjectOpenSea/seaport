@@ -157,7 +157,7 @@ contract OrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal {
-        // Skip underflow checks as we know orderParameters.startTime <= block.timestamp < orderParameters.endTime
+        // Skip underflow checks as startTime <= block.timestamp < endTime
         unchecked {
             // Derive order duration, time elapsed, and time remaining.
             uint256 duration = orderParameters.endTime - orderParameters.startTime;
