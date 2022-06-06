@@ -159,8 +159,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             // If the fulfillment components are offer components...
             if (side == Side.OFFER) {
-                // Set recipient on the execution item
+                // Set the supplied recipient on the execution item.
                 execution.item.recipient = payable(recipient);
+
                 // Return execution for aggregated items provided by offerer.
                 _aggregateValidFulfillmentOfferItems(
                     advancedOrders,
@@ -184,8 +185,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 execution.conduitKey = fulfillerConduitKey;
             }
 
-            // Set the offerer and receipient to null address if execution amount is zero.
-            // This will cause the execution item to be skipped.
+            // Set the offerer and receipient to null address if execution
+            // amount is zero. This will cause the execution item to be skipped.
             if (execution.item.amount == 0) {
                 execution.offerer = address(0);
                 execution.item.recipient = payable(0);

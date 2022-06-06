@@ -141,6 +141,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         public
         validateInputs(args)
         onlyPayable(args.zone)
+        only1155Receiver(args.zone)
+        onlyPayable(args.recipient)
         only1155Receiver(args.recipient)
     {
         test(
@@ -157,7 +159,15 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
     function testPartialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155(
         FuzzInputs memory args
-    ) public validateInputs(args) validateNumerDenom(args) {
+    )
+        public
+        validateInputs(args)
+        onlyPayable(args.zone)
+        only1155Receiver(args.zone)
+        onlyPayable(args.recipient)
+        only1155Receiver(args.recipient)
+        validateNumerDenom(args)
+    {
         test(
             this
                 .partialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
