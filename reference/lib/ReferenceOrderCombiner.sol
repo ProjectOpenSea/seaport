@@ -483,9 +483,9 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
+                // Executions start at 0, infeasible to increment > 2^256.
                 unchecked {
-                    // increment total filtered executions.
-                    // executions start at 0, infeasible to increment > 2^256.
+                    // Increment total filtered executions.
                     ++totalFilteredExecutions;
                 }
             } else {
@@ -512,9 +512,9 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
+                // Executions start at 0, infeasible to increment > 2^256.
                 unchecked {
-                    // increment total filtered executions.
-                    // executions start at 0, infeasible to increment > 2^256.
+                    // Increment total filtered executions.
                     ++totalFilteredExecutions;
                 }
             } else {
@@ -772,9 +772,9 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
+                // Executions start at 0, infeasible to increment > 2^256.
                 unchecked {
-                    // increment total filtered executions.
-                    // executions start at 0, infeasible to increment > 2^256.
+                    // Increment total filtered executions.
                     ++totalFilteredExecutions;
                 }
             } else {
