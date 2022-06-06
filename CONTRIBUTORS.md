@@ -11,3 +11,4 @@ LeFevre                        | `lefevre.eth`
 pcaversaccio                   |
 David Eiber                    |
 hack3r-0m                      | `hack3r-0m.eth`
+csanuragjain                   | 
