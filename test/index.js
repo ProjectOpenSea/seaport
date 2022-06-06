@@ -9533,10 +9533,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Transfers[i] = erc1155Transfer;
       }
 
-      const transfers = erc20Transfers.concat(
-        erc721Transfers,
-        erc1155Transfers
-      );
+      const transfers = erc20Transfers
+        .concat(erc721Transfers, erc1155Transfers)
+        .map(({ identifier, ...t }) => ({ ...t, tokenIdentifier: identifier }));
       const contracts = erc20Contracts.concat(
         erc721Contracts,
         erc1155Contracts
@@ -10477,9 +10476,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numERC20s amount of ERC20 objects
       for (let i = 0; i < numERC20s; i++) {
         // Deploy Contract
-        const tempERC20Contract = await deployContracts(1);
+        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
         // Create/Approve X amount of  ERC20s
-        const erc20Transfer = await createTransferHelperItemWithApproval(
+        const erc20Transfer = await createTransferWithApproval(
           tempERC20Contract,
           sender,
           1,
@@ -10492,9 +10491,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numEC721s amount of ERC20 objects
       for (let i = 0; i < numEC721s; i++) {
         // Deploy Contract
-        const tempERC721Contract = await deployContracts(2);
+        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
         // Create/Approve numEC721s amount of  ERC721s
-        const erc721Transfer = await createTransferHelperItemWithApproval(
+        const erc721Transfer = await createTransferWithApproval(
           tempERC721Contract,
           sender,
           2,
@@ -10507,9 +10506,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numERC1155s amount of ERC1155 objects
       for (let i = 0; i < numERC1155s; i++) {
         // Deploy Contract
-        const tempERC1155Contract = await deployContracts(3);
+        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
+          owner
+        );
         // Create/Approve numERC1155s amount of ERC1155s
-        const erc1155Transfer = await createTransferHelperItemWithApproval(
+        const erc1155Transfer = await createTransferWithApproval(
           tempERC1155Contract,
           sender,
           3,
@@ -10519,10 +10520,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Transfers[i] = erc1155Transfer;
       }
 
-      const transfers = erc20Transfers.concat(
-        erc721Transfers,
-        erc1155Transfers
-      );
+      const transfers = erc20Transfers
+        .concat(erc721Transfers, erc1155Transfers)
+        .map(({ identifier, ...t }) => ({ ...t, tokenIdentifier: identifier }));
       const contracts = erc20Contracts.concat(
         erc721Contracts,
         erc1155Contracts
@@ -10534,10 +10534,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, amount, identifier
-        itemType = transfers[i].itemType;
-        token = contracts[i];
-        amount = transfers[i].amount;
-        identifier = transfers[i].tokenIdentifier;
+        const { itemType, amount, tokenIdentifier: identifier } = transfers[i];
+        const token = contracts[i];
 
         switch (itemType) {
           case 1: // ERC20
@@ -10582,9 +10580,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numERC20s amount of ERC20 objects
       for (let i = 0; i < numERC20s; i++) {
         // Deploy Contract
-        const tempERC20Contract = await deployContracts(1);
+        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
         // Create/Approve X amount of  ERC20s
-        const erc20Transfer = await createTransferHelperItemWithApproval(
+        const erc20Transfer = await createTransferWithApproval(
           tempERC20Contract,
           sender,
           1,
@@ -10597,9 +10595,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numEC721s amount of ERC20 objects
       for (let i = 0; i < numEC721s; i++) {
         // Deploy Contract
-        const tempERC721Contract = await deployContracts(2);
+        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
         // Create/Approve numEC721s amount of  ERC721s
-        const erc721Transfer = await createTransferHelperItemWithApproval(
+        const erc721Transfer = await createTransferWithApproval(
           tempERC721Contract,
           sender,
           2,
@@ -10612,9 +10610,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numERC1155s amount of ERC1155 objects
       for (let i = 0; i < numERC1155s; i++) {
         // Deploy Contract
-        const tempERC1155Contract = await deployContracts(3);
+        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
+          owner
+        );
         // Create/Approve numERC1155s amount of ERC1155s
-        const erc1155Transfer = await createTransferHelperItemWithApproval(
+        const erc1155Transfer = await createTransferWithApproval(
           tempERC1155Contract,
           sender,
           3,
@@ -10643,10 +10643,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, amount, identifier
-        itemType = transfers[i].itemType;
-        token = contracts[i];
-        amount = transfers[i].amount;
-        identifier = transfers[i].tokenIdentifier;
+        const { itemType, amount, tokenIdentifier: identifier } = transfers[i];
+        const token = contracts[i];
 
         switch (itemType) {
           case 1: // ERC20
