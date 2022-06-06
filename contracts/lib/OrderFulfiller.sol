@@ -263,7 +263,6 @@ contract OrderFulfiller is
                     orderParameters.conduitKey,
                     accumulator
                 );
-
             }
         }
 
@@ -358,7 +357,6 @@ contract OrderFulfiller is
                     fulfillerConduitKey,
                     accumulator
                 );
-
             }
         }
 
