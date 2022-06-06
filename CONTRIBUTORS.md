@@ -9,3 +9,4 @@ Kartik                         | `slokh.eth`
 LeFevre                        | `lefevre.eth`
 0xPatissier                    |
 pcaversaccio                   |
+David Eiber                    |
