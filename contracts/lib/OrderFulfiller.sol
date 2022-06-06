@@ -193,7 +193,7 @@ contract OrderFulfiller is
          */
 
         // Declare a nested scope to minimize stack depth.
-        {
+        unchecked {
             // Declare a virtual function pointer taking an OfferItem argument.
             function(OfferItem memory, address, bytes32, bytes memory)
                 internal _transferOfferItem;
@@ -212,7 +212,8 @@ contract OrderFulfiller is
             }
 
             // Iterate over each offer on the order.
-            for (uint256 i = 0; i < orderParameters.offer.length; ) {
+            // Skip overflow check as for loop is indexed starting at zero.
+            for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
                 // Declare a nested scope to minimize stack depth.
@@ -251,9 +252,7 @@ contract OrderFulfiller is
                         }
 
                         // Skip underflow check as a comparison has just been made.
-                        unchecked {
-                            etherRemaining -= amount;
-                        }
+                        etherRemaining -= amount;
                     }
                 }
 
@@ -265,10 +264,6 @@ contract OrderFulfiller is
                     accumulator
                 );
 
-                // Skip overflow check as for loop is indexed starting at zero.
-                unchecked {
-                    ++i;
-                }
             }
         }
 
