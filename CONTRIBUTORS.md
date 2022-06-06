@@ -20,3 +20,4 @@ Saw-mon and Natalie            | `sawmonandnatalie.eth`
 0x4non                         | `punkdev.eth`
 Laurence E. Day                | `norsefire.eth`
 Zoraiz Mahmood                 | `zorz.eth`
+vectorized.eth                 | `vectorized.eth`
