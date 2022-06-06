@@ -230,8 +230,8 @@ export const tokensFixture = async (signer: JsonRpcSigner) => {
     receiver: Wallet,
     itemType: 0 | 1 | 2 | 3 | 4 | 5,
     approvalAddress: string,
-    from: string,
-    to: string
+    from?: string,
+    to?: string
   ) => {
     let identifier: BigNumber = toBN(0);
     let amount: BigNumber = toBN(0);
