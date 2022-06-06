@@ -118,6 +118,13 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         execution.item.amount = considerationItem.amount;
         execution.item.recipient = considerationItem.recipient;
 
+        // Set the offerer and receipient to null address if execution
+        // amount is zero. This will cause the execution item to be skipped.
+        if (execution.item.amount == 0) {
+            execution.offerer = address(0);
+            execution.item.recipient = payable(0);
+        }
+
         // Return the final execution that will be triggered for relevant items.
         return execution; // Execution(considerationItem, offerer, conduitKey);
     }
