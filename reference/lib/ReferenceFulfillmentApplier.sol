@@ -52,7 +52,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] calldata offerComponents,
         FulfillmentComponent[] calldata considerationComponents
-    ) internal view returns (Execution memory execution) {
+    ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
             offerComponents.length == 0 || considerationComponents.length == 0
