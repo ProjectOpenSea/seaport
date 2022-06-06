@@ -10,3 +10,4 @@ LeFevre                        | `lefevre.eth`
 0xPatissier                    |
 pcaversaccio                   |
 David Eiber                    |
+hack3r-0m                      | `hack3r-0m.eth`
