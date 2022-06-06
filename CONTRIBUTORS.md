@@ -15,3 +15,4 @@ csanuragjain                   |
 Joseph Schiarizzi              | `CupOJoseph.eth`
 Diego Estevez                  | `antidiego.eth`
 Chomtana                       | `chomtana.eth`
+Saw-mon and Natalie            | `sawmonandnatalie.eth`
