@@ -211,8 +211,10 @@ contract OrderFulfiller is
                 }
             }
 
+            // cache length
+            uint256 totalOffers = orderParameters.offer.length;
             // Iterate over each offer on the order.
-            for (uint256 i = 0; i < orderParameters.offer.length; ) {
+            for (uint256 i = 0; i <  totalOffers;) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
                 // Declare a nested scope to minimize stack depth.
