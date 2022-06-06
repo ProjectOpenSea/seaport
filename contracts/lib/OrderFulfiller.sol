@@ -283,7 +283,7 @@ contract OrderFulfiller is
          */
 
         // Declare a nested scope to minimize stack depth.
-        {
+        unchecked {
             // Declare virtual function pointer with ConsiderationItem argument.
             function(ConsiderationItem memory, address, bytes32, bytes memory)
                 internal _transferConsiderationItem;
@@ -301,7 +301,8 @@ contract OrderFulfiller is
             }
 
             // Iterate over each consideration item on the order.
-            for (uint256 i = 0; i < orderParameters.consideration.length; ) {
+            // Skip overflow check as for loop is indexed starting at zero.
+            for (uint256 i = 0; i < orderParameters.consideration.length; ++i) {
                 // Retrieve the consideration item.
                 ConsiderationItem memory considerationItem = (
                     orderParameters.consideration[i]
@@ -347,9 +348,7 @@ contract OrderFulfiller is
                     }
 
                     // Skip underflow check as a comparison has just been made.
-                    unchecked {
-                        etherRemaining -= amount;
-                    }
+                    etherRemaining -= amount;
                 }
 
                 // Transfer item from caller to recipient specified by the item.
@@ -360,10 +359,6 @@ contract OrderFulfiller is
                     accumulator
                 );
 
-                // Skip overflow check as for loop is indexed starting at zero.
-                unchecked {
-                    ++i;
-                }
             }
         }
 
