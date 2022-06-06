@@ -8,4 +8,4 @@ transmissions11                | `t11s.eth`
 Kartik                         | `slokh.eth`
 LeFevre                        | `lefevre.eth`
 0xPatissier                    |
-
+pcaversaccio                   |
