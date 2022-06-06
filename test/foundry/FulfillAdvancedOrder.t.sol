@@ -107,24 +107,24 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     }
 
     function testAdvancedPartialAscendingOfferAmount1155(
-        FuzzInputs memory inputs,
+        FuzzInputs memory args,
         uint128 tokenAmount,
         uint256 warpAmount
-    ) public validateInputs(inputs) {
+    ) public validateInputs(args) {
         vm.assume(tokenAmount > 0);
 
         test(
             this.advancedPartialAscendingOfferAmount1155,
             Context(
                 referenceConsideration,
-                inputs,
+                args,
                 tokenAmount,
                 warpAmount % 1000
             )
         );
         test(
             this.advancedPartialAscendingOfferAmount1155,
-            Context(consideration, inputs, tokenAmount, warpAmount % 1000)
+            Context(consideration, args, tokenAmount, warpAmount % 1000)
         );
     }
 
@@ -374,11 +374,6 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         external
         stateless
     {
-        vm.assume(
-            context.args.recipient != address(0) &&
-                context.args.recipient != address(test1155_1)
-        );
-
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
@@ -554,8 +549,11 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             assertFalse(isCancelled);
             assertEq(totalFilled, context.args.numer);
             assertEq(totalSize, context.args.denom);
+            // if recipient is alice (offerer), final balance will be number minted, ie, denom
             assertEq(
-                context.args.numer,
+                context.args.recipient == alice
+                    ? context.args.denom
+                    : context.args.numer,
                 test1155_1.balanceOf(
                     context.args.recipient,
                     context.args.tokenId
