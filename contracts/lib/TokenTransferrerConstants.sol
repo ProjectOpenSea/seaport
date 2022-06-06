@@ -140,6 +140,7 @@ uint256 constant BatchTransfer1155Params_ids_head_ptr = 0x64;
 uint256 constant BatchTransfer1155Params_amounts_head_ptr = 0x84;
 uint256 constant BatchTransfer1155Params_data_head_ptr = 0xa4;
 uint256 constant BatchTransfer1155Params_data_length_basePtr = 0xc4;
+uint256 constant BatchTransfer1155Params_calldata_baseSize = 0xc4;
 
 uint256 constant BatchTransfer1155Params_ids_length_ptr = 0xc4;
 

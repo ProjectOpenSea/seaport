@@ -566,7 +566,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
                 // Determine the total calldata size for the call to transfer.
                 let transferDataSize := add(
-                    BatchTransfer1155Params_data_length_basePtr,
+                    BatchTransfer1155Params_calldata_baseSize,
                     idsAndAmountsSize
                 )
 
