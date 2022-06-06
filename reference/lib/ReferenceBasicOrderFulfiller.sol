@@ -563,7 +563,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
         // Ensure supplied consideration array length is not less than original.
         _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
-            parameters.additionalRecipients.length + 1,
+            parameters.additionalRecipients.length,
             parameters.totalOriginalAdditionalRecipients
         );
 
