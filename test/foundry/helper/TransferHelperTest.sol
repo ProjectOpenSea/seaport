@@ -137,12 +137,9 @@ contract TransferHelperTest is BaseOrderTest {
             return TestERC20(item.token).balanceOf(addr);
         } else if (item.itemType == ConduitItemType.ERC721) {
             return
-                TestERC721(item.token).ownerOf(item.identifier) == addr
-                    ? 1
-                    : 0;
+                TestERC721(item.token).ownerOf(item.identifier) == addr ? 1 : 0;
         } else if (item.itemType == ConduitItemType.ERC1155) {
-            return
-                TestERC1155(item.token).balanceOf(addr, item.identifier);
+            return TestERC1155(item.token).balanceOf(addr, item.identifier);
         } else if (item.itemType == ConduitItemType.NATIVE) {
             // Balance for native does not matter as don't support native transfers so just return dummy value.
             return 0;
