@@ -14,3 +14,4 @@ hack3r-0m                      | `hack3r-0m.eth`
 csanuragjain                   | 
 Joseph Schiarizzi              | `CupOJoseph.eth`
 Diego Estevez                  | `antidiego.eth`
+0xBeans                        | `0xBeans.eth`
