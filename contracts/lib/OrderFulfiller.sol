@@ -207,9 +207,11 @@ contract OrderFulfiller is
                 }
             }
 
+            // Cache offer length.
+            uint256 totalOffers = orderParameters.offer.length;
+
             // Iterate over each offer on the order.
-            // Skip overflow check as for loop is indexed starting at zero.
-            for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
+            for (uint256 i = 0; i < totalOffers; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
                 // Offer items for the native token can not be received
