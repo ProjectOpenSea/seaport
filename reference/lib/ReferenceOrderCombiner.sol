@@ -238,9 +238,11 @@ contract ReferenceOrderCombiner is
             // Otherwise, track the order hash in question.
             orderHashes[i] = orderHash;
 
-            // Decrement the number of fulfilled orders.
-            maximumFulfilled--;
-
+            // Skip underflow check as maximumFulfilled is nonzero.
+            unchecked {
+                // Decrement the number of fulfilled orders.
+                maximumFulfilled--;
+            }
             // Place the start time for the order on the stack.
             uint256 startTime = advancedOrder.parameters.startTime;
 
@@ -481,8 +483,11 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
-                // increment total filtered executions.
-                totalFilteredExecutions += 1;
+                // Executions start at 0, infeasible to increment > 2^256.
+                unchecked {
+                    // Increment total filtered executions.
+                    ++totalFilteredExecutions;
+                }
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[i - totalFilteredExecutions] = execution;
@@ -507,8 +512,11 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
-                // increment total filtered executions.
-                totalFilteredExecutions += 1;
+                // Executions start at 0, infeasible to increment > 2^256.
+                unchecked {
+                    // Increment total filtered executions.
+                    ++totalFilteredExecutions;
+                }
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[
@@ -764,8 +772,11 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
-                // increment total filtered executions.
-                totalFilteredExecutions += 1;
+                // Executions start at 0, infeasible to increment > 2^256.
+                unchecked {
+                    // Increment total filtered executions.
+                    ++totalFilteredExecutions;
+                }
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[i - totalFilteredExecutions] = execution;
