@@ -6,6 +6,6 @@ import { ConduitItemType } from "../conduit/lib/ConduitEnums.sol";
 struct TransferHelperItem {
     ConduitItemType itemType;
     address token;
-    uint256 tokenIdentifier;
+    uint256 identifier;
     uint256 amount;
 }

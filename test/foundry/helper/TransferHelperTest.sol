@@ -42,7 +42,7 @@ contract TransferHelperTest is BaseOrderTest {
         bool useConduit;
         // Amounts that can be used for the amount field on TransferHelperItem
         uint256[10] amounts;
-        // Identifiers that can be used for the tokenIdentifier field on TransferHelperItem
+        // Identifiers that can be used for the identifier field on TransferHelperItem
         uint256[10] identifiers;
         // Indexes that can be used to select tokens from the arrays erc20s/erc721s/erc1155s
         uint256[10] tokenIndex;
@@ -60,17 +60,17 @@ contract TransferHelperTest is BaseOrderTest {
 
         // Mint ERC721 and ERC1155 with token IDs 0 to TOTAL_TOKEN_IDENTIFERS - 1 to alice
         for (
-            uint256 tokenIdentifier = 0;
-            tokenIdentifier < TOTAL_TOKEN_IDENTIFERS;
-            tokenIdentifier++
+            uint256 identifier = 0;
+            identifier < TOTAL_TOKEN_IDENTIFERS;
+            identifier++
         ) {
             for (uint256 tokenIdx = 0; tokenIdx < erc721s.length; tokenIdx++) {
-                erc721s[tokenIdx].mint(alice, tokenIdentifier);
+                erc721s[tokenIdx].mint(alice, identifier);
             }
             for (uint256 tokenIdx = 0; tokenIdx < erc1155s.length; tokenIdx++) {
                 erc1155s[tokenIdx].mint(
                     alice,
-                    tokenIdentifier,
+                    identifier,
                     TOTAL_FUNGIBLE_TOKENS
                 );
             }
@@ -137,12 +137,12 @@ contract TransferHelperTest is BaseOrderTest {
             return TestERC20(item.token).balanceOf(addr);
         } else if (item.itemType == ConduitItemType.ERC721) {
             return
-                TestERC721(item.token).ownerOf(item.tokenIdentifier) == addr
+                TestERC721(item.token).ownerOf(item.identifier) == addr
                     ? 1
                     : 0;
         } else if (item.itemType == ConduitItemType.ERC1155) {
             return
-                TestERC1155(item.token).balanceOf(addr, item.tokenIdentifier);
+                TestERC1155(item.token).balanceOf(addr, item.identifier);
         } else if (item.itemType == ConduitItemType.NATIVE) {
             // Balance for native does not matter as don't support native transfers so just return dummy value.
             return 0;

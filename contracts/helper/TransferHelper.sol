@@ -95,14 +95,14 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                             item.token,
                             msg.sender,
                             recipient,
-                            item.tokenIdentifier
+                            item.identifier
                         );
                     } else {
                         _performERC1155Transfer(
                             item.token,
                             msg.sender,
                             recipient,
-                            item.tokenIdentifier,
+                            item.identifier,
                             item.amount
                         );
                     }
@@ -145,7 +145,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                         item.token,
                         msg.sender,
                         recipient,
-                        item.tokenIdentifier,
+                        item.identifier,
                         item.amount
                     );
                 }
