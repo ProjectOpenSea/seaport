@@ -107,11 +107,14 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Retrieve the first offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = (offerComponents[0]);
 
-            // Add excess offer item amount to the original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .offer[targetComponent.itemIndex]
-                .startAmount = execution.item.amount - considerationItem.amount;
+            // Skip underflow check as considerationItem.amount <= execution.item.amount.
+            unchecked {
+                // Add excess offer item amount to the original array of orders.
+                advancedOrders[targetComponent.orderIndex]
+                    .parameters
+                    .offer[targetComponent.itemIndex]
+                    .startAmount = execution.item.amount - considerationItem.amount;
+            }
         }
 
         // Reuse execution struct with consideration amount and recipient.
