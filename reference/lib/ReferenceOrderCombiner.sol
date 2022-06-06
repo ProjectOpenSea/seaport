@@ -239,7 +239,7 @@ contract ReferenceOrderCombiner is
             orderHashes[i] = orderHash;
 
             // Decrement the number of fulfilled orders.
-            maximumFulfilled--;
+            --maximumFulfilled;
 
             // Place the start time for the order on the stack.
             uint256 startTime = advancedOrder.parameters.startTime;
@@ -482,7 +482,7 @@ contract ReferenceOrderCombiner is
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
                 // increment total filtered executions.
-                totalFilteredExecutions += 1;
+                ++totalFilteredExecutions;
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[i - totalFilteredExecutions] = execution;
@@ -508,7 +508,7 @@ contract ReferenceOrderCombiner is
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
                 // increment total filtered executions.
-                totalFilteredExecutions += 1;
+                ++totalFilteredExecutions;
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[
@@ -765,7 +765,7 @@ contract ReferenceOrderCombiner is
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
                 // increment total filtered executions.
-                totalFilteredExecutions += 1;
+                ++totalFilteredExecutions;
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[i - totalFilteredExecutions] = execution;
