@@ -730,7 +730,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     mstore(
                         BatchTransfer1155Params_amounts_head_ptr,
                         add(
-                            0x20,
+                            OneWord,
                             mload(BatchTransfer1155Params_amounts_head_ptr)
                         )
                     )
