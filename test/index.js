@@ -9963,8 +9963,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Transfers[i] = erc1155Transfer;
       }
 
-      const transfers = erc20Transfers
-        .concat(erc721Transfers, erc1155Transfers);
+      const transfers = erc20Transfers.concat(
+        erc721Transfers,
+        erc1155Transfers
+      );
       const contracts = erc20Contracts.concat(
         erc721Contracts,
         erc1155Contracts
@@ -10066,8 +10068,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Transfers[i] = erc1155Transfer;
       }
 
-      const transfers = erc20Transfers
-        .concat(erc721Transfers, erc1155Transfers);
+      const transfers = erc20Transfers.concat(
+        erc721Transfers,
+        erc1155Transfers
+      );
       const contracts = erc20Contracts.concat(
         erc721Contracts,
         erc1155Contracts
