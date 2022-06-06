@@ -6,4 +6,4 @@ Contributor                    | ENS
 d1ll0n                         | `d1ll0n.eth`
 transmissions11                | `t11s.eth`
 Kartik                         | `slokh.eth`
-David Eiber               
+David Eiber                    |  [@eiber_david](https://twitter.com/eiber_david)              
