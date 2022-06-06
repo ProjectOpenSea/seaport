@@ -8468,7 +8468,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
-  describe.only("Conduit tests", async () => {
+  describe("Conduit tests", async () => {
     let seller;
     let buyer;
     let sellerContract;
