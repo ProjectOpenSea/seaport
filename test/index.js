@@ -4,7 +4,7 @@ const {
   constants,
   utils: { parseEther, keccak256, toUtf8Bytes },
 } = require("ethers");
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const { faucet, whileImpersonating } = require("./utils/impersonate");
 const { merkleTree } = require("./utils/criteria");
 const {
@@ -99,7 +99,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   };
 
   after(async () => {
-    await ethers.network.provider.request({
+    await network.provider.request({
       method: "hardhat_reset",
     });
   });
@@ -8979,9 +8979,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Transfers[i] = erc1155Transfer;
       }
 
-      const transfers = erc20Transfers
-        .concat(erc721Transfers, erc1155Transfers)
-        .map(({ identifier, ...t }) => ({ ...t, tokenIdentifier: identifier }));
+      const transfers = erc20Transfers.concat(
+        erc721Transfers,
+        erc1155Transfers
+      );
       const contracts = erc20Contracts.concat(
         erc721Contracts,
         erc1155Contracts
@@ -8992,12 +8993,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, from, to, amount, identifier
-        itemType = transfers[i].itemType;
-        token = contracts[i];
-        from = transfers[i].from;
-        to = transfers[i].to;
-        amount = transfers[i].amount;
-        identifier = transfers[i].identifier;
+        const { itemType, from, to, amount, identifier } = transfers[i];
+        const token = contracts[i];
 
         switch (itemType) {
           case 1: // ERC20
@@ -10070,10 +10067,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Transfers[i] = erc1155Transfer;
       }
 
-      const transfers = erc20Transfers.concat(
-        erc721Transfers,
-        erc1155Transfers
-      );
+      const transfers = erc20Transfers
+        .concat(erc721Transfers, erc1155Transfers)
+        .map(({ identifier, ...t }) => ({ tokenIdentifier: identifier, ...t }));
       const contracts = erc20Contracts.concat(
         erc721Contracts,
         erc1155Contracts
