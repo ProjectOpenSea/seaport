@@ -439,7 +439,10 @@ contract BaseOrderTest is
     /**
     @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s 
     */
-    function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
+    function allocateTokensAndApprovals(address _to, uint128 _amount)
+        internal
+        virtual
+    {
         vm.deal(_to, _amount);
         for (uint256 i = 0; i < erc20s.length; i++) {
             erc20s[i].mint(_to, _amount);
@@ -448,7 +451,7 @@ contract BaseOrderTest is
         _setApprovals(_to);
     }
 
-    function _setApprovals(address _owner) internal {
+    function _setApprovals(address _owner) internal virtual {
         vm.startPrank(_owner);
         for (uint256 i = 0; i < erc20s.length; i++) {
             erc20s[i].approve(address(consideration), MAX_INT);
