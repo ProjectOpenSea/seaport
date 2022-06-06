@@ -17,3 +17,4 @@ Aspyn Palatnick                | `stuckinaboot.eth`
 Diego Estevez                  | `antidiego.eth`
 Chomtana                       | `chomtana.eth`
 Saw-mon and Natalie            | `sawmonandnatalie.eth`
+0x4non                         | `punkdev.eth`
