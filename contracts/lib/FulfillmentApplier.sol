@@ -95,11 +95,14 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 considerationComponents[0]
             );
 
-            // Add excess consideration item amount to original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .consideration[targetComponent.itemIndex]
-                .startAmount = considerationItem.amount - execution.item.amount;
+            // Skip underflow check as considerationItem.amount > execution.item.amount.
+            unchecked {
+                // Add excess consideration item amount to original array of orders.
+                advancedOrders[targetComponent.orderIndex]
+                    .parameters
+                    .consideration[targetComponent.itemIndex]
+                    .startAmount = considerationItem.amount - execution.item.amount;
+            }
 
             // Reduce total consideration amount to equal the offer amount.
             considerationItem.amount = execution.item.amount;
@@ -107,11 +110,14 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Retrieve the first offer component from the fulfillment.
             FulfillmentComponent memory targetComponent = (offerComponents[0]);
 
-            // Add excess offer item amount to the original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .offer[targetComponent.itemIndex]
-                .startAmount = execution.item.amount - considerationItem.amount;
+            // Skip underflow check as considerationItem.amount <= execution.item.amount.
+            unchecked {
+                // Add excess offer item amount to the original array of orders.
+                advancedOrders[targetComponent.orderIndex]
+                    .parameters
+                    .offer[targetComponent.itemIndex]
+                    .startAmount = execution.item.amount - considerationItem.amount;
+            }
         }
 
         // Reuse execution struct with consideration amount and recipient.
