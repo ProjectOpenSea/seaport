@@ -238,9 +238,11 @@ contract ReferenceOrderCombiner is
             // Otherwise, track the order hash in question.
             orderHashes[i] = orderHash;
 
-            // Decrement the number of fulfilled orders.
-            maximumFulfilled--;
-
+            unchecked {
+                // Decrement the number of fulfilled orders.
+                // maximumFulfilled == 0 check prevents underflow.
+                maximumFulfilled--;
+            }
             // Place the start time for the order on the stack.
             uint256 startTime = advancedOrder.parameters.startTime;
 
