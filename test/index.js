@@ -9081,54 +9081,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("NoContract");
     });
 
-    it("ERC1155 batch transfer sends no data", async () => {
-      const receiver = await deployContract("ERC1155BatchRecipient", owner);
-      // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
-
-      const { nftId, amount } = await mint1155(owner, 2);
-
-      const { nftId: secondNftId, amount: secondAmount } = await mint1155(
-        owner,
-        2
-      );
-      const { nftId: thirdNftId, amount: thirdAmount } = await mint1155(
-        owner,
-        2
-      );
-
-      await testERC1155.mint(seller.address, nftId, amount.mul(2));
-      await testERC1155.mint(seller.address, secondNftId, secondAmount.mul(2));
-      await testERC1155.mint(seller.address, thirdNftId, thirdAmount.mul(2));
-      await set1155ApprovalForAll(seller, tempConduit.address, true);
-
-      await tempConduit.connect(seller).executeWithBatch1155(
-        [],
-        [
-          {
-            token: testERC1155.address,
-            from: seller.address,
-            to: receiver.address,
-            ids: [nftId, secondNftId, thirdNftId],
-            amounts: [amount, secondAmount, thirdAmount],
-          },
-          {
-            token: testERC1155.address,
-            from: seller.address,
-            to: receiver.address,
-            ids: [secondNftId, nftId],
-            amounts: [secondAmount, amount],
-          },
-        ]
-      );
-    });
-
     it("ERC1155 batch transfer reverts with revert data if it has sufficient gas", async () => {
-      const receiver = await deployContract("ERC1155BatchRecipient", owner);
       // Owner updates conduit channel to allow seller access
       await whileImpersonating(owner.address, provider, async () => {
         await conduitController
@@ -9143,7 +9096,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             {
               token: testERC1155.address,
               from: seller.address,
-              to: receiver.address,
+              to: buyer.address,
               ids: [1],
               amounts: [1],
             },
@@ -9151,33 +9104,87 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         )
       ).to.be.revertedWith("NOT_AUTHORIZED");
     });
+    if (!process.env.REFERENCE) {
+      it("ERC1155 batch transfer sends no data", async () => {
+        const receiver = await deployContract("ERC1155BatchRecipient", owner);
+        // Owner updates conduit channel to allow seller access
+        await whileImpersonating(owner.address, provider, async () => {
+          await conduitController
+            .connect(owner)
+            .updateChannel(tempConduit.address, seller.address, true);
+        });
 
-    it("ERC1155 batch transfer reverts with generic error if it has insufficient gas to copy revert data", async () => {
-      const receiver = await deployContract("ExcessReturnDataRecipient", owner);
-      // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+        const { nftId, amount } = await mint1155(owner, 2);
 
-      await expect(
-        tempConduit.connect(seller).executeWithBatch1155(
+        const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+          owner,
+          2
+        );
+        const { nftId: thirdNftId, amount: thirdAmount } = await mint1155(
+          owner,
+          2
+        );
+
+        await testERC1155.mint(seller.address, nftId, amount.mul(2));
+        await testERC1155.mint(
+          seller.address,
+          secondNftId,
+          secondAmount.mul(2)
+        );
+        await testERC1155.mint(seller.address, thirdNftId, thirdAmount.mul(2));
+        await set1155ApprovalForAll(seller, tempConduit.address, true);
+
+        await tempConduit.connect(seller).executeWithBatch1155(
           [],
           [
             {
-              token: receiver.address,
+              token: testERC1155.address,
               from: seller.address,
               to: receiver.address,
-              ids: [1],
-              amounts: [1],
+              ids: [nftId, secondNftId, thirdNftId],
+              amounts: [amount, secondAmount, thirdAmount],
+            },
+            {
+              token: testERC1155.address,
+              from: seller.address,
+              to: receiver.address,
+              ids: [secondNftId, nftId],
+              amounts: [secondAmount, amount],
             },
           ]
-        )
-      ).to.be.revertedWith(
-        `ERC1155BatchTransferGenericFailure("${receiver.address}", "${seller.address}", "${receiver.address}", [1], [1])`
-      );
-    });
+        );
+      });
+
+      it("ERC1155 batch transfer reverts with generic error if it has insufficient gas to copy revert data", async () => {
+        const receiver = await deployContract(
+          "ExcessReturnDataRecipient",
+          owner
+        );
+        // Owner updates conduit channel to allow seller access
+        await whileImpersonating(owner.address, provider, async () => {
+          await conduitController
+            .connect(owner)
+            .updateChannel(tempConduit.address, seller.address, true);
+        });
+
+        await expect(
+          tempConduit.connect(seller).executeWithBatch1155(
+            [],
+            [
+              {
+                token: receiver.address,
+                from: seller.address,
+                to: receiver.address,
+                ids: [1],
+                amounts: [1],
+              },
+            ]
+          )
+        ).to.be.revertedWith(
+          `ERC1155BatchTransferGenericFailure("${receiver.address}", "${seller.address}", "${receiver.address}", [1], [1])`
+        );
+      });
+    }
 
     it("Makes batch transfer 1155 items through a conduit", async () => {
       const tempConduitKey = owner.address + "ff00000000000000000000f1";
