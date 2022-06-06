@@ -14,3 +14,4 @@ hack3r-0m                      | `hack3r-0m.eth`
 csanuragjain                   | 
 Joseph Schiarizzi              | `CupOJoseph.eth`
 Diego Estevez                  | `antidiego.eth`
+[Aspyn](https://github.com/stuckinaboot)| `aspyn.eth`
