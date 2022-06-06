@@ -24,6 +24,7 @@ module.exports = {
     "reference/lib/ReferenceTokenTransferrer.sol",
     "test/EIP1271Wallet.sol",
     "test/ExcessReturnDataRecipient.sol",
+    "test/ERC1155BatchRecipient.sol",
     "test/Reenterer.sol",
     "test/TestERC1155.sol",
     "test/TestERC20.sol",
