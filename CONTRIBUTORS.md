@@ -6,4 +6,4 @@ Contributor                    | ENS
 d1ll0n                         | `d1ll0n.eth`
 transmissions11                | `t11s.eth`
 Kartik                         | `slokh.eth`
-Sm4rty                         |  [Sm4rty_](https://twitter.com/Sm4rty_)    
+Sm4rty                         | `sm4rty.eth`    
