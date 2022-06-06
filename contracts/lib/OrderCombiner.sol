@@ -232,8 +232,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // Otherwise, track the order hash in question.
                 orderHashes[i] = orderHash;
 
-                // Decrement the number of fulfilled orders.
-                maximumFulfilled--;
+                // Skip underflow check as maximumFulfilled > 0.
+                unchecked {
+                    // Decrement the number of fulfilled orders.
+                    maximumFulfilled--;
+                }
 
                 // Place the start time for the order on the stack.
                 uint256 startTime = advancedOrder.parameters.startTime;
