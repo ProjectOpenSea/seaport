@@ -483,7 +483,7 @@ contract ReferenceOrderCombiner is
             if (execution.item.recipient == execution.offerer) {
                 unchecked {
                     // increment total filtered executions.
-                    // totalFilteredExecutions starts at 0, infeasible to increment > 2^256
+                    // totalFilteredExecutions starts at 0, infeasible to increment > 2^256.
                     ++totalFilteredExecutions;
                 }
             } else {
@@ -512,7 +512,7 @@ contract ReferenceOrderCombiner is
             if (execution.item.recipient == execution.offerer) {
                 unchecked {
                     // increment total filtered executions.
-                    // totalFilteredExecutions starts at 0, infeasible to increment > 2^256
+                    // totalFilteredExecutions starts at 0, infeasible to increment > 2^256.
                     ++totalFilteredExecutions;
                 }
             } else {
@@ -772,7 +772,7 @@ contract ReferenceOrderCombiner is
             if (execution.item.recipient == execution.offerer) {
                 unchecked {
                     // increment total filtered executions.
-                    // totalFilteredExecutions starts at 0, infeasible to increment > 2^256
+                    // totalFilteredExecutions starts at 0, infeasible to increment > 2^256.
                     ++totalFilteredExecutions;
                 }
             } else {
