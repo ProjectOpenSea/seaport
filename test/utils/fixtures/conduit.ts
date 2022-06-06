@@ -79,9 +79,9 @@ export const conduitFixture = async (
     );
   };
 
-  const deployNewConduit = async (owner: Wallet) => {
-    // Create a conduit key with a random salt
-    const tempConduitKey = owner.address + randomHex(12).slice(2);
+  const deployNewConduit = async (owner: Wallet, conduitKey?: string) => {
+    // Create a conduit key with a random salt if no conduitKey passed in
+    const tempConduitKey = conduitKey ?? owner.address + randomHex(12).slice(2);
 
     const { conduit: tempConduitAddress } = await conduitController.getConduit(
       tempConduitKey
