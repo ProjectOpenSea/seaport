@@ -947,36 +947,32 @@ contract BasicOrderFulfiller is OrderValidator {
         // Retrieve total number of additional recipients and place on stack.
         uint256 totalAdditionalRecipients = additionalRecipients.length;
 
-        // Iterate over each additional recipient.
-        for (uint256 i = 0; i < totalAdditionalRecipients; ) {
-            // Retrieve the additional recipient.
-            AdditionalRecipient calldata additionalRecipient = (
-                additionalRecipients[i]
-            );
+        // Skip overflow check as for loop is indexed starting at zero.
+        unchecked {
+            // Iterate over each additional recipient.
+            for (uint256 i = 0; i < totalAdditionalRecipients; ++i) {
+                // Retrieve the additional recipient.
+                AdditionalRecipient calldata additionalRecipient = (
+                    additionalRecipients[i]
+                );
 
-            // Read ether amount to transfer to recipient and place on stack.
-            uint256 additionalRecipientAmount = additionalRecipient.amount;
+                // Read ether amount to transfer to recipient and place on stack.
+                uint256 additionalRecipientAmount = additionalRecipient.amount;
 
-            // Ensure that sufficient Ether is available.
-            if (additionalRecipientAmount > etherRemaining) {
-                revert InsufficientEtherSupplied();
-            }
+                // Ensure that sufficient Ether is available.
+                if (additionalRecipientAmount > etherRemaining) {
+                    revert InsufficientEtherSupplied();
+                }
 
-            // Transfer Ether to the additional recipient.
-            _transferEth(
-                additionalRecipient.recipient,
-                additionalRecipientAmount
-            );
+                // Transfer Ether to the additional recipient.
+                _transferEth(
+                    additionalRecipient.recipient,
+                    additionalRecipientAmount
+                );
 
-            // Skip underflow check as subtracted value is less than remaining.
-            unchecked {
+                // Skip underflow check as subtracted value is less than remaining.
                 // Reduce ether value available.
                 etherRemaining -= additionalRecipientAmount;
-            }
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
             }
         }
 
