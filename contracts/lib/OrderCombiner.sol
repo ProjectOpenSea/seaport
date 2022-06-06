@@ -515,7 +515,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // If offerer and recipient on the execution are the same...
                 if (execution.item.recipient == execution.offerer) {
                     // increment total filtered executions.
-                    ++totalFilteredExecutions ;
+                    ++totalFilteredExecutions;
                 } else {
                     // Otherwise, assign the execution to the executions array.
                     executions[
