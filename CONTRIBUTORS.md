@@ -11,7 +11,7 @@ LeFevre                        | `lefevre.eth`
 pcaversaccio                   |
 David Eiber                    |
 hack3r-0m                      | `hack3r-0m.eth`
-csanuragjain                   | 
+csanuragjain                   |
 Joseph Schiarizzi              | `CupOJoseph.eth`
 Aspyn Palatnick                | `stuckinaboot.eth`
 Diego Estevez                  | `antidiego.eth`
@@ -20,5 +20,8 @@ Saw-mon and Natalie            | `sawmonandnatalie.eth`
 0xBeans                        | `0xBeans.eth`
 0x4non                         | `punkdev.eth`
 Laurence E. Day                | `norsefire.eth`
-Zoraiz Mahmood                 | `zorz.eth`
 vectorized.eth                 | `vectorized.eth`
+karmacoma                      | `karmacoma.eth`
+horsefacts                     | `horsefacts.eth`
+UncarvedBlock                  | `uncarvedblock.eth`
+Zoraiz Mahmood                 | `zorz.eth`
