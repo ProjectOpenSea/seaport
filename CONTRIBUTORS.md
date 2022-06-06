@@ -6,4 +6,6 @@ Contributor                    | ENS
 d1ll0n                         | `d1ll0n.eth`
 transmissions11                | `t11s.eth`
 Kartik                         | `slokh.eth`
-pcaversaccio                   | N/A
+LeFevre                        | `lefevre.eth`
+0xPatissier                    |
+pcaversaccio                   |
