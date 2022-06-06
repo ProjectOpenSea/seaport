@@ -9925,7 +9925,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC20Contract,
           sender,
           1,
-          tempTransferHelper.address
+          tempConduit.address
         );
         erc20Contracts[i] = tempERC20Contract;
         erc20Transfers[i] = erc20Transfer;
@@ -9940,7 +9940,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC721Contract,
           sender,
           2,
-          tempTransferHelper.address
+          tempConduit.address
         );
         erc721Contracts[i] = tempERC721Contract;
         erc721Transfers[i] = erc721Transfer;
@@ -9957,7 +9957,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC1155Contract,
           sender,
           3,
-          tempTransferHelper.address
+          tempConduit.address
         );
         erc1155Contracts[i] = tempERC1155Contract;
         erc1155Transfers[i] = erc1155Transfer;
@@ -10029,7 +10029,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC20Contract,
           sender,
           1,
-          tempConduit.address
+          tempTransferHelper.address
         );
         erc20Contracts[i] = tempERC20Contract;
         erc20Transfers[i] = erc20Transfer;
@@ -10044,7 +10044,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC721Contract,
           sender,
           2,
-          tempConduit.address
+          tempTransferHelper.address
         );
         erc721Contracts[i] = tempERC721Contract;
         erc721Transfers[i] = erc721Transfer;
@@ -10061,7 +10061,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           tempERC1155Contract,
           sender,
           3,
-          tempConduit.address
+          tempTransferHelper.address
         );
         erc1155Contracts[i] = tempERC1155Contract;
         erc1155Transfers[i] = erc1155Transfer;
