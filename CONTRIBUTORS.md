@@ -22,3 +22,4 @@ Laurence E. Day                | `norsefire.eth`
 vectorized.eth                 | `vectorized.eth`
 karmacoma                      | `karmacoma.eth`
 horsefacts                     | `horsefacts.eth`
+UncarvedBlock                  | `uncarvedblock.eth`
