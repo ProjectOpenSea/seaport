@@ -13,4 +13,6 @@ David Eiber                    |
 hack3r-0m                      | `hack3r-0m.eth`
 csanuragjain                   | 
 Joseph Schiarizzi              | `CupOJoseph.eth`
+Diego Estevez                  | `antidiego.eth`
+Chomtana                       | `chomtana.eth`
 Saw-mon and Natalie            | `sawmonandnatalie.eth`
