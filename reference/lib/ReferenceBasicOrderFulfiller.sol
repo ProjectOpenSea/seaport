@@ -500,6 +500,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      *                             hashes.
      * @param parameters           The parameters of the basic order.
      * @param fulfillmentItemTypes The fulfillment's item type.
+     *
+     * @return orderHash           The order hash.
      */
     function _hashOrder(
         BasicFulfillmentHashes memory hashes,
@@ -641,7 +643,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             for (
                 uint256 recipientCount = 0;
                 recipientCount < parameters.additionalRecipients.length;
-                recipientCount++
+                ++recipientCount
             ) {
                 // Get the next additionalRecipient.
                 AdditionalRecipient memory additionalRecipient = (
@@ -712,7 +714,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 uint256 additionalTips = parameters
                     .totalOriginalAdditionalRecipients;
                 additionalTips < parameters.additionalRecipients.length;
-                additionalTips++
+                ++additionalTips
             ) {
                 // Get the next additionalRecipient.
                 AdditionalRecipient memory additionalRecipient = (
@@ -760,7 +762,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                         offerItem.token,
                         offerItem.identifier,
                         offerItem.amount,
-                        offerItem.amount //Assembly uses OfferItem instead of SpentItem.
+                        offerItem.amount // Assembly uses OfferItem instead of SpentItem.
                     )
                 )
             ];

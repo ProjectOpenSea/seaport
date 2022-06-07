@@ -83,7 +83,7 @@ contract BasicOrderFulfiller is OrderValidator {
             orderType := and(calldataload(BasicOrder_basicOrderType_cdPtr), 3)
 
             // Divide basicOrderType by four to derive the route.
-            route := div(calldataload(BasicOrder_basicOrderType_cdPtr), 4)
+            route := shr(2, calldataload(BasicOrder_basicOrderType_cdPtr))
 
             // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
             additionalRecipientsItemType := gt(route, 1)
@@ -1005,6 +1005,9 @@ contract BasicOrderFulfiller is OrderValidator {
      * @param additionalRecipients The additional recipients of the order.
      * @param fromOfferer          A boolean indicating whether to decrement
      *                             amount from the offered amount.
+     * @param accumulator          An open-ended array that collects transfers
+     *                             to execute against a given conduit in a
+     *                             single call.
      */
     function _transferERC20AndFinalize(
         address from,
@@ -1020,7 +1023,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Utilize assembly to derive conduit (if relevant) based on route.
         assembly {
-            // use offerer conduit if fromOfferer, fulfiller conduit otherwise.
+            // Use offerer conduit if fromOfferer, fulfiller conduit otherwise.
             conduitKey := calldataload(
                 sub(
                     BasicOrder_fulfillerConduit_cdPtr,
