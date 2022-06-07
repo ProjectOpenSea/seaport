@@ -497,7 +497,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             address(0)
         );
 
-        // Assert six-tenth of order has been fulfilled.
+        // Assert six-tenths of the order has been fulfilled.
         {
             (
                 bool isValidated,
