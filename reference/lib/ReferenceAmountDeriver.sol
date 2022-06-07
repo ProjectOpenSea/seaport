@@ -108,6 +108,9 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
      * @param endAmount       The ending amount of the item.
      * @param fractionData    A struct containing the data used to apply a
      *                        fraction to an order.
+     * @param roundUp         A boolean indicating whether the resultant
+     *                        amount should be rounded up or down.
+     *
      * @return amount The received item to transfer with the final amount.
      */
     function _applyFraction(

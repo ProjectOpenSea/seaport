@@ -430,7 +430,7 @@ contract Executor is Verifiers, TokenTransferrer {
      */
     function _triggerIfArmed(bytes memory accumulator) internal {
         // Exit if the accumulator is not "armed".
-        if (accumulator.length != 64) {
+        if (accumulator.length != AccumulatorArmed) {
             return;
         }
 

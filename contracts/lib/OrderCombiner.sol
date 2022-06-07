@@ -488,8 +488,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // If offerer and recipient on the execution are the same...
                 if (execution.item.recipient == execution.offerer) {
-                    // increment total filtered executions.
-                    totalFilteredExecutions += 1;
+                    // Increment total filtered executions.
+                    ++totalFilteredExecutions;
                 } else {
                     // Otherwise, assign the execution to the executions array.
                     executions[i - totalFilteredExecutions] = execution;
@@ -514,8 +514,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // If offerer and recipient on the execution are the same...
                 if (execution.item.recipient == execution.offerer) {
-                    // increment total filtered executions.
-                    totalFilteredExecutions += 1;
+                    // Increment total filtered executions.
+                    ++totalFilteredExecutions;
                 } else {
                     // Otherwise, assign the execution to the executions array.
                     executions[
@@ -768,8 +768,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // If offerer and recipient on the execution are the same...
                 if (execution.item.recipient == execution.offerer) {
-                    // increment total filtered executions.
-                    totalFilteredExecutions += 1;
+                    // Increment total filtered executions.
+                    ++totalFilteredExecutions;
                 } else {
                     // Otherwise, assign the execution to the executions array.
                     executions[i - totalFilteredExecutions] = execution;

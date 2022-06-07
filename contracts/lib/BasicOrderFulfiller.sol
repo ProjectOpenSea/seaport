@@ -83,7 +83,7 @@ contract BasicOrderFulfiller is OrderValidator {
             orderType := and(calldataload(BasicOrder_basicOrderType_cdPtr), 3)
 
             // Divide basicOrderType by four to derive the route.
-            route := div(calldataload(BasicOrder_basicOrderType_cdPtr), 4)
+            route := shr(2, calldataload(BasicOrder_basicOrderType_cdPtr))
 
             // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
             additionalRecipientsItemType := gt(route, 1)
@@ -947,36 +947,32 @@ contract BasicOrderFulfiller is OrderValidator {
         // Retrieve total number of additional recipients and place on stack.
         uint256 totalAdditionalRecipients = additionalRecipients.length;
 
-        // Iterate over each additional recipient.
-        for (uint256 i = 0; i < totalAdditionalRecipients; ) {
-            // Retrieve the additional recipient.
-            AdditionalRecipient calldata additionalRecipient = (
-                additionalRecipients[i]
-            );
+        // Skip overflow check as for loop is indexed starting at zero.
+        unchecked {
+            // Iterate over each additional recipient.
+            for (uint256 i = 0; i < totalAdditionalRecipients; ++i) {
+                // Retrieve the additional recipient.
+                AdditionalRecipient calldata additionalRecipient = (
+                    additionalRecipients[i]
+                );
 
-            // Read ether amount to transfer to recipient and place on stack.
-            uint256 additionalRecipientAmount = additionalRecipient.amount;
+                // Read ether amount to transfer to recipient and place on stack.
+                uint256 additionalRecipientAmount = additionalRecipient.amount;
 
-            // Ensure that sufficient Ether is available.
-            if (additionalRecipientAmount > etherRemaining) {
-                revert InsufficientEtherSupplied();
-            }
+                // Ensure that sufficient Ether is available.
+                if (additionalRecipientAmount > etherRemaining) {
+                    revert InsufficientEtherSupplied();
+                }
 
-            // Transfer Ether to the additional recipient.
-            _transferEth(
-                additionalRecipient.recipient,
-                additionalRecipientAmount
-            );
+                // Transfer Ether to the additional recipient.
+                _transferEth(
+                    additionalRecipient.recipient,
+                    additionalRecipientAmount
+                );
 
-            // Skip underflow check as subtracted value is less than remaining.
-            unchecked {
+                // Skip underflow check as subtracted value is less than remaining.
                 // Reduce ether value available.
                 etherRemaining -= additionalRecipientAmount;
-            }
-
-            // Skip overflow check as for loop is indexed starting at zero.
-            unchecked {
-                ++i;
             }
         }
 
@@ -1009,6 +1005,9 @@ contract BasicOrderFulfiller is OrderValidator {
      * @param additionalRecipients The additional recipients of the order.
      * @param fromOfferer          A boolean indicating whether to decrement
      *                             amount from the offered amount.
+     * @param accumulator          An open-ended array that collects transfers
+     *                             to execute against a given conduit in a
+     *                             single call.
      */
     function _transferERC20AndFinalize(
         address from,
@@ -1024,7 +1023,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Utilize assembly to derive conduit (if relevant) based on route.
         assembly {
-            // use offerer conduit if fromOfferer, fulfiller conduit otherwise.
+            // Use offerer conduit if fromOfferer, fulfiller conduit otherwise.
             conduitKey := calldataload(
                 sub(
                     BasicOrder_fulfillerConduit_cdPtr,

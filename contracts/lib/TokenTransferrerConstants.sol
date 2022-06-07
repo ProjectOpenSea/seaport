@@ -114,11 +114,6 @@ uint256 constant TokenTransferGenericFailure_error_amount_ptr = 0x84;
 // 4 + 32 * 5 == 164
 uint256 constant TokenTransferGenericFailure_error_length = 0xa4;
 
-uint256 constant ERC1155BatchTransferGenericFailure_error_signature = (
-    0xafc445e200000000000000000000000000000000000000000000000000000000
-);
-uint256 constant ERC1155BatchTransferGenericFailure_token_ptr = 0x04;
-
 // abi.encodeWithSignature(
 //     "BadReturnValueFromERC20OnTransfer(address,address,address,uint256)"
 // )
@@ -141,10 +136,11 @@ uint256 constant MemoryExpansionCoefficient = 0x200;
 // Values are offset by 32 bytes in order to write the token to the beginning
 // in the event of a revert
 uint256 constant BatchTransfer1155Params_ptr = 0x24;
-uint256 constant BatchTransfer1155Params_ids_head_ptr = 0x44;
+uint256 constant BatchTransfer1155Params_ids_head_ptr = 0x64;
 uint256 constant BatchTransfer1155Params_amounts_head_ptr = 0x84;
 uint256 constant BatchTransfer1155Params_data_head_ptr = 0xa4;
-uint256 constant BatchTransfer1155Params_data_length_basePtr = 0x104;
+uint256 constant BatchTransfer1155Params_data_length_basePtr = 0xc4;
+uint256 constant BatchTransfer1155Params_calldata_baseSize = 0xc4;
 
 uint256 constant BatchTransfer1155Params_ids_length_ptr = 0xc4;
 
@@ -166,3 +162,9 @@ uint256 constant Invalid1155BatchTransferEncoding_length = 0x04;
 uint256 constant Invalid1155BatchTransferEncoding_selector = (
     0xeba2084c00000000000000000000000000000000000000000000000000000000
 );
+
+uint256 constant ERC1155BatchTransferGenericFailure_error_signature = (
+    0xafc445e200000000000000000000000000000000000000000000000000000000
+);
+uint256 constant ERC1155BatchTransferGenericFailure_token_ptr = 0x04;
+uint256 constant ERC1155BatchTransferGenericFailure_ids_offset = 0xc0;

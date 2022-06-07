@@ -51,7 +51,7 @@ contract AmountDeriver is AmountDerivationErrors {
                 }
             }
 
-            // Aggregate new amounts weighted by time with rounding factor
+            // Aggregate new amounts weighted by time with rounding factor.
             // prettier-ignore
             uint256 totalBeforeDivision = (
                 (startAmount * remaining) + (endAmount * elapsed) + extraCeiling
@@ -132,6 +132,8 @@ contract AmountDeriver is AmountDerivationErrors {
      * @param elapsed         The time elapsed since the order's start time.
      * @param remaining       The time left until the order's end time.
      * @param duration        The total duration of the order.
+     * @param roundUp         A boolean indicating whether the resultant
+     *                        amount should be rounded up or down.
      *
      * @return amount The received item to transfer with the final amount.
      */
