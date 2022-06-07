@@ -95,11 +95,16 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 considerationComponents[0]
             );
 
-            // Add excess consideration item amount to original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .consideration[targetComponent.itemIndex]
-                .startAmount = considerationItem.amount - execution.item.amount;
+            // Skip underflow check as considerationItem.amount > execution.item.amount.
+            unchecked {
+                // Add excess consideration item amount to original array of orders.
+                advancedOrders[targetComponent.orderIndex]
+                    .parameters
+                    .consideration[targetComponent.itemIndex]
+                    .startAmount =
+                    considerationItem.amount -
+                    execution.item.amount;
+            }
 
             // Reduce total consideration amount to equal the offer amount.
             considerationItem.amount = execution.item.amount;
