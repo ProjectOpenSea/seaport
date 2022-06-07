@@ -293,7 +293,7 @@ interface ConsiderationInterface {
      *                          indicated by the order) to transfer any relevant
      *                          tokens on their behalf and each consideration
      *                          recipient must implement `onERC1155Received` in
-     *                          order toreceive ERC1155 tokens. Also note that
+     *                          order to receive ERC1155 tokens. Also note that
      *                          the offer and consideration components for each
      *                          order must have no remainder after multiplying
      *                          the respective amount with the supplied fraction

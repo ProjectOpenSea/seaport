@@ -88,13 +88,18 @@ contract ReferenceConsiderationBase is
      * @dev Internal view function to derive the initial EIP-712 domain
      *      separator.
      *
-     * @return The derived domain separator.
+     * @param _eip712DomainTypeHash      The primary EIP-712 domain typehash.
+     * @param _nameHash                  The hash of the name of the contract.
+     * @param _versionHash               The hash of the version string of the
+     *                                   contract.
+     *
+     * @return domainSeparator           The derived domain separator.
      */
     function _deriveInitialDomainSeparator(
         bytes32 _eip712DomainTypeHash,
         bytes32 _nameHash,
         bytes32 _versionHash
-    ) internal view virtual returns (bytes32) {
+    ) internal view virtual returns (bytes32 domainSeparator) {
         return
             _deriveDomainSeparator(
                 _eip712DomainTypeHash,
