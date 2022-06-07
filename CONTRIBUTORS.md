@@ -47,3 +47,4 @@ okkothejawa                    |
 FlameHorizon                   |
 vdrg                           |
 Ellahi                         | `ellahi.eth`
+berndartmueller                | `berndartmueller.eth`
