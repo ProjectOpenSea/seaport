@@ -113,7 +113,7 @@ FOUNDRY_PROFILE=lite forge test # with 1000 fuzz runs
 FOUNDRY_PROFILE=local-ffi forge test # compiles and deploys ReferenceConsideration normally, with 1000 fuzz runs
 ```
 
-You may wish to include a `.env` file that `export`s a specific profile when developing locally.
+You may wish to include a `.env` file that `exports` a specific profile when developing locally.
 
 **Note** that stack+debug traces will not be available for precompiled contracts. To facilitate local development, specifying `FOUNDRY_PROFILE=local-ffi` will compile and deploy the reference implementation normally, allowing for stack+debug traces.
 
@@ -171,4 +171,3 @@ When making a pull request, ensure that:
 ## License
 
 [MIT](LICENSE) Copyright 2022 Ozone Networks, Inc.
-
