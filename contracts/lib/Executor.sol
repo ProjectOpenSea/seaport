@@ -78,7 +78,7 @@ contract Executor is Verifiers, TokenTransferrer {
                 from,
                 item.recipient,
                 item.identifier,
-                1,
+                item.amount,
                 conduitKey,
                 accumulator
             );
@@ -322,7 +322,9 @@ contract Executor is Verifiers, TokenTransferrer {
         // If no conduit has been specified...
         if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
-    
+            if (amount != 1) {
+                revert InvalidERC721TransferAmount();
+            }
 
             // Perform transfer via the token contract directly.
             _performERC721Transfer(token, from, to, identifier);
@@ -502,6 +504,7 @@ contract Executor is Verifiers, TokenTransferrer {
         address conduit = _deriveConduit(conduitKey);
 
         bool success;
+        bytes4 result;
 
         // call the conduit.
         assembly {
@@ -518,6 +521,9 @@ contract Executor is Verifiers, TokenTransferrer {
                 0,
                 OneWord
             )
+
+            // Take value from scratch space and place it on the stack.
+            result := mload(0)
         }
 
         // If the call failed...
@@ -527,13 +533,6 @@ contract Executor is Verifiers, TokenTransferrer {
 
             // Otherwise, revert with a generic error.
             revert InvalidCallToConduit(conduit);
-        }
-
-        // Ensure that the conduit returned the correct magic value.
-        bytes4 result;
-        assembly {
-            // Take value from scratch space and place it on the stack.
-            result := mload(0)
         }
 
         // Ensure result was extracted and matches EIP-1271 magic value.
