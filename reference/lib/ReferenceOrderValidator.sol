@@ -471,6 +471,10 @@ contract ReferenceOrderValidator is
         returns (bool isFullOrder)
     {
         // The "full" order types are even, while "partial" order types are odd.
-        isFullOrder = uint256(orderType) & 1 == 0;
+        // Bitwise and by 1 is Comparable to modulo by 2, but 2 gas cheaper.
+        assembly {
+            // Comparable to 'uint256(orderType) & 1 == 0'.
+            isFullOrder := iszero(and(orderType, 1))
+        }
     }
 }
