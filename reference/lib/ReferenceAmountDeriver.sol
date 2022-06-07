@@ -12,7 +12,7 @@ import { FractionData } from "./ReferenceConsiderationStructs.sol";
  * @title AmountDeriver
  * @author 0age
  * @notice AmountDeriver contains pure functions related to deriving item
- *         amounts based on partial fill quantity and on linear extrapolation
+ *         amounts based on partial fill quantity and on linear interpolation
  *         based on current time when the start amount and end amount differ.
  */
 contract ReferenceAmountDeriver is AmountDerivationErrors {
@@ -20,7 +20,7 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
      * @dev Internal pure function to derive the current amount of a given item
      *      based on the current price, the starting price, and the ending
      *      price. If the start and end prices differ, the current price will be
-     *      extrapolated on a linear basis.
+     *      interpolated on a linear basis.
      *
      * @param startAmount The starting amount of the item.
      * @param endAmount   The ending amount of the item.
@@ -108,6 +108,9 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
      * @param endAmount       The ending amount of the item.
      * @param fractionData    A struct containing the data used to apply a
      *                        fraction to an order.
+     * @param roundUp         A boolean indicating whether the resultant
+     *                        amount should be rounded up or down.
+     *
      * @return amount The received item to transfer with the final amount.
      */
     function _applyFraction(
@@ -124,7 +127,7 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
                 endAmount
             );
         } else {
-            // Otherwise, apply fraction to both to extrapolate final amount.
+            // Otherwise, apply fraction to both to interpolated final amount.
             amount = _locateCurrentAmount(
                 _getFraction(
                     fractionData.numerator,

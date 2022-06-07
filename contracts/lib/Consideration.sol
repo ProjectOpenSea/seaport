@@ -27,7 +27,7 @@ import { OrderCombiner } from "./OrderCombiner.sol";
  * @author 0age
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11
- * @custom:version 1
+ * @custom:version 1.1
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
  *         provides lightweight methods for common routes as well as more
@@ -467,14 +467,14 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer may increment
-     *         the nonce.
+     *         by incrementing a counter. Note that only the offerer may
+     *         increment the counter.
      *
-     * @return newNonce The new nonce.
+     * @return newCounter The new counter.
      */
-    function incrementNonce() external override returns (uint256 newNonce) {
-        // Increment current nonce for the supplied offerer.
-        newNonce = _incrementNonce();
+    function incrementCounter() external override returns (uint256 newCounter) {
+        // Increment current counter for the supplied offerer.
+        newCounter = _incrementCounter();
     }
 
     /**
@@ -490,7 +490,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         override
         returns (bytes32 orderHash)
     {
-        // Derive order hash by supplying order parameters along with the nonce.
+        // Derive order hash by supplying order parameters along with counter.
         orderHash = _deriveOrderHash(
             OrderParameters(
                 order.offerer,
@@ -505,7 +505,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 order.conduitKey,
                 order.consideration.length
             ),
-            order.nonce
+            order.counter
         );
     }
 
@@ -542,20 +542,20 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     }
 
     /**
-     * @notice Retrieve the current nonce for a given offerer.
+     * @notice Retrieve the current counter for a given offerer.
      *
      * @param offerer The offerer in question.
      *
-     * @return nonce The current nonce.
+     * @return counter The current counter.
      */
-    function getNonce(address offerer)
+    function getCounter(address offerer)
         external
         view
         override
-        returns (uint256 nonce)
+        returns (uint256 counter)
     {
-        // Return the nonce for the supplied offerer.
-        nonce = _getNonce(offerer);
+        // Return the counter for the supplied offerer.
+        counter = _getCounter(offerer);
     }
 
     /**

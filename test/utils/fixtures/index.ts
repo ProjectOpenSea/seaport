@@ -27,7 +27,7 @@ export {
 
 const { provider } = ethers;
 
-export async function seaportFixture(owner: Wallet) {
+export const seaportFixture = async(owner: Wallet) => {
   const EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
   const reenterer = await deployContract("Reenterer", owner as any);
   const { chainId } = await provider.getNetwork();

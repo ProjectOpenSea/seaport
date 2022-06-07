@@ -15,7 +15,7 @@ Each order contains eleven key components:
 
 - The `offerer` of the order supplies all offered items and must either fulfill the order personally (i.e. `msg.sender == offerer`) or approve the order via signature (either standard 65-byte EDCSA, 64-byte EIP-2098, or an EIP-1271 `isValidSignature` check) or by listing the order on-chain (i.e. calling `validate`).
 - The `zone` of the order is an optional secondary account attached to the order with two additional privileges:
-  - The zone may cancel orders where it is named as the zone by calling `cancel`. (Note that offerers can also cancel their own orders, either individually or for all orders signed with their current nonce at once by calling `incrementNonce`).
+  - The zone may cancel orders where it is named as the zone by calling `cancel`. (Note that offerers can also cancel their own orders, either individually or for all orders signed with their current counter at once by calling `incrementCounter`).
   - "Restricted" orders (as specified by the order type) must either be executed by the zone or the offerer, or must be approved as indicated by a call to an `isValidOrder` or `isValidOrderIncludingExtraData` view function on the zone.
 - The `offer` contains an array of items that may be transferred from the offerer's account, where each item consists of the following components:
   - The `itemType` designates the type of item, with valid types being Ether (or other native token for the given chain), ERC20, ERC721, ERC1155, ERC721 with "criteria" (explained below), and ERC1155 with criteria.
@@ -32,7 +32,7 @@ Each order contains eleven key components:
 - The `zoneHash` represents an arbitrary 32-byte value that will be supplied to the zone when fulfilling restricted orders that the zone can utilize when making a determination on whether to authorize the order.
 - The `salt` represents an arbitrary source of entropy for the order.
 - The `conduitKey` is a `bytes32` value that indicates what conduit, if any, should be utilized as a source for token approvals when performing transfers. By default (i.e. when `conduitKey` is set to the zero hash), the offerer will grant ERC20, ERC721, and ERC1155 token approvals to Seaport directly so that it can perform any transfers specified by the order during fulfillment. In contrast, an offerer that elects to utilize a conduit will grant token approvals to the conduit contract corresponding to the supplied conduit key, and Seaport will then instruct that conduit to transfer the respective tokens.
-- The `nonce` indicates a value that must match the current nonce for the given offerer.
+- The `counter` indicates a value that must match the current counter for the given offerer.
 
 ## Order Fulfillment
 
@@ -107,7 +107,7 @@ When fulfilling an order via `fulfillOrder` or `fulfillAdvancedOrder`:
 
 1. Hash order
    - Derive hashes for offer items and consideration items
-   - Retrieve current nonce for the offerer
+   - Retrieve current counter for the offerer
    - Derive hash for order
 2. Perform initial validation
    - Ensure current time is inside order range
@@ -164,5 +164,5 @@ When matching a group of orders via `matchOrders` or `matchAdvancedOrders`, step
 - As extensions to the consideration array on fulfillment (i.e. "tipping") can be arbitrarily set by the caller, fulfillments where all matched orders have already been signed for or validated can be frontrun on submission, with the frontrunner modifying any tips. Therefore, it is important that orders fulfilled in this manner either leverage "restricted" order types with a zone that enforces appropriate allocation of consideration extensions, or that each offer item is fully spent and each consideration item is appropriately declared on order creation.
 - As orders that have been verified (via a call to `validate`) or partially filled will skip signature validation on subsequent fulfillments, orders that utilize EIP-1271 for verifying orders may end up in an inconsistent state where the original signature is no longer valid but the order is still fulfillable. In these cases, the offerer must explicitly cancel the previously verified order in question if they no longer wish for the order to be fulfillable.
 - As orders filled by the "fulfill available" method will only be skipped if those orders have been cancelled, fully filled, or are inactive, fulfillments may still be attempted on unfulfillable orders (examples include revoked approvals or insufficient balances). This scenario (as well as issues with order formatting) will result in the full batch failing. One remediation to this failure condition is to perform additional checks from an executing zone or wrapper contract when constructing the call and filtering orders based on those checks.
-- As order parameters must be supplied upon cancellation, orders that were meant to remain private (e.g. were not published publicly) will be made visible upon cancellation. While these orders would not be _fulfillable_ without a corresponding signature, cancellation of private orders without broadcasting intent currently requires the offerer (or the zone, if the order type is restricted and the zone supports it) to increment the nonce.
+- As order parameters must be supplied upon cancellation, orders that were meant to remain private (e.g. were not published publicly) will be made visible upon cancellation. While these orders would not be _fulfillable_ without a corresponding signature, cancellation of private orders without broadcasting intent currently requires the offerer (or the zone, if the order type is restricted and the zone supports it) to increment the counter.
 - As order fulfillment attempts may become public before being included in a block, there is a risk of those orders being front-run. This risk is magnified in cases where offered items contain ascending amounts or consideration items contain descending amounts, as there is added incentive to leave the order unfulfilled until another interested fulfiller attempts to fulfill the order in question. Remediation efforts include utilization of a private mempool (e.g. flashbots) and/or restricted orders where the respective zone enforces a commit-reveal scheme.

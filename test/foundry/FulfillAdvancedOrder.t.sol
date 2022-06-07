@@ -22,6 +22,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
     using ArithmeticUtil for uint8;
+
+    FuzzInputs empty;
     struct FuzzInputs {
         uint256 tokenId;
         address zone;
@@ -181,7 +183,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
@@ -297,7 +299,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
@@ -384,7 +386,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         _configureEthConsiderationItem(payable(0), 10);
         _configureEthConsiderationItem(alice, 10);
         _configureEthConsiderationItem(bob, 10);
-        uint256 nonce = referenceConsideration.getNonce(alice);
+        uint256 counter = referenceConsideration.getCounter(alice);
         OrderComponents memory orderComponents = OrderComponents(
             alice,
             context.args.zone,
@@ -396,7 +398,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            nonce
+            counter
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
 
@@ -430,58 +432,32 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
     }
 
-    function testAdvancedPartial1155(FuzzInputs memory args)
-        public
-        validateInputs(args)
-        validateNumerDenom(args)
-        onlyPayable(args.zone)
-        only1155Receiver(args.recipient)
-    {
-        test(this.advancedPartial1155, Context(consideration, args, 0, 0));
+    function testAdvancedPartial1155DenominatorOverflow() public {
         test(
-            this.advancedPartial1155,
-            Context(referenceConsideration, args, 0, 0)
+            this.advancedPartial1155DenominatorOverflow,
+            Context(consideration, empty, 0, 0)
+        );
+        test(
+            this.advancedPartial1155DenominatorOverflow,
+            Context(referenceConsideration, empty, 0, 0)
         );
     }
 
-    function advancedPartial1155(Context memory context) external stateless {
-        bytes32 conduitKey = context.args.useConduit
-            ? conduitKeyOne
-            : bytes32(0);
+    function advancedPartial1155DenominatorOverflow(Context memory context)
+        external
+        stateless
+    {
+        // mint 100 tokens
+        test1155_1.mint(alice, 1, 100);
 
-        // mint offerAmt tokens
-        test1155_1.mint(
-            alice,
-            context.args.tokenId,
-            context.args.denom // mint 256x as many
-        );
+        _configureERC1155OfferItem(1, 100);
+        _configureEthConsiderationItem(alice, 100);
 
-        _configureERC1155OfferItem(context.args.tokenId, context.args.denom);
-        _configureEthConsiderationItem(
-            alice,
-            context.args.paymentAmounts[0].mul(context.args.denom)
-        );
-        _configureEthConsiderationItem(
-            payable(context.args.zone),
-            context.args.paymentAmounts[1].mul(context.args.denom)
-        );
-        _configureEthConsiderationItem(
-            cal,
-            context.args.paymentAmounts[2].mul(context.args.denom)
-        );
-
-        OrderComponents memory orderComponents = OrderComponents(
-            alice,
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            context.consideration.getNonce(alice)
+        _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+        baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
+        OrderComponents memory orderComponents = getOrderComponents(
+            baseOrderParameters,
+            context.consideration.getCounter(alice)
         );
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
 
@@ -504,40 +480,24 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             assertEq(totalSize, 0);
         }
 
-        OrderParameters memory orderParameters = OrderParameters(
-            alice,
-            context.args.zone,
-            offerItems,
-            considerationItems,
-            OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1,
-            context.args.zoneHash,
-            context.args.salt,
-            conduitKey,
-            considerationItems.length
-        );
-        uint256 value = uint128(context.args.numer) *
-            (uint128(context.args.paymentAmounts[0]) +
-                context.args.paymentAmounts[1] +
-                context.args.paymentAmounts[2]);
-        emit log_named_uint("numer", context.args.numer);
-        emit log_named_uint("denom", context.args.denom);
-        emit log_named_uint("value", value);
-        // uint120 numer = uint120(context.args.offerAmt) * 2;
-        context.consideration.fulfillAdvancedOrder{ value: value }(
-            AdvancedOrder(
-                orderParameters,
-                context.args.numer,
-                context.args.denom,
-                signature,
-                ""
-            ),
+        // Create an order to fulfill half of the original offer.
+        context.consideration.fulfillAdvancedOrder{ value: 50 }(
+            AdvancedOrder(baseOrderParameters, 2**118, 2**119, signature, ""),
             new CriteriaResolver[](0),
-            conduitKey,
-            context.args.recipient
+            bytes32(0),
+            address(0)
         );
 
+        // Create a second order to fulfill one-tenth of the original offer.
+        // The denominator will overflow when combined with that of the first order.
+        context.consideration.fulfillAdvancedOrder{ value: 10 }(
+            AdvancedOrder(baseOrderParameters, 1, 10, signature, ""),
+            new CriteriaResolver[](0),
+            bytes32(0),
+            address(0)
+        );
+
+        // Assert six-tenths of the order has been fulfilled.
         {
             (
                 bool isValidated,
@@ -547,18 +507,10 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             ) = context.consideration.getOrderStatus(orderHash);
             assertTrue(isValidated);
             assertFalse(isCancelled);
-            assertEq(totalFilled, context.args.numer);
-            assertEq(totalSize, context.args.denom);
-            // if recipient is alice (offerer), final balance will be number minted, ie, denom
-            assertEq(
-                context.args.recipient == alice
-                    ? context.args.denom
-                    : context.args.numer,
-                test1155_1.balanceOf(
-                    context.args.recipient,
-                    context.args.tokenId
-                )
-            );
+            assertEq(totalFilled, 6);
+
+            assertEq(totalSize, 10);
+            assertEq(60, test1155_1.balanceOf(address(this), 1));
         }
     }
 }
