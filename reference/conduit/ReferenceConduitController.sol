@@ -194,6 +194,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *      function.
      *
      * @param conduit The conduit for which to initiate ownership transfer.
+     * @param newPotentialOwner The new potential owner of the conduit.
      */
     function transferOwnership(address conduit, address newPotentialOwner)
         external
