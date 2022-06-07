@@ -40,3 +40,4 @@ ori_dabush                     |
 leonardoalt                    | `leoalt.eth`
 cmichel                        | `cmichel.eth`
 Daniel Gelfand                 |
+JasperAlexander                |
