@@ -95,28 +95,33 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 considerationComponents[0]
             );
 
-            // Skip underflow check as considerationItem.amount > execution.item.amount.
+            // Skip underflow check as the conditional being true implies that
+            // considerationItem.amount > execution.item.amount.
             unchecked {
-                // Add excess consideration item amount to original array of orders.
+                // Add excess consideration item amount to original order array.
                 advancedOrders[targetComponent.orderIndex]
                     .parameters
                     .consideration[targetComponent.itemIndex]
-                    .startAmount =
-                    considerationItem.amount -
-                    execution.item.amount;
+                    .startAmount = (considerationItem.amount -
+                    execution.item.amount);
             }
 
             // Reduce total consideration amount to equal the offer amount.
             considerationItem.amount = execution.item.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (offerComponents[0]);
+            FulfillmentComponent memory targetComponent = offerComponents[0];
 
-            // Add excess offer item amount to the original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .offer[targetComponent.itemIndex]
-                .startAmount = execution.item.amount - considerationItem.amount;
+            // Skip underflow check as the conditional being false implies that
+            // execution.item.amount >= considerationItem.amount.
+            unchecked {
+                // Add excess offer item amount to the original array of orders.
+                advancedOrders[targetComponent.orderIndex]
+                    .parameters
+                    .offer[targetComponent.itemIndex]
+                    .startAmount = (execution.item.amount -
+                    considerationItem.amount);
+            }
         }
 
         // Reuse execution struct with consideration amount and recipient.
@@ -411,7 +416,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Update error buffer (1 = zero amount, 2 = overflow, 3 = both).
+                // Update error buffer: 1 = zero amount, 2 = overflow, 3 = both.
                 errorBuffer := or(
                   errorBuffer,
                   or(
@@ -703,7 +708,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Update error buffer (1 = zero amount, 2 = overflow, 3 = both).
+                // Update error buffer: 1 = zero amount, 2 = overflow, 3 = both.
                 errorBuffer := or(
                   errorBuffer,
                   or(

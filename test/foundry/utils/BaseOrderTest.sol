@@ -400,9 +400,9 @@ contract BaseOrderTest is
     }
 
     /**
-    @dev configures order components based on order parameters in storage and nonce param
+    @dev configures order components based on order parameters in storage and counter param
      */
-    function _configureOrderComponents(uint256 nonce) internal {
+    function _configureOrderComponents(uint256 counter) internal {
         baseOrderComponents.offerer = baseOrderParameters.offerer;
         baseOrderComponents.zone = baseOrderParameters.zone;
         baseOrderComponents.offer = baseOrderParameters.offer;
@@ -413,7 +413,7 @@ contract BaseOrderTest is
         baseOrderComponents.zoneHash = baseOrderParameters.zoneHash;
         baseOrderComponents.salt = baseOrderParameters.salt;
         baseOrderComponents.conduitKey = baseOrderParameters.conduitKey;
-        baseOrderComponents.nonce = nonce;
+        baseOrderComponents.counter = counter;
     }
 
     /**
@@ -496,7 +496,7 @@ contract BaseOrderTest is
     }
 
     /**
-     * @dev return OrderComponents for a given OrderParameters and offerer nonce
+     * @dev return OrderComponents for a given OrderParameters and offerer counter
      */
     function getOrderComponents(
         OrderParameters memory parameters,

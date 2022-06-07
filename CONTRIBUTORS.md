@@ -32,6 +32,7 @@ tserg                          | `tserg.eth`
 cygaar                         | `cygaar.eth`
 Meta0xNull                     | `meta0xnull.eth`
 sach1r0                        |
+gpersoon                       | `gpersoon.eth`
 Matt Solomon                   | `msolomon.eth`
 Weikang Song                   | `weikangs.eth`
 zer0dot                        | `zer0dot.eth`
@@ -40,3 +41,9 @@ ori_dabush                     |
 leonardoalt                    | `leoalt.eth`
 cmichel                        | `cmichel.eth`
 Daniel Gelfand                 |
+PraneshASP                     | `pranesh.eth`
+JasperAlexander                |
+okkothejawa                    |
+FlameHorizon                   |
+vdrg                           |
+Ellahi                         | `ellahi.eth`

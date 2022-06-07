@@ -204,7 +204,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -236,7 +236,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -310,7 +310,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -343,7 +343,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -453,7 +453,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -582,7 +582,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,

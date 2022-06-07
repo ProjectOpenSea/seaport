@@ -767,7 +767,7 @@ contract BasicOrderFulfiller is OrderValidator {
              *   - 0x180:  orderParameters.zoneHash
              *   - 0x1a0:  orderParameters.salt
              *   - 0x1c0:  orderParameters.conduitKey
-             *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
+             *   - 0x1e0:  _counters[orderParameters.offerer] (from storage)
              */
 
             // Read the offerer from calldata and place on the stack.
@@ -776,8 +776,8 @@ contract BasicOrderFulfiller is OrderValidator {
                 offerer := calldataload(BasicOrder_offerer_cdPtr)
             }
 
-            // Read offerer's current nonce from storage and place on the stack.
-            uint256 nonce = _getNonce(offerer);
+            // Read offerer's current counter from storage and place on stack.
+            uint256 counter = _getCounter(offerer);
 
             // Load order typehash from runtime code and place on stack.
             bytes32 typeHash = _ORDER_TYPEHASH;
@@ -811,8 +811,8 @@ contract BasicOrderFulfiller is OrderValidator {
                     FiveWords
                 )
 
-                // Take offerer's nonce retrieved from storage, write to struct.
-                mstore(BasicOrder_order_nonce_ptr, nonce)
+                // Write offerer's counter, retrieved from storage, to struct.
+                mstore(BasicOrder_order_counter_ptr, counter)
 
                 // Compute the EIP712 Order hash.
                 orderHash := keccak256(
@@ -956,7 +956,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     additionalRecipients[i]
                 );
 
-                // Read ether amount to transfer to recipient and place on stack.
+                // Read ether amount to transfer to recipient & place on stack.
                 uint256 additionalRecipientAmount = additionalRecipient.amount;
 
                 // Ensure that sufficient Ether is available.
@@ -970,8 +970,8 @@ contract BasicOrderFulfiller is OrderValidator {
                     additionalRecipientAmount
                 );
 
-                // Skip underflow check as subtracted value is less than remaining.
-                // Reduce ether value available.
+                // Reduce ether value available. Skip underflow check as
+                // subtracted value is confirmed above as less than remaining.
                 etherRemaining -= additionalRecipientAmount;
             }
         }

@@ -156,7 +156,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -187,7 +187,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -245,7 +245,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -277,7 +277,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -375,7 +375,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes memory signature = signOrder(
@@ -482,7 +482,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         );
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes memory signature = signOrder(
@@ -507,7 +507,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes memory secondOrderSignature = signOrder(
