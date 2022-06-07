@@ -28,3 +28,4 @@ horsefacts                     | `horsefacts.eth`
 UncarvedBlock                  | `uncarvedblock.eth`
 Zoraiz Mahmood                 | `zorz.eth`
 tserg                          | `tserg.eth`
+sach1r0                        |
