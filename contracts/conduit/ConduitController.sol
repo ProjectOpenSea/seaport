@@ -192,6 +192,7 @@ contract ConduitController is ConduitControllerInterface {
      *         Only the owner of the conduit in question may call this function.
      *
      * @param conduit The conduit for which to initiate ownership transfer.
+     * @param newPotentialOwner The new potential owner of the conduit.
      */
     function transferOwnership(address conduit, address newPotentialOwner)
         external

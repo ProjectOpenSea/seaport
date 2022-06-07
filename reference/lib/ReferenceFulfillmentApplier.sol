@@ -350,6 +350,10 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                             offer,
                             execution
                         );
+                        // Break if invalid
+                        if (invalidFulfillment) {
+                            break;
+                        }
                     }
                 }
             }
@@ -532,6 +536,10 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                             consideration,
                             receivedItem
                         );
+                        // Break if invalid
+                        if (potentialCandidate.invalidFulfillment) {
+                            break;
+                        }
                     }
                 }
             }
