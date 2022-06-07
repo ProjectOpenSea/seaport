@@ -344,3 +344,10 @@ uint256 constant Conduit_transferItem_from_ptr = 0x40;
 uint256 constant Conduit_transferItem_to_ptr = 0x60;
 uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
 uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
+
+// Declare constant for errors related to amount derivation.
+// error InexactFraction() @ AmountDerivationErrors.sol
+uint256 constant InexactFraction_error_signature = (
+    0xc63cf08900000000000000000000000000000000000000000000000000000000
+);
+uint256 constant InexactFraction_error_len = 0x20;
