@@ -38,3 +38,4 @@ zer0dot                        | `zer0dot.eth`
 Mudit Gupta                    | `mudit.eth`
 ori_dabush                     |
 leonardoalt                    | `leoalt.eth`
+cmichel                        | `cmichel.eth`
