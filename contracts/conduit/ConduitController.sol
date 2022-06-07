@@ -95,6 +95,7 @@ contract ConduitController is ConduitControllerInterface {
         // Deploy the conduit via CREATE2 using the conduit key as the salt.
         new Conduit{ salt: conduitKey }();
 
+        // Initialize storage variable referencing conduit properties.
         ConduitProperties storage conduitProperties = _conduits[conduit];
 
         // Set the supplied initial owner as the owner of the conduit.

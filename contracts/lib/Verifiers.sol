@@ -85,7 +85,7 @@ contract Verifiers is Assertions, SignatureVerification {
     }
 
     /**
-     * @dev Internal pure function to validate that a given order is fillable
+     * @dev Internal view function to validate that a given order is fillable
      *      and not cancelled based on the order status.
      *
      * @param orderHash       The order hash.
@@ -116,6 +116,7 @@ contract Verifiers is Assertions, SignatureVerification {
             return false;
         }
 
+        // Read order status numerator from storage and place on stack.
         uint256 orderStatusNumerator = orderStatus.numerator;
 
         // If the order is not entirely unused...
