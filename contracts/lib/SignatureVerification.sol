@@ -77,9 +77,9 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 v := byte(0, mload(add(signature, ThreeWords)))
 
                 // Whether v is 27 or 28.
-                // The magic number has the 27th and 28th bytes
+                // The magic constant has the 27th and 28th bytes
                 // counting from the most significant byte set to 1.
-                vIsValid := byte(v, 0x0101000000)
+                vIsValid := byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
             }
 
             // Ensure v value is properly formatted.
