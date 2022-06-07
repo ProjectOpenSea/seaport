@@ -7,13 +7,15 @@ d1ll0n                         | `d1ll0n.eth`
 transmissions11                | `t11s.eth`
 Kartik                         | `slokh.eth`
 LeFevre                        | `lefevre.eth`
+Joseph Schiarizzi              | `CupOJoseph.eth`
+Aspyn Palatnick                | `stuckinaboot.eth`
+James Wenzel                   | `emo.eth`
+Stephan Min                    | `stephanm.eth`
 0xPatissier                    |
 pcaversaccio                   |
 David Eiber                    |
 hack3r-0m                      | `hack3r-0m.eth`
 csanuragjain                   |
-Joseph Schiarizzi              | `CupOJoseph.eth`
-Aspyn Palatnick                | `stuckinaboot.eth`
 Diego Estevez                  | `antidiego.eth`
 Chomtana                       | `chomtana.eth`
 Saw-mon and Natalie            | `sawmonandnatalie.eth`
@@ -25,4 +27,5 @@ karmacoma                      | `karmacoma.eth`
 horsefacts                     | `horsefacts.eth`
 UncarvedBlock                  | `uncarvedblock.eth`
 Zoraiz Mahmood                 | `zorz.eth`
+tserg                          | `tserg.eth`
 cygaar                         | `cygaar.eth`
