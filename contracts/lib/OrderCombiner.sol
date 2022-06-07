@@ -251,10 +251,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
 
                 // Read length of offer array and place on the stack.
-                uint256 totalOffers = offer.length;
+                uint256 totalOfferItems = offer.length;
 
                 // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < totalOffers; ++j) {
+                for (uint256 j = 0; j < totalOfferItems; ++j) {
                     // Retrieve the offer item.
                     OfferItem memory offerItem = offer[j];
 
@@ -298,10 +298,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 );
 
                 // Read length of consideration array and place on the stack.
-                uint256 totalConsiderations = consideration.length;
+                uint256 totalConsiderationItems = consideration.length;
 
                 // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < totalConsiderations; ++j) {
+                for (uint256 j = 0; j < totalConsiderationItems; ++j) {
                     // Retrieve the consideration item.
                     ConsiderationItem memory considerationItem = (
                         consideration[j]
@@ -607,10 +607,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 );
 
                 // Read length of consideration array and place on the stack.
-                uint256 totalConsiderations = consideration.length;
+                uint256 totalConsiderationItems = consideration.length;
 
                 // Iterate over each consideration item to ensure it is met.
-                for (uint256 j = 0; j < totalConsiderations; ++j) {
+                for (uint256 j = 0; j < totalConsiderationItems; ++j) {
                     // Retrieve remaining amount on the consideration item.
                     uint256 unmetAmount = consideration[j].startAmount;
 
