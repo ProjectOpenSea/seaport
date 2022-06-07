@@ -150,9 +150,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         // Retrieve current counter & use it w/ parameters to derive order hash.
-        orderHash = _assertConsiderationLengthAndGetCounterdOrderHash(
-            orderParameters
-        );
+        orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
 
         // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(
@@ -411,7 +409,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 offerer = orderParameters.offerer;
 
                 // Get current counter & use it w/ params to derive order hash.
-                orderHash = _assertConsiderationLengthAndGetCounterdOrderHash(
+                orderHash = _assertConsiderationLengthAndGetOrderHash(
                     orderParameters
                 );
 

@@ -153,9 +153,7 @@ contract ReferenceOrderValidator is
         }
 
         // Retrieve current counter and use it w/ parameters to derive order hash.
-        orderHash = _assertConsiderationLengthAndGetCounterdOrderHash(
-            orderParameters
-        );
+        orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
 
         // Ensure a valid submitter.
         _assertRestrictedAdvancedOrderValidity(
@@ -385,7 +383,7 @@ contract ReferenceOrderValidator is
             offerer = orderParameters.offerer;
 
             // Get current counter and use it w/ params to derive order hash.
-            orderHash = _assertConsiderationLengthAndGetCounterdOrderHash(
+            orderHash = _assertConsiderationLengthAndGetOrderHash(
                 orderParameters
             );
 
