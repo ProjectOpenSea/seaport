@@ -103,6 +103,7 @@ contract AmountDeriver is AmountDerivationErrors {
         assembly {
             // Ensure new value contains no remainder via mulmod operator.
             // Credit to @hrkrshnn + @axic for proposing this optimal solution.
+            // Further optimization by @Chomtana
             if gt(mulmod(value, numerator, denominator), 0) {
                 mstore(0, InexactFraction_error_signature)
                 revert(0, InexactFraction_error_len)
