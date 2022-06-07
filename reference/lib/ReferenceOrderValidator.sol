@@ -343,6 +343,8 @@ contract ReferenceOrderValidator is
             // Update the order status as not valid and cancelled.
             _orderStatus[orderHash].isValidated = false;
             _orderStatus[orderHash].isCancelled = true;
+            
+            
 
             // Emit an event signifying that the order has been cancelled.
             emit OrderCancelled(orderHash, offerer, zone);
@@ -374,7 +376,7 @@ contract ReferenceOrderValidator is
         uint256 totalOrders = orders.length;
 
         // Iterate over each order.
-        for (uint256 i = 0; i < totalOrders; ++i) {
+        for (uint256 i = 0; i < totalOrders;) {
             // Retrieve the order.
             Order calldata order = orders[i];
 
@@ -407,6 +409,9 @@ contract ReferenceOrderValidator is
 
                 // Update order status to mark the order as valid.
                 _orderStatus[orderHash].isValidated = true;
+                
+                // check i to prevents overflow.
+                unchecked {++i}
 
                 // Emit an event signifying the order has been validated.
                 emit OrderValidated(orderHash, offerer, orderParameters.zone);
