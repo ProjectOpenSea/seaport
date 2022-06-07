@@ -678,7 +678,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
         OrderComponents memory orderComponents = getOrderComponents(
             baseOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
 
@@ -778,7 +778,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
         OrderComponents memory orderComponents = getOrderComponents(
             baseOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
 
