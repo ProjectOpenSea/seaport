@@ -65,7 +65,9 @@ contract GettersAndDerivers is ConsiderationBase {
             let hashArrPtr := mload(FreeMemoryPointerSlot)
 
             // Get the pointer to the offers array.
-            let offerArrPtr := mload(add(orderParameters, TwoWords))
+            let offerArrPtr := mload(
+                add(orderParameters, OrderParameters_offer_head_offset)
+            )
 
             // Load the length.
             let offerLength := mload(offerArrPtr)
