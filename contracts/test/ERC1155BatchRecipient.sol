@@ -10,7 +10,7 @@ contract ERC1155BatchRecipient {
         uint256[] calldata,
         uint256[] calldata,
         bytes memory data
-    ) external view returns (bytes4) {
+    ) external pure returns (bytes4) {
         if (data.length != 0) {
             revert UnexpectedBatchData();
         }
