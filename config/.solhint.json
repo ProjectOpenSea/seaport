@@ -1,7 +1,7 @@
 {
   "extends": "solhint:all",
   "rules": {
-    "compiler-version": ["error", ">=0.8.7"],
+    "compiler-version": ["error", ">=0.8.13"],
     "func-visibility": ["warn", { "ignoreConstructors": true }],
     "no-empty-blocks": "off",
     "no-inline-assembly": "off",
