@@ -122,10 +122,12 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     .startAmount = (execution.item.amount -
                     considerationItem.amount);
             }
+            
+            // Reuse consideration amount.
+            execution.item.amount = considerationItem.amount;
         }
 
-        // Reuse execution struct with consideration amount and recipient.
-        execution.item.amount = considerationItem.amount;
+        // Reuse consideration recipient.
         execution.item.recipient = considerationItem.recipient;
 
         // Return the final execution that will be triggered for relevant items.
