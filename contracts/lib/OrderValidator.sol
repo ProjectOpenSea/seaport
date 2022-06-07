@@ -256,7 +256,6 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                     // Scale all fractional values down by gcd.
                     numerator := div(numerator, safeScaleDown)
-                    filledNumerator := div(filledNumerator, safeScaleDown)
                     denominator := div(denominator, safeScaleDown)
 
                     // Perform the overflow check a second time.
