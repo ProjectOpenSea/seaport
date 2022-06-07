@@ -157,12 +157,15 @@ contract OrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal {
+        uint256 duration;
+        uint256 elapsed;
+        uint256 remaining;
         // Skip underflow checks as startTime <= block.timestamp < endTime
         unchecked {
             // Derive order duration, time elapsed, and time remaining.
-            uint256 duration = orderParameters.endTime - orderParameters.startTime;
-            uint256 elapsed = block.timestamp - orderParameters.startTime;
-            uint256 remaining = duration - elapsed;
+            duration = orderParameters.endTime - orderParameters.startTime;
+            elapsed = block.timestamp - orderParameters.startTime;
+            remaining = duration - elapsed;
         }
 
         // Put ether value supplied by the caller on the stack.
