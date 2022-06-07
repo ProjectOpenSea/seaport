@@ -7,6 +7,3 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/rari-capital/solmate
-[submodule "lib/murky"]
-	path = lib/murky
-	url = https://github.com/dmfxyz/murky

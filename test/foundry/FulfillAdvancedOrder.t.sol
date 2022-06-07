@@ -12,7 +12,6 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
-import { Merkle } from "murky/Merkle.sol";
 import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
 import { ConsiderationEventsAndErrors } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
