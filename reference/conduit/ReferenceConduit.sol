@@ -183,10 +183,11 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
      *      channels are expected to implement checks against transferring any
      *      zero-amount items if that constraint is desired.
      *
-     * @param item The ERC20/721/1155 item to transfer.
+     * @param item The ERC20/721/1155 item to transfer, including an amount and
+     *             recipient.
      */
     function _transfer(ConduitTransfer calldata item) internal {
-        // If the item type indicates Ether or a native token...
+        // Perform the transfer based on the item's type.
         if (item.itemType == ConduitItemType.ERC20) {
             // Transfer ERC20 token. Note that item.identifier is ignored and
             // therefore ERC20 transfer items are potentially malleable — this
