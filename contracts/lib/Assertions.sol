@@ -89,7 +89,7 @@ contract Assertions is
      * @param amount The amount to check.
      */
     function _assertNonZeroAmount(uint256 amount) internal pure {
-        // Revert if the supplied amont is equal to zero.
+        // Revert if the supplied amount is equal to zero.
         if (amount == 0) {
             revert MissingItemAmount();
         }
