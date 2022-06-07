@@ -83,7 +83,7 @@ contract BasicOrderFulfiller is OrderValidator {
             orderType := and(calldataload(BasicOrder_basicOrderType_cdPtr), 3)
 
             // Divide basicOrderType by four to derive the route.
-            route := div(calldataload(BasicOrder_basicOrderType_cdPtr), 4)
+            route := shr(2, calldataload(BasicOrder_basicOrderType_cdPtr))
 
             // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
             additionalRecipientsItemType := gt(route, 1)
