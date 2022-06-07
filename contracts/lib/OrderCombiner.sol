@@ -653,7 +653,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             }
         }
 
-        // Trigger any remaining accumulated transfers via a call to the conduit.
+        // Trigger any remaining accumulated transfers via call to the conduit.
         _triggerIfArmed(accumulator);
 
         // If any ether remains after fulfillments, return it to the caller.

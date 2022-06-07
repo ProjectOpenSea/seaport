@@ -207,7 +207,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         // Derive ConsiderationItem type hash using corresponding type string.
         considerationItemTypehash = keccak256(considerationItemTypeString);
 
-        // Derive OrderItem type hash via a combination of relevant type strings.
+        // Derive OrderItem type hash via combination of relevant type strings.
         orderTypehash = keccak256(
             abi.encodePacked(
                 orderComponentsPartialTypeString,
