@@ -269,7 +269,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 // Slot of `computedHash` in scratch space.
                 // If the condition is true: 0x20, otherwise: 0x00.
                 let scratch := shl(5, gt(computedHash, loadedData))
-               
+
                 // Store elements to hash contiguously in scratch space.
                 // Scratch space is 64 bytes (0x00 - 0x3f) and both elements are 32 bytes.
                 mstore(scratch, computedHash)
