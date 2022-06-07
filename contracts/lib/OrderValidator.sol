@@ -330,7 +330,10 @@ contract OrderValidator is Executor, ZoneInteraction {
                 zone = order.zone;
 
                 // Ensure caller is either offerer or zone of the order.
-                if (toUint256(msg.sender) != toUint256(offerer) && toUint256(msg.sender) != toUint256(zone)) {
+                if (
+                    toUint256(msg.sender) != toUint256(offerer) &&
+                    toUint256(msg.sender) != toUint256(zone)
+                ) {
                     revert InvalidCanceller();
                 }
 

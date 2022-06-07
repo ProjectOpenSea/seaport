@@ -24,7 +24,11 @@ import { AssemblyCastToUint256 } from "../lib/AssemblyCastToUint256.sol";
  * @author 0age
  * @notice ZoneInteraction contains logic related to interacting with zones.
  */
-contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers, AssemblyCastToUint256 {
+contract ZoneInteraction is
+    ZoneInteractionErrors,
+    LowLevelHelpers,
+    AssemblyCastToUint256
+{
     /**
      * @dev Internal view function to determine if an order has a restricted
      *      order type and, if so, to ensure that either the offerer or the zone

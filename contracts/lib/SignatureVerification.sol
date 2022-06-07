@@ -19,7 +19,11 @@ import { AssemblyCastToUint256 } from "../lib/AssemblyCastToUint256.sol";
  * @author 0age
  * @notice SignatureVerification contains logic for verifying signatures.
  */
-contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers, AssemblyCastToUint256 {
+contract SignatureVerification is
+    SignatureVerificationErrors,
+    LowLevelHelpers,
+    AssemblyCastToUint256
+{
     /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length

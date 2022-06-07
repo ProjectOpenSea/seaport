@@ -19,7 +19,10 @@ import { AssemblyCastToUint256 } from "../lib/AssemblyCastToUint256.sol";
  *         contracts that allow registered callers (or open "channels") to
  *         transfer approved ERC20/721/1155 tokens on their behalf.
  */
-contract ConduitController is ConduitControllerInterface, AssemblyCastToUint256 {
+contract ConduitController is
+    ConduitControllerInterface,
+    AssemblyCastToUint256
+{
     // Register keys, owners, new potential owners, and channels by conduit.
     mapping(address => ConduitProperties) internal _conduits;
 
@@ -252,7 +255,10 @@ contract ConduitController is ConduitControllerInterface, AssemblyCastToUint256 
         _assertConduitExists(conduit);
 
         // If caller does not match current potential owner of the conduit...
-        if (toUint256(msg.sender) != toUint256(_conduits[conduit].potentialOwner)) {
+        if (
+            toUint256(msg.sender) !=
+            toUint256(_conduits[conduit].potentialOwner)
+        ) {
             // Revert, indicating that caller is not current potential owner.
             revert CallerIsNotNewPotentialOwner(conduit);
         }
