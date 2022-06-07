@@ -183,7 +183,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
@@ -299,7 +299,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
@@ -386,7 +386,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         _configureEthConsiderationItem(payable(0), 10);
         _configureEthConsiderationItem(alice, 10);
         _configureEthConsiderationItem(bob, 10);
-        uint256 nonce = referenceConsideration.getNonce(alice);
+        uint256 counter = referenceConsideration.getCounter(alice);
         OrderComponents memory orderComponents = OrderComponents(
             alice,
             context.args.zone,
@@ -398,7 +398,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            nonce
+            counter
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
 
@@ -457,7 +457,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
         OrderComponents memory orderComponents = getOrderComponents(
             baseOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
 

@@ -184,7 +184,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
                 "bytes32 zoneHash,",
                 "uint256 salt,",
                 "bytes32 conduitKey,",
-                "uint256 nonce",
+                "uint256 counter",
             ")"
         );
 

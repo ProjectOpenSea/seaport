@@ -50,7 +50,7 @@ contract StructCopier {
         dest.zoneHash = src.zoneHash;
         dest.salt = src.salt;
         dest.conduitKey = src.conduitKey;
-        dest.nonce = src.nonce;
+        dest.counter = src.counter;
     }
 
     function setAdditionalRecipients(
