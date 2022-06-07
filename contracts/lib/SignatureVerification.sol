@@ -63,7 +63,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         } else if (signature.length == 65) {
             // Whether v value is properly formatted.
             bool vIsValid;
-            
+
             // If signature is 65 bytes, parse as a standard signature (r+s+v).
             // Read each parameter directly from the signature's memory region.
             assembly {
@@ -75,8 +75,8 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
                 // Place final byte on the stack at v.
                 v := byte(0, mload(add(signature, ThreeWords)))
-                
-                // Whether v is 27 or 28. 
+
+                // Whether v is 27 or 28.
                 // The magic number has the 27th and 28th bytes
                 // counting from the most significant byte set to 1.
                 vIsValid := byte(v, 0x0101000000)
