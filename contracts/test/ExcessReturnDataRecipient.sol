@@ -2,7 +2,7 @@
 pragma solidity >=0.8.7;
 
 contract ExcessReturnDataRecipient {
-    uint256 revertDataSize;
+    uint256 private revertDataSize;
 
     function setRevertDataSize(uint256 size) external {
         revertDataSize = size;
