@@ -40,4 +40,5 @@ ori_dabush                     |
 leonardoalt                    | `leoalt.eth`
 cmichel                        | `cmichel.eth`
 Daniel Gelfand                 |
+PraneshASP                     | `pranesh.eth`
 JasperAlexander                |
