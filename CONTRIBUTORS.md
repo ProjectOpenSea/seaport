@@ -42,3 +42,5 @@ cmichel                        | `cmichel.eth`
 Daniel Gelfand                 |
 PraneshASP                     | `pranesh.eth`
 JasperAlexander                |
+okkothejawa
+FlameHorizon
