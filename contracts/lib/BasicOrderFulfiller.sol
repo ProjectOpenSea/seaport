@@ -1005,6 +1005,9 @@ contract BasicOrderFulfiller is OrderValidator {
      * @param additionalRecipients The additional recipients of the order.
      * @param fromOfferer          A boolean indicating whether to decrement
      *                             amount from the offered amount.
+     * @param accumulator          An open-ended array that collects transfers
+     *                             to execute against a given conduit in a
+     *                             single call.
      */
     function _transferERC20AndFinalize(
         address from,
