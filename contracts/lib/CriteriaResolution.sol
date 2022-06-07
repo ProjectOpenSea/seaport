@@ -273,7 +273,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 // Store elements to hash contiguously in scratch space.
                 // Scratch space is 64 bytes (0x00 - 0x3f) and both elements are 32 bytes.
                 mstore(scratch, computedHash)
-                mstore(xor(scratch, 0x20), loadedData)
+                mstore(xor(scratch, OneWord), loadedData)
 
                 // Derive the updated hash.
                 computedHash := keccak256(0, TwoWords)
