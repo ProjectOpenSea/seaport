@@ -265,9 +265,9 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 let loadedData := mload(data)
 
                 // Sort proof elements and place them in scratch space.
-               let g := mul( gt(computedHash, loadedData), 0x20)
+               let g := mul( gt(computedHash, loadedData), OneWord)
                mstore(g, computedHash )
-               mstore(sub(0x20,g), loadedData )
+               mstore(sub(OneWord,g), loadedData )
 
                 // Derive the updated hash.
                 computedHash := keccak256(0, TwoWords)
