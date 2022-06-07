@@ -91,7 +91,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         // If total consideration amount exceeds the offer amount...
         if (considerationItem.amount > execution.item.amount) {
             // Retrieve the first consideration component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (
+            FulfillmentComponent calldata targetComponent = (
                 considerationComponents[0]
             );
 
@@ -105,7 +105,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             considerationItem.amount = execution.item.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (offerComponents[0]);
+            FulfillmentComponent calldata targetComponent = (
+                offerComponents[0]
+            );
 
             // Add excess offer item amount to the original array of orders.
             advancedOrders[targetComponent.orderIndex]
