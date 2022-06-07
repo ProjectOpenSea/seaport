@@ -572,7 +572,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         // Memory to store hashes.
         BasicFulfillmentHashes memory hashes;
 
-        // Store ItemType/Token parameters in a struct in memory to avoid stack 
+        // Store ItemType/Token parameters in a struct in memory to avoid stack
         // issues.
         FulfillmentItemTypes memory fulfillmentItemTypes = FulfillmentItemTypes(
             orderType,
@@ -673,7 +673,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                     continue;
                 }
 
-                // Create a new consideration item for each additional 
+                // Create a new consideration item for each additional
                 // recipient.
                 additionalRecipientItem = ConsiderationItem(
                     fulfillmentItemTypes.additionalRecipientsItemType,
@@ -766,7 +766,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                         offerItem.identifier,
                         offerItem.amount,
                         // Assembly uses OfferItem instead of SpentItem.
-                        offerItem.amount 
+                        offerItem.amount
                     )
                 )
             ];
@@ -884,9 +884,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      * @param erc20Token            The ERC20 token to transfer.
      * @param amount                The amount of ERC20 tokens to transfer.
      * @param parameters            The parameters of the order.
-     * @param fromOfferer           Whether to decrement amount from the 
+     * @param fromOfferer           Whether to decrement amount from the
      *                              offered amount.
-     * @param accumulatorStruct     A struct containing conduit transfer data 
+     * @param accumulatorStruct     A struct containing conduit transfer data
      *                              and its corresponding conduitKey.
      */
     function _transferERC20AndFinalize(

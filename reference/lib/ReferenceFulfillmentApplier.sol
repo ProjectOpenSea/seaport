@@ -234,14 +234,14 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     }
 
     /**
-     * @dev Internal pure function to check the indicated offer item 
+     * @dev Internal pure function to check the indicated offer item
      *      matches original item.
      *
      * @param orderToExecute  The order to compare.
      * @param offer The offer to compare
      * @param execution  The aggregated offer item
      *
-     * @return invalidFulfillment A boolean indicating whether the 
+     * @return invalidFulfillment A boolean indicating whether the
      *                            fulfillment is invalid.
      */
     function _checkMatchingOffer(
@@ -318,7 +318,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     i < offerComponents.length;
                     ++i
                 ) {
-                    // Get the order index and item index of the offer 
+                    // Get the order index and item index of the offer
                     // component.
                     orderIndex = offerComponents[i].orderIndex;
                     itemIndex = offerComponents[i].itemIndex;
@@ -339,17 +339,17 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         if (invalidFulfillment) {
                             break;
                         }
-                        // Get the spent item based on the offer components 
+                        // Get the spent item based on the offer components
                         // item index.
                         offer = orderToExecute.spentItems[itemIndex];
                         // Update the Received Item Amount.
                         execution.item.amount =
                             execution.item.amount +
                             offer.amount;
-                        // Zero out amount on original offerItem to indicate 
+                        // Zero out amount on original offerItem to indicate
                         // it is spent,
                         offer.amount = 0;
-                        // Ensure the indicated offer item matches original 
+                        // Ensure the indicated offer item matches original
                         // item.
                         invalidFulfillment = _checkMatchingOffer(
                             orderToExecute,
@@ -415,7 +415,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     }
 
     /**
-     * @dev Internal pure function to check the indicated consideration item 
+     * @dev Internal pure function to check the indicated consideration item
      *      matches original item.
      *
      * @param consideration  The consideration to compare
@@ -501,7 +501,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     i < considerationComponents.length;
                     ++i
                 ) {
-                    // Get the order index and item index of the consideration 
+                    // Get the order index and item index of the consideration
                     // component.
                     potentialCandidate.orderIndex = considerationComponents[i]
                         .orderIndex;
@@ -515,7 +515,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     if (potentialCandidate.invalidFulfillment) {
                         break;
                     }
-                    // Get the order based on consideration components order 
+                    // Get the order based on consideration components order
                     // index.
                     orderToExecute = ordersToExecute[
                         potentialCandidate.orderIndex
@@ -538,7 +538,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         receivedItem.amount =
                             receivedItem.amount +
                             consideration.amount;
-                        // Zero out amount on original consideration item to 
+                        // Zero out amount on original consideration item to
                         // indicate it is spent
                         consideration.amount = 0;
                         // Ensure the indicated consideration item matches

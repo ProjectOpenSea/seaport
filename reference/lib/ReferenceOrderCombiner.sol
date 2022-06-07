@@ -81,10 +81,10 @@ contract ReferenceOrderCombiner is
      *                                  considered valid.
      *
      * @param ordersToExecute           The orders to execute.  This is an
-     *                                  explicit version of advancedOrders 
-     *                                  without memory optimization, that 
-     *                                  provides an array of spentItems and 
-     *                                  receivedItems for fulfillment and 
+     *                                  explicit version of advancedOrders
+     *                                  without memory optimization, that
+     *                                  provides an array of spentItems and
+     *                                  receivedItems for fulfillment and
      *                                  event emission.
      *
      * @param criteriaResolvers         An array where each element contains a
@@ -114,11 +114,11 @@ contract ReferenceOrderCombiner is
      *                                  items.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders          An array of booleans indicating if each 
+     * @return availableOrders          An array of booleans indicating if each
      *                                  order with an index corresponding to the
-     *                                  index of the returned boolean was 
+     *                                  index of the returned boolean was
      *                                  fulfillable or not.
-     * @return executions               An array of elements indicating the 
+     * @return executions               An array of elements indicating the
      *                                  sequence of transfers performed as part
      *                                  of matching the given orders.
      */
@@ -374,7 +374,7 @@ contract ReferenceOrderCombiner is
             // Get the array of spentItems from the orderToExecute struct.
             SpentItem[] memory spentItems = ordersToExecute[i].spentItems;
 
-            // Get the array of spent receivedItems from the 
+            // Get the array of spent receivedItems from the
             // orderToExecute struct.
             ReceivedItem[] memory receivedItems = ordersToExecute[i]
                 .receivedItems;
@@ -404,10 +404,10 @@ contract ReferenceOrderCombiner is
      *      order formatting will cause the entire batch to fail.
      *
      * @param ordersToExecute           The orders to execute.  This is an
-     *                                  explicit version of advancedOrders 
-     *                                  without memory optimization, that 
-     *                                  provides an array of spentItems and 
-     *                                  receivedItems for fulfillment and 
+     *                                  explicit version of advancedOrders
+     *                                  without memory optimization, that
+     *                                  provides an array of spentItems and
+     *                                  receivedItems for fulfillment and
      *                                  event emission.
      *                                  Note that both the offerer and the
      *                                  fulfiller must first approve this
@@ -440,9 +440,9 @@ contract ReferenceOrderCombiner is
      *
      * @return availableOrders          An array of booleans indicating if each
      *                                  order with an index corresponding to the
-     *                                  index of the returned boolean was 
+     *                                  index of the returned boolean was
      *                                  fulfillable or not.
-     * @return executions               An array of elements indicating the 
+     * @return executions               An array of elements indicating the
      *                                  sequence of transfers performed as part
      *                                  of matching the given orders.
      */
@@ -705,7 +705,7 @@ contract ReferenceOrderCombiner is
      *                          order for the match operation to be valid.
      *
      * @return executions       An array of elements indicating the sequence of
-     *                          transfers performed as part of matching the 
+     *                          transfers performed as part of matching the
      *                          given orders.
      */
     function _matchAdvancedOrders(
