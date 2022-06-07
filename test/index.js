@@ -34,7 +34,7 @@ const {
 } = require("./utils/fixtures");
 const { deployContract } = require("./utils/contracts");
 
-const VERSION = !process.env.REFERENCE ? "1" : "rc.1";
+const VERSION = !process.env.REFERENCE ? "1.1" : "rc.1.1";
 
 const minRandom = (min) => randomBN(10).add(min);
 
