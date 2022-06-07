@@ -1020,7 +1020,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Utilize assembly to derive conduit (if relevant) based on route.
         assembly {
-            // use offerer conduit if fromOfferer, fulfiller conduit otherwise.
+            // Use offerer conduit if fromOfferer, fulfiller conduit otherwise.
             conduitKey := calldataload(
                 sub(
                     BasicOrder_fulfillerConduit_cdPtr,
