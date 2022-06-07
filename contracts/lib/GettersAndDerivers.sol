@@ -202,7 +202,10 @@ contract GettersAndDerivers is ConsiderationBase {
             mstore(considerationHeadPtr, considerationHash)
 
             // Retrieve the pointer for the counter.
-            let counterPtr := add(orderParameters, OrderParameters_counter_offset)
+            let counterPtr := add(
+                orderParameters,
+                OrderParameters_counter_offset
+            )
 
             // Store the counter at the retrieved memory location.
             mstore(counterPtr, counter)

@@ -410,7 +410,10 @@ interface SeaportInterface {
      *
      * @return counter The current counter.
      */
-    function getCounter(address offerer) external view returns (uint256 counter);
+    function getCounter(address offerer)
+        external
+        view
+        returns (uint256 counter);
 
     /**
      * @notice Retrieve configuration information for this contract.
