@@ -265,18 +265,15 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 let loadedData := mload(data)
 
                 // Sort proof elements and place them in scratch space.
-               let g := mul( gt(computedHash, loadedData), OneWord)
-               mstore(g, computedHash )
-               mstore(sub(OneWord,g), loadedData )
-               // based on https://github.com/Rari-Capital/solmate/blob/v7/src/utils/MerkleProof.sol
-               // Slot of `computedHash` in scratch space.
-               // If the condition is true: 0x20, otherwise: 0x00.
-               let scratch := shl(5, gt(computedHash, loadedData))
+                // based on https://github.com/Rari-Capital/solmate/blob/v7/src/utils/MerkleProof.sol
+                // Slot of `computedHash` in scratch space.
+                // If the condition is true: 0x20, otherwise: 0x00.
+                let scratch := shl(5, gt(computedHash, loadedData))
                
-               // Store elements to hash contiguously in scratch space.
-               // Scratch space is 64 bytes (0x00 - 0x3f) and both elements are 32 bytes.
-               mstore(scratch, computedHash)
-               mstore(xor(scratch, 0x20), loadedData)
+                // Store elements to hash contiguously in scratch space.
+                // Scratch space is 64 bytes (0x00 - 0x3f) and both elements are 32 bytes.
+                mstore(scratch, computedHash)
+                mstore(xor(scratch, 0x20), loadedData)
 
                 // Derive the updated hash.
                 computedHash := keccak256(0, TwoWords)
