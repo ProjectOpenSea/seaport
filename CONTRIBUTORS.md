@@ -45,4 +45,6 @@ PraneshASP                     | `pranesh.eth`
 JasperAlexander                |
 okkothejawa                    |
 FlameHorizon                   |
+vdrg                           |
+Ellahi                         | `ellahi.eth`
 zaz                            | `1zaz1.eth`
