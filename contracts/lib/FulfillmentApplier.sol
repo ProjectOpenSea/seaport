@@ -122,7 +122,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     .startAmount = (execution.item.amount -
                     considerationItem.amount);
             }
-            
+
             // Reuse consideration amount.
             execution.item.amount = considerationItem.amount;
         }
