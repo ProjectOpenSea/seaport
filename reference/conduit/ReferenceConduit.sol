@@ -45,12 +45,14 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         uint256 totalStandardTransfers = transfers.length;
 
         // Iterate over each standard execution.
-        for (uint256 i = 0; i < totalStandardTransfers; ++i) {
+        for (uint256 i = 0; i < totalStandardTransfers;) {
             // Retrieve the transfer in question.
             ConduitTransfer calldata standardTransfer = transfers[i];
 
             // Perform the transfer.
             _transfer(standardTransfer);
+            
+            unchecked {++i}
         }
 
         return this.execute.selector;
@@ -66,12 +68,14 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         uint256 totalBatchTransfers = batchTransfers.length;
 
         // Iterate over each batch transfer.
-        for (uint256 i = 0; i < totalBatchTransfers; ++i) {
+        for (uint256 i = 0; i < totalBatchTransfers;) {
             // Retrieve the batch transfer in question.
             ConduitBatch1155Transfer calldata batchTransfer = batchTransfers[i];
 
             // Perform the batch transfer.
             _batchTransferERC1155(batchTransfer);
+            
+            unchecked {++i}
         }
 
         return this.executeBatch1155.selector;
@@ -88,23 +92,27 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         uint256 totalStandardTransfers = standardTransfers.length;
 
         // Iterate over each standard transfer.
-        for (uint256 i = 0; i < totalStandardTransfers; ++i) {
+        for (uint256 i = 0; i < totalStandardTransfers;) {
             // Retrieve the transfer in question.
             ConduitTransfer calldata standardTransfer = standardTransfers[i];
 
             // Perform the transfer.
             _transfer(standardTransfer);
+            
+            unchecked {++i}
         }
 
         uint256 totalBatchTransfers = batchTransfers.length;
 
         // Iterate over each batch transfer.
-        for (uint256 i = 0; i < totalBatchTransfers; ++i) {
+        for (uint256 i = 0; i < totalBatchTransfers;) {
             // Retrieve the batch transfer in question.
             ConduitBatch1155Transfer calldata batchTransfer = batchTransfers[i];
 
             // Perform the batch transfer.
             _batchTransferERC1155(batchTransfer);
+            
+            unchecked {++i}
         }
 
         return this.executeWithBatch1155.selector;
