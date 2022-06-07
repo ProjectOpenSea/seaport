@@ -41,8 +41,9 @@ pragma solidity >=0.8.7;
 uint256 constant NameLengthPtr = 77;
 uint256 constant NameWithLength = 0x0d436F6E73696465726174696F6E;
 
-uint256 constant Version = 0x31;
-uint256 constant Version_length = 1;
+uint256 constant Version = 0x312e31;
+uint256 constant Version_length = 3;
+uint256 constant Version_shift = 0xe8;
 
 uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;

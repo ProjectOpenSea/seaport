@@ -327,7 +327,7 @@ contract GettersAndDerivers is ConsiderationBase {
 
         // Set the version as data on the newly allocated string.
         assembly {
-            mstore(add(version, OneWord), shl(0xf8, Version))
+            mstore(add(version, OneWord), shl(Version_shift, Version))
         }
     }
 

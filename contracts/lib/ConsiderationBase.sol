@@ -152,7 +152,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         nameHash = keccak256(bytes(_nameString()));
 
         // Derive hash of the version string of the contract.
-        versionHash = keccak256(bytes("1"));
+        versionHash = keccak256(bytes("1.1"));
 
         // Construct the OfferItem type string.
         // prettier-ignore
