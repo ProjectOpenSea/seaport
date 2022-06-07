@@ -146,7 +146,10 @@ contract GettersAndDerivers is ConsiderationBase {
                 mstore(ptr, typeHash)
 
                 // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, EIP712_ConsiderationItem_size))
+                mstore(
+                    hashArrPtr,
+                    keccak256(ptr, EIP712_ConsiderationItem_size)
+                )
 
                 // Restore the previous word.
                 mstore(ptr, value)
@@ -222,7 +225,7 @@ contract GettersAndDerivers is ConsiderationBase {
             // Restore consideration data pointer at the consideration head ptr.
             mstore(considerationHeadPtr, considerationDataPtr)
 
-            // Restore original consideration item length at the counter pointer.
+            // Restore consideration item length at the counter pointer.
             mstore(counterPtr, originalConsiderationLength)
         }
     }
