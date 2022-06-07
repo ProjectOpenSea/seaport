@@ -27,3 +27,4 @@ karmacoma                      | `karmacoma.eth`
 horsefacts                     | `horsefacts.eth`
 UncarvedBlock                  | `uncarvedblock.eth`
 Zoraiz Mahmood                 | `zorz.eth`
+Rajiv Patel-O'Connor           | `rajivpoc.eth`
