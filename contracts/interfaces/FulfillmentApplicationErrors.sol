@@ -12,7 +12,8 @@ import { Side } from "../lib/ConsiderationEnums.sol";
 interface FulfillmentApplicationErrors {
     /**
      * @dev Revert with an error when a fulfillment is provided that does not
-     *      declare at least one component as part of a call to fulfill available orders.
+     *      declare at least one component as part of a call to fulfill
+     *      available orders.
      */
     error MissingFulfillmentComponentOnAggregation(Side side);
 
