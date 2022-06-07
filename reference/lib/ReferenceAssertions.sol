@@ -38,8 +38,8 @@ contract ReferenceAssertions is
      * @dev Internal view function to to ensure that the supplied consideration
      *      array length on a given set of order parameters is not less than the
      *      original consideration array length for that order and to retrieve
-     *      the current counter for a given order's offerer and zone and use it to
-     *      derive the order hash.
+     *      the current counter for a given order's offerer and zone and use it
+     *      to  derive the order hash.
      *
      * @param orderParameters The parameters of the order to hash.
      *

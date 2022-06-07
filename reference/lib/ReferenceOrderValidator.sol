@@ -152,7 +152,7 @@ contract ReferenceOrderValidator is
             revert PartialFillsNotEnabledForOrder();
         }
 
-        // Retrieve current counter and use it w/ parameters to derive order hash.
+        // Retrieve current counter and use it w/ parameters to get order hash.
         orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
 
         // Ensure a valid submitter.
