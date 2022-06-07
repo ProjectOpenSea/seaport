@@ -32,3 +32,4 @@ tserg                          | `tserg.eth`
 cygaar                         | `cygaar.eth`
 Meta0xNull                     | `meta0xnull.eth`
 sach1r0                        |
+Matt Solomon                   | `msolomon.eth`
