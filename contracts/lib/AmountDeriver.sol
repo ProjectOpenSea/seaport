@@ -10,7 +10,7 @@ import {
  * @title AmountDeriver
  * @author 0age
  * @notice AmountDeriver contains pure functions related to deriving item
- *         amounts based on partial fill quantity and on linear extrapolation
+ *         amounts based on partial fill quantity and on linear interpolation
  *         based on current time when the start amount and end amount differ.
  */
 contract AmountDeriver is AmountDerivationErrors {
@@ -18,7 +18,7 @@ contract AmountDeriver is AmountDerivationErrors {
      * @dev Internal pure function to derive the current amount of a given item
      *      based on the current price, the starting price, and the ending
      *      price. If the start and end prices differ, the current price will be
-     *      extrapolated on a linear basis.
+     *      interpolated on a linear basis.
      *
      * @param startAmount The starting amount of the item.
      * @param endAmount   The ending amount of the item.
@@ -150,7 +150,7 @@ contract AmountDeriver is AmountDerivationErrors {
             // Apply fraction to end amount.
             amount = _getFraction(numerator, denominator, endAmount);
         } else {
-            // Otherwise, apply fraction to both and extrapolate final amount.
+            // Otherwise, apply fraction to both and interpolated final amount.
             amount = _locateCurrentAmount(
                 _getFraction(numerator, denominator, startAmount),
                 _getFraction(numerator, denominator, endAmount),
