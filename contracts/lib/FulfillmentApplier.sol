@@ -406,7 +406,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Update error buffer (1 = zero amount, 2 = overflow).
+                // Update error buffer (1 = zero amount, 2 = overflow, 3 = both).
                 errorBuffer := or(
                   errorBuffer,
                   or(
@@ -698,7 +698,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Update error buffer (1 = zero amount, 2 = overflow).
+                // Update error buffer (1 = zero amount, 2 = overflow, 3 = both).
                 errorBuffer := or(
                   errorBuffer,
                   or(
