@@ -641,7 +641,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             for (
                 uint256 recipientCount = 0;
                 recipientCount < parameters.additionalRecipients.length;
-                recipientCount++
+                ++recipientCount
             ) {
                 // Get the next additionalRecipient.
                 AdditionalRecipient memory additionalRecipient = (
@@ -712,7 +712,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 uint256 additionalTips = parameters
                     .totalOriginalAdditionalRecipients;
                 additionalTips < parameters.additionalRecipients.length;
-                additionalTips++
+                ++additionalTips
             ) {
                 // Get the next additionalRecipient.
                 AdditionalRecipient memory additionalRecipient = (
