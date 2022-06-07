@@ -51,7 +51,7 @@ interface ConduitInterface {
      * @param channel The channel that has been updated.
      * @param open    A boolean indicating whether the conduit is open or not.
      */
-    event ChannelUpdated(address channel, bool open);
+    event ChannelUpdated(address indexed channel, bool open);
 
     /**
      * @notice Execute a sequence of ERC20/721/1155 transfers. Only a caller
