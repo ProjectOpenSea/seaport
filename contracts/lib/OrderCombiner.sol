@@ -577,9 +577,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Retrieve the length of the advanced orders array and place on stack.
         uint256 totalOrders = advancedOrders.length;
 
-        // Retrieve the length of the executions array and place on stack.
-        uint256 totalExecutions = executions.length;
-
         // Initialize array for tracking available orders.
         availableOrders = new bool[](totalOrders);
 
@@ -624,6 +621,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
+
+        // Retrieve the length of the executions array and place on stack.
+        uint256 totalExecutions = executions.length;
 
         // Initialize an accumulator array. From this point forward, no new
         // memory regions can be safely allocated until the accumulator is no
