@@ -185,7 +185,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 execution.conduitKey = fulfillerConduitKey;
             }
 
-            // Set the offerer and receipient to null address if execution
+            // Set the offerer and recipient to null address if execution
             // amount is zero. This will cause the execution item to be skipped.
             if (execution.item.amount == 0) {
                 execution.offerer = address(0);
@@ -406,7 +406,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Update error buffer (1 = zero amount, 2 = overflow).
+                // Update error buffer (1 = zero amount, 2 = overflow, 3 = both).
                 errorBuffer := or(
                   errorBuffer,
                   or(
@@ -698,7 +698,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Update error buffer (1 = zero amount, 2 = overflow).
+                // Update error buffer (1 = zero amount, 2 = overflow, 3 = both).
                 errorBuffer := or(
                   errorBuffer,
                   or(
