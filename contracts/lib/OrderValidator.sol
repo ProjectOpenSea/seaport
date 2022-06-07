@@ -224,13 +224,13 @@ contract OrderValidator is Executor, ZoneInteraction {
             }
 
             // Increment the filled numerator by the new numerator.
-            filledNumerator += numerator;
+            numerator += filledNumerator;
 
             // Use assembly to ensure fractional amounts are below max uint120.
             assembly {
                 // Check filledNumerator and denominator for uint120 overflow.
                 if or(
-                    gt(filledNumerator, MaxUint120),
+                    gt(numerator, MaxUint120),
                     gt(denominator, MaxUint120)
                 ) {
                     // Derive greatest common divisor using euclidean algorithm.
@@ -248,7 +248,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     }
                     let scaleDown := gcd(
                         numerator,
-                        gcd(filledNumerator, denominator)
+                        gcd(numerator, denominator)
                     )
 
                     // Note: this may not be necessary — need to validate.
@@ -261,7 +261,7 @@ contract OrderValidator is Executor, ZoneInteraction {
 
                     // Perform the overflow check a second time.
                     if or(
-                        gt(filledNumerator, MaxUint120),
+                        gt(numerator, MaxUint120),
                         gt(denominator, MaxUint120)
                     ) {
                         // Store the Panic error signature.
@@ -280,7 +280,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Update order status and fill amount, packing struct values.
                 _orderStatus[orderHash].isValidated = true;
                 _orderStatus[orderHash].isCancelled = false;
-                _orderStatus[orderHash].numerator = uint120(filledNumerator);
+                _orderStatus[orderHash].numerator = uint120(numerator);
                 _orderStatus[orderHash].denominator = uint120(denominator);
             }
         } else {
