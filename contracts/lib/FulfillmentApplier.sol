@@ -101,7 +101,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 advancedOrders[targetComponent.orderIndex]
                     .parameters
                     .consideration[targetComponent.itemIndex]
-                    .startAmount = considerationItem.amount - execution.item.amount;
+                    .startAmount =
+                    considerationItem.amount -
+                    execution.item.amount;
             }
 
             // Reduce total consideration amount to equal the offer amount.
