@@ -51,7 +51,7 @@ contract AmountDeriver is AmountDerivationErrors {
                 }
             }
 
-            // Aggregate new amounts weighted by time with rounding factor
+            // Aggregate new amounts weighted by time with rounding factor.
             // prettier-ignore
             uint256 totalBeforeDivision = (
                 (startAmount * remaining) + (endAmount * elapsed) + extraCeiling
