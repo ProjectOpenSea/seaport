@@ -35,7 +35,7 @@ pragma solidity >=0.8.7;
 
 // Declare constant for errors related to amount derivation.
 
-// error InexactFraction()
+// error InexactFraction() @ AmountDerivationErrors.sol
 uint256 constant InexactFraction_error_signature = (
     0xc63cf08900000000000000000000000000000000000000000000000000000000
 );
