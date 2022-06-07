@@ -500,7 +500,7 @@ contract BaseOrderTest is
      */
     function getOrderComponents(
         OrderParameters memory parameters,
-        uint256 nonce
+        uint256 counter
     ) internal pure returns (OrderComponents memory) {
         return
             OrderComponents(
@@ -514,7 +514,7 @@ contract BaseOrderTest is
                 parameters.zoneHash,
                 parameters.salt,
                 parameters.conduitKey,
-                nonce
+                counter
             );
     }
 
