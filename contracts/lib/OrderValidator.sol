@@ -195,7 +195,8 @@ contract OrderValidator is Executor, ZoneInteraction {
         uint256 filledNumerator = orderStatus.numerator;
         uint256 filledDenominator = orderStatus.denominator;
 
-        // If order currently has a non-zero denominator it is partially filled.
+        // If order (orderStatus) currently has a non-zero denominator it is
+        // partially filled.
         if (filledDenominator != 0) {
             // If denominator of 1 supplied, fill all remaining amount on order.
             if (denominator == 1) {
