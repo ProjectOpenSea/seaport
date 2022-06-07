@@ -250,8 +250,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // Retrieve array of offer items for the order in question.
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
 
+                // Read length of offer array and place on the stack.
+                uint256 totalOffers = offer.length;
+
                 // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < offer.length; ++j) {
+                for (uint256 j = 0; j < totalOffers; ++j) {
                     // Retrieve the offer item.
                     OfferItem memory offerItem = offer[j];
 
@@ -294,8 +297,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     advancedOrder.parameters.consideration
                 );
 
+                // Read length of consideration array and place on the stack.
+                uint256 totalConsiderations = consideration.length;
+
                 // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < consideration.length; ++j) {
+                for (uint256 j = 0; j < totalConsiderations; ++j) {
                     // Retrieve the consideration item.
                     ConsiderationItem memory considerationItem = (
                         consideration[j]
@@ -571,6 +577,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Retrieve the length of the advanced orders array and place on stack.
         uint256 totalOrders = advancedOrders.length;
 
+        // Retrieve the length of the executions array and place on stack.
+        uint256 totalExecutions = executions.length;
+
         // Initialize array for tracking available orders.
         availableOrders = new bool[](totalOrders);
 
@@ -597,8 +606,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     advancedOrder.parameters.consideration
                 );
 
+                // Read length of consideration array and place on the stack.
+                uint256 totalConsiderations = consideration.length;
+
                 // Iterate over each consideration item to ensure it is met.
-                for (uint256 j = 0; j < consideration.length; ++j) {
+                for (uint256 j = 0; j < totalConsiderations; ++j) {
                     // Retrieve remaining amount on the consideration item.
                     uint256 unmetAmount = consideration[j].startAmount;
 
@@ -621,7 +633,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         bytes memory accumulator = new bytes(AccumulatorDisarmed);
 
         // Iterate over each execution.
-        for (uint256 i = 0; i < executions.length; ) {
+        for (uint256 i = 0; i < totalExecutions; ) {
             // Retrieve the execution and the associated received item.
             Execution memory execution = executions[i];
             ReceivedItem memory item = execution.item;
