@@ -668,7 +668,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
     function partialFulfillDenominatorOverflowEthToErc1155(
         Context memory context
     ) external stateless {
-        // mint 100 tokens to alice
+        // Mint 100 tokens to alice.
         test1155_1.mint(alice, 1, 100);
 
         _configureERC1155OfferItem(1, 100);
@@ -701,7 +701,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             assertEq(totalSize, 0);
         }
 
-        // aggregate orders in AdvancedOrder array
+        // Aggregate the orders in an AdvancedOrder array.
         AdvancedOrder[] memory orders = new AdvancedOrder[](2);
         orders[0] = AdvancedOrder(
             baseOrderParameters,
@@ -712,19 +712,19 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         );
         orders[1] = AdvancedOrder(baseOrderParameters, 1, 10, signature, "");
 
-        // aggregate erc1155 offers together
+        // Aggregate the erc1155 offers together.
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        // aggregate eth considerations together
+        // Aggregate the eth considerations together.
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
         resetConsiderationComponents();
 
-        // Create an order to fulfill half of the original offer.
+        // Pass in the AdvancedOrder array and fulfill both partially-fulfillable orders.
         context.consideration.fulfillAvailableAdvancedOrders{ value: 60 }(
             orders,
             new CriteriaResolver[](0),
@@ -735,7 +735,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             100
         );
 
-        // Assert six-tenths of the order has been fulfilled.
+        // Assert six-tenths of the offer has been fulfilled.
         {
             (
                 bool isValidated,
