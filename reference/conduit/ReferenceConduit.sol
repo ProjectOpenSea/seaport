@@ -52,6 +52,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
             // Perform the transfer.
             _transfer(standardTransfer);
             
+            // check i to prevents overflow.
             unchecked {++i}
         }
 
@@ -75,6 +76,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
             // Perform the batch transfer.
             _batchTransferERC1155(batchTransfer);
             
+            // check i to prevents overflow.
             unchecked {++i}
         }
 
@@ -99,6 +101,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
             // Perform the transfer.
             _transfer(standardTransfer);
             
+            // check i to prevents overflow.
             unchecked {++i}
         }
 
@@ -112,6 +115,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
             // Perform the batch transfer.
             _batchTransferERC1155(batchTransfer);
             
+            // check i to prevents overflow.
             unchecked {++i}
         }
 
