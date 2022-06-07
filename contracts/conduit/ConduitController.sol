@@ -10,6 +10,8 @@ import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 import { Conduit } from "./Conduit.sol";
 
+import { AssemblyCastToUint256 } from "../lib/AssemblyCastToUint256.sol";
+
 /**
  * @title ConduitController
  * @author 0age
@@ -17,7 +19,7 @@ import { Conduit } from "./Conduit.sol";
  *         contracts that allow registered callers (or open "channels") to
  *         transfer approved ERC20/721/1155 tokens on their behalf.
  */
-contract ConduitController is ConduitControllerInterface {
+contract ConduitController is ConduitControllerInterface, AssemblyCastToUint256 {
     // Register keys, owners, new potential owners, and channels by conduit.
     mapping(address => ConduitProperties) internal _conduits;
 
@@ -199,7 +201,7 @@ contract ConduitController is ConduitControllerInterface {
         _assertCallerIsConduitOwner(conduit);
 
         // Ensure the new potential owner is not an invalid address.
-        if (newPotentialOwner == address(0)) {
+        if (toUint256(newPotentialOwner) == 0) {
             revert NewPotentialOwnerIsZeroAddress(conduit);
         }
 
@@ -249,7 +251,7 @@ contract ConduitController is ConduitControllerInterface {
         _assertConduitExists(conduit);
 
         // If caller does not match current potential owner of the conduit...
-        if (msg.sender != _conduits[conduit].potentialOwner) {
+        if (toUint256(msg.sender) != toUint256(_conduits[conduit].potentialOwner)) {
             // Revert, indicating that caller is not current potential owner.
             revert CallerIsNotNewPotentialOwner(conduit);
         }
@@ -497,7 +499,7 @@ contract ConduitController is ConduitControllerInterface {
         _assertConduitExists(conduit);
 
         // If the caller does not match the current owner of the conduit...
-        if (msg.sender != _conduits[conduit].owner) {
+        if (toUint256(msg.sender) != toUint256(_conduits[conduit].owner)) {
             // Revert, indicating that the caller is not the owner.
             revert CallerIsNotOwner(conduit);
         }

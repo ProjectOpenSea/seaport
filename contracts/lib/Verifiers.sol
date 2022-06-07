@@ -73,7 +73,7 @@ contract Verifiers is Assertions, SignatureVerification {
         bytes memory signature
     ) internal view {
         // Skip signature verification if the offerer is the caller.
-        if (offerer == msg.sender) {
+        if (toUint256(offerer) == toUint256(msg.sender)) {
             return;
         }
 

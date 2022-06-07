@@ -12,12 +12,14 @@ import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
 import "./ConsiderationConstants.sol";
 
+import { AssemblyCastToUint256 } from "../lib/AssemblyCastToUint256.sol";
+
 /**
  * @title SignatureVerification
  * @author 0age
  * @notice SignatureVerification contains logic for verifying signatures.
  */
-contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
+contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers, AssemblyCastToUint256 {
     /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
@@ -94,7 +96,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         if (recoveredSigner == address(0)) {
             revert InvalidSignature();
             // Should a signer be recovered, but it doesn't match the signer...
-        } else if (recoveredSigner != signer) {
+        } else if (toUint256(recoveredSigner) != toUint256(signer)) {
             // Attempt EIP-1271 static call to signer in case it's a contract.
             _assertValidEIP1271Signature(signer, digest, signature);
         }

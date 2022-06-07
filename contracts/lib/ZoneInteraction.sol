@@ -17,12 +17,14 @@ import {
 
 import { LowLevelHelpers } from "./LowLevelHelpers.sol";
 
+import { AssemblyCastToUint256 } from "../lib/AssemblyCastToUint256.sol";
+
 /**
  * @title ZoneInteraction
  * @author 0age
  * @notice ZoneInteraction contains logic related to interacting with zones.
  */
-contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
+contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers, AssemblyCastToUint256 {
     /**
      * @dev Internal view function to determine if an order has a restricted
      *      order type and, if so, to ensure that either the offerer or the zone
@@ -45,8 +47,8 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
             uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
+            toUint256(msg.sender) != toUint256(zone) &&
+            toUint256(msg.sender) != toUint256(offerer)
         ) {
             // Perform minimal staticcall to the zone.
             _callIsValidOrder(zone, orderHash, offerer, zoneHash);
@@ -114,8 +116,8 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
         // Order type 2-3 require zone or offerer be caller or zone to approve.
         if (
             uint256(orderType) > 1 &&
-            msg.sender != zone &&
-            msg.sender != offerer
+            toUint256(msg.sender) != toUint256(zone) &&
+            toUint256(msg.sender) != toUint256(offerer)
         ) {
             // If no extraData or criteria resolvers are supplied...
             if (
