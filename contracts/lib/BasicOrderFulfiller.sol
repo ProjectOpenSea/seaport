@@ -171,6 +171,10 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Transfer tokens based on the route.
         if (additionalRecipientsItemType == ItemType.NATIVE) {
+            if ((uint160(parameters.considerationToken) | parameters.considerationIdentifier) != 0) {
+                revert UnusedItemParameters();
+            }
+
             _transferIndividual721Or1155Item(
                 offeredItemType,
                 parameters.offerToken,

@@ -18,6 +18,13 @@ interface TokenTransferrerErrors {
     error MissingItemAmount();
 
     /**
+     * @dev Revert with an error when attempting to fulfill an order where an
+     *      item has the unused parameters, this includes token and identifier
+     *      for native transfers and identifier for ERC20 transfers.
+     */
+    error UnusedItemParameters();
+
+    /**
      * @dev Revert with an error when an ERC20, ERC721, or ERC1155 token
      *      transfer reverts.
      *
