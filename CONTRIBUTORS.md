@@ -46,3 +46,4 @@ JasperAlexander                |
 okkothejawa                    |
 FlameHorizon                   |
 vdrg                           |
+Ellahi                         | `ellahi.eth`
