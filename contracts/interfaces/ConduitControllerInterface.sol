@@ -26,7 +26,7 @@ interface ConduitControllerInterface {
      * @param conduit    The newly created conduit.
      * @param conduitKey The conduit key used to create the new conduit.
      */
-    event NewConduit(address conduit, bytes32 conduitKey);
+    event NewConduit(address indexed conduit, bytes32 conduitKey);
 
     /**
      * @dev Emit an event whenever conduit ownership is transferred.
