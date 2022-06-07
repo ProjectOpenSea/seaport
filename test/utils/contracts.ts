@@ -5,11 +5,11 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-export async function deployContract<C extends Contract>(
+export const deployContract = async<C extends Contract>(
   name: string,
   signer: JsonRpcSigner,
   ...args: any[]
-): Promise<C> {
+): Promise<C> => {
   const references = new Map<string, string>([
     ["Consideration", "ReferenceConsideration"],
     ["Conduit", "ReferenceConduit"],

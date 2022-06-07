@@ -111,7 +111,7 @@ export const getBasicOrderParameters = (
   ],
 });
 
-export function getOfferOrConsiderationItem<
+export const getOfferOrConsiderationItem = <
   RecipientType extends string | undefined = undefined
 >(
   itemType: number = 0,
@@ -120,7 +120,7 @@ export function getOfferOrConsiderationItem<
   startAmount: BigNumberish = 1,
   endAmount: BigNumberish = 1,
   recipient?: RecipientType
-): RecipientType extends string ? ConsiderationItem : OfferItem {
+): RecipientType extends string ? ConsiderationItem : OfferItem => {
   const offerItem: OfferItem = {
     itemType,
     token,

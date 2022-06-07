@@ -29,13 +29,13 @@ const deployConstants = require("../../../constants/constants");
 
 const VERSION = !process.env.REFERENCE ? "1" : "rc.1";
 
-export async function marketplaceFixture(
+export const marketplaceFixture = async(
   create2Factory: ImmutableCreate2FactoryInterface,
   conduitController: ConduitControllerInterface,
   conduitOne: ConduitInterface,
   chainId: number,
   owner: Wallet
-) {
+) => {
   // Deploy marketplace contract through efficient create2 factory
   const marketplaceContractFactory = await ethers.getContractFactory(
     process.env.REFERENCE ? "ReferenceConsideration" : "Seaport"
