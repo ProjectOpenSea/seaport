@@ -149,7 +149,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             revert PartialFillsNotEnabledForOrder();
         }
 
-        // Retrieve current counter and use it w/ parameters to derive order hash.
+        // Retrieve current counter & use it w/ parameters to derive order hash.
         orderHash = _assertConsiderationLengthAndGetCounterdOrderHash(
             orderParameters
         );
@@ -410,7 +410,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
 
-                // Get current counter and use it w/ params to derive order hash.
+                // Get current counter & use it w/ params to derive order hash.
                 orderHash = _assertConsiderationLengthAndGetCounterdOrderHash(
                     orderParameters
                 );

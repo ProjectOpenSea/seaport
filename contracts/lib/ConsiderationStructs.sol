@@ -131,8 +131,8 @@ struct AdditionalRecipient {
 }
 
 /**
- * @dev The full set of order components, with the exception of the counter, must
- *      be supplied when fulfilling more sophisticated orders or groups of
+ * @dev The full set of order components, with the exception of the counter,
+ *      must be supplied when fulfilling more sophisticated orders or groups of
  *      orders. The total number of original consideration items must also be
  *      supplied, as the caller may specify additional consideration items.
  */

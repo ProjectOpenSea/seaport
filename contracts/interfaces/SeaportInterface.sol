@@ -357,8 +357,8 @@ interface SeaportInterface {
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a counter. Note that only the offerer may increment
-     *         the counter.
+     *         by incrementing a counter. Note that only the offerer may
+     *         increment the counter.
      *
      * @return newCounter The new counter.
      */

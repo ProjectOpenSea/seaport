@@ -776,7 +776,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 offerer := calldataload(BasicOrder_offerer_cdPtr)
             }
 
-            // Read offerer's current counter from storage and place on the stack.
+            // Read offerer's current counter from storage and place on stack.
             uint256 counter = _getCounter(offerer);
 
             // Load order typehash from runtime code and place on stack.
@@ -811,7 +811,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     FiveWords
                 )
 
-                // Take offerer's counter retrieved from storage, write to struct.
+                // Write offerer's counter, retrieved from storage, to struct.
                 mstore(BasicOrder_order_counter_ptr, counter)
 
                 // Compute the EIP712 Order hash.
@@ -956,7 +956,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     additionalRecipients[i]
                 );
 
-                // Read ether amount to transfer to recipient and place on stack.
+                // Read ether amount to transfer to recipient & place on stack.
                 uint256 additionalRecipientAmount = additionalRecipient.amount;
 
                 // Ensure that sufficient Ether is available.
@@ -970,8 +970,8 @@ contract BasicOrderFulfiller is OrderValidator {
                     additionalRecipientAmount
                 );
 
-                // Skip underflow check as subtracted value is less than remaining.
-                // Reduce ether value available.
+                // Reduce ether value available. Skip underflow check as
+                // subtracted value is confirmed above as less than remaining.
                 etherRemaining -= additionalRecipientAmount;
             }
         }

@@ -29,7 +29,7 @@ contract CounterManager is ConsiderationEventsAndErrors, ReentrancyGuard {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
-        // No need to check for overflow; counter cannot be incremented that far.
+        // Skip overflow check as counter cannot be incremented that far.
         unchecked {
             // Increment current counter for the supplied offerer.
             newCounter = ++_counters[msg.sender];
