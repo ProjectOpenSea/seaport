@@ -48,19 +48,20 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     constructor(address conduitController) OrderCombiner(conduitController) {}
 
     /**
-     * @notice Fulfill an order offering an ERC20, ERC721, or ERC1155 item by
-     *         supplying Ether (or other native tokens), ERC20 tokens, an ERC721
+     * @notice Fulfill an order offering an ERC20 token, ERC721 item, or ERC1155 item 
+     *         by supplying Ether (or other native tokens), ERC20 tokens, an ERC721
      *         item, or an ERC1155 item as consideration. Six permutations are
-     *         supported: Native token to ERC721, Native token to ERC1155, ERC20
-     *         to ERC721, ERC20 to ERC1155, ERC721 to ERC20, and ERC1155 to
-     *         ERC20 (with native tokens supplied as msg.value). For an order to
-     *         be eligible for fulfillment via this method, it must contain a
-     *         single offer item (though that item may have a greater amount if
-     *         the item is not an ERC721). An arbitrary number of "additional
-     *         recipients" may also be supplied which will each receive native
-     *         tokens or ERC20 items from the fulfiller as consideration. Refer
-     *         to the documentation for a more comprehensive summary of how to
-     *         utilize this method and what orders are compatible with it.
+     *         supported: Native token to ERC721 item, Native token to ERC1155 item, 
+     *         ERC20 token to ERC721 item, ERC20 token to ERC1155 item, ERC721 item 
+     *         to ERC20 tokem, and ERC1155 item to ERC20 token (with native tokens 
+     *         supplied as msg.value). For an order to be eligible for fulfillment 
+     *         via this method, it must contain a single offer item (though that 
+     *         item may have a greater amount if  the item is not an ERC721).
+     *         An arbitrary number of "additional recipients" may also be supplied 
+     *         which will each receive native tokens or ERC20 items from the
+     *         fulfiller as consideration. Refer to the documentation for a more
+     *         comprehensive summary of how to utilize this method and 
+     *         what orders are compatible with it.
      *
      * @param parameters Additional information on the fulfilled order. Note
      *                   that the offerer and the fulfiller must first approve
@@ -71,7 +72,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                   items.
      *
      * @return fulfilled A boolean indicating whether the order has been
-     *                   successfully fulfilled.
+     *                   successfully fulfilled or not.
      */
     function fulfillBasicOrder(BasicOrderParameters calldata parameters)
         external
@@ -103,7 +104,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                            Consideration).
      *
      * @return fulfilled A boolean indicating whether the order has been
-     *                   successfully fulfilled.
+     *                   successfully fulfilled or not.
      */
     function fulfillOrder(Order calldata order, bytes32 fulfillerConduitKey)
         external
@@ -158,7 +159,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                            should receive the items.
      *
      * @return fulfilled A boolean indicating whether the order has been
-     *                   successfully fulfilled.
+     *                   successfully fulfilled or not.
      */
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
@@ -430,7 +431,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @param orders The orders to cancel.
      *
      * @return cancelled A boolean indicating whether the supplied orders have
-     *                   been successfully cancelled.
+     *                   been successfully cancelled or not.
      */
     function cancel(OrderComponents[] calldata orders)
         external
@@ -454,7 +455,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      * @param orders The orders to validate.
      *
      * @return validated A boolean indicating whether the supplied orders have
-     *                   been successfully validated.
+     *                   been successfully validated or not.
      */
     function validate(Order[] calldata orders)
         external
@@ -518,9 +519,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *
      * @return isValidated A boolean indicating whether the order in question
      *                     has been validated (i.e. previously approved or
-     *                     partially filled).
+     *                     partially filled) or not.
      * @return isCancelled A boolean indicating whether the order in question
-     *                     has been cancelled.
+     *                     has been cancelled or not.
      * @return totalFilled The total portion of the order that has been filled
      *                     (i.e. the "numerator").
      * @return totalSize   The total size of the order that is either filled or
