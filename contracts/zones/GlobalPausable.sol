@@ -63,7 +63,7 @@ contract GlobalPausable is ZoneInterface {
     function kill() external {
         require(msg.sender == deployer);
 
-        //There shouldn't be any eth on the zone, but in case there is, send it to the deployer address.
-        selfdestruct(payable(msg.sender));
+        //There shouldn't be any eth on the zone, but in case there is, send it to the deployer caller address.
+        selfdestruct(payable(tx.origin));
     }
 }

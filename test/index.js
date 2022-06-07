@@ -1791,6 +1791,230 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     };
   });
 
+  describe("Zone - Global Pausable", async () => {
+    it("Fulfills an order with a global pausable zone", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        //deploy GPD
+        const GPDeployer = ethers.getContractFactory("GlobalPausable");
+        const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+        await gpDeployer.deployed();
+        //deploy GP
+        const salt = !extraCheap ? randomHex() : constants.HashZero;
+        zone.address = await gpDeployer.createZone(salt);
+      });
+      //create basic order using GP as zone
+      //execute basic 721 <=> ETH order
+
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      await withBalanceChecks([order], 0, null, async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillOrder(order, toKey(false), {
+            value,
+          });
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(tx, receipt, [
+          {
+            order,
+            orderHash,
+            fulfiller: buyer.address,
+            fulfillerConduitKey: toKey(false),
+          },
+        ]);
+        return receipt;
+      });
+    });
+
+    it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        //deploy GPD
+        const GPDeployer = ethers.getContractFactory("GlobalPausable");
+        const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+        await gpDeployer.deployed();
+        //deploy GP
+        const salt = !extraCheap ? randomHex() : constants.HashZero;
+        zone.address = await gpDeployer.createZone(salt);
+      });
+      //create basic order using GP as zone
+      //execute basic 721 <=> ETH order
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      //owner nukes the zone
+      await whileImpersonating(owner.address, provider, async () => {
+        gpDeployer.kill(zone.address);
+      });
+
+      await withBalanceChecks([order], 0, null, async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .fulfillOrder(order, toKey(false), {
+            value,
+          })
+          .to.be.reverted();
+      });
+    });
+
+    it("Reverts if non-owner tries to self destruct the zone", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        //deploy GPD
+        const GPDeployer = ethers.getContractFactory("GlobalPausable");
+        const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+        await gpDeployer.deployed();
+        //deploy GP
+        const salt = !extraCheap ? randomHex() : constants.HashZero;
+        zone.address = await gpDeployer.createZone(salt);
+      });
+
+      //non owner tries to use GPD to nuke the zone, reverts
+      await whileImpersonating(testERC20.address, provider, async () => {
+        gpDeployer.kill(zone.address).to.be.reverted();
+      });
+    });
+
+    it("Zone can cancel restricted orders.", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        //deploy GPD
+        const GPDeployer = ethers.getContractFactory("GlobalPausable");
+        const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+        await gpDeployer.deployed();
+        //deploy GP
+        const salt = !extraCheap ? randomHex() : constants.HashZero;
+        zone.address = await gpDeployer.createZone(salt);
+      });
+
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        stubZone,
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED
+      );
+
+      await withBalanceChecks([order], 0, null, async () => {
+        const tx = marketplaceContract.connect(zone).cancel(order);
+      });
+    });
+
+    it("Reverts if non-Zone tries to cancel restricted orders.", async () => {
+      await whileImpersonating(owner.address, provider, async () => {
+        //deploy GPD
+        const GPDeployer = ethers.getContractFactory("GlobalPausable");
+        const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+        await gpDeployer.deployed();
+        //deploy GP
+        const salt = !extraCheap ? randomHex() : constants.HashZero;
+        zone.address = await gpDeployer.createZone(salt);
+      });
+
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        stubZone,
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED
+      );
+
+      await withBalanceChecks([order], 0, null, async () => {
+        const tx = marketplaceContract
+          .connect(buyer)
+          .cancel(order)
+          .to.be.reverted();
+      });
+    });
+  });
+
+  describe("Zone - Global Pausable Deployer", async () => {
+    it("Lets the Zone Deployer owner transfer ownership via a two-stage process", async () => {});
+
+    await whileImpersonating(owner.address, provider, async () => {
+      //deploy GPD
+      const GPDeployer = ethers.getContractFactory("GlobalPausable");
+      const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+      await gpDeployer.deployed();
+      //deploy GP
+      const salt = !extraCheap ? randomHex() : constants.HashZero;
+      zone.address = await gpDeployer.createZone(salt);
+    });
+
+    //just get any random address as the next potential owner.
+    const potentialOwner = buyer;
+
+    await gpDeployer.connect(owner).transferOwnership(potentialOwner.address);
+
+    await gpDeployer.connect(owner).cancelOwnershipTransfer();
+
+    await gpDeployer.connect(owner).transferOwnership(potentialOwner.address);
+
+    await gpDeployer.connect(buyer).acceptOwnership();
+
+    const ownerOf = await expect(ownerOf).to.equal(buyer.address);
+  });
+
   describe("Getter tests", async () => {
     it("gets correct name", async () => {
       const name = await marketplaceContract.name();

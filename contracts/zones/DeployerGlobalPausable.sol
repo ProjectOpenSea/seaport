@@ -25,7 +25,10 @@ contract DeployerGlobalPausable {
     }
 
     //Deploy a GlobalPausable at. Should be an efficient address
-    function createZone(bytes32 salt) external {
+    function createZone(bytes32 salt)
+        external
+        returns (address derivedAddress)
+    {
         require(msg.sender == deployerOwner);
 
         // This complicated expression just tells you how the address
@@ -56,8 +59,10 @@ contract DeployerGlobalPausable {
     }
 
     //pause Seaport by self destructing GlobalPausable
-    function killSwitch(address) external returns (bool) {
+    function killSwitch(address _zone) external returns (bool) {
         require(msg.sender == deployerOwner);
+        GlobalPausable zone = GlobalPausable(_zone);
+        zone.kill();
     }
 
     function cancelOrderZone(
