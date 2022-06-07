@@ -57,8 +57,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
     }
 
     /**
-     * @dev Creates a mapping of BasicOrderType Enums to BasicOrderRouteType Enums
-     *      and BasicOrderType Enums to OrderType Enums
+     * @dev Creates a mapping of BasicOrderType Enums to BasicOrderRouteType
+     * Enums and BasicOrderType Enums to OrderType Enums
      */
     function createMappings() internal {
         // BasicOrderType to BasicOrderRouteType
@@ -572,7 +572,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         // Memory to store hashes.
         BasicFulfillmentHashes memory hashes;
 
-        // Store ItemType/Token parameters in a struct in memory to avoid stack issues.
+        // Store ItemType/Token parameters in a struct in memory to avoid stack 
+        // issues.
         FulfillmentItemTypes memory fulfillmentItemTypes = FulfillmentItemTypes(
             orderType,
             receivedItemType,
@@ -620,7 +621,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 )
             );
 
-            // Declare memory for additionalReceivedItem, additionalRecipientItem.
+            // Declare memory for additionalReceivedItem and
+            // additionalRecipientItem.
             ReceivedItem memory additionalReceivedItem;
             ConsiderationItem memory additionalRecipientItem;
 
@@ -671,7 +673,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                     continue;
                 }
 
-                // Create a new consideration item for each additional recipient.
+                // Create a new consideration item for each additional 
+                // recipient.
                 additionalRecipientItem = ConsiderationItem(
                     fulfillmentItemTypes.additionalRecipientsItemType,
                     fulfillmentItemTypes.additionalRecipientsToken,
@@ -762,7 +765,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                         offerItem.token,
                         offerItem.identifier,
                         offerItem.amount,
-                        offerItem.amount // Assembly uses OfferItem instead of SpentItem.
+                        // Assembly uses OfferItem instead of SpentItem.
+                        offerItem.amount 
                     )
                 )
             ];
@@ -880,9 +884,10 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
      * @param erc20Token            The ERC20 token to transfer.
      * @param amount                The amount of ERC20 tokens to transfer.
      * @param parameters            The parameters of the order.
-     * @param fromOfferer           Whether to decrement amount from the offered amount.
-     * @param accumulatorStruct     A struct containing conduit transfer data and its
-     *                              corresponding conduitKey.
+     * @param fromOfferer           Whether to decrement amount from the 
+     *                              offered amount.
+     * @param accumulatorStruct     A struct containing conduit transfer data 
+     *                              and its corresponding conduitKey.
      */
     function _transferERC20AndFinalize(
         address from,

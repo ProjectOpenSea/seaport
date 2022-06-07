@@ -52,7 +52,8 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
     }
 
     /**
-     * @dev Internal view function to derive the EIP-712 hash for a consideration item.
+     * @dev Internal view function to derive the EIP-712 hash for a 
+     *      consideration item.
      *
      * @param considerationItem The consideration item to hash.
      *
