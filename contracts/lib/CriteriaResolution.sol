@@ -265,15 +265,9 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 let loadedData := mload(data)
 
                 // Sort proof elements and place them in scratch space.
-                switch gt(computedHash, loadedData)
-                case 0 {
-                    mstore(0, computedHash) // Place existing hash first.
-                    mstore(OneWord, loadedData) // Place new hash next.
-                }
-                default {
-                    mstore(0, loadedData) // Place new hash first.
-                    mstore(OneWord, computedHash) // Place existing hash next.
-                }
+               let g := mul( gt(computedHash, loadedData), 0x20)
+               mstore(g, computedHash )
+               mstore(sub(0x20,g), loadedData )
 
                 // Derive the updated hash.
                 computedHash := keccak256(0, TwoWords)
