@@ -128,7 +128,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
     /**
      * @dev Internal function to transfer a given item.
      *
-     * @param item     The item to transfer, including an amount and recipient.
+     * @param item The item to transfer, including an amount and recipient.
      */
     function _transfer(ConduitTransfer calldata item) internal {
         // If the item type indicates Ether or a native token...
