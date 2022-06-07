@@ -29,13 +29,13 @@ const deployConstants = require("../../../constants/constants");
 
 const VERSION = !process.env.REFERENCE ? "1" : "rc.1";
 
-export async function marketplaceFixture(
+export const marketplaceFixture = async(
   create2Factory: ImmutableCreate2FactoryInterface,
   conduitController: ConduitControllerInterface,
   conduitOne: ConduitInterface,
   chainId: number,
   owner: Wallet
-) {
+) => {
   // Deploy marketplace contract through efficient create2 factory
   const marketplaceContractFactory = await ethers.getContractFactory(
     process.env.REFERENCE ? "ReferenceConsideration" : "Seaport"
@@ -134,7 +134,7 @@ export async function marketplaceFixture(
     conduitKey = constants.HashZero,
     extraCheap = false
   ) => {
-    const nonce = await marketplaceContract.getNonce(offerer.address);
+    const counter = await marketplaceContract.getCounter(offerer.address);
 
     const salt = !extraCheap ? randomHex() : constants.HashZero;
     const startTime =
@@ -160,7 +160,7 @@ export async function marketplaceFixture(
 
     const orderComponents = {
       ...orderParameters,
-      nonce,
+      counter,
     };
 
     const orderHash = await getAndVerifyOrderHash(orderComponents);
@@ -224,7 +224,7 @@ export async function marketplaceFixture(
     order: AdvancedOrder,
     conduitKey = constants.HashZero
   ) => {
-    const nonce = await marketplaceContract.getNonce(offerer.address);
+    const counter = await marketplaceContract.getCounter(offerer.address);
     const salt = randomHex();
     const startTime = order.parameters.startTime;
     const endTime = order.parameters.endTime;
@@ -328,7 +328,7 @@ export async function marketplaceFixture(
 
     const orderComponents = {
       ...orderParameters,
-      nonce,
+      counter,
     };
 
     const flatSig = await signOrder(orderComponents, offerer);
@@ -368,7 +368,7 @@ export async function marketplaceFixture(
     criteriaResolvers: CriteriaResolver[] = [],
     conduitKey = constants.HashZero
   ) => {
-    const nonce = await marketplaceContract.getNonce(offerer.address);
+    const counter = await marketplaceContract.getCounter(offerer.address);
     const salt = randomHex();
     const startTime = order.parameters.startTime;
     const endTime = order.parameters.endTime;
@@ -430,7 +430,7 @@ export async function marketplaceFixture(
 
     const orderComponents = {
       ...orderParameters,
-      nonce,
+      counter,
     };
 
     const flatSig = await signOrder(orderComponents as any, offerer);

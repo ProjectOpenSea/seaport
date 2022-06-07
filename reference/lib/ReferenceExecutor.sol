@@ -433,7 +433,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
 
         // If the conduit does not have runtime code (i.e. is not deployed)...
         if (conduit.code.length == 0) {
-            // Revert with an error indicating an invalud conduit.
+            // Revert with an error indicating an invalid conduit.
             revert InvalidConduit(conduitKey, conduit);
         }
     }

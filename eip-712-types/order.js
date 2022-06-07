@@ -10,7 +10,7 @@ const orderType = {
     { name: "zoneHash", type: "bytes32" },
     { name: "salt", type: "uint256" },
     { name: "conduitKey", type: "bytes32" },
-    { name: "nonce", type: "uint256" },
+    { name: "counter", type: "uint256" },
   ],
   OfferItem: [
     { name: "itemType", type: "uint8" },

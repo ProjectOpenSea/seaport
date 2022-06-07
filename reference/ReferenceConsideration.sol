@@ -515,19 +515,19 @@ contract ReferenceConsideration is
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer may increment
-     *         the nonce.
+     *         by incrementing a counter. Note that only the offerer may increment
+     *         the counter.
      *
-     * @return newNonce The new nonce.
+     * @return newCounter The new counter.
      */
-    function incrementNonce()
+    function incrementCounter()
         external
         override
         notEntered
-        returns (uint256 newNonce)
+        returns (uint256 newCounter)
     {
-        // Increment current nonce for the supplied offerer.
-        newNonce = _incrementNonce();
+        // Increment current counter for the supplied offerer.
+        newCounter = _incrementCounter();
     }
 
     /**
@@ -543,7 +543,7 @@ contract ReferenceConsideration is
         override
         returns (bytes32 orderHash)
     {
-        // Derive order hash by supplying order parameters along with the nonce.
+        // Derive order hash by supplying order parameters along with the counter.
         // prettier-ignore
         orderHash = _deriveOrderHash(
             OrderParameters(
@@ -559,7 +559,7 @@ contract ReferenceConsideration is
                 order.conduitKey,
                 order.consideration.length
             ),
-            order.nonce
+            order.counter
         );
     }
 
@@ -596,20 +596,20 @@ contract ReferenceConsideration is
     }
 
     /**
-     * @notice Retrieve the current nonce for a given offerer.
+     * @notice Retrieve the current counter for a given offerer.
      *
      * @param offerer The offerer in question.
      *
-     * @return nonce The current nonce.
+     * @return counter The current counter.
      */
-    function getNonce(address offerer)
+    function getCounter(address offerer)
         external
         view
         override
-        returns (uint256 nonce)
+        returns (uint256 counter)
     {
-        // Return the nonce for the supplied offerer.
-        nonce = _getNonce(offerer);
+        // Return the counter for the supplied offerer.
+        counter = _getCounter(offerer);
     }
 
     /**

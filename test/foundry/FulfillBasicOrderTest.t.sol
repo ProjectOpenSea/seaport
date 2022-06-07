@@ -126,8 +126,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             context.args.salt,
             bytes32(0)
         );
-        uint256 nonce = context.consideration.getNonce(alice);
-        orderComponents.nonce = nonce;
+        uint256 counter = context.consideration.getCounter(alice);
+        orderComponents.counter = counter;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -152,8 +152,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             context.args.salt,
             bytes32(0)
         );
-        uint256 nonce = context.consideration.getNonce(alice);
-        orderComponents.nonce = nonce;
+        uint256 counter = context.consideration.getCounter(alice);
+        orderComponents.counter = counter;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -180,8 +180,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             context.args.salt,
             bytes32(0)
         );
-        uint256 nonce = context.consideration.getNonce(alice);
-        orderComponents.nonce = nonce;
+        uint256 counter = context.consideration.getCounter(alice);
+        orderComponents.counter = counter;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -205,8 +205,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             context.args.salt,
             bytes32(0)
         );
-        uint256 nonce = context.consideration.getNonce(alice);
-        orderComponents.nonce = nonce;
+        uint256 counter = context.consideration.getCounter(alice);
+        orderComponents.counter = counter;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -307,6 +307,6 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         orderComponents.zoneHash = zoneHash;
         orderComponents.salt = salt;
         orderComponents.conduitKey = conduitKey;
-        // don't set nonce
+        // don't set counter
     }
 }

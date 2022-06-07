@@ -293,7 +293,7 @@ interface ConsiderationInterface {
      *                          indicated by the order) to transfer any relevant
      *                          tokens on their behalf and each consideration
      *                          recipient must implement `onERC1155Received` in
-     *                          order toreceive ERC1155 tokens. Also note that
+     *                          order to receive ERC1155 tokens. Also note that
      *                          the offer and consideration components for each
      *                          order must have no remainder after multiplying
      *                          the respective amount with the supplied fraction
@@ -358,12 +358,12 @@ interface ConsiderationInterface {
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer may increment
-     *         the nonce.
+     *         by incrementing a counter. Note that only the offerer may
+     *         increment the counter.
      *
-     * @return newNonce The new nonce.
+     * @return newCounter The new counter.
      */
-    function incrementNonce() external returns (uint256 newNonce);
+    function incrementCounter() external returns (uint256 newCounter);
 
     /**
      * @notice Retrieve the order hash for a given order.
@@ -405,13 +405,16 @@ interface ConsiderationInterface {
         );
 
     /**
-     * @notice Retrieve the current nonce for a given offerer.
+     * @notice Retrieve the current counter for a given offerer.
      *
      * @param offerer The offerer in question.
      *
-     * @return nonce The current nonce.
+     * @return counter The current counter.
      */
-    function getNonce(address offerer) external view returns (uint256 nonce);
+    function getCounter(address offerer)
+        external
+        view
+        returns (uint256 counter);
 
     /**
      * @notice Retrieve configuration information for this contract.
