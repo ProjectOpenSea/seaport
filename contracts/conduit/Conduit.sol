@@ -69,11 +69,9 @@ contract Conduit is ConduitInterface, TokenTransferrer {
 
         // Iterate over each transfer.
         for (uint256 i = 0; i < totalStandardTransfers; ) {
-            // Retrieve the transfer in question.
-            ConduitTransfer calldata standardTransfer = transfers[i];
 
             // Perform the transfer.
-            _transfer(standardTransfer);
+            _transfer(transfers[i]);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -144,11 +142,9 @@ contract Conduit is ConduitInterface, TokenTransferrer {
 
         // Iterate over each standard transfer.
         for (uint256 i = 0; i < totalStandardTransfers; ) {
-            // Retrieve the transfer in question.
-            ConduitTransfer calldata standardTransfer = standardTransfers[i];
 
             // Perform the transfer.
-            _transfer(standardTransfer);
+            _transfer(standardTransfers[i]);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {

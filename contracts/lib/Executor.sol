@@ -78,7 +78,7 @@ contract Executor is Verifiers, TokenTransferrer {
                 from,
                 item.recipient,
                 item.identifier,
-                item.amount,
+                1,
                 conduitKey,
                 accumulator
             );
@@ -322,9 +322,7 @@ contract Executor is Verifiers, TokenTransferrer {
         // If no conduit has been specified...
         if (conduitKey == bytes32(0)) {
             // Ensure that exactly one 721 item is being transferred.
-            if (amount != 1) {
-                revert InvalidERC721TransferAmount();
-            }
+    
 
             // Perform transfer via the token contract directly.
             _performERC721Transfer(token, from, to, identifier);
