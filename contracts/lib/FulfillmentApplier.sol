@@ -31,98 +31,6 @@ import {
  */
 contract FulfillmentApplier is FulfillmentApplicationErrors {
     /**
-     * @dev Internal pure function to match offer items to consideration items
-     *      on a group of orders via a supplied fulfillment.
-     *
-     * @param advancedOrders          The orders to match.
-     * @param offerComponents         An array designating offer components to
-     *                                match to consideration components.
-     * @param considerationComponents An array designating consideration
-     *                                components to match to offer components.
-     *                                Note that each consideration amount must
-     *                                be zero in order for the match operation
-     *                                to be valid.
-     *
-     * @return execution The transfer performed as a result of the fulfillment.
-     */
-    function _applyFulfillment(
-        AdvancedOrder[] memory advancedOrders,
-        FulfillmentComponent[] calldata offerComponents,
-        FulfillmentComponent[] calldata considerationComponents
-    ) internal pure returns (Execution memory execution) {
-        // Ensure 1+ of both offer and consideration components are supplied.
-        if (
-            offerComponents.length == 0 || considerationComponents.length == 0
-        ) {
-            revert OfferAndConsiderationRequiredOnFulfillment();
-        }
-
-        // Declare a new Execution struct.
-        Execution memory considerationExecution;
-
-        // Validate & aggregate consideration items to new Execution object.
-        _aggregateValidFulfillmentConsiderationItems(
-            advancedOrders,
-            considerationComponents,
-            considerationExecution
-        );
-
-        // Retrieve the consideration item from the execution struct.
-        ReceivedItem memory considerationItem = considerationExecution.item;
-
-        // Recipient does not need to be specified because it will always be set
-        // to that of the consideration.
-        // Validate & aggregate offer items to Execution object.
-        _aggregateValidFulfillmentOfferItems(
-            advancedOrders,
-            offerComponents,
-            execution
-        );
-
-        // Ensure offer and consideration share types, tokens and identifiers.
-        if (
-            execution.item.itemType != considerationItem.itemType ||
-            execution.item.token != considerationItem.token ||
-            execution.item.identifier != considerationItem.identifier
-        ) {
-            revert MismatchedFulfillmentOfferAndConsiderationComponents();
-        }
-
-        // If total consideration amount exceeds the offer amount...
-        if (considerationItem.amount > execution.item.amount) {
-            // Retrieve the first consideration component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (
-                considerationComponents[0]
-            );
-
-            // Add excess consideration item amount to original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .consideration[targetComponent.itemIndex]
-                .startAmount = considerationItem.amount - execution.item.amount;
-
-            // Reduce total consideration amount to equal the offer amount.
-            considerationItem.amount = execution.item.amount;
-        } else {
-            // Retrieve the first offer component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (offerComponents[0]);
-
-            // Add excess offer item amount to the original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .offer[targetComponent.itemIndex]
-                .startAmount = execution.item.amount - considerationItem.amount;
-        }
-
-        // Reuse execution struct with consideration amount and recipient.
-        execution.item.amount = considerationItem.amount;
-        execution.item.recipient = considerationItem.recipient;
-
-        // Return the final execution that will be triggered for relevant items.
-        return execution; // Execution(considerationItem, offerer, conduitKey);
-    }
-
-    /**
      * @dev Internal view function to aggregate offer or consideration items
      *      from a group of orders into a single execution via a supplied array
      *      of fulfillment components. Items that are not available to aggregate
@@ -481,6 +389,98 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 throwOverflow()
             }
         }
+    }
+
+    /**
+     * @dev Internal pure function to match offer items to consideration items
+     *      on a group of orders via a supplied fulfillment.
+     *
+     * @param advancedOrders          The orders to match.
+     * @param offerComponents         An array designating offer components to
+     *                                match to consideration components.
+     * @param considerationComponents An array designating consideration
+     *                                components to match to offer components.
+     *                                Note that each consideration amount must
+     *                                be zero in order for the match operation
+     *                                to be valid.
+     *
+     * @return execution The transfer performed as a result of the fulfillment.
+     */
+    function _applyFulfillment(
+        AdvancedOrder[] memory advancedOrders,
+        FulfillmentComponent[] calldata offerComponents,
+        FulfillmentComponent[] calldata considerationComponents
+    ) internal pure returns (Execution memory execution) {
+        // Ensure 1+ of both offer and consideration components are supplied.
+        if (
+            offerComponents.length == 0 || considerationComponents.length == 0
+        ) {
+            revert OfferAndConsiderationRequiredOnFulfillment();
+        }
+
+        // Declare a new Execution struct.
+        Execution memory considerationExecution;
+
+        // Validate & aggregate consideration items to new Execution object.
+        _aggregateValidFulfillmentConsiderationItems(
+            advancedOrders,
+            considerationComponents,
+            considerationExecution
+        );
+
+        // Retrieve the consideration item from the execution struct.
+        ReceivedItem memory considerationItem = considerationExecution.item;
+
+        // Recipient does not need to be specified because it will always be set
+        // to that of the consideration.
+        // Validate & aggregate offer items to Execution object.
+        _aggregateValidFulfillmentOfferItems(
+            advancedOrders,
+            offerComponents,
+            execution
+        );
+
+        // Ensure offer and consideration share types, tokens and identifiers.
+        if (
+            execution.item.itemType != considerationItem.itemType ||
+            execution.item.token != considerationItem.token ||
+            execution.item.identifier != considerationItem.identifier
+        ) {
+            revert MismatchedFulfillmentOfferAndConsiderationComponents();
+        }
+
+        // If total consideration amount exceeds the offer amount...
+        if (considerationItem.amount > execution.item.amount) {
+            // Retrieve the first consideration component from the fulfillment.
+            FulfillmentComponent memory targetComponent = (
+                considerationComponents[0]
+            );
+
+            // Add excess consideration item amount to original array of orders.
+            advancedOrders[targetComponent.orderIndex]
+                .parameters
+                .consideration[targetComponent.itemIndex]
+                .startAmount = considerationItem.amount - execution.item.amount;
+
+            // Reduce total consideration amount to equal the offer amount.
+            considerationItem.amount = execution.item.amount;
+        } else {
+            // Retrieve the first offer component from the fulfillment.
+            FulfillmentComponent memory targetComponent = (offerComponents[0]);
+
+            // Add excess offer item amount to the original array of orders.
+            advancedOrders[targetComponent.orderIndex]
+                .parameters
+                .offer[targetComponent.itemIndex]
+                .startAmount = execution.item.amount - considerationItem.amount;
+        }
+
+        // Reuse execution struct with consideration amount and recipient.
+        execution.item.amount = considerationItem.amount;
+        execution.item.recipient = considerationItem.recipient;
+
+        // Return the final execution that will be triggered for relevant items.
+        return execution; // Execution(considerationItem, offerer, conduitKey);
     }
 
     /**

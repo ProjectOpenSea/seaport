@@ -2,10 +2,47 @@
 pragma solidity >=0.8.7;
 
 contract ExcessReturnDataRecipient {
-    uint256 revertDataSize;
+    uint256 private revertDataSize;
+
+    receive() external payable {
+        if (revertDataSize > 0) {
+            uint256 gasToCalculateSqrt = (54 * ln(gasleft())) + 1200;
+            uint256 w = (sqrt(
+                2048 * (gasleft() - gasToCalculateSqrt) + 9431040
+            ) - 3072) / 2;
+
+            assembly {
+                let size := mul(w, 32)
+                calldatacopy(0, 0, mul(w, 32))
+                revert(0, size)
+            }
+        }
+    }
 
     function setRevertDataSize(uint256 size) external {
         revertDataSize = size;
+    }
+
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external view returns (bytes4 magic) {
+        magic = this.onERC1155Received.selector;
+        if (revertDataSize > 0) {
+            uint256 gasToCalculateSqrt = (54 * ln(gasleft())) + 1200;
+            uint256 w = (sqrt(
+                2048 * (gasleft() - gasToCalculateSqrt) + 9431040
+            ) - 3072) / 4;
+
+            assembly {
+                let size := mul(w, 32)
+                calldatacopy(0, 0, mul(w, 32))
+                revert(0, size)
+            }
+        }
     }
 
     // Code created with the help of Stack Exchange question
@@ -103,43 +140,6 @@ contract ExcessReturnDataRecipient {
             }
             case 0 {
                 z := 1
-            }
-        }
-    }
-
-    function onERC1155Received(
-        address,
-        address,
-        uint256,
-        uint256,
-        bytes calldata
-    ) external view returns (bytes4 magic) {
-        magic = this.onERC1155Received.selector;
-        if (revertDataSize > 0) {
-            uint256 gasToCalculateSqrt = (54 * ln(gasleft())) + 1200;
-            uint256 w = (sqrt(
-                2048 * (gasleft() - gasToCalculateSqrt) + 9431040
-            ) - 3072) / 4;
-
-            assembly {
-                let size := mul(w, 32)
-                calldatacopy(0, 0, mul(w, 32))
-                revert(0, size)
-            }
-        }
-    }
-
-    receive() external payable {
-        if (revertDataSize > 0) {
-            uint256 gasToCalculateSqrt = (54 * ln(gasleft())) + 1200;
-            uint256 w = (sqrt(
-                2048 * (gasleft() - gasToCalculateSqrt) + 9431040
-            ) - 3072) / 2;
-
-            assembly {
-                let size := mul(w, 32)
-                calldatacopy(0, 0, mul(w, 32))
-                revert(0, size)
             }
         }
     }
