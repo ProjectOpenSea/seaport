@@ -5,12 +5,16 @@ pragma solidity >=0.8.13;
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { Merkle } from "murky/Merkle.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { OfferItem, OrderComponents, AdvancedOrder } from "../../contracts/lib/ConsiderationStructs.sol";
-import { ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
+import { CriteriaResolver, OfferItem, OrderComponents, AdvancedOrder } from "../../contracts/lib/ConsiderationStructs.sol";
+import { ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 
-contract FulfillAvailableAdvancedOrderCriteria is BaseOrderTest {
+contract FulfillAdvancedOrderCriteria is BaseOrderTest {
+    Merkle merkle = new Merkle();
+    FuzzArgs empty;
+
     struct FuzzArgs {
         uint256[8] identifiers;
+        uint8 index;
     }
 
     struct Context {
@@ -26,26 +30,56 @@ contract FulfillAvailableAdvancedOrderCriteria is BaseOrderTest {
         }
     }
 
-    function testFulfillAdvancedOrderWithCriteria(FuzzArgs memory args)
-        public
-    {}
+    function testFulfillAdvancedOrderWithCriteria(FuzzArgs memory args) public {
+        test(
+            this.fulfillAdvancedOrderWithCriteria,
+            Context(consideration, args)
+        );
+        test(
+            this.fulfillAdvancedOrderWithCriteria,
+            Context(referenceConsideration, args)
+        );
+    }
 
-    function fulfillAdvancedOrderWithCriteria(Context memory context)
-        external
-        stateless
+    function testFulfillAdvancedOrderWithCriteriaPreimage(FuzzArgs memory args)
+        public
     {
-        bytes32[] memory identifiers = new bytes32[](4);
-        for (uint256 i = 0; i < 4; i++) {
-            test721_1.mint(alice, i);
-            identifiers[i] = bytes32(i);
+        test(
+            this.fulfillAdvancedOrderWithCriteriaPreimage,
+            Context(consideration, args)
+        );
+        test(
+            this.fulfillAdvancedOrderWithCriteriaPreimage,
+            Context(referenceConsideration, args)
+        );
+    }
+
+    function prepareCriteriaOfferOrder(Context memory context)
+        internal
+        returns (
+            bytes32[] memory hashedIdentifiers,
+            AdvancedOrder memory advancedOrder
+        )
+    {
+        // create a new array to store bytes32 hashes of identifiers
+        hashedIdentifiers = new bytes32[](context.args.identifiers.length);
+        for (uint256 i = 0; i < context.args.identifiers.length; i++) {
+            // try to mint each identifier; fuzzer may include duplicates
+            try test721_1.mint(alice, context.args.identifiers[i]) {} catch (
+                bytes memory
+            ) {}
+            // hash identifier and store to generate proof
+            hashedIdentifiers[i] = keccak256(
+                abi.encode(context.args.identifiers[i])
+            );
         }
-        Merkle merkle = new Merkle();
-        bytes32 root = merkle.getRoot(identifiers);
+
+        bytes32 root = merkle.getRoot(hashedIdentifiers);
 
         addOfferItem721Criteria(address(test721_1), uint256(root));
         _configureEthConsiderationItem(alice, 1);
-
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+
         OrderComponents memory orderComponents = getOrderComponents(
             baseOrderParameters,
             context.consideration.getNonce(alice)
@@ -55,26 +89,85 @@ contract FulfillAvailableAdvancedOrderCriteria is BaseOrderTest {
             alicePk,
             context.consideration.getOrderHash(orderComponents)
         );
-        AdvancedOrder memory advancedOrder = AdvancedOrder(
-            baseOrderParameters,
-            1,
-            1,
-            signature,
-            ""
-        );
+        advancedOrder = AdvancedOrder(baseOrderParameters, 1, 1, signature, "");
+    }
 
-        context.consideration.fulfillAdvancedOrder(
+    function fulfillAdvancedOrderWithCriteria(Context memory context)
+        external
+        stateless
+    {
+        // pick a "random" index in the array of identifiers; use that identifier
+        context.args.index = context.args.index % 8;
+        uint256 identifier = context.args.identifiers[context.args.index];
+
+        (
+            bytes32[] memory hashedIdentifiers,
+            AdvancedOrder memory advancedOrder
+        ) = prepareCriteriaOfferOrder(context);
+        // create resolver for identifier including proof for token at index
+        CriteriaResolver memory resolver = CriteriaResolver(
+            0,
+            Side.OFFER,
+            0,
+            identifier,
+            merkle.getProof(hashedIdentifiers, context.args.index)
+        );
+        CriteriaResolver[] memory resolvers = new CriteriaResolver[](1);
+        resolvers[0] = resolver;
+
+        context.consideration.fulfillAdvancedOrder{ value: 1 }(
             advancedOrder,
-            criteriaResolvers,
+            resolvers,
             bytes32(0),
             address(0)
         );
 
-        // consideration.
+        assertEq(address(this), test721_1.ownerOf(identifier));
+    }
 
-        // ConsiderationItem
+    function fulfillAdvancedOrderWithCriteriaPreimage(Context memory context)
+        external
+        stateless
+    {
+        context.args.index = context.args.index % 8;
+        (
+            bytes32[] memory hashedIdentifiers,
+            AdvancedOrder memory advancedOrder
+        ) = prepareCriteriaOfferOrder(context);
 
-        // AdvancedOrder memory advancedOrder
+        // grab a random proof
+        bytes32[] memory proof = merkle.getProof(
+            hashedIdentifiers,
+            context.args.index
+        );
+        // copy all but the first element of the proof to a new array
+        bytes32[] memory truncatedProof = new bytes32[](proof.length - 1);
+        for (uint256 i = 0; i < truncatedProof.length - 1; i++) {
+            truncatedProof[i] = proof[i + 1];
+        }
+        // use the first element as a new token identifier
+        uint256 preimageIdentifier = uint256(proof[0]);
+        // try to mint preimageIdentifier; there's a chance it's already minted
+        try test721_1.mint(alice, preimageIdentifier) {} catch (bytes memory) {}
+
+        // create criteria resolver including first hash as identifier
+        CriteriaResolver memory resolver = CriteriaResolver(
+            0,
+            Side.OFFER,
+            0,
+            preimageIdentifier,
+            truncatedProof
+        );
+        CriteriaResolver[] memory resolvers = new CriteriaResolver[](1);
+        resolvers[0] = resolver;
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidProof()"));
+        context.consideration.fulfillAdvancedOrder{ value: 1 }(
+            advancedOrder,
+            resolvers,
+            bytes32(0),
+            address(0)
+        );
     }
 
     function addOfferItem721Criteria(address token, uint256 identifierHash)
