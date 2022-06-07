@@ -134,7 +134,7 @@ export const marketplaceFixture = async(
     conduitKey = constants.HashZero,
     extraCheap = false
   ) => {
-    const nonce = await marketplaceContract.getNonce(offerer.address);
+    const counter = await marketplaceContract.getCounter(offerer.address);
 
     const salt = !extraCheap ? randomHex() : constants.HashZero;
     const startTime =
@@ -160,7 +160,7 @@ export const marketplaceFixture = async(
 
     const orderComponents = {
       ...orderParameters,
-      nonce,
+      counter,
     };
 
     const orderHash = await getAndVerifyOrderHash(orderComponents);
@@ -224,7 +224,7 @@ export const marketplaceFixture = async(
     order: AdvancedOrder,
     conduitKey = constants.HashZero
   ) => {
-    const nonce = await marketplaceContract.getNonce(offerer.address);
+    const counter = await marketplaceContract.getCounter(offerer.address);
     const salt = randomHex();
     const startTime = order.parameters.startTime;
     const endTime = order.parameters.endTime;
@@ -328,7 +328,7 @@ export const marketplaceFixture = async(
 
     const orderComponents = {
       ...orderParameters,
-      nonce,
+      counter,
     };
 
     const flatSig = await signOrder(orderComponents, offerer);
@@ -368,7 +368,7 @@ export const marketplaceFixture = async(
     criteriaResolvers: CriteriaResolver[] = [],
     conduitKey = constants.HashZero
   ) => {
-    const nonce = await marketplaceContract.getNonce(offerer.address);
+    const counter = await marketplaceContract.getCounter(offerer.address);
     const salt = randomHex();
     const startTime = order.parameters.startTime;
     const endTime = order.parameters.endTime;
@@ -430,7 +430,7 @@ export const marketplaceFixture = async(
 
     const orderComponents = {
       ...orderParameters,
-      nonce,
+      counter,
     };
 
     const flatSig = await signOrder(orderComponents as any, offerer);

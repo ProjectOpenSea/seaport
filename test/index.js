@@ -3526,7 +3526,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
-  describe("Validate, cancel, and increment nonce flows", async () => {
+  describe("Validate, cancel, and increment counter flows", async () => {
     let seller;
     let buyer;
 
@@ -4069,8 +4069,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    describe("Increment Nonce", async () => {
-      it("Can increment the nonce", async () => {
+    describe("Increment Counter", async () => {
+      it("Can increment the counter", async () => {
         // Seller mints nft
         const nftId = await mintAndApprove721(
           seller,
@@ -4093,17 +4093,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        const nonce = await marketplaceContract.getNonce(seller.address);
-        expect(nonce).to.equal(0);
-        expect(orderComponents.nonce).to.equal(nonce);
+        const counter = await marketplaceContract.getCounter(seller.address);
+        expect(counter).to.equal(0);
+        expect(orderComponents.counter).to.equal(counter);
 
-        // can increment the nonce
-        await expect(marketplaceContract.connect(seller).incrementNonce())
-          .to.emit(marketplaceContract, "NonceIncremented")
+        // can increment the counter
+        await expect(marketplaceContract.connect(seller).incrementCounter())
+          .to.emit(marketplaceContract, "CounterIncremented")
           .withArgs(1, seller.address);
 
-        const newNonce = await marketplaceContract.getNonce(seller.address);
-        expect(newNonce).to.equal(1);
+        const newCounter = await marketplaceContract.getCounter(seller.address);
+        expect(newCounter).to.equal(1);
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
@@ -4138,9 +4138,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         value = newOrderDetails.value;
         orderComponents = newOrderDetails.orderComponents;
 
-        expect(orderComponents.nonce).to.equal(newNonce);
+        expect(orderComponents.counter).to.equal(newCounter);
 
-        // Can fill order with new nonce
+        // Can fill order with new counter
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
@@ -4160,7 +4160,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("Can increment the nonce and implicitly cancel a validated order", async () => {
+      it("Can increment the counter and implicitly cancel a validated order", async () => {
         // Seller mints nft
         const nftId = await mintAndApprove721(
           seller,
@@ -4183,21 +4183,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        const nonce = await marketplaceContract.getNonce(seller.address);
-        expect(nonce).to.equal(0);
-        expect(orderComponents.nonce).to.equal(nonce);
+        const counter = await marketplaceContract.getCounter(seller.address);
+        expect(counter).to.equal(0);
+        expect(orderComponents.counter).to.equal(counter);
 
         await expect(marketplaceContract.connect(owner).validate([order]))
           .to.emit(marketplaceContract, "OrderValidated")
           .withArgs(orderHash, seller.address, zone.address);
 
-        // can increment the nonce
-        await expect(marketplaceContract.connect(seller).incrementNonce())
-          .to.emit(marketplaceContract, "NonceIncremented")
+        // can increment the counter
+        await expect(marketplaceContract.connect(seller).incrementCounter())
+          .to.emit(marketplaceContract, "CounterIncremented")
           .withArgs(1, seller.address);
 
-        const newNonce = await marketplaceContract.getNonce(seller.address);
-        expect(newNonce).to.equal(1);
+        const newCounter = await marketplaceContract.getCounter(seller.address);
+        expect(newCounter).to.equal(1);
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
@@ -4232,9 +4232,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         value = newOrderDetails.value;
         orderComponents = newOrderDetails.orderComponents;
 
-        expect(orderComponents.nonce).to.equal(newNonce);
+        expect(orderComponents.counter).to.equal(newCounter);
 
-        // Can fill order with new nonce
+        // Can fill order with new counter
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
@@ -4254,7 +4254,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("Can increment the nonce as the zone and implicitly cancel a validated order", async () => {
+      it("Can increment the counter as the zone and implicitly cancel a validated order", async () => {
         // Seller mints nft
         const nftId = await mintAndApprove721(
           seller,
@@ -4277,21 +4277,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        const nonce = await marketplaceContract.getNonce(seller.address);
-        expect(nonce).to.equal(0);
-        expect(orderComponents.nonce).to.equal(nonce);
+        const counter = await marketplaceContract.getCounter(seller.address);
+        expect(counter).to.equal(0);
+        expect(orderComponents.counter).to.equal(counter);
 
         await expect(marketplaceContract.connect(owner).validate([order]))
           .to.emit(marketplaceContract, "OrderValidated")
           .withArgs(orderHash, seller.address, zone.address);
 
-        // can increment the nonce as the offerer
-        await expect(marketplaceContract.connect(seller).incrementNonce())
-          .to.emit(marketplaceContract, "NonceIncremented")
+        // can increment the counter as the offerer
+        await expect(marketplaceContract.connect(seller).incrementCounter())
+          .to.emit(marketplaceContract, "CounterIncremented")
           .withArgs(1, seller.address);
 
-        const newNonce = await marketplaceContract.getNonce(seller.address);
-        expect(newNonce).to.equal(1);
+        const newCounter = await marketplaceContract.getCounter(seller.address);
+        expect(newCounter).to.equal(1);
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
@@ -4326,9 +4326,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         value = newOrderDetails.value;
         orderComponents = newOrderDetails.orderComponents;
 
-        expect(orderComponents.nonce).to.equal(newNonce);
+        expect(orderComponents.counter).to.equal(newCounter);
 
-        // Can fill order with new nonce
+        // Can fill order with new counter
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)

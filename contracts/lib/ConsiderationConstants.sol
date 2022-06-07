@@ -89,7 +89,7 @@ uint256 constant MissingItemAmount_error_len = 0x20;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
 uint256 constant OrderParameters_conduit_offset = 0x120;
-uint256 constant OrderParameters_nonce_offset = 0x140;
+uint256 constant OrderParameters_counter_offset = 0x140;
 
 uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
@@ -254,7 +254,7 @@ uint256 constant BasicOrder_offerItem_endAmount_ptr = 0x120;
  *   - 0x180:  zoneHash
  *   - 0x1a0:  salt
  *   - 0x1c0:  conduit
- *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
+ *   - 0x1e0:  _counters[orderParameters.offerer] (from storage)
  */
 uint256 constant BasicOrder_order_typeHash_ptr = 0x80;
 uint256 constant BasicOrder_order_offerer_ptr = 0xa0;
@@ -267,7 +267,7 @@ uint256 constant BasicOrder_order_startTime_ptr = 0x140;
 // uint256 constant BasicOrder_order_zoneHash_ptr = 0x180;
 // uint256 constant BasicOrder_order_salt_ptr = 0x1a0;
 // uint256 constant BasicOrder_order_conduitKey_ptr = 0x1c0;
-uint256 constant BasicOrder_order_nonce_ptr = 0x1e0;
+uint256 constant BasicOrder_order_counter_ptr = 0x1e0;
 uint256 constant BasicOrder_additionalRecipients_head_ptr = 0x240;
 uint256 constant BasicOrder_signature_ptr = 0x260;
 

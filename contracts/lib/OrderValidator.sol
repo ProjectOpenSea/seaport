@@ -149,8 +149,8 @@ contract OrderValidator is Executor, ZoneInteraction {
             revert PartialFillsNotEnabledForOrder();
         }
 
-        // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+        // Retrieve current counter and use it w/ parameters to derive order hash.
+        orderHash = _assertConsiderationLengthAndGetCounterdOrderHash(
             orderParameters
         );
 
@@ -334,7 +334,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     revert InvalidCanceller();
                 }
 
-                // Derive order hash using the order parameters and the nonce.
+                // Derive order hash using the order parameters and the counter.
                 bytes32 orderHash = _deriveOrderHash(
                     OrderParameters(
                         offerer,
@@ -349,7 +349,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                         order.conduitKey,
                         order.consideration.length
                     ),
-                    order.nonce
+                    order.counter
                 );
 
                 // Update the order status as not valid and cancelled.
@@ -410,8 +410,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
 
-                // Get current nonce and use it w/ params to derive order hash.
-                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+                // Get current counter and use it w/ params to derive order hash.
+                orderHash = _assertConsiderationLengthAndGetCounterdOrderHash(
                     orderParameters
                 );
 

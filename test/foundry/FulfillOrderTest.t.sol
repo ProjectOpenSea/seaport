@@ -157,7 +157,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -233,7 +233,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -570,7 +570,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -660,7 +660,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -751,7 +751,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -841,7 +841,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -947,7 +947,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -1053,7 +1053,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -1166,7 +1166,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -1278,7 +1278,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -1389,7 +1389,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -1500,7 +1500,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -1609,7 +1609,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -1717,7 +1717,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -1826,7 +1826,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -1932,7 +1932,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,

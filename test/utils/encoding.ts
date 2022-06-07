@@ -217,7 +217,7 @@ export const calculateOrderHash = (orderComponents: OrderComponents) => {
   const considerationItemTypeString =
     "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)";
   const orderComponentsPartialTypeString =
-    "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,bytes32 conduitKey,uint256 nonce)";
+    "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,bytes32 conduitKey,uint256 counter)";
   const orderTypeString = `${orderComponentsPartialTypeString}${considerationItemTypeString}${offerItemTypeString}`;
 
   const offerItemTypeHash = keccak256(toUtf8Bytes(offerItemTypeString));
@@ -300,7 +300,7 @@ export const calculateOrderHash = (orderComponents: OrderComponents) => {
         orderComponents.zoneHash.slice(2),
         orderComponents.salt.slice(2).padStart(64, "0"),
         orderComponents.conduitKey.slice(2).padStart(64, "0"),
-        toBN(orderComponents.nonce).toHexString().slice(2).padStart(64, "0"),
+        toBN(orderComponents.counter).toHexString().slice(2).padStart(64, "0"),
       ].join("")
   );
 

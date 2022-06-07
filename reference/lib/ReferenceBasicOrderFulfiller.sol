@@ -508,8 +508,8 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         BasicOrderParameters calldata parameters,
         FulfillmentItemTypes memory fulfillmentItemTypes
     ) internal view returns (bytes32 orderHash) {
-        // Read offerer's current nonce from storage and place on the stack.
-        uint256 nonce = _getNonce(parameters.offerer);
+        // Read offerer's current counter from storage and place on the stack.
+        uint256 counter = _getCounter(parameters.offerer);
 
         // Hash the contents to get the orderHash
         orderHash = keccak256(
@@ -525,7 +525,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                 parameters.zoneHash,
                 parameters.salt,
                 parameters.offererConduitKey,
-                nonce
+                counter
             )
         );
     }

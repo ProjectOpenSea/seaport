@@ -357,12 +357,12 @@ interface SeaportInterface {
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer may increment
-     *         the nonce.
+     *         by incrementing a counter. Note that only the offerer may increment
+     *         the counter.
      *
-     * @return newNonce The new nonce.
+     * @return newCounter The new counter.
      */
-    function incrementNonce() external returns (uint256 newNonce);
+    function incrementCounter() external returns (uint256 newCounter);
 
     /**
      * @notice Retrieve the order hash for a given order.
@@ -404,13 +404,13 @@ interface SeaportInterface {
         );
 
     /**
-     * @notice Retrieve the current nonce for a given offerer.
+     * @notice Retrieve the current counter for a given offerer.
      *
      * @param offerer The offerer in question.
      *
-     * @return nonce The current nonce.
+     * @return counter The current counter.
      */
-    function getNonce(address offerer) external view returns (uint256 nonce);
+    function getCounter(address offerer) external view returns (uint256 counter);
 
     /**
      * @notice Retrieve configuration information for this contract.

@@ -84,13 +84,13 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
      *      caller.
      *
      * @param orderParameters The parameters of the order to hash.
-     * @param nonce           The nonce of the order to hash.
+     * @param counter           The counter of the order to hash.
      *
      * @return orderHash The hash.
      */
     function _deriveOrderHash(
         OrderParameters memory orderParameters,
-        uint256 nonce
+        uint256 counter
     ) internal view returns (bytes32 orderHash) {
         // Designate new memory regions for offer and consideration item hashes.
         bytes32[] memory offerHashes = new bytes32[](
@@ -134,7 +134,7 @@ contract ReferenceGettersAndDerivers is ReferenceConsiderationBase {
                     orderParameters.zoneHash,
                     orderParameters.salt,
                     orderParameters.conduitKey,
-                    nonce
+                    counter
                 )
             );
     }
