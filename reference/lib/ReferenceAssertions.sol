@@ -43,11 +43,11 @@ contract ReferenceAssertions is
      *
      * @param orderParameters The parameters of the order to hash.
      *
-     * @return The hash.
+     * @return orderHash The order hash.
      */
-    function _assertConsiderationLengthAndGetCounterdOrderHash(
+    function _assertConsiderationLengthAndGetOrderHash(
         OrderParameters memory orderParameters
-    ) internal view returns (bytes32) {
+    ) internal view returns (bytes32 orderHash) {
         // Ensure supplied consideration array length is not less than original.
         _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
             orderParameters.consideration.length,
@@ -55,11 +55,10 @@ contract ReferenceAssertions is
         );
 
         // Derive and return order hash using current counter for the offerer.
-        return
-            _deriveOrderHash(
-                orderParameters,
-                _getCounter(orderParameters.offerer)
-            );
+        orderHash = _deriveOrderHash(
+            orderParameters,
+            _getCounter(orderParameters.offerer)
+        );
     }
 
     /**
