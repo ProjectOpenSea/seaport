@@ -27,3 +27,4 @@ karmacoma                      | `karmacoma.eth`
 horsefacts                     | `horsefacts.eth`
 UncarvedBlock                  | `uncarvedblock.eth`
 Zoraiz Mahmood                 | `zorz.eth`
+Rotcivegaf                     | `Rotciegaf.eth`
