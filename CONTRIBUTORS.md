@@ -45,3 +45,4 @@ PraneshASP                     | `pranesh.eth`
 JasperAlexander                |
 okkothejawa                    |
 FlameHorizon                   |
+dcland.app                     | `dclandapp.eth`
