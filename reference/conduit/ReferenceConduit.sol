@@ -45,7 +45,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         uint256 totalStandardTransfers = transfers.length;
 
         // Iterate over each standard execution.
-        for (uint256 i = 0; i < totalStandardTransfers; i++) {
+        for (uint256 i = 0; i < totalStandardTransfers; ++i) {
             // Retrieve the transfer in question.
             ConduitTransfer calldata standardTransfer = transfers[i];
 
@@ -66,7 +66,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         uint256 totalBatchTransfers = batchTransfers.length;
 
         // Iterate over each batch transfer.
-        for (uint256 i = 0; i < totalBatchTransfers; i++) {
+        for (uint256 i = 0; i < totalBatchTransfers; ++i) {
             // Retrieve the batch transfer in question.
             ConduitBatch1155Transfer calldata batchTransfer = batchTransfers[i];
 
@@ -88,7 +88,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         uint256 totalStandardTransfers = standardTransfers.length;
 
         // Iterate over each standard transfer.
-        for (uint256 i = 0; i < totalStandardTransfers; i++) {
+        for (uint256 i = 0; i < totalStandardTransfers; ++i) {
             // Retrieve the transfer in question.
             ConduitTransfer calldata standardTransfer = standardTransfers[i];
 
@@ -99,7 +99,7 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         uint256 totalBatchTransfers = batchTransfers.length;
 
         // Iterate over each batch transfer.
-        for (uint256 i = 0; i < totalBatchTransfers; i++) {
+        for (uint256 i = 0; i < totalBatchTransfers; ++i) {
             // Retrieve the batch transfer in question.
             ConduitBatch1155Transfer calldata batchTransfer = batchTransfers[i];
 
