@@ -291,6 +291,8 @@ contract GettersAndDerivers is ConsiderationBase {
      *      chainId matches the chainId set on deployment, the cached domain
      *      separator will be returned; otherwise, it will be derived from
      *      scratch.
+     *
+     * @return The domain separator.
      */
     function _domainSeparator() internal view returns (bytes32) {
         // prettier-ignore
@@ -327,7 +329,7 @@ contract GettersAndDerivers is ConsiderationBase {
 
         // Set the version as data on the newly allocated string.
         assembly {
-            mstore(add(version, OneWord), shl(0xf8, Version))
+            mstore(add(version, OneWord), shl(Version_shift, Version))
         }
     }
 
