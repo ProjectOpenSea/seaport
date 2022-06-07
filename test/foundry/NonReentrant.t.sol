@@ -56,8 +56,8 @@ contract NonReentrantTest is BaseOrderTest {
     }
 
     function testNonReentrant() public {
-        for (uint256 i; i < 7; i++) {
-            for (uint256 j; j < 10; j++) {
+        for (uint256 i; i < 7; ++i) {
+            for (uint256 j; j < 10; ++j) {
                 NonReentrantInputs memory inputs = NonReentrantInputs(
                     EntryPoint(i),
                     ReentryPoint(j)

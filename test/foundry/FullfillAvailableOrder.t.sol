@@ -58,7 +58,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
     }
 
     function testFulfillAvailableOrdersOverflowOfferSide() public {
-        for (uint256 i; i < 4; i++) {
+        for (uint256 i; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;
@@ -75,7 +75,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
     }
 
     function testFulfillAvailableOrdersOverflowConsiderationSide() public {
-        for (uint256 i; i < 4; i++) {
+        for (uint256 i; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;

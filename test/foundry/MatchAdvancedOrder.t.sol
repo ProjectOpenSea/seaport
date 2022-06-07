@@ -72,7 +72,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
     function testMatchAdvancedOrdersOverflowOrderSide() public {
         // start at 1 to skip eth
-        for (uint256 i = 1; i < 4; i++) {
+        for (uint256 i = 1; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;
@@ -90,7 +90,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
     function testMatchAdvancedOrdersOverflowConsiderationSide() public {
         // start at 1 to skip eth
-        for (uint256 i = 1; i < 4; i++) {
+        for (uint256 i = 1; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;

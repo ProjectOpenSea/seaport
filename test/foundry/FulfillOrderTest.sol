@@ -1062,7 +1062,7 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         uint128 sumOfTips;
-        for (uint128 i = 1; i < context.numTips + 1; i++) {
+        for (uint128 i = 1; i < context.numTips + 1; ++i) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
             sumOfTips += i;
@@ -1176,7 +1176,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
         uint128 sumOfTips;
         // push tip of amount i eth to considerationitems
-        for (uint128 i = 1; i < context.numTips + 1; i++) {
+        for (uint128 i = 1; i < context.numTips + 1; ++i) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
             sumOfTips += i;
@@ -1287,7 +1287,7 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         // mint erc721s to the test contract and push tips to considerationItems
-        for (uint128 i = 1; i < context.numTips + 1; i++) {
+        for (uint128 i = 1; i < context.numTips + 1; ++i) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
             test721_2.mint(address(this), i); // mint test721_2 tokens to avoid collision with fuzzed test721_1 tokenId
@@ -1398,7 +1398,7 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         // mint erc721s to the test contract and push tips to considerationItems
-        for (uint128 i = 1; i < context.numTips + 1; i++) {
+        for (uint128 i = 1; i < context.numTips + 1; ++i) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
             test721_2.mint(address(this), i); // mint test721_2 tokens to avoid collision with fuzzed test721_1 tokenId
@@ -1508,7 +1508,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        for (uint256 i = 1; i < context.numTips.add(1); i++) {
+        for (uint256 i = 1; i < context.numTips.add(1); ++i) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
             test1155_1.mint(address(this), context.args.id.add(i), i);
@@ -1617,7 +1617,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        for (uint256 i = 1; i < context.numTips.add(1); i++) {
+        for (uint256 i = 1; i < context.numTips.add(1); ++i) {
             uint256 tipPk = 0xb0b + i;
             address tipAddr = vm.addr(tipPk);
             test1155_1.mint(address(this), context.args.id.add(i), i);
@@ -1725,7 +1725,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        for (uint256 i = 1; i < context.numTips.add(1); i++) {
+        for (uint256 i = 1; i < context.numTips.add(1); ++i) {
             uint256 tipPk = i;
             address tipAddr = vm.addr(tipPk);
             considerationItems.push(
@@ -1834,7 +1834,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
-        for (uint256 i = 1; i < context.numTips.add(1); i++) {
+        for (uint256 i = 1; i < context.numTips.add(1); ++i) {
             uint256 tipPk = i;
             address tipAddr = vm.addr(tipPk);
             considerationItems.push(

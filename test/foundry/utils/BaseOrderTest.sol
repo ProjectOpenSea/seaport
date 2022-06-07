@@ -441,7 +441,7 @@ contract BaseOrderTest is
     */
     function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
-        for (uint256 i = 0; i < erc20s.length; i++) {
+        for (uint256 i = 0; i < erc20s.length; ++i) {
             erc20s[i].mint(_to, _amount);
         }
         emit log_named_address("Allocated tokens to", _to);
@@ -450,19 +450,19 @@ contract BaseOrderTest is
 
     function _setApprovals(address _owner) internal {
         vm.startPrank(_owner);
-        for (uint256 i = 0; i < erc20s.length; i++) {
+        for (uint256 i = 0; i < erc20s.length; ++i) {
             erc20s[i].approve(address(consideration), MAX_INT);
             erc20s[i].approve(address(referenceConsideration), MAX_INT);
             erc20s[i].approve(address(conduit), MAX_INT);
             erc20s[i].approve(address(referenceConduit), MAX_INT);
         }
-        for (uint256 i = 0; i < erc721s.length; i++) {
+        for (uint256 i = 0; i < erc721s.length; ++i) {
             erc721s[i].setApprovalForAll(address(consideration), true);
             erc721s[i].setApprovalForAll(address(referenceConsideration), true);
             erc721s[i].setApprovalForAll(address(conduit), true);
             erc721s[i].setApprovalForAll(address(referenceConduit), true);
         }
-        for (uint256 i = 0; i < erc1155s.length; i++) {
+        for (uint256 i = 0; i < erc1155s.length; ++i) {
             erc1155s[i].setApprovalForAll(address(consideration), true);
             erc1155s[i].setApprovalForAll(
                 address(referenceConsideration),
@@ -485,7 +485,7 @@ contract BaseOrderTest is
 
     function getMaxConsiderationValue() internal view returns (uint256) {
         uint256 value = 0;
-        for (uint256 i = 0; i < considerationItems.length; i++) {
+        for (uint256 i = 0; i < considerationItems.length; ++i) {
             uint256 amount = considerationItems[i].startAmount >
                 considerationItems[i].endAmount
                 ? considerationItems[i].startAmount

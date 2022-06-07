@@ -122,7 +122,7 @@ contract MatchOrders is BaseOrderTest {
         public
         validateInputs(Context(consideration, inputs))
     {
-        for (uint256 i = 1; i < 4; i++) {
+        for (uint256 i = 1; i < 4; ++i) {
             if (i == 2) {
                 continue;
             }
@@ -145,7 +145,7 @@ contract MatchOrders is BaseOrderTest {
         FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs)) {
         // start at 1 to skip eth
-        for (uint256 i = 1; i < 4; i++) {
+        for (uint256 i = 1; i < 4; ++i) {
             if (i == 2) {
                 continue;
             }
