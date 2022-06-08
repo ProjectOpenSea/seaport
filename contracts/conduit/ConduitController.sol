@@ -59,10 +59,6 @@ contract ConduitController is ConduitControllerInterface {
         override
         returns (address conduit)
     {
-        // Ensure that an initial owner has been supplied.
-        if (initialOwner == address(0)) {
-            revert InvalidInitialOwner();
-        }
 
         // If the first 20 bytes of the conduit key do not match the caller...
         if (address(uint160(bytes20(conduitKey))) != msg.sender) {
@@ -201,11 +197,6 @@ contract ConduitController is ConduitControllerInterface {
     {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
-
-        // Ensure the new potential owner is not an invalid address.
-        if (newPotentialOwner == address(0)) {
-            revert NewPotentialOwnerIsZeroAddress(conduit);
-        }
 
         // Ensure the new potential owner is not already set.
         if (newPotentialOwner == _conduits[conduit].potentialOwner) {
