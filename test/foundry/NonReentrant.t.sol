@@ -2,12 +2,11 @@
 pragma solidity >=0.8.13;
 
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { AdditionalRecipient, Fulfillment, OfferItem, ConsiderationItem, FulfillmentComponent, OrderComponents, AdvancedOrder, BasicOrderParameters, Order } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { EntryPoint, ReentryPoint } from "./utils/reentrancy/ReentrantEnums.sol";
-import { FulfillBasicOrderParameters, FulfillOrderParameters, OrderParameters, FulfillAdvancedOrderParameters, FulfillAvailableOrdersParameters, FulfillAvailableAdvancedOrdersParameters, MatchOrdersParameters, MatchAdvancedOrdersParameters, CancelParameters, ValidateParameters, ReentrantCallParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
+import { OrderParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
 
 contract NonReentrantTest is BaseOrderTest {
     BasicOrderParameters basicOrderParameters;
@@ -20,8 +19,6 @@ contract NonReentrantTest is BaseOrderTest {
     ConsiderationInterface currentConsideration;
     bool reentered;
     bool shouldReenter;
-
-    uint256 globalSalt;
 
     /**
      * @dev Foundry fuzzes enums as uints, so we need to manually fuzz on uints and use vm.assume
@@ -223,26 +220,6 @@ contract NonReentrantTest is BaseOrderTest {
         }
     }
 
-    function getOrderParameters(address payable offerer, OrderType orderType)
-        internal
-        returns (OrderParameters memory)
-    {
-        return
-            OrderParameters(
-                offerer,
-                address(0),
-                offerItems,
-                considerationItems,
-                orderType,
-                block.timestamp,
-                block.timestamp + 1,
-                bytes32(0),
-                globalSalt++,
-                bytes32(0),
-                considerationItems.length
-            );
-    }
-
     function prepareBasicOrder(uint256 tokenId)
         internal
         returns (BasicOrderParameters memory _basicOrderParameters)
@@ -372,82 +349,6 @@ contract NonReentrantTest is BaseOrderTest {
         _order = AdvancedOrder(_orderParameters, 1, 1, signature, "");
         criteriaResolvers = new CriteriaResolver[](0);
         fulfillerConduitKey = bytes32(0);
-    }
-
-    function toOrderComponents(OrderParameters memory _params, uint256 counter)
-        internal
-        pure
-        returns (OrderComponents memory)
-    {
-        return
-            OrderComponents(
-                _params.offerer,
-                _params.zone,
-                _params.offer,
-                _params.consideration,
-                _params.orderType,
-                _params.startTime,
-                _params.endTime,
-                _params.zoneHash,
-                _params.salt,
-                _params.conduitKey,
-                counter
-            );
-    }
-
-    function toBasicOrderParameters(
-        Order memory _order,
-        BasicOrderType basicOrderType
-    ) internal pure returns (BasicOrderParameters memory) {
-        return
-            BasicOrderParameters(
-                _order.parameters.consideration[0].token,
-                _order.parameters.consideration[0].identifierOrCriteria,
-                _order.parameters.consideration[0].endAmount,
-                payable(_order.parameters.offerer),
-                _order.parameters.zone,
-                _order.parameters.offer[0].token,
-                _order.parameters.offer[0].identifierOrCriteria,
-                _order.parameters.offer[0].endAmount,
-                basicOrderType,
-                _order.parameters.startTime,
-                _order.parameters.endTime,
-                _order.parameters.zoneHash,
-                _order.parameters.salt,
-                _order.parameters.conduitKey,
-                _order.parameters.conduitKey,
-                0,
-                new AdditionalRecipient[](0),
-                _order.signature
-            );
-    }
-
-    function toBasicOrderParameters(
-        OrderComponents memory _order,
-        BasicOrderType basicOrderType,
-        bytes memory signature
-    ) internal pure returns (BasicOrderParameters memory) {
-        return
-            BasicOrderParameters(
-                _order.consideration[0].token,
-                _order.consideration[0].identifierOrCriteria,
-                _order.consideration[0].endAmount,
-                payable(_order.offerer),
-                _order.zone,
-                _order.offer[0].token,
-                _order.offer[0].identifierOrCriteria,
-                _order.offer[0].endAmount,
-                basicOrderType,
-                _order.startTime,
-                _order.endTime,
-                _order.zoneHash,
-                _order.salt,
-                _order.conduitKey,
-                _order.conduitKey,
-                0,
-                new AdditionalRecipient[](0),
-                signature
-            );
     }
 
     function prepareAvailableOrders(uint256 tokenId)
