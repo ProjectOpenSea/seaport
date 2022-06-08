@@ -123,15 +123,12 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
     }
 
     function testFulfillBasicOrderRevertInvalidAdditionalRecipientsLength(
-        uint256 amountToSubtractFromTotalRecipients,
-        AdditionalRecipient[] memory additionalRecipients
+        uint256 fuzzTotalRecipients,
+        uint256 fuzzAmountToSubtractFromTotalRecipients
     ) public {
-        vm.assume(additionalRecipients.length <= 200);
-        vm.assume(
-            amountToSubtractFromTotalRecipients <= additionalRecipients.length
-        );
-        bool overwriteTotalRecipientsLength = amountToSubtractFromTotalRecipients >
-                0;
+        uint256 totalRecipients = fuzzTotalRecipients % 200;
+        uint256 amountToSubtractFromTotalRecipients = fuzzAmountToSubtractFromTotalRecipients % totalRecipients;
+        bool overwriteTotalRecipientsLength = amountToSubtractFromTotalRecipients > 0; 
 
         // Create basic order
         (
@@ -140,7 +137,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         ) = prepareBasicOrderAndOrderParameters(1);
 
         // Add additional recipients
-        _basicOrderParameters.additionalRecipients = additionalRecipients;
+        _basicOrderParameters.additionalRecipients = new AdditionalRecipient[](totalRecipients);
         for (
             uint256 i = 0;
             i < _basicOrderParameters.additionalRecipients.length;
