@@ -531,7 +531,7 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         (
             Order memory myOrder,
             OrderParameters memory _orderParameters,
-            bytes memory _signature
+
         ) = _prepareOrder(1, totalConsiderationItems);
 
         // Validate the order.
@@ -562,27 +562,11 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             totalConsiderationItems -
                 amountToSubtractFromConsiderationItemsLength
         );
-        address considerationAddress = address(consideration);
-        uint256 calldataLength = fulfillOrderCalldata.length;
-        bool success;
 
-        assembly {
-            // Call fulfillOrder
-            success := call(
-                gas(),
-                considerationAddress,
-                0,
-                // The fn signature and calldata starts after the
-                // first OneWord bytes, as those initial bytes just
-                // contain the length of fulfillOrderCalldata
-                add(fulfillOrderCalldata, OneWord),
-                calldataLength,
-                // Store output at empty storage location,
-                // identified using "free memory pointer".
-                mload(0x40),
-                OneWord
-            )
-        }
+        bool success = _callConsiderationFulfillOrderWithCalldata(
+            address(consideration),
+            fulfillOrderCalldata
+        );
 
         // If overwriteConsiderationItemsLength is True, the call should
         // have failed (success should be False) and if overwriteConsiderationItemsLength is False,

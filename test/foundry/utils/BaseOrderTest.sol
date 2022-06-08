@@ -10,6 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
+import { OneWord } from "../../../contracts/lib/ConsiderationConstants.sol";
 import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { StructCopier } from "./StructCopier.sol";
@@ -191,11 +192,35 @@ contract BaseOrderTest is
         bytes memory orderCalldata,
         uint256 relativeLengthOffset,
         uint256 amtToSubtractFromLength
-    ) internal {
+    ) internal pure {
         assembly {
             let absoluteLengthOffset := add(orderCalldata, relativeLengthOffset)
             let length := mload(absoluteLengthOffset)
             mstore(absoluteLengthOffset, sub(length, amtToSubtractFromLength))
+        }
+    }
+
+    function _callConsiderationFulfillOrderWithCalldata(
+        address considerationAddress,
+        bytes memory orderCalldata
+    ) internal returns (bool success) {
+        uint256 calldataLength = orderCalldata.length;
+        assembly {
+            // Call fulfillOrder
+            success := call(
+                gas(),
+                considerationAddress,
+                0,
+                // The fn signature and calldata starts after the
+                // first OneWord bytes, as those initial bytes just
+                // contain the length of orderCalldata
+                add(orderCalldata, OneWord),
+                calldataLength,
+                // Store output at empty storage location,
+                // identified using "free memory pointer".
+                mload(0x40),
+                OneWord
+            )
         }
     }
 

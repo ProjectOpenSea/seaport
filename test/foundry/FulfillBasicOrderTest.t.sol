@@ -184,27 +184,10 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
             totalRecipients - amountToSubtractFromTotalRecipients
         );
 
-        address considerationAddress = address(consideration);
-        uint256 calldataLength = fulfillBasicOrderCalldata.length;
-        bool success;
-
-        assembly {
-            // Call fulfillBasicOrders
-            success := call(
-                gas(),
-                considerationAddress,
-                0,
-                // The fn signature and calldata starts after the
-                // first OneWord bytes, as those initial bytes just
-                // contain the length of fulfillBasicOrderCalldata
-                add(fulfillBasicOrderCalldata, OneWord),
-                calldataLength,
-                // Store output at empty storage location,
-                // identified using "free memory pointer".
-                mload(0x40),
-                OneWord
-            )
-        }
+        bool success = _callConsiderationFulfillOrderWithCalldata(
+            address(consideration),
+            fulfillBasicOrderCalldata
+        );
 
         // If overwriteTotalRecipientsLength is True, the call should
         // have failed (success should be False) and if overwriteTotalRecipientsLength is False,
@@ -232,7 +215,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
             BasicOrderParameters memory _basicOrderParameters
         )
     {
-        (Order memory _order, , ) = _prepareOrder(1, 1);
+        (Order memory _order, , ) = _prepareOrder(tokenId, 1);
         order = _order;
         _basicOrderParameters = toBasicOrderParameters(
             _order,
