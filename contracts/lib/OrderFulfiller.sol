@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.13;
 
-import { OrderType, ItemType } from "./ConsiderationEnums.sol";
+import { ItemType } from "./ConsiderationEnums.sol";
 
 // prettier-ignore
 import {

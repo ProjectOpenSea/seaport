@@ -97,11 +97,14 @@ contract ReferenceConduitController is ConduitControllerInterface {
         // Deploy the conduit via CREATE2 using the conduit key as the salt.
         new ReferenceConduit{ salt: conduitKey }();
 
+        // Initialize storage variable referencing conduit properties.
+        ConduitProperties storage conduitProperties = _conduits[conduit];
+
         // Set the supplied initial owner as the owner of the conduit.
-        _conduits[conduit].owner = initialOwner;
+        conduitProperties.owner = initialOwner;
 
         // Set conduit key used to deploy the conduit to enable reverse lookup.
-        _conduits[conduit].key = conduitKey;
+        conduitProperties.key = conduitKey;
 
         // Emit an event indicating that the conduit has been deployed.
         emit NewConduit(conduit, conduitKey);
