@@ -35,6 +35,7 @@ Meta0xNull                     | `meta0xnull.eth`
 sach1r0                        |
 gpersoon                       | `gpersoon.eth`
 Matt Solomon                   | `msolomon.eth`
+twojoy0                        |
 Weikang Song                   | `weikangs.eth`
 zer0dot                        | `zer0dot.eth`
 Mudit Gupta                    | `mudit.eth`
