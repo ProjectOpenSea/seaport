@@ -20,9 +20,9 @@ import {
     Execution
 } from "contracts/lib/ConsiderationStructs.sol";
 
-import { ReferenceOrderCombiner } from "./lib/ReferenceOrderCombiner.sol";
+import { ReferenceOrderCombiner } from "./ReferenceOrderCombiner.sol";
 
-import { OrderToExecute, AccumulatorStruct } from "./lib/ReferenceConsiderationStructs.sol";
+import { OrderToExecute, AccumulatorStruct } from "./ReferenceConsiderationStructs.sol";
 
 /**
  * @title ReferenceSeaport
