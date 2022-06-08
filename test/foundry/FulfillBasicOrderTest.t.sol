@@ -143,7 +143,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
             i < _basicOrderParameters.additionalRecipients.length;
             i++
         ) {
-            _basicOrderParameters.additionalRecipients[i].amount = 1;
+            _basicOrderParameters.additionalRecipients[i] = AdditionalRecipient({recipient:alice, amount: 1});
         }
 
         // Validate the order.
