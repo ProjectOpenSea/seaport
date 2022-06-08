@@ -216,6 +216,11 @@ contract OrderFulfiller is
             for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
+                // Offer items for the native token can not be received
+                // outside of a match order function.
+                if (offerItem.itemType == ItemType.NATIVE) {
+                    revert InvalidNativeOfferItem();
+                }
                 // Declare a nested scope to minimize stack depth.
                 {
                     // Apply fill fraction to get offer item amount to transfer.
