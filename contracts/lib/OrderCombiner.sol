@@ -236,7 +236,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // Place the start time for the order on the stack.
                 uint256 startTime = advancedOrder.parameters.startTime;
 
-                // Place the end for the order on the stack.
+                // Place the end time for the order on the stack.
                 uint256 endTime = advancedOrder.parameters.endTime;
 
                 // Retrieve array of offer items for the order in question.

@@ -17,15 +17,15 @@ import { FractionData } from "./ReferenceConsiderationStructs.sol";
  */
 contract ReferenceAmountDeriver is AmountDerivationErrors {
     /**
-     * @dev Internal pure function to derive the current amount of a given item
+     * @dev Internal view function to derive the current amount of a given item
      *      based on the current price, the starting price, and the ending
      *      price. If the start and end prices differ, the current price will be
      *      interpolated on a linear basis.
      *
      * @param startAmount The starting amount of the item.
      * @param endAmount   The ending amount of the item.
-     * @param startTime   The starting time of the order
-     * @param endTime     The end time of the order
+     * @param startTime   The starting time of the order.
+     * @param endTime     The end time of the order.
      * @param roundUp     A boolean indicating whether the resultant amount
      *                    should be rounded up or down.
      *
@@ -108,7 +108,7 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
     }
 
     /**
-     * @dev Internal pure function to apply a fraction to a consideration
+     * @dev Internal view function to apply a fraction to a consideration
      * or offer item.
      *
      * @param startAmount     The starting amount of the item.
