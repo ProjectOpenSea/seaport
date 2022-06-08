@@ -156,9 +156,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         }
 
         // Validate the order.
-        Order[] memory myOrders = new Order[](1);
-        myOrders[0] = myOrder;
-        consideration.validate(myOrders);
+        _validateOrder(myOrder, consideration);
 
         // Get the calldata that will be passed into fulfillBasicOrder.
         bytes4 fulfillBasicOrderSignature = consideration

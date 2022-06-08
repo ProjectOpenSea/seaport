@@ -10,6 +10,7 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
+import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { StructCopier } from "./StructCopier.sol";
 import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
@@ -144,6 +145,15 @@ contract BaseOrderTest is
 
     function resetConsiderationComponents() internal {
         delete considerationComponents;
+    }
+
+    function _validateOrder(
+        Order memory order,
+        ConsiderationInterface consideration
+    ) internal {
+        Order[] memory orders = new Order[](1);
+        orders[0] = order;
+        consideration.validate(orders);
     }
 
     function _configureConsiderationItem(

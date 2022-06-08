@@ -535,9 +535,7 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         ) = prepareOrder(1, totalConsiderationItems);
 
         // Validate the order.
-        Order[] memory myOrders = new Order[](1);
-        myOrders[0] = myOrder;
-        consideration.validate(myOrders);
+        _validateOrder(myOrder, consideration);
 
         // Get the calldata that will be passed into fulfillOrder.
         bytes4 fulfillOrderSignature = consideration.fulfillOrder.selector;
