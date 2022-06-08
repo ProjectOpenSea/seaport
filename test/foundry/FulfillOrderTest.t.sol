@@ -172,7 +172,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.endAmount.mul(1000),
             startTime,
             startTime + 1000,
-            true // for consideration
+            false // don't round up offers
         );
         vm.expectEmit(true, true, true, false, address(token1));
         emit Transfer(alice, address(this), expectedAmount);
@@ -248,7 +248,7 @@ contract FulfillOrderTest is BaseOrderTest {
             context.args.endAmount.mul(1000),
             startTime,
             startTime + 1000,
-            true // for consideration
+            true // round up considerations
         );
         token1.mint(address(this), expectedAmount);
         vm.expectEmit(true, true, true, false, address(token1));

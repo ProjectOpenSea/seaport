@@ -678,7 +678,7 @@ contract MatchOrders is BaseOrderTest {
             context.args.amount * 2, // end amount
             startTime, // startTime
             startTime + 1000, // endTime
-            false // roundUp
+            false // don't round up offers
         );
 
         _configureOfferItem(ItemType.ERC721, context.args.id, 1);
@@ -776,7 +776,7 @@ contract MatchOrders is BaseOrderTest {
             context.args.amount * 2, // end amount
             startTime, // startTime
             startTime + 1000, // endTime
-            true // roundUp
+            true // round up considerations
         );
         _configureOfferItem(ItemType.ERC20, 0, currentAmount, currentAmount);
         _configureConsiderationItem(bob, ItemType.ERC721, context.args.id, 1);
@@ -864,7 +864,7 @@ contract MatchOrders is BaseOrderTest {
             context.args.amount, // end amount
             startTime, // startTime
             startTime + 1000, // endTime
-            true // roundUp
+            false // don't round up offers
         );
 
         _configureOfferItem(ItemType.ERC721, context.args.id, 1);
@@ -961,7 +961,7 @@ contract MatchOrders is BaseOrderTest {
             context.args.amount, // end amount
             startTime, // startTime
             startTime + 1000, // endTime
-            true // roundUp
+            true // round up considerations
         );
 
         emit log_named_uint("Current Amount: ", currentAmount);

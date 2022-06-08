@@ -680,9 +680,9 @@ contract MatchAdvancedOrder is BaseOrderTest {
         uint256 currentAmount = _locateCurrentAmount(
             context.args.baseStart.mul(20), // start amount
             context.args.baseEnd.mul(20), // end amount
-            startTime, // starTime
+            startTime, // startTime
             startTime + 1000, // endTime
-            false // roundUp
+            false // don't round up offers
         );
 
         emit log_named_uint("current amount", currentAmount);
@@ -845,7 +845,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
             context.args.baseEnd.mul(20), // end amount
             startTime, // startTime
             startTime + 1000, // endTime
-            false // roundUp
+            true // round up considerations
         );
 
         emit log_named_uint("current amount", currentAmount);
