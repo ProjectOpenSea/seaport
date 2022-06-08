@@ -19,7 +19,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     using stdStorage for StdStorage;
 
     ConsiderationInterface consideration;
-    ConsiderationInterface referenceConsideration;
+    ConsiderationInterface referenceSeaport;
     bytes32 conduitKeyOne;
     ConduitController conduitController;
     ConduitController referenceConduitController;
@@ -32,7 +32,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
         emit log("Deploying reference from precompiled source");
-        _deployAndConfigurePrecompiledReferenceConsideration();
+        _deployAndConfigurePrecompiledReferenceSeaport();
 
         vm.label(address(conduitController), "conduitController");
         vm.label(address(consideration), "consideration");
@@ -41,7 +41,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
             address(referenceConduitController),
             "referenceConduitController"
         );
-        vm.label(address(referenceConsideration), "referenceConsideration");
+        vm.label(address(referenceSeaport), "referenceSeaport");
         vm.label(address(referenceConduit), "referenceConduit");
     }
 
@@ -72,15 +72,15 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
     }
 
     ///@dev deploy reference consideration contracts from pre-compiled source (solc-0.8.7, IR pipeline disabled)
-    function _deployAndConfigurePrecompiledReferenceConsideration() public {
+    function _deployAndConfigurePrecompiledReferenceSeaport() public {
         referenceConduitController = ConduitController(
             deployCode(
                 "reference-out/ReferenceConduitController.sol/ReferenceConduitController.json"
             )
         );
-        referenceConsideration = ConsiderationInterface(
+        referenceSeaport = ConsiderationInterface(
             deployCode(
-                "reference-out/ReferenceConsideration.sol/ReferenceConsideration.json",
+                "reference-out/ReferenceSeaport.sol/ReferenceSeaport.json",
                 abi.encode(address(referenceConduitController))
             )
         );
@@ -94,7 +94,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         );
         referenceConduitController.updateChannel(
             address(referenceConduit),
-            address(referenceConsideration),
+            address(referenceSeaport),
             true
         );
     }
