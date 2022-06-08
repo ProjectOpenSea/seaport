@@ -5,10 +5,8 @@ import { Side, ItemType } from "./ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
-    AdditionalRecipient,
     OfferItem,
     ConsiderationItem,
-    SpentItem,
     ReceivedItem,
     OrderParameters,
     Fulfillment,
