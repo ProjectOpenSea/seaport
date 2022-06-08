@@ -43,26 +43,36 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     }
 
     /**
-     * @notice Ensure that the caller is an open channel.
+     * @notice Ensure that the caller is currently registered as an open channel
+     *         on the conduit.
      */
     modifier onlyOpenChannel() {
+        // Utilize assembly to access channel storage mapping directly.
         assembly {
-            // Write the caller to scratch space
+            // Write the caller to scratch space.
             mstore(ChannelKey_channel_ptr, caller())
-            // Write the storage slot for _channels to scratch space
+
+            // Write the storage slot for _channels to scratch space.
             mstore(ChannelKey_slot_ptr, _channels.slot)
+
             // Derive the position in storage of _channels[msg.sender]
             // and check if the stored value is zero.
             if iszero(
                 sload(keccak256(ChannelKey_channel_ptr, ChannelKey_length))
             ) {
-                // The caller is not an open channel;
-                // revert with ChannelClosed(msg.sender)
+                // The caller is not an open channel; revert with
+                // ChannelClosed(caller). First, set error signature in memory.
                 mstore(ChannelClosed_error_ptr, ChannelClosed_error_signature)
+
+                // Next, set the caller as the argument.
                 mstore(ChannelClosed_channel_ptr, caller())
+
+                // Finally, revert, returning full custom error with argument.
                 revert(ChannelClosed_error_ptr, ChannelClosed_error_length)
             }
         }
+
+        // Continue with function execution.
         _;
     }
 
