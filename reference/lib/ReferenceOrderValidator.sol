@@ -56,7 +56,7 @@ contract ReferenceOrderValidator is
         bytes memory signature
     ) internal {
         // Retrieve the order status for the given order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
+        OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Ensure order is fillable and is not cancelled.
         _verifyOrderStatus(
@@ -72,10 +72,10 @@ contract ReferenceOrderValidator is
         }
 
         // Update order status as fully filled, packing struct values.
-        _orderStatus[orderHash].isValidated = true;
-        _orderStatus[orderHash].isCancelled = false;
-        _orderStatus[orderHash].numerator = 1;
-        _orderStatus[orderHash].denominator = 1;
+        orderStatus.isValidated = true;
+        orderStatus.isCancelled = false;
+        orderStatus.numerator = 1;
+        orderStatus.denominator = 1;
     }
 
     /**
@@ -168,7 +168,7 @@ contract ReferenceOrderValidator is
         );
 
         // Retrieve the order status using the derived order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
+        OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Ensure order is fillable and is not cancelled.
         if (
@@ -248,16 +248,16 @@ contract ReferenceOrderValidator is
             }
 
             // Update order status and fill amount, packing struct values.
-            _orderStatus[orderHash].isValidated = true;
-            _orderStatus[orderHash].isCancelled = false;
-            _orderStatus[orderHash].numerator = uint120(filledNumerator);
-            _orderStatus[orderHash].denominator = uint120(denominator);
+            orderStatus.isValidated = true;
+            orderStatus.isCancelled = false;
+            orderStatus.numerator = uint120(filledNumerator);
+            orderStatus.denominator = uint120(denominator);
         } else {
             // Update order status and fill amount, packing struct values.
-            _orderStatus[orderHash].isValidated = true;
-            _orderStatus[orderHash].isCancelled = false;
-            _orderStatus[orderHash].numerator = uint120(numerator);
-            _orderStatus[orderHash].denominator = uint120(denominator);
+            orderStatus.isValidated = true;
+            orderStatus.isCancelled = false;
+            orderStatus.numerator = uint120(numerator);
+            orderStatus.denominator = uint120(denominator);
         }
 
         // Return order hash, new numerator and denominator.
@@ -301,6 +301,8 @@ contract ReferenceOrderValidator is
         notEntered
         returns (bool)
     {
+        // Declare variables outside of the loop.
+        OrderStatus storage orderStatus;
         address offerer;
         address zone;
 
@@ -338,9 +340,12 @@ contract ReferenceOrderValidator is
                 order.counter
             );
 
+            // Retrieve the order status using the derived order hash.
+            orderStatus = _orderStatus[orderHash];
+
             // Update the order status as not valid and cancelled.
-            _orderStatus[orderHash].isValidated = false;
-            _orderStatus[orderHash].isCancelled = true;
+            orderStatus.isValidated = false;
+            orderStatus.isCancelled = true;
 
             // Emit an event signifying that the order has been cancelled.
             emit OrderCancelled(orderHash, offerer, zone);
@@ -365,6 +370,7 @@ contract ReferenceOrderValidator is
         returns (bool)
     {
         // Declare variables outside of the loop.
+        OrderStatus storage orderStatus;
         bytes32 orderHash;
         address offerer;
 
@@ -388,7 +394,7 @@ contract ReferenceOrderValidator is
             );
 
             // Retrieve the order status using the derived order hash.
-            OrderStatus memory orderStatus = _orderStatus[orderHash];
+            orderStatus = _orderStatus[orderHash];
 
             // Ensure order is fillable and retrieve the filled amount.
             _verifyOrderStatus(
@@ -404,7 +410,7 @@ contract ReferenceOrderValidator is
                 _verifySignature(offerer, orderHash, order.signature);
 
                 // Update order status to mark the order as valid.
-                _orderStatus[orderHash].isValidated = true;
+                orderStatus.isValidated = true;
 
                 // Emit an event signifying the order has been validated.
                 emit OrderValidated(orderHash, offerer, orderParameters.zone);
@@ -442,7 +448,7 @@ contract ReferenceOrderValidator is
         )
     {
         // Retrieve the order status using the order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
+        OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Return the fields on the order status.
         return (
