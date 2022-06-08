@@ -61,4 +61,4 @@ axic                           | `axic.eth`
 leastwood                      | `leastwood.eth`
 0xsanson                       | `sanson.eth`
 blockdev                       | `blockd3v.eth`
-+ asutorufos
+asutorufos
