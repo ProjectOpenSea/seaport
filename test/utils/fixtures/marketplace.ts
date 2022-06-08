@@ -29,7 +29,7 @@ const deployConstants = require("../../../constants/constants");
 
 const VERSION = !process.env.REFERENCE ? "1.1" : "rc.1.1";
 
-export const marketplaceFixture = async(
+export const marketplaceFixture = async (
   create2Factory: ImmutableCreate2FactoryInterface,
   conduitController: ConduitControllerInterface,
   conduitOne: ConduitInterface,
@@ -38,11 +38,11 @@ export const marketplaceFixture = async(
 ) => {
   // Deploy marketplace contract through efficient create2 factory
   const marketplaceContractFactory = await ethers.getContractFactory(
-    process.env.REFERENCE ? "ReferenceConsideration" : "Seaport"
+    process.env.REFERENCE ? "ReferenceSeaport" : "Seaport"
   );
 
   const directMarketplaceContract = await deployContract(
-    process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
+    process.env.REFERENCE ? "ReferenceSeaport" : "Consideration",
     owner as any,
     conduitController.address
   );
@@ -69,7 +69,7 @@ export const marketplaceFixture = async(
   );
 
   const marketplaceContract = (await ethers.getContractAt(
-    process.env.REFERENCE ? "ReferenceConsideration" : "Seaport",
+    process.env.REFERENCE ? "ReferenceSeaport" : "Seaport",
     marketplaceContractAddress,
     owner
   )) as ConsiderationInterface;
@@ -473,4 +473,4 @@ export const marketplaceFixture = async(
     createMirrorBuyNowOrder,
     createMirrorAcceptOfferOrder,
   };
-}
+};
