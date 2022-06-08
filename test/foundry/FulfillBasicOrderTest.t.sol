@@ -127,8 +127,13 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         uint256 fuzzAmountToSubtractFromTotalRecipients
     ) public {
         uint256 totalRecipients = fuzzTotalRecipients % 200;
-        uint256 amountToSubtractFromTotalRecipients = fuzzAmountToSubtractFromTotalRecipients % totalRecipients;
-        bool overwriteTotalRecipientsLength = amountToSubtractFromTotalRecipients > 0; 
+        // Set amount to subtract from total recipients
+        // to be at most totalRecipients.
+        uint256 amountToSubtractFromTotalRecipients = totalRecipients > 0
+            ? fuzzAmountToSubtractFromTotalRecipients % totalRecipients
+            : 0;
+        bool overwriteTotalRecipientsLength = amountToSubtractFromTotalRecipients >
+                0;
 
         // Create basic order
         (
@@ -137,13 +142,17 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         ) = prepareBasicOrderAndOrderParameters(1);
 
         // Add additional recipients
-        _basicOrderParameters.additionalRecipients = new AdditionalRecipient[](totalRecipients);
+        _basicOrderParameters.additionalRecipients = new AdditionalRecipient[](
+            totalRecipients
+        );
         for (
             uint256 i = 0;
             i < _basicOrderParameters.additionalRecipients.length;
             i++
         ) {
-            _basicOrderParameters.additionalRecipients[i] = AdditionalRecipient({recipient:alice, amount: 1});
+            _basicOrderParameters.additionalRecipients[
+                i
+            ] = AdditionalRecipient({ recipient: alice, amount: 1 });
         }
 
         // Validate the order.
