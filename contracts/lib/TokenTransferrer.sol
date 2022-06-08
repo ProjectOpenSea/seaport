@@ -30,7 +30,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
         // Utilize assembly to perform an optimized ERC20 token transfer.
         assembly {
             // The free memory pointer memory slot will be used when populating
-            // call data for the transfer; read the value and restore it after.
+            // call data for the transfer; read the value and restore it later.
             let memPointer := mload(FreeMemoryPointerSlot)
 
             // Write call data into memory, starting with function selector.
@@ -237,7 +237,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
             }
 
             // The free memory pointer memory slot will be used when populating
-            // call data for the transfer; read the value and restore it after.
+            // call data for the transfer; read the value and restore it later.
             let memPointer := mload(FreeMemoryPointerSlot)
 
             // Write call data to memory starting with function selector.
@@ -365,7 +365,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
             }
 
             // The following memory slots will be used when populating call data
-            // for the transfer; read the values and restore them after.
+            // for the transfer; read the values and restore them later.
             let memPointer := mload(FreeMemoryPointerSlot)
             let slot0x80 := mload(Slot0x80)
             let slot0xA0 := mload(Slot0xA0)
