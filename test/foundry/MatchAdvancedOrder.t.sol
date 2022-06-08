@@ -688,14 +688,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         addERC1155OfferItem(context.args.id, 20);
         // create mirror consideration item with current amount
-        addConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            currentAmount,
-            currentAmount,
-            bob
-        );
+        addErc20ConsiderationItem(bob, currentAmount);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),
@@ -794,13 +787,10 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
         // multiply start and end amounts by multiplier and fractional component
         addOfferItem(ItemType.ERC1155, context.args.id, 20, 20);
-        addConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
+        addErc20ConsiderationItem(
+            alice,
             context.args.baseStart.mul(20),
-            context.args.baseEnd.mul(20),
-            alice
+            context.args.baseEnd.mul(20)
         );
 
         uint256 startTime = block.timestamp;
@@ -857,14 +847,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
             currentAmount
         );
         // create mirror consideration item with current amount
-        addConsiderationItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            context.args.id,
-            20,
-            20,
-            bob
-        );
+        addErc1155ConsiderationItem(bob, context.args.id, 20);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),

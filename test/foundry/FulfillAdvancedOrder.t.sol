@@ -83,7 +83,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     }
 
     struct FuzzArgs2 {
-        uint8 itemType;
+        uint8 offerItemType;
+        uint8 considerationItemType;
     }
 
     struct Context2 {
@@ -92,22 +93,32 @@ contract FulfillAdvancedOrder is BaseOrderTest {
     }
 
     function robustRecipient(Context2 memory context) external {
-        ItemType itemType = ItemType(context.args.itemType % 6);
+        ItemType offerItemType = ItemType(context.args.offerItemType % 6);
+        ItemType considerationItemType = ItemType(
+            context.args.considerationItemType % 6
+        );
         address payable offerer;
-        if (itemType == ItemType.NATIVE) {
+        if (offerItemType == ItemType.NATIVE) {
             offerer = payable(this);
             addEthOfferItem(1);
         } else {
             offerer = alice;
-            mintTokensTo(alice, itemType, 1);
-            addOfferItem(itemType, 1, 1);
+            mintTokensTo(alice, offerItemType, 1);
+            addOfferItem(offerItemType, 1, 1);
+        }
+
+        if (considerationItemType == ItemType.NATIVE) {
+            addEthConsiderationItem(alice, 1);
+        } else {
+            mintTokensTo(address(this), considerationItemType, 1);
+            mintTokensTo(bob, considerationItemType, 1);
+            addConsiderationItem(alice, considerationItemType, 1, 1);
         }
         mintErc20TokensTo(address(this), 1);
+        mintErc20TokensTo(bob, 1);
         addErc20ConsiderationItem(offerer, 1);
 
         configureOrderParameters(offerer);
-
-        // todo try fulfilling eth from self with external recipient??
     }
 
     function testAdvancedPartialAscendingOfferAmount1155(

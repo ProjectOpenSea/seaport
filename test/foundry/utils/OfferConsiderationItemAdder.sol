@@ -109,12 +109,12 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 paymentAmount
     ) internal {
         addConsiderationItem(
+            recipient,
             ItemType.NATIVE,
             address(0),
             0,
             paymentAmount,
-            paymentAmount,
-            recipient
+            paymentAmount
         );
     }
 
@@ -124,12 +124,12 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 endAmount
     ) internal {
         addConsiderationItem(
+            recipient,
             ItemType.NATIVE,
             address(0),
             0,
             startAmount,
-            endAmount,
-            recipient
+            endAmount
         );
     }
 
@@ -139,12 +139,12 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 endAmount
     ) internal {
         addConsiderationItem(
+            receiver,
             ItemType.ERC20,
             address(token1),
             0,
             startAmount,
-            endAmount,
-            receiver
+            endAmount
         );
     }
 
@@ -160,12 +160,12 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 tokenId
     ) internal {
         addConsiderationItem(
+            recipient,
             ItemType.ERC721,
             address(test721_1),
             tokenId,
             1,
-            1,
-            recipient
+            1
         );
     }
 
@@ -175,12 +175,12 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         uint256 amount
     ) internal {
         addConsiderationItem(
+            recipient,
             ItemType.ERC1155,
             address(test1155_1),
             tokenId,
             amount,
-            amount,
-            recipient
+            amount
         );
     }
 
@@ -200,12 +200,12 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
     }
 
     function addConsiderationItem(
+        address payable recipient,
         ItemType itemType,
         address token,
         uint256 identifier,
         uint256 startAmount,
-        uint256 endAmount,
-        address payable recipient
+        uint256 endAmount
     ) internal {
         considerationItem.itemType = itemType;
         considerationItem.token = token;

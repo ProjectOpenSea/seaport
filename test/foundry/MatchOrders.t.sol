@@ -202,14 +202,7 @@ contract MatchOrders is BaseOrderTest {
         )
     {
         addOfferItem(ItemType.ERC721, inputs.id, 1);
-        addConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            inputs.amount,
-            inputs.amount * 2,
-            alice
-        );
+        addErc20ConsiderationItem(alice, inputs.amount, inputs.amount.mul(2));
         _configureOrderParametersSetEndTime(
             alice,
             inputs.zone,
@@ -267,14 +260,7 @@ contract MatchOrders is BaseOrderTest {
         )
     {
         addOfferItem(ItemType.ERC721, inputs.id, 1);
-        addConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            inputs.amount * 2,
-            inputs.amount,
-            alice
-        );
+        addErc20ConsiderationItem(alice, inputs.amount.mul(2), inputs.amount);
         _configureOrderParametersSetEndTime(
             alice,
             inputs.zone,
@@ -672,14 +658,7 @@ contract MatchOrders is BaseOrderTest {
         );
 
         addOfferItem(ItemType.ERC721, context.args.id, 1);
-        addConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            currentAmount,
-            currentAmount,
-            bob
-        );
+        addErc20ConsiderationItem(bob, currentAmount);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),
@@ -858,14 +837,7 @@ contract MatchOrders is BaseOrderTest {
         );
 
         addOfferItem(ItemType.ERC721, context.args.id, 1);
-        addConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            currentAmount,
-            currentAmount,
-            bob
-        );
+        addErc20ConsiderationItem(bob, currentAmount);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),
