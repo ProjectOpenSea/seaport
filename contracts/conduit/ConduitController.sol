@@ -155,7 +155,7 @@ contract ConduitController is ConduitControllerInterface {
             // Set a previously open channel as closed via "swap & pop" method.
             // Decrement located index to get the index of the closed channel.
             uint256 removedChannelIndex;
-            // channelPreviouslyOpen already make sure channelIndexPlusOne > 0
+            // channelPreviouslyOpen already ensures channelIndexPlusOne > 0
             unchecked {
                 removedChannelIndex = channelIndexPlusOne - 1;
             }
