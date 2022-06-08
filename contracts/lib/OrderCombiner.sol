@@ -250,17 +250,26 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // implies that maximumFulfilled > 0.
                 maximumFulfilled--;
 
-                // Place the start time for the order on the stack.
-                uint256 startTime = advancedOrder.parameters.startTime;
+                // Declare variables for duration, elapsed, remaining
+                // that will be derived from order and block timestamps.
+                uint256 duration;
+                uint256 elapsed;
+                uint256 remaining;
 
-                // Derive the duration for the order and place it on the stack.
-                uint256 duration = advancedOrder.parameters.endTime - startTime;
+                // Declare a nested scope to minimize stack depth.
+                {
+                    // Place the start time for the order on the stack.
+                    uint256 startTime = advancedOrder.parameters.startTime;
 
-                // Derive time elapsed since the order started & place on stack.
-                uint256 elapsed = block.timestamp - startTime;
+                    // Derive the duration for the order and place it on the stack.
+                    duration = advancedOrder.parameters.endTime - startTime;
 
-                // Derive time remaining until order expires and place on stack.
-                uint256 remaining = duration - elapsed;
+                    // Derive time elapsed since the order started & place on stack.
+                    elapsed = block.timestamp - startTime;
+
+                    // Derive time remaining until order expires and place on stack.
+                    remaining = duration - elapsed;
+                }
 
                 // Retrieve array of offer items for the order in question.
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
