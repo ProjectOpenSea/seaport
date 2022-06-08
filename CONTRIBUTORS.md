@@ -11,6 +11,7 @@ Joseph Schiarizzi              | `CupOJoseph.eth`
 Aspyn Palatnick                | `stuckinaboot.eth`
 James Wenzel                   | `emo.eth`
 Stephan Min                    | `stephanm.eth`
+Ryan Ghods                     | `ralxz.eth`
 0xPatissier                    |
 pcaversaccio                   |
 David Eiber                    |
