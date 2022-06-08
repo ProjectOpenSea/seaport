@@ -27,5 +27,5 @@ enum ReentryPoint {
     MatchAdvancedOrders,
     Cancel,
     Validate,
-    IncrementNonce
+    IncrementCounter
 }

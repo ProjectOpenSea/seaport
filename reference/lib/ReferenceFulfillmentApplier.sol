@@ -234,13 +234,15 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     }
 
     /**
-     * @dev Internal pure function to check the indicated offer item matches original item.
+     * @dev Internal pure function to check the indicated offer item
+     *      matches original item.
      *
      * @param orderToExecute  The order to compare.
      * @param offer The offer to compare
      * @param execution  The aggregated offer item
      *
-     * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
+     * @return invalidFulfillment A boolean indicating whether the
+     *                            fulfillment is invalid.
      */
     function _checkMatchingOffer(
         OrderToExecute memory orderToExecute,
@@ -316,7 +318,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     i < offerComponents.length;
                     ++i
                 ) {
-                    // Get the order index and item index of the offer component.
+                    // Get the order index and item index of the offer
+                    // component.
                     orderIndex = offerComponents[i].orderIndex;
                     itemIndex = offerComponents[i].itemIndex;
 
@@ -336,20 +339,27 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         if (invalidFulfillment) {
                             break;
                         }
-                        // Get the spent item based on the offer components item index.
+                        // Get the spent item based on the offer components
+                        // item index.
                         offer = orderToExecute.spentItems[itemIndex];
                         // Update the Received Item Amount.
                         execution.item.amount =
                             execution.item.amount +
                             offer.amount;
-                        // Zero out amount on original offerItem to indicate it is spent,
+                        // Zero out amount on original offerItem to indicate
+                        // it is spent,
                         offer.amount = 0;
-                        // Ensure the indicated offer item matches original item.
+                        // Ensure the indicated offer item matches original
+                        // item.
                         invalidFulfillment = _checkMatchingOffer(
                             orderToExecute,
                             offer,
                             execution
                         );
+                        // Break if invalid
+                        if (invalidFulfillment) {
+                            break;
+                        }
                     }
                 }
             }
@@ -405,12 +415,14 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     }
 
     /**
-     * @dev Internal pure function to check the indicated consideration item matches original item.
+     * @dev Internal pure function to check the indicated consideration item
+     *      matches original item.
      *
      * @param consideration  The consideration to compare
      * @param receivedItem  The aggregated received item
      *
-     * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
+     * @return invalidFulfillment A boolean indicating whether the fulfillment
+     *                            is invalid.
      */
     function _checkMatchingConsideration(
         ReceivedItem memory consideration,
@@ -489,7 +501,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     i < considerationComponents.length;
                     ++i
                 ) {
-                    // Get the order index and item index of the consideration component.
+                    // Get the order index and item index of the consideration
+                    // component.
                     potentialCandidate.orderIndex = considerationComponents[i]
                         .orderIndex;
                     potentialCandidate.itemIndex = considerationComponents[i]
@@ -502,7 +515,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     if (potentialCandidate.invalidFulfillment) {
                         break;
                     }
-                    // Get the order based on consideration components order index.
+                    // Get the order based on consideration components order
+                    // index.
                     orderToExecute = ordersToExecute[
                         potentialCandidate.orderIndex
                     ];
@@ -524,14 +538,20 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         receivedItem.amount =
                             receivedItem.amount +
                             consideration.amount;
-                        // Zero out amount on original consideration item to indicate it is spent
+                        // Zero out amount on original consideration item to
+                        // indicate it is spent
                         consideration.amount = 0;
-                        // Ensure the indicated consideration item matches original item.
+                        // Ensure the indicated consideration item matches
+                        // original item.
                         potentialCandidate
                             .invalidFulfillment = _checkMatchingConsideration(
                             consideration,
                             receivedItem
                         );
+                        // Break if invalid
+                        if (potentialCandidate.invalidFulfillment) {
+                            break;
+                        }
                     }
                 }
             }

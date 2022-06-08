@@ -33,7 +33,7 @@ pragma solidity >=0.8.7;
  *      codebase but have been left in for readability.
  */
 
-uint256 constant AlmostOneWord = 0x19;
+uint256 constant AlmostOneWord = 0x1f;
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
@@ -156,6 +156,9 @@ uint256 constant ConduitBatch1155Transfer_amounts_head_offset = 0x80;
 uint256 constant ConduitBatch1155Transfer_ids_length_offset = 0xa0;
 uint256 constant ConduitBatch1155Transfer_amounts_length_baseOffset = 0xc0;
 uint256 constant ConduitBatch1155Transfer_calldata_baseSize = 0xc0;
+
+// Note: abbreviated version of above constant to adhere to line length limit.
+uint256 constant ConduitBatchTransfer_amounts_head_offset = 0x80;
 
 uint256 constant Invalid1155BatchTransferEncoding_ptr = 0x00;
 uint256 constant Invalid1155BatchTransferEncoding_length = 0x04;

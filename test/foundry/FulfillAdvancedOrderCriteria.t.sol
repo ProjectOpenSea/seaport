@@ -82,7 +82,7 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             baseOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,

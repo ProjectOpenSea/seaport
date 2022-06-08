@@ -107,7 +107,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getNonce(alice));
+        _configureOrderComponents(consideration.getCounter(alice));
         test(
             this.matchOrdersSingleErc721OfferSingleEthConsideration,
             Context(consideration, inputs)
@@ -122,7 +122,7 @@ contract MatchOrders is BaseOrderTest {
         public
         validateInputs(Context(consideration, inputs))
     {
-        for (uint256 i = 1; i < 4; i++) {
+        for (uint256 i = 1; i < 4; ++i) {
             if (i == 2) {
                 continue;
             }
@@ -145,7 +145,7 @@ contract MatchOrders is BaseOrderTest {
         FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs)) {
         // start at 1 to skip eth
-        for (uint256 i = 1; i < 4; i++) {
+        for (uint256 i = 1; i < 4; ++i) {
             if (i == 2) {
                 continue;
             }
@@ -187,7 +187,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getNonce(alice));
+        _configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersAscendingOfferAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -223,7 +223,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getNonce(alice));
+        _configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersAscendingConsiderationAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -257,7 +257,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getNonce(alice));
+        _configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersDescendingOfferAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -293,7 +293,7 @@ contract MatchOrders is BaseOrderTest {
             inputs.salt,
             inputs.useConduit
         );
-        _configureOrderComponents(consideration.getNonce(alice));
+        _configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersDescendingConsiderationAmount,
             ContextAscendingDescending(referenceConsideration, inputs)
@@ -321,7 +321,7 @@ contract MatchOrders is BaseOrderTest {
             context.args.salt,
             context.args.useConduit
         );
-        _configureOrderComponents(consideration.getNonce(bob));
+        _configureOrderComponents(consideration.getCounter(bob));
         bytes memory baseSignature = signOrder(
             context.consideration,
             bobPk,
@@ -350,7 +350,7 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -383,7 +383,7 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
             thirdOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes memory thirdSignature = signOrder(
@@ -467,7 +467,7 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             firstOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory firstSignature = signOrder(
             context.consideration,
@@ -498,7 +498,7 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -529,7 +529,7 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
             thirdOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
 
         bytes memory thirdSignature = signOrder(
@@ -610,7 +610,7 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
             mirrorOrderParameters,
-            context.consideration.getNonce(cal)
+            context.consideration.getCounter(cal)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -704,7 +704,7 @@ contract MatchOrders is BaseOrderTest {
         );
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
             mirrorOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -792,7 +792,7 @@ contract MatchOrders is BaseOrderTest {
         );
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
             mirrorOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -889,7 +889,7 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
             mirrorOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -986,7 +986,7 @@ contract MatchOrders is BaseOrderTest {
 
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
             mirrorOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(

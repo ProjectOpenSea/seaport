@@ -75,7 +75,7 @@ export type OrderComponents = Omit<
   OrderParameters,
   "totalOriginalConsiderationItems"
 > & {
-  nonce: BigNumber;
+  counter: BigNumber;
 };
 
 export type Order = {
