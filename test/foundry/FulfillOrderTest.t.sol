@@ -514,39 +514,25 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
 
     function testFulfillOrderRevertInvalidAdditionalRecipientsLength(
         uint256 fuzzTotalRecipients,
-        uint256 fuzzAmountToSubtractFromTotalRecipients
+        uint256 fuzzAmountToSubtractFromConsiderationItemsLength
     ) public {
-        uint256 totalRecipients = fuzzTotalRecipients % 200;
-        // Set amount to subtract from total recipients
-        // to be at most totalRecipients.
-        uint256 amountToSubtractFromTotalRecipients = totalRecipients > 0
-            ? fuzzAmountToSubtractFromTotalRecipients % totalRecipients
-            : 0;
-        bool overwriteTotalRecipientsLength = amountToSubtractFromTotalRecipients >
+        uint256 totalConsiderationItems = fuzzTotalRecipients % 200;
+        // Set amount to subtract from consideration item length
+        // to be at most totalConsiderationItems.
+        uint256 amountToSubtractFromConsiderationItemsLength = totalConsiderationItems >
+                0
+                ? fuzzAmountToSubtractFromConsiderationItemsLength %
+                    totalConsiderationItems
+                : 0;
+        bool overwriteConsiderationItemsLength = amountToSubtractFromConsiderationItemsLength >
                 0;
 
         // Create order
-        uint256 totalConsiderationItems = 6;
         (
             Order memory myOrder,
             OrderParameters memory _orderParameters,
             bytes memory _signature
         ) = prepareOrder(1, totalConsiderationItems);
-
-        // Add additional recipients
-        // _orderParameters.additionalRecipients = new AdditionalRecipient[](
-        //     totalRecipients
-        // );
-        // for (
-        //     uint256 i = 0;
-        //     i < _orderParameters.additionalRecipients.length;
-        //     i++
-        // ) {
-        //     _orderParameters.additionalRecipients[i] = AdditionalRecipient({
-        //         recipient: alice,
-        //         amount: 1
-        //     });
-        // }
 
         // Validate the order.
         Order[] memory myOrders = new Order[](1);
@@ -561,35 +547,32 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             conduitKeyOne
         );
 
-        // if (overwriteTotalRecipientsLength) {
-        //     // Get the additional recipients length from the calldata and
-        //     // store the length - amountToSubtractFromTotalRecipients in the calldata
-        //     // so that the length value does _not_ accurately represent the actual
-        //     // total recipients length.
-        //     assembly {
-        //         let additionalRecipientsLengthOffset := add(
-        //             fulfillOrderCalldata,
-        //             0x264
-        //         )
-        //         let additionalRecipientsLength := mload(
-        //             additionalRecipientsLengthOffset
-        //         )
-        //         mstore(
-        //             additionalRecipientsLengthOffset,
-        //             sub(
-        //                 additionalRecipientsLength,
-        //                 amountToSubtractFromTotalRecipients
-        //             )
-        //         )
-        //     }
-        // }
+        if (overwriteConsiderationItemsLength) {
+            // Get the additional recipients length from the calldata and
+            // store the length - amountToSubtractFromConsiderationItemsLength in the calldata
+            // so that the length value does _not_ accurately represent the actual
+            // total recipients length.
+            assembly {
+                let considerationLengthOffset := add(fulfillOrderCalldata, 0x60)
+                let additionalRecipientsLength := mload(
+                    considerationLengthOffset
+                )
+                mstore(
+                    considerationLengthOffset,
+                    sub(
+                        additionalRecipientsLength,
+                        amountToSubtractFromConsiderationItemsLength
+                    )
+                )
+            }
+        }
 
         address considerationAddress = address(consideration);
         uint256 calldataLength = fulfillOrderCalldata.length;
         bool success;
 
         assembly {
-            // Call fulfillBasicOrders
+            // Call fulfillOrder
             success := call(
                 gas(),
                 considerationAddress,
@@ -606,15 +589,15 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             )
         }
 
-        // If overwriteTotalRecipientsLength is True, the call should
-        // have failed (success should be False) and if overwriteTotalRecipientsLength is False,
+        // If overwriteConsiderationItemsLength is True, the call should
+        // have failed (success should be False) and if overwriteConsiderationItemsLength is False,
         // the call should have succeeded (success should be True).
-        // assertEq(!overwriteTotalRecipientsLength, success);
+        assertEq(!overwriteConsiderationItemsLength, success);
 
-        // if (overwriteTotalRecipientsLength) {
-        //     // Expect a revert if the additional recipients length is too small (e.g. 1 was subtracted).
-        //     vm.expectRevert();
-        // }
+        if (overwriteConsiderationItemsLength) {
+            // Expect a revert if the additional recipients length is too small (e.g. 1 was subtracted).
+            vm.expectRevert();
+        }
 
         if (!success) {
             // Revert and pass the revert reason along if one was returned.
@@ -654,10 +637,6 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
 
         _signature = signOrder(consideration, alicePk, orderHash);
         _order = Order(_orderParameters, _signature);
-        // _orderParameters = toBasicOrderParameters(
-        //     _order,
-        //     BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN
-        // );
     }
 
     function fulfillOrderEthToErc721(Context memory context)
