@@ -269,7 +269,9 @@ contract ReferenceOrderCombiner is
                 // Retrieve the offer item.
                 OfferItem memory offerItem = offer[j];
 
-                anyNativeOfferItems = anyNativeOfferItems || offerItem.itemType == ItemType.NATIVE;
+                anyNativeOfferItems =
+                    anyNativeOfferItems ||
+                    offerItem.itemType == ItemType.NATIVE;
 
                 // Apply order fill fraction to offer item end amount.
                 uint256 endAmount = _getFraction(
@@ -362,7 +364,7 @@ contract ReferenceOrderCombiner is
         }
 
         if (anyNativeOfferItems && nonMatchFn) {
-          revert InvalidNativeOfferItem();
+            revert InvalidNativeOfferItem();
         }
 
         // Apply criteria resolvers to each order as applicable.
