@@ -180,7 +180,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             mstore(orderHashes, 0)
         }
         bool nonMatchFn;
-        bool anyInvalidNativeOffers;
+        bool anyNativeOfferItems;
         assembly {
             // Add a boolean to the stack indicating if we are in a function
             // that is not matchAdvancedOrders or matchOrders.
@@ -276,9 +276,9 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     assembly {
                         // If the offer item is for the native token and we are not
                         // in a match function, it is invalid.
-                        anyInvalidNativeOffers := or(
-                            anyInvalidNativeOffers,
-                            and(nonMatchFn, iszero(mload(offerItem)))
+                        anyNativeOfferItems := or(
+                            anyNativeOfferItems,
+                            iszero(mload(offerItem))
                         )
                     }
 
@@ -391,7 +391,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             }
         }
 
-        if (anyInvalidNativeOffers) {
+        if (anyNativeOfferItems && nonMatchFn) {
             revert InvalidNativeOfferItem();
         }
 
