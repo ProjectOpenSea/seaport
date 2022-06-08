@@ -159,11 +159,8 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         _validateOrder(myOrder, consideration);
 
         // Get the calldata that will be passed into fulfillBasicOrder.
-        bytes4 fulfillBasicOrderSignature = consideration
-            .fulfillBasicOrder
-            .selector;
         bytes memory fulfillBasicOrderCalldata = abi.encodeWithSelector(
-            fulfillBasicOrderSignature,
+            consideration.fulfillBasicOrder.selector,
             _basicOrderParameters
         );
 

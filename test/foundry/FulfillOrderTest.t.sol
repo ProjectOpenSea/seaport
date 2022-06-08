@@ -538,9 +538,8 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         _validateOrder(myOrder, consideration);
 
         // Get the calldata that will be passed into fulfillOrder.
-        bytes4 fulfillOrderSignature = consideration.fulfillOrder.selector;
         bytes memory fulfillOrderCalldata = abi.encodeWithSelector(
-            fulfillOrderSignature,
+            consideration.fulfillOrder.selector,
             myOrder,
             conduitKeyOne
         );
