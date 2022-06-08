@@ -179,7 +179,22 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         assembly {
             mstore(orderHashes, 0)
         }
-
+        bool nonMatchFn;
+        bool anyInvalidNativeOffers;
+        assembly {
+          // Add a boolean to the stack indicating if we are in a function
+          // that is not matchAdvancedOrders or matchOrders.
+          nonMatchFn := gt(
+              // Take the remainder of the selector modulo a magic value.
+              mod(
+                  shr(NumBitsAfterSelector, calldataload(0)),
+                  NonMatchSelector_MagicModulus
+              ),
+              // Check if the remainder is higher than the greatest remainder
+              // of the two match selectors modulo the magic value.
+              NonMatchSelector_MagicRemainder
+          )
+        }
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
             // Iterate over each order.
@@ -257,6 +272,15 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 for (uint256 j = 0; j < totalOfferItems; ++j) {
                     // Retrieve the offer item.
                     OfferItem memory offerItem = offer[j];
+
+                    assembly {
+                        // If the offer item is for the native token and we are not
+                        // in a match function, it is invalid.
+                        anyInvalidNativeOffers := or(
+                            anyInvalidNativeOffers,
+                            and(nonMatchFn, iszero(mload(offerItem)))
+                        )
+                    }
 
                     // Apply order fill fraction to offer item end amount.
                     uint256 endAmount = _getFraction(
@@ -365,6 +389,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     }
                 }
             }
+        }
+
+        if (anyInvalidNativeOffers) {
+          revert InvalidNativeOfferItem();
         }
 
         // Apply criteria resolvers to each order as applicable.
