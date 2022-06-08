@@ -33,7 +33,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         bytes32 digest,
         bytes memory signature
     ) internal view {
-        if (signer == 0) {
+        if (signer == address(0)) {
            // Make sure to never allow the ecrecover "error" case
            revert InvalidSigner();
         }
