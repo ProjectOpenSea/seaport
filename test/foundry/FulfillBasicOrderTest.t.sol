@@ -192,6 +192,11 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
             }
         }
 
+        assertEq(
+            _basicOrderParameters.additionalRecipients.length,
+            totalRecipients - amountToSubtractFromTotalRecipients
+        );
+
         address considerationAddress = address(consideration);
         uint256 calldataLength = fulfillBasicOrderCalldata.length;
         bool success;
