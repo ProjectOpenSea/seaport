@@ -180,6 +180,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             mstore(orderHashes, 0)
         }
         // Declare an error buffer indicating the status of any native offer items.
+        // 0 => In a match function, no native offer items (OK).
+        // 1 => In a match function, some native offer items (OK).
+        // 2 => Not in a match function, no native offer items (OK).
+        // 3 => Not in a match function, some native offer items (NOT OK).
         uint256 invalidNativeOfferItemErrorBuffer;
         assembly {
             // Use the second bit of the error buffer to indicate whether we
@@ -406,7 +410,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // If the second bit is set in the error buffer, we are not in a match function.
         // If the first bit is set, a native offer item was encountered.
         // If the value is greater than two, both the first and second bits were set.
-        if (invalidNativeOfferItemErrorBuffer > 2) {
+        if (invalidNativeOfferItemErrorBuffer == 3) {
             revert InvalidNativeOfferItem();
         }
 
