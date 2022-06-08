@@ -50,7 +50,7 @@ contract StructCopier {
         dest.zoneHash = src.zoneHash;
         dest.salt = src.salt;
         dest.conduitKey = src.conduitKey;
-        dest.nonce = src.nonce;
+        dest.counter = src.counter;
     }
 
     function setAdditionalRecipients(
@@ -60,7 +60,7 @@ contract StructCopier {
         while (dest.length != 0) {
             dest.pop();
         }
-        for (uint256 i = 0; i < src.length; i++) {
+        for (uint256 i = 0; i < src.length; ++i) {
             dest.push(src[i]);
         }
     }
@@ -71,7 +71,7 @@ contract StructCopier {
         while (dest.length != 0) {
             dest.pop();
         }
-        for (uint256 i = 0; i < src.length; i++) {
+        for (uint256 i = 0; i < src.length; ++i) {
             dest.push(src[i]);
         }
     }
@@ -97,7 +97,7 @@ contract StructCopier {
         while (dest.length != 0) {
             dest.pop();
         }
-        for (uint256 i = 0; i < src.length; i++) {
+        for (uint256 i = 0; i < src.length; ++i) {
             setOrder(_tempOrder, src[i]);
             dest.push(_tempOrder);
         }
@@ -124,7 +124,7 @@ contract StructCopier {
         while (dest.length != 0) {
             dest.pop();
         }
-        for (uint256 i = 0; i < src.length; i++) {
+        for (uint256 i = 0; i < src.length; ++i) {
             setAdvancedOrder(_tempAdvancedOrder, src[i]);
             dest.push(_tempAdvancedOrder);
         }
@@ -155,7 +155,7 @@ contract StructCopier {
         while (dest.length != 0) {
             dest.pop();
         }
-        for (uint256 i = 0; i < src.length; i++) {
+        for (uint256 i = 0; i < src.length; ++i) {
             dest.push(src[i]);
         }
     }
@@ -167,7 +167,7 @@ contract StructCopier {
         while (dest.length != 0) {
             dest.pop();
         }
-        for (uint256 i = 0; i < src.length; i++) {
+        for (uint256 i = 0; i < src.length; ++i) {
             dest.push(src[i]);
         }
     }
@@ -189,7 +189,7 @@ contract StructCopier {
         while (dest.length != 0) {
             dest.pop();
         }
-        for (uint256 i = 0; i < src.length; i++) {
+        for (uint256 i = 0; i < src.length; ++i) {
             dest.push(src[i]);
         }
     }
@@ -201,7 +201,7 @@ contract StructCopier {
         while (dest.length != 0) {
             dest.pop();
         }
-        for (uint256 i = 0; i < src.length; i++) {
+        for (uint256 i = 0; i < src.length; ++i) {
             dest.push(src[i]);
         }
     }
@@ -221,7 +221,7 @@ contract StructCopier {
         while (dest.length != 0) {
             dest.pop();
         }
-        for (uint256 i = 0; i < src.length; i++) {
+        for (uint256 i = 0; i < src.length; ++i) {
             pushFulFillmentComponents(dest, src[i]);
         }
     }
@@ -233,7 +233,7 @@ contract StructCopier {
         ConsiderationItem[] memory considerationItems = new ConsiderationItem[](
             _offerItems.length
         );
-        for (uint256 i = 0; i < _offerItems.length; i++) {
+        for (uint256 i = 0; i < _offerItems.length; ++i) {
             considerationItems[i] = ConsiderationItem(
                 _offerItems[i].itemType,
                 _offerItems[i].token,

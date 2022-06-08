@@ -62,12 +62,12 @@ interface ConsiderationEventsAndErrors {
     );
 
     /**
-     * @dev Emit an event whenever a nonce for a given offerer is incremented.
+     * @dev Emit an event whenever a counter for a given offerer is incremented.
      *
-     * @param newNonce The new nonce for the offerer.
+     * @param newCounter The new counter for the offerer.
      * @param offerer  The offerer in question.
      */
-    event NonceIncremented(uint256 newNonce, address indexed offerer);
+    event CounterIncremented(uint256 newCounter, address indexed offerer);
 
     /**
      * @dev Revert with an error when attempting to fill an order that has

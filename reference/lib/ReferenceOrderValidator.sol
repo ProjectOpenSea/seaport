@@ -152,10 +152,8 @@ contract ReferenceOrderValidator is
             revert PartialFillsNotEnabledForOrder();
         }
 
-        // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
-            orderParameters
-        );
+        // Retrieve current counter and use it w/ parameters to get order hash.
+        orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
 
         // Ensure a valid submitter.
         _assertRestrictedAdvancedOrderValidity(
@@ -324,7 +322,7 @@ contract ReferenceOrderValidator is
                 revert InvalidCanceller();
             }
 
-            // Derive order hash using the order parameters and the nonce.
+            // Derive order hash using the order parameters and the counter.
             bytes32 orderHash = _deriveOrderHash(
                 OrderParameters(
                     offerer,
@@ -339,7 +337,7 @@ contract ReferenceOrderValidator is
                     order.conduitKey,
                     order.consideration.length
                 ),
-                order.nonce
+                order.counter
             );
 
             // Retrieve the order status using the derived order hash.
@@ -390,8 +388,8 @@ contract ReferenceOrderValidator is
             // Move offerer from memory to the stack.
             offerer = orderParameters.offerer;
 
-            // Get current nonce and use it w/ params to derive order hash.
-            orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+            // Get current counter and use it w/ params to derive order hash.
+            orderHash = _assertConsiderationLengthAndGetOrderHash(
                 orderParameters
             );
 
