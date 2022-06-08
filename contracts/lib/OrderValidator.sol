@@ -273,6 +273,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     }
                 }
             }
+
             // Skip overflow check: checked above unless numerator is reduced.
             unchecked {
                 // Update order status and fill amount, packing struct values.
@@ -282,6 +283,24 @@ contract OrderValidator is Executor, ZoneInteraction {
                 orderStatus.denominator = uint120(denominator);
             }
         } else {
+            // Use assembly to ensure fractional amounts are below max uint120.
+            assembly {
+                // Check numerator and denominator for uint120 overflow.
+                if or(
+                    gt(numerator, MaxUint120),
+                    gt(denominator, MaxUint120)
+                ) {
+                    // Store the Panic error signature.
+                    mstore(0, Panic_error_signature)
+
+                    // Set arithmetic (0x11) panic code as initial argument.
+                    mstore(Panic_error_offset, Panic_arithmetic)
+
+                    // Return, supplying Panic signature & arithmetic code.
+                    revert(0, Panic_error_length)
+                }
+            }
+
             // Update order status and fill amount, packing struct values.
             orderStatus.isValidated = true;
             orderStatus.isCancelled = false;

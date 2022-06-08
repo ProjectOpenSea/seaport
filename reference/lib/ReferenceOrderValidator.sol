@@ -253,6 +253,10 @@ contract ReferenceOrderValidator is
             orderStatus.numerator = uint120(filledNumerator);
             orderStatus.denominator = uint120(denominator);
         } else {
+            // Perform overflow check for numerator and denominator.
+            uint256 maxOverhead = type(uint256).max - type(uint120).max;
+            ((numerator + maxOverhead) & (denominator + maxOverhead));
+
             // Update order status and fill amount, packing struct values.
             orderStatus.isValidated = true;
             orderStatus.isCancelled = false;
