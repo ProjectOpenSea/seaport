@@ -182,18 +182,18 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         bool nonMatchFn;
         bool anyInvalidNativeOffers;
         assembly {
-          // Add a boolean to the stack indicating if we are in a function
-          // that is not matchAdvancedOrders or matchOrders.
-          nonMatchFn := gt(
-              // Take the remainder of the selector modulo a magic value.
-              mod(
-                  shr(NumBitsAfterSelector, calldataload(0)),
-                  NonMatchSelector_MagicModulus
-              ),
-              // Check if the remainder is higher than the greatest remainder
-              // of the two match selectors modulo the magic value.
-              NonMatchSelector_MagicRemainder
-          )
+            // Add a boolean to the stack indicating if we are in a function
+            // that is not matchAdvancedOrders or matchOrders.
+            nonMatchFn := gt(
+                // Take the remainder of the selector modulo a magic value.
+                mod(
+                    shr(NumBitsAfterSelector, calldataload(0)),
+                    NonMatchSelector_MagicModulus
+                ),
+                // Check if the remainder is higher than the greatest remainder
+                // of the two match selectors modulo the magic value.
+                NonMatchSelector_MagicRemainder
+            )
         }
         // Skip overflow checks as all for loops are indexed starting at zero.
         unchecked {
@@ -392,7 +392,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         }
 
         if (anyInvalidNativeOffers) {
-          revert InvalidNativeOfferItem();
+            revert InvalidNativeOfferItem();
         }
 
         // Apply criteria resolvers to each order as applicable.
