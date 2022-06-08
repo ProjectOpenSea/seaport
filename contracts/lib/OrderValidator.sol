@@ -286,10 +286,7 @@ contract OrderValidator is Executor, ZoneInteraction {
             // Use assembly to ensure fractional amounts are below max uint120.
             assembly {
                 // Check numerator and denominator for uint120 overflow.
-                if or(
-                    gt(numerator, MaxUint120),
-                    gt(denominator, MaxUint120)
-                ) {
+                if or(gt(numerator, MaxUint120), gt(denominator, MaxUint120)) {
                     // Store the Panic error signature.
                     mstore(0, Panic_error_signature)
 
