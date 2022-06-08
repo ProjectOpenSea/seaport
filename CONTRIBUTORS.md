@@ -27,6 +27,7 @@ karmacoma                      | `karmacoma.eth`
 horsefacts                     | `horsefacts.eth`
 UncarvedBlock                  | `uncarvedblock.eth`
 Zoraiz Mahmood                 | `zorz.eth`
+William Poulin                 | `wpoulin.eth`
 Rajiv Patel-O'Connor           | `rajivpoc.eth`
 tserg                          | `tserg.eth`
 cygaar                         | `cygaar.eth`
@@ -51,3 +52,4 @@ Ellahi                         | `ellahi.eth`
 zaz                            | `1zaz1.eth`
 berndartmueller                | `berndartmueller.eth`
 dmfxyz                         | `dmfxyz.eth`
+0xf4ce                         | `0xf4ce.eth`
