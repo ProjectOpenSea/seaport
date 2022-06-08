@@ -43,9 +43,13 @@ contract AmountDeriver is AmountDerivationErrors {
             // Leave extra amount to add for rounding at zero (i.e. round down).
             uint256 extraCeiling = 0;
 
+            // Derive the duration for the order and place it on the stack.
             uint256 duration = endTime - startTime;
+
+            // Derive time elapsed since the order started & place on stack.
             uint256 elapsed = block.timestamp - startTime;
-            // Derive time remaining until order expires
+
+            // Derive time remaining until order expires and place on stack.
             uint256 remaining = duration - elapsed;
 
             // If rounding up, set rounding factor to one less than denominator.
