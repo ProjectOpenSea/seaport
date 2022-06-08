@@ -17,12 +17,9 @@ import "contracts/lib/ConsiderationConstants.sol";
  */
 contract ReferenceSignatureVerification is SignatureVerificationErrors {
     /**
-     * @dev Internal view function to verify the signature of an order. An
-     *      ERC-1271 fallback will be attempted if either the signature length
-     *      is not 32 or 33 bytes or if the recovered signer does not match the
-     *      supplied signer. Note that in cases where a 32 or 33 byte signature
-     *      is supplied, only standard ECDSA signatures that recover to a
-     *      non-zero address are supported.
+     * @dev Internal view function to verify the signature of an order.
+     *      First ecrecover is tried and if that fails ERC-1271 is tried
+     *      Note: This order keeps the gas costs limited
      *
      * @param signer    The signer for the order.
      * @param digest    The digest to verify the signature against.
@@ -34,6 +31,35 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
         bytes32 digest,
         bytes memory signature
     ) internal view {
+        if (signer == address(0)) {
+            // Make sure to never allow the ecrecover "error" case
+            revert InvalidSigner();
+        }
+        address recoveredSigner = _tryEcRecoverSignature(digest, signature);
+        // Found a match: recovered address matches the signer
+        if (recoveredSigner == signer) return;
+
+        // Attempt EIP-1271 static call to signer in case it's a contract.
+        // reverts when not successful
+        _assertValidEIP1271Signature(signer, digest, signature);
+    }
+
+    /**
+     * @dev Internal view function to verify the signature of an order. An
+     *      EcRecover will be attempted if either the signature length
+     *      is 64 or 65. Note only standard ECDSA signatures that recover to a
+     *      non-zero address are supported.
+     *
+     * @param digest    The digest to verify the signature against.
+     * @param signature A signature from the signer indicating that the order
+     *                  has been approved.
+     */
+
+    function _tryEcRecoverSignature(bytes32 digest, bytes memory signature)
+        internal
+        view
+        returns (address)
+    {
         // Declare r, s, and v signature parameters.
         bytes32 r;
         bytes32 s;
@@ -55,28 +81,13 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
 
             // Ensure v value is properly formatted.
             if (v != 27 && v != 28) {
-                revert BadSignatureV(v);
+                return (address(0));
             }
         } else {
-            // For all other signature lengths, try verification via EIP-1271.
-            // Attempt EIP-1271 static call to signer in case it's a contract.
-            _assertValidEIP1271Signature(signer, digest, signature);
-
-            // Return early if the ERC-1271 signature check succeeded.
-            return;
+            return (address(0));
         }
 
-        // Attempt to recover signer using the digest and signature parameters.
-        address recoveredSigner = ecrecover(digest, v, r, s);
-
-        // Disallow invalid signers.
-        if (recoveredSigner == address(0)) {
-            revert InvalidSignature();
-            // Should a signer be recovered, but it doesn't match the signer...
-        } else if (recoveredSigner != signer) {
-            // Attempt EIP-1271 static call to signer in case it's a contract.
-            _assertValidEIP1271Signature(signer, digest, signature);
-        }
+        return ecrecover(digest, v, r, s);
     }
 
     /**
