@@ -27,6 +27,7 @@ karmacoma                      | `karmacoma.eth`
 horsefacts                     | `horsefacts.eth`
 UncarvedBlock                  | `uncarvedblock.eth`
 Zoraiz Mahmood                 | `zorz.eth`
+William Poulin                 | `wpoulin.eth`
 Rajiv Patel-O'Connor           | `rajivpoc.eth`
 tserg                          | `tserg.eth`
 cygaar                         | `cygaar.eth`
@@ -34,6 +35,7 @@ Meta0xNull                     | `meta0xnull.eth`
 sach1r0                        |
 gpersoon                       | `gpersoon.eth`
 Matt Solomon                   | `msolomon.eth`
+twojoy0                        |
 Weikang Song                   | `weikangs.eth`
 zer0dot                        | `zer0dot.eth`
 Mudit Gupta                    | `mudit.eth`
@@ -51,3 +53,4 @@ zaz                            | `1zaz1.eth`
 berndartmueller                | `berndartmueller.eth`
 dmfxyz                         | `dmfxyz.eth`
 daltoncoder                    | `dontkillrobots.eth`
+0xf4ce                         | `0xf4ce.eth`
