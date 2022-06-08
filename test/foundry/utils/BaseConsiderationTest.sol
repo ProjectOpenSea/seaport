@@ -10,7 +10,7 @@ import { DifferentialTest } from "./DifferentialTest.sol";
 import { StructCopier } from "./StructCopier.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { ReferenceConduitController } from "../../../reference/conduit/ReferenceConduitController.sol";
-import { ReferenceConsideration } from "../../../reference/ReferenceConsideration.sol";
+import { ReferenceSeaport } from "../../../reference/ReferenceSeaport.sol";
 import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 import { Consideration } from "../../../contracts/lib/Consideration.sol";
 
