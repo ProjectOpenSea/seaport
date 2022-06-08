@@ -56,3 +56,5 @@ dmfxyz                         | `dmfxyz.eth`
 daltoncoder                    | `dontkillrobots.eth`
 0xf4ce                         | `0xf4ce.eth`
 phaze                          | `phaze.eth`
+hrkrshnn                       | `hrkrshnn.eth`
+axic                           | `axic.eth`
