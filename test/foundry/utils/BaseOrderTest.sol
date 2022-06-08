@@ -10,9 +10,9 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { StructCopier } from "./StructCopier.sol";
-import { ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
@@ -88,6 +88,7 @@ contract BaseOrderTest is
     AdditionalRecipient[] additionalRecipients;
 
     uint256 internal globalTokenId;
+    uint256 internal globalSalt;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -441,7 +442,7 @@ contract BaseOrderTest is
     */
     function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
         vm.deal(_to, _amount);
-        for (uint256 i = 0; i < erc20s.length; i++) {
+        for (uint256 i = 0; i < erc20s.length; ++i) {
             erc20s[i].mint(_to, _amount);
         }
         emit log_named_address("Allocated tokens to", _to);
@@ -450,19 +451,19 @@ contract BaseOrderTest is
 
     function _setApprovals(address _owner) internal {
         vm.startPrank(_owner);
-        for (uint256 i = 0; i < erc20s.length; i++) {
+        for (uint256 i = 0; i < erc20s.length; ++i) {
             erc20s[i].approve(address(consideration), MAX_INT);
             erc20s[i].approve(address(referenceConsideration), MAX_INT);
             erc20s[i].approve(address(conduit), MAX_INT);
             erc20s[i].approve(address(referenceConduit), MAX_INT);
         }
-        for (uint256 i = 0; i < erc721s.length; i++) {
+        for (uint256 i = 0; i < erc721s.length; ++i) {
             erc721s[i].setApprovalForAll(address(consideration), true);
             erc721s[i].setApprovalForAll(address(referenceConsideration), true);
             erc721s[i].setApprovalForAll(address(conduit), true);
             erc721s[i].setApprovalForAll(address(referenceConduit), true);
         }
-        for (uint256 i = 0; i < erc1155s.length; i++) {
+        for (uint256 i = 0; i < erc1155s.length; ++i) {
             erc1155s[i].setApprovalForAll(address(consideration), true);
             erc1155s[i].setApprovalForAll(
                 address(referenceConsideration),
@@ -485,7 +486,7 @@ contract BaseOrderTest is
 
     function getMaxConsiderationValue() internal view returns (uint256) {
         uint256 value = 0;
-        for (uint256 i = 0; i < considerationItems.length; i++) {
+        for (uint256 i = 0; i < considerationItems.length; ++i) {
             uint256 amount = considerationItems[i].startAmount >
                 considerationItems[i].endAmount
                 ? considerationItems[i].startAmount
@@ -515,6 +516,102 @@ contract BaseOrderTest is
                 parameters.salt,
                 parameters.conduitKey,
                 counter
+            );
+    }
+
+    function getOrderParameters(address payable offerer, OrderType orderType)
+        internal
+        returns (OrderParameters memory)
+    {
+        return
+            OrderParameters(
+                offerer,
+                address(0),
+                offerItems,
+                considerationItems,
+                orderType,
+                block.timestamp,
+                block.timestamp + 1,
+                bytes32(0),
+                globalSalt++,
+                bytes32(0),
+                considerationItems.length
+            );
+    }
+
+    function toOrderComponents(OrderParameters memory _params, uint256 nonce)
+        internal
+        pure
+        returns (OrderComponents memory)
+    {
+        return
+            OrderComponents(
+                _params.offerer,
+                _params.zone,
+                _params.offer,
+                _params.consideration,
+                _params.orderType,
+                _params.startTime,
+                _params.endTime,
+                _params.zoneHash,
+                _params.salt,
+                _params.conduitKey,
+                nonce
+            );
+    }
+
+    function toBasicOrderParameters(
+        Order memory _order,
+        BasicOrderType basicOrderType
+    ) internal pure returns (BasicOrderParameters memory) {
+        return
+            BasicOrderParameters(
+                _order.parameters.consideration[0].token,
+                _order.parameters.consideration[0].identifierOrCriteria,
+                _order.parameters.consideration[0].endAmount,
+                payable(_order.parameters.offerer),
+                _order.parameters.zone,
+                _order.parameters.offer[0].token,
+                _order.parameters.offer[0].identifierOrCriteria,
+                _order.parameters.offer[0].endAmount,
+                basicOrderType,
+                _order.parameters.startTime,
+                _order.parameters.endTime,
+                _order.parameters.zoneHash,
+                _order.parameters.salt,
+                _order.parameters.conduitKey,
+                _order.parameters.conduitKey,
+                0,
+                new AdditionalRecipient[](0),
+                _order.signature
+            );
+    }
+
+    function toBasicOrderParameters(
+        OrderComponents memory _order,
+        BasicOrderType basicOrderType,
+        bytes memory signature
+    ) internal pure returns (BasicOrderParameters memory) {
+        return
+            BasicOrderParameters(
+                _order.consideration[0].token,
+                _order.consideration[0].identifierOrCriteria,
+                _order.consideration[0].endAmount,
+                payable(_order.offerer),
+                _order.zone,
+                _order.offer[0].token,
+                _order.offer[0].identifierOrCriteria,
+                _order.offer[0].endAmount,
+                basicOrderType,
+                _order.startTime,
+                _order.endTime,
+                _order.zoneHash,
+                _order.salt,
+                _order.conduitKey,
+                _order.conduitKey,
+                0,
+                new AdditionalRecipient[](0),
+                signature
             );
     }
 

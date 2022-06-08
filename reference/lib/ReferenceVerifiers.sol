@@ -90,7 +90,7 @@ contract ReferenceVerifiers is
     }
 
     /**
-     * @dev Internal pure function to validate that a given order is fillable
+     * @dev Internal view function to validate that a given order is fillable
      *      and not cancelled based on the order status.
      *
      * @param orderHash       The order hash.
@@ -106,10 +106,10 @@ contract ReferenceVerifiers is
      */
     function _verifyOrderStatus(
         bytes32 orderHash,
-        OrderStatus memory orderStatus,
+        OrderStatus storage orderStatus,
         bool onlyAllowUnused,
         bool revertOnInvalid
-    ) internal pure returns (bool valid) {
+    ) internal view returns (bool valid) {
         // Ensure that the order has not been cancelled.
         if (orderStatus.isCancelled) {
             // Only revert if revertOnInvalid has been supplied as true.
@@ -120,6 +120,9 @@ contract ReferenceVerifiers is
             // Return false as the order status is invalid.
             return false;
         }
+
+        // Read order status numerator from storage and place on stack.
+        uint256 orderStatusNumerator = orderStatus.numerator;
 
         // If the order is not entirely unused...
         if (orderStatus.numerator != 0) {

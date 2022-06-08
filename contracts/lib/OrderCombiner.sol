@@ -5,10 +5,8 @@ import { Side, ItemType } from "./ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
-    AdditionalRecipient,
     OfferItem,
     ConsiderationItem,
-    SpentItem,
     ReceivedItem,
     OrderParameters,
     Fulfillment,
@@ -233,6 +231,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 orderHashes[i] = orderHash;
 
                 // Decrement the number of fulfilled orders.
+                // Skip underflow check as the condition before
+                // implies that maximumFulfilled > 0.
                 maximumFulfilled--;
 
                 // Place the start time for the order on the stack.
@@ -250,8 +250,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // Retrieve array of offer items for the order in question.
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
 
+                // Read length of offer array and place on the stack.
+                uint256 totalOfferItems = offer.length;
+
                 // Iterate over each offer item on the order.
-                for (uint256 j = 0; j < offer.length; ++j) {
+                for (uint256 j = 0; j < totalOfferItems; ++j) {
                     // Retrieve the offer item.
                     OfferItem memory offerItem = offer[j];
 
@@ -294,8 +297,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     advancedOrder.parameters.consideration
                 );
 
+                // Read length of consideration array and place on the stack.
+                uint256 totalConsiderationItems = consideration.length;
+
                 // Iterate over each consideration item on the order.
-                for (uint256 j = 0; j < consideration.length; ++j) {
+                for (uint256 j = 0; j < totalConsiderationItems; ++j) {
                     // Retrieve the consideration item.
                     ConsiderationItem memory considerationItem = (
                         consideration[j]
@@ -597,8 +603,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     advancedOrder.parameters.consideration
                 );
 
+                // Read length of consideration array and place on the stack.
+                uint256 totalConsiderationItems = consideration.length;
+
                 // Iterate over each consideration item to ensure it is met.
-                for (uint256 j = 0; j < consideration.length; ++j) {
+                for (uint256 j = 0; j < totalConsiderationItems; ++j) {
                     // Retrieve remaining amount on the consideration item.
                     uint256 unmetAmount = consideration[j].startAmount;
 
@@ -620,8 +629,11 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // accessed and modified, however.
         bytes memory accumulator = new bytes(AccumulatorDisarmed);
 
+        // Retrieve the length of the executions array and place on stack.
+        uint256 totalExecutions = executions.length;
+
         // Iterate over each execution.
-        for (uint256 i = 0; i < executions.length; ) {
+        for (uint256 i = 0; i < totalExecutions; ) {
             // Retrieve the execution and the associated received item.
             Execution memory execution = executions[i];
             ReceivedItem memory item = execution.item;

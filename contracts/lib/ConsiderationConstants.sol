@@ -275,6 +275,9 @@ uint256 constant BasicOrder_signature_ptr = 0x260;
 bytes32 constant EIP2098_allButHighestBitMask = (
     0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 );
+bytes32 constant ECDSA_twentySeventhAndTwentyEighthBytesSet = (
+    0x0000000000000000000000000000000000000000000000000000000101000000
+);
 
 // abi.encodeWithSignature("NoContract(address)")
 uint256 constant NoContract_error_signature = (
@@ -344,3 +347,10 @@ uint256 constant Conduit_transferItem_from_ptr = 0x40;
 uint256 constant Conduit_transferItem_to_ptr = 0x60;
 uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
 uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
+
+// Declare constant for errors related to amount derivation.
+// error InexactFraction() @ AmountDerivationErrors.sol
+uint256 constant InexactFraction_error_signature = (
+    0xc63cf08900000000000000000000000000000000000000000000000000000000
+);
+uint256 constant InexactFraction_error_len = 0x20;
