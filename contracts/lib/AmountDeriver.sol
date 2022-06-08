@@ -24,8 +24,6 @@ contract AmountDeriver is AmountDerivationErrors {
      *
      * @param startAmount The starting amount of the item.
      * @param endAmount   The ending amount of the item.
-     * @param elapsed     The time elapsed since the order's start time.
-     * @param duration    The total duration of the order.
      * @param roundUp     A boolean indicating whether the resultant amount
      *                    should be rounded up or down.
      *
@@ -34,14 +32,19 @@ contract AmountDeriver is AmountDerivationErrors {
     function _locateCurrentAmount(
         uint256 startAmount,
         uint256 endAmount,
-        uint256 elapsed,
-        uint256 duration,
+        uint256 startTime,
+        uint256 endTime,
         bool roundUp
-    ) internal pure returns (uint256) {
+    ) internal view returns (uint256) {
         // Only modify end amount if it doesn't already equal start amount.
         if (startAmount != endAmount) {
             // Leave extra amount to add for rounding at zero (i.e. round down).
             uint256 extraCeiling = 0;
+
+            uint256 duration = endTime - startTime;
+            uint256 elapsed = block.timestamp - startTime;
+            // Derive time remaining until order expires
+            uint256 remaining = duration - elapsed;
 
             // If rounding up, set rounding factor to one less than denominator.
             if (roundUp) {
@@ -50,9 +53,6 @@ contract AmountDeriver is AmountDerivationErrors {
                     extraCeiling = duration - 1;
                 }
             }
-
-            // Derive time remaining until order expires
-            uint256 remaining = duration - elapsed;
 
             // Aggregate new amounts weighted by time with rounding factor.
             // prettier-ignore
@@ -129,8 +129,6 @@ contract AmountDeriver is AmountDerivationErrors {
      * @param numerator       A value indicating the portion of the order that
      *                        should be filled.
      * @param denominator     A value indicating the total size of the order.
-     * @param elapsed         The time elapsed since the order's start time.
-     * @param duration        The total duration of the order.
      * @param roundUp         A boolean indicating whether the resultant
      *                        amount should be rounded up or down.
      *
@@ -141,10 +139,10 @@ contract AmountDeriver is AmountDerivationErrors {
         uint256 endAmount,
         uint256 numerator,
         uint256 denominator,
-        uint256 elapsed,
-        uint256 duration,
+        uint256 startTime,
+        uint256 endTime,
         bool roundUp
-    ) internal pure returns (uint256 amount) {
+    ) internal view returns (uint256 amount) {
         // If start amount equals end amount, apply fraction to end amount.
         if (startAmount == endAmount) {
             // Apply fraction to end amount.
@@ -154,8 +152,8 @@ contract AmountDeriver is AmountDerivationErrors {
             amount = _locateCurrentAmount(
                 _getFraction(numerator, denominator, startAmount),
                 _getFraction(numerator, denominator, endAmount),
-                elapsed,
-                duration,
+                startTime,
+                endTime,
                 roundUp
             );
         }

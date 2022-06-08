@@ -235,12 +235,13 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
 
                 // Place the start time for the order on the stack.
                 uint256 startTime = advancedOrder.parameters.startTime;
+                uint256 endTime = advancedOrder.parameters.endTime;
 
                 // Derive the duration for the order and place it on the stack.
-                uint256 duration = advancedOrder.parameters.endTime - startTime;
+                // uint256 duration = advancedOrder.parameters.endTime - startTime;
 
                 // Derive time elapsed since the order started & place on stack.
-                uint256 elapsed = block.timestamp - startTime;
+                // uint256 elapsed = block.timestamp - startTime;
 
                 // Retrieve array of offer items for the order in question.
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
@@ -280,8 +281,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     offerItem.startAmount = _locateCurrentAmount(
                         offerItem.startAmount,
                         offerItem.endAmount,
-                        elapsed,
-                        duration,
+                        startTime,
+                        endTime,
+                        // elapsed,
+                        // duration,
                         false // round down
                     );
                 }
@@ -332,8 +335,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         _locateCurrentAmount(
                             considerationItem.startAmount,
                             considerationItem.endAmount,
-                            elapsed,
-                            duration,
+                            startTime,
+                            endTime,
+                            // elapsed,
+                            // duration,
                             true // round up
                         )
                     );

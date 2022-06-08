@@ -158,8 +158,8 @@ contract OrderFulfiller is
         address recipient
     ) internal {
         // Derive order duration, time elapsed, and time remaining.
-        uint256 duration = orderParameters.endTime - orderParameters.startTime;
-        uint256 elapsed = block.timestamp - orderParameters.startTime;
+        // uint256 duration = orderParameters.endTime - orderParameters.startTime;
+        // uint256 elapsed = block.timestamp - orderParameters.startTime;
 
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
@@ -223,8 +223,8 @@ contract OrderFulfiller is
                         offerItem.endAmount,
                         numerator,
                         denominator,
-                        elapsed,
-                        duration,
+                        orderParameters.startTime,
+                        orderParameters.endTime,
                         false
                     );
 
@@ -311,8 +311,8 @@ contract OrderFulfiller is
                     considerationItem.endAmount,
                     numerator,
                     denominator,
-                    elapsed,
-                    duration,
+                    orderParameters.startTime,
+                    orderParameters.endTime,
                     true
                 );
 
