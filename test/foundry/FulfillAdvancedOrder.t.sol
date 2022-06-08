@@ -570,7 +570,201 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             ""
         );
 
+        // set denominator to 2 ** 120
         assembly {
+            mstore(add(0x40, advancedOrder), shl(120, 1))
+        }
+
+        bytes4 fulfillAdvancedOrderSelector = consideration
+            .fulfillAdvancedOrder
+            .selector;
+        bytes memory fulfillAdvancedOrderCalldata = abi.encodeWithSelector(
+            fulfillAdvancedOrderSelector,
+            advancedOrder,
+            new CriteriaResolver[](0),
+            bytes32(0),
+            address(0)
+        );
+
+        address considerationAddress = address(consideration);
+        uint256 calldataLength = fulfillAdvancedOrderCalldata.length;
+        bool success;
+
+        assembly {
+            // Call fulfillBasicOrders
+            success := call(
+                gas(),
+                considerationAddress,
+                50,
+                // The fn signature and calldata starts after the
+                // first OneWord bytes, as those initial bytes just
+                // contain the length of fulfillAdvancedOrderCalldata
+                add(fulfillAdvancedOrderCalldata, OneWord),
+                calldataLength,
+                // Store output at empty storage location,
+                // identified using "free memory pointer".
+                mload(0x40),
+                OneWord
+            )
+        }
+        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
+    }
+
+    function testPartialFulfillEthTo1155NumeratorOverflowToZero() public {
+        test(
+            this.partialFulfillEthTo1155NumeratorOverflowToZero,
+            Context(consideration, empty, 0, 0)
+        );
+        test(
+            this.partialFulfillEthTo1155NumeratorOverflowToZero,
+            Context(referenceConsideration, empty, 0, 0)
+        );
+    }
+
+    function partialFulfillEthTo1155NumeratorOverflowToZero(
+        Context memory context
+    ) external stateless {
+        // mint 100 tokens
+        test1155_1.mint(alice, 1, 100);
+
+        _configureERC1155OfferItem(1, 100);
+        _configureEthConsiderationItem(alice, 100);
+
+        _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+        baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
+        OrderComponents memory orderComponents = getOrderComponents(
+            baseOrderParameters,
+            context.consideration.getCounter(alice)
+        );
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertFalse(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 0);
+            assertEq(totalSize, 0);
+        }
+
+        AdvancedOrder memory advancedOrder = AdvancedOrder(
+            baseOrderParameters,
+            2**119,
+            2**119,
+            signature,
+            ""
+        );
+
+        // set numerator to 2 ** 120
+        assembly {
+            mstore(add(0x20, advancedOrder), shl(120, 1))
+        }
+
+        bytes4 fulfillAdvancedOrderSelector = consideration
+            .fulfillAdvancedOrder
+            .selector;
+        bytes memory fulfillAdvancedOrderCalldata = abi.encodeWithSelector(
+            fulfillAdvancedOrderSelector,
+            advancedOrder,
+            new CriteriaResolver[](0),
+            bytes32(0),
+            address(0)
+        );
+
+        address considerationAddress = address(consideration);
+        uint256 calldataLength = fulfillAdvancedOrderCalldata.length;
+        bool success;
+
+        assembly {
+            // Call fulfillBasicOrders
+            success := call(
+                gas(),
+                considerationAddress,
+                50,
+                // The fn signature and calldata starts after the
+                // first OneWord bytes, as those initial bytes just
+                // contain the length of fulfillAdvancedOrderCalldata
+                add(fulfillAdvancedOrderCalldata, OneWord),
+                calldataLength,
+                // Store output at empty storage location,
+                // identified using "free memory pointer".
+                mload(0x40),
+                OneWord
+            )
+        }
+        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
+    }
+
+    function testPartialFulfillEthTo1155NumeratorDenominatorOverflowToZero()
+        public
+    {
+        test(
+            this.partialFulfillEthTo1155NumeratorDenominatorOverflowToZero,
+            Context(consideration, empty, 0, 0)
+        );
+        test(
+            this.partialFulfillEthTo1155NumeratorDenominatorOverflowToZero,
+            Context(referenceConsideration, empty, 0, 0)
+        );
+    }
+
+    function partialFulfillEthTo1155NumeratorDenominatorOverflowToZero(
+        Context memory context
+    ) external stateless {
+        // mint 100 tokens
+        test1155_1.mint(alice, 1, 100);
+
+        _configureERC1155OfferItem(1, 100);
+        _configureEthConsiderationItem(alice, 100);
+
+        _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+        baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
+        OrderComponents memory orderComponents = getOrderComponents(
+            baseOrderParameters,
+            context.consideration.getCounter(alice)
+        );
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertFalse(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 0);
+            assertEq(totalSize, 0);
+        }
+
+        AdvancedOrder memory advancedOrder = AdvancedOrder(
+            baseOrderParameters,
+            2**119,
+            2**119,
+            signature,
+            ""
+        );
+
+        // set both numerator and denominator to 2 ** 120
+        assembly {
+            mstore(add(0x20, advancedOrder), shl(120, 1))
             mstore(add(0x40, advancedOrder), shl(120, 1))
         }
 
