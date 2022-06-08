@@ -104,12 +104,12 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
     ) public {
         test(
             this.fulfillAvailableAdvancedOrdersWithCriteria,
+            Context(consideration, args)
+        );
+        test(
+            this.fulfillAvailableAdvancedOrdersWithCriteria,
             Context(referenceConsideration, args)
         );
-        // test(
-        //     this.fulfillAvailableAdvancedOrdersWithCriteria,
-        //     Context(consideration, args)
-        // );
     }
 
     function fulfillAvailableAdvancedOrdersWithCriteria(Context memory context)
