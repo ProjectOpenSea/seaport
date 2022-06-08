@@ -512,6 +512,50 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         );
     }
 
+    function _performTestFulfillOrderRevertInvalidArrayLength(
+        ConsiderationInterface consideration,
+        Order memory order,
+        bytes memory fulfillOrderCalldata,
+        uint256 itemsLengthFieldOffset,
+        uint256 amtToSubtractFromItemsLength
+    ) internal {
+        _validateOrder(order, consideration);
+
+        bool overwriteItemsLength = amtToSubtractFromItemsLength > 0;
+        if (overwriteItemsLength) {
+            // Get the array length from the calldata and
+            // store the length - amtToSubtractFromItemsLength in the calldata
+            // so that the length value does _not_ accurately represent the actual
+            // total array length.
+            _subtractAmountFromLengthInOrderCalldata(
+                fulfillOrderCalldata,
+                itemsLengthFieldOffset,
+                amtToSubtractFromItemsLength
+            );
+        }
+
+        bool success = _callConsiderationFulfillOrderWithCalldata(
+            address(consideration),
+            fulfillOrderCalldata
+        );
+
+        // If overwriteItemsLength is True, the call should
+        // have failed (success should be False) and if overwriteItemsLength is False,
+        // the call should have succeeded (success should be True).
+        assertEq(!overwriteItemsLength, success);
+
+        if (overwriteItemsLength) {
+            // Expect a revert if the items length is too
+            // small (e.g. at least 1 was subtracted).
+            vm.expectRevert();
+        }
+
+        if (!success) {
+            // Revert with a generic error message.
+            revert();
+        }
+    }
+
     function testFulfillOrderRevertInvalidAdditionalRecipientsLength(
         uint256 fuzzTotalConsiderationItems,
         uint256 fuzzAmountToSubtractFromConsiderationItemsLength
@@ -524,66 +568,38 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
                 ? fuzzAmountToSubtractFromConsiderationItemsLength %
                     totalConsiderationItems
                 : 0;
-        bool overwriteConsiderationItemsLength = amountToSubtractFromConsiderationItemsLength >
-                0;
 
         // Create order
         (
-            Order memory myOrder,
+            Order memory _order,
             OrderParameters memory _orderParameters,
 
         ) = _prepareOrder(1, totalConsiderationItems);
 
-        // Validate the order.
-        _validateOrder(myOrder, consideration);
-
         // Get the calldata that will be passed into fulfillOrder.
         bytes memory fulfillOrderCalldata = abi.encodeWithSelector(
             consideration.fulfillOrder.selector,
-            myOrder,
+            _order,
             conduitKeyOne
         );
 
-        if (overwriteConsiderationItemsLength) {
-            // Get the consideration items length from the calldata and
-            // store the length - amountToSubtractFromConsiderationItemsLength in the calldata
-            // so that the length value does _not_ accurately represent the actual
-            // total consideration items length.
-            _subtractAmountFromLengthInOrderCalldata(
-                fulfillOrderCalldata,
-                0x60,
-                amountToSubtractFromConsiderationItemsLength
-            );
-        }
+        uint256 originalConsiderationItemsLength = _orderParameters
+            .consideration
+            .length;
+        _performTestFulfillOrderRevertInvalidArrayLength(
+            consideration,
+            _order,
+            fulfillOrderCalldata,
+            0x60,
+            amountToSubtractFromConsiderationItemsLength
+        );
 
+        // Ensure consideration items length was properly changed.
         assertEq(
             _orderParameters.consideration.length,
-            totalConsiderationItems -
+            originalConsiderationItemsLength -
                 amountToSubtractFromConsiderationItemsLength
         );
-
-        bool success = _callConsiderationFulfillOrderWithCalldata(
-            address(consideration),
-            fulfillOrderCalldata
-        );
-
-        // If overwriteConsiderationItemsLength is True, the call should
-        // have failed (success should be False) and if overwriteConsiderationItemsLength is False,
-        // the call should have succeeded (success should be True).
-        assertEq(!overwriteConsiderationItemsLength, success);
-
-        if (overwriteConsiderationItemsLength) {
-            // Expect a revert if the additional recipients length is too small (e.g. 1 was subtracted).
-            vm.expectRevert();
-        }
-
-        if (!success) {
-            // Revert and pass the revert reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert();
-        }
     }
 
     function fulfillOrderEthToErc721(Context memory context)
