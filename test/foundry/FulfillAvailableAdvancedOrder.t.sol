@@ -113,7 +113,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             );
             test(
                 this.fulfillAvailableAdvancedOrdersOverflow,
-                Context(referenceConsideration, empty, ItemType(i))
+                Context(referenceSeaport, empty, ItemType(i))
             );
         }
     }
@@ -130,7 +130,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             );
             test(
                 this.fulfillAvailableAdvancedOrdersMissingItemAmount,
-                Context(referenceConsideration, empty, ItemType(i))
+                Context(referenceSeaport, empty, ItemType(i))
             );
         }
     }
@@ -148,7 +148,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         test(
             this
                 .fulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
-            Context(referenceConsideration, args, ItemType(0))
+            Context(referenceSeaport, args, ItemType(0))
         );
         test(
             this
@@ -171,7 +171,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         test(
             this
                 .partialFulfillSingleOrderViaFulfillAvailableAdvancedOrdersEthToErc1155,
-            Context(referenceConsideration, args, ItemType(0))
+            Context(referenceSeaport, args, ItemType(0))
         );
         test(
             this
@@ -657,7 +657,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
     function testPartialFulfillDenominatorOverflowEthToErc1155() public {
         test(
             this.partialFulfillDenominatorOverflowEthToErc1155,
-            Context(referenceConsideration, empty, ItemType(0))
+            Context(referenceSeaport, empty, ItemType(0))
         );
         test(
             this.partialFulfillDenominatorOverflowEthToErc1155,
@@ -757,7 +757,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
     {
         test(
             this.partialFulfillDenominatorOverflowEthToErc1155NonAggregated,
-            Context(referenceConsideration, empty, ItemType(0))
+            Context(referenceSeaport, empty, ItemType(0))
         );
         test(
             this.partialFulfillDenominatorOverflowEthToErc1155NonAggregated,

@@ -110,12 +110,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         test(
             this.advancedPartialAscendingOfferAmount1155,
-            Context(
-                referenceConsideration,
-                args,
-                tokenAmount,
-                warpAmount % 1000
-            )
+            Context(referenceSeaport, args, tokenAmount, warpAmount % 1000)
         );
         test(
             this.advancedPartialAscendingOfferAmount1155,
@@ -235,7 +230,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         vm.assume(tokenAmount > 0);
         test(
             this.advancedPartialAscendingConsiderationAmount1155,
-            Context(referenceConsideration, inputs, tokenAmount, 0)
+            Context(referenceSeaport, inputs, tokenAmount, 0)
         );
         test(
             this.advancedPartialAscendingConsiderationAmount1155,
@@ -361,7 +356,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
         test(
             this.singleAdvancedPartial1155,
-            Context(referenceConsideration, inputs, tokenAmount, 0)
+            Context(referenceSeaport, inputs, tokenAmount, 0)
         );
     }
 
@@ -379,7 +374,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         _configureEthConsiderationItem(payable(0), 10);
         _configureEthConsiderationItem(alice, 10);
         _configureEthConsiderationItem(bob, 10);
-        uint256 counter = referenceConsideration.getCounter(alice);
+        uint256 counter = referenceSeaport.getCounter(alice);
         OrderComponents memory orderComponents = OrderComponents(
             alice,
             context.args.zone,
@@ -432,7 +427,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         );
         test(
             this.advancedPartial1155DenominatorOverflow,
-            Context(referenceConsideration, empty, 0, 0)
+            Context(referenceSeaport, empty, 0, 0)
         );
     }
 

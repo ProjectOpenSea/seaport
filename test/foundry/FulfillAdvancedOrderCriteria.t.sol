@@ -37,7 +37,7 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         );
         test(
             this.fulfillAdvancedOrderWithCriteria,
-            Context(referenceConsideration, args)
+            Context(referenceSeaport, args)
         );
     }
 
@@ -50,7 +50,7 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         );
         test(
             this.fulfillAdvancedOrderWithCriteriaPreimage,
-            Context(referenceConsideration, args)
+            Context(referenceSeaport, args)
         );
     }
 
