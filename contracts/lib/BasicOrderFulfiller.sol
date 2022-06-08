@@ -79,7 +79,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Utilize assembly to extract the order type and the basic order route.
         assembly {
-            // Read basicOrderType from calldata
+            // Read basicOrderType from calldata.
             let basicOrderType := calldataload(BasicOrder_basicOrderType_cdPtr)
 
             // Mask all but 2 least-significant bits to derive the order type.
