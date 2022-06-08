@@ -65,7 +65,7 @@ struct ConsiderationItem {
 }
 
 /**
- * @dev A spent item is translated from a utilized offer item an has four
+ * @dev A spent item is translated from a utilized offer item and has four
  *      components: an item type (ETH or other native tokens, ERC20, ERC721, and
  *      ERC1155), a token address, a tokenId, and an amount.
  */
