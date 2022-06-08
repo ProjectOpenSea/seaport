@@ -21,10 +21,11 @@ contract AmountDeriver is AmountDerivationErrors {
      *      based on the current price, the starting price, and the ending
      *      price. If the start and end prices differ, the current price will be
      *      interpolated on a linear basis.
-     *      Note that this function expects that startTime is lower than the current
-     *      block timestamp and endTime is greater than the current block timestamp.
-     *      If this condition is not upheld, the duration/elapsed/remaining variables
-     *      will underflow.
+     * @notice This function expects that the startTime parameter of
+     *      orderParameters is not greater than the current block timestamp
+     *      and that the endTime parameter is greater than the current block
+     *      timestamp. If this condition is not upheld, duration / elapsed /
+     *      remaining variables will underflow.
      *
      * @param startAmount The starting amount of the item.
      * @param endAmount   The ending amount of the item.
