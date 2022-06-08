@@ -13,6 +13,16 @@ import {
     ConduitBatch1155Transfer
 } from "./lib/ConduitStructs.sol";
 
+import {
+  ChannelKey_channel_ptr,
+  ChannelKey_slot_ptr,
+  ChannelKey_length,
+  ChannelClosed_error_ptr,
+  ChannelClosed_channel_ptr,
+  ChannelClosed_error_signature,
+  ChannelClosed_error_length
+} from "./lib/ConduitConstants.sol";
+
 /**
  * @title Conduit
  * @author 0age
@@ -41,6 +51,30 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     }
 
     /**
+     * @notice Ensure that the caller is an open channel.
+     */
+    modifier onlyOpenChannel() {
+        assembly {
+            // Write the caller to scratch space
+            mstore(ChannelKey_channel_ptr, caller())
+            // Write the storage slot for _channels to scratch space
+            mstore(ChannelKey_slot_ptr, _channels.slot)
+            // Derive the position in storage of _channels[msg.sender]
+            // and check if the stored value is zero.
+            if iszero(
+                sload(keccak256(ChannelKey_channel_ptr, ChannelKey_length))
+            ) {
+              // The caller is not an open channel;
+              // revert with ChannelClosed(msg.sender)
+              mstore(ChannelClosed_error_ptr, ChannelClosed_error_signature)
+              mstore(ChannelClosed_channel_ptr, caller())
+              revert(ChannelClosed_error_ptr, ChannelClosed_error_length)
+            }
+        }
+        _;
+    }
+
+    /**
      * @notice Execute a sequence of ERC20/721/1155 transfers. Only a caller
      *         with an open channel can call this function. Note that channels
      *         are expected to implement reentrancy protection if desired, and
@@ -57,13 +91,9 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     function execute(ConduitTransfer[] calldata transfers)
         external
         override
+        onlyOpenChannel
         returns (bytes4 magicValue)
     {
-        // Ensure that the caller has an open channel.
-        if (!_channels[msg.sender]) {
-            revert ChannelClosed(msg.sender);
-        }
-
         // Retrieve the total number of transfers and place on the stack.
         uint256 totalStandardTransfers = transfers.length;
 
@@ -98,12 +128,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
      */
     function executeBatch1155(
         ConduitBatch1155Transfer[] calldata batchTransfers
-    ) external override returns (bytes4 magicValue) {
-        // Ensure that the caller has an open channel.
-        if (!_channels[msg.sender]) {
-            revert ChannelClosed(msg.sender);
-        }
-
+    ) external override onlyOpenChannel returns (bytes4 magicValue) {
         // Perform 1155 batch transfers. Note that memory should be considered
         // entirely corrupted from this point forward.
         _performERC1155BatchTransfers(batchTransfers);
@@ -131,12 +156,7 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     function executeWithBatch1155(
         ConduitTransfer[] calldata standardTransfers,
         ConduitBatch1155Transfer[] calldata batchTransfers
-    ) external override returns (bytes4 magicValue) {
-        // Ensure that the caller has an open channel.
-        if (!_channels[msg.sender]) {
-            revert ChannelClosed(msg.sender);
-        }
-
+    ) external override onlyOpenChannel returns (bytes4 magicValue) {
         // Retrieve the total number of transfers and place on the stack.
         uint256 totalStandardTransfers = standardTransfers.length;
 
