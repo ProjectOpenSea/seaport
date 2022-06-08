@@ -34,8 +34,8 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         bytes memory signature
     ) internal view {
         if (signer == address(0)) {
-           // Make sure to never allow the ecrecover "error" case
-           revert InvalidSigner();
+            // Make sure to never allow the ecrecover "error" case
+            revert InvalidSigner();
         }
         address recoveredSigner = _tryEcRecoverSignature(digest, signature);
         // Found a match: recovered address matches the signer
@@ -108,7 +108,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
                 )
             }
-            // Early abort if v value is out of range to save the cost of ecrecover.
+            // Ensure v value is properly formatted. Return invalid value if not
             if (vIsInvalid) {
                 return (address(0));
             }
