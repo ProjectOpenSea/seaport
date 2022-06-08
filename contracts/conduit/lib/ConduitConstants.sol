@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.7;
+
 // error ChannelClosed(address channel)
 uint256 constant ChannelClosed_error_signature = (
     0x93daadf200000000000000000000000000000000000000000000000000000000
