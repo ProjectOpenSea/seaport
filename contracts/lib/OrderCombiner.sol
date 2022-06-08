@@ -233,6 +233,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 orderHashes[i] = orderHash;
 
                 // Decrement the number of fulfilled orders.
+                // Skip underflow check as the condition before 
+                // implies that maximumFulfilled > 0.
                 maximumFulfilled--;
 
                 // Place the start time for the order on the stack.
