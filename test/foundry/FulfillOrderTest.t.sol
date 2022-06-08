@@ -512,11 +512,23 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         );
     }
 
+    function _getLengthAtOffsetInOrderCalldata(
+        bytes memory orderCalldata,
+        uint256 relativeLengthOffset
+    ) internal returns (uint256 length) {
+        assembly {
+            let absoluteLengthOffset := add(orderCalldata, relativeLengthOffset)
+            length := mload(relativeLengthOffset)
+        }
+        return length;
+    }
+
     function _performTestFulfillOrderRevertInvalidArrayLength(
         ConsiderationInterface consideration,
         Order memory order,
         bytes memory fulfillOrderCalldata,
         uint256 itemsLengthFieldOffset,
+        uint256 originalItemsLength,
         uint256 amtToSubtractFromItemsLength
     ) internal {
         _validateOrder(order, consideration);
@@ -533,6 +545,18 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
                 amtToSubtractFromItemsLength
             );
         }
+        uint256 finalItemsLength = _getLengthAtOffsetInOrderCalldata(
+            fulfillOrderCalldata,
+            itemsLengthFieldOffset
+        );
+        assertEq(finalItemsLength, 1);
+        assertEq(finalItemsLength, 2);
+        assertEq(finalItemsLength, 3);
+        assertEq(true, false);
+        // assertEq(
+        //     originalItemsLength,
+        //     finalItemsLength - amtToSubtractFromItemsLength
+        // );
 
         bool success = _callConsiderationFulfillOrderWithCalldata(
             address(consideration),
@@ -556,18 +580,19 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         }
     }
 
-    function testFulfillOrderRevertInvalidAdditionalRecipientsLength(
+    function testFulfillOrderRevertInvalidConsiderationItemsLength(
         uint256 fuzzTotalConsiderationItems,
         uint256 fuzzAmountToSubtractFromConsiderationItemsLength
     ) public {
-        uint256 totalConsiderationItems = fuzzTotalConsiderationItems % 200;
+        uint256 totalConsiderationItems = 3; //fuzzTotalConsiderationItems % 200;
         // Set amount to subtract from consideration item length
         // to be at most totalConsiderationItems.
-        uint256 amountToSubtractFromConsiderationItemsLength = totalConsiderationItems >
-                0
-                ? fuzzAmountToSubtractFromConsiderationItemsLength %
-                    totalConsiderationItems
-                : 0;
+        uint256 amountToSubtractFromConsiderationItemsLength = 2;
+        //  totalConsiderationItems >
+        //         0
+        //         ? fuzzAmountToSubtractFromConsiderationItemsLength %
+        //             totalConsiderationItems
+        //         : 0;
 
         // Create order
         (
@@ -591,6 +616,7 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             _order,
             fulfillOrderCalldata,
             0x60,
+            _orderParameters.consideration.length,
             amountToSubtractFromConsiderationItemsLength
         );
 
