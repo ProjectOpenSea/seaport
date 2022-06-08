@@ -219,10 +219,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 _transferERC20AndFinalize(
                     msg.sender,
                     offerer,
-                    parameters.considerationToken,
-                    parameters.considerationIdentifier,
-                    parameters.considerationAmount,
-                    parameters.additionalRecipients,
+                    parameters,
                     false, // Send full amount indicated by consideration items.
                     accumulator
                 );
@@ -242,10 +239,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 _transferERC20AndFinalize(
                     msg.sender,
                     offerer,
-                    parameters.considerationToken,
-                    parameters.considerationIdentifier,
-                    parameters.considerationAmount,
-                    parameters.additionalRecipients,
+                    parameters,
                     false, // Send full amount indicated by consideration items.
                     accumulator
                 );
@@ -265,10 +259,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 _transferERC20AndFinalize(
                     offerer,
                     msg.sender,
-                    parameters.offerToken,
-                    parameters.offerIdentifier,
-                    parameters.offerAmount,
-                    parameters.additionalRecipients,
+                    parameters,
                     true, // Reduce fulfiller amount sent by additional amounts.
                     accumulator
                 );
@@ -290,10 +281,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 _transferERC20AndFinalize(
                     offerer,
                     msg.sender,
-                    parameters.offerToken,
-                    parameters.offerIdentifier,
-                    parameters.offerAmount,
-                    parameters.additionalRecipients,
+                    parameters,
                     true, // Reduce fulfiller amount sent by additional amounts.
                     accumulator
                 );
@@ -1012,11 +1000,7 @@ contract BasicOrderFulfiller is OrderValidator {
      *
      * @param from                 The originator of the ERC20 token transfer.
      * @param to                   The recipient of the ERC20 token transfer.
-     * @param erc20Token           The ERC20 token to transfer.
-     * @param identifier           The identifier set on the item in quesiton;
-     *                             this value must be equal to zero.
-     * @param amount               The amount of ERC20 tokens to transfer.
-     * @param additionalRecipients The additional recipients of the order.
+     * @param parameters           The basic order parameters.
      * @param fromOfferer          A boolean indicating whether to decrement
      *                             amount from the offered amount.
      * @param accumulator          An open-ended array that collects transfers
@@ -1026,16 +1010,36 @@ contract BasicOrderFulfiller is OrderValidator {
     function _transferERC20AndFinalize(
         address from,
         address to,
-        address erc20Token,
-        uint256 identifier,
-        uint256 amount,
-        AdditionalRecipient[] calldata additionalRecipients,
+        BasicOrderParameters calldata parameters,
         bool fromOfferer,
         bytes memory accumulator
     ) internal {
-        // Ensure that no identifier is supplied.
-        if (identifier != 0) {
-            revert UnusedItemParameters();
+        // Declare token and amount variables determined by fromOfferer value.
+        address token;
+        uint256 amount;
+
+        // Declare and check identifier variable within an isolated scope.
+        {
+            // Declare identifier variable determined by fromOfferer value.
+            uint256 identifier;
+
+            // Set ERC20 token transfer variables based on fromOfferer boolean.
+            if (fromOfferer) {
+                // Use offer token and related values if token is from offerer.
+                token = parameters.offerToken;
+                identifier = parameters.offerIdentifier;
+                amount = parameters.offerAmount;
+            } else {
+                // Otherwise, use consideration token and related values.
+                token = parameters.considerationToken;
+                identifier = parameters.considerationIdentifier;
+                amount = parameters.considerationAmount;
+            }
+
+            // Ensure that no identifier is supplied.
+            if (identifier != 0) {
+                revert UnusedItemParameters();
+            }
         }
 
         // Determine the appropriate conduit to utilize.
@@ -1051,6 +1055,11 @@ contract BasicOrderFulfiller is OrderValidator {
                 )
             )
         }
+
+        // Declare variable for additional recipients.
+        AdditionalRecipient[] calldata additionalRecipients = (
+            parameters.additionalRecipients
+        );
 
         // Retrieve total number of additional recipients and place on stack.
         uint256 totalAdditionalRecipients = additionalRecipients.length;
@@ -1071,7 +1080,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Transfer ERC20 tokens to additional recipient given approval.
             _transferERC20(
-                erc20Token,
+                token,
                 from,
                 additionalRecipient.recipient,
                 additionalRecipientAmount,
@@ -1086,6 +1095,6 @@ contract BasicOrderFulfiller is OrderValidator {
         }
 
         // Transfer ERC20 token amount (from account must have proper approval).
-        _transferERC20(erc20Token, from, to, amount, conduitKey, accumulator);
+        _transferERC20(token, from, to, amount, conduitKey, accumulator);
     }
 }
