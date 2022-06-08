@@ -58,3 +58,4 @@ daltoncoder                    | `dontkillrobots.eth`
 phaze                          | `phaze.eth`
 hrkrshnn                       | `hrkrshnn.eth`
 axic                           | `axic.eth`
+leastwood                      | `leastwood.eth`
