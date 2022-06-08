@@ -187,6 +187,18 @@ contract BaseOrderTest is
         order = Order(orderParameters, signature);
     }
 
+    function _subtractAmountFromLengthInOrderCalldata(
+        bytes memory orderCalldata,
+        uint256 relativeLengthOffset,
+        uint256 amtToSubtractFromLength
+    ) internal {
+        assembly {
+            let absoluteLengthOffset := add(orderCalldata, relativeLengthOffset)
+            let length := mload(absoluteLengthOffset)
+            mstore(absoluteLengthOffset, sub(length, amtToSubtractFromLength))
+        }
+    }
+
     function _configureConsiderationItem(
         address payable recipient,
         ItemType itemType,

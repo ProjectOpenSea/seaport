@@ -172,22 +172,11 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
             // store the length - amountToSubtractFromTotalRecipients in the calldata
             // so that the length value does _not_ accurately represent the actual
             // total recipients length.
-            assembly {
-                let additionalRecipientsLengthOffset := add(
-                    fulfillBasicOrderCalldata,
-                    0x264
-                )
-                let additionalRecipientsLength := mload(
-                    additionalRecipientsLengthOffset
-                )
-                mstore(
-                    additionalRecipientsLengthOffset,
-                    sub(
-                        additionalRecipientsLength,
-                        amountToSubtractFromTotalRecipients
-                    )
-                )
-            }
+            _subtractAmountFromLengthInOrderCalldata(
+                fulfillBasicOrderCalldata,
+                0x264,
+                amountToSubtractFromTotalRecipients
+            );
         }
 
         assertEq(

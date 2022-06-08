@@ -550,19 +550,11 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             // store the length - amountToSubtractFromConsiderationItemsLength in the calldata
             // so that the length value does _not_ accurately represent the actual
             // total consideration items length.
-            assembly {
-                let considerationLengthOffset := add(fulfillOrderCalldata, 0x60)
-                let additionalRecipientsLength := mload(
-                    considerationLengthOffset
-                )
-                mstore(
-                    considerationLengthOffset,
-                    sub(
-                        additionalRecipientsLength,
-                        amountToSubtractFromConsiderationItemsLength
-                    )
-                )
-            }
+            _subtractAmountFromLengthInOrderCalldata(
+                fulfillOrderCalldata,
+                0x60,
+                amountToSubtractFromConsiderationItemsLength
+            );
         }
 
         assertEq(
