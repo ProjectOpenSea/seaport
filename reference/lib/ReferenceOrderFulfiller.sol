@@ -165,9 +165,6 @@ contract ReferenceOrderFulfiller is
                 (block.timestamp - orderParameters.startTime))
         );
 
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
-
         // Create the accumulator struct.
         AccumulatorStruct memory accumulatorStruct;
 
@@ -188,6 +185,11 @@ contract ReferenceOrderFulfiller is
             for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
+                // Offer items for the native token can not be received
+                // outside of a match order function.
+                if (offerItem.itemType == ItemType.NATIVE) {
+                    revert InvalidNativeOfferItem();
+                }
 
                 // Apply fill fraction to derive offer item amount to transfer.
                 uint256 amount = _applyFraction(
@@ -214,16 +216,6 @@ contract ReferenceOrderFulfiller is
                     amount
                 );
 
-                // Reduce available value if offer spent ETH or a native token.
-                if (receivedItem.itemType == ItemType.NATIVE) {
-                    // Ensure that sufficient native tokens are still available.
-                    if (amount > etherRemaining) {
-                        revert InsufficientEtherSupplied();
-                    }
-                    // Reduce ether remaining by amount.
-                    etherRemaining -= amount;
-                }
-
                 // Transfer the item from the offerer to the recipient.
                 _transfer(receivedItem, offerer, conduitKey, accumulatorStruct);
             }
@@ -233,6 +225,9 @@ contract ReferenceOrderFulfiller is
         orderToExecute.receivedItems = new ReceivedItem[](
             orderParameters.consideration.length
         );
+
+        // Put ether value supplied by the caller on the stack.
+        uint256 etherRemaining = msg.value;
 
         // Declare a nested scope to minimize stack depth.
         {
