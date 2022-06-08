@@ -137,12 +137,11 @@ contract OrderFulfiller is
     /**
      * @dev Internal function to transfer each item contained in a given single
      *      order fulfillment after applying a respective fraction to the amount
-     *      being transferred.
-     * @notice This function expects that the startTime parameter of
-     *         orderParameters is not greater than the current block timestamp
-     *         and that the endTime parameter is greater than the current block
-     *         timestamp. If this condition is not upheld, duration / elapsed /
-     *         remaining variables will underflow.
+     *      being transferred. Note that this function expects that the
+     *      startTime parameter of orderParameters is not greater than the
+     *      current block timestamp and that the endTime parameter is greater
+     *      than the current block timestamp. If this condition is not upheld,
+     *      duration / elapsed / remaining variables will underflow.
      *
      * @param orderParameters     The parameters for the fulfilled order.
      * @param numerator           A value indicating the portion of the order
@@ -162,9 +161,11 @@ contract OrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal {
+        // Declare duration, elapsed, and remaining variables outside unchecked.
         uint256 duration;
         uint256 elapsed;
         uint256 remaining;
+
         // Skip underflow checks as startTime <= block.timestamp < endTime
         unchecked {
             // Derive order duration, time elapsed, and time remaining.
