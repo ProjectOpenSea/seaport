@@ -31,7 +31,7 @@ contract ConduitExecuteTest is BaseConduitTest {
 
     function testExecute(FuzzInputs memory inputs) public {
         ConduitTransfer[] memory transfers = new ConduitTransfer[](0);
-        for (uint8 i; i < inputs.intermediates.length; i++) {
+        for (uint8 i; i < inputs.intermediates.length; ++i) {
             transfers = extendConduitTransferArray(
                 transfers,
                 deployTokenAndCreateConduitTransfers(inputs.intermediates[i])
@@ -49,7 +49,7 @@ contract ConduitExecuteTest is BaseConduitTest {
         bytes4 magicValue = context.conduit.execute(context.transfers);
         assertEq(magicValue, Conduit.execute.selector);
 
-        for (uint256 i; i < context.transfers.length; i++) {
+        for (uint256 i; i < context.transfers.length; ++i) {
             ConduitTransfer memory transfer = context.transfers[i];
             ConduitItemType itemType = transfer.itemType;
             if (itemType == ConduitItemType.ERC20) {

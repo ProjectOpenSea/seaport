@@ -35,15 +35,15 @@ pragma solidity >=0.8.7;
 
 // Declare constants for name, version, and reentrancy sentinel values.
 
-// Name is right padded, so it touches the length which is left padded.
-// This lets us write both values at once.
-// Length goes at byte 63, and name fills bytes 64-77, so we write
-// both values left-padded to 45.
-uint256 constant NameLengthPtr = 45;
+// Name is right padded, so it touches the length which is left padded. This
+// enables writing both values at once. Length goes at byte 95 in memory, and
+// name fills bytes 96-109, so both values can be written left-padded to 77.
+uint256 constant NameLengthPtr = 77;
 uint256 constant NameWithLength = 0x0d436F6E73696465726174696F6E;
 
-uint256 constant Version = 0x31;
-uint256 constant Version_length = 1;
+uint256 constant Version = 0x312e31;
+uint256 constant Version_length = 3;
+uint256 constant Version_shift = 0xe8;
 
 uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;
@@ -89,7 +89,7 @@ uint256 constant MissingItemAmount_error_len = 0x20;
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
 uint256 constant OrderParameters_conduit_offset = 0x120;
-uint256 constant OrderParameters_nonce_offset = 0x140;
+uint256 constant OrderParameters_counter_offset = 0x140;
 
 uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
@@ -254,7 +254,7 @@ uint256 constant BasicOrder_offerItem_endAmount_ptr = 0x120;
  *   - 0x180:  zoneHash
  *   - 0x1a0:  salt
  *   - 0x1c0:  conduit
- *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
+ *   - 0x1e0:  _counters[orderParameters.offerer] (from storage)
  */
 uint256 constant BasicOrder_order_typeHash_ptr = 0x80;
 uint256 constant BasicOrder_order_offerer_ptr = 0xa0;
@@ -267,13 +267,16 @@ uint256 constant BasicOrder_order_startTime_ptr = 0x140;
 // uint256 constant BasicOrder_order_zoneHash_ptr = 0x180;
 // uint256 constant BasicOrder_order_salt_ptr = 0x1a0;
 // uint256 constant BasicOrder_order_conduitKey_ptr = 0x1c0;
-uint256 constant BasicOrder_order_nonce_ptr = 0x1e0;
+uint256 constant BasicOrder_order_counter_ptr = 0x1e0;
 uint256 constant BasicOrder_additionalRecipients_head_ptr = 0x240;
 uint256 constant BasicOrder_signature_ptr = 0x260;
 
 // Signature-related
 bytes32 constant EIP2098_allButHighestBitMask = (
     0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+);
+bytes32 constant ECDSA_twentySeventhAndTwentyEighthBytesSet = (
+    0x0000000000000000000000000000000000000000000000000000000101000000
 );
 
 // abi.encodeWithSignature("NoContract(address)")
@@ -344,6 +347,13 @@ uint256 constant Conduit_transferItem_from_ptr = 0x40;
 uint256 constant Conduit_transferItem_to_ptr = 0x60;
 uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
 uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
+
+// Declare constant for errors related to amount derivation.
+// error InexactFraction() @ AmountDerivationErrors.sol
+uint256 constant InexactFraction_error_signature = (
+    0xc63cf08900000000000000000000000000000000000000000000000000000000
+);
+uint256 constant InexactFraction_error_len = 0x20;
 
 // Declare constant for errors related to signature verification.
 

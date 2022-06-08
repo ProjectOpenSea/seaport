@@ -157,6 +157,9 @@ uint256 constant ConduitBatch1155Transfer_ids_length_offset = 0xa0;
 uint256 constant ConduitBatch1155Transfer_amounts_length_baseOffset = 0xc0;
 uint256 constant ConduitBatch1155Transfer_calldata_baseSize = 0xc0;
 
+// Note: abbreviated version of above constant to adhere to line length limit.
+uint256 constant ConduitBatchTransfer_amounts_head_offset = 0x80;
+
 uint256 constant Invalid1155BatchTransferEncoding_ptr = 0x00;
 uint256 constant Invalid1155BatchTransferEncoding_length = 0x04;
 uint256 constant Invalid1155BatchTransferEncoding_selector = (

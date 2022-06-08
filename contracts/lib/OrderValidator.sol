@@ -53,7 +53,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         bytes memory signature
     ) internal {
         // Retrieve the order status for the given order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
+        OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Ensure order is fillable and is not cancelled.
         _verifyOrderStatus(
@@ -69,10 +69,10 @@ contract OrderValidator is Executor, ZoneInteraction {
         }
 
         // Update order status as fully filled, packing struct values.
-        _orderStatus[orderHash].isValidated = true;
-        _orderStatus[orderHash].isCancelled = false;
-        _orderStatus[orderHash].numerator = 1;
-        _orderStatus[orderHash].denominator = 1;
+        orderStatus.isValidated = true;
+        orderStatus.isCancelled = false;
+        orderStatus.numerator = 1;
+        orderStatus.denominator = 1;
     }
 
     /**
@@ -149,10 +149,8 @@ contract OrderValidator is Executor, ZoneInteraction {
             revert PartialFillsNotEnabledForOrder();
         }
 
-        // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
-            orderParameters
-        );
+        // Retrieve current counter & use it w/ parameters to derive order hash.
+        orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
 
         // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(
@@ -167,7 +165,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         );
 
         // Retrieve the order status using the derived order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
+        OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Ensure order is fillable and is not cancelled.
         if (
@@ -278,17 +276,17 @@ contract OrderValidator is Executor, ZoneInteraction {
             // Skip overflow check: checked above unless numerator is reduced.
             unchecked {
                 // Update order status and fill amount, packing struct values.
-                _orderStatus[orderHash].isValidated = true;
-                _orderStatus[orderHash].isCancelled = false;
-                _orderStatus[orderHash].numerator = uint120(filledNumerator);
-                _orderStatus[orderHash].denominator = uint120(denominator);
+                orderStatus.isValidated = true;
+                orderStatus.isCancelled = false;
+                orderStatus.numerator = uint120(filledNumerator);
+                orderStatus.denominator = uint120(denominator);
             }
         } else {
             // Update order status and fill amount, packing struct values.
-            _orderStatus[orderHash].isValidated = true;
-            _orderStatus[orderHash].isCancelled = false;
-            _orderStatus[orderHash].numerator = uint120(numerator);
-            _orderStatus[orderHash].denominator = uint120(denominator);
+            orderStatus.isValidated = true;
+            orderStatus.isCancelled = false;
+            orderStatus.numerator = uint120(numerator);
+            orderStatus.denominator = uint120(denominator);
         }
 
         // Return order hash, a modified numerator, and a modified denominator.
@@ -313,6 +311,8 @@ contract OrderValidator is Executor, ZoneInteraction {
         // Ensure that the reentrancy guard is not currently set.
         _assertNonReentrant();
 
+        // Declare variables outside of the loop.
+        OrderStatus storage orderStatus;
         address offerer;
         address zone;
 
@@ -334,7 +334,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     revert InvalidCanceller();
                 }
 
-                // Derive order hash using the order parameters and the nonce.
+                // Derive order hash using the order parameters and the counter.
                 bytes32 orderHash = _deriveOrderHash(
                     OrderParameters(
                         offerer,
@@ -349,12 +349,15 @@ contract OrderValidator is Executor, ZoneInteraction {
                         order.conduitKey,
                         order.consideration.length
                     ),
-                    order.nonce
+                    order.counter
                 );
 
+                // Retrieve the order status using the derived order hash.
+                orderStatus = _orderStatus[orderHash];
+
                 // Update the order status as not valid and cancelled.
-                _orderStatus[orderHash].isValidated = false;
-                _orderStatus[orderHash].isCancelled = true;
+                orderStatus.isValidated = false;
+                orderStatus.isCancelled = true;
 
                 // Emit an event signifying that the order has been cancelled.
                 emit OrderCancelled(orderHash, offerer, zone);
@@ -391,6 +394,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         _assertNonReentrant();
 
         // Declare variables outside of the loop.
+        OrderStatus storage orderStatus;
         bytes32 orderHash;
         address offerer;
 
@@ -410,13 +414,13 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
 
-                // Get current nonce and use it w/ params to derive order hash.
-                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+                // Get current counter & use it w/ params to derive order hash.
+                orderHash = _assertConsiderationLengthAndGetOrderHash(
                     orderParameters
                 );
 
                 // Retrieve the order status using the derived order hash.
-                OrderStatus memory orderStatus = _orderStatus[orderHash];
+                orderStatus = _orderStatus[orderHash];
 
                 // Ensure order is fillable and retrieve the filled amount.
                 _verifyOrderStatus(
@@ -432,7 +436,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     _verifySignature(offerer, orderHash, order.signature);
 
                     // Update order status to mark the order as valid.
-                    _orderStatus[orderHash].isValidated = true;
+                    orderStatus.isValidated = true;
 
                     // Emit an event signifying the order has been validated.
                     emit OrderValidated(
@@ -479,7 +483,7 @@ contract OrderValidator is Executor, ZoneInteraction {
         )
     {
         // Retrieve the order status using the order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
+        OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Return the fields on the order status.
         return (

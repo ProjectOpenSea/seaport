@@ -34,7 +34,7 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
 
     function testExecuteWithBatch1155(FuzzInputs memory inputs) public {
         ConduitTransfer[] memory transfers = new ConduitTransfer[](0);
-        for (uint8 i = 0; i < inputs.transferIntermediates.length; i++) {
+        for (uint8 i = 0; i < inputs.transferIntermediates.length; ++i) {
             transfers = extendConduitTransferArray(
                 transfers,
                 deployTokenAndCreateConduitTransfers(
@@ -45,7 +45,7 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
 
         ConduitBatch1155Transfer[]
             memory batchTransfers = new ConduitBatch1155Transfer[](0);
-        for (uint8 j = 0; j < inputs.batchIntermediates.length; j++) {
+        for (uint8 j = 0; j < inputs.batchIntermediates.length; ++j) {
             batchTransfers = extendConduitTransferArray(
                 batchTransfers,
                 deployTokenAndCreateConduitBatch1155Transfer(
@@ -77,7 +77,7 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
         );
         assertEq(magicValue, Conduit.executeWithBatch1155.selector);
 
-        for (uint256 i = 0; i < context.transfers.length; i++) {
+        for (uint256 i = 0; i < context.transfers.length; ++i) {
             ConduitTransfer memory transfer = context.transfers[i];
             ConduitItemType itemType = transfer.itemType;
             emit log_uint(uint256(transfer.itemType));
@@ -103,14 +103,14 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
             }
         }
 
-        for (uint256 i = 0; i < context.batchTransfers.length; i++) {
+        for (uint256 i = 0; i < context.batchTransfers.length; ++i) {
             ConduitBatch1155Transfer memory batchTransfer = context
                 .batchTransfers[i];
 
             address[] memory toAddresses = new address[](
                 batchTransfer.ids.length
             );
-            for (uint256 j = 0; j < batchTransfer.ids.length; j++) {
+            for (uint256 j = 0; j < batchTransfer.ids.length; ++j) {
                 toAddresses[j] = batchTransfer.to;
             }
             uint256[] memory actualBatchBalances = TestERC1155(
@@ -124,7 +124,7 @@ contract ConduitExecuteWithBatch1155Test is BaseConduitTest {
                 actualBatchBalances.length == expectedBatchBalances.length
             );
 
-            for (uint256 j = 0; j < actualBatchBalances.length; j++) {
+            for (uint256 j = 0; j < actualBatchBalances.length; ++j) {
                 assertEq(actualBatchBalances[j], expectedBatchBalances[j]);
             }
         }

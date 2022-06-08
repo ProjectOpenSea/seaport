@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.13;
 
-import { OrderType, ItemType } from "./ConsiderationEnums.sol";
+import { ItemType } from "./ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -218,7 +218,7 @@ contract OrderFulfiller is
                 OfferItem memory offerItem = orderParameters.offer[i];
                 // Declare a nested scope to minimize stack depth.
                 {
-                    // Apply fill fraction to derive offer item amount to transfer.
+                    // Apply fill fraction to get offer item amount to transfer.
                     uint256 amount = _applyFraction(
                         offerItem.startAmount,
                         offerItem.endAmount,
@@ -232,7 +232,7 @@ contract OrderFulfiller is
 
                     // Utilize assembly to set overloaded offerItem arguments.
                     assembly {
-                        // Write derived fractional amount to startAmount as amount.
+                        // Write new fractional amount to startAmount as amount.
                         mstore(
                             add(offerItem, ReceivedItem_amount_offset),
                             amount
@@ -244,14 +244,14 @@ contract OrderFulfiller is
                         )
                     }
 
-                    // Reduce available value if offer spent ETH or a native token.
+                    // Reduce available value if offer spent native tokens.
                     if (offerItem.itemType == ItemType.NATIVE) {
-                        // Ensure that sufficient native tokens are still available.
+                        // Ensure sufficient native tokens are still available.
                         if (amount > etherRemaining) {
                             revert InsufficientEtherSupplied();
                         }
 
-                        // Skip underflow check as a comparison has just been made.
+                        // Skip underflow check: comparison has just been made.
                         etherRemaining -= amount;
                     }
                 }

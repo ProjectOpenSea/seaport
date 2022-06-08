@@ -2,17 +2,10 @@
 
 pragma solidity >=0.8.13;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
+import { OrderType, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, CriteriaResolver } from "../../contracts/lib/ConsiderationStructs.sol";
+import { AdvancedOrder, OrderParameters, OrderComponents, CriteriaResolver } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
-import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
-import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
-import { Merkle } from "murky/Merkle.sol";
 import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
 import { ConsiderationEventsAndErrors } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
@@ -183,7 +176,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
@@ -299,7 +292,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
@@ -386,7 +379,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         _configureEthConsiderationItem(payable(0), 10);
         _configureEthConsiderationItem(alice, 10);
         _configureEthConsiderationItem(bob, 10);
-        uint256 nonce = referenceConsideration.getNonce(alice);
+        uint256 counter = referenceConsideration.getCounter(alice);
         OrderComponents memory orderComponents = OrderComponents(
             alice,
             context.args.zone,
@@ -398,7 +391,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            nonce
+            counter
         );
         bytes32 orderHash = consideration.getOrderHash(orderComponents);
 
@@ -457,7 +450,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
         OrderComponents memory orderComponents = getOrderComponents(
             baseOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
 

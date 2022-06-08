@@ -33,13 +33,13 @@ contract GettersAndDerivers is ConsiderationBase {
      *      caller.
      *
      * @param orderParameters The parameters of the order to hash.
-     * @param nonce           The nonce of the order to hash.
+     * @param counter           The counter of the order to hash.
      *
      * @return orderHash The hash.
      */
     function _deriveOrderHash(
         OrderParameters memory orderParameters,
-        uint256 nonce
+        uint256 counter
     ) internal view returns (bytes32 orderHash) {
         // Get length of original consideration array and place it on the stack.
         uint256 originalConsiderationLength = (
@@ -130,7 +130,7 @@ contract GettersAndDerivers is ConsiderationBase {
                 OneWord
             )
 
-            // Iterate over the offer items (not including tips).
+            // Iterate over the consideration items (not including tips).
             // prettier-ignore
             for { let i := 0 } lt(i, originalConsiderationLength) {
                 i := add(i, 1)
@@ -146,7 +146,10 @@ contract GettersAndDerivers is ConsiderationBase {
                 mstore(ptr, typeHash)
 
                 // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, EIP712_ConsiderationItem_size))
+                mstore(
+                    hashArrPtr,
+                    keccak256(ptr, EIP712_ConsiderationItem_size)
+                )
 
                 // Restore the previous word.
                 mstore(ptr, value)
@@ -201,11 +204,14 @@ contract GettersAndDerivers is ConsiderationBase {
             // Store the consideration hash at the retrieved memory location.
             mstore(considerationHeadPtr, considerationHash)
 
-            // Retrieve the pointer for the nonce.
-            let noncePtr := add(orderParameters, OrderParameters_nonce_offset)
+            // Retrieve the pointer for the counter.
+            let counterPtr := add(
+                orderParameters,
+                OrderParameters_counter_offset
+            )
 
-            // Store the nonce at the retrieved memory location.
-            mstore(noncePtr, nonce)
+            // Store the counter at the retrieved memory location.
+            mstore(counterPtr, counter)
 
             // Derive the order hash using the full range of order parameters.
             orderHash := keccak256(typeHashPtr, EIP712_Order_size)
@@ -219,8 +225,8 @@ contract GettersAndDerivers is ConsiderationBase {
             // Restore consideration data pointer at the consideration head ptr.
             mstore(considerationHeadPtr, considerationDataPtr)
 
-            // Restore original consideration item length at the nonce pointer.
-            mstore(noncePtr, originalConsiderationLength)
+            // Restore consideration item length at the counter pointer.
+            mstore(counterPtr, originalConsiderationLength)
         }
     }
 
@@ -285,6 +291,8 @@ contract GettersAndDerivers is ConsiderationBase {
      *      chainId matches the chainId set on deployment, the cached domain
      *      separator will be returned; otherwise, it will be derived from
      *      scratch.
+     *
+     * @return The domain separator.
      */
     function _domainSeparator() internal view returns (bytes32) {
         // prettier-ignore
@@ -321,7 +329,7 @@ contract GettersAndDerivers is ConsiderationBase {
 
         // Set the version as data on the newly allocated string.
         assembly {
-            mstore(add(version, OneWord), shl(0xf8, Version))
+            mstore(add(version, OneWord), shl(Version_shift, Version))
         }
     }
 

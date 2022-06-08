@@ -95,11 +95,14 @@ contract ConduitController is ConduitControllerInterface {
         // Deploy the conduit via CREATE2 using the conduit key as the salt.
         new Conduit{ salt: conduitKey }();
 
+        // Initialize storage variable referencing conduit properties.
+        ConduitProperties storage conduitProperties = _conduits[conduit];
+
         // Set the supplied initial owner as the owner of the conduit.
-        _conduits[conduit].owner = initialOwner;
+        conduitProperties.owner = initialOwner;
 
         // Set conduit key used to deploy the conduit to enable reverse lookup.
-        _conduits[conduit].key = conduitKey;
+        conduitProperties.key = conduitKey;
 
         // Emit an event indicating that the conduit has been deployed.
         emit NewConduit(conduit, conduitKey);
@@ -488,12 +491,12 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev Internal view function to revert if the caller is not the owner of a
+     * @dev Private view function to revert if the caller is not the owner of a
      *      given conduit.
      *
      * @param conduit The conduit for which to assert ownership.
      */
-    function _assertCallerIsConduitOwner(address conduit) internal view {
+    function _assertCallerIsConduitOwner(address conduit) private view {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -505,11 +508,11 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev Internal view function to revert if a given conduit does not exist.
+     * @dev Private view function to revert if a given conduit does not exist.
      *
      * @param conduit The conduit for which to assert existence.
      */
-    function _assertConduitExists(address conduit) internal view {
+    function _assertConduitExists(address conduit) private view {
         // Attempt to retrieve a conduit key for the conduit in question.
         if (_conduits[conduit].key == bytes32(0)) {
             // Revert if no conduit key was located.

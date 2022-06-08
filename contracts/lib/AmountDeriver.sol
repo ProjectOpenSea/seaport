@@ -6,6 +6,8 @@ import {
     AmountDerivationErrors
 } from "../interfaces/AmountDerivationErrors.sol";
 
+import "./ConsiderationConstants.sol";
+
 /**
  * @title AmountDeriver
  * @author 0age
@@ -98,16 +100,13 @@ contract AmountDeriver is AmountDerivationErrors {
 
         // Ensure fraction can be applied to the value with no remainder. Note
         // that the denominator cannot be zero.
-        bool exact;
         assembly {
             // Ensure new value contains no remainder via mulmod operator.
             // Credit to @hrkrshnn + @axic for proposing this optimal solution.
-            exact := iszero(mulmod(value, numerator, denominator))
-        }
-
-        // Ensure that division gave a final result with no remainder.
-        if (!exact) {
-            revert InexactFraction();
+            if mulmod(value, numerator, denominator) {
+                mstore(0, InexactFraction_error_signature)
+                revert(0, InexactFraction_error_len)
+            }
         }
 
         // Multiply the numerator by the value and ensure no overflow occurs.
