@@ -113,11 +113,12 @@ contract BasicOrderFulfiller is OrderValidator {
         address additionalRecipientsToken;
         ItemType receivedItemType;
         ItemType offeredItemType;
+        bool offerTypeIsAdditionalRecipientsType;
 
         // Utilize assembly to retrieve function arguments and cast types.
         assembly {
             // Determine if offered item type == additional recipient item type.
-            let offerTypeIsAdditionalRecipientsType := gt(route, 3)
+            offerTypeIsAdditionalRecipientsType := gt(route, 3)
 
             // If route > 3 additionalRecipientsToken is at 0xc4 else 0x24.
             additionalRecipientsToken := calldataload(
@@ -214,15 +215,6 @@ contract BasicOrderFulfiller is OrderValidator {
                     conduitKey,
                     accumulator
                 );
-
-                // Transfer ERC20 tokens to all recipients and wrap up.
-                _transferERC20AndFinalize(
-                    msg.sender,
-                    offerer,
-                    parameters,
-                    false, // Send full amount indicated by consideration items.
-                    accumulator
-                );
             } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
                 // Transfer ERC1155 to caller with offerer's conduit preference.
                 _transferERC1155(
@@ -234,15 +226,6 @@ contract BasicOrderFulfiller is OrderValidator {
                     conduitKey,
                     accumulator
                 );
-
-                // Transfer ERC20 tokens to all recipients and wrap up.
-                _transferERC20AndFinalize(
-                    msg.sender,
-                    offerer,
-                    parameters,
-                    false, // Send full amount indicated by consideration items.
-                    accumulator
-                );
             } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
                 // Transfer ERC721 to offerer using caller's conduit preference.
                 _transferERC721(
@@ -252,15 +235,6 @@ contract BasicOrderFulfiller is OrderValidator {
                     parameters.considerationIdentifier,
                     parameters.considerationAmount,
                     conduitKey,
-                    accumulator
-                );
-
-                // Transfer ERC20 tokens to all recipients and wrap up.
-                _transferERC20AndFinalize(
-                    offerer,
-                    msg.sender,
-                    parameters,
-                    true, // Reduce fulfiller amount sent by additional amounts.
                     accumulator
                 );
             } else {
@@ -276,16 +250,15 @@ contract BasicOrderFulfiller is OrderValidator {
                     conduitKey,
                     accumulator
                 );
-
-                // Transfer ERC20 tokens to all recipients and wrap up.
-                _transferERC20AndFinalize(
-                    offerer,
-                    msg.sender,
-                    parameters,
-                    true, // Reduce fulfiller amount sent by additional amounts.
-                    accumulator
-                );
             }
+
+            // Transfer ERC20 tokens to all recipients and wrap up.
+            _transferERC20AndFinalize(
+                offerer,
+                parameters,
+                offerTypeIsAdditionalRecipientsType,
+                accumulator
+            );
 
             // Trigger any remaining accumulated transfers via call to conduit.
             _triggerIfArmed(accumulator);
@@ -998,22 +971,23 @@ contract BasicOrderFulfiller is OrderValidator {
      * @dev Internal function to transfer ERC20 tokens to a given recipient as
      *      part of basic order fulfillment.
      *
-     * @param from                 The originator of the ERC20 token transfer.
-     * @param to                   The recipient of the ERC20 token transfer.
-     * @param parameters           The basic order parameters.
-     * @param fromOfferer          A boolean indicating whether to decrement
-     *                             amount from the offered amount.
-     * @param accumulator          An open-ended array that collects transfers
-     *                             to execute against a given conduit in a
-     *                             single call.
+     * @param offerer     The offerer of the fulfiller order.
+     * @param parameters  The basic order parameters.
+     * @param fromOfferer A boolean indicating whether to decrement amount from
+     *                    the offered amount.
+     * @param accumulator An open-ended array that collects transfers to execute
+     *                    against a given conduit in a single call.
      */
     function _transferERC20AndFinalize(
-        address from,
-        address to,
+        address offerer,
         BasicOrderParameters calldata parameters,
         bool fromOfferer,
         bytes memory accumulator
     ) internal {
+        // Declare from and to variables determined by fromOfferer value.
+        address from;
+        address to;
+
         // Declare token and amount variables determined by fromOfferer value.
         address token;
         uint256 amount;
@@ -1025,11 +999,19 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Set ERC20 token transfer variables based on fromOfferer boolean.
             if (fromOfferer) {
+                // Use offerer as from value and msg.sender as to value.
+                from = offerer;
+                to = msg.sender;
+
                 // Use offer token and related values if token is from offerer.
                 token = parameters.offerToken;
                 identifier = parameters.offerIdentifier;
                 amount = parameters.offerAmount;
             } else {
+                // Use msg.sender as from value and offerer as to value.
+                from = msg.sender;
+                to = offerer;
+
                 // Otherwise, use consideration token and related values.
                 token = parameters.considerationToken;
                 identifier = parameters.considerationIdentifier;
