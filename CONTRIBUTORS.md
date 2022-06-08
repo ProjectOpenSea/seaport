@@ -49,3 +49,4 @@ vdrg                           |
 Ellahi                         | `ellahi.eth`
 zaz                            | `1zaz1.eth`
 berndartmueller                | `berndartmueller.eth`
+dmfxyz                         | `dmfxyz.eth`
