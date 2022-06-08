@@ -19,8 +19,11 @@ interface TokenTransferrerErrors {
 
     /**
      * @dev Revert with an error when attempting to fulfill an order where an
-     *      item has the unused parameters, this includes token and identifier
-     *      for native transfers and identifier for ERC20 transfers.
+     *      item has unused parameters. This includes both the token and the
+     *      identifier parameters for native transfers as well as the identifier
+     *      parameter for ERC20 transfers. Note that the conduit does not
+     *      perform this check, leaving it up to the calling channel to enforce
+     *      when desired.
      */
     error UnusedItemParameters();
 

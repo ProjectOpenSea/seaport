@@ -194,10 +194,6 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     function _transfer(ConduitTransfer calldata item) internal {
         // Determine the transfer method based on the respective item type.
         if (item.itemType == ConduitItemType.ERC20) {
-            if (item.identifier != 0) {
-               revert UnusedItemParameters();
-            }
-
             // Transfer ERC20 token. Note that item.identifier is ignored and
             // therefore ERC20 transfer items are potentially malleable — this
             // check should be performed by the calling channel if a constraint

@@ -171,7 +171,11 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Transfer tokens based on the route.
         if (additionalRecipientsItemType == ItemType.NATIVE) {
-            if ((uint160(parameters.considerationToken) | parameters.considerationIdentifier) != 0) {
+            // Ensure neither the token nor the identifier parameters are set.
+            if (
+                (uint160(parameters.considerationToken) |
+                    parameters.considerationIdentifier) != 0
+            ) {
                 revert UnusedItemParameters();
             }
 
@@ -216,6 +220,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     msg.sender,
                     offerer,
                     parameters.considerationToken,
+                    parameters.considerationIdentifier,
                     parameters.considerationAmount,
                     parameters.additionalRecipients,
                     false, // Send full amount indicated by consideration items.
@@ -238,6 +243,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     msg.sender,
                     offerer,
                     parameters.considerationToken,
+                    parameters.considerationIdentifier,
                     parameters.considerationAmount,
                     parameters.additionalRecipients,
                     false, // Send full amount indicated by consideration items.
@@ -260,6 +266,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     offerer,
                     msg.sender,
                     parameters.offerToken,
+                    parameters.offerIdentifier,
                     parameters.offerAmount,
                     parameters.additionalRecipients,
                     true, // Reduce fulfiller amount sent by additional amounts.
@@ -284,6 +291,7 @@ contract BasicOrderFulfiller is OrderValidator {
                     offerer,
                     msg.sender,
                     parameters.offerToken,
+                    parameters.offerIdentifier,
                     parameters.offerAmount,
                     parameters.additionalRecipients,
                     true, // Reduce fulfiller amount sent by additional amounts.
@@ -1005,6 +1013,8 @@ contract BasicOrderFulfiller is OrderValidator {
      * @param from                 The originator of the ERC20 token transfer.
      * @param to                   The recipient of the ERC20 token transfer.
      * @param erc20Token           The ERC20 token to transfer.
+     * @param identifier           The identifier set on the item in quesiton;
+     *                             this value must be equal to zero.
      * @param amount               The amount of ERC20 tokens to transfer.
      * @param additionalRecipients The additional recipients of the order.
      * @param fromOfferer          A boolean indicating whether to decrement
@@ -1017,11 +1027,17 @@ contract BasicOrderFulfiller is OrderValidator {
         address from,
         address to,
         address erc20Token,
+        uint256 identifier,
         uint256 amount,
         AdditionalRecipient[] calldata additionalRecipients,
         bool fromOfferer,
         bytes memory accumulator
     ) internal {
+        // Ensure that no identifier is supplied.
+        if (identifier != 0) {
+            revert UnusedItemParameters();
+        }
+
         // Determine the appropriate conduit to utilize.
         bytes32 conduitKey;
 
