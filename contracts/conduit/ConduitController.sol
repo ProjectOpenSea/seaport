@@ -154,8 +154,11 @@ contract ConduitController is ConduitControllerInterface {
         } else if (!isOpen && channelPreviouslyOpen) {
             // Set a previously open channel as closed via "swap & pop" method.
             // Decrement located index to get the index of the closed channel.
-            uint256 removedChannelIndex = channelIndexPlusOne - 1;
-
+            uint256 removedChannelIndex;
+            // channelPreviouslyOpen already make sure channelIndexPlusOne > 0
+            unchecked {
+                removedChannelIndex = channelIndexPlusOne - 1;
+            }
             // Use length of channels array to determine index of last channel.
             uint256 finalChannelIndex = conduitProperties.channels.length - 1;
 
