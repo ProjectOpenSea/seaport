@@ -69,11 +69,8 @@ contract Conduit is ConduitInterface, TokenTransferrer {
 
         // Iterate over each transfer.
         for (uint256 i = 0; i < totalStandardTransfers; ) {
-            // Retrieve the transfer in question.
-            ConduitTransfer calldata standardTransfer = transfers[i];
-
-            // Perform the transfer.
-            _transfer(standardTransfer);
+            // Retrieve the transfer in question and perform the transfer.
+            _transfer(transfers[i]);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -86,17 +83,17 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     }
 
     /**
-     * @notice Execute a sequence of batch 1155 transfers. Only a caller with an
-     *         open channel can call this function. Note that channels are
-     *         expected to implement reentrancy protection if desired, and that
-     *         cross-channel reentrancy may be possible if the conduit has
+     * @notice Execute a sequence of batch 1155 item transfers. Only a caller
+     *         with an open channel can call this function. Note that channels
+     *         are expected to implement reentrancy protection if desired, and
+     *         that cross-channel reentrancy may be possible if the conduit has
      *         multiple open channels at once. Also note that channels are
      *         expected to implement checks against transferring any zero-amount
      *         items if that constraint is desired.
      *
-     * @param batchTransfers The 1155 batch transfers to perform.
+     * @param batchTransfers The 1155 batch item transfers to perform.
      *
-     * @return magicValue A magic value indicating that the transfers were
+     * @return magicValue A magic value indicating that the item transfers were
      *                    performed successfully.
      */
     function executeBatch1155(
@@ -116,18 +113,19 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     }
 
     /**
-     * @notice Execute a sequence of transfers, both single and batch 1155. Only
-     *         a caller with an open channel can call this function. Note that
-     *         channels are expected to implement reentrancy protection if
-     *         desired, and that cross-channel reentrancy may be possible if the
-     *         conduit has multiple open channels at once. Also note that
-     *         channels are expected to implement checks against transferring
-     *         any zero-amount items if that constraint is desired.
+     * @notice Execute a sequence of transfers, both single ERC20/721/1155 item
+     *         transfers as well as batch 1155 item transfers. Only a caller
+     *         with an open channel can call this function. Note that channels
+     *         are expected to implement reentrancy protection if desired, and
+     *         that cross-channel reentrancy may be possible if the conduit has
+     *         multiple open channels at once. Also note that channels are
+     *         expected to implement checks against transferring any zero-amount
+     *         items if that constraint is desired.
      *
-     * @param standardTransfers The ERC20/721/1155 transfers to perform.
-     * @param batchTransfers    The 1155 batch transfers to perform.
+     * @param standardTransfers The ERC20/721/1155 item transfers to perform.
+     * @param batchTransfers    The 1155 batch item transfers to perform.
      *
-     * @return magicValue A magic value indicating that the transfers were
+     * @return magicValue A magic value indicating that the item transfers were
      *                    performed successfully.
      */
     function executeWithBatch1155(
@@ -144,11 +142,8 @@ contract Conduit is ConduitInterface, TokenTransferrer {
 
         // Iterate over each standard transfer.
         for (uint256 i = 0; i < totalStandardTransfers; ) {
-            // Retrieve the transfer in question.
-            ConduitTransfer calldata standardTransfer = standardTransfers[i];
-
-            // Perform the transfer.
-            _transfer(standardTransfer);
+            // Retrieve the transfer in question and perform the transfer.
+            _transfer(standardTransfers[i]);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -157,7 +152,8 @@ contract Conduit is ConduitInterface, TokenTransferrer {
         }
 
         // Perform 1155 batch transfers. Note that memory should be considered
-        // entirely corrupted from this point forward.
+        // entirely corrupted from this point forward aside from the free memory
+        // pointer having the default value.
         _performERC1155BatchTransfers(batchTransfers);
 
         // Return a magic value indicating that the transfers were performed.
