@@ -8,13 +8,6 @@ pragma solidity >=0.8.7;
  *         verification.
  */
 interface SignatureVerificationErrors {
-    /**
-     * @dev Revert with an error when a signature that does not contain a v
-     *      value of 27 or 28 has been supplied.
-     *
-     * @param v The invalid v value.
-     */
-    error BadSignatureV(uint8 v);
 
     /**
      * @dev Revert with an error when the signer recovered by the supplied
