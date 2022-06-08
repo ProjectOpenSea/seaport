@@ -156,6 +156,37 @@ contract BaseOrderTest is
         consideration.validate(orders);
     }
 
+    function _prepareOrder(uint256 tokenId, uint256 totalConsiderationItems)
+        internal
+        returns (
+            Order memory order,
+            OrderParameters memory orderParameters,
+            bytes memory signature
+        )
+    {
+        test1155_1.mint(address(this), tokenId, 10);
+
+        _configureERC1155OfferItem(tokenId, 10);
+        for (uint256 i = 0; i < totalConsiderationItems; i++) {
+            _configureErc20ConsiderationItem(alice, 10);
+        }
+        uint256 nonce = consideration.getCounter(address(this));
+
+        orderParameters = getOrderParameters(
+            payable(this),
+            OrderType.FULL_OPEN
+        );
+        OrderComponents memory orderComponents = toOrderComponents(
+            orderParameters,
+            nonce
+        );
+
+        bytes32 orderHash = consideration.getOrderHash(orderComponents);
+
+        signature = signOrder(consideration, alicePk, orderHash);
+        order = Order(orderParameters, signature);
+    }
+
     function _configureConsiderationItem(
         address payable recipient,
         ItemType itemType,

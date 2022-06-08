@@ -532,7 +532,7 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             Order memory myOrder,
             OrderParameters memory _orderParameters,
             bytes memory _signature
-        ) = prepareOrder(1, totalConsiderationItems);
+        ) = _prepareOrder(1, totalConsiderationItems);
 
         // Validate the order.
         _validateOrder(myOrder, consideration);
@@ -609,37 +609,6 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             // Otherwise, revert with a generic error message.
             revert();
         }
-    }
-
-    function prepareOrder(uint256 tokenId, uint256 totalConsiderationItems)
-        internal
-        returns (
-            Order memory _order,
-            OrderParameters memory _orderParameters,
-            bytes memory _signature
-        )
-    {
-        test1155_1.mint(address(this), tokenId, 10);
-
-        _configureERC1155OfferItem(tokenId, 10);
-        for (uint256 i = 0; i < totalConsiderationItems; i++) {
-            _configureErc20ConsiderationItem(alice, 10);
-        }
-        uint256 nonce = consideration.getCounter(address(this));
-
-        _orderParameters = getOrderParameters(
-            payable(this),
-            OrderType.FULL_OPEN
-        );
-        OrderComponents memory _orderComponents = toOrderComponents(
-            _orderParameters,
-            nonce
-        );
-
-        bytes32 orderHash = consideration.getOrderHash(_orderComponents);
-
-        _signature = signOrder(consideration, alicePk, orderHash);
-        _order = Order(_orderParameters, _signature);
     }
 
     function fulfillOrderEthToErc721(Context memory context)

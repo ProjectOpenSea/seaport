@@ -139,7 +139,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         (
             Order memory myOrder,
             BasicOrderParameters memory _basicOrderParameters
-        ) = prepareBasicOrderAndOrderParameters(1);
+        ) = prepareBasicOrder(1);
 
         // Add additional recipients
         _basicOrderParameters.additionalRecipients = new AdditionalRecipient[](
@@ -236,32 +236,15 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         }
     }
 
-    function prepareBasicOrderAndOrderParameters(uint256 tokenId)
+    function prepareBasicOrder(uint256 tokenId)
         internal
         returns (
-            Order memory _order,
+            Order memory order,
             BasicOrderParameters memory _basicOrderParameters
         )
     {
-        test1155_1.mint(address(this), tokenId, 10);
-
-        _configureERC1155OfferItem(tokenId, 10);
-        _configureErc20ConsiderationItem(alice, 10);
-        uint256 nonce = consideration.getCounter(address(this));
-
-        OrderParameters memory _orderParameters = getOrderParameters(
-            payable(this),
-            OrderType.FULL_OPEN
-        );
-        OrderComponents memory _orderComponents = toOrderComponents(
-            _orderParameters,
-            nonce
-        );
-
-        bytes32 orderHash = consideration.getOrderHash(_orderComponents);
-
-        bytes memory _signature = signOrder(consideration, alicePk, orderHash);
-        _order = Order(_orderParameters, _signature);
+        (Order memory _order, , ) = _prepareOrder(1, 1);
+        order = _order;
         _basicOrderParameters = toBasicOrderParameters(
             _order,
             BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN
