@@ -10548,7 +10548,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith("BadSignatureV(1)");
+        ).to.be.revertedWith("InvalidSigner"); // was BadSignatureV(1)");
 
         // construct an invalid signature
         basicOrderParameters.signature = "0x".padEnd(130, "f") + "1c";
@@ -10559,7 +10559,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith("InvalidSignature");
+        ).to.be.revertedWith("InvalidSigner"); // was InvalidSignature");
 
         basicOrderParameters.signature = originalSignature;
 
