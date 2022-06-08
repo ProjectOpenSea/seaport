@@ -344,3 +344,30 @@ uint256 constant Conduit_transferItem_from_ptr = 0x40;
 uint256 constant Conduit_transferItem_to_ptr = 0x60;
 uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
 uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
+
+// Declare constant for errors related to signature verification.
+
+// error BadSignatureV(uint8) @ SignatureVerificationErrors.sol
+uint256 constant BadSignatureV_error_signature = (
+    0x1f003d0a00000000000000000000000000000000000000000000000000000000
+);
+uint256 constant BadSignatureV_error_offset = 0x04;
+uint256 constant BadSignatureV_error_length = 0x24;
+
+// error InvalidSigner() @ SignatureVerificationErrors.sol
+uint256 constant InvalidSigner_error_signature = (
+    0x815e1d6400000000000000000000000000000000000000000000000000000000
+);
+uint256 constant InvalidSigner_error_length = 0x20;
+
+// error InvalidSignature() @ SignatureVerificationErrors.sol
+uint256 constant InvalidSignature_error_signature = (
+    0x8baa579f00000000000000000000000000000000000000000000000000000000
+);
+uint256 constant InvalidSignature_error_length = 0x20;
+
+// error BadContractSignature() @ SignatureVerificationErrors.sol
+uint256 constant BadContractSignature_error_signature = (
+    0x4f7fb80d00000000000000000000000000000000000000000000000000000000
+);
+uint256 constant BadContractSignature_error_length = 0x20;

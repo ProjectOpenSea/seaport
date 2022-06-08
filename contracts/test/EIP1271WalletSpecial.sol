@@ -20,6 +20,11 @@ contract EIP1271WalletSpecial {
 
     bool public isValid;
 
+    // Hardcoded for illustration of cross chain usecase
+    uint256 targetChainId = 1;
+    bytes32 gatewayHash = bytes32(uint256(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF));
+    uint256 gatewayVersion = 7;
+
     constructor(address _owner) {
         owner = _owner;
         showRevertMessage = true;
@@ -71,7 +76,7 @@ contract EIP1271WalletSpecial {
             revert();
         }
 
-        bytes32 a;
+        uint256 a;
         bytes32 b;
         uint8 c;
 
@@ -81,7 +86,7 @@ contract EIP1271WalletSpecial {
             c := byte(0, mload(add(signature, 0x60)))
         }
 
-        require(a == 0x00000000000000000000000000000000 && b == bytes32(uint256(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)) && c == 7, "Invalid signature");
+        require(a == targetChainId && b == gatewayHash && c == gatewayVersion, "Invalid signature");
 
         return isValid ? _EIP_1271_MAGIC_VALUE : bytes4(0xffffffff);
     }

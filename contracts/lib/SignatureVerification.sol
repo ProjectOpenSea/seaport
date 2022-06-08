@@ -22,9 +22,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
      *      is not 32 or 33 bytes or if the recovered signer does not match the
-     *      supplied signer. Note that in cases where a 32 or 33 byte signature
-     *      is supplied, only standard ECDSA signatures that recover to a
-     *      non-zero address are supported.
+     *      supplied signer.
      *
      * @param signer    The signer for the order.
      * @param digest    The digest to verify the signature against.
@@ -36,20 +34,6 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         bytes32 digest,
         bytes memory signature
     ) internal view {
-        bool isContract;
-        assembly {
-            isContract := iszero(iszero(extcodesize(signer)))
-        }
-
-        if (isContract) {
-            // For all contracts, try verification via EIP-1271 as EIP-2098 signer never resolved to a contract.
-            // Attempt EIP-1271 static call to signer in case it's a contract.
-            _assertValidEIP1271Signature(signer, digest, signature);
-
-            // Return early if the ERC-1271 signature check succeeded.
-            return;
-        }
-
         // Declare r, s, and v signature parameters.
         bytes32 r;
         bytes32 s;
@@ -90,11 +74,21 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
             // Ensure v value is properly formatted.
             if (v != 27 && v != 28) {
-                revert BadSignatureV(v);
+                // Revert with BadSignatureV(v) and passed the error to EIP-1271 signature verification.
+                assembly {
+                    mstore(0, BadSignatureV_error_signature)
+                    mstore(BadSignatureV_error_offset, v)
+                }
+                
+                _assertValidEIP1271Signature(signer, digest, BadSignatureV_error_length, signature);
             }
         } else {
-            // Neither EIP-1271 nor EIP-2098
-            revert InvalidSigner();
+            // For all other signature lengths, try verification via EIP-1271.
+            // Attempt EIP-1271 static call to signer in case it's a contract.
+            _assertValidEIP1271Signature(signer, digest, 0, signature);
+
+            // Return early if the ERC-1271 signature check succeeded.
+            return;
         }
 
         // Attempt to recover signer using the digest and signature parameters.
@@ -102,11 +96,16 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
         // Disallow invalid signers.
         if (recoveredSigner == address(0)) {
-            revert InvalidSignature();
+            // Revert with InvalidSignature and passed the error to EIP-1271 signature verification.
+            assembly {
+                mstore(0, InvalidSignature_error_signature)
+            }
+
+            _assertValidEIP1271Signature(signer, digest, InvalidSignature_error_length, signature);
             // Should a signer be recovered, but it doesn't match the signer...
         } else if (recoveredSigner != signer) {
-            // EIP-1271 is checked at the first place
-            revert InvalidSigner();
+            // Attempt EIP-1271 static call to signer in case it's a contract.
+            _assertValidEIP1271Signature(signer, digest, 0, signature);
         }
     }
 
@@ -126,6 +125,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
     function _assertValidEIP1271Signature(
         address signer,
         bytes32 digest,
+        uint256 errorLength,
         bytes memory signature
     ) internal view {
         // Attempt an EIP-1271 staticcall to the signer.
@@ -143,13 +143,30 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             // Revert and pass reason along if one was returned.
             _revertWithReasonIfOneIsReturned();
 
-            // Otherwise, revert with a generic error message.
-            revert BadContractSignature();
+            assembly {
+                // If error is not passed from _assertValidSignature, revert with BadContractSignature().
+                if iszero(errorLength) {
+                    mstore(0, BadContractSignature_error_signature)
+                    revert(0, BadContractSignature_error_length)
+                }
+
+                // If error is passed from _assertValidSignature, revert with passed error.
+                revert(0, errorLength)
+            }
         }
 
         // Ensure result was extracted and matches EIP-1271 magic value.
         if (_doesNotMatchMagic(EIP1271Interface.isValidSignature.selector)) {
-            revert InvalidSigner();
+            assembly {
+                // If error is not passed from _assertValidSignature, revert with InvalidSigner().
+                if iszero(errorLength) {
+                    mstore(0, InvalidSigner_error_signature)
+                    revert(0, InvalidSigner_error_length)
+                }
+
+                // If error is passed from _assertValidSignature, revert with passed error.
+                revert(0, errorLength)
+            }
         }
     }
 }
