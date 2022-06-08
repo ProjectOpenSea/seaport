@@ -36,6 +36,20 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         bytes32 digest,
         bytes memory signature
     ) internal view {
+        bool isContract;
+        assembly {
+            isContract := iszero(iszero(extcodesize(signer)))
+        }
+
+        if (isContract) {
+            // For all contracts, try verification via EIP-1271 as EIP-2098 signer never resolved to a contract.
+            // Attempt EIP-1271 static call to signer in case it's a contract.
+            _assertValidEIP1271Signature(signer, digest, signature);
+
+            // Return early if the ERC-1271 signature check succeeded.
+            return;
+        }
+
         // Declare r, s, and v signature parameters.
         bytes32 r;
         bytes32 s;
@@ -79,12 +93,8 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 revert BadSignatureV(v);
             }
         } else {
-            // For all other signature lengths, try verification via EIP-1271.
-            // Attempt EIP-1271 static call to signer in case it's a contract.
-            _assertValidEIP1271Signature(signer, digest, signature);
-
-            // Return early if the ERC-1271 signature check succeeded.
-            return;
+            // Neither EIP-1271 nor EIP-2098
+            revert InvalidSigner();
         }
 
         // Attempt to recover signer using the digest and signature parameters.
@@ -95,8 +105,8 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             revert InvalidSignature();
             // Should a signer be recovered, but it doesn't match the signer...
         } else if (recoveredSigner != signer) {
-            // Attempt EIP-1271 static call to signer in case it's a contract.
-            _assertValidEIP1271Signature(signer, digest, signature);
+            // EIP-1271 is checked at the first place
+            revert InvalidSigner();
         }
     }
 
