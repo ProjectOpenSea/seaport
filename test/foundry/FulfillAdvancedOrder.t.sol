@@ -2,17 +2,10 @@
 
 pragma solidity >=0.8.13;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
+import { OrderType, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, CriteriaResolver } from "../../contracts/lib/ConsiderationStructs.sol";
+import { AdvancedOrder, OrderParameters, OrderComponents, CriteriaResolver } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
-import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
-import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
-import { Merkle } from "murky/Merkle.sol";
 import { ERC1155Recipient } from "./utils/ERC1155Recipient.sol";
 import { ConsiderationEventsAndErrors } from "../../contracts/interfaces/ConsiderationEventsAndErrors.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";

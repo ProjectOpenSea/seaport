@@ -142,8 +142,9 @@ contract ReferenceOrderFulfiller is
      *                            should be used (and direct approvals set on
      *                            Consideration).
      * @param recipient           The intended recipient for all received items.
-     * @return orderToExecute     Returns the order of items that are being transferred.
-     *                            This will be used for the OrderFulfilled Event.
+     * @return orderToExecute     Returns the order of items that are being
+     *                            transferred. This will be used for the
+     *                            OrderFulfilled Event.
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
@@ -346,8 +347,8 @@ contract ReferenceOrderFulfiller is
     }
 
     /**
-     * @dev Internal pure function to convert an advanced order to an order to execute with
-     *      numerator of 1.
+     * @dev Internal pure function to convert an advanced order to an order
+     *      to execute with numerator of 1.
      *
      * @param advancedOrder The advanced order to convert.
      *
@@ -422,8 +423,8 @@ contract ReferenceOrderFulfiller is
     }
 
     /**
-     * @dev Internal pure function to convert an array of advanced orders to an array of
-     *      orders to execute.
+     * @dev Internal pure function to convert an array of advanced orders to
+     *      an array of orders to execute.
      *
      * @param advancedOrders The advanced orders to convert.
      *

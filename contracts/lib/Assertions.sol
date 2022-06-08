@@ -48,7 +48,7 @@ contract Assertions is
      *
      * @return The hash.
      */
-    function _assertConsiderationLengthAndGetCounterdOrderHash(
+    function _assertConsiderationLengthAndGetOrderHash(
         OrderParameters memory orderParameters
     ) internal view returns (bytes32) {
         // Ensure supplied consideration array length is not less than original.
