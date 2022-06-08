@@ -275,6 +275,9 @@ uint256 constant BasicOrder_signature_ptr = 0x260;
 bytes32 constant EIP2098_allButHighestBitMask = (
     0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 );
+bytes32 constant ECDSA_twentySeventhAndTwentyEighthBytesSet = (
+    0x0000000000000000000000000000000000000000000000000000000101000000
+);
 
 // abi.encodeWithSignature("NoContract(address)")
 uint256 constant NoContract_error_signature = (
