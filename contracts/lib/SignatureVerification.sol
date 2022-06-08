@@ -104,7 +104,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
                 )
             }
-            // Ensure v value is properly formatted. Return invalid value if not
+            // Early abort if v value is out of range to save the cost of ecrecover.
             if (vIsInvalid) {
                 return (address(0));
             }
