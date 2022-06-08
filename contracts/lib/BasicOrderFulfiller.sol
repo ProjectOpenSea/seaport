@@ -111,50 +111,54 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Declare more arguments that will be derived from route and calldata.
         address additionalRecipientsToken;
-        ItemType receivedItemType;
         ItemType offeredItemType;
         bool offerTypeIsAdditionalRecipientsType;
 
-        // Utilize assembly to retrieve function arguments and cast types.
-        assembly {
-            // Determine if offered item type == additional recipient item type.
-            offerTypeIsAdditionalRecipientsType := gt(route, 3)
+        // Declare scope for received item type to manage stack pressure.
+        {
+            ItemType receivedItemType;
 
-            // If route > 3 additionalRecipientsToken is at 0xc4 else 0x24.
-            additionalRecipientsToken := calldataload(
-                add(
-                    BasicOrder_considerationToken_cdPtr,
-                    mul(offerTypeIsAdditionalRecipientsType, FiveWords)
+            // Utilize assembly to retrieve function arguments and cast types.
+            assembly {
+                // Check if offered item type == additional recipient item type.
+                offerTypeIsAdditionalRecipientsType := gt(route, 3)
+
+                // If route > 3 additionalRecipientsToken is at 0xc4 else 0x24.
+                additionalRecipientsToken := calldataload(
+                    add(
+                        BasicOrder_considerationToken_cdPtr,
+                        mul(offerTypeIsAdditionalRecipientsType, FiveWords)
+                    )
                 )
-            )
 
-            // If route > 2, receivedItemType is route - 2. If route is 2, then
-            // receivedItemType is ERC20 (1). Otherwise, it is Eth (0).
-            receivedItemType := add(
-                mul(sub(route, 2), gt(route, 2)),
-                eq(route, 2)
-            )
-
-            // If route > 3, offeredItemType is ERC20 (1). If route is 2 or 3,
-            // offeredItemType = route. If route is 0 or 1, it is route + 2.
-            offeredItemType := sub(
-                add(route, mul(iszero(additionalRecipientsItemType), 2)),
-                mul(
-                    offerTypeIsAdditionalRecipientsType,
-                    add(receivedItemType, 1)
+                // If route > 2, receivedItemType is route - 2. If route is 2,
+                // the receivedItemType is ERC20 (1). Otherwise, it is Eth (0).
+                receivedItemType := add(
+                    mul(sub(route, 2), gt(route, 2)),
+                    eq(route, 2)
                 )
-            )
+
+                // If route > 3, offeredItemType is ERC20 (1). Route is 2 or 3,
+                // offeredItemType = route. Route is 0 or 1, it is route + 2.
+                offeredItemType := sub(
+                    add(route, mul(iszero(additionalRecipientsItemType), 2)),
+                    mul(
+                        offerTypeIsAdditionalRecipientsType,
+                        add(receivedItemType, 1)
+                    )
+                )
+            }
+
+            // Derive & validate order using parameters and update order status.
+            _prepareBasicFulfillmentFromCalldata(
+                parameters,
+                orderType,
+                receivedItemType,
+                additionalRecipientsItemType,
+                additionalRecipientsToken,
+                offeredItemType
+            );
         }
-
-        // Derive & validate order using parameters and update order status.
-        _prepareBasicFulfillmentFromCalldata(
-            parameters,
-            orderType,
-            receivedItemType,
-            additionalRecipientsItemType,
-            additionalRecipientsToken,
-            offeredItemType
-        );
 
         // Declare conduitKey argument used by transfer functions.
         bytes32 conduitKey;
