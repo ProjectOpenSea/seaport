@@ -237,12 +237,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 uint256 startTime = advancedOrder.parameters.startTime;
                 uint256 endTime = advancedOrder.parameters.endTime;
 
-                // Derive the duration for the order and place it on the stack.
-                // uint256 duration = advancedOrder.parameters.endTime - startTime;
-
-                // Derive time elapsed since the order started & place on stack.
-                // uint256 elapsed = block.timestamp - startTime;
-
                 // Retrieve array of offer items for the order in question.
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
 
@@ -283,8 +277,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         offerItem.endAmount,
                         startTime,
                         endTime,
-                        // elapsed,
-                        // duration,
                         false // round down
                     );
                 }
@@ -337,8 +329,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                             considerationItem.endAmount,
                             startTime,
                             endTime,
-                            // elapsed,
-                            // duration,
                             true // round up
                         )
                     );

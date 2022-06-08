@@ -157,10 +157,6 @@ contract OrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal {
-        // Derive order duration, time elapsed, and time remaining.
-        // uint256 duration = orderParameters.endTime - orderParameters.startTime;
-        // uint256 elapsed = block.timestamp - orderParameters.startTime;
-
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
