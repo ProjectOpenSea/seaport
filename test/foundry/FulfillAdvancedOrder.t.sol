@@ -74,32 +74,40 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         _;
     }
 
-    modifier only1155Receiver(address recipient) {
-        vm.assume(recipient != address(0));
-        if (recipient.code.length > 0) {
-            try
-                ERC1155Recipient(recipient).onERC1155Received(
-                    address(1),
-                    address(1),
-                    1,
-                    1,
-                    ""
-                )
-            returns (bytes4 response) {
-                vm.assume(response == onERC1155Received.selector);
-            } catch (bytes memory reason) {
-                vm.assume(false);
-            }
-        }
-        _;
-    }
-
     function test(function(Context memory) external fn, Context memory context)
         internal
     {
         try fn(context) {} catch (bytes memory reason) {
             assertPass(reason);
         }
+    }
+
+    struct FuzzArgs2 {
+        uint8 itemType;
+    }
+
+    struct Context2 {
+        ConsiderationInterface consideration;
+        FuzzArgs2 args;
+    }
+
+    function robustRecipient(Context2 memory context) external {
+        ItemType itemType = ItemType(context.args.itemType % 6);
+        address payable offerer;
+        if (itemType == ItemType.NATIVE) {
+            offerer = payable(this);
+            addEthOfferItem(1);
+        } else {
+            offerer = alice;
+            mintTokensTo(alice, itemType, 1);
+            addOfferItem(itemType, 1, 1);
+        }
+        mintErc20TokensTo(address(this), 1);
+        addErc20ConsiderationItem(offerer, 1);
+
+        configureOrderParameters(offerer);
+
+        // todo try fulfilling eth from self with external recipient??
     }
 
     function testAdvancedPartialAscendingOfferAmount1155(
@@ -141,25 +149,16 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             context.tokenAmount.mul(4)
         );
 
-        _configureOfferItem(
+        addOfferItem(
             ItemType.ERC1155,
             context.args.tokenId,
             context.tokenAmount.mul(2),
             context.tokenAmount.mul(4)
         );
         // set endAmount to 2 * startAmount
-        _configureEthConsiderationItem(
-            alice,
-            context.args.paymentAmounts[0].mul(2)
-        );
-        _configureEthConsiderationItem(
-            alice,
-            context.args.paymentAmounts[1].mul(2)
-        );
-        _configureEthConsiderationItem(
-            alice,
-            context.args.paymentAmounts[2].mul(2)
-        );
+        addEthConsiderationItem(alice, context.args.paymentAmounts[0].mul(2));
+        addEthConsiderationItem(alice, context.args.paymentAmounts[1].mul(2));
+        addEthConsiderationItem(alice, context.args.paymentAmounts[2].mul(2));
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -257,25 +256,19 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             context.tokenAmount.mul(1000)
         );
 
-        _configureOfferItem(
+        addOfferItem(
             ItemType.ERC1155,
             context.args.tokenId,
             context.tokenAmount.mul(1000)
         );
         // set endAmount to 2 * startAmount
-        _configureEthConsiderationItem(
+        addEthConsiderationItem(
             alice,
             context.args.paymentAmounts[0].mul(2),
             context.args.paymentAmounts[0].mul(4)
         );
-        _configureEthConsiderationItem(
-            alice,
-            context.args.paymentAmounts[1].mul(2)
-        );
-        _configureEthConsiderationItem(
-            alice,
-            context.args.paymentAmounts[2].mul(2)
-        );
+        addEthConsiderationItem(alice, context.args.paymentAmounts[1].mul(2));
+        addEthConsiderationItem(alice, context.args.paymentAmounts[2].mul(2));
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -344,7 +337,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         assertEq(totalSize, 2);
     }
 
-    function testSingleAdvancedPartial1155(
+    function testSingleAdvanced1155(
         FuzzInputs memory inputs,
         uint128 tokenAmount
     )
@@ -357,29 +350,26 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         vm.assume(tokenAmount > 0);
 
         test(
-            this.singleAdvancedPartial1155,
+            this.singleAdvanced1155,
             Context(consideration, inputs, tokenAmount, 0)
         );
         test(
-            this.singleAdvancedPartial1155,
+            this.singleAdvanced1155,
             Context(referenceConsideration, inputs, tokenAmount, 0)
         );
     }
 
-    function singleAdvancedPartial1155(Context memory context)
-        external
-        stateless
-    {
+    function singleAdvanced1155(Context memory context) external stateless {
         bytes32 conduitKey = context.args.useConduit
             ? conduitKeyOne
             : bytes32(0);
 
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
-        _configureERC1155OfferItem(context.args.tokenId, context.tokenAmount);
-        _configureEthConsiderationItem(payable(0), 10);
-        _configureEthConsiderationItem(alice, 10);
-        _configureEthConsiderationItem(bob, 10);
+        addERC1155OfferItem(context.args.tokenId, context.tokenAmount);
+        addEthConsiderationItem(payable(0), 10);
+        addEthConsiderationItem(alice, 10);
+        addEthConsiderationItem(bob, 10);
         uint256 counter = referenceConsideration.getCounter(alice);
         OrderComponents memory orderComponents = OrderComponents(
             alice,
@@ -444,8 +434,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
-        _configureERC1155OfferItem(1, 100);
-        _configureEthConsiderationItem(alice, 100);
+        addERC1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;

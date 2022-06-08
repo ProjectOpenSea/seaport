@@ -136,11 +136,11 @@ contract FulfillOrderTest is BaseOrderTest {
                     : context.args.startAmount
             ).mul(1000)
         );
-        _configureERC20OfferItem(
+        addERC20OfferItem(
             context.args.startAmount.mul(1000),
             context.args.endAmount.mul(1000)
         );
-        _configureEthConsiderationItem(alice, 1000);
+        addEthConsiderationItem(alice, 1000);
         OrderParameters memory orderParameters = OrderParameters(
             alice,
             context.args.zone,
@@ -208,9 +208,9 @@ contract FulfillOrderTest is BaseOrderTest {
             : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155amt);
-        _configureERC1155OfferItem(context.args.id, context.erc1155amt);
+        addERC1155OfferItem(context.args.id, context.erc1155amt);
 
-        _configureErc20ConsiderationItem(
+        addErc20ConsiderationItem(
             alice,
             context.args.startAmount.mul(1000),
             context.args.endAmount.mul(1000)

@@ -73,26 +73,6 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         _;
     }
 
-    modifier only1155Receiver(address recipient) {
-        vm.assume(recipient != address(0));
-        if (recipient.code.length > 0) {
-            try
-                ERC1155Recipient(recipient).onERC1155Received(
-                    address(1),
-                    address(1),
-                    1,
-                    1,
-                    ""
-                )
-            returns (bytes4 response) {
-                vm.assume(response == onERC1155Received.selector);
-            } catch (bytes memory reason) {
-                vm.assume(false);
-            }
-        }
-        _;
-    }
-
     function test(function(Context memory) external fn, Context memory context)
         internal
     {
@@ -185,8 +165,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         stateless
     {
         test721_1.mint(alice, 1);
-        _configureERC721OfferItem(1);
-        _configureConsiderationItem(alice, context.itemType, 1, 100);
+        addERC721OfferItem(1);
+        addConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -216,9 +196,9 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        _configureERC721OfferItem(2);
+        addERC721OfferItem(2);
         // try to overflow the aggregated amount sent to alice
-        _configureConsiderationItem(alice, context.itemType, 1, MAX_INT);
+        addConsiderationItem(alice, context.itemType, 1, MAX_INT);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -265,13 +245,13 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete offerComponents;
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         // aggregate eth considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         CriteriaResolver[] memory criteriaResolvers;
 
@@ -291,8 +271,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         Context memory context
     ) external stateless {
         test721_1.mint(alice, 1);
-        _configureERC721OfferItem(1);
-        _configureConsiderationItem(alice, context.itemType, 1, 100);
+        addERC721OfferItem(1);
+        addConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -322,10 +302,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        _configureERC721OfferItem(2);
+        addERC721OfferItem(2);
         // try to overflow the aggregated amount sent to alice
-        _configureConsiderationItem(alice, context.itemType, 1, MAX_INT);
-        _configureConsiderationItem(alice, context.itemType, 1, 0);
+        addConsiderationItem(alice, context.itemType, 1, MAX_INT);
+        addConsiderationItem(alice, context.itemType, 1, 0);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -372,14 +352,14 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete offerComponents;
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         // aggregate eth considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponents.push(FulfillmentComponent(1, 1));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         CriteriaResolver[] memory criteriaResolvers;
 
@@ -463,19 +443,19 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 1));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 2));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         assertTrue(considerationComponentsArray.length == 3);
 
@@ -592,19 +572,19 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 1));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 2));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         assertTrue(considerationComponentsArray.length == 3);
 
@@ -671,8 +651,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         // Mint 100 tokens to alice.
         test1155_1.mint(alice, 1, 100);
 
-        _configureERC1155OfferItem(1, 100);
-        _configureEthConsiderationItem(alice, 100);
+        addERC1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
@@ -716,13 +696,13 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         // Aggregate the eth considerations together.
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         // Pass in the AdvancedOrder array and fulfill both partially-fulfillable orders.
         context.consideration.fulfillAvailableAdvancedOrders{ value: 60 }(
@@ -771,8 +751,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         // Mint 100 tokens to alice.
         test1155_1.mint(alice, 1, 100);
 
-        _configureERC1155OfferItem(1, 100);
-        _configureEthConsiderationItem(alice, 100);
+        addERC1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
@@ -816,18 +796,18 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         // This results in two separate transfers of erc1155 tokens as opposed to one aggregated transfer.
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         // Add the consideration components corresponding to the offer components.
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         // Pass in the AdvancedOrder array and fulfill both partially-fulfillable orders.
         context.consideration.fulfillAvailableAdvancedOrders{ value: 60 }(

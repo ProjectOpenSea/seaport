@@ -3,66 +3,27 @@ pragma solidity >=0.8.13;
 
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
-import { ERC721Recipient } from "./ERC721Recipient.sol";
-import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
 import { OneWord } from "../../../contracts/lib/ConsiderationConstants.sol";
 import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
-import { StructCopier } from "./StructCopier.sol";
 import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
+import { OfferConsiderationItemAdder } from "./OfferConsiderationItemAdder.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
-contract BaseOrderTest is
-    StructCopier,
-    BaseConsiderationTest,
-    AmountDeriver,
-    ERC721Recipient,
-    ERC1155Recipient
-{
+contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     using stdStorage for StdStorage;
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
 
-    uint256 constant MAX_INT = ~uint256(0);
-
-    uint256 internal alicePk = 0xa11ce;
-    uint256 internal bobPk = 0xb0b;
-    uint256 internal calPk = 0xca1;
-    address payable internal alice = payable(vm.addr(alicePk));
-    address payable internal bob = payable(vm.addr(bobPk));
-    address payable internal cal = payable(vm.addr(calPk));
-
-    TestERC20 internal token1;
-    TestERC20 internal token2;
-    TestERC20 internal token3;
-
-    TestERC721 internal test721_1;
-    TestERC721 internal test721_2;
-    TestERC721 internal test721_3;
-
-    TestERC1155 internal test1155_1;
-    TestERC1155 internal test1155_2;
-    TestERC1155 internal test1155_3;
-
-    TestERC20[] erc20s;
-    TestERC721[] erc721s;
-    TestERC1155[] erc1155s;
+    uint256 internal globalSalt;
 
     OrderParameters baseOrderParameters;
     OrderComponents baseOrderComponents;
-
-    OfferItem offerItem;
-    ConsiderationItem considerationItem;
-    OfferItem[] offerItems;
-    ConsiderationItem[] considerationItems;
 
     FulfillmentComponent[] offerComponents;
     FulfillmentComponent[] considerationComponents;
@@ -89,9 +50,6 @@ contract BaseOrderTest is
 
     AdditionalRecipient[] additionalRecipients;
 
-    uint256 internal globalTokenId;
-    uint256 internal globalSalt;
-
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     event TransferSingle(
@@ -101,11 +59,6 @@ contract BaseOrderTest is
         uint256 id,
         uint256 value
     );
-
-    struct RestoreERC20Balance {
-        address token;
-        address who;
-    }
 
     modifier onlyPayable(address _addr) {
         {
@@ -409,130 +362,10 @@ contract BaseOrderTest is
         _configureOfferItem(
             ItemType.NATIVE,
             address(0),
-            0,
-            startAmount,
-            endAmount
+            bytes32(0),
+            globalSalt++,
+            false
         );
-    }
-
-    function _configureEthOfferItem(uint256 paymentAmount) internal {
-        _configureEthOfferItem(paymentAmount, paymentAmount);
-    }
-
-    function _configureEthConsiderationItem(
-        address payable recipient,
-        uint256 paymentAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            paymentAmount,
-            paymentAmount,
-            recipient
-        );
-    }
-
-    function _configureEthConsiderationItem(
-        address payable recipient,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            startAmount,
-            endAmount,
-            recipient
-        );
-    }
-
-    function _configureErc20ConsiderationItem(
-        address payable receiver,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            startAmount,
-            endAmount,
-            receiver
-        );
-    }
-
-    function _configureErc20ConsiderationItem(
-        address payable receiver,
-        uint256 paymentAmount
-    ) internal {
-        _configureErc20ConsiderationItem(
-            receiver,
-            paymentAmount,
-            paymentAmount
-        );
-    }
-
-    function _configureErc721ConsiderationItem(
-        address payable recipient,
-        uint256 tokenId
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC721,
-            address(test721_1),
-            tokenId,
-            1,
-            1,
-            recipient
-        );
-    }
-
-    function _configureErc1155ConsiderationItem(
-        address payable recipient,
-        uint256 tokenId,
-        uint256 amount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            amount,
-            amount,
-            recipient
-        );
-    }
-
-    function _configureOfferItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        offerItem.itemType = itemType;
-        offerItem.token = token;
-        offerItem.identifierOrCriteria = identifier;
-        offerItem.startAmount = startAmount;
-        offerItem.endAmount = endAmount;
-        offerItems.push(offerItem);
-    }
-
-    function _configureConsiderationItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount,
-        address payable recipient
-    ) internal {
-        considerationItem.itemType = itemType;
-        considerationItem.token = token;
-        considerationItem.identifierOrCriteria = identifier;
-        considerationItem.startAmount = startAmount;
-        considerationItem.endAmount = endAmount;
-        considerationItem.recipient = recipient;
-        considerationItems.push(considerationItem);
     }
 
     function _configureOrderParameters(
@@ -584,73 +417,6 @@ contract BaseOrderTest is
         baseOrderComponents.salt = baseOrderParameters.salt;
         baseOrderComponents.conduitKey = baseOrderParameters.conduitKey;
         baseOrderComponents.counter = counter;
-    }
-
-    /**
-    @dev deploy test token contracts
-     */
-    function _deployTestTokenContracts() internal {
-        token1 = new TestERC20();
-        token2 = new TestERC20();
-        token3 = new TestERC20();
-        test721_1 = new TestERC721();
-        test721_2 = new TestERC721();
-        test721_3 = new TestERC721();
-        test1155_1 = new TestERC1155();
-        test1155_2 = new TestERC1155();
-        test1155_3 = new TestERC1155();
-        vm.label(address(token1), "token1");
-        vm.label(address(test721_1), "test721_1");
-        vm.label(address(test1155_1), "test1155_1");
-
-        emit log("Deployed test token contracts");
-    }
-
-    /**
-    @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s 
-    */
-    function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
-        vm.deal(_to, _amount);
-        for (uint256 i = 0; i < erc20s.length; ++i) {
-            erc20s[i].mint(_to, _amount);
-        }
-        emit log_named_address("Allocated tokens to", _to);
-        _setApprovals(_to);
-    }
-
-    function _setApprovals(address _owner) internal {
-        vm.startPrank(_owner);
-        for (uint256 i = 0; i < erc20s.length; ++i) {
-            erc20s[i].approve(address(consideration), MAX_INT);
-            erc20s[i].approve(address(referenceConsideration), MAX_INT);
-            erc20s[i].approve(address(conduit), MAX_INT);
-            erc20s[i].approve(address(referenceConduit), MAX_INT);
-        }
-        for (uint256 i = 0; i < erc721s.length; ++i) {
-            erc721s[i].setApprovalForAll(address(consideration), true);
-            erc721s[i].setApprovalForAll(address(referenceConsideration), true);
-            erc721s[i].setApprovalForAll(address(conduit), true);
-            erc721s[i].setApprovalForAll(address(referenceConduit), true);
-        }
-        for (uint256 i = 0; i < erc1155s.length; ++i) {
-            erc1155s[i].setApprovalForAll(address(consideration), true);
-            erc1155s[i].setApprovalForAll(
-                address(referenceConsideration),
-                true
-            );
-            erc1155s[i].setApprovalForAll(address(conduit), true);
-            erc1155s[i].setApprovalForAll(address(referenceConduit), true);
-        }
-
-        vm.stopPrank();
-        emit log_named_address(
-            "Owner proxy approved for all tokens from",
-            _owner
-        );
-        emit log_named_address(
-            "Consideration approved for all tokens from",
-            _owner
-        );
     }
 
     function getMaxConsiderationValue() internal view returns (uint256) {
