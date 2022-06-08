@@ -33,6 +33,10 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         bytes32 digest,
         bytes memory signature
     ) internal view {
+        if (signer == 0) {
+           // Make sure to never allow the ecrecover "error" case
+           revert InvalidSigner();
+        }
         address recoveredSigner = _tryEcRecoverSignature(digest, signature);
         // Found a match: recovered address matches the signer
         if (recoveredSigner == signer) return;
