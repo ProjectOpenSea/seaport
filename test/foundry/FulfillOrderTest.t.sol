@@ -113,7 +113,7 @@ contract FulfillOrderTest is BaseOrderTest {
         inputs.warpAmount %= 1000;
         test(
             this.fulfillAscendingDescendingOffer,
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceSeaport, inputs, 0, 0, 0)
         );
         test(
             this.fulfillAscendingDescendingOffer,
@@ -190,7 +190,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(erc1155amt > 0);
         test(
             this.fulfillAscendingDescendingConsideration,
-            Context(referenceConsideration, inputs, erc1155amt, 0, 0)
+            Context(referenceSeaport, inputs, erc1155amt, 0, 0)
         );
         test(
             this.fulfillAscendingDescendingConsideration,
@@ -266,7 +266,7 @@ contract FulfillOrderTest is BaseOrderTest {
     {
         test(
             this.fulfillOrderEthToErc721,
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceSeaport, inputs, 0, 0, 0)
         );
         test(
             this.fulfillOrderEthToErc721,
@@ -281,7 +281,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(tokenAmount > 0);
         test(
             this.fulfillOrderEthToErc1155,
-            Context(referenceConsideration, inputs, tokenAmount, 0, 0)
+            Context(referenceSeaport, inputs, tokenAmount, 0, 0)
         );
         test(
             this.fulfillOrderEthToErc1155,
@@ -306,7 +306,7 @@ contract FulfillOrderTest is BaseOrderTest {
         );
         test(
             this.fulfillOrderEthToErc721WithSingleEthTip,
-            Context(referenceConsideration, inputs, 0, tipAmt, 0)
+            Context(referenceSeaport, inputs, 0, tipAmt, 0)
         );
         test(
             this.fulfillOrderEthToErc721WithSingleEthTip,
@@ -333,7 +333,7 @@ contract FulfillOrderTest is BaseOrderTest {
         );
         test(
             this.fulfillOrderEthToErc1155WithSingleEthTip,
-            Context(referenceConsideration, inputs, tokenAmt, tipAmt, 0)
+            Context(referenceSeaport, inputs, tokenAmt, tipAmt, 0)
         );
         test(
             this.fulfillOrderEthToErc1155WithSingleEthTip,
@@ -351,7 +351,7 @@ contract FulfillOrderTest is BaseOrderTest {
     {
         test(
             this.fulfillOrderEthToErc721WithMultipleEthTips,
-            Context(referenceConsideration, inputs, 0, 0, numTips)
+            Context(referenceSeaport, inputs, 0, 0, numTips)
         );
         test(
             this.fulfillOrderEthToErc721WithMultipleEthTips,
@@ -372,7 +372,7 @@ contract FulfillOrderTest is BaseOrderTest {
 
         test(
             this.fulfillOrderEthToErc1155WithMultipleEthTips,
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(referenceSeaport, inputs, tokenAmt, 0, numTips)
         );
         test(
             this.fulfillOrderEthToErc1155WithMultipleEthTips,
@@ -387,7 +387,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(tokenAmt > 0);
         test(
             this.fulfillOrderSingleErc20ToSingleErc1155,
-            Context(referenceConsideration, inputs, tokenAmt, 0, 0)
+            Context(referenceSeaport, inputs, tokenAmt, 0, 0)
         );
         test(
             this.fulfillOrderSingleErc20ToSingleErc1155,
@@ -406,7 +406,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(numTips > 0);
         test(
             this.fulfillOrderEthToErc721WithErc721Tips,
-            Context(referenceConsideration, inputs, 0, 0, numTips)
+            Context(referenceSeaport, inputs, 0, 0, numTips)
         );
         test(
             this.fulfillOrderEthToErc721WithErc721Tips,
@@ -426,7 +426,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(tokenAmt > 0);
         test(
             this.fulfillOrderEthToErc1155WithErc721Tips,
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(referenceSeaport, inputs, tokenAmt, 0, numTips)
         );
         test(
             this.fulfillOrderEthToErc1155WithErc721Tips,
@@ -440,7 +440,7 @@ contract FulfillOrderTest is BaseOrderTest {
     ) public validateInputs(inputs) onlyPayable(inputs.zone) {
         test(
             this.fulfillOrderEthToErc721WithErc1155Tips,
-            Context(referenceConsideration, inputs, 0, 0, numTips)
+            Context(referenceSeaport, inputs, 0, 0, numTips)
         );
         test(
             this.fulfillOrderEthToErc721WithErc1155Tips,
@@ -456,7 +456,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(tokenAmt > 0);
         test(
             this.fulfillOrderEthToErc1155WithErc1155Tips,
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(referenceSeaport, inputs, tokenAmt, 0, numTips)
         );
         test(
             this.fulfillOrderEthToErc1155WithErc1155Tips,
@@ -469,7 +469,7 @@ contract FulfillOrderTest is BaseOrderTest {
     ) public validateInputs(inputs) onlyPayable(inputs.zone) {
         test(
             this.fulfillOrderEthToErc721WithErc20Tips,
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceSeaport, inputs, 0, 0, 0)
         );
         test(
             this.fulfillOrderEthToErc721WithErc20Tips,
@@ -489,7 +489,7 @@ contract FulfillOrderTest is BaseOrderTest {
         vm.assume(tokenAmt > 0);
         test(
             this.fulfillOrderEthToErc1155WithErc20Tips,
-            Context(referenceConsideration, inputs, tokenAmt, 0, numTips)
+            Context(referenceSeaport, inputs, tokenAmt, 0, numTips)
         );
         test(
             this.fulfillOrderEthToErc1155WithErc20Tips,
@@ -502,7 +502,7 @@ contract FulfillOrderTest is BaseOrderTest {
     ) public validateInputs(inputs) onlyPayable(inputs.zone) {
         test(
             this.fulfillOrderEthToErc721FullRestricted,
-            Context(referenceConsideration, inputs, 0, 0, 0)
+            Context(referenceSeaport, inputs, 0, 0, 0)
         );
         test(
             this.fulfillOrderEthToErc721FullRestricted,

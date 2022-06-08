@@ -106,7 +106,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         vm.assume(args.amount > 0);
         test(
             this.matchAdvancedOrdersWithEmptyCriteriaEthToErc721,
-            Context(referenceConsideration, args, ItemType(0))
+            Context(referenceSeaport, args, ItemType(0))
         );
         test(
             this.matchAdvancedOrdersWithEmptyCriteriaEthToErc721,
@@ -125,7 +125,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
         test(
             this.matchOrdersAscendingDescendingOfferAmountPartialFill,
-            ContextAscendingDescending(referenceConsideration, args)
+            ContextAscendingDescending(referenceSeaport, args)
         );
     }
 
@@ -140,7 +140,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
         test(
             this.matchOrdersAscendingDescendingConsiderationAmountPartialFill,
-            ContextAscendingDescending(referenceConsideration, args)
+            ContextAscendingDescending(referenceSeaport, args)
         );
     }
 

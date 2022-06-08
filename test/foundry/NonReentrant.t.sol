@@ -59,10 +59,7 @@ contract NonReentrantTest is BaseOrderTest {
                     EntryPoint(i),
                     ReentryPoint(j)
                 );
-                test(
-                    this.nonReentrant,
-                    Context(referenceConsideration, inputs)
-                );
+                test(this.nonReentrant, Context(referenceSeaport, inputs));
                 test(this.nonReentrant, Context(consideration, inputs));
             }
         }

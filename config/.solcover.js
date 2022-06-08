@@ -14,7 +14,7 @@ module.exports = {
     "lib/ConsiderationConstants.sol",
     "lib/ConsiderationEnums.sol",
     "lib/ConsiderationStructs.sol",
-    "reference/ReferenceConsideration.sol",
+    "reference/ReferenceSeaport.sol",
     "reference/conduit/ReferenceConduit.sol",
     "reference/conduit/ReferenceConduitController.sol",
     "reference/lib/ReferenceConsiderationBase.sol",

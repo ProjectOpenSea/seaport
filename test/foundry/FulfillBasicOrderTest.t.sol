@@ -68,7 +68,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         _configureBasicOrderParametersEthTo721(inputs);
 
         test(this.basicEthTo721, Context(consideration, inputs, 0));
-        test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
+        test(this.basicEthTo721, Context(referenceSeaport, inputs, 0));
     }
 
     function testBasicErc20To721(FuzzInputsCommon memory inputs)
@@ -80,7 +80,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         _configureBasicOrderParametersErc20To721(inputs);
 
         test(this.basicErc20To721, Context(consideration, inputs, 0));
-        test(this.basicErc20To721, Context(referenceConsideration, inputs, 0));
+        test(this.basicErc20To721, Context(referenceSeaport, inputs, 0));
     }
 
     function testBasicEthTo1155(
@@ -97,7 +97,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         test(this.basicEthTo1155, Context(consideration, inputs, tokenAmount));
         test(
             this.basicEthTo1155,
-            Context(referenceConsideration, inputs, tokenAmount)
+            Context(referenceSeaport, inputs, tokenAmount)
         );
     }
 
@@ -118,7 +118,7 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         );
         test(
             this.basicErc20To1155,
-            Context(referenceConsideration, inputs, tokenAmount)
+            Context(referenceSeaport, inputs, tokenAmount)
         );
     }
 

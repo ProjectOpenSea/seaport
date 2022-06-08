@@ -69,7 +69,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
             );
             test(
                 this.fulfillAvailableOrdersOverflowOfferSide,
-                Context(referenceConsideration, empty, ItemType(i))
+                Context(referenceSeaport, empty, ItemType(i))
             );
         }
     }
@@ -86,7 +86,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
             );
             test(
                 this.fulfillAvailableOrdersOverflowConsiderationSide,
-                Context(referenceConsideration, empty, ItemType(i))
+                Context(referenceSeaport, empty, ItemType(i))
             );
         }
     }
@@ -96,7 +96,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
     ) public validateInputs(args) onlyPayable(args.zone) {
         test(
             this.singleOrderViaFulfillAvailableOrdersEthToSingleErc721,
-            Context(referenceConsideration, args, ItemType(0))
+            Context(referenceSeaport, args, ItemType(0))
         );
         test(
             this.singleOrderViaFulfillAvailableOrdersEthToSingleErc721,
@@ -120,7 +120,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         test(
             this
                 .fulfillAndAggregateTwoOrdersViaFulfillAvailableOrdersEthToErc1155,
-            Context(referenceConsideration, args, ItemType(0))
+            Context(referenceSeaport, args, ItemType(0))
         );
         test(
             this

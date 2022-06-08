@@ -114,7 +114,7 @@ contract MatchOrders is BaseOrderTest {
         );
         test(
             this.matchOrdersSingleErc721OfferSingleEthConsideration,
-            Context(referenceConsideration, inputs)
+            Context(referenceSeaport, inputs)
         );
     }
 
@@ -128,7 +128,7 @@ contract MatchOrders is BaseOrderTest {
             }
             testOverflow(
                 this.matchOrdersOverflowOfferSide,
-                Context(referenceConsideration, inputs),
+                Context(referenceSeaport, inputs),
                 ItemType(i)
             );
             testOverflow(
@@ -151,7 +151,7 @@ contract MatchOrders is BaseOrderTest {
             }
             testOverflow(
                 this.matchOrdersOverflowConsiderationSide,
-                Context(referenceConsideration, inputs),
+                Context(referenceSeaport, inputs),
                 ItemType(i)
             );
             testOverflow(
@@ -190,7 +190,7 @@ contract MatchOrders is BaseOrderTest {
         _configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersAscendingOfferAmount,
-            ContextAscendingDescending(referenceConsideration, inputs)
+            ContextAscendingDescending(referenceSeaport, inputs)
         );
         testAscendingDescending(
             this.matchOrdersAscendingOfferAmount,
@@ -226,7 +226,7 @@ contract MatchOrders is BaseOrderTest {
         _configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersAscendingConsiderationAmount,
-            ContextAscendingDescending(referenceConsideration, inputs)
+            ContextAscendingDescending(referenceSeaport, inputs)
         );
         testAscendingDescending(
             this.matchOrdersAscendingConsiderationAmount,
@@ -260,7 +260,7 @@ contract MatchOrders is BaseOrderTest {
         _configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersDescendingOfferAmount,
-            ContextAscendingDescending(referenceConsideration, inputs)
+            ContextAscendingDescending(referenceSeaport, inputs)
         );
         testAscendingDescending(
             this.matchOrdersDescendingOfferAmount,
@@ -296,7 +296,7 @@ contract MatchOrders is BaseOrderTest {
         _configureOrderComponents(consideration.getCounter(alice));
         testAscendingDescending(
             this.matchOrdersDescendingConsiderationAmount,
-            ContextAscendingDescending(referenceConsideration, inputs)
+            ContextAscendingDescending(referenceSeaport, inputs)
         );
         testAscendingDescending(
             this.matchOrdersDescendingConsiderationAmount,
