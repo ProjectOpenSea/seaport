@@ -123,7 +123,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                     considerationItem.amount);
             }
 
-            // Reuse consideration amount.
+            // Reduce total offer amount to equal the consideration amount.
             execution.item.amount = considerationItem.amount;
         }
 
