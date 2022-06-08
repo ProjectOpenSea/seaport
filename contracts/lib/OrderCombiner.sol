@@ -179,20 +179,23 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         assembly {
             mstore(orderHashes, 0)
         }
-        bool nonMatchFn;
-        bool anyNativeOfferItems;
+        // Declare an error buffer indicating the status of any native offer items.
+        uint256 invalidNativeOfferItemErrorBuffer;
         assembly {
-            // Add a boolean to the stack indicating if we are in a function
-            // that is not matchAdvancedOrders or matchOrders.
-            nonMatchFn := gt(
-                // Take the remainder of the selector modulo a magic value.
-                mod(
-                    shr(NumBitsAfterSelector, calldataload(0)),
-                    NonMatchSelector_MagicModulus
-                ),
-                // Check if the remainder is higher than the greatest remainder
-                // of the two match selectors modulo the magic value.
-                NonMatchSelector_MagicRemainder
+            // Sets the second bit of the error buffer to a boolean indicating if we
+            //  are in a function that is not matchAdvancedOrders or matchOrders.
+            invalidNativeOfferItemErrorBuffer := shl(
+              1,
+              gt(
+                    // Take the remainder of the selector modulo a magic value.
+                    mod(
+                        shr(NumBitsAfterSelector, calldataload(0)),
+                        NonMatchSelector_MagicModulus
+                    ),
+                    // Check if the remainder is higher than the greatest remainder
+                    // of the two match selectors modulo the magic value.
+                    NonMatchSelector_MagicRemainder
+                )
             )
         }
         // Skip overflow checks as all for loops are indexed starting at zero.
@@ -283,10 +286,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                     OfferItem memory offerItem = offer[j];
 
                     assembly {
-                        // If the offer item is for the native token and we are not
-                        // in a match function, it is invalid.
-                        anyNativeOfferItems := or(
-                            anyNativeOfferItems,
+                        // If the offer item is for the native token, set the first bit
+                        // of the error buffer to true.
+                        invalidNativeOfferItemErrorBuffer := or(
+                            invalidNativeOfferItemErrorBuffer,
                             iszero(mload(offerItem))
                         )
                     }
@@ -400,7 +403,10 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             }
         }
 
-        if (anyNativeOfferItems && nonMatchFn) {
+        // If the second bit is set in the error buffer, we are not in a match function.
+        // If the first bit is set, a native offer item was encountered.
+        // If the value is greater than two, both the first and second bits were set.
+        if (invalidNativeOfferItemErrorBuffer > 2) {
             revert InvalidNativeOfferItem();
         }
 
