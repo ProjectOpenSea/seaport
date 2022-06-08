@@ -8,7 +8,6 @@ pragma solidity >=0.8.7;
  *         verification.
  */
 interface SignatureVerificationErrors {
-
     /**
      * @dev Revert with an error when the signer recovered by the supplied
      *      signature does not match the offerer or an allowed EIP-1271 signer
