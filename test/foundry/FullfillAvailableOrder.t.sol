@@ -199,7 +199,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         orders[0] = Order(orderParameters, signature);
         orders[1] = Order(secondOrderParameters, secondSignature);
 
-        // agregate offers together
+        // aggregate offers together
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
@@ -296,7 +296,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        // agregate considerations together
+        // aggregate considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);

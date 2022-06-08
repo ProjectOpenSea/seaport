@@ -267,7 +267,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        // agregate eth considerations together
+        // aggregate eth considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
@@ -374,7 +374,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        // agregate eth considerations together
+        // aggregate eth considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponents.push(FulfillmentComponent(1, 1));

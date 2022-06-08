@@ -214,7 +214,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("A single ERC721 is to be transferred", async () => {
-      describe("[Buy now] User fullfills a sell order for a single ERC721", async () => {
+      describe("[Buy now] User fulfills a sell order for a single ERC721", async () => {
         it("ERC721 <=> ETH (standard)", async () => {
           const nftId = await mintAndApprove721(
             seller,
@@ -2434,7 +2434,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("A single ERC1155 is to be transferred", async () => {
-      describe("[Buy now] User fullfills a sell order for a single ERC1155", async () => {
+      describe("[Buy now] User fulfills a sell order for a single ERC1155", async () => {
         it("ERC1155 <=> ETH (standard)", async () => {
           // Seller mints nft
           const { nftId, amount } = await mintAndApprove1155(
@@ -6812,7 +6812,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             true
           );
 
-          // TODO: inlcude balance checks on the duplicate ERC20 transfers
+          // TODO: include balance checks on the duplicate ERC20 transfers
 
           return receipt;
         });

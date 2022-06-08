@@ -77,7 +77,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                                  is contained in the merkle root held by
      *                                  the item in question's criteria element.
      *                                  Note that an empty criteria indicates
-     *                                  that any (transferrable) token
+     *                                  that any (transferable) token
      *                                  identifier on the token in question is
      *                                  valid and that no associated proof needs
      *                                  to be supplied.
@@ -150,7 +150,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
      *                          contained in the order's merkle root. Note that
-     *                          a root of zero indicates that any transferrable
+     *                          a root of zero indicates that any transferable
      *                          token identifier is valid and that no proof
      *                          needs to be supplied.
      * @param revertOnInvalid   A boolean indicating whether to revert on any
@@ -704,7 +704,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
      *                          contained in the order's merkle root. Note that
-     *                          an empty root indicates that any (transferrable)
+     *                          an empty root indicates that any (transferable)
      *                          token identifier is valid and that no associated
      *                          proof needs to be supplied.
      * @param fulfillments      An array of elements allocating offer components
