@@ -185,8 +185,8 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
             // Sets the second bit of the error buffer to a boolean indicating if we
             // are in a function that is not matchAdvancedOrders or matchOrders.
             invalidNativeOfferItemErrorBuffer := shl(
-              1,
-              gt(
+                1,
+                gt(
                     // Take the remainder of the selector modulo a magic value.
                     mod(
                         shr(NumBitsAfterSelector, calldataload(0)),
