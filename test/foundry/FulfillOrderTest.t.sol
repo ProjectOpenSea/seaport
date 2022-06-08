@@ -548,10 +548,10 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         );
 
         if (overwriteConsiderationItemsLength) {
-            // Get the additional recipients length from the calldata and
+            // Get the consideration items length from the calldata and
             // store the length - amountToSubtractFromConsiderationItemsLength in the calldata
             // so that the length value does _not_ accurately represent the actual
-            // total recipients length.
+            // total consideration items length.
             assembly {
                 let considerationLengthOffset := add(fulfillOrderCalldata, 0x60)
                 let additionalRecipientsLength := mload(
