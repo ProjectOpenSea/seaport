@@ -142,7 +142,7 @@ contract AmountDeriver is AmountDerivationErrors {
         uint256 numerator,
         uint256 denominator,
         uint256 elapsed,
-        uint256 remaining,
+        // uint256 remaining,
         uint256 duration,
         bool roundUp
     ) internal pure returns (uint256 amount) {
@@ -156,7 +156,8 @@ contract AmountDeriver is AmountDerivationErrors {
                 _getFraction(numerator, denominator, startAmount),
                 _getFraction(numerator, denominator, endAmount),
                 elapsed,
-                remaining,
+                // remaining,
+                duration - elapsed,
                 duration,
                 roundUp
             );
