@@ -13,15 +13,7 @@ import {
     ConduitBatch1155Transfer
 } from "./lib/ConduitStructs.sol";
 
-import {
-  ChannelKey_channel_ptr,
-  ChannelKey_slot_ptr,
-  ChannelKey_length,
-  ChannelClosed_error_ptr,
-  ChannelClosed_channel_ptr,
-  ChannelClosed_error_signature,
-  ChannelClosed_error_length
-} from "./lib/ConduitConstants.sol";
+import { ChannelKey_channel_ptr, ChannelKey_slot_ptr, ChannelKey_length, ChannelClosed_error_ptr, ChannelClosed_channel_ptr, ChannelClosed_error_signature, ChannelClosed_error_length } from "./lib/ConduitConstants.sol";
 
 /**
  * @title Conduit
@@ -64,11 +56,11 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             if iszero(
                 sload(keccak256(ChannelKey_channel_ptr, ChannelKey_length))
             ) {
-              // The caller is not an open channel;
-              // revert with ChannelClosed(msg.sender)
-              mstore(ChannelClosed_error_ptr, ChannelClosed_error_signature)
-              mstore(ChannelClosed_channel_ptr, caller())
-              revert(ChannelClosed_error_ptr, ChannelClosed_error_length)
+                // The caller is not an open channel;
+                // revert with ChannelClosed(msg.sender)
+                mstore(ChannelClosed_error_ptr, ChannelClosed_error_signature)
+                mstore(ChannelClosed_channel_ptr, caller())
+                revert(ChannelClosed_error_ptr, ChannelClosed_error_length)
             }
         }
         _;
