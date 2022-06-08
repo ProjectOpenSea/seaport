@@ -802,4 +802,177 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         }
         vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
     }
+
+    function testPartialFulfillEthTo1155NumeratorSetToZero() public {
+        test(
+            this.partialFulfillEthTo1155NumeratorSetToZero,
+            Context(consideration, empty, 0, 0)
+        );
+        test(
+            this.partialFulfillEthTo1155NumeratorSetToZero,
+            Context(referenceConsideration, empty, 0, 0)
+        );
+    }
+
+    function partialFulfillEthTo1155NumeratorSetToZero(Context memory context)
+        external
+        stateless
+    {
+        // mint 100 tokens
+        test1155_1.mint(alice, 1, 100);
+
+        _configureERC1155OfferItem(1, 100);
+        _configureEthConsiderationItem(alice, 100);
+
+        _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+        baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
+        OrderComponents memory orderComponents = getOrderComponents(
+            baseOrderParameters,
+            context.consideration.getCounter(alice)
+        );
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertFalse(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 0);
+            assertEq(totalSize, 0);
+        }
+
+        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
+        // Call fulfillAdvancedOrder with an order with a numerator of 0.
+        context.consideration.fulfillAdvancedOrder{ value: 50 }(
+            AdvancedOrder(baseOrderParameters, 0, 2, signature, ""),
+            new CriteriaResolver[](0),
+            bytes32(0),
+            address(0)
+        );
+    }
+
+    function testPartialFulfillEthTo1155DenominatorSetToZero() public {
+        test(
+            this.partialFulfillEthTo1155DenominatorSetToZero,
+            Context(consideration, empty, 0, 0)
+        );
+        test(
+            this.partialFulfillEthTo1155DenominatorSetToZero,
+            Context(referenceConsideration, empty, 0, 0)
+        );
+    }
+
+    function partialFulfillEthTo1155DenominatorSetToZero(Context memory context)
+        external
+        stateless
+    {
+        // mint 100 tokens
+        test1155_1.mint(alice, 1, 100);
+
+        _configureERC1155OfferItem(1, 100);
+        _configureEthConsiderationItem(alice, 100);
+
+        _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+        baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
+        OrderComponents memory orderComponents = getOrderComponents(
+            baseOrderParameters,
+            context.consideration.getCounter(alice)
+        );
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertFalse(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 0);
+            assertEq(totalSize, 0);
+        }
+
+        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
+        // Call fulfillAdvancedOrder with an order with a denominator of 0.
+        context.consideration.fulfillAdvancedOrder{ value: 50 }(
+            AdvancedOrder(baseOrderParameters, 1, 0, signature, ""),
+            new CriteriaResolver[](0),
+            bytes32(0),
+            address(0)
+        );
+    }
+
+    function testpartialFulfillEthTo1155NumeratorDenominatorSetToZero() public {
+        test(
+            this.partialFulfillEthTo1155NumeratorDenominatorSetToZero,
+            Context(consideration, empty, 0, 0)
+        );
+        test(
+            this.partialFulfillEthTo1155NumeratorDenominatorSetToZero,
+            Context(referenceConsideration, empty, 0, 0)
+        );
+    }
+
+    function partialFulfillEthTo1155NumeratorDenominatorSetToZero(
+        Context memory context
+    ) external stateless {
+        // mint 100 tokens
+        test1155_1.mint(alice, 1, 100);
+
+        _configureERC1155OfferItem(1, 100);
+        _configureEthConsiderationItem(alice, 100);
+
+        _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+        baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
+        OrderComponents memory orderComponents = getOrderComponents(
+            baseOrderParameters,
+            context.consideration.getCounter(alice)
+        );
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertFalse(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 0);
+            assertEq(totalSize, 0);
+        }
+
+        vm.expectRevert(abi.encodeWithSignature("BadFraction()"));
+        // Call fulfillAdvancedOrder with an order with a numerator and denominator of 0.
+        context.consideration.fulfillAdvancedOrder{ value: 50 }(
+            AdvancedOrder(baseOrderParameters, 0, 0, signature, ""),
+            new CriteriaResolver[](0),
+            bytes32(0),
+            address(0)
+        );
+    }
 }
