@@ -156,9 +156,6 @@ contract BasicOrderFulfiller is OrderValidator {
             offeredItemType
         );
 
-        // Read offerer from calldata and place on the stack.
-        address payable offerer = parameters.offerer;
-
         // Declare conduitKey argument used by transfer functions.
         bytes32 conduitKey;
 
@@ -183,7 +180,7 @@ contract BasicOrderFulfiller is OrderValidator {
             _transferIndividual721Or1155Item(
                 offeredItemType,
                 parameters.offerToken,
-                offerer,
+                parameters.offerer,
                 msg.sender,
                 parameters.offerIdentifier,
                 parameters.offerAmount,
@@ -193,7 +190,7 @@ contract BasicOrderFulfiller is OrderValidator {
             // Transfer native to recipients, return excess to caller & wrap up.
             _transferEthAndFinalize(
                 parameters.considerationAmount,
-                offerer,
+                parameters.offerer,
                 parameters.additionalRecipients
             );
         } else {
@@ -208,7 +205,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 // Transfer ERC721 to caller using offerer's conduit preference.
                 _transferERC721(
                     parameters.offerToken,
-                    offerer,
+                    parameters.offerer,
                     msg.sender,
                     parameters.offerIdentifier,
                     parameters.offerAmount,
@@ -219,7 +216,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 // Transfer ERC1155 to caller with offerer's conduit preference.
                 _transferERC1155(
                     parameters.offerToken,
-                    offerer,
+                    parameters.offerer,
                     msg.sender,
                     parameters.offerIdentifier,
                     parameters.offerAmount,
@@ -231,7 +228,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 _transferERC721(
                     parameters.considerationToken,
                     msg.sender,
-                    offerer,
+                    parameters.offerer,
                     parameters.considerationIdentifier,
                     parameters.considerationAmount,
                     conduitKey,
@@ -244,7 +241,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 _transferERC1155(
                     parameters.considerationToken,
                     msg.sender,
-                    offerer,
+                    parameters.offerer,
                     parameters.considerationIdentifier,
                     parameters.considerationAmount,
                     conduitKey,
@@ -254,7 +251,7 @@ contract BasicOrderFulfiller is OrderValidator {
 
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
-                offerer,
+                parameters.offerer,
                 parameters,
                 offerTypeIsAdditionalRecipientsType,
                 accumulator
