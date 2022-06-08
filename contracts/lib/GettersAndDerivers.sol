@@ -130,7 +130,7 @@ contract GettersAndDerivers is ConsiderationBase {
                 OneWord
             )
 
-            // Iterate over the offer items (not including tips).
+            // Iterate over the consideration items (not including tips).
             // prettier-ignore
             for { let i := 0 } lt(i, originalConsiderationLength) {
                 i := add(i, 1)
