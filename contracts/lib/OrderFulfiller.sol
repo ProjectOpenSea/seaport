@@ -157,6 +157,7 @@ contract OrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal {
+        // Read start time & end time from order parameters and place on stack.
         uint256 startTime = orderParameters.startTime;
         uint256 endTime = orderParameters.endTime;
 
