@@ -11,7 +11,7 @@ import { FractionData } from "./ReferenceConsiderationStructs.sol";
 /**
  * @title AmountDeriver
  * @author 0age
- * @notice AmountDeriver contains pure functions related to deriving item
+ * @notice AmountDeriver contains view and pure functions related to deriving item
  *         amounts based on partial fill quantity and on linear interpolation
  *         based on current time when the start amount and end amount differ.
  */

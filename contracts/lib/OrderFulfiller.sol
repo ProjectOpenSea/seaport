@@ -157,6 +157,9 @@ contract OrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal {
+        uint256 startTime = orderParameters.startTime;
+        uint256 endTime = orderParameters.endTime;
+
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
 
@@ -219,8 +222,8 @@ contract OrderFulfiller is
                         offerItem.endAmount,
                         numerator,
                         denominator,
-                        orderParameters.startTime,
-                        orderParameters.endTime,
+                        startTime,
+                        endTime,
                         false
                     );
 
@@ -307,8 +310,8 @@ contract OrderFulfiller is
                     considerationItem.endAmount,
                     numerator,
                     denominator,
-                    orderParameters.startTime,
-                    orderParameters.endTime,
+                    startTime,
+                    endTime,
                     true
                 );
 

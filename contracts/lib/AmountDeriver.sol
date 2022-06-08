@@ -11,7 +11,7 @@ import "./ConsiderationConstants.sol";
 /**
  * @title AmountDeriver
  * @author 0age
- * @notice AmountDeriver contains pure functions related to deriving item
+ * @notice AmountDeriver contains view and pure functions related to deriving item
  *         amounts based on partial fill quantity and on linear interpolation
  *         based on current time when the start amount and end amount differ.
  */
@@ -21,6 +21,10 @@ contract AmountDeriver is AmountDerivationErrors {
      *      based on the current price, the starting price, and the ending
      *      price. If the start and end prices differ, the current price will be
      *      interpolated on a linear basis.
+     *      Note that this function expects that startTime is lower than the current
+     *      block timestamp and endTime is greater than the current block timestamp.
+     *      If this condition is not upheld, the duration/elapsed/remaining variables
+     *      will underflow.
      *
      * @param startAmount The starting amount of the item.
      * @param endAmount   The ending amount of the item.
@@ -42,20 +46,19 @@ contract AmountDeriver is AmountDerivationErrors {
         if (startAmount != endAmount) {
             // Leave extra amount to add for rounding at zero (i.e. round down).
             uint256 extraCeiling = 0;
+            uint256 duration;
+            uint256 elapsed;
+            uint256 remaining;
 
-            // Derive the duration for the order and place it on the stack.
-            uint256 duration = endTime - startTime;
+            unchecked {
+                // Derive duration, elapsed and remaining time for the order
+                duration = endTime - startTime;
+                elapsed = block.timestamp - startTime;
+                remaining = duration - elapsed;
 
-            // Derive time elapsed since the order started & place on stack.
-            uint256 elapsed = block.timestamp - startTime;
-
-            // Derive time remaining until order expires and place on stack.
-            uint256 remaining = duration - elapsed;
-
-            // If rounding up, set rounding factor to one less than denominator.
-            if (roundUp) {
-                // Skip underflow check: duration cannot be zero.
-                unchecked {
+                // If rounding up, set rounding factor to one less than denominator.
+                if (roundUp) {
+                    // Skip underflow check: duration cannot be zero.
                     extraCeiling = duration - 1;
                 }
             }
