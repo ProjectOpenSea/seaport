@@ -25,7 +25,6 @@ contract AmountDeriver is AmountDerivationErrors {
      * @param startAmount The starting amount of the item.
      * @param endAmount   The ending amount of the item.
      * @param elapsed     The time elapsed since the order's start time.
-     * @param remaining   The time left until the order's end time.
      * @param duration    The total duration of the order.
      * @param roundUp     A boolean indicating whether the resultant amount
      *                    should be rounded up or down.
@@ -36,7 +35,6 @@ contract AmountDeriver is AmountDerivationErrors {
         uint256 startAmount,
         uint256 endAmount,
         uint256 elapsed,
-        uint256 remaining,
         uint256 duration,
         bool roundUp
     ) internal pure returns (uint256) {
@@ -52,6 +50,9 @@ contract AmountDeriver is AmountDerivationErrors {
                     extraCeiling = duration - 1;
                 }
             }
+
+            // Derive time remaining until order expires
+            uint256 remaining = duration - elapsed;
 
             // Aggregate new amounts weighted by time with rounding factor.
             // prettier-ignore
@@ -129,7 +130,6 @@ contract AmountDeriver is AmountDerivationErrors {
      *                        should be filled.
      * @param denominator     A value indicating the total size of the order.
      * @param elapsed         The time elapsed since the order's start time.
-     * @param remaining       The time left until the order's end time.
      * @param duration        The total duration of the order.
      * @param roundUp         A boolean indicating whether the resultant
      *                        amount should be rounded up or down.
@@ -142,7 +142,6 @@ contract AmountDeriver is AmountDerivationErrors {
         uint256 numerator,
         uint256 denominator,
         uint256 elapsed,
-        // uint256 remaining,
         uint256 duration,
         bool roundUp
     ) internal pure returns (uint256 amount) {
@@ -156,8 +155,6 @@ contract AmountDeriver is AmountDerivationErrors {
                 _getFraction(numerator, denominator, startAmount),
                 _getFraction(numerator, denominator, endAmount),
                 elapsed,
-                // remaining,
-                duration - elapsed,
                 duration,
                 roundUp
             );

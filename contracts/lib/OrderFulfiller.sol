@@ -160,7 +160,6 @@ contract OrderFulfiller is
         // Derive order duration, time elapsed, and time remaining.
         uint256 duration = orderParameters.endTime - orderParameters.startTime;
         uint256 elapsed = block.timestamp - orderParameters.startTime;
-        uint256 remaining = duration - elapsed;
 
         // Put ether value supplied by the caller on the stack.
         uint256 etherRemaining = msg.value;
@@ -225,7 +224,6 @@ contract OrderFulfiller is
                         numerator,
                         denominator,
                         elapsed,
-                        remaining,
                         duration,
                         false
                     );
@@ -314,7 +312,6 @@ contract OrderFulfiller is
                     numerator,
                     denominator,
                     elapsed,
-                    remaining,
                     duration,
                     true
                 );

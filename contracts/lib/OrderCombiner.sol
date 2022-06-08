@@ -242,9 +242,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                 // Derive time elapsed since the order started & place on stack.
                 uint256 elapsed = block.timestamp - startTime;
 
-                // Derive time remaining until order expires and place on stack.
-                uint256 remaining = duration - elapsed;
-
                 // Retrieve array of offer items for the order in question.
                 OfferItem[] memory offer = advancedOrder.parameters.offer;
 
@@ -284,7 +281,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                         offerItem.startAmount,
                         offerItem.endAmount,
                         elapsed,
-                        remaining,
                         duration,
                         false // round down
                     );
@@ -337,7 +333,6 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
                             considerationItem.startAmount,
                             considerationItem.endAmount,
                             elapsed,
-                            remaining,
                             duration,
                             true // round up
                         )
