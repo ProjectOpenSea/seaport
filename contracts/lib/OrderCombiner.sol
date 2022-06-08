@@ -182,7 +182,7 @@ contract OrderCombiner is OrderFulfiller, FulfillmentApplier {
         // Declare an error buffer indicating the status of any native offer items.
         uint256 invalidNativeOfferItemErrorBuffer;
         assembly {
-            // Sets the second bit of the error buffer to a boolean indicating if we
+            // Use the second bit of the error buffer to indicate whether we
             // are in a function that is not matchAdvancedOrders or matchOrders.
             invalidNativeOfferItemErrorBuffer := shl(
                 1,
