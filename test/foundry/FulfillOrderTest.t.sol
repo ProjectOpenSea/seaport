@@ -513,10 +513,10 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
     }
 
     function testFulfillOrderRevertInvalidAdditionalRecipientsLength(
-        uint256 fuzzTotalRecipients,
+        uint256 fuzzTotalConsiderationItems,
         uint256 fuzzAmountToSubtractFromConsiderationItemsLength
     ) public {
-        uint256 totalConsiderationItems = fuzzTotalRecipients % 200;
+        uint256 totalConsiderationItems = fuzzTotalConsiderationItems % 200;
         // Set amount to subtract from consideration item length
         // to be at most totalConsiderationItems.
         uint256 amountToSubtractFromConsiderationItemsLength = totalConsiderationItems >
