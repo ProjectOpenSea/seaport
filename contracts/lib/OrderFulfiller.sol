@@ -162,9 +162,6 @@ contract OrderFulfiller is
         uint256 elapsed = block.timestamp - orderParameters.startTime;
         uint256 remaining = duration - elapsed;
 
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
-
         // Initialize an accumulator array. From this point forward, no new
         // memory regions can be safely allocated until the accumulator is no
         // longer being utilized, as the accumulator operates in an open-ended
@@ -248,17 +245,6 @@ contract OrderFulfiller is
                             recipient
                         )
                     }
-
-                    // Reduce available value if offer spent native tokens.
-                    if (offerItem.itemType == ItemType.NATIVE) {
-                        // Ensure sufficient native tokens are still available.
-                        if (amount > etherRemaining) {
-                            revert InsufficientEtherSupplied();
-                        }
-
-                        // Skip underflow check: comparison has just been made.
-                        etherRemaining -= amount;
-                    }
                 }
 
                 // Transfer the item from the offerer to the recipient.
@@ -270,6 +256,9 @@ contract OrderFulfiller is
                 );
             }
         }
+
+        // Put ether value supplied by the caller on the stack.
+        uint256 etherRemaining = msg.value;
 
         /**
          * Repurpose existing ConsiderationItem memory regions on the
