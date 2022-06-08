@@ -89,8 +89,13 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     mstore(0, BadSignatureV_error_signature)
                     mstore(BadSignatureV_error_offset, v)
                 }
-                
-                _assertValidEIP1271Signature(signer, digest, BadSignatureV_error_length, signature);
+
+                _assertValidEIP1271Signature(
+                    signer,
+                    digest,
+                    BadSignatureV_error_length,
+                    signature
+                );
             }
         } else {
             // For all other signature lengths, try verification via EIP-1271.
@@ -111,7 +116,12 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 mstore(0, InvalidSignature_error_signature)
             }
 
-            _assertValidEIP1271Signature(signer, digest, InvalidSignature_error_length, signature);
+            _assertValidEIP1271Signature(
+                signer,
+                digest,
+                InvalidSignature_error_length,
+                signature
+            );
             // Should a signer be recovered, but it doesn't match the signer...
         } else if (recoveredSigner != signer) {
             // Attempt EIP-1271 static call to signer in case it's a contract.

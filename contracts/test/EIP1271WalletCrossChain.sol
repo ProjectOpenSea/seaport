@@ -27,7 +27,7 @@ contract EIP1271WalletCrossChain {
     // Chain ID where the transaction has been started.
     uint256 sourceChainId = 1;
 
-    // Hash that used 
+    // Hash that used
     bytes32 gatewayHash = bytes32(uint256(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF));
 
     // Version of gateway implementation
@@ -54,7 +54,6 @@ contract EIP1271WalletCrossChain {
         bytes memory payload
     ) internal {
         // From Axelar source code: https://github.com/axelarnetwork/axelar-cgp-solidity/blob/main/contracts/interfaces/IAxelarExecutable.sol
-
         // bytes32 payloadHash = keccak256(payload);
         // if (!gateway.validateContractCall(commandId, sourceChain, sourceAddress, payloadHash))
         //     revert NotApprovedByGateway();
@@ -67,19 +66,26 @@ contract EIP1271WalletCrossChain {
         string calldata sourceAddress,
         bytes memory payload
     ) external {
-        _validateWithCrossChainGateway(commandId, sourceChain, sourceAddress, payload);
-        
+        _validateWithCrossChainGateway(
+            commandId,
+            sourceChain,
+            sourceAddress,
+            payload
+        );
+
         bytes32 digest;
         assembly {
             digest := mload(add(payload, 0x20))
         }
-        
-        bytes32 approvedHash = keccak256(abi.encodePacked(commandId, sourceChain, sourceAddress, payload));
+
+        bytes32 approvedHash = keccak256(
+            abi.encodePacked(commandId, sourceChain, sourceAddress, payload)
+        );
 
         digestApproved[digest] = approvedHash;
         commandIdApproved[commandId] = approvedHash;
 
-        // Note: Map commandId -> signer here.
+        // Note: Map commandId -> seller here.
     }
 
     function approveERC20(
@@ -122,7 +128,12 @@ contract EIP1271WalletCrossChain {
         }
 
         require(!commandIdRefunded[commandId], "Already refunded");
-        require(commandIdApproved[commandId] == approvedHash && digestApproved[digest] == approvedHash && v == gatewayVersion, "Invalid signature");
+        require(
+            commandIdApproved[commandId] == approvedHash &&
+                digestApproved[digest] == approvedHash &&
+                v == gatewayVersion,
+            "Invalid signature"
+        );
 
         return isValid ? _EIP_1271_MAGIC_VALUE : bytes4(0xffffffff);
     }
