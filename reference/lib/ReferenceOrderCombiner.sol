@@ -81,10 +81,11 @@ contract ReferenceOrderCombiner is
      *                                  considered valid.
      *
      * @param ordersToExecute           The orders to execute.  This is an
-     *                                  explicit version of advancedOrders without
-     *                                  memory optimization, that provides
-     *                                  an array of spentItems and receivedItems
-     *                                  for fulfillment and event emission.
+     *                                  explicit version of advancedOrders
+     *                                  without memory optimization, that
+     *                                  provides an array of spentItems and
+     *                                  receivedItems for fulfillment and
+     *                                  event emission.
      *
      * @param criteriaResolvers         An array where each element contains a
      *                                  reference to a specific offer or
@@ -113,12 +114,13 @@ contract ReferenceOrderCombiner is
      *                                  items.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders          An array of booleans indicating if each order
-     *                                  with an index corresponding to the index of the
-     *                                  returned boolean was fulfillable or not.
-     * @return executions               An array of elements indicating the sequence of
-     *                                  transfers performed as part of matching the given
-     *                                  orders.
+     * @return availableOrders          An array of booleans indicating if each
+     *                                  order with an index corresponding to the
+     *                                  index of the returned boolean was
+     *                                  fulfillable or not.
+     * @return executions               An array of elements indicating the
+     *                                  sequence of transfers performed as part
+     *                                  of matching the given orders.
      */
     function _fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -372,7 +374,8 @@ contract ReferenceOrderCombiner is
             // Get the array of spentItems from the orderToExecute struct.
             SpentItem[] memory spentItems = ordersToExecute[i].spentItems;
 
-            // Get the array of spent receivedItems from the orderToExecute struct.
+            // Get the array of spent receivedItems from the
+            // orderToExecute struct.
             ReceivedItem[] memory receivedItems = ordersToExecute[i]
                 .receivedItems;
 
@@ -401,14 +404,15 @@ contract ReferenceOrderCombiner is
      *      order formatting will cause the entire batch to fail.
      *
      * @param ordersToExecute           The orders to execute.  This is an
-     *                                  explicit version of advancedOrders without
-     *                                  memory optimization, that provides
-     *                                  an array of spentItems and receivedItems
-     *                                  for fulfillment and event emission.
+     *                                  explicit version of advancedOrders
+     *                                  without memory optimization, that
+     *                                  provides an array of spentItems and
+     *                                  receivedItems for fulfillment and
+     *                                  event emission.
      *                                  Note that both the offerer and the
      *                                  fulfiller must first approve this
-     *                                  contract (or the conduit if indicated by
-     *                                  the order) to transfer any relevant
+     *                                  contract (or the conduit if indicated
+     *                                  by the order) to transfer any relevant
      *                                  tokens on their behalf and that
      *                                  contracts must implement
      *                                  `onERC1155Received` in order to receive
@@ -434,12 +438,13 @@ contract ReferenceOrderCombiner is
      * @param recipient                 The intended recipient for all received
      *                                  items.
      *
-     * @return availableOrders        An array of booleans indicating if each order
-     *                                  with an index corresponding to the index of the
-     *                                  returned boolean was fulfillable or not.
-     * @return executions               An array of elements indicating the sequence of
-     *                                  transfers performed as part of matching the given
-     *                                  orders.
+     * @return availableOrders          An array of booleans indicating if each
+     *                                  order with an index corresponding to the
+     *                                  index of the returned boolean was
+     *                                  fulfillable or not.
+     * @return executions               An array of elements indicating the
+     *                                  sequence of transfers performed as part
+     *                                  of matching the given orders.
      */
     function _executeAvailableFulfillments(
         OrderToExecute[] memory ordersToExecute,
@@ -700,8 +705,8 @@ contract ReferenceOrderCombiner is
      *                          order for the match operation to be valid.
      *
      * @return executions       An array of elements indicating the sequence of
-     *                          transfers performed as part of matching the given
-     *                          orders.
+     *                          transfers performed as part of matching the
+     *                          given orders.
      */
     function _matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,

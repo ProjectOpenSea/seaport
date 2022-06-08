@@ -149,10 +149,8 @@ contract OrderValidator is Executor, ZoneInteraction {
             revert PartialFillsNotEnabledForOrder();
         }
 
-        // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
-            orderParameters
-        );
+        // Retrieve current counter & use it w/ parameters to derive order hash.
+        orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
 
         // Ensure restricted orders have a valid submitter or pass a zone check.
         _assertRestrictedAdvancedOrderValidity(
@@ -195,7 +193,8 @@ contract OrderValidator is Executor, ZoneInteraction {
         uint256 filledNumerator = orderStatus.numerator;
         uint256 filledDenominator = orderStatus.denominator;
 
-        // If order currently has a non-zero denominator it is partially filled.
+        // If order (orderStatus) currently has a non-zero denominator it is
+        // partially filled.
         if (filledDenominator != 0) {
             // If denominator of 1 supplied, fill all remaining amount on order.
             if (denominator == 1) {
@@ -333,7 +332,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                     revert InvalidCanceller();
                 }
 
-                // Derive order hash using the order parameters and the nonce.
+                // Derive order hash using the order parameters and the counter.
                 bytes32 orderHash = _deriveOrderHash(
                     OrderParameters(
                         offerer,
@@ -348,7 +347,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                         order.conduitKey,
                         order.consideration.length
                     ),
-                    order.nonce
+                    order.counter
                 );
 
                 // Update the order status as not valid and cancelled.
@@ -409,8 +408,8 @@ contract OrderValidator is Executor, ZoneInteraction {
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
 
-                // Get current nonce and use it w/ params to derive order hash.
-                orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+                // Get current counter & use it w/ params to derive order hash.
+                orderHash = _assertConsiderationLengthAndGetOrderHash(
                     orderParameters
                 );
 

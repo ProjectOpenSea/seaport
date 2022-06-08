@@ -2,12 +2,11 @@
 pragma solidity >=0.8.13;
 
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { AdditionalRecipient, Fulfillment, OfferItem, ConsiderationItem, FulfillmentComponent, OrderComponents, AdvancedOrder, BasicOrderParameters, Order } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { EntryPoint, ReentryPoint } from "./utils/reentrancy/ReentrantEnums.sol";
-import { FulfillBasicOrderParameters, FulfillOrderParameters, OrderParameters, FulfillAdvancedOrderParameters, FulfillAvailableOrdersParameters, FulfillAvailableAdvancedOrdersParameters, MatchOrdersParameters, MatchAdvancedOrdersParameters, CancelParameters, ValidateParameters, ReentrantCallParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
+import { OrderParameters, CriteriaResolver } from "./utils/reentrancy/ReentrantStructs.sol";
 
 contract NonReentrantTest is BaseOrderTest {
     BasicOrderParameters basicOrderParameters;
@@ -20,8 +19,6 @@ contract NonReentrantTest is BaseOrderTest {
     ConsiderationInterface currentConsideration;
     bool reentered;
     bool shouldReenter;
-
-    uint256 globalSalt;
 
     /**
      * @dev Foundry fuzzes enums as uints, so we need to manually fuzz on uints and use vm.assume
@@ -218,29 +215,9 @@ contract NonReentrantTest is BaseOrderTest {
             (Order memory _order, , ) = prepareOrder(tokenId);
             _orders[0] = _order;
             currentConsideration.validate(_orders);
-        } else if (reentryPoint == ReentryPoint.IncrementNonce) {
-            currentConsideration.incrementNonce();
+        } else if (reentryPoint == ReentryPoint.IncrementCounter) {
+            currentConsideration.incrementCounter();
         }
-    }
-
-    function getOrderParameters(address payable offerer, OrderType orderType)
-        internal
-        returns (OrderParameters memory)
-    {
-        return
-            OrderParameters(
-                offerer,
-                address(0),
-                offerItems,
-                considerationItems,
-                orderType,
-                block.timestamp,
-                block.timestamp + 1,
-                bytes32(0),
-                globalSalt++,
-                bytes32(0),
-                considerationItems.length
-            );
     }
 
     function prepareBasicOrder(uint256 tokenId)
@@ -270,7 +247,7 @@ contract NonReentrantTest is BaseOrderTest {
             )
         );
 
-        uint256 nonce = currentConsideration.getNonce(address(this));
+        uint256 counter = currentConsideration.getCounter(address(this));
 
         orderComponents.offerer = address(this);
         orderComponents.zone = address(1);
@@ -282,7 +259,7 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.zoneHash = bytes32(0);
         orderComponents.salt = globalSalt++;
         orderComponents.conduitKey = conduitKeyOne;
-        orderComponents.nonce = nonce;
+        orderComponents.counter = counter;
 
         bytes32 orderHash = currentConsideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
@@ -312,7 +289,7 @@ contract NonReentrantTest is BaseOrderTest {
         _configureEthConsiderationItem(payable(this), 10);
         _configureEthConsiderationItem(payable(0), 10);
         _configureEthConsiderationItem(alice, 10);
-        uint256 nonce = currentConsideration.getNonce(address(this));
+        uint256 counter = currentConsideration.getCounter(address(this));
 
         OrderParameters memory _orderParameters = getOrderParameters(
             payable(this),
@@ -320,7 +297,7 @@ contract NonReentrantTest is BaseOrderTest {
         );
         OrderComponents memory _orderComponents = toOrderComponents(
             _orderParameters,
-            nonce
+            counter
         );
 
         bytes32 orderHash = currentConsideration.getOrderHash(_orderComponents);
@@ -350,14 +327,14 @@ contract NonReentrantTest is BaseOrderTest {
         _configureEthConsiderationItem(payable(this), uint256(10));
         _configureEthConsiderationItem(payable(address(0)), uint256(10));
         _configureEthConsiderationItem(payable(address(this)), uint256(10));
-        uint256 nonce = currentConsideration.getNonce(address(this));
+        uint256 counter = currentConsideration.getCounter(address(this));
         OrderParameters memory _orderParameters = getOrderParameters(
             payable(this),
             OrderType.PARTIAL_OPEN
         );
         OrderComponents memory _orderComponents = toOrderComponents(
             _orderParameters,
-            nonce
+            counter
         );
 
         bytes32 orderHash = currentConsideration.getOrderHash(_orderComponents);
@@ -374,82 +351,6 @@ contract NonReentrantTest is BaseOrderTest {
         fulfillerConduitKey = bytes32(0);
     }
 
-    function toOrderComponents(OrderParameters memory _params, uint256 nonce)
-        internal
-        pure
-        returns (OrderComponents memory)
-    {
-        return
-            OrderComponents(
-                _params.offerer,
-                _params.zone,
-                _params.offer,
-                _params.consideration,
-                _params.orderType,
-                _params.startTime,
-                _params.endTime,
-                _params.zoneHash,
-                _params.salt,
-                _params.conduitKey,
-                nonce
-            );
-    }
-
-    function toBasicOrderParameters(
-        Order memory _order,
-        BasicOrderType basicOrderType
-    ) internal pure returns (BasicOrderParameters memory) {
-        return
-            BasicOrderParameters(
-                _order.parameters.consideration[0].token,
-                _order.parameters.consideration[0].identifierOrCriteria,
-                _order.parameters.consideration[0].endAmount,
-                payable(_order.parameters.offerer),
-                _order.parameters.zone,
-                _order.parameters.offer[0].token,
-                _order.parameters.offer[0].identifierOrCriteria,
-                _order.parameters.offer[0].endAmount,
-                basicOrderType,
-                _order.parameters.startTime,
-                _order.parameters.endTime,
-                _order.parameters.zoneHash,
-                _order.parameters.salt,
-                _order.parameters.conduitKey,
-                _order.parameters.conduitKey,
-                0,
-                new AdditionalRecipient[](0),
-                _order.signature
-            );
-    }
-
-    function toBasicOrderParameters(
-        OrderComponents memory _order,
-        BasicOrderType basicOrderType,
-        bytes memory signature
-    ) internal pure returns (BasicOrderParameters memory) {
-        return
-            BasicOrderParameters(
-                _order.consideration[0].token,
-                _order.consideration[0].identifierOrCriteria,
-                _order.consideration[0].endAmount,
-                payable(_order.offerer),
-                _order.zone,
-                _order.offer[0].token,
-                _order.offer[0].identifierOrCriteria,
-                _order.offer[0].endAmount,
-                basicOrderType,
-                _order.startTime,
-                _order.endTime,
-                _order.zoneHash,
-                _order.salt,
-                _order.conduitKey,
-                _order.conduitKey,
-                0,
-                new AdditionalRecipient[](0),
-                signature
-            );
-    }
-
     function prepareAvailableOrders(uint256 tokenId)
         internal
         returns (
@@ -463,7 +364,7 @@ contract NonReentrantTest is BaseOrderTest {
         test721_1.mint(address(this), tokenId);
         _configureERC721OfferItem(tokenId);
         _configureEthConsiderationItem(payable(address(this)), 1);
-        uint256 nonce = currentConsideration.getNonce(address(this));
+        uint256 counter = currentConsideration.getCounter(address(this));
 
         OrderParameters memory _orderParameters = getOrderParameters(
             payable(this),
@@ -471,7 +372,7 @@ contract NonReentrantTest is BaseOrderTest {
         );
         OrderComponents memory _orderComponents = toOrderComponents(
             _orderParameters,
-            nonce
+            counter
         );
         bytes32 orderHash = currentConsideration.getOrderHash(_orderComponents);
         bytes memory signature = signOrder(
@@ -529,7 +430,7 @@ contract NonReentrantTest is BaseOrderTest {
         test721_1.mint(address(this), tokenId);
         _configureERC721OfferItem(tokenId);
         _configureEthConsiderationItem(payable(address(this)), 1);
-        uint256 nonce = currentConsideration.getNonce(address(this));
+        uint256 counter = currentConsideration.getCounter(address(this));
         orderComponents.offerer = address(this);
         orderComponents.zone = address(0);
         orderComponents.offer = offerItems;
@@ -540,7 +441,7 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.zoneHash = bytes32(0);
         orderComponents.salt = globalSalt++;
         orderComponents.conduitKey = bytes32(0);
-        orderComponents.nonce = nonce;
+        orderComponents.counter = counter;
         bytes32 orderHash = currentConsideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             currentConsideration,
@@ -569,7 +470,7 @@ contract NonReentrantTest is BaseOrderTest {
         delete considerationItems;
         _configureEthOfferItem(1);
         _configureErc721ConsiderationItem(payable(this), tokenId);
-        nonce = currentConsideration.getNonce(address(bob));
+        counter = currentConsideration.getCounter(address(bob));
         orderComponents.offerer = bob;
         orderComponents.zone = address(0);
         orderComponents.offer = offerItems;
@@ -580,7 +481,7 @@ contract NonReentrantTest is BaseOrderTest {
         orderComponents.zoneHash = bytes32(0);
         orderComponents.salt = globalSalt++;
         orderComponents.conduitKey = bytes32(0);
-        orderComponents.nonce = nonce;
+        orderComponents.counter = counter;
 
         bytes32 mirrorOrderHash = currentConsideration.getOrderHash(
             orderComponents

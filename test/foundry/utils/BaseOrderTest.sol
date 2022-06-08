@@ -10,9 +10,9 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { StructCopier } from "./StructCopier.sol";
-import { ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
@@ -88,6 +88,7 @@ contract BaseOrderTest is
     AdditionalRecipient[] additionalRecipients;
 
     uint256 internal globalTokenId;
+    uint256 internal globalSalt;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -400,9 +401,9 @@ contract BaseOrderTest is
     }
 
     /**
-    @dev configures order components based on order parameters in storage and nonce param
+    @dev configures order components based on order parameters in storage and counter param
      */
-    function _configureOrderComponents(uint256 nonce) internal {
+    function _configureOrderComponents(uint256 counter) internal {
         baseOrderComponents.offerer = baseOrderParameters.offerer;
         baseOrderComponents.zone = baseOrderParameters.zone;
         baseOrderComponents.offer = baseOrderParameters.offer;
@@ -413,7 +414,7 @@ contract BaseOrderTest is
         baseOrderComponents.zoneHash = baseOrderParameters.zoneHash;
         baseOrderComponents.salt = baseOrderParameters.salt;
         baseOrderComponents.conduitKey = baseOrderParameters.conduitKey;
-        baseOrderComponents.nonce = nonce;
+        baseOrderComponents.counter = counter;
     }
 
     /**
@@ -496,11 +497,11 @@ contract BaseOrderTest is
     }
 
     /**
-     * @dev return OrderComponents for a given OrderParameters and offerer nonce
+     * @dev return OrderComponents for a given OrderParameters and offerer counter
      */
     function getOrderComponents(
         OrderParameters memory parameters,
-        uint256 nonce
+        uint256 counter
     ) internal pure returns (OrderComponents memory) {
         return
             OrderComponents(
@@ -514,7 +515,103 @@ contract BaseOrderTest is
                 parameters.zoneHash,
                 parameters.salt,
                 parameters.conduitKey,
+                counter
+            );
+    }
+
+    function getOrderParameters(address payable offerer, OrderType orderType)
+        internal
+        returns (OrderParameters memory)
+    {
+        return
+            OrderParameters(
+                offerer,
+                address(0),
+                offerItems,
+                considerationItems,
+                orderType,
+                block.timestamp,
+                block.timestamp + 1,
+                bytes32(0),
+                globalSalt++,
+                bytes32(0),
+                considerationItems.length
+            );
+    }
+
+    function toOrderComponents(OrderParameters memory _params, uint256 nonce)
+        internal
+        pure
+        returns (OrderComponents memory)
+    {
+        return
+            OrderComponents(
+                _params.offerer,
+                _params.zone,
+                _params.offer,
+                _params.consideration,
+                _params.orderType,
+                _params.startTime,
+                _params.endTime,
+                _params.zoneHash,
+                _params.salt,
+                _params.conduitKey,
                 nonce
+            );
+    }
+
+    function toBasicOrderParameters(
+        Order memory _order,
+        BasicOrderType basicOrderType
+    ) internal pure returns (BasicOrderParameters memory) {
+        return
+            BasicOrderParameters(
+                _order.parameters.consideration[0].token,
+                _order.parameters.consideration[0].identifierOrCriteria,
+                _order.parameters.consideration[0].endAmount,
+                payable(_order.parameters.offerer),
+                _order.parameters.zone,
+                _order.parameters.offer[0].token,
+                _order.parameters.offer[0].identifierOrCriteria,
+                _order.parameters.offer[0].endAmount,
+                basicOrderType,
+                _order.parameters.startTime,
+                _order.parameters.endTime,
+                _order.parameters.zoneHash,
+                _order.parameters.salt,
+                _order.parameters.conduitKey,
+                _order.parameters.conduitKey,
+                0,
+                new AdditionalRecipient[](0),
+                _order.signature
+            );
+    }
+
+    function toBasicOrderParameters(
+        OrderComponents memory _order,
+        BasicOrderType basicOrderType,
+        bytes memory signature
+    ) internal pure returns (BasicOrderParameters memory) {
+        return
+            BasicOrderParameters(
+                _order.consideration[0].token,
+                _order.consideration[0].identifierOrCriteria,
+                _order.consideration[0].endAmount,
+                payable(_order.offerer),
+                _order.zone,
+                _order.offer[0].token,
+                _order.offer[0].identifierOrCriteria,
+                _order.offer[0].endAmount,
+                basicOrderType,
+                _order.startTime,
+                _order.endTime,
+                _order.zoneHash,
+                _order.salt,
+                _order.conduitKey,
+                _order.conduitKey,
+                0,
+                new AdditionalRecipient[](0),
+                signature
             );
     }
 

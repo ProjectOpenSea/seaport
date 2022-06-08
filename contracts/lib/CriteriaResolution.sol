@@ -174,7 +174,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
                 // Retrieve the parameters for the order.
                 OrderParameters memory orderParameters = (
-                    advancedOrders[i].parameters
+                    advancedOrder.parameters
                 );
 
                 // Read consideration length from memory and place on stack.

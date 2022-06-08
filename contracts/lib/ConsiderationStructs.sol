@@ -15,7 +15,7 @@ import {
  *      the type), the order type (specifying partial fill support as well as
  *      restricted order status), the start and end time, a hash that will be
  *      provided to the zone when validating restricted orders, a salt, a key
- *      corresponding to a given conduit, a nonce, and an arbitrary number of
+ *      corresponding to a given conduit, a counter, and an arbitrary number of
  *      offer items that can be spent along with consideration items that must
  *      be received by their respective recipient.
  */
@@ -30,7 +30,7 @@ struct OrderComponents {
     bytes32 zoneHash;
     uint256 salt;
     bytes32 conduitKey;
-    uint256 nonce;
+    uint256 counter;
 }
 
 /**
@@ -65,7 +65,7 @@ struct ConsiderationItem {
 }
 
 /**
- * @dev A spent item is translated from a utilized offer item an has four
+ * @dev A spent item is translated from a utilized offer item and has four
  *      components: an item type (ETH or other native tokens, ERC20, ERC721, and
  *      ERC1155), a token address, a tokenId, and an amount.
  */
@@ -131,8 +131,8 @@ struct AdditionalRecipient {
 }
 
 /**
- * @dev The full set of order components, with the exception of the nonce, must
- *      be supplied when fulfilling more sophisticated orders or groups of
+ * @dev The full set of order components, with the exception of the counter,
+ *      must be supplied when fulfilling more sophisticated orders or groups of
  *      orders. The total number of original consideration items must also be
  *      supplied, as the caller may specify additional consideration items.
  */
@@ -178,7 +178,7 @@ struct AdvancedOrder {
 /**
  * @dev Orders can be validated (either explicitly via `validate`, or as a
  *      consequence of a full or partial fill), specifically cancelled (they can
- *      also be cancelled in bulk via incrementing a per-zone nonce), and
+ *      also be cancelled in bulk via incrementing a per-zone counter), and
  *      partially or fully filled (with the fraction filled represented by a
  *      numerator and denominator).
  */

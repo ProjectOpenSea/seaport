@@ -94,11 +94,20 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
     function _name() internal pure virtual returns (string memory) {
         // Return the name of the contract.
         assembly {
-            mstore(0, OneWord) // First element is the offset.
+            // First element is the offset for the returned string. Offset the
+            // value in memory by one word so that the free memory pointer will
+            // be overwritten by the next write.
+            mstore(OneWord, OneWord)
+
             // Name is right padded, so it touches the length which is left
-            // padded. This enables writing both values at once.
+            // padded. This enables writing both values at once. The free memory
+            // pointer will be overwritten in the process.
             mstore(NameLengthPtr, NameWithLength)
-            return(0, ThreeWords) // Return all three words.
+
+            // Standard ABI encoding pads returned data to the nearest word. Use
+            // the already empty zero slot memory region for this purpose and
+            // return the final name string, offset by the original single word.
+            return(OneWord, ThreeWords)
         }
     }
 
@@ -143,7 +152,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
         nameHash = keccak256(bytes(_nameString()));
 
         // Derive hash of the version string of the contract.
-        versionHash = keccak256(bytes("1"));
+        versionHash = keccak256(bytes("1.1"));
 
         // Construct the OfferItem type string.
         // prettier-ignore
@@ -184,7 +193,7 @@ contract ConsiderationBase is ConsiderationEventsAndErrors {
                 "bytes32 zoneHash,",
                 "uint256 salt,",
                 "bytes32 conduitKey,",
-                "uint256 nonce",
+                "uint256 counter",
             ")"
         );
 

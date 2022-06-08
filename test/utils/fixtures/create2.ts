@@ -6,7 +6,7 @@ import { faucet } from "../impersonate";
 
 const deployConstants = require("../../../constants/constants");
 
-export async function create2FactoryFixture(owner: Wallet) {
+export const create2FactoryFixture = async(owner: Wallet) => {
   // Deploy keyless create2 deployer
   await faucet(
     deployConstants.KEYLESS_CREATE2_DEPLOYER_ADDRESS,
