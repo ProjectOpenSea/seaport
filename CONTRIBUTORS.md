@@ -51,3 +51,4 @@ Ellahi                         | `ellahi.eth`
 zaz                            | `1zaz1.eth`
 berndartmueller                | `berndartmueller.eth`
 dmfxyz                         | `dmfxyz.eth`
+0xf4ce                         | `0xf4ce.eth`
