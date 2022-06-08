@@ -11827,15 +11827,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           marketplaceContract.address
         );
 
-        const offer = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: toBN(1),
-            endAmount: toBN(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId), getTestItem20(1, 1)];
 
         const consideration = [
           getItemETH(parseEther("10"), parseEther("10"), seller.address),
@@ -11851,7 +11843,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        const offerComponents = [[[0, 0]]];
+        const offerComponents = [
+          [
+            [0, 0],
+            [0, 1],
+          ],
+        ];
 
         const considerationComponents = [[[0, 0]], [[0, 1]], [[0, 2]]];
 
@@ -13485,13 +13482,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Reverts when not enough ether is supplied as offer item (match)", async () => {
         // NOTE: this is a ridiculous scenario, buyer is paying the seller's offer
-
-        // buyer mints nft
-        const nftId = await mintAndApprove721(
-          buyer,
-          marketplaceContract.address
-        );
-
         const offer = [getItemETH(parseEther("10"), parseEther("10"))];
 
         const consideration = [
@@ -13541,29 +13531,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             })
         ).to.be.revertedWith("InsufficientEtherSupplied");
 
-        await withBalanceChecks(
-          [order],
-          parseEther("10").mul(-1),
-          null,
-          async () => {
-            const tx = marketplaceContract
-              .connect(buyer)
-              .matchOrders([order, mirrorOrder], fulfillments, {
-                value: parseEther("12"),
-              });
-            const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              {
-                order,
-                orderHash,
-                fulfiller: buyer.address,
-                fulfillerConduitKey: toKey(false),
-              },
-            ]);
-
-            return receipt;
-          }
-        );
+        await marketplaceContract
+          .connect(buyer)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value: parseEther("13"),
+          });
       });
       it("Reverts when not enough ether is supplied (standard + advanced)", async () => {
         // Seller mints nft
