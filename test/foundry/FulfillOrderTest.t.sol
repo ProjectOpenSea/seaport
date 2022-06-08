@@ -165,13 +165,13 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
+        uint256 startTime = block.timestamp;
         vm.warp(block.timestamp + context.args.warpAmount);
         uint256 expectedAmount = _locateCurrentAmount(
             context.args.startAmount.mul(1000),
             context.args.endAmount.mul(1000),
-            context.args.warpAmount,
-            1000 - context.args.warpAmount,
-            1000,
+            startTime,
+            startTime + 1000,
             true // for consideration
         );
         vm.expectEmit(true, true, true, false, address(token1));
@@ -241,13 +241,13 @@ contract FulfillOrderTest is BaseOrderTest {
             context.consideration.getOrderHash(orderComponents)
         );
 
+        uint256 startTime = block.timestamp;
         vm.warp(block.timestamp + context.args.warpAmount);
         uint256 expectedAmount = _locateCurrentAmount(
             context.args.startAmount.mul(1000),
             context.args.endAmount.mul(1000),
-            context.args.warpAmount,
-            1000 - context.args.warpAmount,
-            1000,
+            startTime,
+            startTime + 1000,
             true // for consideration
         );
         token1.mint(address(this), expectedAmount);

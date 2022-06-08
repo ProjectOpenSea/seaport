@@ -670,12 +670,14 @@ contract MatchOrders is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
+        uint256 startTime = 1;
+        vm.warp(startTime + context.args.warp);
+
         uint256 currentAmount = _locateCurrentAmount(
             context.args.amount, // start amount
             context.args.amount * 2, // end amount
-            context.args.warp, // elapsed
-            1000 - context.args.warp, // remaining
-            1000, // duration
+            startTime, // startTime
+            startTime + 1000, // endTime
             false // roundUp
         );
 
@@ -766,12 +768,14 @@ contract MatchOrders is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
+        uint256 startTime = 1;
+        vm.warp(startTime + context.args.warp);
+
         uint256 currentAmount = _locateCurrentAmount(
             context.args.amount, // start amount
             context.args.amount * 2, // end amount
-            context.args.warp, // elapsed
-            1000 - context.args.warp, // remaining
-            1000, // duration
+            startTime, // startTime
+            startTime + 1000, // endTime
             true // roundUp
         );
         _configureOfferItem(ItemType.ERC20, 0, currentAmount, currentAmount);
@@ -827,8 +831,6 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
-        vm.warp(1 + context.args.warp);
-
         uint256 balanceBeforeOrder = token1.balanceOf(alice);
         context.consideration.matchOrders(orders, fulfillments);
         uint256 balanceAfterOrder = token1.balanceOf(alice);
@@ -854,13 +856,15 @@ contract MatchOrders is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
+        uint256 startTime = 1;
+        vm.warp(startTime + context.args.warp);
+
         uint256 currentAmount = _locateCurrentAmount(
             context.args.amount * 2, // start amount
             context.args.amount, // end amount
-            context.args.warp, // elapsed
-            1000 - context.args.warp, // remaining
-            1000, // duration
-            false // roundUp
+            startTime, // startTime
+            startTime + 1000, // endTime
+            true // roundUp
         );
 
         _configureOfferItem(ItemType.ERC721, context.args.id, 1);
@@ -924,8 +928,6 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
-        vm.warp(1 + context.args.warp);
-
         uint256 balaceBeforeOrder = token1.balanceOf(bob);
         context.consideration.matchOrders(orders, fulfillments);
         uint256 balanceAfterOrder = token1.balanceOf(bob);
@@ -951,14 +953,17 @@ contract MatchOrders is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
+        uint256 startTime = 1;
+        vm.warp(startTime + context.args.warp);
+
         uint256 currentAmount = _locateCurrentAmount(
-            context.args.amount * 2,
-            context.args.amount,
-            context.args.warp,
-            1000 - context.args.warp,
-            1000,
-            true
+            context.args.amount * 2, // start amount
+            context.args.amount, // end amount
+            startTime, // startTime
+            startTime + 1000, // endTime
+            true // roundUp
         );
+
         emit log_named_uint("Current Amount: ", currentAmount);
 
         _configureOfferItem(
@@ -1021,7 +1026,6 @@ contract MatchOrders is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
-        vm.warp(1 + context.args.warp);
         uint256 balanceBeforeOrder = token1.balanceOf(alice);
         context.consideration.matchOrders(orders, fulfillments);
 

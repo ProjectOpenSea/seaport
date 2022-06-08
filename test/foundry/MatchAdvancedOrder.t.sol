@@ -645,14 +645,15 @@ contract MatchAdvancedOrder is BaseOrderTest {
             20
         );
 
+        uint256 startTime = block.timestamp;
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             context.args.zone,
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            startTime,
+            startTime + 1000,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -673,13 +674,14 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
+        vm.warp(startTime + 500);
+
         // current amount should be mean of start and end amounts
         uint256 currentAmount = _locateCurrentAmount(
             context.args.baseStart.mul(20), // start amount
             context.args.baseEnd.mul(20), // end amount
-            500, // elapsed
-            500, // remaining
-            1000, // duration
+            startTime, // starTime
+            startTime + 1000, // endTime
             false // roundUp
         );
 
@@ -706,8 +708,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            startTime,
+            startTime + 1000,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -758,8 +760,6 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete fulfillmentComponents;
         delete fulfillment;
 
-        vm.warp(block.timestamp + 500);
-
         uint256 balanceBeforeOrder = token1.balanceOf(bob);
         context.consideration.matchAdvancedOrders(
             orders,
@@ -808,14 +808,15 @@ contract MatchAdvancedOrder is BaseOrderTest {
             alice
         );
 
+        uint256 startTime = block.timestamp;
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             context.args.zone,
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            startTime,
+            startTime + 1000,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -836,13 +837,14 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
+        vm.warp(startTime + 500);
+
         // current amount should be mean of start and end amounts
         uint256 currentAmount = _locateCurrentAmount(
             context.args.baseStart.mul(20), // start amount
             context.args.baseEnd.mul(20), // end amount
-            500, // elapsed
-            500, // remaining
-            1000, // duration
+            startTime, // startTime
+            startTime + 1000, // endTime
             false // roundUp
         );
 
@@ -926,8 +928,6 @@ contract MatchAdvancedOrder is BaseOrderTest {
         fulfillments.push(fulfillment);
         delete fulfillmentComponents;
         delete fulfillment;
-
-        vm.warp(block.timestamp + 500);
 
         uint256 balanceBeforeOrder = token1.balanceOf(alice);
         context.consideration.matchAdvancedOrders(
