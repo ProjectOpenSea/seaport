@@ -216,19 +216,15 @@ contract BaseOrderTest is
                 orderCalldata,
                 relativeOrderParametersOffset
             )
-            // Points to the consideration items offset value.
-            let considerationItemsOffsetPtr := add(
+            // Points to the items offset value.
+            let itemsOffsetPtr := add(
                 orderParamsOffsetPtr,
                 relativeItemsLengthOffset
             )
-            // Value of the consideration items offset, relative to the start of order parameters.
-            let considerationItemsOffsetValue := mload(
-                considerationItemsOffsetPtr
-            )
-            lengthPtr := add(
-                orderParamsOffsetPtr,
-                considerationItemsOffsetValue
-            )
+            // Value of the items offset, relative to the
+            // start of order parameters.
+            let itemsOffsetValue := mload(itemsOffsetPtr)
+            lengthPtr := add(orderParamsOffsetPtr, itemsOffsetValue)
         }
     }
 
@@ -285,7 +281,7 @@ contract BaseOrderTest is
             // Relative offset of start of order parameters
             // in the order calldata.
             relativeOrderParametersOffset,
-            // Relative offset of consideration items
+            // Relative offset of items
             // pointer to the start of order parameters in order calldata.
             relativeItemsLengthOffset
         );
