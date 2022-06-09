@@ -62,3 +62,4 @@ leastwood                      | `leastwood.eth`
 0xsanson                       | `sanson.eth`
 blockdev                       | `blockd3v.eth`
 dmitriia                       |
+bokeh-eth                      |
