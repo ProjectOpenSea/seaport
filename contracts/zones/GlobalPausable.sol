@@ -6,7 +6,7 @@ import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
 
-import { AdvancedOrder, CriteriaResolver, Order, OrderComponents, Fulfillment } from "../lib/ConsiderationStructs.sol";
+import { AdvancedOrder, CriteriaResolver, Order, OrderComponents, Fulfillment, Execution } from "../lib/ConsiderationStructs.sol";
 
 /*
  * Basic example Zone, that approves every order.
@@ -62,7 +62,7 @@ contract GlobalPausable is ZoneInterface {
         address _seaport,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external returns (bool executed) {
+    ) external returns (Execution[] memory executions) {
         require(
             msg.sender == deployer,
             "Only the owner can execute restricted orders with this zone."
@@ -71,7 +71,7 @@ contract GlobalPausable is ZoneInterface {
         //Create seaport object
         ConsiderationInterface seaport = ConsiderationInterface(_seaport);
 
-        executed = seaport.matchOrders(orders, fulfillments);
+        executions = seaport.matchOrders(orders, fulfillments);
     }
 
     function executeRestrictedAdvancedOffer(
@@ -79,7 +79,7 @@ contract GlobalPausable is ZoneInterface {
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external returns (bool executed) {
+    ) external returns (Execution[] memory executions) {
         require(
             msg.sender == deployer,
             "Only the owner can execute advanced restricted orders with this zone."
@@ -87,7 +87,7 @@ contract GlobalPausable is ZoneInterface {
         //Create seaport object
         ConsiderationInterface seaport = ConsiderationInterface(_seaport);
 
-        executed = seaport.matchAdvancedOrders(
+        executions = seaport.matchAdvancedOrders(
             orders,
             criteriaResolvers,
             fulfillments

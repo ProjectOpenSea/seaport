@@ -9,7 +9,7 @@ pragma solidity >=0.8.7;
 
 import { GlobalPausable } from "./GlobalPausable.sol";
 
-import { Order, Fulfillment, OrderComponents, AdvancedOrder, CriteriaResolver } from "../lib/ConsiderationStructs.sol";
+import { Order, Fulfillment, OrderComponents, AdvancedOrder, CriteriaResolver, Execution } from "../lib/ConsiderationStructs.sol";
 
 contract DeployerGlobalPausable {
     //owns this deployer and can activate the kill switch for the GlobalPausable
