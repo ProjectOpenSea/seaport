@@ -2066,19 +2066,22 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, orderHash, value } = await createOrder(
+      const referenceZone = await ethers.getContractFactory("GlobalPausable");
+      const tempZone = referenceZone.attach(zone.address);
+
+      const { order, orderComponents, orderHash, value } = await createOrder(
         seller,
-        zone,
+        tempZone,
         offer,
         consideration,
         2 // FULL_RESTRICTED, zone can execute or cancel
       );
 
-      await gpDeployer.cancelOrderZone(
-        zone.address,
-        marketplaceContract.address,
-        order
-      );
+      await gpDeployer
+        .connect(owner)
+        .cancelOrderZone(tempZone.address, marketplaceContract.address, [
+          orderComponents,
+        ]);
     });
 
     it("Reverts if non-Zone tries to cancel restricted orders.", async () => {
