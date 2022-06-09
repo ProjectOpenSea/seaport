@@ -37,10 +37,13 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         // Declare r, s, and v signature parameters.
         uint8 v;
         address recoveredSigner;
+        bool success;
 
         assembly {
             let len := mload(signature)
-            let lenDiff := sub(65, len)
+            let lenDiff := sub(ECDSA_MaxLength, len)
+            let ptrBeforeSignature := sub(signature, OneWord)
+            let oldValue := mload(ptrBeforeSignature)
             if lt(lenDiff, 2) {
                 // Place first word on the stack at r.
                 // let r := mload(add(signature, OneWord))
@@ -55,77 +58,82 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
                     v := add(shr(255, originalS), 27)
                     mstore(
-                      add(signature, TwoWords),
-                      and(originalS, EIP2098_allButHighestBitMask)
+                        add(signature, TwoWords),
+                        and(originalS, EIP2098_allButHighestBitMask)
                     )
                 }
                 mstore(signature, v)
-                // mstore(signature, v)
-                let ptrBeforeSignature := sub(signature, 0x20)
-                let oldValue := mload(ptrBeforeSignature)
                 mstore(ptrBeforeSignature, digest)
-
                 pop(staticcall(5000, 1, ptrBeforeSignature, 0x80, 0, 0x20))
                 mstore(ptrBeforeSignature, oldValue)
                 mstore(signature, len)
-                mstore(
-                  add(signature, TwoWords),
-                  originalS
-                )
+                mstore(add(signature, TwoWords), originalS)
                 recoveredSigner := mload(0)
             }
-        }
-
-        // Don't need an explicit address(0) check
-        if (recoveredSigner != signer) {
-            // Attempt an EIP-1271 staticcall to the signer.
-            bool success = _staticcall(
-                signer,
-                abi.encodeWithSelector(
-                    EIP1271Interface.isValidSignature.selector,
-                    digest,
-                    signature
+            success := eq(signer, recoveredSigner)
+            if iszero(success) {
+                mstore(ptrBeforeSignature, 0x40)
+                let ptr2WordsBeforeSignature := sub(ptrBeforeSignature, 0x20)
+                let ptr2AndAnEighthWordsBeforeSignature := sub(
+                    ptr2WordsBeforeSignature,
+                    0x4
                 )
-            );
+                let oldValue2 := mload(ptr2WordsBeforeSignature)
+                let oldValue3 := mload(ptr2AndAnEighthWordsBeforeSignature)
+                mstore(
+                    ptr2AndAnEighthWordsBeforeSignature,
+                    EIP1271_isValidSignature_selector
+                )
+                mstore(ptr2WordsBeforeSignature, digest)
+                success := staticcall(
+                    gas(),
+                    signer,
+                    ptr2AndAnEighthWordsBeforeSignature,
+                    add(len, 0x64),
+                    0,
+                    0x20
+                )
+                mstore(ptrBeforeSignature, oldValue)
+                mstore(ptr2AndAnEighthWordsBeforeSignature, oldValue3)
+                mstore(ptr2WordsBeforeSignature, oldValue2)
 
-            // If the call fails...
-            if (!success) {
-                // Revert and pass reason along if one was returned.
-                _revertWithReasonIfOneIsReturned();
-                assembly {
-                    mstore(0, BadContractSignature_error_signature)
-                    revert(0, BadContractSignature_error_length)
+                if success {
+                    // If returndata is not 32 bytes with the 1271 valid signature
+                    // selector, revert
+                    if iszero(
+                        and(
+                            eq(mload(0), EIP1271_isValidSignature_selector),
+                            eq(returndatasize(), 0x20)
+                        )
+                    ) {
+                        // If signer is a contract, revert with bad 1271 signature
+                        if extcodesize(signer) {
+                            // bad contract signature
+                            mstore(0, BadContractSignature_error_signature)
+                            revert(0, BadContractSignature_error_length)
+                        }
+                        // Check if v was invalid
+                        if iszero(
+                            byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
+                        ) {
+                            // v is invalid, revert with invalid v value
+                            mstore(0, BadSignatureV_error_signature)
+                            mstore(BadSignatureV_error_offset, v)
+                        }
+                        // Revert with generic invalid signer error message
+                        mstore(0, InvalidSigner_error_signature)
+                        revert(0, InvalidSigner_error_length)
+                    }
                 }
             }
-
+        }
+        // If the call fails...
+        if (!success) {
+            // Revert and pass reason along if one was returned.
+            _revertWithReasonIfOneIsReturned();
             assembly {
-              returndatacopy(0, 0, 0x20)
-              // If returndata is not 32 bytes with the 1271 valid signature
-              // selector, revert
-              if iszero(
-                and(
-                  eq(mload(0), EIP1271_isValidSignature_selector),
-                  eq(returndatasize(), 0x20)
-                )
-              ) {
-                  // If signer is a contract, revert with bad 1271 signature
-                  if extcodesize(signer) {
-                    // bad contract signature
-                    mstore(0, BadContractSignature_error_signature)
-                    revert(0, BadContractSignature_error_length)
-                  }
-                  // Check if v was invalid
-                  if iszero(
-                    byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
-                  ) {
-                    // v is invalid, revert with invalid v value
-                    mstore(0, BadSignatureV_error_signature)
-                    mstore(BadSignatureV_error_offset, v)
-                  }
-                  // Revert with generic invalid signer error message
-                  mstore(0, InvalidSigner_error_signature)
-                  revert(0, InvalidSigner_error_length)
-              }
+                mstore(0, BadContractSignature_error_signature)
+                revert(0, BadContractSignature_error_length)
             }
         }
     }
