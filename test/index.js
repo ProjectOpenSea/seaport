@@ -9789,10 +9789,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
-      await expect(conduitOne.connect(owner).execute([])).to.be.revertedWith(
-        "ChannelClosed",
-        owner
-      );
+      let expectedRevertReason =
+        getCustomRevertSelector("ChannelClosed(address)") +
+        owner.address.slice(2).padStart(64, "0").toLowerCase();
+
+      let tx = await conduitOne.connect(owner).populateTransaction.execute([]);
+      let returnData = await provider.call(tx);
+      expect(returnData).to.equal(expectedRevertReason);
+
+      await expect(conduitOne.connect(owner).execute([])).to.be.reverted;
     });
 
     it("Reverts when attempting to execute with 1155 transfers on a conduit when not called from a channel", async () => {
