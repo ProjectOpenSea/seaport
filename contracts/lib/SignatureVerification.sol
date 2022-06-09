@@ -35,8 +35,6 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         bytes memory signature
     ) internal view {
         // Declare r, s, and v signature parameters.
-        bytes32 r;
-        bytes32 s;
         uint8 v;
         address recoveredSigner;
 
@@ -45,19 +43,38 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             let lenDiff := sub(65, len)
             if lt(lenDiff, 2) {
                 // Place first word on the stack at r.
-                r := mload(add(signature, OneWord))
+                // let r := mload(add(signature, OneWord))
                 // Place second word on the stack at s.
-                s := mload(add(signature, TwoWords))
+                let originalS := mload(add(signature, TwoWords))
                 v := byte(0, mload(add(signature, ThreeWords)))
                 if eq(lenDiff, 1) {
                     // Extract canonical s from vs (all but the highest bit).
-                    s := and(s, EIP2098_allButHighestBitMask)
+                    // s := and(s, EIP2098_allButHighestBitMask)
                     // Extract yParity from highest bit of vs and add 27 to get v.
-                    v := add(shr(255, s), 27)
+                    // v := add(shr(255, s), 27)
+
+                    v := add(shr(255, originalS), 27)
+                    mstore(
+                      add(signature, TwoWords),
+                      and(originalS, EIP2098_allButHighestBitMask)
+                    )
                 }
+                mstore(signature, v)
+                // mstore(signature, v)
+                let ptrBeforeSignature := sub(signature, 0x20)
+                let oldValue := mload(ptrBeforeSignature)
+                mstore(ptrBeforeSignature, digest)
+
+                pop(staticcall(10000, 1, ptrBeforeSignature, 0x80, 0, 0x20))
+                recoveredSigner := mload(0)
+                mstore(ptrBeforeSignature, oldValue)
+                mstore(signature, len)
+                mstore(
+                  add(signature, TwoWords),
+                  originalS
+                )
             }
         }
-        recoveredSigner = ecrecover(digest, v, r, s);
 
         // Don't need an explicit address(0) check
         if (recoveredSigner != signer) {
