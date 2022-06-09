@@ -278,6 +278,7 @@ bytes32 constant EIP2098_allButHighestBitMask = (
 bytes32 constant ECDSA_twentySeventhAndTwentyEighthBytesSet = (
     0x0000000000000000000000000000000000000000000000000000000101000000
 );
+uint256 constant ECDSA_MaxLength = 65;
 bytes32 constant EIP1271_isValidSignature_selector = (
     0x1626ba7e00000000000000000000000000000000000000000000000000000000
 );
