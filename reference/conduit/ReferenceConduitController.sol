@@ -88,12 +88,8 @@ contract ReferenceConduitController is ConduitControllerInterface {
             )
         );
 
-        // If derived conduit exists, as evidenced by comparing runtime code...
-        if (conduit.codehash == _CONDUIT_RUNTIME_CODE_HASH) {
-            // Revert with an error indicating that the conduit already exists.
-            revert ConduitAlreadyExists(conduit);
-        }
-
+        _assertConduitDoesNotExist(conduit);
+        
         // Deploy the conduit via CREATE2 using the conduit key as the salt.
         new ReferenceConduit{ salt: conduitKey }();
 
@@ -525,6 +521,19 @@ contract ReferenceConduitController is ConduitControllerInterface {
         if (_conduits[conduit].key == bytes32(0)) {
             // Revert if no conduit key was located.
             revert NoConduit();
+        }
+    }
+
+    /**
+     * @dev Private view function to revert if a given conduit exists.
+     *
+     * @param conduit The conduit for which to assert nonexistence.
+     */
+    function _assertConduitDoesNotExist(address conduit) private view {
+        // Attempt to retrieve a conduit key for the conduit in question.
+        if (_conduits[conduit].key != bytes32(0)) {
+            // Revert if conduit key was located.
+            revert ConduitAlreadyExists(conduit);
         }
     }
 }
