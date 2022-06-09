@@ -217,13 +217,19 @@ contract BaseOrderTest is
                 relativeOrderParametersOffset
             )
             // Points to the items offset value.
+            // Note: itemsOffsetPtr itself is not the offset value;
+            // the value stored at itemsOffsetPtr is the offset value.
             let itemsOffsetPtr := add(
                 orderParamsOffsetPtr,
                 relativeItemsLengthOffset
             )
-            // Value of the items offset, relative to the
-            // start of order parameters.
+            // Value of the items offset, which is the offset of the items
+            // array relative to the start of order parameters.
             let itemsOffsetValue := mload(itemsOffsetPtr)
+
+            // The memory for an array will always start with a word
+            // indicating the length of the array, so length pointer
+            // can simply point to the start of the items array.
             lengthPtr := add(orderParamsOffsetPtr, itemsOffsetValue)
         }
     }
