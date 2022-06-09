@@ -65,4 +65,5 @@ dmitriia                       |
 bokeh-eth                      |
 fiveoutofnine                  | `fiveoutofnine.eth`
 asutorufos                     |
-rfart(rfa)
+rfart(rfa)                     |
+shuklaayush                    | `shuklaayush.eth`
