@@ -29,7 +29,10 @@ contract DeployerGlobalPausable {
         external
         returns (address derivedAddress)
     {
-        require(msg.sender == deployerOwner);
+        require(
+            msg.sender == deployerOwner,
+            "Only owner can create new Zones from here."
+        );
 
         // This complicated expression just tells you how the address
         // can be pre-computed. It is just there for illustration.
