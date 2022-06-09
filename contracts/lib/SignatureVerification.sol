@@ -228,6 +228,8 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         if (!success) {
             // Revert and pass reason along if one was returned.
             _revertWithReasonIfOneIsReturned();
+
+            // Otherwise, revert with error indicating bad contract signature.
             assembly {
                 mstore(0, BadContractSignature_error_signature)
                 revert(0, BadContractSignature_error_length)
