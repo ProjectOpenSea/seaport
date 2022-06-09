@@ -202,6 +202,8 @@ uint256 constant BasicOrder_signature_cdPtr = 0x244;
 uint256 constant BasicOrder_additionalRecipients_length_cdPtr = 0x264;
 uint256 constant BasicOrder_additionalRecipients_data_cdPtr = 0x284;
 
+uint256 constant BasicOrder_offerOffsetFromConsideration = 0xa0;
+
 uint256 constant BasicOrder_parameters_ptr = 0x20;
 
 /*
