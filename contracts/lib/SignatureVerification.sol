@@ -55,8 +55,8 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
                     v := add(shr(255, originalS), 27)
                     mstore(
-                      add(signature, TwoWords),
-                      and(originalS, EIP2098_allButHighestBitMask)
+                        add(signature, TwoWords),
+                        and(originalS, EIP2098_allButHighestBitMask)
                     )
                 }
                 mstore(signature, v)
@@ -69,10 +69,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 recoveredSigner := mload(0)
                 mstore(ptrBeforeSignature, oldValue)
                 mstore(signature, len)
-                mstore(
-                  add(signature, TwoWords),
-                  originalS
-                )
+                mstore(add(signature, TwoWords), originalS)
             }
         }
 
@@ -99,33 +96,33 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             }
 
             assembly {
-              returndatacopy(0, 0, 0x20)
-              // If returndata is not 32 bytes with the 1271 valid signature
-              // selector, revert
-              if iszero(
-                and(
-                  eq(mload(0), EIP1271_isValidSignature_selector),
-                  eq(returndatasize(), 0x20)
-                )
-              ) {
-                  // If signer is a contract, revert with bad 1271 signature
-                  if extcodesize(signer) {
-                    // bad contract signature
-                    mstore(0, BadContractSignature_error_signature)
-                    revert(0, BadContractSignature_error_length)
-                  }
-                  // Check if v was invalid
-                  if iszero(
-                    byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
-                  ) {
-                    // v is invalid, revert with invalid v value
-                    mstore(0, BadSignatureV_error_signature)
-                    mstore(BadSignatureV_error_offset, v)
-                  }
-                  // Revert with generic invalid signer error message
-                  mstore(0, InvalidSigner_error_signature)
-                  revert(0, InvalidSigner_error_length)
-              }
+                returndatacopy(0, 0, 0x20)
+                // If returndata is not 32 bytes with the 1271 valid signature
+                // selector, revert
+                if iszero(
+                    and(
+                        eq(mload(0), EIP1271_isValidSignature_selector),
+                        eq(returndatasize(), 0x20)
+                    )
+                ) {
+                    // If signer is a contract, revert with bad 1271 signature
+                    if extcodesize(signer) {
+                        // bad contract signature
+                        mstore(0, BadContractSignature_error_signature)
+                        revert(0, BadContractSignature_error_length)
+                    }
+                    // Check if v was invalid
+                    if iszero(
+                        byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
+                    ) {
+                        // v is invalid, revert with invalid v value
+                        mstore(0, BadSignatureV_error_signature)
+                        mstore(BadSignatureV_error_offset, v)
+                    }
+                    // Revert with generic invalid signer error message
+                    mstore(0, InvalidSigner_error_signature)
+                    revert(0, InvalidSigner_error_length)
+                }
             }
         }
     }
