@@ -293,9 +293,12 @@ contract OrderFulfiller is
                 }
             }
 
+            // Cache consideration length.
+            uint256 totalConsiderations = orderParameters.consideration.length;
+
             // Iterate over each consideration item on the order.
             // Skip overflow check as for loop is indexed starting at zero.
-            for (uint256 i = 0; i < orderParameters.consideration.length; ++i) {
+            for (uint256 i = 0; i < totalConsiderations; ++i) {
                 // Retrieve the consideration item.
                 ConsiderationItem memory considerationItem = (
                     orderParameters.consideration[i]
