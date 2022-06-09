@@ -2035,24 +2035,23 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // });
     });
 
-    it("Zone can cancel restricted orders.", async () => {
-      let gpDeployer;
-      await whileImpersonating(owner.address, provider, async () => {
-        // deploy GPD
-        const GPDeployer = await ethers.getContractFactory(
-          "DeployerGlobalPausable",
-          owner
-        );
-        gpDeployer = await GPDeployer.deploy(
-          owner.address,
-          ethers.utils.formatBytes32String("0")
-        );
-        await gpDeployer.deployed();
-        // deploy GP
-        const salt = randomHex();
-        zone.address = await gpDeployer.createZone(salt);
-      });
-
+    let gpDeployer;
+    let myOrderComponents;
+    beforeEach(async () => {
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+      gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+      // await gpDeployer.deployed();
+      // deploy GP
+      const salt = randomHex();
+      zone.address = await gpDeployer.createZone(salt);
+      console.log("HIT!!");
+      // });
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
@@ -2076,11 +2075,55 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         consideration,
         2 // FULL_RESTRICTED, zone can execute or cancel
       );
+      myOrderComponents = orderComponents;
+    });
+
+    it("Zone can cancel restricted orders.", async () => {
+      // let gpDeployer;
+      // await whileImpersonating(owner.address, provider, async () => {
+      // deploy GPD
+      // const GPDeployer = await ethers.getContractFactory(
+      //   "DeployerGlobalPausable",
+      //   owner
+      // );
+      // const gpDeployer = await GPDeployer.deploy(
+      //   owner.address,
+      //   ethers.utils.formatBytes32String("0")
+      // );
+      // await gpDeployer.deployed();
+      // deploy GP
+      // const salt = randomHex();
+      // zone.address = await gpDeployer.createZone(salt);
+      // });
+
+      // const nftId = await mintAndApprove721(
+      //   seller,
+      //   marketplaceContract.address
+      // );
+
+      // const offer = [getTestItem721(nftId)];
+
+      // const consideration = [
+      //   getItemETH(parseEther("10"), parseEther("10"), seller.address),
+      //   getItemETH(parseEther("1"), parseEther("1"), zone.address),
+      //   getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      // ];
+
+      // const referenceZone = await ethers.getContractFactory("GlobalPausable");
+      // const tempZone = referenceZone.attach(zone.address);
+
+      // const { order, orderComponents, orderHash, value } = await createOrder(
+      //   seller,
+      //   tempZone,
+      //   offer,
+      //   consideration,
+      //   2 // FULL_RESTRICTED, zone can execute or cancel
+      // );
 
       await gpDeployer
         .connect(owner)
-        .cancelOrderZone(tempZone.address, marketplaceContract.address, [
-          orderComponents,
+        .cancelOrderZone(zone.address, marketplaceContract.address, [
+          myOrderComponents,
         ]);
     });
 
