@@ -116,6 +116,7 @@ contract Assertions is
              * 1. Order parameters struct offset == 0x20
              * 2. Additional recipients arr offset == 0x240
              * 3. Signature offset == 0x260 + (recipients.length * 0x40)
+             * 4. BasicOrderType between 0 and 23 (i.e. < 24)
              */
             validOffsets := and(
                 // Order parameters at calldata 0x04 must have offset of 0x20.
@@ -129,6 +130,7 @@ contract Assertions is
                     BasicOrder_additionalRecipients_head_ptr
                 )
             )
+
             validOffsets := and(
                 validOffsets,
                 eq(
@@ -146,6 +148,17 @@ contract Assertions is
                             AdditionalRecipients_size
                         )
                     )
+                )
+            )
+
+            validOffsets := and(
+                validOffsets,
+                lt(
+                    // BasicOrderType parameter at calldata offset 0x124.
+                    calldataload(BasicOrder_basicOrderType_cdPtr),
+
+                    // Value should be less than 24.
+                    BasicOrder_basicOrderType_range
                 )
             )
         }
