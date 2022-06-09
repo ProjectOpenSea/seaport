@@ -1913,24 +1913,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         zone,
         offer,
         consideration,
-        0 // FULL_OPEN
+        2
       );
-
-      console.log("order is:");
-      console.log(order);
-
       //owner nukes the zone
       await whileImpersonating(owner.address, provider, async () => {
         gpDeployer.killSwitch(zone.address);
       });
 
-      await withBalanceChecks([order], 0, null, async () => {
-        await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
-            value,
-          })
-        ).to.be.reverted;
-      });
+      await expect(
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          value,
+        })
+      ).to.be.reverted;
     });
 
     it("Reverts if non-owner tries to self destruct the zone", async () => {
@@ -2091,9 +2085,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .cancelOrderZone(zone.address, marketplaceContract.address, order)
       ).to.be.reverted;
     });
-  });
 
-  describe("Zone - Global Pausable Deployer", async () => {
     it("Lets the Zone Deployer owner transfer ownership via a two-stage process", async () => {
       let gpDeployer;
       await whileImpersonating(owner.address, provider, async () => {
@@ -2113,17 +2105,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       //just get any random address as the next potential owner.
-      const potentialOwner = buyer;
-
-      await gpDeployer.connect(owner).transferOwnership(potentialOwner.address);
+      await gpDeployer.connect(owner).transferOwnership(buyer.address);
 
       await gpDeployer.connect(owner).cancelOwnershipTransfer();
 
-      await gpDeployer.connect(owner).transferOwnership(potentialOwner.address);
+      await gpDeployer.connect(owner).transferOwnership(buyer.address);
 
       await gpDeployer.connect(buyer).acceptOwnership();
 
-      const ownerOf = await expect(ownerOf).to.equal(buyer.address);
+      await expect(await gpDeployer.deployerOwner()).to.equal(buyer.address);
     });
   });
 
