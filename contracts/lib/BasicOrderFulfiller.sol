@@ -321,8 +321,9 @@ contract BasicOrderFulfiller is OrderValidator {
         // Verify that calldata offsets for all dynamic types were produced by
         // default encoding. This ensures that the constants we use for calldata
         // pointers to dynamic types are the same as those calculated by
-        // Solidity using their offsets.
-        _assertValidBasicOrderParameterOffsets();
+        // Solidity using their offsets. Also verify that the basic order type
+        // is within range.
+        _assertValidBasicOrderParameters();
 
         // Ensure supplied consideration array length is not less than original.
         _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(

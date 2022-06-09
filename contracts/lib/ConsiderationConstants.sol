@@ -204,6 +204,8 @@ uint256 constant BasicOrder_additionalRecipients_data_cdPtr = 0x284;
 
 uint256 constant BasicOrder_parameters_ptr = 0x20;
 
+uint256 constant BasicOrder_basicOrderType_range = 0x18; // 24 values
+
 /*
  *  Memory layout in _prepareBasicFulfillmentFromCalldata of
  *  EIP712 data for ConsiderationItem
@@ -293,7 +295,7 @@ uint256 constant EIP_712_PREFIX = (
 
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
-uint256 constant MemoryExpansionCoefficient = 0x200;
+uint256 constant MemoryExpansionCoefficient = 0x200; // 512
 
 uint256 constant Create2AddressDerivation_ptr = 0x0b;
 uint256 constant Create2AddressDerivation_length = 0x55;
