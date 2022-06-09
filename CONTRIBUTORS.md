@@ -64,3 +64,4 @@ blockdev                       | `blockd3v.eth`
 dmitriia                       |
 bokeh-eth                      |
 fiveoutofnine                  | `fiveoutofnine.eth`
+asutorufos                     |
