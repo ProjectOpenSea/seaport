@@ -1039,19 +1039,16 @@ contract BasicOrderFulfiller is OrderValidator {
             )
         }
 
-        // Declare variable for additional recipients.
-        AdditionalRecipient[] calldata additionalRecipients = (
-            parameters.additionalRecipients
-        );
-
         // Retrieve total number of additional recipients and place on stack.
-        uint256 totalAdditionalRecipients = additionalRecipients.length;
+        uint256 totalAdditionalRecipients = (
+            parameters.additionalRecipients.length
+        );
 
         // Iterate over each additional recipient.
         for (uint256 i = 0; i < totalAdditionalRecipients; ) {
             // Retrieve the additional recipient.
             AdditionalRecipient calldata additionalRecipient = (
-                additionalRecipients[i]
+                parameters.additionalRecipients[i]
             );
 
             uint256 additionalRecipientAmount = additionalRecipient.amount;
