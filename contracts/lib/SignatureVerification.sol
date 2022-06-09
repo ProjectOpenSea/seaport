@@ -49,7 +49,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // Place second word on the stack at s.
                 s := mload(add(signature, TwoWords))
                 v := byte(0, mload(add(signature, ThreeWords)))
-                if iszero(lenDiff) {
+                if eq(lenDiff, 1) {
                     // Extract canonical s from vs (all but the highest bit).
                     s := and(s, EIP2098_allButHighestBitMask)
                     // Extract yParity from highest bit of vs and add 27 to get v.
