@@ -9,9 +9,9 @@ import { ConduitInterface } from "../../contracts/interfaces/ConduitInterface.so
 
 import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
 
-import { TransferHelper } from "../../contracts/helper/TransferHelper.sol";
+import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 
-import { TransferHelperItem } from "../../contracts/helper/TransferHelperStructs.sol";
+import { TransferHelperItem } from "../../contracts/helpers/TransferHelperStructs.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.7;
 
-import { TransferHelperItem } from "../helper/TransferHelperStructs.sol";
+import { TransferHelperItem } from "../helpers/TransferHelperStructs.sol";
 
 interface TransferHelperInterface {
     /**
@@ -15,7 +15,7 @@ interface TransferHelperInterface {
      *
      * @param items The items to transfer.
      * @param recipient  The address the items should be transferred to.
-     * @param conduitKey  The key of the conduit through which the bulk transfer should occur.
+     * @param conduitKey  The key of the conduit performing the bulk transfer.
      */
     function bulkTransfer(
         TransferHelperItem[] calldata items,

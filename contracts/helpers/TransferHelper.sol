@@ -114,7 +114,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         }
         // Otherwise, a conduitKey was provided.
         else {
-            // Derive the conduit address from the deployer, conduit key and creation code hash.
+            // Derive the conduit address from the deployer, conduit key
+            // and creation code hash.
             address conduit = address(
                 uint160(
                     uint256(
