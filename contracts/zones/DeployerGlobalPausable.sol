@@ -9,7 +9,7 @@ pragma solidity >=0.8.7;
 
 import { GlobalPausable } from "./GlobalPausable.sol";
 
-import { OrderComponents } from "../lib/ConsiderationStructs.sol";
+import { Order, Fulfillment, OrderComponents, AdvancedOrder, CriteriaResolver } from "../lib/ConsiderationStructs.sol";
 
 contract DeployerGlobalPausable {
     //owns this deployer and can activate the kill switch for the GlobalPausable
@@ -76,10 +76,49 @@ contract DeployerGlobalPausable {
         address _seaportAddress,
         OrderComponents[] calldata orders
     ) external {
-        require(msg.sender == deployerOwner);
+        require(
+            msg.sender == deployerOwner,
+            "Only the owner can cancel orders with the zone."
+        );
 
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
         gp.cancelOrder(_seaportAddress, orders);
+    }
+
+    function executeRestrictedMatchOrderZone(
+        address _globalPausableAddress,
+        address _seaportAddress,
+        Order[] calldata orders,
+        Fulfillment[] calldata fulfillments
+    ) external {
+        require(
+            msg.sender == deployerOwner,
+            "Only the owner can execute orders with the zone. "
+        );
+
+        GlobalPausable gp = GlobalPausable(_globalPausableAddress);
+        gp.executeRestrictedOffer(_seaportAddress, orders, fulfillments);
+    }
+
+    function executeRestrictedMatchAdvancedOrderZone(
+        address _globalPausableAddress,
+        address _seaportAddress,
+        AdvancedOrder[] calldata orders,
+        CriteriaResolver[] calldata criteriaResolvers,
+        Fulfillment[] calldata fulfillments
+    ) external {
+        require(
+            msg.sender == deployerOwner,
+            "Only the owner can execute advanced orders with the zone."
+        );
+
+        GlobalPausable gp = GlobalPausable(_globalPausableAddress);
+        gp.executeRestrictedAdvancedOffer(
+            _seaportAddress,
+            orders,
+            criteriaResolvers,
+            fulfillments
+        );
     }
 
     /**

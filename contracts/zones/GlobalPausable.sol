@@ -6,7 +6,7 @@ import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
 
 import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
 
-import { AdvancedOrder, CriteriaResolver, OrderComponents } from "../lib/ConsiderationStructs.sol";
+import { AdvancedOrder, CriteriaResolver, Order, OrderComponents, Fulfillment } from "../lib/ConsiderationStructs.sol";
 
 /*
  * Basic example Zone, that approves every order.
@@ -46,13 +46,52 @@ contract GlobalPausable is ZoneInterface {
         external
         returns (bool cancelled)
     {
-        //only the deployer is allowed to call this.
-        require(msg.sender == deployer);
+        require(
+            msg.sender == deployer,
+            "Only the owner can cancel restricted orders with this zone."
+        );
 
         //Create seaport object
         ConsiderationInterface seaport = ConsiderationInterface(_seaport);
 
         cancelled = seaport.cancel(orders);
+    }
+
+    //executes a restricted order
+    function executeRestrictedOffer(
+        address _seaport,
+        Order[] calldata orders,
+        Fulfillment[] calldata fulfillments
+    ) external returns (bool executed) {
+        require(
+            msg.sender == deployer,
+            "Only the owner can execute restricted orders with this zone."
+        );
+
+        //Create seaport object
+        ConsiderationInterface seaport = ConsiderationInterface(_seaport);
+
+        executed = seaport.matchOrders(orders, fulfillments);
+    }
+
+    function executeRestrictedAdvancedOffer(
+        address _seaport,
+        AdvancedOrder[] calldata orders,
+        CriteriaResolver[] calldata criteriaResolvers,
+        Fulfillment[] calldata fulfillments
+    ) external returns (bool executed) {
+        require(
+            msg.sender == deployer,
+            "Only the owner can execute advanced restricted orders with this zone."
+        );
+        //Create seaport object
+        ConsiderationInterface seaport = ConsiderationInterface(_seaport);
+
+        executed = seaport.matchAdvancedOrders(
+            orders,
+            criteriaResolvers,
+            fulfillments
+        );
     }
 
     /**
