@@ -70,7 +70,7 @@ contract ReferenceZoneInteraction is ZoneInteractionErrors {
      *                          identifier, and a proof that the supplied token
      *                          identifier is contained in the order's merkle
      *                          root. Note that a criteria of zero indicates
-     *                          that any (transferrable) token identifier is
+     *                          that any (transferable) token identifier is
      *                          valid and that no proof needs to be supplied.
      * @param priorOrderHashes  The order hashes of each order supplied prior to
      *                          the current order as part of a "match" variety

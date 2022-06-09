@@ -242,7 +242,7 @@ contract NonReentrantTest is BaseOrderTest {
                 address(token1), // Token
                 0, // identifier
                 1, // start amount
-                1, // end amout
+                1, // end amount
                 payable(address(this)) // recipient
             )
         );

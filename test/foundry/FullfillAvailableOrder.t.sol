@@ -58,7 +58,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
     }
 
     function testFulfillAvailableOrdersOverflowOfferSide() public {
-        for (uint256 i; i < 4; ++i) {
+        // skip eth
+        for (uint256 i = 1; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;
@@ -199,7 +200,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         orders[0] = Order(orderParameters, signature);
         orders[1] = Order(secondOrderParameters, secondSignature);
 
-        // agregate offers together
+        // aggregate offers together
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
@@ -296,7 +297,7 @@ contract FulfillAvailableOrder is BaseOrderTest {
         offerComponentsArray.push(offerComponents);
         resetOfferComponents();
 
-        // agregate considerations together
+        // aggregate considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);

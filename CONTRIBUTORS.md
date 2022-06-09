@@ -61,4 +61,7 @@ axic                           | `axic.eth`
 leastwood                      | `leastwood.eth`
 0xsanson                       | `sanson.eth`
 blockdev                       | `blockd3v.eth`
-asutorufos
+dmitriia                       |
+bokeh-eth                      |
+fiveoutofnine                  | `fiveoutofnine.eth`
+asutorufos                     |

@@ -5,7 +5,11 @@ const {
   utils: { parseEther, keccak256, toUtf8Bytes },
 } = require("ethers");
 const { ethers, network } = require("hardhat");
-const { faucet, whileImpersonating } = require("./utils/impersonate");
+const {
+  faucet,
+  whileImpersonating,
+  getWalletWithEther,
+} = require("./utils/impersonate");
 const { merkleTree } = require("./utils/criteria");
 const {
   randomHex,
@@ -214,7 +218,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("A single ERC721 is to be transferred", async () => {
-      describe("[Buy now] User fullfills a sell order for a single ERC721", async () => {
+      describe("[Buy now] User fulfills a sell order for a single ERC721", async () => {
         it("ERC721 <=> ETH (standard)", async () => {
           const nftId = await mintAndApprove721(
             seller,
@@ -670,7 +674,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const offer = [getTestItem721(nftId)];
 
-          const consideration = [getItemETH(toBN(1), toBN(1), seller.address)];
+          const consideration = [
+            getItemETH(toBN(1), toBN(1), constants.AddressZero),
+          ];
+          console.log(Object.keys(marketplaceContract.interface.functions));
+          for (const signature of Object.keys(
+            marketplaceContract.interface.functions
+          )) {
+            console.log(
+              `${signature.slice(0, signature.indexOf("("))}: ${keccak256(
+                Buffer.from(signature, "utf8")
+              ).slice(0, 10)}`
+            );
+          }
 
           const { order, orderHash, value } = await createOrder(
             seller,
@@ -2434,7 +2450,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("A single ERC1155 is to be transferred", async () => {
-      describe("[Buy now] User fullfills a sell order for a single ERC1155", async () => {
+      describe("[Buy now] User fulfills a sell order for a single ERC1155", async () => {
         it("ERC1155 <=> ETH (standard)", async () => {
           // Seller mints nft
           const { nftId, amount } = await mintAndApprove1155(
@@ -5587,8 +5603,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await set721ApprovalForAll(buyer, marketplaceContract.address, true);
 
         const { root, proofs } = merkleTree(tokenIds);
-
-        const offer = [getItemETH(parseEther("10"), parseEther("10"))];
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
 
         const consideration = [
           getTestItem721WithCriteria(root, toBN(1), toBN(1), seller.address),
@@ -5651,8 +5672,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await set1155ApprovalForAll(buyer, marketplaceContract.address, true);
 
         const { root, proofs } = merkleTree([nftId]);
-
-        const offer = [getItemETH(parseEther("10"), parseEther("10"))];
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
 
         const consideration = [
           getTestItem1155WithCriteria(root, toBN(1), toBN(1), seller.address),
@@ -5709,12 +5735,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Criteria-based wildcard consideration item (standard)", async () => {
         // buyer mints nft
-        const nftId = await mint721(buyer);
-
-        // Seller approves marketplace contract to transfer NFTs
-        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
-
-        const offer = [getItemETH(parseEther("10"), parseEther("10"))];
+        const nftId = await mintAndApprove721(
+          buyer,
+          marketplaceContract.address
+        );
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
 
         const consideration = [
           getTestItem721WithCriteria(
@@ -6812,7 +6843,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             true
           );
 
-          // TODO: inlcude balance checks on the duplicate ERC20 transfers
+          // TODO: include balance checks on the duplicate ERC20 transfers
 
           return receipt;
         });
@@ -11796,22 +11827,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           marketplaceContract.address
         );
 
-        const offer = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: parseEther("1"),
-            endAmount: parseEther("1"),
-          },
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: toBN(1),
-            endAmount: toBN(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId), getTestItem20(1, 1)];
 
         const consideration = [
           getItemETH(parseEther("10"), parseEther("10"), seller.address),
@@ -13464,31 +13480,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("Reverts when not enough ether is supplied as offer item (standard)", async () => {
+      it("Reverts when not enough ether is supplied as offer item (match)", async () => {
         // NOTE: this is a ridiculous scenario, buyer is paying the seller's offer
-
-        // buyer mints nft
-        const nftId = await mintAndApprove721(
-          buyer,
-          marketplaceContract.address
-        );
-
         const offer = [getItemETH(parseEther("10"), parseEther("10"))];
 
         const consideration = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: toBN(1),
-            endAmount: toBN(1),
-            recipient: seller.address,
-          },
+          getItemETH(parseEther("1"), parseEther("1"), seller.address),
           getItemETH(parseEther("1"), parseEther("1"), zone.address),
           getItemETH(parseEther("1"), parseEther("1"), owner.address),
         ];
 
-        const { order, orderHash } = await createOrder(
+        const { order, orderHash, value } = await createOrder(
           seller,
           zone,
           offer,
@@ -13496,41 +13498,44 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
-            value: toBN(1),
-          })
-        ).to.be.revertedWith("InsufficientEtherSupplied");
-
-        await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
-            value: parseEther("9.999999"),
-          })
-        ).to.be.revertedWith("InsufficientEtherSupplied");
-
-        await withBalanceChecks(
-          [order],
-          parseEther("10").mul(-1),
-          null,
-          async () => {
-            const tx = marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), {
-                value: parseEther("12"),
-              });
-            const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              {
-                order,
-                orderHash,
-                fulfiller: buyer.address,
-                fulfillerConduitKey: toKey(false),
-              },
-            ]);
-
-            return receipt;
-          }
+        const { mirrorOrder, mirrorOrderHash } = await createMirrorBuyNowOrder(
+          buyer,
+          zone,
+          order
         );
+
+        const fulfillments = defaultBuyNowMirrorFulfillment;
+
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
+
+        expect(executions.length).to.equal(4);
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchOrders([order, mirrorOrder], fulfillments, {
+              value: toBN(1),
+            })
+        ).to.be.revertedWith("InsufficientEtherSupplied");
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchOrders([order, mirrorOrder], fulfillments, {
+              value: parseEther("9.999999"),
+            })
+        ).to.be.revertedWith("InsufficientEtherSupplied");
+
+        await marketplaceContract
+          .connect(buyer)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value: parseEther("13"),
+          });
       });
       it("Reverts when not enough ether is supplied (standard + advanced)", async () => {
         // Seller mints nft
@@ -15365,6 +15370,170 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               })
           ).to.be.reverted;
         }
+      });
+    });
+
+    describe("ETH offer items", async () => {
+      let ethAmount;
+      const tokenAmount = minRandom(100);
+      let offer;
+      let consideration;
+      let seller;
+      let buyer;
+
+      before(async () => {
+        ethAmount = parseEther("1");
+        seller = await getWalletWithEther();
+        buyer = await getWalletWithEther();
+        zone = new ethers.Wallet(randomHex(32), provider);
+        offer = [getItemETH(ethAmount, ethAmount)];
+        consideration = [
+          getTestItem20(tokenAmount, tokenAmount, seller.address),
+        ];
+      });
+
+      it("fulfillOrder reverts if any offer item is ETH", async () => {
+        const { order, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillOrder(order, toKey(false), { value })
+        ).to.be.revertedWith("InvalidNativeOfferItem");
+      });
+
+      it("fulfillAdvancedOrder reverts if any offer item is ETH", async () => {
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+              value: ethAmount,
+            })
+        ).to.be.revertedWith("InvalidNativeOfferItem");
+      });
+
+      it("fulfillAvailableOrders reverts if any offer item is ETH", async () => {
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableOrders(
+              [order],
+              [[[0, 0]]],
+              [[[0, 0]]],
+              toKey(false),
+              100,
+              { value: ethAmount }
+            )
+        ).to.be.revertedWith("InvalidNativeOfferItem");
+      });
+
+      it("fulfillAvailableAdvancedOrders reverts if any offer item is ETH", async () => {
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [order],
+              [],
+              [[[0, 0]]],
+              [[[0, 0]]],
+              toKey(false),
+              buyer.address,
+              100,
+              { value: ethAmount }
+            )
+        ).to.be.revertedWith("InvalidNativeOfferItem");
+      });
+
+      it("matchOrders allows fulfilling with native offer items", async () => {
+        await mintAndApproveERC20(
+          buyer,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+        const { mirrorOrder } = await createMirrorBuyNowOrder(
+          buyer,
+          zone,
+          order
+        );
+        const fulfillments = [
+          toFulfillment([[0, 0]], [[1, 0]]),
+          toFulfillment([[1, 0]], [[0, 0]]),
+        ];
+
+        await marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value: ethAmount,
+          });
+      });
+
+      it("matchAdvancedOrders allows fulfilling with native offer items", async () => {
+        await mintAndApproveERC20(
+          buyer,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+        const { mirrorOrder } = await createMirrorBuyNowOrder(
+          buyer,
+          zone,
+          order
+        );
+        const fulfillments = [
+          toFulfillment([[0, 0]], [[1, 0]]),
+          toFulfillment([[1, 0]], [[0, 0]]),
+        ];
+
+        await marketplaceContract
+          .connect(owner)
+          .matchAdvancedOrders([order, mirrorOrder], [], fulfillments, {
+            value: ethAmount,
+          });
       });
     });
   });
