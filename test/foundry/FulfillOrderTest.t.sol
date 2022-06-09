@@ -5,7 +5,7 @@ pragma solidity >=0.8.13;
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { OneWord } from "../../contracts/lib/ConsiderationConstants.sol";
+import { OneWord, TwoWords } from "../../contracts/lib/ConsiderationConstants.sol";
 import { Order, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
@@ -516,10 +516,105 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         bytes memory orderCalldata,
         uint256 relativeLengthOffset
     ) internal returns (uint256 length) {
+        // emit log_named_bytes("name foo", orderCalldata);
+        bytes32 output0;
+        bytes32 considerationItemsOffsetValue;
+        bytes32 output2;
+        bytes32 output3;
+        bytes32 output4Other;
+        bytes32 output4;
+        bytes32 output5;
+        bytes32 output6;
         assembly {
-            let absoluteLengthOffset := add(orderCalldata, relativeLengthOffset)
-            length := mload(absoluteLengthOffset)
+            // let orderParamsOffset := mload(add(orderCalldata, OneWord))
+            // let considerationItemsOffset := mload(add(orderParamsOffset, 0x60))
+            // length := mload(considerationItemsOffset)
+
+            let orderParamsOffset := add(orderCalldata, 0xa4)
+            output0 := mload(orderParamsOffset)
+            // Points to the consideration items offset value.
+            let considerationItemsOffsetPtr := add(orderParamsOffset, 0x60) //mload(add(orderParamsOffset, 0x60))
+            // Value of the consideration items offset, relative to the start of order parameters.
+            considerationItemsOffsetValue := mload(considerationItemsOffsetPtr)
+            // length := mload(considerationItemsOffset)
+            output2 := mload(
+                add(
+                    orderCalldata,
+                    add(orderParamsOffset, considerationItemsOffsetValue)
+                )
+            )
+            output3 := mload(
+                add(
+                    orderCalldata,
+                    add(
+                        orderParamsOffset,
+                        add(considerationItemsOffsetValue, 0x20)
+                    )
+                )
+            )
+            output4Other := mload(
+                add(
+                    orderCalldata,
+                    add(
+                        orderParamsOffset,
+                        add(considerationItemsOffsetValue, 0x50)
+                    )
+                )
+            )
+
+            output4 := mload(
+                add(
+                    orderCalldata,
+                    add(
+                        orderParamsOffset,
+                        add(considerationItemsOffsetValue, 0x40)
+                    )
+                )
+            )
+
+            output5 := mload(
+                add(
+                    orderCalldata,
+                    add(
+                        orderParamsOffset,
+                        add(considerationItemsOffsetValue, 0x60)
+                    )
+                )
+            )
+            output6 := mload(
+                add(
+                    orderCalldata,
+                    add(
+                        orderParamsOffset,
+                        add(considerationItemsOffsetValue, 0x80)
+                    )
+                )
+            )
+            length := mload(
+                add(
+                    orderCalldata,
+                    add(
+                        orderParamsOffset,
+                        add(considerationItemsOffsetValue, 0x40)
+                    )
+                )
+            )
+
+            // let absoluteLengthOffset := add(orderCalldata, relativeLengthOffset)
+            // length := mload(considerationItemsOffsetValue)
         }
+        emit log_named_bytes32("output0", output0);
+        emit log_named_bytes32(
+            "considerationItemsOffsetValue",
+            considerationItemsOffsetValue
+        );
+        emit log_named_bytes32("output2", output2);
+        emit log_named_bytes32("output3", output3);
+        emit log_named_bytes32("output4", output4);
+        emit log_named_bytes32("output4Other", output4Other);
+        emit log_named_bytes32("output5", output5);
+        emit log_named_bytes32("output6", output6);
+        emit log_named_uint("length foo", length);
     }
 
     function _performTestFulfillOrderRevertInvalidArrayLength(
@@ -531,6 +626,13 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         uint256 amtToSubtractFromItemsLength
     ) internal {
         _validateOrder(order, consideration);
+        emit log_named_bytes("all bytes", fulfillOrderCalldata);
+
+        uint256 initialItemsLength = _getLengthAtOffsetInOrderCalldata(
+            fulfillOrderCalldata,
+            itemsLengthFieldOffset
+        );
+        emit log_named_uint("initial length", initialItemsLength);
 
         bool overwriteItemsLength = amtToSubtractFromItemsLength > 0;
         if (overwriteItemsLength) {
@@ -549,7 +651,7 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             fulfillOrderCalldata,
             itemsLengthFieldOffset
         );
-        emit log_named_uint("lengt fooh", finalItemsLength);
+        emit log_named_uint("final length", finalItemsLength);
 
         assertEq(
             finalItemsLength,
@@ -572,7 +674,7 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
     // uint256 fuzzTotalConsiderationItems,
     // uint256 fuzzAmountToSubtractFromConsiderationItemsLength
     {
-        uint256 totalConsiderationItems = 3; //fuzzTotalConsiderationItems % 200;
+        uint256 totalConsiderationItems = 255; //fuzzTotalConsiderationItems % 200;
         // Set amount to subtract from consideration item length
         // to be at most totalConsiderationItems.
         uint256 amountToSubtractFromConsiderationItemsLength = 1;
@@ -588,7 +690,9 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             OrderParameters memory _orderParameters,
 
         ) = _prepareOrder(1, totalConsiderationItems);
-
+        _orderParameters.consideration[0].recipient = payable(
+            address(uint160(MAX_INT))
+        );
         // Get the calldata that will be passed into fulfillOrder.
         bytes memory fulfillOrderCalldata = abi.encodeWithSelector(
             consideration.fulfillOrder.selector,
