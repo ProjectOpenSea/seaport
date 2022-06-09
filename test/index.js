@@ -677,16 +677,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const consideration = [
             getItemETH(toBN(1), toBN(1), constants.AddressZero),
           ];
-          console.log(Object.keys(marketplaceContract.interface.functions));
-          for (const signature of Object.keys(
-            marketplaceContract.interface.functions
-          )) {
-            console.log(
-              `${signature.slice(0, signature.indexOf("("))}: ${keccak256(
-                Buffer.from(signature, "utf8")
-              ).slice(0, 10)}`
-            );
-          }
 
           const { order, orderHash, value } = await createOrder(
             seller,
