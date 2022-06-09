@@ -292,6 +292,8 @@ uint256 constant EIP1271_isValidSignature_digest_negativeOffset = 0x40;
 uint256 constant EIP1271_isValidSignature_selector_negativeOffset = 0x44;
 uint256 constant EIP1271_isValidSignature_calldata_baseLength = 0x64;
 
+uint256 constant EIP1271_isValidSignature_signature_head_offset = 0x40;
+
 // abi.encodeWithSignature("NoContract(address)")
 uint256 constant NoContract_error_signature = (
     0x5f15d67200000000000000000000000000000000000000000000000000000000
