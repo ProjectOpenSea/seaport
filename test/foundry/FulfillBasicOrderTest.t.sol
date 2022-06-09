@@ -160,6 +160,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             consideration,
             myOrder,
             fulfillOrderCalldata,
+            // Order parameters starts at 0x44 relative to the start of the
+            // order calldata because the order calldata starts with 0x20 bytes
+            // for order calldata length, 0x04 bytes for selector, and 0x20
+            // bytes until the start of order parameters.
             0x44,
             0x200,
             _basicOrderParameters.additionalRecipients.length,
