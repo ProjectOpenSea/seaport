@@ -134,6 +134,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
             assembly {
                 mstore(0, BadContractSignature_error_signature)
                 revert(0, BadContractSignature_error_length)
+
             }
         }
     }

@@ -359,7 +359,6 @@ uint256 constant InexactFraction_error_signature = (
 );
 uint256 constant InexactFraction_error_len = 0x20;
 
-
 // Declare constant for errors related to signature verification.
 
 // error BadSignatureV(uint8) @ SignatureVerificationErrors.sol
@@ -396,4 +395,3 @@ uint256 constant NonMatchSelector_MagicModulus = 69;
 // Of the two match function selectors, the highest
 // remainder modulo 69 is 29.
 uint256 constant NonMatchSelector_MagicRemainder = 0x1d;
-
