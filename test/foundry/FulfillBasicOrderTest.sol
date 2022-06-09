@@ -15,6 +15,9 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 
+import { DeployerGlobalPausable } from "../../contracts/zones/DeployerGlobalPausable.sol";
+import { GlobalPausable } from "../../contracts/zones/GlobalPausable.sol";
+
 contract FulfillBasicOrderTest is BaseOrderTest {
     BasicOrderParameters basicOrderParameters;
     OrderComponents orderComponents;
@@ -84,6 +87,19 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
         _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
         _testBasicErc20To1155_new(Context(consideration, inputs, tokenAmount));
+    }
+
+    function testBasicEthTo721WithZone(FuzzInputsCommon memory inputs) public {
+        inputs.zone = address(0);
+
+        _configureERC721OfferItem(inputs.tokenId);
+        _configureEthConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersEthTo721(inputs);
+
+        _testBasicEthTo721_new(Context(consideration, inputs, 0));
+        _configureERC721OfferItem(inputs.tokenId);
+        _configureEthConsiderationItem(alice, inputs.paymentAmount);
+        _testBasicEthTo721_new(Context(referenceConsideration, inputs, 0));
     }
 
     function _testBasicErc20To1155_new(Context memory context)
