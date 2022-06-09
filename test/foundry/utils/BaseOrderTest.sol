@@ -188,20 +188,7 @@ contract BaseOrderTest is
         order = Order(orderParameters, signature);
     }
 
-    // TODO remove
     function _subtractAmountFromLengthInOrderCalldata(
-        bytes memory orderCalldata,
-        uint256 relativeLengthOffset,
-        uint256 amtToSubtractFromLength
-    ) internal pure {
-        assembly {
-            let absoluteLengthOffset := add(orderCalldata, relativeLengthOffset)
-            let length := mload(absoluteLengthOffset)
-            mstore(absoluteLengthOffset, sub(length, amtToSubtractFromLength))
-        }
-    }
-
-    function subtractAmountFromLengthInOrderCalldata(
         bytes memory orderCalldata,
         uint256 relativeOrderParametersOffset,
         uint256 relativeItemsLengthOffset,
@@ -285,7 +272,7 @@ contract BaseOrderTest is
             // store the length - amtToSubtractFromItemsLength in the calldata
             // so that the length value does _not_ accurately represent the actual
             // total array length.
-            subtractAmountFromLengthInOrderCalldata(
+            _subtractAmountFromLengthInOrderCalldata(
                 fulfillOrderCalldata,
                 relativeOrderParametersOffset,
                 relativeItemsLengthOffset,
