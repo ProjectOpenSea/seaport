@@ -515,9 +515,25 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
     function subtractAmountFromLengthInOrderCalldata(
         bytes memory orderCalldata,
         uint256 relativeOrderParametersOffset,
-        uint256 relativeLengthOffset,
+        uint256 relativeItemsLengthOffset,
         uint256 amtToSubtractFromLength
     ) internal pure {
+        bytes32 lengthPtr = _getItemsLengthPointerInOrderCalldata(
+            orderCalldata,
+            relativeOrderParametersOffset,
+            relativeItemsLengthOffset
+        );
+        assembly {
+            let length := mload(lengthPtr)
+            mstore(lengthPtr, sub(length, amtToSubtractFromLength))
+        }
+    }
+
+    function _getItemsLengthPointerInOrderCalldata(
+        bytes memory orderCalldata,
+        uint256 relativeOrderParametersOffset,
+        uint256 relativeItemsLengthOffset
+    ) internal pure returns (bytes32 lengthPtr) {
         assembly {
             // Points to the order parameters in the order calldata.
             let orderParamsOffsetPtr := add(
@@ -527,157 +543,52 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             // Points to the consideration items offset value.
             let considerationItemsOffsetPtr := add(
                 orderParamsOffsetPtr,
-                relativeLengthOffset
-            ) //mload(add(orderParamsOffset, 0x60))
+                relativeItemsLengthOffset
+            )
             // Value of the consideration items offset, relative to the start of order parameters.
             let considerationItemsOffsetValue := mload(
                 considerationItemsOffsetPtr
             )
-            // length := mload(considerationItemsOffset)
-            // output2 := mload(
-            //     add(
-            //         orderCalldata,
-            //         add(orderParamsOffset, considerationItemsOffsetValue)
-            //     )
-            // )
-            // output3 := mload(
-            //     add(
-            //         orderCalldata,
-            //         add(
-            //             orderParamsOffset,
-            //             add(considerationItemsOffsetValue, 0x20)
-            //         )
-            //     )
-            // )
-
-            // This is correct value
-            // output4Other := mload(
-            //     add(orderParamsOffset, considerationItemsOffsetValue)
-            // )
-            let absoluteLengthPtr := add(
+            lengthPtr := add(
                 orderParamsOffsetPtr,
                 considerationItemsOffsetValue
             )
-            let length := mload(absoluteLengthPtr)
-            mstore(absoluteLengthPtr, sub(length, amtToSubtractFromLength))
         }
     }
 
     function _getLengthAtOffsetInOrderCalldata(
         bytes memory orderCalldata,
+        // Relative offset of start of order parameters
+        // in the order calldata.
         uint256 relativeOrderParametersOffset,
-        uint256 relativeLengthOffset
-    ) internal returns (uint256 length) {
-        bytes32 considerationItemsOffsetValue;
+        // Relative offset of items pointer (which points to items' length)
+        // to the start of order parameters in order calldata.
+        uint256 relativeItemsLengthOffset
+    ) internal pure returns (uint256 length) {
+        bytes32 lengthPtr = _getItemsLengthPointerInOrderCalldata(
+            orderCalldata,
+            relativeOrderParametersOffset,
+            relativeItemsLengthOffset
+        );
         assembly {
-            // Points to the order parameters in the order calldata.
-            let orderParamsOffsetPtr := add(
-                orderCalldata,
-                relativeOrderParametersOffset
-            )
-            // Points to the consideration items offset value.
-            let considerationItemsOffsetPtr := add(
-                orderParamsOffsetPtr,
-                relativeLengthOffset
-            ) //mload(add(orderParamsOffset, 0x60))
-            // Value of the consideration items offset, relative to the start of order parameters.
-            considerationItemsOffsetValue := mload(considerationItemsOffsetPtr)
-            // length := mload(considerationItemsOffset)
-            // output2 := mload(
-            //     add(
-            //         orderCalldata,
-            //         add(orderParamsOffset, considerationItemsOffsetValue)
-            //     )
-            // )
-            // output3 := mload(
-            //     add(
-            //         orderCalldata,
-            //         add(
-            //             orderParamsOffset,
-            //             add(considerationItemsOffsetValue, 0x20)
-            //         )
-            //     )
-            // )
-
-            // This is correct value
-            // output4Other := mload(
-            //     add(orderParamsOffset, considerationItemsOffsetValue)
-            // )
-            length := mload(
-                add(orderParamsOffsetPtr, considerationItemsOffsetValue)
-            )
-
-            // output4 := mload(
-            //     add(
-            //         orderCalldata,
-            //         add(
-            //             orderParamsOffset,
-            //             add(considerationItemsOffsetValue, 0x40)
-            //         )
-            //     )
-            // )
-
-            // output5 := mload(
-            //     add(
-            //         orderCalldata,
-            //         add(
-            //             orderParamsOffset,
-            //             add(considerationItemsOffsetValue, 0x60)
-            //         )
-            //     )
-            // )
-            // output6 := mload(
-            //     add(
-            //         orderCalldata,
-            //         add(
-            //             orderParamsOffset,
-            //             add(considerationItemsOffsetValue, 0x80)
-            //         )
-            //     )
-            // )
-            // length := mload(
-            //     add(
-            //         orderCalldata,
-            //         add(
-            //             orderParamsOffset,
-            //             add(considerationItemsOffsetValue, 0x40)
-            //         )
-            //     )
-            // )
-
-            // let absoluteLengthOffset := add(orderCalldata, relativeLengthOffset)
-            // length := mload(considerationItemsOffsetValue)
+            length := mload(lengthPtr)
         }
-        // emit log_named_bytes32("output0", output0);
-        // emit log_named_bytes32(
-        //     "considerationItemsOffsetValue",
-        //     considerationItemsOffsetValue
-        // );
-        // emit log_named_bytes32("output2", output2);
-        // emit log_named_bytes32("output3", output3);
-        // emit log_named_bytes32("output4", output4);
-        // emit log_named_bytes32("output4Other", output4Other);
-        // emit log_named_bytes32("output5", output5);
-        // emit log_named_bytes32("output6", output6);
-        // emit log_named_uint("length foo", length);
     }
 
     function _performTestFulfillOrderRevertInvalidArrayLength(
         ConsiderationInterface consideration,
         Order memory order,
         bytes memory fulfillOrderCalldata,
-        uint256 itemsLengthFieldOffset,
+        // Relative offset of start of order parameters
+        // in the order calldata.
+        uint256 relativeOrderParametersOffset,
+        // Relative offset of items pointer (which points to items' length)
+        // to the start of order parameters in order calldata.
+        uint256 relativeItemsLengthOffset,
         uint256 originalItemsLength,
         uint256 amtToSubtractFromItemsLength
     ) internal {
         _validateOrder(order, consideration);
-        // emit log_named_bytes("all bytes", fulfillOrderCalldata);
-
-        // uint256 initialItemsLength = _getLengthAtOffsetInOrderCalldata(
-        //     fulfillOrderCalldata,
-        //     itemsLengthFieldOffset
-        // );
-        // emit log_named_uint("initial length", initialItemsLength);
 
         bool overwriteItemsLength = amtToSubtractFromItemsLength > 0;
         if (overwriteItemsLength) {
@@ -687,8 +598,8 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             // total array length.
             subtractAmountFromLengthInOrderCalldata(
                 fulfillOrderCalldata,
-                0xa4,
-                0x60,
+                relativeOrderParametersOffset,
+                relativeItemsLengthOffset,
                 amtToSubtractFromItemsLength
             );
         }
@@ -697,12 +608,11 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             fulfillOrderCalldata,
             // Relative offset of start of order parameters
             // in the order calldata.
-            0xa4,
+            relativeOrderParametersOffset,
             // Relative offset of consideration items
             // pointer to the start of order parameters in order calldata.
-            0x60
+            relativeItemsLengthOffset
         );
-        emit log_named_uint("final length", finalItemsLength);
 
         assertEq(
             finalItemsLength,
@@ -741,9 +651,7 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             OrderParameters memory _orderParameters,
 
         ) = _prepareOrder(1, totalConsiderationItems);
-        // _orderParameters.consideration[0].recipient = payable(
-        //     address(uint160(MAX_INT))
-        // );
+
         // Get the calldata that will be passed into fulfillOrder.
         bytes memory fulfillOrderCalldata = abi.encodeWithSelector(
             consideration.fulfillOrder.selector,
@@ -755,6 +663,7 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             consideration,
             _order,
             fulfillOrderCalldata,
+            0xa4,
             0x60,
             _orderParameters.consideration.length,
             amountToSubtractFromConsiderationItemsLength
