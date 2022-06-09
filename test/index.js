@@ -1690,10 +1690,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             return receipt;
           });
         });
-        it("ERC721 <=> ERC20 (cross chain, EIP-1271 signature)", async () => {
-          // Override default EIP-1271 wallet with a special cross chain version that doesn't use EIP-2098 signature despite having signature length of 65.
+        it("ERC721 <=> ERC20 (EIP-1271 signature on non-ECDSA 64 bytes)", async () => {
           const sellerContract = await deployContract(
-            "EIP1271WalletCrossChain",
+            "EIP1271Wallet",
             seller,
             seller.address
           );
@@ -1751,30 +1750,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
           );
 
-          // Simulate Axelar cross chain GMP commandId
-          const commandId = ethers.utils.hexZeroPad("0x01", 32);
-
-          // Simulate Axelar cross chain GMP execution
-          await sellerContract.execute(
-            commandId,
-            "Polygon",
-            seller.address,
-            digest
-          );
-
-          // Calculate approvedHash
-          const approvedHash = keccak256(
-            ethers.utils.solidityPack(
-              ["bytes32", "string", "string", "bytes"],
-              [commandId, "Polygon", seller.address, digest]
-            )
-          );
-
-          // Calculate cross chain signature
-          const signature = ethers.utils.solidityPack(
-            ["bytes32", "bytes32", "uint8"],
-            [commandId, approvedHash, 1]
-          );
+          const signature = `0x`.padEnd(130, "f");
 
           const basicOrderParameters = {
             ...getBasicOrderParameters(
@@ -1799,6 +1775,96 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
             return receipt;
           });
+        });
+        it("ERC721 <=> ERC20 (EIP-1271 signature on non-ECDSA 65 bytes)", async () => {
+          const sellerContract = await deployContract(
+            "EIP1271Wallet",
+            seller,
+            seller.address
+          );
+
+          // Seller mints nft to contract
+          const nftId = await mint721(sellerContract);
+
+          // Seller approves marketplace contract to transfer NFT
+          await expect(
+            sellerContract
+              .connect(seller)
+              .approveNFT(testERC721.address, marketplaceContract.address)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(
+              sellerContract.address,
+              marketplaceContract.address,
+              true
+            );
+
+          // Buyer mints ERC20
+          const tokenAmount = minRandom(100);
+          await mintAndApproveERC20(
+            buyer,
+            marketplaceContract.address,
+            tokenAmount
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              sellerContract.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash } = await createOrder(
+            sellerContract,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller
+          );
+
+          // Compute the digest based on the order hash
+          const { domainSeparator } = await marketplaceContract.information();
+          const digest = keccak256(
+            `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
+          );
+
+          await sellerContract.registerDigest(digest, true);
+
+          const signature = `0x`.padEnd(132, "f");
+
+          const basicOrderParameters = {
+            ...getBasicOrderParameters(
+              2, // ERC20ForERC721
+              order
+            ),
+            signature,
+          };
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters);
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+
+          await sellerContract.registerDigest(digest, false);
         });
         it("ERC721 <=> ERC20 (basic, EIP-1271 signature w/ non-standard length)", async () => {
           // Seller mints nft to contract

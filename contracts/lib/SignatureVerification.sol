@@ -132,10 +132,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 let cachedWordOverwrittenByDigest := mload(digestPtr)
 
                 // Write the selector first, since it overlaps the digest.
-                mstore(
-                    selectorPtr,
-                    EIP1271_isValidSignature_selector
-                )
+                mstore(selectorPtr, EIP1271_isValidSignature_selector)
                 // Write digest next
                 mstore(digestPtr, digest)
                 // Call the signer with `isValidSignature` to validate the signature.
@@ -143,7 +140,10 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     gas(),
                     signer,
                     selectorPtr,
-                    add(signatureLength, EIP1271_isValidSignature_calldata_baseLength),
+                    add(
+                        signatureLength,
+                        EIP1271_isValidSignature_calldata_baseLength
+                    ),
                     0,
                     0x20
                 )
