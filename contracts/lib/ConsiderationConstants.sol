@@ -279,9 +279,16 @@ bytes32 constant ECDSA_twentySeventhAndTwentyEighthBytesSet = (
     0x0000000000000000000000000000000000000000000000000000000101000000
 );
 uint256 constant ECDSA_MaxLength = 65;
+uint256 constant ECDSA_signature_s_offset = 0x40;
+uint256 constant ECDSA_signature_v_offset = 0x60;
+
 bytes32 constant EIP1271_isValidSignature_selector = (
     0x1626ba7e00000000000000000000000000000000000000000000000000000000
 );
+uint256 constant EIP1271_isValidSignature_signatureHead_negativeOffset = 0x20;
+uint256 constant EIP1271_isValidSignature_digest_negativeOffset = 0x40;
+uint256 constant EIP1271_isValidSignature_selector_negativeOffset = 0x44;
+uint256 constant EIP1271_isValidSignature_calldata_baseLength = 0x64;
 
 // abi.encodeWithSignature("NoContract(address)")
 uint256 constant NoContract_error_signature = (
