@@ -21,7 +21,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
     /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
-     *      is not 32 or 33 bytes or if the recovered signer does not match the
+     *      is not 64 or 65 bytes or if the recovered signer does not match the
      *      supplied signer.
      *
      * @param signer    The signer for the order.
@@ -66,7 +66,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
 
                 // If diff is 0 or 1, it may be an ECDSA signature.
                 // Try to recover signer.
-                if lt(lenDiff, 2) {
+                if iszero(gt(lenDiff, 1)) {
                     // Read the signature `s` value.
                     let originalSignatureS := mload(
                         add(signature, ECDSA_signature_s_offset)
@@ -81,10 +81,14 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                         mload(add(signature, ECDSA_signature_v_offset))
                     )
 
-                    if eq(lenDiff, 1) {
+                    // If lenDiff is 1, parse 64-byte signature as ECDSA.
+                    if lenDiff {
                         // Extract yParity from highest bit of vs and add 27 to
                         // get v.
-                        v := add(shr(255, originalSignatureS), 27)
+                        v := add(
+                            shr(MaxUint8, originalSignatureS),
+                            Signature_lower_v
+                        )
 
                         // Extract canonical s from vs, all but the highest bit.
                         // Temporarily overwrite the original `s` value in the
@@ -110,12 +114,12 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     // address if the signature is invalid.
                     pop(
                         staticcall(
-                            5000, // Gas required by the ecrecover precompile.
-                            1, // Call the ecrecover precompile at address(1).
+                            Ecrecover_gas, // Gas used by ecrecover precompile.
+                            Ecrecover_precompile, // Call ecrecover precompile.
                             wordBeforeSignaturePtr, // Use data memory location.
-                            0x80, // Provide size of digest, r, s, and v.
+                            Ecrecover_args_size, // Size of digest, r, s, and v.
                             0, // Write result to scratch space.
-                            0x20 // Provide size of returned result.
+                            OneWord // Provide size of returned result.
                         )
                     )
 
@@ -137,8 +141,9 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 }
 
                 // Set success to true if the signature provided was a valid
-                // ECDSA signature.
-                success := eq(signer, recoveredSigner)
+                // ECDSA signature and the signer is not the null address. Use
+                // gt instead of direct as success is used outside of assembly.
+                success := and(eq(signer, recoveredSigner), gt(signer, 0))
             }
 
             // If the signature was not verified with ecrecover, try EIP1271.
@@ -146,7 +151,10 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 // Temporarily overwrite the word before the signature length
                 // and use it as the head of the signature input to
                 // `isValidSignature`, which has a value of 64.
-                mstore(wordBeforeSignaturePtr, 0x40)
+                mstore(
+                    wordBeforeSignaturePtr,
+                    EIP1271_isValidSignature_signature_head_offset
+                )
 
                 // Get pointer to use for the selector of `isValidSignature`.
                 let selectorPtr := sub(
@@ -185,7 +193,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                         EIP1271_isValidSignature_calldata_baseLength
                     ),
                     0,
-                    0x20
+                    OneWord
                 )
 
                 // Determine if the signature is valid on successful calls.
