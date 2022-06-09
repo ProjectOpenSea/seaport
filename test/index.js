@@ -1911,10 +1911,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable"
         );
-        const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+        const gpDeployer = await GPDeployer.deploy(
+          owner.address,
+          ethers.utils.formatBytes32String("0")
+        );
         await gpDeployer.deployed();
         //deploy GP
-        const salt = !extraCheap ? randomHex() : constants.HashZero;
+        const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
       });
 
@@ -1930,10 +1933,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable"
         );
-        const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+        const gpDeployer = await GPDeployer.deploy(
+          owner.address,
+          ethers.utils.formatBytes32String("0")
+        );
         await gpDeployer.deployed();
         //deploy GP
-        const salt = !extraCheap ? randomHex() : constants.HashZero;
+        const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
       });
 
@@ -1969,10 +1975,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable"
         );
-        const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+        const gpDeployer = await GPDeployer.deploy(
+          owner.address,
+          ethers.utils.formatBytes32String("0")
+        );
         await gpDeployer.deployed();
         //deploy GP
-        const salt = !extraCheap ? randomHex() : constants.HashZero;
+        const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
       });
 
@@ -2008,16 +2017,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
   describe("Zone - Global Pausable Deployer", async () => {
     it("Lets the Zone Deployer owner transfer ownership via a two-stage process", async () => {});
-
     await whileImpersonating(owner.address, provider, async () => {
       //deploy GPD
       const GPDeployer = await ethers.getContractFactory(
         "DeployerGlobalPausable"
       );
-      const gpDeployer = await GPDeployer.deploy(owner.address, 0);
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
       await gpDeployer.deployed();
       //deploy GP
-      const salt = !extraCheap ? randomHex() : constants.HashZero;
+      const salt = randomHex();
       zone.address = await gpDeployer.createZone(salt);
     });
 
