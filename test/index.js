@@ -42,6 +42,11 @@ const VERSION = !process.env.REFERENCE ? "1.1" : "rc.1.1";
 
 const minRandom = (min) => randomBN(10).add(min);
 
+const getCustomRevertSelector = (customErrorString) =>
+  ethers.utils
+    .keccak256(ethers.utils.toUtf8Bytes(customErrorString))
+    .slice(0, 10);
+
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
   let zone;
@@ -3759,18 +3764,37 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.signature = "0x";
 
         if (!process.env.REFERENCE) {
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSignature()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
 
           // cannot validate it with no signature from a random account
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
+          await expect(marketplaceContract.connect(owner).validate([order])).to
+            .be.reverted;
+
+          tx = await marketplaceContract
+            .connect(owner)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
         } else {
           await expect(
             marketplaceContract
@@ -3864,18 +3888,35 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // cannot fill it with no signature yet
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSignature()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSignature");
+          ).to.be.reverted;
 
           // cannot validate it with no signature from a random account
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSignature");
+          tx = await marketplaceContract
+            .connect(owner)
+            .populateTransaction.validate([order]);
+          returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
+          await expect(marketplaceContract.connect(owner).validate([order])).to
+            .be.reverted;
         } else {
           // cannot fill it with no signature yet
           await expect(
@@ -3960,18 +4001,35 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // cannot fill it with no signature yet
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSignature()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSignature");
+          ).to.be.reverted;
+
+          tx = await marketplaceContract
+            .connect(owner)
+            .populateTransaction.validate([order]);
+          returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
 
           // cannot validate it with no signature from a random account
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSignature");
+          await expect(marketplaceContract.connect(owner).validate([order])).to
+            .be.reverted;
         } else {
           // cannot fill it with no signature yet
           await expect(
@@ -4289,13 +4347,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSigner()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           // Cannot fill order anymore
           await expect(
@@ -4383,13 +4453,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSigner()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           // Cannot fill order anymore
           await expect(
@@ -4477,13 +4559,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSigner()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           // Cannot fill order anymore
           await expect(
@@ -10960,24 +11054,48 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           order
         );
 
+        let expectedRevertReason =
+          getCustomRevertSelector("BadSignatureV(uint8)") +
+          "1".padStart(64, "0");
+
+        let tx = await marketplaceContract
+          .connect(buyer)
+          .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
+            value,
+          });
+        let returnData = await provider.call(tx);
+        expect(returnData).to.equal(expectedRevertReason);
+
         await expect(
           marketplaceContract
             .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith("BadSignatureV(1)");
+        ).to.be.reverted;
 
         // construct an invalid signature
         basicOrderParameters.signature = "0x".padEnd(130, "f") + "1c";
 
+        expectedRevertReason = getCustomRevertSelector(
+          "InvalidSigner()"
+        ).padEnd(66, "0");
+
+        tx = await marketplaceContract
+          .connect(buyer)
+          .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
+            value,
+          });
+        returnData = await provider.call(tx);
+        expect(returnData).to.equal(expectedRevertReason);
+
         await expect(
           marketplaceContract
             .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith("InvalidSignature");
+        ).to.be.reverted;
 
         basicOrderParameters.signature = originalSignature;
 
@@ -11186,11 +11304,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
 
         if (!process.env.REFERENCE) {
+          const expectedRevertReason = getCustomRevertSelector(
+            "BadContractSignature()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillBasicOrder(basicOrderParameters);
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.revertedWith("BadContractSignature");
+          ).to.be.reverted;
         } else {
           await expect(
             marketplaceContract
