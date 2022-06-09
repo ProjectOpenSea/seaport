@@ -181,4 +181,10 @@ interface ConsiderationEventsAndErrors {
      *      available orders when none are fulfillable.
      */
     error NoSpecifiedOrdersAvailable();
+
+    /**
+     * @dev Revert with an error when attempting to fulfill an order with an
+     *      offer for ETH outside of matching orders.
+     */
+    error InvalidNativeOfferItem();
 }

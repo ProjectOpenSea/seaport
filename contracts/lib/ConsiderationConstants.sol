@@ -354,3 +354,13 @@ uint256 constant InexactFraction_error_signature = (
     0xc63cf08900000000000000000000000000000000000000000000000000000000
 );
 uint256 constant InexactFraction_error_len = 0x20;
+
+uint256 constant NumBitsAfterSelector = 0xe0;
+
+// 69 is the lowest modulus for which the remainder
+// of every selector other than the two match functions
+// is greater than those of the match functions.
+uint256 constant NonMatchSelector_MagicModulus = 69;
+// Of the two match function selectors, the highest
+// remainder modulo 69 is 29.
+uint256 constant NonMatchSelector_MagicRemainder = 0x1d;

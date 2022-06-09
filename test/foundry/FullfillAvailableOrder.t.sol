@@ -58,7 +58,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
     }
 
     function testFulfillAvailableOrdersOverflowOfferSide() public {
-        for (uint256 i; i < 4; ++i) {
+        // skip eth
+        for (uint256 i = 1; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;

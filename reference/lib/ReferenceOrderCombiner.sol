@@ -194,6 +194,10 @@ contract ReferenceOrderCombiner is
         // Track the order hash for each order being fulfilled.
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
 
+        // Check if we are in a match function
+        bool nonMatchFn = msg.sig != 0x55944a42 && msg.sig != 0xa8174404;
+        bool anyNativeOfferItems;
+
         // Iterate over each order.
         for (uint256 i = 0; i < totalOrders; ++i) {
             // Retrieve the current order.
@@ -259,6 +263,10 @@ contract ReferenceOrderCombiner is
             for (uint256 j = 0; j < offer.length; ++j) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = offer[j];
+
+                anyNativeOfferItems =
+                    anyNativeOfferItems ||
+                    offerItem.itemType == ItemType.NATIVE;
 
                 // Apply order fill fraction to offer item end amount.
                 uint256 endAmount = _getFraction(
@@ -346,6 +354,10 @@ contract ReferenceOrderCombiner is
                 orderToExecute.receivedItems[j].amount = considerationItem
                     .startAmount;
             }
+        }
+
+        if (anyNativeOfferItems && nonMatchFn) {
+            revert InvalidNativeOfferItem();
         }
 
         // Apply criteria resolvers to each order as applicable.
