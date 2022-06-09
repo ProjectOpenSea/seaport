@@ -630,20 +630,18 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         assertEq(success, !overwriteItemsLength);
     }
 
-    function testFulfillOrderRevertInvalidConsiderationItemsLength()
-        public
-    // uint256 fuzzTotalConsiderationItems,
-    // uint256 fuzzAmountToSubtractFromConsiderationItemsLength
-    {
-        uint256 totalConsiderationItems = 255; //fuzzTotalConsiderationItems % 200;
+    function testFulfillOrderRevertInvalidConsiderationItemsLength(
+        uint256 fuzzTotalConsiderationItems,
+        uint256 fuzzAmountToSubtractFromConsiderationItemsLength
+    ) public {
+        uint256 totalConsiderationItems = fuzzTotalConsiderationItems % 200;
         // Set amount to subtract from consideration item length
         // to be at most totalConsiderationItems.
-        uint256 amountToSubtractFromConsiderationItemsLength = 1;
-        //  totalConsiderationItems >
-        //         0
-        //         ? fuzzAmountToSubtractFromConsiderationItemsLength %
-        //             totalConsiderationItems
-        //         : 0;
+        uint256 amountToSubtractFromConsiderationItemsLength = totalConsiderationItems >
+                0
+                ? fuzzAmountToSubtractFromConsiderationItemsLength %
+                    totalConsiderationItems
+                : 0;
 
         // Create order
         (
