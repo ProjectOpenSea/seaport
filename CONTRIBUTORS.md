@@ -63,3 +63,4 @@ leastwood                      | `leastwood.eth`
 blockdev                       | `blockd3v.eth`
 dmitriia                       |
 bokeh-eth                      |
+fiveoutofnine                  | `fiveoutofnine.eth`
