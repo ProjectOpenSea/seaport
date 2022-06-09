@@ -137,7 +137,7 @@ enum ItemType {
 enum Side {
     // 0: Items that can be spent
     OFFER,
-    
+
     // 1: Items that must be received
     CONSIDERATION
 }

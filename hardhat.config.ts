@@ -45,6 +45,9 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 1000000,
           },
+          debug: {
+            debugInfo: [],
+          },
         },
       },
       "contracts/conduit/ConduitController.sol": {
@@ -54,6 +57,9 @@ const config: HardhatUserConfig = {
           optimizer: {
             enabled: true,
             runs: 1000000,
+          },
+          debug: {
+            debugInfo: [],
           },
         },
       },

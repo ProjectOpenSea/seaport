@@ -592,6 +592,48 @@ contract FulfillOrderTest is BaseOrderTest {
         context.consideration.fulfillOrder{ value: 1 }(order, bytes32(0));
     }
 
+    function testFulfillOrderRevertInvalidConsiderationItemsLength(
+        uint256 fuzzTotalConsiderationItems,
+        uint256 fuzzAmountToSubtractFromConsiderationItemsLength
+    ) public {
+        uint256 totalConsiderationItems = fuzzTotalConsiderationItems % 200;
+        // Set amount to subtract from consideration item length
+        // to be at most totalConsiderationItems.
+        uint256 amountToSubtractFromConsiderationItemsLength = totalConsiderationItems >
+                0
+                ? fuzzAmountToSubtractFromConsiderationItemsLength %
+                    totalConsiderationItems
+                : 0;
+
+        // Create order
+        (
+            Order memory _order,
+            OrderParameters memory _orderParameters,
+
+        ) = _prepareOrder(1, totalConsiderationItems);
+
+        // Get the calldata that will be passed into fulfillOrder.
+        bytes memory fulfillOrderCalldata = abi.encodeWithSelector(
+            consideration.fulfillOrder.selector,
+            _order,
+            conduitKeyOne
+        );
+
+        _performTestFulfillOrderRevertInvalidArrayLength(
+            consideration,
+            _order,
+            fulfillOrderCalldata,
+            // Order parameters starts at 0xa4 relative to the start of the
+            // order calldata because the order calldata starts with 0x20 bytes
+            // for order calldata length, 0x04 bytes for selector, and 0x80
+            // bytes until the start of order parameters.
+            0xa4,
+            0x60,
+            _orderParameters.consideration.length,
+            amountToSubtractFromConsiderationItemsLength
+        );
+    }
+
     function fulfillOrderEthToErc721(Context memory context)
         external
         stateless

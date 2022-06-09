@@ -10,6 +10,8 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
+import { OneWord } from "../../../contracts/lib/ConsiderationConstants.sol";
+import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { StructCopier } from "./StructCopier.sol";
 import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
@@ -144,6 +146,190 @@ contract BaseOrderTest is
 
     function resetConsiderationComponents() internal {
         delete considerationComponents;
+    }
+
+    function _validateOrder(
+        Order memory order,
+        ConsiderationInterface consideration
+    ) internal {
+        Order[] memory orders = new Order[](1);
+        orders[0] = order;
+        consideration.validate(orders);
+    }
+
+    function _prepareOrder(uint256 tokenId, uint256 totalConsiderationItems)
+        internal
+        returns (
+            Order memory order,
+            OrderParameters memory orderParameters,
+            bytes memory signature
+        )
+    {
+        test1155_1.mint(address(this), tokenId, 10);
+
+        _configureERC1155OfferItem(tokenId, 10);
+        for (uint256 i = 0; i < totalConsiderationItems; i++) {
+            _configureErc20ConsiderationItem(alice, 10);
+        }
+        uint256 nonce = consideration.getCounter(address(this));
+
+        orderParameters = getOrderParameters(
+            payable(this),
+            OrderType.FULL_OPEN
+        );
+        OrderComponents memory orderComponents = toOrderComponents(
+            orderParameters,
+            nonce
+        );
+
+        bytes32 orderHash = consideration.getOrderHash(orderComponents);
+
+        signature = signOrder(consideration, alicePk, orderHash);
+        order = Order(orderParameters, signature);
+    }
+
+    function _subtractAmountFromLengthInOrderCalldata(
+        bytes memory orderCalldata,
+        uint256 relativeOrderParametersOffset,
+        uint256 relativeItemsLengthOffset,
+        uint256 amtToSubtractFromLength
+    ) internal pure {
+        bytes32 lengthPtr = _getItemsLengthPointerInOrderCalldata(
+            orderCalldata,
+            relativeOrderParametersOffset,
+            relativeItemsLengthOffset
+        );
+        assembly {
+            let length := mload(lengthPtr)
+            mstore(lengthPtr, sub(length, amtToSubtractFromLength))
+        }
+    }
+
+    function _getItemsLengthPointerInOrderCalldata(
+        bytes memory orderCalldata,
+        uint256 relativeOrderParametersOffset,
+        uint256 relativeItemsLengthOffset
+    ) internal pure returns (bytes32 lengthPtr) {
+        assembly {
+            // Points to the order parameters in the order calldata.
+            let orderParamsOffsetPtr := add(
+                orderCalldata,
+                relativeOrderParametersOffset
+            )
+            // Points to the items offset value.
+            // Note: itemsOffsetPtr itself is not the offset value;
+            // the value stored at itemsOffsetPtr is the offset value.
+            let itemsOffsetPtr := add(
+                orderParamsOffsetPtr,
+                relativeItemsLengthOffset
+            )
+            // Value of the items offset, which is the offset of the items
+            // array relative to the start of order parameters.
+            let itemsOffsetValue := mload(itemsOffsetPtr)
+
+            // The memory for an array will always start with a word
+            // indicating the length of the array, so length pointer
+            // can simply point to the start of the items array.
+            lengthPtr := add(orderParamsOffsetPtr, itemsOffsetValue)
+        }
+    }
+
+    function _getItemsLengthAtOffsetInOrderCalldata(
+        bytes memory orderCalldata,
+        // Relative offset of start of order parameters
+        // in the order calldata.
+        uint256 relativeOrderParametersOffset,
+        // Relative offset of items pointer (which points to items' length)
+        // to the start of order parameters in order calldata.
+        uint256 relativeItemsLengthOffset
+    ) internal pure returns (uint256 length) {
+        bytes32 lengthPtr = _getItemsLengthPointerInOrderCalldata(
+            orderCalldata,
+            relativeOrderParametersOffset,
+            relativeItemsLengthOffset
+        );
+        assembly {
+            length := mload(lengthPtr)
+        }
+    }
+
+    function _performTestFulfillOrderRevertInvalidArrayLength(
+        ConsiderationInterface consideration,
+        Order memory order,
+        bytes memory fulfillOrderCalldata,
+        // Relative offset of start of order parameters
+        // in the order calldata.
+        uint256 relativeOrderParametersOffset,
+        // Relative offset of items pointer (which points to items' length)
+        // to the start of order parameters in order calldata.
+        uint256 relativeItemsLengthOffset,
+        uint256 originalItemsLength,
+        uint256 amtToSubtractFromItemsLength
+    ) internal {
+        _validateOrder(order, consideration);
+
+        bool overwriteItemsLength = amtToSubtractFromItemsLength > 0;
+        if (overwriteItemsLength) {
+            // Get the array length from the calldata and
+            // store the length - amtToSubtractFromItemsLength in the calldata
+            // so that the length value does _not_ accurately represent the actual
+            // total array length.
+            _subtractAmountFromLengthInOrderCalldata(
+                fulfillOrderCalldata,
+                relativeOrderParametersOffset,
+                relativeItemsLengthOffset,
+                amtToSubtractFromItemsLength
+            );
+        }
+
+        uint256 finalItemsLength = _getItemsLengthAtOffsetInOrderCalldata(
+            fulfillOrderCalldata,
+            // Relative offset of start of order parameters
+            // in the order calldata.
+            relativeOrderParametersOffset,
+            // Relative offset of items
+            // pointer to the start of order parameters in order calldata.
+            relativeItemsLengthOffset
+        );
+
+        assertEq(
+            finalItemsLength,
+            originalItemsLength - amtToSubtractFromItemsLength
+        );
+
+        bool success = _callConsiderationFulfillOrderWithCalldata(
+            address(consideration),
+            fulfillOrderCalldata
+        );
+
+        // If overwriteItemsLength is True, the call should
+        // have failed (success should be False) and if overwriteItemsLength is False,
+        // the call should have succeeded (success should be True).
+        assertEq(success, !overwriteItemsLength);
+    }
+
+    function _callConsiderationFulfillOrderWithCalldata(
+        address considerationAddress,
+        bytes memory orderCalldata
+    ) internal returns (bool success) {
+        uint256 calldataLength = orderCalldata.length;
+        assembly {
+            // Call fulfillOrder
+            success := call(
+                gas(),
+                considerationAddress,
+                0,
+                // The fn signature and calldata starts after the
+                // first OneWord bytes, as those initial bytes just
+                // contain the length of orderCalldata
+                add(orderCalldata, OneWord),
+                calldataLength,
+                // Store output at empty storage location,
+                // identified using "free memory pointer".
+                mload(0x40),
+                OneWord
+            )
+        }
     }
 
     function _configureConsiderationItem(
