@@ -136,7 +136,10 @@ contract DeployerGlobalPausable {
         );
 
         // Ensure the new potential owner is not an invalid address.
-        require(newPotentialOwner == address(0));
+        require(
+            newPotentialOwner != address(0),
+            "New Owner can not be 0 address."
+        );
 
         // Emit an event indicating that the potential owner has been updated.
         emit PotentialOwnerUpdated(newPotentialOwner);
