@@ -55,7 +55,7 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
             s = vs & EIP2098_allButHighestBitMask;
 
             v = uint8(uint256(vs >> 255)) + 27;
-        } else {
+        } else if (signature.length == 65) {
             (r, s) = abi.decode(signature, (bytes32, bytes32));
             v = uint8(signature[64]);
 
@@ -63,6 +63,8 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
             if (v != 27 && v != 28) {
                 revert BadSignatureV(v);
             }
+        } else {
+            revert InvalidSignature();
         }
 
         // Attempt to recover signer using the digest and signature parameters.
@@ -70,7 +72,7 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
 
         // Disallow invalid signers.
         if (recoveredSigner == address(0)) {
-            revert InvalidSignature();
+            revert InvalidSigner();
             // Should a signer be recovered, but it doesn't match the signer...
         } else if (recoveredSigner != signer) {
             // Attempt EIP-1271 static call to signer in case it's a contract.

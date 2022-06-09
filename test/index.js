@@ -11091,8 +11091,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
             value,
           });
-        returnData = await provider.call(tx);
-        expect(returnData).to.equal(expectedRevertReason);
+        expect(provider.call(tx)).to.be.revertedWith("InvalidSigner");
 
         await expect(
           marketplaceContract
