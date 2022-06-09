@@ -358,7 +358,7 @@ uint256 constant InexactFraction_error_signature = (
 uint256 constant InexactFraction_error_len = 0x20;
 
 uint256 constant UnusedItemParameters_error_signature = (
-  0x6ab37ce700000000000000000000000000000000000000000000000000000000
+    0x6ab37ce700000000000000000000000000000000000000000000000000000000
 );
 
 uint256 constant UnusedItemParameters_error_ptr = 0x00;
@@ -373,4 +373,3 @@ uint256 constant NonMatchSelector_MagicModulus = 69;
 // Of the two match function selectors, the highest
 // remainder modulo 69 is 29.
 uint256 constant NonMatchSelector_MagicRemainder = 0x1d;
-
