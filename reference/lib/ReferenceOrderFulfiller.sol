@@ -159,10 +159,8 @@ contract ReferenceOrderFulfiller is
             numerator,
             denominator,
             fulfillerConduitKey,
-            (orderParameters.endTime - orderParameters.startTime),
-            (block.timestamp - orderParameters.startTime),
-            ((orderParameters.endTime - orderParameters.startTime) -
-                (block.timestamp - orderParameters.startTime))
+            orderParameters.startTime,
+            orderParameters.endTime
         );
 
         // Put ether value supplied by the caller on the stack.

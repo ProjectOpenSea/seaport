@@ -125,13 +125,13 @@ contract ReferenceVerifiers is
         uint256 orderStatusNumerator = orderStatus.numerator;
 
         // If the order is not entirely unused...
-        if (orderStatus.numerator != 0) {
+        if (orderStatusNumerator != 0) {
             // ensure the order has not been partially filled when not allowed.
             if (onlyAllowUnused) {
                 // Always revert on partial fills when onlyAllowUnused is true.
                 revert OrderPartiallyFilled(orderHash);
                 // Otherwise, ensure that order has not been entirely filled.
-            } else if (orderStatus.numerator >= orderStatus.denominator) {
+            } else if (orderStatusNumerator >= orderStatus.denominator) {
                 // Only revert if revertOnInvalid has been supplied as true.
                 if (revertOnInvalid) {
                     revert OrderAlreadyFilled(orderHash);
