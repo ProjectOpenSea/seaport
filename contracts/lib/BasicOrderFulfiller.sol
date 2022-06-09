@@ -167,6 +167,148 @@ contract BasicOrderFulfiller is OrderValidator {
             )
         }
 
+        // Declare variables for nftSender and nativeOrERC20Sender.
+        // The ERC721/ERC1155 item is sent from nftSender to nativeOrERC20Sender.
+        address nftSender;
+        // The ERC20/ETH item is sent from nativeOrERC20Sender to nftSender.
+        address nativeOrERC20Sender;
+
+        // Declare a boolean indicating whether the route includes an 1155 transfer.
+        // If it does not, it will include a 721 transfer.
+        // bool routeHasErc1155;
+        ItemType nftItemType;
+
+        // Declare a variable for the offset of the actual nft token fields in calldata
+        // relative to the consideration token fields.
+        // The offer token fields are offset from their respective consideration token
+        // fields by 160 bytes.
+        uint256 nftTokenFieldCalldataOffset;
+        assembly {
+            // Read the offerer from calldata
+            let offerer := calldataload(BasicOrder_offerer_cdPtr)
+            switch lt(route, 4)
+            case 1 {
+                // The NFT is on the offer side, so an offset is added to the
+                // calldata pointers for the token fields.
+                nftTokenFieldCalldataOffset := BasicOrder_offerOffsetFromConsideration
+                // If the order route is 2 or 3, the offerer sends the ERC721 or ERC1155
+                // item and the fulfiller sends the ERC20 item.
+                nativeOrERC20Sender := caller()
+                nftSender := offerer
+                conduitKey := calldataload(BasicOrder_offererConduit_cdPtr)
+            }
+            default {
+                // If the order route is 4 or 5, the fulfiller sends the ERC721 or ERC1155
+                // item and the offerer sends the ERC20 item.
+                nativeOrERC20Sender := offerer
+                nftSender := caller()
+                conduitKey := calldataload(BasicOrder_fulfillerConduit_cdPtr)
+            }
+            // Even routes involve an ERC1155 item while odd routes involve an ERC721 item.
+            // routeHasErc1155 := mod(route, 2)
+            nftItemType := add(2, mod(route, 2))
+        }
+        // Declare nested scope to minimize stack depth.
+        {
+            address token;
+            uint256 identifier;
+            uint256 amount;
+            assembly {
+                // Read the token from calldata, adding the offset for the NFT fields
+                token := calldataload(
+                    add(
+                        BasicOrder_considerationToken_cdPtr,
+                        nftTokenFieldCalldataOffset
+                    )
+                )
+                // Read the identifier from calldata, adding the offset for the NFT fields
+                identifier := calldataload(
+                    add(
+                        BasicOrder_considerationIdentifier_cdPtr,
+                        nftTokenFieldCalldataOffset
+                    )
+                )
+                // Read the amount from calldata, adding the offset for the NFT fields
+                amount := calldataload(
+                    add(
+                        BasicOrder_considerationAmount_cdPtr,
+                        nftTokenFieldCalldataOffset
+                    )
+                )
+            }
+            _transferIndividual721Or1155Item(
+                nftItemType,
+                token,
+                nftSender,
+                nativeOrERC20Sender,
+                identifier,
+                amount,
+                conduitKey
+            );
+        }
+        // {
+        //     address token;
+        //     uint256 identifier;
+        //     uint256 amount;
+        //     bool unused;
+        //     assembly {
+        //         let ethOrErc20TokenOffset := sub(
+        //             BasicOrder_offerOffsetFromConsideration,
+        //             nftTokenFieldCalldataOffset
+        //         )
+        //         // Read the token from calldata, adding the offset for the NFT fields
+        //         token := calldataload(
+        //             add(
+        //                 BasicOrder_considerationToken_cdPtr,
+        //                 ethOrErc20TokenOffset
+        //             )
+        //         )
+        //         // Read the identifier from calldata, adding the offset for the NFT fields
+        //         identifier := calldataload(
+        //             add(
+        //                 BasicOrder_considerationIdentifier_cdPtr,
+        //                 ethOrErc20TokenOffset
+        //             )
+        //         )
+        //         // Read the amount from calldata, adding the offset for the NFT fields
+        //         amount := calldataload(
+        //             add(
+        //                 BasicOrder_considerationAmount_cdPtr,
+        //                 ethOrErc20TokenOffset
+        //             )
+        //         )
+
+        //         if or (
+        //             // Ensure token is empty if itemType is 0
+        //             and(iszero(additionalRecipientsItemType), gt(token, 0)),
+        //             // Ensure identifier is not provided
+        //             identifier
+        //         ) {
+        //           mstore(UnusedItemParameters_error_ptr, UnusedItemParameters_error_signature)
+        //           revert(UnusedItemParameters_error_ptr, UnusedItemParameters_error_length)
+        //         }
+        //     }
+        //     if (unused) {
+        //         revert UnusedItemParameters();
+        //     }
+        //     if (additionalRecipientsItemType == ItemType.NATIVE) {
+        //       // Transfer native to recipients, return excess to caller & wrap up.
+        //       _transferEthAndFinalize(
+        //           amount,
+        //           payable(nftSender),
+        //           parameters.additionalRecipients
+        //       );
+        //     } else {
+        //     // Transfer ERC20 tokens to all recipients and wrap up.
+        //     _transferERC20AndFinalize(
+        //         nativeOrERC20Sender,
+        //         nftSender,
+        //         parameters,
+        //         offerTypeIsAdditionalRecipientsType
+        //     );
+        //     }
+        // }
+
         // Transfer tokens based on the route.
         if (additionalRecipientsItemType == ItemType.NATIVE) {
             // Ensure neither the token nor the identifier parameters are set.
@@ -177,16 +319,6 @@ contract BasicOrderFulfiller is OrderValidator {
                 revert UnusedItemParameters();
             }
 
-            _transferIndividual721Or1155Item(
-                offeredItemType,
-                parameters.offerToken,
-                parameters.offerer,
-                msg.sender,
-                parameters.offerIdentifier,
-                parameters.offerAmount,
-                conduitKey
-            );
-
             // Transfer native to recipients, return excess to caller & wrap up.
             _transferEthAndFinalize(
                 parameters.considerationAmount,
@@ -194,103 +326,13 @@ contract BasicOrderFulfiller is OrderValidator {
                 parameters.additionalRecipients
             );
         } else {
-            // Initialize an accumulator array. From this point forward, no new
-            // memory regions can be safely allocated until the accumulator is
-            // no longer being utilized, as the accumulator operates in an
-            // open-ended fashion from this memory pointer; existing memory may
-            // still be accessed and modified, however.
-            bytes memory accumulator = new bytes(AccumulatorDisarmed);
-
-            // Declare variables for nftSender and erc20Sender. The 721 or 1155
-            // item is sent from nftSender to erc20Sender. The ERC20 item is sent
-            // from erc20Sender to nftSender.
-            // nftSender transfers ERC721 or ERC1155 item to erc20Sender.
-            address nftSender;
-            // erc20Sender transfers ERC20 to nftSender.
-            address erc20Sender;
-
-            // Declare a boolean indicating whether the route includes an 1155 transfer.
-            // If it does not, it will include a 721 transfer.
-            // bool routeHasErc1155;
-            ItemType nftItemType;
-
-            // Declare a variable for the offset of the actual nft token fields in calldata
-            // relative to the consideration token fields.
-            // The offer token fields are offset from their respective consideration token
-            // fields by 160 bytes.
-            uint256 nftTokenFieldCalldataOffset;
-            assembly {
-                // Read the offerer from calldata
-                let offerer := calldataload(BasicOrder_offerer_cdPtr)
-                switch lt(route, 4)
-                case 1 {
-                    // The NFT is on the offer side, so an offset is added to the
-                    // calldata pointers for the token fields.
-                    nftTokenFieldCalldataOffset := BasicOrder_offerOffsetFromConsideration
-                    // If the order route is 2 or 3, the offerer sends the ERC721 or ERC1155
-                    // item and the fulfiller sends the ERC20 item.
-                    erc20Sender := caller()
-                    nftSender := offerer
-                }
-                default {
-                    // If the order route is 4 or 5, the fulfiller sends the ERC721 or ERC1155
-                    // item and the offerer sends the ERC20 item.
-                    erc20Sender := offerer
-                    nftSender := caller()
-                }
-                // Even routes involve an ERC1155 item while odd routes involve an ERC721 item.
-                // routeHasErc1155 := mod(route, 2)
-                nftItemType := add(2, mod(route, 2))
-            }
-            {
-                address token;
-                uint256 identifier;
-                uint256 amount;
-                assembly {
-                    // Read the token from calldata, adding the offset for the NFT fields
-                    token := calldataload(
-                        add(
-                            BasicOrder_considerationToken_cdPtr,
-                            nftTokenFieldCalldataOffset
-                        )
-                    )
-                    // Read the identifier from calldata, adding the offset for the NFT fields
-                    identifier := calldataload(
-                        add(
-                            BasicOrder_considerationIdentifier_cdPtr,
-                            nftTokenFieldCalldataOffset
-                        )
-                    )
-                    // Read the amount from calldata, adding the offset for the NFT fields
-                    amount := calldataload(
-                        add(
-                            BasicOrder_considerationAmount_cdPtr,
-                            nftTokenFieldCalldataOffset
-                        )
-                    )
-                }
-                _transferIndividual721Or1155Item(
-                  nftItemType,
-                  token,
-                  nftSender,
-                  erc20Sender,
-                  identifier,
-                  amount,
-                  conduitKey
-                );
-            }
-
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
-                erc20Sender,
+                nativeOrERC20Sender,
                 nftSender,
                 parameters,
-                offerTypeIsAdditionalRecipientsType,
-                accumulator
+                offerTypeIsAdditionalRecipientsType
             );
-
-            // Trigger any remaining accumulated transfers via call to conduit.
-            _triggerIfArmed(accumulator);
         }
 
         // Clear the reentrancy guard.
@@ -1005,16 +1047,19 @@ contract BasicOrderFulfiller is OrderValidator {
      * @param parameters  The basic order parameters.
      * @param fromOfferer A boolean indicating whether to decrement amount from
      *                    the offered amount.
-     * @param accumulator An open-ended array that collects transfers to execute
-     *                    against a given conduit in a single call.
      */
     function _transferERC20AndFinalize(
         address from,
         address to,
         BasicOrderParameters calldata parameters,
-        bool fromOfferer,
-        bytes memory accumulator
+        bool fromOfferer
     ) internal {
+        // Initialize an accumulator array. From this point forward, no new
+        // memory regions can be safely allocated until the accumulator is
+        // no longer being utilized, as the accumulator operates in an
+        // open-ended fashion from this memory pointer; existing memory may
+        // still be accessed and modified, however.
+        bytes memory accumulator = new bytes(AccumulatorDisarmed);
         // Declare variables for token, amount, conduitKey.
         address token;
         uint256 amount;
@@ -1100,5 +1145,8 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Transfer ERC20 token amount (from account must have proper approval).
         _transferERC20(token, from, to, amount, conduitKey, accumulator);
+
+        // Trigger any remaining accumulated transfers via call to conduit.
+        _triggerIfArmed(accumulator);
     }
 }
