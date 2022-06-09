@@ -9530,20 +9530,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
       await expect(conduitOne.connect(owner).execute([])).to.be.revertedWith(
-        "ChannelClosed"
+        "ChannelClosed",
+        owner
       );
     });
 
     it("Reverts when attempting to execute with 1155 transfers on a conduit when not called from a channel", async () => {
       await expect(
         conduitOne.connect(owner).executeWithBatch1155([], [])
-      ).to.be.revertedWith("ChannelClosed");
+      ).to.be.revertedWith("ChannelClosed", owner);
     });
 
     it("Reverts when attempting to execute batch 1155 transfers on a conduit when not called from a channel", async () => {
       await expect(
         conduitOne.connect(owner).executeBatch1155([])
-      ).to.be.revertedWith("ChannelClosed");
+      ).to.be.revertedWith("ChannelClosed", owner);
     });
 
     it("Retrieves the owner of a conduit", async () => {
@@ -9735,20 +9736,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitOne.connect(seller).executeWithBatch1155(
           [
             {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              from: buyer.address,
-              to: seller.address,
-              identifier: 0,
-              amount: 0,
-            },
-            {
               itemType: 0, // NATIVE (invalid)
               token: constants.AddressZero,
               from: conduitOne.address,
               to: seller.address,
               identifier: 0,
-              amount: 1,
+              amount: 0,
             },
           ],
           []
