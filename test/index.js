@@ -10913,7 +10913,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.revertedWith("BadContractSignature");
         } else {
           await expect(
             marketplaceContract
