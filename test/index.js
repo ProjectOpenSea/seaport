@@ -98,8 +98,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           amount: offerItem.endAmount,
           recipient: fulfiller,
         },
-        offerer: offerer,
-        conduitKey: conduitKey,
+        offerer,
+        conduitKey,
       },
       {
         item: {
@@ -852,7 +852,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   ) => {
     let identifier = 0;
     let amount;
-    let token = contract.address;
+    const token = contract.address;
 
     switch (itemType) {
       case 0:
@@ -1461,7 +1461,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     domainData = {
       name: process.env.REFERENCE ? "Consideration" : "Seaport",
       version: VERSION,
-      chainId: chainId,
+      chainId,
       verifyingContract: marketplaceContract.address,
     };
 
@@ -1792,7 +1792,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   });
 
   describe("Zone - Global Pausable", async () => {
-    let zone = new ethers.Wallet(randomHex(32), provider);
+    const zone = new ethers.Wallet(randomHex(32), provider);
 
     let seller;
     let sellerContract;
@@ -1815,7 +1815,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
     it("Fulfills an order with a global pausable zone", async () => {
       await whileImpersonating(owner.address, provider, async () => {
-        //deploy GPD
+        // deploy GPD
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable",
           owner
@@ -1827,13 +1827,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         await gpDeployer.deployed();
         console.log("gp creator deployed");
-        //deploy GP
+        // deploy GP
         const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
         console.log("called the createZone with: ");
       });
-      //create basic order using GP as zone
-      //execute basic 721 <=> ETH order
+      // create basic order using GP as zone
+      // execute basic 721 <=> ETH order
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
@@ -1877,7 +1877,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
       let gpDeployer;
       await whileImpersonating(owner.address, provider, async () => {
-        //deploy GPD
+        // deploy GPD
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable",
           owner
@@ -1887,12 +1887,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ethers.utils.formatBytes32String("0")
         );
         await gpDeployer.deployed();
-        //deploy GP
+        // deploy GP
         const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
       });
-      //create basic order using GP as zone
-      //execute basic 721 <=> ETH order
+      // create basic order using GP as zone
+      // execute basic 721 <=> ETH order
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
@@ -1905,8 +1905,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         getItemETH(parseEther("1"), parseEther("1"), zone.address),
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
-      //console.log("zone is: ");
-      //console.log(zone);
+      // console.log("zone is: ");
+      // console.log(zone);
 
       const { order, orderHash, value } = await createOrder(
         seller,
@@ -1915,7 +1915,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         consideration,
         2
       );
-      //owner nukes the zone
+      // owner nukes the zone
       await whileImpersonating(owner.address, provider, async () => {
         gpDeployer.killSwitch(zone.address);
       });
@@ -1930,7 +1930,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts if non-owner tries to self destruct the zone", async () => {
       let gpDeployer;
       await whileImpersonating(owner.address, provider, async () => {
-        //deploy GPD
+        // deploy GPD
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable",
           owner
@@ -1940,21 +1940,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ethers.utils.formatBytes32String("0")
         );
         await gpDeployer.deployed();
-        //deploy GP
+        // deploy GP
         const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
       });
 
-      //non owner tries to use GPD to nuke the zone, reverts
+      // non owner tries to use GPD to nuke the zone, reverts
       await whileImpersonating(testERC20.address, provider, async () => {
         await expect(gpDeployer.killSwitch(zone.address)).to.be.reverted;
       });
     });
 
-    it("Zone can cancel restricted orders.", async () => {
+    it("Fulfills an order using executeRestrictedMatchOrderZone", async () => {
       let gpDeployer;
       await whileImpersonating(owner.address, provider, async () => {
-        //deploy GPD
+        // deploy GPD
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable",
           owner
@@ -1964,7 +1964,91 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ethers.utils.formatBytes32String("0")
         );
         await gpDeployer.deployed();
-        //deploy GP
+        // deploy GP
+        const salt = randomHex();
+        zone.address = await gpDeployer.createZone(salt);
+      });
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED, zone can execute or cancel
+      );
+
+      // const { mirrorOrder, mirrorOrderHash } = await createMirrorBuyNowOrder(
+      //   buyer,
+      //   zone,
+      //   order
+      // );
+
+      // const fulfillments = defaultBuyNowMirrorFulfillment;
+
+      // console.log("foo", zone.address, directMarketplaceContract.address, [
+      //   order,
+      //   mirrorOrder,
+      //   fulfillments,
+      // ]);
+      // await gpDeployer.executeRestrictedMatchOrderZone(
+      //   zone.address,
+      //   marketplaceContract.address,
+      //   [],
+      //   []
+      //   // [order, mirrorOrder],
+      //   // fulfillments
+      // );
+      await gpDeployer.cancelOrderZone(
+        zone.address,
+        marketplaceContract.address,
+        order
+      );
+
+      // await withBalanceChecks([order], 0, null, async () => {
+      //   const tx = marketplaceContract
+      //     .connect(buyer)
+      //     .fulfillOrder(order, toKey(false), {
+      //       value,
+      //     });
+      //   const receipt = await (await tx).wait();
+      //   await checkExpectedEvents(tx, receipt, [
+      //     {
+      //       order,
+      //       orderHash,
+      //       fulfiller: buyer.address,
+      //       fulfillerConduitKey: toKey(false),
+      //     },
+      //   ]);
+      //   return receipt;
+      // });
+    });
+
+    it("Zone can cancel restricted orders.", async () => {
+      let gpDeployer;
+      await whileImpersonating(owner.address, provider, async () => {
+        // deploy GPD
+        const GPDeployer = await ethers.getContractFactory(
+          "DeployerGlobalPausable",
+          owner
+        );
+        gpDeployer = await GPDeployer.deploy(
+          owner.address,
+          ethers.utils.formatBytes32String("0")
+        );
+        await gpDeployer.deployed();
+        // deploy GP
         const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
       });
@@ -1990,7 +2074,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         2 // FULL_RESTRICTED, zone can execute or cancel
       );
 
-      gpDeployer.cancelOrderZone(
+      await gpDeployer.cancelOrderZone(
         zone.address,
         marketplaceContract.address,
         order
@@ -1999,7 +2083,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Reverts if non-Zone tries to cancel restricted orders.", async () => {
       await whileImpersonating(owner.address, provider, async () => {
-        //deploy GPD
+        // deploy GPD
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable",
           owner
@@ -2009,7 +2093,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ethers.utils.formatBytes32String("0")
         );
         await gpDeployer.deployed();
-        //deploy GP
+        // deploy GP
         const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
       });
@@ -2042,7 +2126,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts if non-owner tries to use the zone to cancel restricted orders.", async () => {
       let gpDeployer;
       await whileImpersonating(owner.address, provider, async () => {
-        //deploy GPD
+        // deploy GPD
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable",
           owner
@@ -2052,7 +2136,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ethers.utils.formatBytes32String("0")
         );
         await gpDeployer.deployed();
-        //deploy GP
+        // deploy GP
         const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
       });
@@ -2078,7 +2162,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         2 // FULL_RESTRICTED
       );
 
-      //buyer calls zone owner to cancel an order through the zone
+      // buyer calls zone owner to cancel an order through the zone
       await expect(
         gpDeployer
           .connect(buyer)
@@ -2089,7 +2173,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Lets the Zone Deployer owner transfer ownership via a two-stage process", async () => {
       let gpDeployer;
       await whileImpersonating(owner.address, provider, async () => {
-        //deploy GPD
+        // deploy GPD
         const GPDeployer = await ethers.getContractFactory(
           "DeployerGlobalPausable",
           owner
@@ -2099,12 +2183,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ethers.utils.formatBytes32String("0")
         );
         await gpDeployer.deployed();
-        //deploy GP
+        // deploy GP
         const salt = randomHex();
         zone.address = await gpDeployer.createZone(salt);
       });
 
-      //just get any random address as the next potential owner.
+      // just get any random address as the next potential owner.
       await gpDeployer.connect(owner).transferOwnership(buyer.address);
 
       await gpDeployer.connect(owner).cancelOwnershipTransfer();

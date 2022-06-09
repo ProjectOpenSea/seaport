@@ -97,7 +97,8 @@ contract DeployerGlobalPausable {
         );
 
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
-        gp.executeRestrictedOffer(_seaportAddress, orders, fulfillments);
+        gp.isReal();
+        // gp.executeRestrictedOffer(_seaportAddress, orders, fulfillments);
     }
 
     function executeRestrictedMatchAdvancedOrderZone(
