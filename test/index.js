@@ -1875,12 +1875,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
+      let gpDeployer;
       await whileImpersonating(owner.address, provider, async () => {
         //deploy GPD
         const GPDeployer = await ethers.getContractFactory(
-          "DeployerGlobalPausable"
+          "DeployerGlobalPausable",
+          owner
         );
-        const gpDeployer = await GPDeployer.deploy(
+        gpDeployer = await GPDeployer.deploy(
           owner.address,
           ethers.utils.formatBytes32String("0")
         );
@@ -1914,26 +1916,27 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       //owner nukes the zone
       await whileImpersonating(owner.address, provider, async () => {
-        gpDeployer.kill(zone.address);
+        gpDeployer.killSwitch(zone.address);
       });
 
       await withBalanceChecks([order], 0, null, async () => {
-        const tx = marketplaceContract
-          .connect(buyer)
-          .fulfillOrder(order, toKey(false), {
+        await expect(
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
             value,
           })
-          .to.be.reverted();
+        ).to.be.reverted();
       });
     });
 
     it("Reverts if non-owner tries to self destruct the zone", async () => {
+      let gpDeployer;
       await whileImpersonating(owner.address, provider, async () => {
         //deploy GPD
         const GPDeployer = await ethers.getContractFactory(
-          "DeployerGlobalPausable"
+          "DeployerGlobalPausable",
+          owner
         );
-        const gpDeployer = await GPDeployer.deploy(
+        gpDeployer = await GPDeployer.deploy(
           owner.address,
           ethers.utils.formatBytes32String("0")
         );
@@ -1945,7 +1948,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       //non owner tries to use GPD to nuke the zone, reverts
       await whileImpersonating(testERC20.address, provider, async () => {
-        gpDeployer.kill(zone.address).to.be.reverted();
+        await expect(gpDeployer.killSwitch(zone.address)).to.be.reverted();
       });
     });
 
@@ -1953,7 +1956,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await whileImpersonating(owner.address, provider, async () => {
         //deploy GPD
         const GPDeployer = await ethers.getContractFactory(
-          "DeployerGlobalPausable"
+          "DeployerGlobalPausable",
+          owner
         );
         const gpDeployer = await GPDeployer.deploy(
           owner.address,
@@ -1995,7 +1999,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await whileImpersonating(owner.address, provider, async () => {
         //deploy GPD
         const GPDeployer = await ethers.getContractFactory(
-          "DeployerGlobalPausable"
+          "DeployerGlobalPausable",
+          owner
         );
         const gpDeployer = await GPDeployer.deploy(
           owner.address,
@@ -2029,43 +2034,45 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       await withBalanceChecks([order], 0, null, async () => {
-        const tx = marketplaceContract
-          .connect(buyer)
-          .cancel(order)
-          .to.be.reverted();
+        await expect(
+          marketplaceContract.connect(buyer).cancel(order)
+        ).to.be.reverted();
       });
     });
   });
 
   describe("Zone - Global Pausable Deployer", async () => {
-    it("Lets the Zone Deployer owner transfer ownership via a two-stage process", async () => {});
-    await whileImpersonating(owner.address, provider, async () => {
-      //deploy GPD
-      const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable"
-      );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
-      await gpDeployer.deployed();
-      //deploy GP
-      const salt = randomHex();
-      zone.address = await gpDeployer.createZone(salt);
+    it("Lets the Zone Deployer owner transfer ownership via a two-stage process", async () => {
+      let gpDeployer;
+      await whileImpersonating(owner.address, provider, async () => {
+        //deploy GPD
+        const GPDeployer = await ethers.getContractFactory(
+          "DeployerGlobalPausable",
+          owner
+        );
+        gpDeployer = await GPDeployer.deploy(
+          owner.address,
+          ethers.utils.formatBytes32String("0")
+        );
+        await gpDeployer.deployed();
+        //deploy GP
+        const salt = randomHex();
+        zone.address = await gpDeployer.createZone(salt);
+      });
+
+      //just get any random address as the next potential owner.
+      const potentialOwner = buyer;
+
+      await gpDeployer.connect(owner).transferOwnership(potentialOwner.address);
+
+      await gpDeployer.connect(owner).cancelOwnershipTransfer();
+
+      await gpDeployer.connect(owner).transferOwnership(potentialOwner.address);
+
+      await gpDeployer.connect(buyer).acceptOwnership();
+
+      const ownerOf = await expect(ownerOf).to.equal(buyer.address);
     });
-
-    //just get any random address as the next potential owner.
-    const potentialOwner = buyer;
-
-    await gpDeployer.connect(owner).transferOwnership(potentialOwner.address);
-
-    await gpDeployer.connect(owner).cancelOwnershipTransfer();
-
-    await gpDeployer.connect(owner).transferOwnership(potentialOwner.address);
-
-    await gpDeployer.connect(buyer).acceptOwnership();
-
-    const ownerOf = await expect(ownerOf).to.equal(buyer.address);
   });
 
   /**
