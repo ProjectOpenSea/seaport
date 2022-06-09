@@ -182,7 +182,7 @@ uint256 constant OrderFulfilled_consideration_body_offset = 0x120;
 // BasicOrderParameters
 uint256 constant BasicOrder_parameters_cdPtr = 0x04;
 uint256 constant BasicOrder_considerationToken_cdPtr = 0x24;
-// uint256 constant BasicOrder_considerationIdentifier_cdPtr = 0x44;
+uint256 constant BasicOrder_considerationIdentifier_cdPtr = 0x44;
 uint256 constant BasicOrder_considerationAmount_cdPtr = 0x64;
 uint256 constant BasicOrder_offerer_cdPtr = 0x84;
 uint256 constant BasicOrder_zone_cdPtr = 0xa4;
