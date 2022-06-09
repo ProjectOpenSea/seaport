@@ -706,7 +706,9 @@ contract TransferHelperTest is BaseOrderTest {
         bytes32 fuzzConduitKey
     ) public {
         // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit".
-        vm.assume(fuzzConduitKey != bytes32(0));
+        vm.assume(
+            fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
+        );
         TransferHelperItem memory item = _getFuzzedTransferItem(
             ConduitItemType.ERC20,
             inputs.amounts[0],
