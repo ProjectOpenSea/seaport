@@ -181,6 +181,7 @@ contract BasicOrderFulfiller is OrderValidator {
                 revert UnusedItemParameters();
             }
 
+            // Transfer the ERC721 or ERC1155 item, bypassing the accumulator.
             _transferIndividual721Or1155Item(
                 offeredItemType,
                 parameters.offerToken,
@@ -205,6 +206,7 @@ contract BasicOrderFulfiller is OrderValidator {
             // still be accessed and modified, however.
             bytes memory accumulator = new bytes(AccumulatorDisarmed);
 
+            // Choose transfer method for ERC721 or ERC1155 item based on route.
             if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
                 // Transfer ERC721 to caller using offerer's conduit preference.
                 _transferERC721(

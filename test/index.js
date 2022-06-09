@@ -10377,6 +10377,234 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             )
         ).to.be.revertedWith(`OrderAlreadyFilled("${orderHash}")`);
       });
+      it("Reverts on non-zero unused item parameters (identifier set on native, basic)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+          getItemETH(amount.mul(10), amount.mul(10), zone.address),
+          getItemETH(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].identifierOrCriteria = amount;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          1, // EthForERC1155
+          order
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters, {
+              value,
+            })
+        ).to.be.revertedWith(`UnusedItemParameters`);
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+      });
+      it("Reverts on non-zero unused item parameters (identifier set on ERC20, basic)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getTestItem20(amount.mul(1000), amount.mul(1000), seller.address),
+          getTestItem20(amount.mul(10), amount.mul(10), zone.address),
+          getTestItem20(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].identifierOrCriteria = amount;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          3, // ERC20ForERC1155
+          order
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters, {
+              value,
+            })
+        ).to.be.revertedWith(`UnusedItemParameters`);
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+      });
+      it("Reverts on non-zero unused item parameters (token set on native, standard)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+          getItemETH(amount.mul(10), amount.mul(10), zone.address),
+          getItemETH(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].token = seller.address;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWith(`UnusedItemParameters`);
+      });
+      it("Reverts on non-zero unused item parameters (identifier set on native, standard)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+          getItemETH(amount.mul(10), amount.mul(10), zone.address),
+          getItemETH(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].identifierOrCriteria = amount;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWith(`UnusedItemParameters`);
+      });
+      it("Reverts on non-zero unused item parameters (identifier set on ERC20, standard)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getTestItem20(amount.mul(1000), amount.mul(1000), seller.address),
+          getTestItem20(amount.mul(10), amount.mul(10), zone.address),
+          getTestItem20(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].identifierOrCriteria = amount;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWith(`UnusedItemParameters`);
+      });
       it("Reverts on inadequate consideration items", async () => {
         // Seller mints nft
         const { nftId, amount } = await mintAndApprove1155(
