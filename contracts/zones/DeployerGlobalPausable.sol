@@ -130,7 +130,10 @@ contract DeployerGlobalPausable {
      * @param newPotentialOwner The address for which to initiate ownership transfer to.
      */
     function transferOwnership(address newPotentialOwner) external {
-        require(msg.sender == deployerOwner);
+        require(
+            msg.sender == deployerOwner,
+            "Only Owner can transfer Ownership."
+        );
 
         // Ensure the new potential owner is not an invalid address.
         require(newPotentialOwner == address(0));
@@ -147,7 +150,7 @@ contract DeployerGlobalPausable {
      */
     function cancelOwnershipTransfer() external {
         // Ensure the caller is the current owner.
-        require(msg.sender == deployerOwner);
+        require(msg.sender == deployerOwner, "Only Owner can cancel.");
 
         // Emit an event indicating that the potential owner has been cleared.
         emit PotentialOwnerUpdated(address(0));
@@ -162,7 +165,10 @@ contract DeployerGlobalPausable {
      *         function.
      */
     function acceptOwnership() external {
-        require(msg.sender == potentialOwner);
+        require(
+            msg.sender == potentialOwner,
+            "Only Potential Owner can claim."
+        );
 
         // Emit an event indicating that the potential owner has been cleared.
         emit PotentialOwnerUpdated(address(0));
