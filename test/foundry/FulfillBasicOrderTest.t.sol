@@ -44,6 +44,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
 
     modifier validateInputsWithAmount(Context memory context) {
         vm.assume(context.args.paymentAmount > 0);
+        vm.assume(context.args.tokenId > 0);
         vm.assume(context.tokenAmount > 0);
         _;
     }
@@ -168,6 +169,62 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             0x200,
             _basicOrderParameters.additionalRecipients.length,
             amountToSubtractFromTotalRecipients
+        );
+    }
+
+    function testRevertUnusedItemParametersIdentifierSetOnNative(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
+        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
+        _configureConsiderationItem(
+            ItemType.NATIVE,
+            address(0),
+            inputs.tokenId, // set non-zero identifier
+            100,
+            100,
+            alice
+        );
+        _configureBasicOrderParametersEthTo1155(inputs, tokenAmount);
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnNative,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnNative,
+            Context(referenceConsideration, inputs, tokenAmount)
+        );
+    }
+
+    function revertUnusedItemParametersIdentifierSetOnNative(
+        Context memory context
+    ) external stateless {
+        test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
+
+        _configureOrderComponents(
+            context.args.zone,
+            context.args.zoneHash,
+            context.args.salt,
+            bytes32(0)
+        );
+
+        uint256 counter = context.consideration.getCounter(alice);
+        orderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+        basicOrderParameters.signature = signature;
+
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder{ value: 100 }(
+            basicOrderParameters
         );
     }
 
