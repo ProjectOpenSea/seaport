@@ -92,7 +92,7 @@ contract ReferenceOrderValidator is
      *                          identifier, and a proof that the supplied token
      *                          identifier is contained in the order's merkle
      *                          root. Note that a criteria of zero indicates
-     *                          that any (transferrable) token identifier is
+     *                          that any (transferable) token identifier is
      *                          valid and that no proof needs to be supplied.
      * @param revertOnInvalid  A boolean indicating whether to revert if the
      *                         order is invalid due to the time or order status.

@@ -79,11 +79,14 @@ contract BasicOrderFulfiller is OrderValidator {
 
         // Utilize assembly to extract the order type and the basic order route.
         assembly {
+            // Read basicOrderType from calldata.
+            let basicOrderType := calldataload(BasicOrder_basicOrderType_cdPtr)
+
             // Mask all but 2 least-significant bits to derive the order type.
-            orderType := and(calldataload(BasicOrder_basicOrderType_cdPtr), 3)
+            orderType := and(basicOrderType, 3)
 
             // Divide basicOrderType by four to derive the route.
-            route := shr(2, calldataload(BasicOrder_basicOrderType_cdPtr))
+            route := shr(2, basicOrderType)
 
             // If route > 1 additionalRecipient items are ERC20 (1) else Eth (0)
             additionalRecipientsItemType := gt(route, 1)

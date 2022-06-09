@@ -62,7 +62,7 @@ contract OrderFulfiller is
      *                            that the supplied token identifier is
      *                            contained in the order's merkle root. Note
      *                            that a criteria of zero indicates that any
-     *                            (transferrable) token identifier is valid and
+     *                            (transferable) token identifier is valid and
      *                            that no proof needs to be supplied.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
@@ -157,13 +157,9 @@ contract OrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal {
-        // Derive order duration, time elapsed, and time remaining.
-        uint256 duration = orderParameters.endTime - orderParameters.startTime;
-        uint256 elapsed = block.timestamp - orderParameters.startTime;
-        uint256 remaining = duration - elapsed;
-
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Read start time & end time from order parameters and place on stack.
+        uint256 startTime = orderParameters.startTime;
+        uint256 endTime = orderParameters.endTime;
 
         // Initialize an accumulator array. From this point forward, no new
         // memory regions can be safely allocated until the accumulator is no
@@ -216,6 +212,11 @@ contract OrderFulfiller is
             for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
+                // Offer items for the native token can not be received
+                // outside of a match order function.
+                if (offerItem.itemType == ItemType.NATIVE) {
+                    revert InvalidNativeOfferItem();
+                }
                 // Declare a nested scope to minimize stack depth.
                 {
                     // Apply fill fraction to get offer item amount to transfer.
@@ -224,9 +225,8 @@ contract OrderFulfiller is
                         offerItem.endAmount,
                         numerator,
                         denominator,
-                        elapsed,
-                        remaining,
-                        duration,
+                        startTime,
+                        endTime,
                         false
                     );
 
@@ -243,17 +243,6 @@ contract OrderFulfiller is
                             recipient
                         )
                     }
-
-                    // Reduce available value if offer spent native tokens.
-                    if (offerItem.itemType == ItemType.NATIVE) {
-                        // Ensure sufficient native tokens are still available.
-                        if (amount > etherRemaining) {
-                            revert InsufficientEtherSupplied();
-                        }
-
-                        // Skip underflow check: comparison has just been made.
-                        etherRemaining -= amount;
-                    }
                 }
 
                 // Transfer the item from the offerer to the recipient.
@@ -265,6 +254,9 @@ contract OrderFulfiller is
                 );
             }
         }
+
+        // Put ether value supplied by the caller on the stack.
+        uint256 etherRemaining = msg.value;
 
         /**
          * Repurpose existing ConsiderationItem memory regions on the
@@ -313,9 +305,8 @@ contract OrderFulfiller is
                     considerationItem.endAmount,
                     numerator,
                     denominator,
-                    elapsed,
-                    remaining,
-                    duration,
+                    startTime,
+                    endTime,
                     true
                 );
 

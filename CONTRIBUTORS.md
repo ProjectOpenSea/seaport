@@ -45,7 +45,7 @@ leonardoalt                    | `leoalt.eth`
 cmichel                        | `cmichel.eth`
 Daniel Gelfand                 |
 PraneshASP                     | `pranesh.eth`
-JasperAlexander                |
+JasperAlexander                | `jasperalexander.eth`
 okkothejawa                    |
 FlameHorizon                   |
 vdrg                           |
@@ -56,3 +56,10 @@ dmfxyz                         | `dmfxyz.eth`
 daltoncoder                    | `dontkillrobots.eth`
 0xf4ce                         | `0xf4ce.eth`
 phaze                          | `phaze.eth`
+hrkrshnn                       | `hrkrshnn.eth`
+axic                           | `axic.eth`
+leastwood                      | `leastwood.eth`
+0xsanson                       | `sanson.eth`
+blockdev                       | `blockd3v.eth`
+dmitriia                       |
+bokeh-eth                      |

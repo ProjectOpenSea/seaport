@@ -355,6 +355,7 @@ uint256 constant InexactFraction_error_signature = (
 );
 uint256 constant InexactFraction_error_len = 0x20;
 
+
 // Declare constant for errors related to signature verification.
 
 // error BadSignatureV(uint8) @ SignatureVerificationErrors.sol
@@ -381,3 +382,14 @@ uint256 constant BadContractSignature_error_signature = (
     0x4f7fb80d00000000000000000000000000000000000000000000000000000000
 );
 uint256 constant BadContractSignature_error_length = 0x20;
+
+uint256 constant NumBitsAfterSelector = 0xe0;
+
+// 69 is the lowest modulus for which the remainder
+// of every selector other than the two match functions
+// is greater than those of the match functions.
+uint256 constant NonMatchSelector_MagicModulus = 69;
+// Of the two match function selectors, the highest
+// remainder modulo 69 is 29.
+uint256 constant NonMatchSelector_MagicRemainder = 0x1d;
+
