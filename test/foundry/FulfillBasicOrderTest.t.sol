@@ -132,8 +132,6 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
         uint256 amountToSubtractFromTotalRecipients = totalRecipients > 0
             ? fuzzAmountToSubtractFromTotalRecipients % totalRecipients
             : 0;
-        bool overwriteTotalRecipientsLength = amountToSubtractFromTotalRecipients >
-                0;
 
         // Create basic order
         (
@@ -155,54 +153,21 @@ contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
             ] = AdditionalRecipient({ recipient: alice, amount: 1 });
         }
 
-        // Validate the order.
-        _validateOrder(myOrder, consideration);
-
-        // Get the calldata that will be passed into fulfillBasicOrder.
-        bytes memory fulfillBasicOrderCalldata = abi.encodeWithSelector(
+        // Get the calldata that will be passed into fulfillOrder.
+        bytes memory fulfillOrderCalldata = abi.encodeWithSelector(
             consideration.fulfillBasicOrder.selector,
             _basicOrderParameters
         );
 
-        if (overwriteTotalRecipientsLength) {
-            // Get the additional recipients length from the calldata and
-            // store the length - amountToSubtractFromTotalRecipients in the calldata
-            // so that the length value does _not_ accurately represent the actual
-            // total recipients length.
-            _subtractAmountFromLengthInOrderCalldata(
-                fulfillBasicOrderCalldata,
-                0x264,
-                amountToSubtractFromTotalRecipients
-            );
-        }
-
-        assertEq(
+        _performTestFulfillOrderRevertInvalidArrayLength(
+            consideration,
+            myOrder,
+            fulfillOrderCalldata,
+            0x44,
+            0x200,
             _basicOrderParameters.additionalRecipients.length,
-            totalRecipients - amountToSubtractFromTotalRecipients
+            amountToSubtractFromTotalRecipients
         );
-
-        bool success = _callConsiderationFulfillOrderWithCalldata(
-            address(consideration),
-            fulfillBasicOrderCalldata
-        );
-
-        // If overwriteTotalRecipientsLength is True, the call should
-        // have failed (success should be False) and if overwriteTotalRecipientsLength is False,
-        // the call should have succeeded (success should be True).
-        assertEq(!overwriteTotalRecipientsLength, success);
-
-        if (overwriteTotalRecipientsLength) {
-            // Expect a revert if the additional recipients length is too small (e.g. 1 was subtracted).
-            vm.expectRevert();
-        }
-
-        if (!success) {
-            // Revert and pass the revert reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            revert();
-        }
     }
 
     function prepareBasicOrder(uint256 tokenId)
