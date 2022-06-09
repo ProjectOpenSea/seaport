@@ -99,7 +99,7 @@ interface ConsiderationInterface {
      *                            contained in the merkle root held by the item
      *                            in question's criteria element. Note that an
      *                            empty criteria indicates that any
-     *                            (transferrable) token identifier on the token
+     *                            (transferable) token identifier on the token
      *                            in question is valid and that no associated
      *                            proof needs to be supplied.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
@@ -211,7 +211,7 @@ interface ConsiderationInterface {
      *                                  is contained in the merkle root held by
      *                                  the item in question's criteria element.
      *                                  Note that an empty criteria indicates
-     *                                  that any (transferrable) token
+     *                                  that any (transferable) token
      *                                  identifier on the token in question is
      *                                  valid and that no associated proof needs
      *                                  to be supplied.
@@ -304,7 +304,7 @@ interface ConsiderationInterface {
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
      *                          contained in the order's merkle root. Note that
-     *                          an empty root indicates that any (transferrable)
+     *                          an empty root indicates that any (transferable)
      *                          token identifier is valid and that no associated
      *                          proof needs to be supplied.
      * @param fulfillments      An array of elements allocating offer components

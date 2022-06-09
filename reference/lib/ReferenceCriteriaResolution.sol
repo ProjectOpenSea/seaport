@@ -41,7 +41,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
      *                           identifier, and a proof that the supplied token
      *                           identifier is contained in the order's merkle
      *                           root. Note that a root of zero indicates that
-     *                           any transferrable token identifier is valid and
+     *                           any transferable token identifier is valid and
      *                           that no proof needs to be supplied.
      */
     function _applyCriteriaResolvers(
@@ -204,7 +204,7 @@ contract ReferenceCriteriaResolution is CriteriaResolutionErrors {
      *                           identifier, and a proof that the supplied token
      *                           identifier is contained in the order's merkle
      *                           root. Note that a root of zero indicates that
-     *                           any transferrable token identifier is valid and
+     *                           any transferable token identifier is valid and
      *                           that no proof needs to be supplied.
      */
     function _applyCriteriaResolversAdvanced(

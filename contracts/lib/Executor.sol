@@ -3,6 +3,8 @@ pragma solidity >=0.8.13;
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
+import { ConduitItemType } from "../conduit/lib/ConduitEnums.sol";
+
 import { ItemType } from "./ConsiderationEnums.sol";
 
 import { ReceivedItem } from "./ConsiderationStructs.sol";
@@ -283,7 +285,7 @@ contract Executor is Verifiers, TokenTransferrer {
             _insert(
                 conduitKey,
                 accumulator,
-                uint256(1),
+                ConduitItemType.ERC20,
                 token,
                 from,
                 to,
@@ -336,7 +338,7 @@ contract Executor is Verifiers, TokenTransferrer {
             _insert(
                 conduitKey,
                 accumulator,
-                uint256(2),
+                ConduitItemType.ERC721,
                 token,
                 from,
                 to,
@@ -387,7 +389,7 @@ contract Executor is Verifiers, TokenTransferrer {
             _insert(
                 conduitKey,
                 accumulator,
-                uint256(3),
+                ConduitItemType.ERC1155,
                 token,
                 from,
                 to,
@@ -588,7 +590,7 @@ contract Executor is Verifiers, TokenTransferrer {
     function _insert(
         bytes32 conduitKey,
         bytes memory accumulator,
-        uint256 itemType,
+        ConduitItemType itemType,
         address token,
         address from,
         address to,
