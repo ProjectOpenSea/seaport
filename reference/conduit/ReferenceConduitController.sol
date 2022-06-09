@@ -89,7 +89,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
         );
 
         _assertConduitDoesNotExist(conduit);
-        
+
         // Deploy the conduit via CREATE2 using the conduit key as the salt.
         new ReferenceConduit{ salt: conduitKey }();
 
