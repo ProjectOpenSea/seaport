@@ -228,7 +228,7 @@ contract BaseOrderTest is
         }
     }
 
-    function _getLengthAtOffsetInOrderCalldata(
+    function _getItemsLengthAtOffsetInOrderCalldata(
         bytes memory orderCalldata,
         // Relative offset of start of order parameters
         // in the order calldata.
@@ -276,7 +276,7 @@ contract BaseOrderTest is
             );
         }
 
-        uint256 finalItemsLength = _getLengthAtOffsetInOrderCalldata(
+        uint256 finalItemsLength = _getItemsLengthAtOffsetInOrderCalldata(
             fulfillOrderCalldata,
             // Relative offset of start of order parameters
             // in the order calldata.
