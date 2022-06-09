@@ -68,9 +68,19 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
     ) internal {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
-            // transfer the native tokens to the recipient.
+            // Ensure neither the token nor the identifier parameters are set.
+            if ((uint160(item.token) | item.identifier) != 0) {
+                revert UnusedItemParameters();
+            }
+
+            // Transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
         } else if (item.itemType == ItemType.ERC20) {
+            // Ensure that no identifier is supplied.
+            if (item.identifier != 0) {
+                revert UnusedItemParameters();
+            }
+
             // Transfer ERC20 tokens from the offerer to the recipient.
             _transferERC20(
                 item.token,

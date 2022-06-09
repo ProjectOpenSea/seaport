@@ -58,7 +58,9 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
 
     /**
      * @dev Creates a mapping of BasicOrderType Enums to BasicOrderRouteType
-     * Enums and BasicOrderType Enums to OrderType Enums
+     *      Enums and BasicOrderType Enums to OrderType Enums. Note that this
+     *      is wildly inefficient, but makes the logic easier to follow when
+     *      performing the fulfillment.
      */
     function createMappings() internal {
         // BasicOrderType to BasicOrderRouteType
@@ -360,6 +362,23 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
             conduitKey = parameters.fulfillerConduitKey;
         } else {
             conduitKey = parameters.offererConduitKey;
+        }
+
+        // Check for dirtied unused parameters.
+        if (
+            ((route == BasicOrderRouteType.ETH_TO_ERC721 ||
+                route == BasicOrderRouteType.ETH_TO_ERC1155) &&
+                (uint160(parameters.considerationToken) |
+                    parameters.considerationIdentifier) !=
+                0) ||
+            ((route == BasicOrderRouteType.ERC20_TO_ERC721 ||
+                BasicOrderRouteType.ERC20_TO_ERC1155) &&
+                parameters.considerationIdentifier != 0) ||
+            ((route == BasicOrderRouteType.ERC721_TO_ERC20 ||
+                BasicOrderRouteType.ERC1155_TO_ERC20) &&
+                parameters.offerIdentifier != 0)
+        ) {
+            revert UnusedItemParameters();
         }
 
         // Declare transfer accumulator that will collect transfers that can be
