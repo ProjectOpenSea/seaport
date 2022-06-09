@@ -9705,20 +9705,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitOne.connect(seller).executeWithBatch1155(
           [
             {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              from: buyer.address,
-              to: seller.address,
-              identifier: 0,
-              amount: 0,
-            },
-            {
               itemType: 0, // NATIVE (invalid)
               token: constants.AddressZero,
               from: conduitOne.address,
               to: seller.address,
               identifier: 0,
-              amount: 1,
+              amount: 0,
             },
           ],
           []
