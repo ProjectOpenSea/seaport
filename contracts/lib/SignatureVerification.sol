@@ -65,14 +65,14 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                 let oldValue := mload(ptrBeforeSignature)
                 mstore(ptrBeforeSignature, digest)
 
-                pop(staticcall(10000, 1, ptrBeforeSignature, 0x80, 0, 0x20))
-                recoveredSigner := mload(0)
+                pop(staticcall(5000, 1, ptrBeforeSignature, 0x80, 0, 0x20))
                 mstore(ptrBeforeSignature, oldValue)
                 mstore(signature, len)
                 mstore(
                   add(signature, TwoWords),
                   originalS
                 )
+                recoveredSigner := mload(0)
             }
         }
 
