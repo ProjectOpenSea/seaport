@@ -151,10 +151,10 @@ contract BaseOrderTest is
     function _validateOrder(
         Order memory order,
         ConsiderationInterface consideration
-    ) internal {
+    ) internal returns (bool) {
         Order[] memory orders = new Order[](1);
         orders[0] = order;
-        consideration.validate(orders);
+        return consideration.validate(orders);
     }
 
     function _prepareOrder(uint256 tokenId, uint256 totalConsiderationItems)
@@ -266,7 +266,7 @@ contract BaseOrderTest is
         uint256 originalItemsLength,
         uint256 amtToSubtractFromItemsLength
     ) internal {
-        _validateOrder(order, consideration);
+        assertTrue(_validateOrder(order, consideration));
 
         bool overwriteItemsLength = amtToSubtractFromItemsLength > 0;
         if (overwriteItemsLength) {
@@ -312,24 +312,7 @@ contract BaseOrderTest is
         address considerationAddress,
         bytes memory orderCalldata
     ) internal returns (bool success) {
-        uint256 calldataLength = orderCalldata.length;
-        assembly {
-            // Call fulfillOrder
-            success := call(
-                gas(),
-                considerationAddress,
-                0,
-                // The fn signature and calldata starts after the
-                // first OneWord bytes, as those initial bytes just
-                // contain the length of orderCalldata
-                add(orderCalldata, OneWord),
-                calldataLength,
-                // Store output at empty storage location,
-                // identified using "free memory pointer".
-                mload(0x40),
-                OneWord
-            )
-        }
+        (success, ) = considerationAddress.call(orderCalldata);
     }
 
     function _configureConsiderationItem(
