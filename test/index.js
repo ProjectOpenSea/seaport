@@ -1792,17 +1792,39 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   });
 
   describe("Zone - Global Pausable", async () => {
+    let zone = new ethers.Wallet(randomHex(32), provider);
+
+    let seller;
+    let sellerContract;
+    let buyerContract;
+    let buyer;
+
+    beforeEach(async () => {
+      // Setup basic buyer/seller wallets with ETH
+      seller = new ethers.Wallet(randomHex(32), provider);
+      buyer = new ethers.Wallet(randomHex(32), provider);
+
+      sellerContract = await EIP1271WalletFactory.deploy(seller.address);
+      buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
+
+      await Promise.all(
+        [seller, buyer, zone, sellerContract, buyerContract].map((wallet) =>
+          faucet(wallet.address, provider)
+        )
+      );
+    });
     it("Fulfills an order with a global pausable zone", async () => {
       await whileImpersonating(owner.address, provider, async () => {
         //deploy GPD
         const GPDeployer = await ethers.getContractFactory(
-          "DeployerGlobalPausable"
+          "DeployerGlobalPausable",
+          owner
         );
-        const args = [owner.address, 0];
         const gpDeployer = await GPDeployer.deploy(
           owner.address,
           ethers.utils.formatBytes32String("0")
         );
+
         await gpDeployer.deployed();
         console.log("gp creator deployed");
         //deploy GP
