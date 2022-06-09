@@ -207,11 +207,12 @@ contract OrderFulfiller is
                 }
             }
 
-            // Cache offer length.
-            uint256 totalOffers = orderParameters.offer.length;
+            // Read offer array length from memory and place on stack.
+            uint256 totalOfferItems = orderParameters.offer.length;
 
             // Iterate over each offer on the order.
-            for (uint256 i = 0; i < totalOffers; ++i) {
+            // Skip overflow check as for loop is indexed starting at zero.
+            for (uint256 i = 0; i < totalOfferItems; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
                 // Offer items for the native token can not be received
@@ -293,12 +294,14 @@ contract OrderFulfiller is
                 }
             }
 
-            // Cache consideration length.
-            uint256 totalConsiderations = orderParameters.consideration.length;
+            // Read consideration array length from memory and place on stack.
+            uint256 totalConsiderationItems = orderParameters
+                .consideration
+                .length;
 
             // Iterate over each consideration item on the order.
             // Skip overflow check as for loop is indexed starting at zero.
-            for (uint256 i = 0; i < totalConsiderations; ++i) {
+            for (uint256 i = 0; i < totalConsiderationItems; ++i) {
                 // Retrieve the consideration item.
                 ConsiderationItem memory considerationItem = (
                     orderParameters.consideration[i]
