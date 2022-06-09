@@ -188,12 +188,6 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                     0x20
                 )
 
-                // Restore the cached values overwritten by selector, digest and
-                // signature head.
-                mstore(wordBeforeSignaturePtr, cachedWordBeforeSignature)
-                mstore(selectorPtr, cachedWordOverwrittenBySelector)
-                mstore(digestPtr, cachedWordOverwrittenByDigest)
-
                 // Determine if the signature is valid on successful calls.
                 if success {
                     // If first word of scratch space does not contain EIP-1271
@@ -206,6 +200,13 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                             revert(0, BadContractSignature_error_length)
                         }
 
+                        // Check if signature length was invalid.
+                        if gt(sub(ECDSA_MaxLength, signatureLength), 1) {
+                            // Revert with generic invalid signature error.
+                            mstore(0, InvalidSignature_error_signature)
+                            revert(0, InvalidSignature_error_length)
+                        }
+
                         // Check if v was invalid.
                         if iszero(
                             byte(v, ECDSA_twentySeventhAndTwentyEighthBytesSet)
@@ -213,7 +214,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                             // Revert with invalid v value.
                             mstore(0, BadSignatureV_error_signature)
                             mstore(BadSignatureV_error_offset, v)
-                            revert(0, 0x24)
+                            revert(0, BadSignatureV_error_length)
                         }
 
                         // Revert with generic invalid signer error message.
@@ -221,6 +222,12 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                         revert(0, InvalidSigner_error_length)
                     }
                 }
+
+                // Restore the cached values overwritten by selector, digest and
+                // signature head.
+                mstore(wordBeforeSignaturePtr, cachedWordBeforeSignature)
+                mstore(selectorPtr, cachedWordOverwrittenBySelector)
+                mstore(digestPtr, cachedWordOverwrittenByDigest)
             }
         }
 

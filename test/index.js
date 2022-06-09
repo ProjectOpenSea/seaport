@@ -3870,12 +3870,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.revertedWith("InvalidSignature");
 
           // cannot validate it with no signature from a random account
           await expect(
             marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.revertedWith("InvalidSignature");
         } else {
           // cannot fill it with no signature yet
           await expect(
@@ -3966,12 +3966,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.revertedWith("InvalidSignature");
 
           // cannot validate it with no signature from a random account
           await expect(
             marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.revertedWith("InvalidSignature");
         } else {
           // cannot fill it with no signature yet
           await expect(
