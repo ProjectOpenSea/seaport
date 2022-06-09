@@ -54,9 +54,19 @@ contract Executor is Verifiers, TokenTransferrer {
     ) internal {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
+            // Ensure neither the token nor the identifier parameters are set.
+            if ((uint160(item.token) | item.identifier) != 0) {
+                revert UnusedItemParameters();
+            }
+
             // transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
         } else if (item.itemType == ItemType.ERC20) {
+            // Ensure that no identifier is supplied.
+            if (item.identifier != 0) {
+                revert UnusedItemParameters();
+            }
+
             // Transfer ERC20 tokens from the source to the recipient.
             _transferERC20(
                 item.token,
