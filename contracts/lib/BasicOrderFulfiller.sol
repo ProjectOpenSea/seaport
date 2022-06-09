@@ -201,57 +201,89 @@ contract BasicOrderFulfiller is OrderValidator {
             // still be accessed and modified, however.
             bytes memory accumulator = new bytes(AccumulatorDisarmed);
 
-            if (route == BasicOrderRouteType.ERC20_TO_ERC721) {
-                // Transfer ERC721 to caller using offerer's conduit preference.
-                _transferERC721(
-                    parameters.offerToken,
-                    parameters.offerer,
-                    msg.sender,
-                    parameters.offerIdentifier,
-                    parameters.offerAmount,
-                    conduitKey,
-                    accumulator
-                );
-            } else if (route == BasicOrderRouteType.ERC20_TO_ERC1155) {
-                // Transfer ERC1155 to caller with offerer's conduit preference.
-                _transferERC1155(
-                    parameters.offerToken,
-                    parameters.offerer,
-                    msg.sender,
-                    parameters.offerIdentifier,
-                    parameters.offerAmount,
-                    conduitKey,
-                    accumulator
-                );
-            } else if (route == BasicOrderRouteType.ERC721_TO_ERC20) {
-                // Transfer ERC721 to offerer using caller's conduit preference.
-                _transferERC721(
-                    parameters.considerationToken,
-                    msg.sender,
-                    parameters.offerer,
-                    parameters.considerationIdentifier,
-                    parameters.considerationAmount,
-                    conduitKey,
-                    accumulator
-                );
-            } else {
-                // route == BasicOrderRouteType.ERC1155_TO_ERC20
+            // Declare variables for nftSender and erc20Sender. The 721 or 1155
+            // item is sent from nftSender to erc20Sender. The ERC20 item is sent
+            // from erc20Sender to nftSender.
+            // nftSender transfers ERC721 or ERC1155 item to erc20Sender.
+            address nftSender;
+            // erc20Sender transfers ERC20 to nftSender.
+            address erc20Sender;
 
-                // Transfer ERC1155 to offerer with caller's conduit preference.
-                _transferERC1155(
-                    parameters.considerationToken,
-                    msg.sender,
-                    parameters.offerer,
-                    parameters.considerationIdentifier,
-                    parameters.considerationAmount,
-                    conduitKey,
-                    accumulator
+            // Declare a boolean indicating whether the route includes an 1155 transfer.
+            // If it does not, it will include a 721 transfer.
+            // bool routeHasErc1155;
+            ItemType nftItemType;
+
+            // Declare a variable for the offset of the actual nft token fields in calldata
+            // relative to the consideration token fields.
+            // The offer token fields are offset from their respective consideration token
+            // fields by 160 bytes.
+            uint256 nftTokenFieldCalldataOffset;
+            assembly {
+                // Read the offerer from calldata
+                let offerer := calldataload(BasicOrder_offerer_cdPtr)
+                switch lt(route, 4)
+                case 1 {
+                    // The NFT is on the offer side, so an offset is added to the
+                    // calldata pointers for the token fields.
+                    nftTokenFieldCalldataOffset := BasicOrder_offerOffsetFromConsideration
+                    // If the order route is 2 or 3, the offerer sends the ERC721 or ERC1155
+                    // item and the fulfiller sends the ERC20 item.
+                    erc20Sender := caller()
+                    nftSender := offerer
+                }
+                default {
+                    // If the order route is 4 or 5, the fulfiller sends the ERC721 or ERC1155
+                    // item and the offerer sends the ERC20 item.
+                    erc20Sender := offerer
+                    nftSender := caller()
+                }
+                // Even routes involve an ERC1155 item while odd routes involve an ERC721 item.
+                // routeHasErc1155 := mod(route, 2)
+                nftItemType := add(2, mod(route, 2))
+            }
+            {
+                address token;
+                uint256 identifier;
+                uint256 amount;
+                assembly {
+                    // Read the token from calldata, adding the offset for the NFT fields
+                    token := calldataload(
+                        add(
+                            BasicOrder_considerationToken_cdPtr,
+                            nftTokenFieldCalldataOffset
+                        )
+                    )
+                    // Read the identifier from calldata, adding the offset for the NFT fields
+                    identifier := calldataload(
+                        add(
+                            BasicOrder_considerationIdentifier_cdPtr,
+                            nftTokenFieldCalldataOffset
+                        )
+                    )
+                    // Read the amount from calldata, adding the offset for the NFT fields
+                    amount := calldataload(
+                        add(
+                            BasicOrder_considerationAmount_cdPtr,
+                            nftTokenFieldCalldataOffset
+                        )
+                    )
+                }
+                _transferIndividual721Or1155Item(
+                  nftItemType,
+                  token,
+                  nftSender,
+                  erc20Sender,
+                  identifier,
+                  amount,
+                  conduitKey
                 );
             }
 
             // Transfer ERC20 tokens to all recipients and wrap up.
             _transferERC20AndFinalize(
-                parameters.offerer,
+                erc20Sender,
+                nftSender,
                 parameters,
                 offerTypeIsAdditionalRecipientsType,
                 accumulator
@@ -968,7 +1000,8 @@ contract BasicOrderFulfiller is OrderValidator {
      * @dev Internal function to transfer ERC20 tokens to a given recipient as
      *      part of basic order fulfillment.
      *
-     * @param offerer     The offerer of the fulfiller order.
+     * @param from        The originator of the ERC20 token transfer.
+     * @param to          The recipient of the ERC20 token transfer.
      * @param parameters  The basic order parameters.
      * @param fromOfferer A boolean indicating whether to decrement amount from
      *                    the offered amount.
@@ -976,57 +1009,39 @@ contract BasicOrderFulfiller is OrderValidator {
      *                    against a given conduit in a single call.
      */
     function _transferERC20AndFinalize(
-        address offerer,
+        address from,
+        address to,
         BasicOrderParameters calldata parameters,
         bool fromOfferer,
         bytes memory accumulator
     ) internal {
-        // Declare from and to variables determined by fromOfferer value.
-        address from;
-        address to;
-
-        // Declare token and amount variables determined by fromOfferer value.
+        // Declare variables for token, amount, conduitKey.
         address token;
         uint256 amount;
-
-        // Declare and check identifier variable within an isolated scope.
-        {
-            // Declare identifier variable determined by fromOfferer value.
-            uint256 identifier;
-
-            // Set ERC20 token transfer variables based on fromOfferer boolean.
-            if (fromOfferer) {
-                // Use offerer as from value and msg.sender as to value.
-                from = offerer;
-                to = msg.sender;
-
-                // Use offer token and related values if token is from offerer.
-                token = parameters.offerToken;
-                identifier = parameters.offerIdentifier;
-                amount = parameters.offerAmount;
-            } else {
-                // Use msg.sender as from value and offerer as to value.
-                from = msg.sender;
-                to = offerer;
-
-                // Otherwise, use consideration token and related values.
-                token = parameters.considerationToken;
-                identifier = parameters.considerationIdentifier;
-                amount = parameters.considerationAmount;
-            }
-
-            // Ensure that no identifier is supplied.
-            if (identifier != 0) {
-                revert UnusedItemParameters();
-            }
-        }
-
-        // Determine the appropriate conduit to utilize.
         bytes32 conduitKey;
 
-        // Utilize assembly to derive conduit (if relevant) based on route.
         assembly {
-            // Use offerer conduit if fromOfferer, fulfiller conduit otherwise.
+            // The offer and consideration token values are offset from each
+            // other by 160 bytes. Multiply 0xa0 by the single bit indicating
+            // whether the sender is the offerer to arrive at either 0 or 0xa0.
+            let offset := mul(
+                fromOfferer,
+                BasicOrder_offerOffsetFromConsideration
+            )
+            // Add the offset to the pointer for considerationToken to get the
+            // pointer to (fromOfferer ? offerToken : considerationToken)
+            token := calldataload(
+                add(BasicOrder_considerationToken_cdPtr, offset)
+            )
+            // Add the offset to the pointer for considerationAmount to get the
+            // pointer to (fromOfferer ? offerAmount : considerationAmount)
+            amount := calldataload(
+                add(BasicOrder_considerationAmount_cdPtr, offset)
+            )
+            // fulfillerConduitKey is 32 bytes behind offererConduitKey.
+            // Multiply the fromOfferer bit by 32 and subtract from pointer to
+            // fulfillerConduitKey to arrive at the pointer to:
+            // fromOfferer ? offererConduitKey : fulfillerConduitKey
             conduitKey := calldataload(
                 sub(
                     BasicOrder_fulfillerConduit_cdPtr,
@@ -1050,12 +1065,22 @@ contract BasicOrderFulfiller is OrderValidator {
                 additionalRecipients[i]
             );
 
+            // Put amount to send to recipient on the stack
             uint256 additionalRecipientAmount = additionalRecipient.amount;
 
-            // Decrement the amount to transfer to fulfiller if indicated.
-            if (fromOfferer) {
-                amount -= additionalRecipientAmount;
+            // Calculate the amount to subtract from the remainder by multiplying
+            // the fromOfferer bit by the recipient amount. If it is false, this
+            // will be zero so that the total amount sent to the primary recipient
+            // is not reduced.
+            uint256 subtractFromRemainder;
+            assembly {
+                subtractFromRemainder := mul(
+                    additionalRecipientAmount,
+                    fromOfferer
+                )
             }
+            // Reduce remainder
+            amount -= subtractFromRemainder;
 
             // Transfer ERC20 tokens to additional recipient given approval.
             _transferERC20(
