@@ -165,7 +165,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         stateless
     {
         test721_1.mint(alice, 1);
-        addERC721OfferItem(1);
+        addErc721OfferItem(1);
         addConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory orderParameters = OrderParameters(
@@ -196,7 +196,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        addERC721OfferItem(2);
+        addErc721OfferItem(2);
         // try to overflow the aggregated amount sent to alice
         addConsiderationItem(alice, context.itemType, 1, MAX_INT);
 
@@ -271,7 +271,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         Context memory context
     ) external stateless {
         test721_1.mint(alice, 1);
-        addERC721OfferItem(1);
+        addErc721OfferItem(1);
         addConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory orderParameters = OrderParameters(
@@ -302,7 +302,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        addERC721OfferItem(2);
+        addErc721OfferItem(2);
         // try to overflow the aggregated amount sent to alice
         addConsiderationItem(alice, context.itemType, 1, MAX_INT);
         addConsiderationItem(alice, context.itemType, 1, 0);
@@ -651,7 +651,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         // Mint 100 tokens to alice.
         test1155_1.mint(alice, 1, 100);
 
-        addERC1155OfferItem(1, 100);
+        addErc1155OfferItem(1, 100);
         addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
@@ -751,7 +751,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         // Mint 100 tokens to alice.
         test1155_1.mint(alice, 1, 100);
 
-        addERC1155OfferItem(1, 100);
+        addErc1155OfferItem(1, 100);
         addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);

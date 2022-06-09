@@ -210,8 +210,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         test721_1.mint(alice, 1);
         test721_1.mint(alice, 2);
-        addERC721OfferItem(1);
-        addERC721OfferItem(2);
+        addErc721OfferItem(1);
+        addErc721OfferItem(2);
         addConsiderationItem(bob, context.itemType, 1, 99);
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
@@ -312,7 +312,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         Context memory context
     ) external stateless {
         test721_1.mint(alice, 1);
-        addERC721OfferItem(1);
+        addErc721OfferItem(1);
         addConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory firstOrderParameters = OrderParameters(
@@ -343,7 +343,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        addERC721OfferItem(2);
+        addErc721OfferItem(2);
         addConsiderationItem(alice, context.itemType, 1, 2**256 - 1);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
@@ -686,7 +686,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
             currentAmount.mul(2) / 10
         );
 
-        addERC1155OfferItem(context.args.id, 20);
+        addErc1155OfferItem(context.args.id, 20);
         // create mirror consideration item with current amount
         addErc20ConsiderationItem(bob, currentAmount);
 

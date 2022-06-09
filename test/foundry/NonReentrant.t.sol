@@ -285,7 +285,7 @@ contract NonReentrantTest is BaseOrderTest {
     {
         test1155_1.mint(address(this), tokenId, 10);
 
-        addERC1155OfferItem(tokenId, 10);
+        addErc1155OfferItem(tokenId, 10);
         addEthConsiderationItem(payable(this), 10);
         addEthConsiderationItem(payable(0), 10);
         addEthConsiderationItem(alice, 10);
@@ -323,7 +323,7 @@ contract NonReentrantTest is BaseOrderTest {
     {
         test1155_1.mint(address(this), tokenId, 10);
 
-        addERC1155OfferItem(tokenId, uint256(10));
+        addErc1155OfferItem(tokenId, uint256(10));
         addEthConsiderationItem(payable(this), uint256(10));
         addEthConsiderationItem(payable(address(0)), uint256(10));
         addEthConsiderationItem(payable(address(this)), uint256(10));
@@ -362,7 +362,7 @@ contract NonReentrantTest is BaseOrderTest {
         )
     {
         test721_1.mint(address(this), tokenId);
-        addERC721OfferItem(tokenId);
+        addErc721OfferItem(tokenId);
         addEthConsiderationItem(payable(address(this)), 1);
         uint256 counter = currentConsideration.getCounter(address(this));
 
@@ -428,7 +428,7 @@ contract NonReentrantTest is BaseOrderTest {
         returns (Order[] memory, Fulfillment[] memory)
     {
         test721_1.mint(address(this), tokenId);
-        addERC721OfferItem(tokenId);
+        addErc721OfferItem(tokenId);
         addEthConsiderationItem(payable(address(this)), 1);
         uint256 counter = currentConsideration.getCounter(address(this));
         orderComponents.offerer = address(this);

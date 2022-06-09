@@ -36,11 +36,11 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         if (itemType == ItemType.NATIVE) {
             addEthOfferItem(startAmount, endAmount);
         } else if (itemType == ItemType.ERC20) {
-            addERC20OfferItem(startAmount, endAmount);
+            addErc20OfferItem(startAmount, endAmount);
         } else if (itemType == ItemType.ERC1155) {
-            addERC1155OfferItem(identifier, startAmount, endAmount);
+            addErc1155OfferItem(identifier, startAmount, endAmount);
         } else {
-            addERC721OfferItem(identifier);
+            addErc721OfferItem(identifier);
         }
     }
 
@@ -52,11 +52,11 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         addOfferItem(itemType, identifier, amt, amt);
     }
 
-    function addERC721OfferItem(uint256 tokenId) internal {
+    function addErc721OfferItem(uint256 tokenId) internal {
         addOfferItem(ItemType.ERC721, address(test721_1), tokenId, 1, 1);
     }
 
-    function addERC1155OfferItem(uint256 tokenId, uint256 amount) internal {
+    function addErc1155OfferItem(uint256 tokenId, uint256 amount) internal {
         addOfferItem(
             ItemType.ERC1155,
             address(test1155_1),
@@ -66,7 +66,7 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         );
     }
 
-    function addERC20OfferItem(uint256 startAmount, uint256 endAmount)
+    function addErc20OfferItem(uint256 startAmount, uint256 endAmount)
         internal
     {
         addOfferItem(
@@ -78,11 +78,11 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         );
     }
 
-    function addERC20OfferItem(uint256 amount) internal {
-        addERC20OfferItem(amount, amount);
+    function addErc20OfferItem(uint256 amount) internal {
+        addErc20OfferItem(amount, amount);
     }
 
-    function addERC1155OfferItem(
+    function addErc1155OfferItem(
         uint256 tokenId,
         uint256 startAmount,
         uint256 endAmount

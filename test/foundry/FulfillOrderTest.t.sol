@@ -136,7 +136,7 @@ contract FulfillOrderTest is BaseOrderTest {
                     : context.args.startAmount
             ).mul(1000)
         );
-        addERC20OfferItem(
+        addErc20OfferItem(
             context.args.startAmount.mul(1000),
             context.args.endAmount.mul(1000)
         );
@@ -208,7 +208,7 @@ contract FulfillOrderTest is BaseOrderTest {
             : bytes32(0);
 
         test1155_1.mint(alice, context.args.id, context.erc1155amt);
-        addERC1155OfferItem(context.args.id, context.erc1155amt);
+        addErc1155OfferItem(context.args.id, context.erc1155amt);
 
         addErc20ConsiderationItem(
             alice,

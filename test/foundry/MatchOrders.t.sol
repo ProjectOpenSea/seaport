@@ -98,7 +98,7 @@ contract MatchOrders is BaseOrderTest {
     function testMatchOrdersSingleErc721OfferSingleEthConsideration(
         FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs)) {
-        addERC721OfferItem(inputs.id);
+        addErc721OfferItem(inputs.id);
         addEthConsiderationItem(alice, 1);
         _configureOrderParameters(
             alice,
@@ -339,8 +339,8 @@ contract MatchOrders is BaseOrderTest {
 
         test721_1.mint(alice, 1);
         test721_1.mint(alice, 2);
-        addERC721OfferItem(1);
-        addERC721OfferItem(2);
+        addErc721OfferItem(1);
+        addErc721OfferItem(2);
         addConsiderationItem(bob, itemType, 1, 99);
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
@@ -424,7 +424,7 @@ contract MatchOrders is BaseOrderTest {
             : bytes32(0);
 
         test721_1.mint(alice, 1);
-        addERC721OfferItem(1);
+        addErc721OfferItem(1);
         addConsiderationItem(alice, itemType, 1, 100);
 
         OrderParameters memory firstOrderParameters = OrderParameters(
@@ -455,7 +455,7 @@ contract MatchOrders is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        addERC721OfferItem(2);
+        addErc721OfferItem(2);
         addConsiderationItem(alice, itemType, 1, 2**256 - 1);
 
         OrderParameters memory secondOrderParameters = OrderParameters(

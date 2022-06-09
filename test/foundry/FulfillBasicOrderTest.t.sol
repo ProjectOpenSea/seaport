@@ -60,7 +60,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputs(Context(consideration, inputs, 0))
     {
-        addERC721OfferItem(inputs.tokenId);
+        addErc721OfferItem(inputs.tokenId);
         addEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo721(inputs);
 
@@ -72,7 +72,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputs(Context(consideration, inputs, 0))
     {
-        addERC721OfferItem(inputs.tokenId);
+        addErc721OfferItem(inputs.tokenId);
         addErc20ConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersErc20To721(inputs);
 
@@ -87,7 +87,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
     {
-        addERC1155OfferItem(inputs.tokenId, tokenAmount);
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
         addEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo1155(inputs, tokenAmount);
 
@@ -105,7 +105,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
     {
-        addERC1155OfferItem(inputs.tokenId, tokenAmount);
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
         addErc20ConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersErc20To1155(inputs, tokenAmount);
 
@@ -180,7 +180,6 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     {
         (Order memory _order, , ) = _prepareOrder(tokenId, 1);
         order = _order;
-
         _basicOrderParameters = toBasicOrderParameters(
             _order,
             BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN

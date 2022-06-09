@@ -53,7 +53,7 @@ contract FulfillAdvancedOrderCriteria is BaseOrderTest {
         bytes32 root = merkle.getRoot(hashedIdentifiers);
 
         addOfferItem721Criteria(address(test721_1), uint256(root));
-        _configureEthConsiderationItem(alice, 1);
+        addEthConsiderationItem(alice, 1);
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
 
         OrderComponents memory orderComponents = getOrderComponents(

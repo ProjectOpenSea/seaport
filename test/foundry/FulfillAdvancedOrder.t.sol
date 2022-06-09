@@ -82,45 +82,6 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         }
     }
 
-    struct FuzzArgs2 {
-        uint8 offerItemType;
-        uint8 considerationItemType;
-    }
-
-    struct Context2 {
-        ConsiderationInterface consideration;
-        FuzzArgs2 args;
-    }
-
-    function robustRecipient(Context2 memory context) external {
-        ItemType offerItemType = ItemType(context.args.offerItemType % 6);
-        ItemType considerationItemType = ItemType(
-            context.args.considerationItemType % 6
-        );
-        address payable offerer;
-        if (offerItemType == ItemType.NATIVE) {
-            offerer = payable(this);
-            addEthOfferItem(1);
-        } else {
-            offerer = alice;
-            mintTokensTo(alice, offerItemType, 1);
-            addOfferItem(offerItemType, 1, 1);
-        }
-
-        if (considerationItemType == ItemType.NATIVE) {
-            addEthConsiderationItem(alice, 1);
-        } else {
-            mintTokensTo(address(this), considerationItemType, 1);
-            mintTokensTo(bob, considerationItemType, 1);
-            addConsiderationItem(alice, considerationItemType, 1, 1);
-        }
-        mintErc20TokensTo(address(this), 1);
-        mintErc20TokensTo(bob, 1);
-        addErc20ConsiderationItem(offerer, 1);
-
-        configureOrderParameters(offerer);
-    }
-
     function testAdvancedPartialAscendingOfferAmount1155(
         FuzzInputs memory args,
         uint128 tokenAmount,
@@ -377,7 +338,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
 
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
-        addERC1155OfferItem(context.args.tokenId, context.tokenAmount);
+        addErc1155OfferItem(context.args.tokenId, context.tokenAmount);
         addEthConsiderationItem(payable(0), 10);
         addEthConsiderationItem(alice, 10);
         addEthConsiderationItem(bob, 10);
@@ -445,7 +406,7 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
-        addERC1155OfferItem(1, 100);
+        addErc1155OfferItem(1, 100);
         addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
@@ -526,8 +487,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
-        _configureERC1155OfferItem(1, 100);
-        _configureEthConsiderationItem(alice, 100);
+        addErc1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
@@ -621,8 +582,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
-        _configureERC1155OfferItem(1, 100);
-        _configureEthConsiderationItem(alice, 100);
+        addErc1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
@@ -718,8 +679,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
-        _configureERC1155OfferItem(1, 100);
-        _configureEthConsiderationItem(alice, 100);
+        addErc1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
@@ -815,8 +776,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
-        _configureERC1155OfferItem(1, 100);
-        _configureEthConsiderationItem(alice, 100);
+        addErc1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
@@ -873,8 +834,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
-        _configureERC1155OfferItem(1, 100);
-        _configureEthConsiderationItem(alice, 100);
+        addErc1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
@@ -930,8 +891,8 @@ contract FulfillAdvancedOrder is BaseOrderTest {
         // mint 100 tokens
         test1155_1.mint(alice, 1, 100);
 
-        _configureERC1155OfferItem(1, 100);
-        _configureEthConsiderationItem(alice, 100);
+        addErc1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
 
         _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
         baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;

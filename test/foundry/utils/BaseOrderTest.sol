@@ -103,11 +103,11 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
 
     function _validateOrder(
         Order memory order,
-        ConsiderationInterface consideration
+        ConsiderationInterface _consideration
     ) internal returns (bool) {
         Order[] memory orders = new Order[](1);
         orders[0] = order;
-        return consideration.validate(orders);
+        return _consideration.validate(orders);
     }
 
     function _prepareOrder(uint256 tokenId, uint256 totalConsiderationItems)
@@ -120,9 +120,9 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     {
         test1155_1.mint(address(this), tokenId, 10);
 
-        _configureERC1155OfferItem(tokenId, 10);
+        addErc1155OfferItem(tokenId, 10);
         for (uint256 i = 0; i < totalConsiderationItems; i++) {
-            _configureErc20ConsiderationItem(alice, 10);
+            addErc20ConsiderationItem(alice, 10);
         }
         uint256 nonce = consideration.getCounter(address(this));
 
@@ -207,7 +207,7 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     }
 
     function _performTestFulfillOrderRevertInvalidArrayLength(
-        ConsiderationInterface consideration,
+        ConsiderationInterface _consideration,
         Order memory order,
         bytes memory fulfillOrderCalldata,
         // Relative offset of start of order parameters
@@ -268,99 +268,9 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
         (success, ) = considerationAddress.call(orderCalldata);
     }
 
-    function _configureConsiderationItem(
-        address payable recipient,
-        ItemType itemType,
-        uint256 identifier,
-        uint256 amt
-    ) internal {
-        if (itemType == ItemType.NATIVE) {
-            _configureEthConsiderationItem(recipient, amt);
-        } else if (itemType == ItemType.ERC20) {
-            _configureErc20ConsiderationItem(recipient, amt);
-        } else if (itemType == ItemType.ERC1155) {
-            _configureErc1155ConsiderationItem(recipient, identifier, amt);
-        } else {
-            _configureErc721ConsiderationItem(recipient, identifier);
-        }
-    }
-
-    function _configureOfferItem(
-        ItemType itemType,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        if (itemType == ItemType.NATIVE) {
-            _configureEthOfferItem(startAmount, endAmount);
-        } else if (itemType == ItemType.ERC20) {
-            _configureERC20OfferItem(startAmount, endAmount);
-        } else if (itemType == ItemType.ERC1155) {
-            _configureERC1155OfferItem(identifier, startAmount, endAmount);
-        } else {
-            _configureERC721OfferItem(identifier);
-        }
-    }
-
-    function _configureOfferItem(
-        ItemType itemType,
-        uint256 identifier,
-        uint256 amt
-    ) internal {
-        _configureOfferItem(itemType, identifier, amt, amt);
-    }
-
-    function _configureERC721OfferItem(uint256 tokenId) internal {
-        _configureOfferItem(ItemType.ERC721, address(test721_1), tokenId, 1, 1);
-    }
-
-    function _configureERC1155OfferItem(uint256 tokenId, uint256 amount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            amount,
-            amount
-        );
-    }
-
-    function _configureERC20OfferItem(uint256 startAmount, uint256 endAmount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            startAmount,
-            endAmount
-        );
-    }
-
-    function _configureERC20OfferItem(uint256 amount) internal {
-        _configureERC20OfferItem(amount, amount);
-    }
-
-    function _configureERC1155OfferItem(
-        uint256 tokenId,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            startAmount,
-            endAmount
-        );
-    }
-
-    function _configureEthOfferItem(uint256 startAmount, uint256 endAmount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.NATIVE,
+    function configureOrderParameters(address offerer) internal {
+        _configureOrderParameters(
+            offerer,
             address(0),
             bytes32(0),
             globalSalt++,
