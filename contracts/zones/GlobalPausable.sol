@@ -98,7 +98,7 @@ contract GlobalPausable is ZoneInterface {
 
     /**
      * Self-descructs this contract, safely stopping orders from using this as a zone.
-     * Oders with this address as a zone are bricked until the Deployer makes a new zone
+     * Orders with this address as a zone are bricked until the Deployer makes a new zone
      * with the same address as this one.
      */
     function kill() external {
