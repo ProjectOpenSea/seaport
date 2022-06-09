@@ -166,7 +166,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
             _insert(
                 conduitKey,
                 accumulatorStruct,
-                uint256(1),
+                ConduitItemType.ERC20,
                 token,
                 from,
                 to,
@@ -221,7 +221,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
             _insert(
                 conduitKey,
                 accumulatorStruct,
-                uint256(2),
+                ConduitItemType.ERC721,
                 token,
                 from,
                 to,
@@ -273,7 +273,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
             _insert(
                 conduitKey,
                 accumulatorStruct,
-                uint256(3),
+                ConduitItemType.ERC1155,
                 token,
                 from,
                 to,
@@ -367,7 +367,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
     function _insert(
         bytes32 conduitKey,
         AccumulatorStruct memory accumulatorStruct,
-        uint256 itemType,
+        ConduitItemType itemType,
         address token,
         address from,
         address to,
@@ -405,7 +405,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
 
         // Insert new transfer into array.
         newTransfers[currentTransferLength] = ConduitTransfer(
-            ConduitItemType(itemType),
+            itemType,
             token,
             from,
             to,

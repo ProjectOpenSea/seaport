@@ -67,7 +67,7 @@ contract ReferenceOrderFulfiller is
      *                            that the supplied token identifier is
      *                            contained in the order's merkle root. Note
      *                            that a criteria of zero indicates that any
-     *                            (transferrable) token identifier is valid and
+     *                            (transferable) token identifier is valid and
      *                            that no proof needs to be supplied.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
@@ -159,10 +159,8 @@ contract ReferenceOrderFulfiller is
             numerator,
             denominator,
             fulfillerConduitKey,
-            (orderParameters.endTime - orderParameters.startTime),
-            (block.timestamp - orderParameters.startTime),
-            ((orderParameters.endTime - orderParameters.startTime) -
-                (block.timestamp - orderParameters.startTime))
+            orderParameters.startTime,
+            orderParameters.endTime
         );
 
         // Create the accumulator struct.

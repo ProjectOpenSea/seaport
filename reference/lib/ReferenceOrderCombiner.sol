@@ -94,7 +94,7 @@ contract ReferenceOrderCombiner is
      *                                  is contained in the merkle root held by
      *                                  the item in question's criteria element.
      *                                  Note that an empty criteria indicates
-     *                                  that any (transferrable) token
+     *                                  that any (transferable) token
      *                                  identifier on the token in question is
      *                                  valid and that no associated proof needs
      *                                  to be supplied.
@@ -171,7 +171,7 @@ contract ReferenceOrderCombiner is
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
      *                          contained in the order's merkle root. Note that
-     *                          a root of zero indicates that any transferrable
+     *                          a root of zero indicates that any transferable
      *                          token identifier is valid and that no proof
      *                          needs to be supplied.
      * @param revertOnInvalid   A boolean indicating whether to revert on any
@@ -249,17 +249,12 @@ contract ReferenceOrderCombiner is
                 // Decrement the number of fulfilled orders.
                 maximumFulfilled--;
             }
+
             // Place the start time for the order on the stack.
             uint256 startTime = advancedOrder.parameters.startTime;
 
-            // Derive the duration for the order and place it on the stack.
-            uint256 duration = advancedOrder.parameters.endTime - startTime;
-
-            // Derive time elapsed since the order started & place on stack.
-            uint256 elapsed = block.timestamp - startTime;
-
-            // Derive time remaining until order expires and place on stack.
-            uint256 remaining = duration - elapsed;
+            // Place the end for the order on the stack.
+            uint256 endTime = advancedOrder.parameters.endTime;
 
             // Retrieve array of offer items for the order in question.
             OfferItem[] memory offer = advancedOrder.parameters.offer;
@@ -300,9 +295,8 @@ contract ReferenceOrderCombiner is
                 offerItem.startAmount = _locateCurrentAmount(
                     offerItem.startAmount,
                     offerItem.endAmount,
-                    elapsed,
-                    remaining,
-                    duration,
+                    startTime,
+                    endTime,
                     false // Round down.
                 );
 
@@ -350,9 +344,8 @@ contract ReferenceOrderCombiner is
                     _locateCurrentAmount(
                         considerationItem.startAmount,
                         considerationItem.endAmount,
-                        elapsed,
-                        remaining,
-                        duration,
+                        startTime,
+                        endTime,
                         true // Round up.
                     )
                 );
@@ -708,7 +701,7 @@ contract ReferenceOrderCombiner is
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
      *                          contained in the order's merkle root. Note that
-     *                          an empty root indicates that any (transferrable)
+     *                          an empty root indicates that any (transferable)
      *                          token identifier is valid and that no associated
      *                          proof needs to be supplied.
      * @param fulfillments      An array of elements allocating offer components

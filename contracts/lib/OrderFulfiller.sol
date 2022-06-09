@@ -62,7 +62,7 @@ contract OrderFulfiller is
      *                            that the supplied token identifier is
      *                            contained in the order's merkle root. Note
      *                            that a criteria of zero indicates that any
-     *                            (transferrable) token identifier is valid and
+     *                            (transferable) token identifier is valid and
      *                            that no proof needs to be supplied.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
@@ -157,10 +157,9 @@ contract OrderFulfiller is
         bytes32 fulfillerConduitKey,
         address recipient
     ) internal {
-        // Derive order duration, time elapsed, and time remaining.
-        uint256 duration = orderParameters.endTime - orderParameters.startTime;
-        uint256 elapsed = block.timestamp - orderParameters.startTime;
-        uint256 remaining = duration - elapsed;
+        // Read start time & end time from order parameters and place on stack.
+        uint256 startTime = orderParameters.startTime;
+        uint256 endTime = orderParameters.endTime;
 
         // Initialize an accumulator array. From this point forward, no new
         // memory regions can be safely allocated until the accumulator is no
@@ -226,9 +225,8 @@ contract OrderFulfiller is
                         offerItem.endAmount,
                         numerator,
                         denominator,
-                        elapsed,
-                        remaining,
-                        duration,
+                        startTime,
+                        endTime,
                         false
                     );
 
@@ -307,9 +305,8 @@ contract OrderFulfiller is
                     considerationItem.endAmount,
                     numerator,
                     denominator,
-                    elapsed,
-                    remaining,
-                    duration,
+                    startTime,
+                    endTime,
                     true
                 );
 
