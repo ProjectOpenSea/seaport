@@ -199,16 +199,16 @@ contract FulfillAdvancedOrder is BaseOrderTest {
             ""
         );
 
+        uint256 startTime = block.timestamp;
         vm.warp(block.timestamp + context.warpAmount);
         // calculate current amount of order based on warpAmount, round down since it's an offer
         // and divide by two to fulfill half of the order
         uint256 currentAmount = _locateCurrentAmount(
             context.tokenAmount * 2,
             context.tokenAmount * 4,
-            context.warpAmount,
-            1000 - context.warpAmount,
-            1000,
-            false
+            startTime,
+            startTime + 1000,
+            false // don't round up offers
         ) / 2;
         // set transaction value to sum of eth consideration items (including endAmount of considerationItem[0])
         vm.expectEmit(false, true, true, true, address(test1155_1));
