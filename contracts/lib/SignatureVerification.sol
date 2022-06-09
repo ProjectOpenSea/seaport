@@ -37,6 +37,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         // Declare value for ecrecover equality or 1271 call success status.
         bool success;
 
+        // Utilize assembly to perform optimized signature verification check.
         assembly {
             // Declare value for v signature parameter.
             let v
