@@ -37,7 +37,7 @@ contract DeployerGlobalPausable {
         // This complicated expression just tells you how the address
         // can be pre-computed. It is just there for illustration.
         // You actually only need ``new D{salt: salt}(arg)``.
-        address derivedAddress = address(
+        derivedAddress = address(
             uint160(
                 uint256(
                     keccak256(
