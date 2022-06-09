@@ -40,62 +40,117 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
         bool success;
 
         assembly {
-            let len := mload(signature)
-            let lenDiff := sub(ECDSA_MaxLength, len)
-            let ptrBeforeSignature := sub(signature, OneWord)
-            let oldValue := mload(ptrBeforeSignature)
-            if lt(lenDiff, 2) {
-                // Place first word on the stack at r.
-                // let r := mload(add(signature, OneWord))
-                // Place second word on the stack at s.
-                let originalS := mload(add(signature, TwoWords))
-                v := byte(0, mload(add(signature, ThreeWords)))
-                if eq(lenDiff, 1) {
-                    // Extract canonical s from vs (all but the highest bit).
-                    // s := and(s, EIP2098_allButHighestBitMask)
-                    // Extract yParity from highest bit of vs and add 27 to get v.
-                    // v := add(shr(255, s), 27)
+            // Get the length of the signature
+            let signatureLength := mload(signature)
+            // Take the difference between the max ECDSA signature length
+            // and the actual signature length. Overflow desired for values > 65.
+            // If the diff is not 0 or 1, it is not a valid ECDSA signature - move
+            // on to EIP1271 check.
+            let lenDiff := sub(ECDSA_MaxLength, signatureLength)
 
-                    v := add(shr(255, originalS), 27)
+            // Get the pointer to the value preceding the signature length.
+            // This will be used for temporary memory overrides - either the
+            // signature head for isValidSignature or the digest for ecrecover.
+            let wordBeforeSignaturePtr := sub(signature, OneWord)
+
+            // Cache the current value behind the signature to restore it later.
+            let cachedWordBeforeSignature := mload(wordBeforeSignaturePtr)
+
+            // If diff is 0 or 1, it may be an ECDSA signature. Try to recover signer.
+            if lt(lenDiff, 2) {
+                // Read the signature `s` value.
+                let originalSignatureS := mload(
+                    add(signature, ECDSA_signature_s_offset)
+                )
+
+                // Read the first byte of the word after `s`. If the signature is 65
+                // bytes, this will be the real `v` value. If not, we will have to
+                // modify it - doing it this way saves an extra condition.
+                v := byte(0, mload(add(signature, ECDSA_signature_v_offset)))
+
+                if eq(lenDiff, 1) {
+                    // Extract yParity from highest bit of vs and add 27 to get v.
+                    v := add(shr(255, originalSignatureS), 27)
+
+                    // Extract canonical s from vs (all but the highest bit).
+                    // Temporarily overwrite the original `s` value in the signature.
                     mstore(
-                        add(signature, TwoWords),
-                        and(originalS, EIP2098_allButHighestBitMask)
+                        add(signature, ECDSA_signature_s_offset),
+                        and(originalSignatureS, EIP2098_allButHighestBitMask)
                     )
                 }
+                // Temporarily overwrite the signature length with `v` to conform to
+                // the expected input for ecrecover.
                 mstore(signature, v)
-                mstore(ptrBeforeSignature, digest)
-                pop(staticcall(5000, 1, ptrBeforeSignature, 0x80, 0, 0x20))
-                mstore(ptrBeforeSignature, oldValue)
-                mstore(signature, len)
-                mstore(add(signature, TwoWords), originalS)
+
+                // Temporarily overwrite the word before the length with `digest` to
+                // conform to the expected input for ecrecover.
+                mstore(wordBeforeSignaturePtr, digest)
+
+                // Attempt to recover the signer for the given signature. We do not need
+                // the call status as ecrecover will return a null address if the signature
+                // is invalid.
+                pop(staticcall(5000, 1, wordBeforeSignaturePtr, 0x80, 0, 0x20))
+
+                // Restore cached word before signature
+                mstore(wordBeforeSignaturePtr, cachedWordBeforeSignature)
+
+                // Restore cached signature length
+                mstore(signature, signatureLength)
+
+                // Restore cached signature `s` value
+                mstore(
+                    add(signature, ECDSA_signature_s_offset),
+                    originalSignatureS
+                )
+
+                // Read the recovered signer from the buffer given as return space for ecrecover.
                 recoveredSigner := mload(0)
             }
+            // Set success to true if the signature provided was a valid ECDSA signature.
             success := eq(signer, recoveredSigner)
+
+            // If the signature was not verified with ecrecover, try EIP1271.
             if iszero(success) {
-                mstore(ptrBeforeSignature, 0x40)
-                let ptr2WordsBeforeSignature := sub(ptrBeforeSignature, 0x20)
-                let ptr2AndAnEighthWordsBeforeSignature := sub(
-                    ptr2WordsBeforeSignature,
-                    0x4
+                // Temporarily overwrite the word before the signature length and use it as the
+                // head of the signature input to `isValidSignature`, which has a value of 64.
+                mstore(wordBeforeSignaturePtr, 0x40)
+                // Get the pointer to use for the selector of `isValidSignature`.
+                let selectorPtr := sub(
+                    signature,
+                    EIP1271_isValidSignature_selector_negativeOffset
                 )
-                let oldValue2 := mload(ptr2WordsBeforeSignature)
-                let oldValue3 := mload(ptr2AndAnEighthWordsBeforeSignature)
+                // Cache the value currently stored at the selector pointer
+                let cachedWordOverwrittenBySelector := mload(selectorPtr)
+
+                // Get the pointer to use for the `digest` input to `isValidSignature`.
+                let digestPtr := sub(
+                    signature,
+                    EIP1271_isValidSignature_digest_negativeOffset
+                )
+                // Cache the value currently stored at the digest pointer
+                let cachedWordOverwrittenByDigest := mload(digestPtr)
+
+                // Write the selector first, since it overlaps the digest.
                 mstore(
-                    ptr2AndAnEighthWordsBeforeSignature,
+                    selectorPtr,
                     EIP1271_isValidSignature_selector
                 )
-                mstore(ptr2WordsBeforeSignature, digest)
+                // Write digest next
+                mstore(digestPtr, digest)
+                // Call the signer with `isValidSignature` to validate the signature.
                 success := staticcall(
                     gas(),
                     signer,
-                    ptr2AndAnEighthWordsBeforeSignature,
-                    add(len, 0x64),
+                    selectorPtr,
+                    add(signatureLength, EIP1271_isValidSignature_calldata_baseLength),
                     0,
                     0x20
                 )
-                mstore(ptrBeforeSignature, oldValue)
-                mstore(ptr2AndAnEighthWordsBeforeSignature, oldValue3)
-                mstore(ptr2WordsBeforeSignature, oldValue2)
+                // Restore the cached values overwritten by selector, digest and signature head.
+                mstore(wordBeforeSignaturePtr, cachedWordBeforeSignature)
+                mstore(selectorPtr, cachedWordOverwrittenBySelector)
+                mstore(digestPtr, cachedWordOverwrittenByDigest)
 
                 if success {
                     // If returndata is not 32 bytes with the 1271 valid signature
@@ -119,6 +174,7 @@ contract SignatureVerification is SignatureVerificationErrors, LowLevelHelpers {
                             // v is invalid, revert with invalid v value
                             mstore(0, BadSignatureV_error_signature)
                             mstore(BadSignatureV_error_offset, v)
+                            revert(0, 0x24)
                         }
                         // Revert with generic invalid signer error message
                         mstore(0, InvalidSigner_error_signature)
