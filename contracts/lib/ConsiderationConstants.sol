@@ -182,7 +182,7 @@ uint256 constant OrderFulfilled_consideration_body_offset = 0x120;
 // BasicOrderParameters
 uint256 constant BasicOrder_parameters_cdPtr = 0x04;
 uint256 constant BasicOrder_considerationToken_cdPtr = 0x24;
-// uint256 constant BasicOrder_considerationIdentifier_cdPtr = 0x44;
+uint256 constant BasicOrder_considerationIdentifier_cdPtr = 0x44;
 uint256 constant BasicOrder_considerationAmount_cdPtr = 0x64;
 uint256 constant BasicOrder_offerer_cdPtr = 0x84;
 uint256 constant BasicOrder_zone_cdPtr = 0xa4;
@@ -201,6 +201,8 @@ uint256 constant BasicOrder_additionalRecipients_head_cdPtr = 0x224;
 uint256 constant BasicOrder_signature_cdPtr = 0x244;
 uint256 constant BasicOrder_additionalRecipients_length_cdPtr = 0x264;
 uint256 constant BasicOrder_additionalRecipients_data_cdPtr = 0x284;
+
+uint256 constant BasicOrder_offerOffsetFromConsideration = 0xa0;
 
 uint256 constant BasicOrder_parameters_ptr = 0x20;
 
@@ -354,6 +356,13 @@ uint256 constant InexactFraction_error_signature = (
     0xc63cf08900000000000000000000000000000000000000000000000000000000
 );
 uint256 constant InexactFraction_error_len = 0x20;
+
+uint256 constant UnusedItemParameters_error_signature = (
+    0x6ab37ce700000000000000000000000000000000000000000000000000000000
+);
+
+uint256 constant UnusedItemParameters_error_ptr = 0x00;
+uint256 constant UnusedItemParameters_error_len = 0x20;
 
 uint256 constant NumBitsAfterSelector = 0xe0;
 
