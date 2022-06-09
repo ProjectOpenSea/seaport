@@ -552,14 +552,13 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
                     )
                 )
             )
+
+            // This is correct value
             output4Other := mload(
-                add(
-                    orderCalldata,
-                    add(
-                        orderParamsOffset,
-                        add(considerationItemsOffsetValue, 0x50)
-                    )
-                )
+                add(orderParamsOffset, considerationItemsOffsetValue)
+            )
+            length := mload(
+                add(orderParamsOffset, considerationItemsOffsetValue)
             )
 
             output4 := mload(
@@ -590,15 +589,15 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
                     )
                 )
             )
-            length := mload(
-                add(
-                    orderCalldata,
-                    add(
-                        orderParamsOffset,
-                        add(considerationItemsOffsetValue, 0x40)
-                    )
-                )
-            )
+            // length := mload(
+            //     add(
+            //         orderCalldata,
+            //         add(
+            //             orderParamsOffset,
+            //             add(considerationItemsOffsetValue, 0x40)
+            //         )
+            //     )
+            // )
 
             // let absoluteLengthOffset := add(orderCalldata, relativeLengthOffset)
             // length := mload(considerationItemsOffsetValue)
