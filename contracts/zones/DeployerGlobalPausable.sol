@@ -68,6 +68,9 @@ contract DeployerGlobalPausable {
         zone.kill();
     }
 
+    /**
+     * @notice Uses a zone to cancel a restricted Seaport offer
+     */
     function cancelOrderZone(
         address _globalPausableAddress,
         address _seaportAddress,
