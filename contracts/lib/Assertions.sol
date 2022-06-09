@@ -100,12 +100,14 @@ contract Assertions is
 
     /**
      * @dev Internal pure function to validate calldata offsets for dynamic
-     *      types in BasicOrderParameters. This ensures that functions using the
-     *      calldata object normally will be using the same data as the assembly
-     *      functions. Note that no parameters are supplied as all basic order
-     *      functions use the same calldata encoding.
+     *      types in BasicOrderParameters and other parameters. This ensures
+     *      that functions using the calldata object normally will be using the
+     *      same data as the assembly functions and that values that are bound
+     *      to a given range are within that range. Note that no parameters are
+     *      supplied as all basic order functions use the same calldata
+     *      encoding.
      */
-    function _assertValidBasicOrderParameterOffsets() internal pure {
+    function _assertValidBasicOrderParameters() internal pure {
         // Declare a boolean designating basic order parameter offset validity.
         bool validOffsets;
 
@@ -156,7 +158,6 @@ contract Assertions is
                 lt(
                     // BasicOrderType parameter at calldata offset 0x124.
                     calldataload(BasicOrder_basicOrderType_cdPtr),
-
                     // Value should be less than 24.
                     BasicOrder_basicOrderType_range
                 )
