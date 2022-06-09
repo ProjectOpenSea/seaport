@@ -3,14 +3,11 @@
 
 pragma solidity >=0.8.13;
 
-import { OneWord } from "../../contracts/lib/ConsiderationConstants.sol";
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient, Order } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-
-import { LowLevelHelpers } from "../../contracts/lib/LowLevelHelpers.sol";
 
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 
@@ -21,7 +18,7 @@ import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
 import { OrderParameters } from "./utils/reentrancy/ReentrantStructs.sol";
 
-contract FulfillBasicOrderTest is BaseOrderTest, LowLevelHelpers {
+contract FulfillBasicOrderTest is BaseOrderTest {
     using ArithmeticUtil for uint128;
 
     BasicOrderParameters basicOrderParameters;

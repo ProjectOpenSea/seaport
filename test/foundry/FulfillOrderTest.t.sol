@@ -5,7 +5,6 @@ pragma solidity >=0.8.13;
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
 import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { OneWord, TwoWords } from "../../contracts/lib/ConsiderationConstants.sol";
 import { Order, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
@@ -14,9 +13,8 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
-import { LowLevelHelpers } from "../../contracts/lib/LowLevelHelpers.sol";
 
-contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
+contract FulfillOrderTest is BaseOrderTest {
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
