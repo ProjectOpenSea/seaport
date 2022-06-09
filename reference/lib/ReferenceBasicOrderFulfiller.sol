@@ -372,10 +372,10 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
                     parameters.considerationIdentifier) !=
                 0) ||
             ((route == BasicOrderRouteType.ERC20_TO_ERC721 ||
-                BasicOrderRouteType.ERC20_TO_ERC1155) &&
+                route == BasicOrderRouteType.ERC20_TO_ERC1155) &&
                 parameters.considerationIdentifier != 0) ||
             ((route == BasicOrderRouteType.ERC721_TO_ERC20 ||
-                BasicOrderRouteType.ERC1155_TO_ERC20) &&
+                route == BasicOrderRouteType.ERC1155_TO_ERC20) &&
                 parameters.offerIdentifier != 0)
         ) {
             revert UnusedItemParameters();
