@@ -518,9 +518,8 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
     ) internal returns (uint256 length) {
         assembly {
             let absoluteLengthOffset := add(orderCalldata, relativeLengthOffset)
-            length := mload(relativeLengthOffset)
+            length := mload(absoluteLengthOffset)
         }
-        return length;
     }
 
     function _performTestFulfillOrderRevertInvalidArrayLength(
@@ -545,18 +544,17 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
                 amtToSubtractFromItemsLength
             );
         }
+
         uint256 finalItemsLength = _getLengthAtOffsetInOrderCalldata(
             fulfillOrderCalldata,
             itemsLengthFieldOffset
         );
-        assertEq(finalItemsLength, 1);
-        assertEq(finalItemsLength, 2);
-        assertEq(finalItemsLength, 3);
-        assertEq(true, false);
-        // assertEq(
-        //     originalItemsLength,
-        //     finalItemsLength - amtToSubtractFromItemsLength
-        // );
+        emit log_named_uint("lengt fooh", finalItemsLength);
+
+        assertEq(
+            finalItemsLength,
+            originalItemsLength - amtToSubtractFromItemsLength
+        );
 
         bool success = _callConsiderationFulfillOrderWithCalldata(
             address(consideration),
@@ -566,28 +564,18 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
         // If overwriteItemsLength is True, the call should
         // have failed (success should be False) and if overwriteItemsLength is False,
         // the call should have succeeded (success should be True).
-        assertEq(!overwriteItemsLength, success);
-
-        if (overwriteItemsLength) {
-            // Expect a revert if the items length is too
-            // small (e.g. at least 1 was subtracted).
-            vm.expectRevert();
-        }
-
-        if (!success) {
-            // Revert with a generic error message.
-            revert();
-        }
+        assertEq(success, !overwriteItemsLength);
     }
 
-    function testFulfillOrderRevertInvalidConsiderationItemsLength(
-        uint256 fuzzTotalConsiderationItems,
-        uint256 fuzzAmountToSubtractFromConsiderationItemsLength
-    ) public {
+    function testFulfillOrderRevertInvalidConsiderationItemsLength()
+        public
+    // uint256 fuzzTotalConsiderationItems,
+    // uint256 fuzzAmountToSubtractFromConsiderationItemsLength
+    {
         uint256 totalConsiderationItems = 3; //fuzzTotalConsiderationItems % 200;
         // Set amount to subtract from consideration item length
         // to be at most totalConsiderationItems.
-        uint256 amountToSubtractFromConsiderationItemsLength = 2;
+        uint256 amountToSubtractFromConsiderationItemsLength = 1;
         //  totalConsiderationItems >
         //         0
         //         ? fuzzAmountToSubtractFromConsiderationItemsLength %
@@ -608,9 +596,6 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             conduitKeyOne
         );
 
-        uint256 originalConsiderationItemsLength = _orderParameters
-            .consideration
-            .length;
         _performTestFulfillOrderRevertInvalidArrayLength(
             consideration,
             _order,
@@ -618,13 +603,6 @@ contract FulfillOrderTest is BaseOrderTest, LowLevelHelpers {
             0x60,
             _orderParameters.consideration.length,
             amountToSubtractFromConsiderationItemsLength
-        );
-
-        // Ensure consideration items length was properly changed.
-        assertEq(
-            _orderParameters.consideration.length,
-            originalConsiderationItemsLength -
-                amountToSubtractFromConsiderationItemsLength
         );
     }
 
