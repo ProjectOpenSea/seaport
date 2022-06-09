@@ -35,14 +35,6 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     mapping(address => bool) private _channels;
 
     /**
-     * @notice In the constructor, set the deployer as the controller.
-     */
-    constructor() {
-        // Set the deployer as the controller.
-        _controller = msg.sender;
-    }
-
-    /**
      * @notice Ensure that the caller is currently registered as an open channel
      *         on the conduit.
      */
@@ -74,6 +66,14 @@ contract Conduit is ConduitInterface, TokenTransferrer {
 
         // Continue with function execution.
         _;
+    }
+
+    /**
+     * @notice In the constructor, set the deployer as the controller.
+     */
+    constructor() {
+        // Set the deployer as the controller.
+        _controller = msg.sender;
     }
 
     /**
