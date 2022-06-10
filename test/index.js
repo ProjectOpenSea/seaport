@@ -98,8 +98,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           amount: offerItem.endAmount,
           recipient: fulfiller,
         },
-        offerer,
-        conduitKey,
+        offerer: offerer,
+        conduitKey: conduitKey,
       },
       {
         item: {
@@ -1461,7 +1461,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     domainData = {
       name: process.env.REFERENCE ? "Consideration" : "Seaport",
       version: VERSION,
-      chainId,
+      chainId: chainId,
       verifyingContract: marketplaceContract.address,
     };
 
@@ -1951,8 +1951,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    it("Fulfills an order using executeRestrictedMatchOrderZone", async () => {
+    it("Zone can cancel restricted orders.", async () => {
       let gpDeployer;
+      let actualAddr;
       await whileImpersonating(owner.address, provider, async () => {
         // deploy GPD
         const GPDeployer = await ethers.getContractFactory(
@@ -1966,8 +1967,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await gpDeployer.deployed();
         // deploy GP
         const salt = randomHex();
-        zone.address = await gpDeployer.createZone(salt);
+        console.log("1 INITIAL ZONE ADDRESS", zone.address);
+        zone.address = await gpDeployer.zoneAddressFromSalt(salt);
+        actualAddr = await gpDeployer.zoneAddressFromSalt(salt);
+        await gpDeployer.createZone(salt);
       });
+
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
@@ -1981,7 +1986,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, orderHash, value } = await createOrder(
+      const { order, orderComponents, orderHash, value } = await createOrder(
         seller,
         zone,
         offer,
@@ -1989,144 +1994,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         2 // FULL_RESTRICTED, zone can execute or cancel
       );
 
-      // const { mirrorOrder, mirrorOrderHash } = await createMirrorBuyNowOrder(
-      //   buyer,
-      //   zone,
-      //   order
-      // );
-
-      // const fulfillments = defaultBuyNowMirrorFulfillment;
-
-      // console.log("foo", zone.address, directMarketplaceContract.address, [
-      //   order,
-      //   mirrorOrder,
-      //   fulfillments,
-      // ]);
-      // await gpDeployer.executeRestrictedMatchOrderZone(
-      //   zone.address,
-      //   marketplaceContract.address,
-      //   [],
-      //   []
-      //   // [order, mirrorOrder],
-      //   // fulfillments
-      // );
       await gpDeployer.cancelOrderZone(
-        zone.address,
+        actualAddr,
         marketplaceContract.address,
-        order
+        [orderComponents]
       );
-
-      // await withBalanceChecks([order], 0, null, async () => {
-      //   const tx = marketplaceContract
-      //     .connect(buyer)
-      //     .fulfillOrder(order, toKey(false), {
-      //       value,
-      //     });
-      //   const receipt = await (await tx).wait();
-      //   await checkExpectedEvents(tx, receipt, [
-      //     {
-      //       order,
-      //       orderHash,
-      //       fulfiller: buyer.address,
-      //       fulfillerConduitKey: toKey(false),
-      //     },
-      //   ]);
-      //   return receipt;
-      // });
-    });
-
-    // let gpDeployer;
-    // let myOrderComponents;
-    // beforeEach(async () => {
-    //   const GPDeployer = await ethers.getContractFactory(
-    //     "DeployerGlobalPausable",
-    //     owner
-    //   );
-    //   gpDeployer = await GPDeployer.deploy(
-    //     owner.address,
-    //     ethers.utils.formatBytes32String("0")
-    //   );
-    //   // await gpDeployer.deployed();
-    //   // deploy GP
-    //   const salt = randomHex();
-    //   zone.address = await gpDeployer.createZone(salt);
-    //   console.log("HIT!!");
-    //   // });
-    //   const nftId = await mintAndApprove721(
-    //     seller,
-    //     marketplaceContract.address
-    //   );
-
-    //   const offer = [getTestItem721(nftId)];
-
-    //   const consideration = [
-    //     getItemETH(parseEther("10"), parseEther("10"), seller.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), zone.address),
-    //     getItemETH(parseEther("1"), parseEther("1"), owner.address),
-    //   ];
-
-    //   const referenceZone = await ethers.getContractFactory("GlobalPausable");
-    //   const tempZone = referenceZone.attach(zone.address);
-
-    //   const { order, orderComponents, orderHash, value } = await createOrder(
-    //     seller,
-    //     tempZone,
-    //     offer,
-    //     consideration,
-    //     2 // FULL_RESTRICTED, zone can execute or cancel
-    //   );
-    //   myOrderComponents = orderComponents;
-    // });
-
-    it("Zone can cancel restricted orders.", async () => {
-      // let gpDeployer;
-      // await whileImpersonating(owner.address, provider, async () => {
-      // deploy GPD
-      const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
-        owner
-      );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
-      await gpDeployer.deployed();
-      // deploy GP
-      const salt = randomHex();
-      console.log("1 zone.address is", zone.address);
-      zone.address = await gpDeployer.createZone(salt);
-      // });
-
-      console.log("2 zone.address is", zone.address);
-      const nftId = await mintAndApprove721(
-        seller,
-        marketplaceContract.address
-      );
-
-      const offer = [getTestItem721(nftId)];
-
-      const consideration = [
-        getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(parseEther("1"), parseEther("1"), zone.address),
-        getItemETH(parseEther("1"), parseEther("1"), owner.address),
-      ];
-
-      const referenceZone = await ethers.getContractFactory("GlobalPausable");
-      const tempZone = referenceZone.attach(zone.address);
-
-      const { order, orderComponents, orderHash, value } = await createOrder(
-        seller,
-        tempZone,
-        offer,
-        consideration,
-        2 // FULL_RESTRICTED, zone can execute or cancel
-      );
-
-      await gpDeployer
-        .connect(owner)
-        .cancelOrderZone(zone.address, marketplaceContract.address, [
-          orderComponents,
-        ]);
     });
 
     it("Reverts if non-Zone tries to cancel restricted orders.", async () => {

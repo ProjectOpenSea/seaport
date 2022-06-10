@@ -24,16 +24,11 @@ contract DeployerGlobalPausable {
         deployerOwner = _deployerOwner;
     }
 
-    //Deploy a GlobalPausable at. Should be an efficient address
-    function createZone(bytes32 salt)
+    function zoneAddressFromSalt(bytes32 salt)
         external
+        view
         returns (address derivedAddress)
     {
-        require(
-            msg.sender == deployerOwner,
-            "Only owner can create new Zones from here."
-        );
-
         // This complicated expression just tells you how the address
         // can be pre-computed. It is just there for illustration.
         // You actually only need ``new D{salt: salt}(arg)``.
@@ -56,6 +51,19 @@ contract DeployerGlobalPausable {
                 )
             )
         );
+    }
+
+    //Deploy a GlobalPausable at. Should be an efficient address
+    function createZone(bytes32 salt)
+        external
+        returns (address derivedAddress)
+    {
+        require(
+            msg.sender == deployerOwner,
+            "Only owner can create new Zones from here."
+        );
+
+        derivedAddress = this.zoneAddressFromSalt(salt);
 
         GlobalPausable zone = new GlobalPausable{ salt: salt }(address(this));
         require(address(zone) == derivedAddress, "Unexpected Derived address");
