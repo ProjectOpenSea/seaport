@@ -45,9 +45,6 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 1000000,
           },
-          debug: {
-            debugInfo: [],
-          },
         },
       },
       "contracts/conduit/ConduitController.sol": {
@@ -58,9 +55,6 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 1000000,
           },
-          debug: {
-            debugInfo: [],
-          },
         },
       },
     },
@@ -68,7 +62,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       blockGasLimit: 30_000_000,
-      // allowUnlimitedContractSize: true,
+      throwOnCallFailures: false,
     },
   },
   gasReporter: {

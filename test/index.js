@@ -42,6 +42,11 @@ const VERSION = !process.env.REFERENCE ? "1.1" : "rc.1.1";
 
 const minRandom = (min) => randomBN(10).add(min);
 
+const getCustomRevertSelector = (customErrorString) =>
+  ethers.utils
+    .keccak256(ethers.utils.toUtf8Bytes(customErrorString))
+    .slice(0, 10);
+
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
   let zone;
@@ -677,16 +682,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const consideration = [
             getItemETH(toBN(1), toBN(1), constants.AddressZero),
           ];
-          console.log(Object.keys(marketplaceContract.interface.functions));
-          for (const signature of Object.keys(
-            marketplaceContract.interface.functions
-          )) {
-            console.log(
-              `${signature.slice(0, signature.indexOf("("))}: ${keccak256(
-                Buffer.from(signature, "utf8")
-              ).slice(0, 10)}`
-            );
-          }
 
           const { order, orderHash, value } = await createOrder(
             seller,
@@ -1689,6 +1684,182 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
             return receipt;
           });
+        });
+        it("ERC721 <=> ERC20 (EIP-1271 signature on non-ECDSA 64 bytes)", async () => {
+          const sellerContract = await deployContract(
+            "EIP1271Wallet",
+            seller,
+            seller.address
+          );
+
+          // Seller mints nft to contract
+          const nftId = await mint721(sellerContract);
+
+          // Seller approves marketplace contract to transfer NFT
+          await expect(
+            sellerContract
+              .connect(seller)
+              .approveNFT(testERC721.address, marketplaceContract.address)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(
+              sellerContract.address,
+              marketplaceContract.address,
+              true
+            );
+
+          // Buyer mints ERC20
+          const tokenAmount = minRandom(100);
+          await mintAndApproveERC20(
+            buyer,
+            marketplaceContract.address,
+            tokenAmount
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              sellerContract.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash } = await createOrder(
+            sellerContract,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller
+          );
+
+          // Compute the digest based on the order hash
+          const { domainSeparator } = await marketplaceContract.information();
+          const digest = keccak256(
+            `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
+          );
+
+          const signature = `0x`.padEnd(130, "f");
+
+          const basicOrderParameters = {
+            ...getBasicOrderParameters(
+              2, // ERC20ForERC721
+              order
+            ),
+            signature,
+          };
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters);
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ERC20 (EIP-1271 signature on non-ECDSA 65 bytes)", async () => {
+          const sellerContract = await deployContract(
+            "EIP1271Wallet",
+            seller,
+            seller.address
+          );
+
+          // Seller mints nft to contract
+          const nftId = await mint721(sellerContract);
+
+          // Seller approves marketplace contract to transfer NFT
+          await expect(
+            sellerContract
+              .connect(seller)
+              .approveNFT(testERC721.address, marketplaceContract.address)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(
+              sellerContract.address,
+              marketplaceContract.address,
+              true
+            );
+
+          // Buyer mints ERC20
+          const tokenAmount = minRandom(100);
+          await mintAndApproveERC20(
+            buyer,
+            marketplaceContract.address,
+            tokenAmount
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              sellerContract.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash } = await createOrder(
+            sellerContract,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller
+          );
+
+          // Compute the digest based on the order hash
+          const { domainSeparator } = await marketplaceContract.information();
+          const digest = keccak256(
+            `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
+          );
+
+          await sellerContract.registerDigest(digest, true);
+
+          const signature = `0x`.padEnd(132, "f");
+
+          const basicOrderParameters = {
+            ...getBasicOrderParameters(
+              2, // ERC20ForERC721
+              order
+            ),
+            signature,
+          };
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters);
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+
+          await sellerContract.registerDigest(digest, false);
         });
         it("ERC721 <=> ERC20 (basic, EIP-1271 signature w/ non-standard length)", async () => {
           // Seller mints nft to contract
@@ -3593,18 +3764,37 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.signature = "0x";
 
         if (!process.env.REFERENCE) {
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSignature()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
 
           // cannot validate it with no signature from a random account
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
+          await expect(marketplaceContract.connect(owner).validate([order])).to
+            .be.reverted;
+
+          tx = await marketplaceContract
+            .connect(owner)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
         } else {
           await expect(
             marketplaceContract
@@ -3698,18 +3888,35 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // cannot fill it with no signature yet
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSignature()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
 
           // cannot validate it with no signature from a random account
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
+          tx = await marketplaceContract
+            .connect(owner)
+            .populateTransaction.validate([order]);
+          returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
+          await expect(marketplaceContract.connect(owner).validate([order])).to
+            .be.reverted;
         } else {
           // cannot fill it with no signature yet
           await expect(
@@ -3794,18 +4001,35 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // cannot fill it with no signature yet
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSignature()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
+
+          tx = await marketplaceContract
+            .connect(owner)
+            .populateTransaction.validate([order]);
+          returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
 
           // cannot validate it with no signature from a random account
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
+          await expect(marketplaceContract.connect(owner).validate([order])).to
+            .be.reverted;
         } else {
           // cannot fill it with no signature yet
           await expect(
@@ -4123,13 +4347,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSigner()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           // Cannot fill order anymore
           await expect(
@@ -4217,13 +4453,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSigner()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           // Cannot fill order anymore
           await expect(
@@ -4311,13 +4559,25 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
+          const expectedRevertReason = getCustomRevertSelector(
+            "InvalidSigner()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           // Cannot fill order anymore
           await expect(
@@ -9529,10 +9789,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
-      await expect(conduitOne.connect(owner).execute([])).to.be.revertedWith(
-        "ChannelClosed",
-        owner
-      );
+      let expectedRevertReason =
+        getCustomRevertSelector("ChannelClosed(address)") +
+        owner.address.slice(2).padStart(64, "0").toLowerCase();
+
+      let tx = await conduitOne.connect(owner).populateTransaction.execute([]);
+      let returnData = await provider.call(tx);
+      expect(returnData).to.equal(expectedRevertReason);
+
+      await expect(conduitOne.connect(owner).execute([])).to.be.reverted;
     });
 
     it("Reverts when attempting to execute with 1155 transfers on a conduit when not called from a channel", async () => {
@@ -10794,24 +11059,47 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           order
         );
 
+        let expectedRevertReason =
+          getCustomRevertSelector("BadSignatureV(uint8)") +
+          "1".padStart(64, "0");
+
+        let tx = await marketplaceContract
+          .connect(buyer)
+          .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
+            value,
+          });
+        let returnData = await provider.call(tx);
+        expect(returnData).to.equal(expectedRevertReason);
+
         await expect(
           marketplaceContract
             .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith("BadSignatureV(1)");
+        ).to.be.reverted;
 
         // construct an invalid signature
         basicOrderParameters.signature = "0x".padEnd(130, "f") + "1c";
 
+        expectedRevertReason = getCustomRevertSelector(
+          "InvalidSigner()"
+        ).padEnd(66, "0");
+
+        tx = await marketplaceContract
+          .connect(buyer)
+          .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
+            value,
+          });
+        expect(provider.call(tx)).to.be.revertedWith("InvalidSigner");
+
         await expect(
           marketplaceContract
             .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith("InvalidSignature");
+        ).to.be.reverted;
 
         basicOrderParameters.signature = originalSignature;
 
@@ -11020,11 +11308,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
 
         if (!process.env.REFERENCE) {
+          const expectedRevertReason = getCustomRevertSelector(
+            "BadContractSignature()"
+          ).padEnd(66, "0");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillBasicOrder(basicOrderParameters);
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           await expect(
             marketplaceContract

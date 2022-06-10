@@ -784,5 +784,14 @@ contract BaseOrderTest is
             );
     }
 
+    ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
+    function isValidSignature(bytes32, bytes memory)
+        external
+        pure
+        returns (bytes4)
+    {
+        return 0x1626ba7e;
+    }
+
     receive() external payable virtual {}
 }

@@ -135,7 +135,7 @@ export const getOfferOrConsiderationItem = <
     } as ConsiderationItem;
   }
   return offerItem as any;
-}
+};
 
 export const buildOrderStatus = (
   ...arr: Array<BigNumber | number | boolean>
