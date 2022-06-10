@@ -2093,9 +2093,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await gpDeployer.deployed();
       // deploy GP
       const salt = randomHex();
+      console.log("1 zone.address is", zone.address);
       zone.address = await gpDeployer.createZone(salt);
       // });
 
+      console.log("2 zone.address is", zone.address);
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
