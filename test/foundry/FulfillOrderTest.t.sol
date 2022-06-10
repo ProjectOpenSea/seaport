@@ -541,8 +541,8 @@ contract FulfillOrderTest is BaseOrderTest {
         stateless
     {
         test1155_1.mint(address(this), 1, 1);
-        _configureERC1155OfferItem(1, 1);
-        _configureEthConsiderationItem(payable(this), 1);
+        addErc1155OfferItem(1, 1);
+        addEthConsiderationItem(payable(this), 1);
 
         _configureOrderParameters(
             address(this),
@@ -567,8 +567,8 @@ contract FulfillOrderTest is BaseOrderTest {
 
     function fulfillOrder2098(Context memory context) external stateless {
         test1155_1.mint(bob, 1, 1);
-        _configureERC1155OfferItem(1, 1);
-        _configureEthConsiderationItem(payable(bob), 1);
+        addErc1155OfferItem(1, 1);
+        addEthConsiderationItem(payable(bob), 1);
 
         _configureOrderParameters(
             bob,
