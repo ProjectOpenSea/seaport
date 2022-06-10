@@ -4,6 +4,7 @@ coverage
 coverage.json
 typechain-types
 yarn-error.log
+tmp/
 
 #Hardhat files
 artifacts/

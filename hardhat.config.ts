@@ -2,7 +2,6 @@ import * as dotenv from "dotenv";
 
 import { HardhatUserConfig, subtask } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-import "@nomiclabs/hardhat-vyper";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
@@ -22,18 +21,6 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
-
-const getPaths = () => {
-  const target = process.env.TARGET;
-
-  switch (target) {
-    case "vyper":
-      return { artifacts: "./vyper/artifacts", sources: "./vyper/contracts" };
-
-    default:
-      return { cache: "hh-cache" };
-  }
-};
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -72,9 +59,6 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  vyper: {
-    version: "0.3.3",
-  },
   networks: {
     hardhat: {
       blockGasLimit: 30_000_000,
@@ -86,7 +70,7 @@ const config: HardhatUserConfig = {
   },
   // specify separate cache for hardhat, since it could possibly conflict with foundry's
 
-  paths: getPaths(),
+  paths: { cache: "hh-cache" },
 };
 
 export default config;
