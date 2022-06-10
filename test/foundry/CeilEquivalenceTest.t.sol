@@ -7,6 +7,11 @@ contract CeilEquivalenceTest {
         public
         pure
     {
+        // There is intermediate overflow for the unoptimized ceil
+        // but for the sake of this test we'll ignore those cases.
+        numerator %= type(uint128).max;
+        denominator %= type(uint128).max;
+
         uint256 optimized;
         assembly {
             optimized := mul(
