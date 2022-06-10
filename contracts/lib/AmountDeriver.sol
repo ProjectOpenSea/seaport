@@ -34,7 +34,7 @@ contract AmountDeriver is AmountDerivationErrors {
      * @param roundUp     A boolean indicating whether the resultant amount
      *                    should be rounded up or down.
      *
-     * @return The current amount.
+     * @return amount The current amount.
      */
     function _locateCurrentAmount(
         uint256 startAmount,
@@ -42,7 +42,7 @@ contract AmountDeriver is AmountDerivationErrors {
         uint256 startTime,
         uint256 endTime,
         bool roundUp
-    ) internal view returns (uint256) {
+    ) internal view returns (uint256 amount) {
         // Only modify end amount if it doesn't already equal start amount.
         if (startAmount != endAmount) {
             uint256 duration;
@@ -72,7 +72,7 @@ contract AmountDeriver is AmountDerivationErrors {
                 amount := mul(
                     // We subtract 1 from the numerator and add 1 to the result
                     // if roundUp is true to get the proper rounding direction.
-                 // Division performed with no zero check as duration cannot be zero.
+                    // Division performed with no zero check as duration cannot be zero.
                     add(
                         div(sub(totalBeforeDivision, roundUp), duration),
                         roundUp
@@ -83,6 +83,10 @@ contract AmountDeriver is AmountDerivationErrors {
 
             // Return the current amount.
             return amount;
+        }
+         
+        // Return the original amount (now expressed as endAmount internally).
+        return endAmount;
     }
 
     /**
