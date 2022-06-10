@@ -19,6 +19,7 @@ contract DeployerGlobalPausable {
 
     event PotentialOwnerUpdated(address owner);
     event OwnershipTransferred(address newOwner);
+    event ZoneCreated(address zoneAddress);
 
     constructor(address _deployerOwner, bytes32 _salt) {
         deployerOwner = _deployerOwner;
@@ -37,7 +38,7 @@ contract DeployerGlobalPausable {
         // This complicated expression just tells you how the address
         // can be pre-computed. It is just there for illustration.
         // You actually only need ``new D{salt: salt}(arg)``.
-        address derivedAddress = address(
+        derivedAddress = address(
             uint160(
                 uint256(
                     keccak256(
@@ -59,6 +60,7 @@ contract DeployerGlobalPausable {
 
         GlobalPausable zone = new GlobalPausable{ salt: salt }(address(this));
         require(address(zone) == derivedAddress, "Unexpected Derived address");
+        emit ZoneCreated(derivedAddress);
     }
 
     //pause Seaport by self destructing GlobalPausable

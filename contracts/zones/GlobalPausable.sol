@@ -67,10 +67,8 @@ contract GlobalPausable is ZoneInterface {
             msg.sender == deployer,
             "Only the owner can execute restricted orders with this zone."
         );
-
         //Create seaport object
         ConsiderationInterface seaport = ConsiderationInterface(_seaport);
-
         executions = seaport.matchOrders(orders, fulfillments);
     }
 
@@ -96,7 +94,7 @@ contract GlobalPausable is ZoneInterface {
 
     /**
      * Self-descructs this contract, safely stopping orders from using this as a zone.
-     * Oders with this address as a zone are bricked until the Deployer makes a new zone
+     * Orders with this address as a zone are bricked until the Deployer makes a new zone
      * with the same address as this one.
      */
     function kill() external {
