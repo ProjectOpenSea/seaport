@@ -84,7 +84,7 @@ contract AmountDeriver is AmountDerivationErrors {
             // Return the current amount.
             return amount;
         }
-         
+
         // Return the original amount (now expressed as endAmount internally).
         return endAmount;
     }
