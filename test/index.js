@@ -2008,35 +2008,34 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Decode all events and get the order hashes
       const receipt = await tx.wait();
-      const foundOrderHashesFromEvents = new Set(
-        receipt.events
-          .map((event) => {
-            // Attempt to decode each event to OrderFulfilled.
-            // If the event is not successfully decoded (e.g. if the
-            // event is not an OrderFulfilled event), the catch will be hit
-            // and we return null
-            try {
-              return marketplaceContract.interface.decodeEventLog(
-                "OrderFulfilled",
-                event.data,
-                event.topics
-              ).orderHash;
-            } catch {
-              return null;
-            }
-          })
-          // Filter out all nulls so that at the end we are left with
-          // only order hashes from OrderFulfilled events
-          // (e.g. events that were successfully decoded)
-          .filter(Boolean)
-      );
-      expect(foundOrderHashesFromEvents.size).to.equal(fulfillments.length);
+      const foundOrderHashesFromEvents = receipt.events
+        .map((event) => {
+          // Attempt to decode each event to OrderFulfilled.
+          // If the event is not successfully decoded (e.g. if the
+          // event is not an OrderFulfilled event), the catch will be hit
+          // and we return null
+          try {
+            return marketplaceContract.interface.decodeEventLog(
+              "OrderFulfilled",
+              event.data,
+              event.topics
+            ).orderHash;
+          } catch {
+            return null;
+          }
+        })
+        // Filter out all nulls so that at the end we are left with
+        // only order hashes from OrderFulfilled events
+        // (e.g. events that were successfully decoded)
+        .filter(Boolean);
 
+      expect(foundOrderHashesFromEvents.length).to.equal(fulfillments.length);
+
+      // Check that the actual order hashes match those from the events, in order
       const actualOrderHashes = [orderHashOne, orderHashTwo, orderHashThree];
-      actualOrderHashes.forEach((actualOrderHash) => {
-        expect(foundOrderHashesFromEvents.has(actualOrderHash)).to.be.true;
-        foundOrderHashesFromEvents.delete(actualOrderHash);
-      });
+      foundOrderHashesFromEvents.forEach((foundOrderHash, i) =>
+        expect(foundOrderHash).to.be.equal(actualOrderHashes[i])
+      );
     });
 
     it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
