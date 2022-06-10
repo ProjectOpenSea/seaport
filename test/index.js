@@ -1796,7 +1796,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     let sellerContract;
     let buyerContract;
     let buyer;
-    const zone = new ethers.Wallet(randomHex(32), provider);
 
     // Create zone and get zone address
     async function createZone(gpDeployer, salt) {
@@ -1817,7 +1816,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
 
       await Promise.all(
-        [seller, buyer, zone, sellerContract, buyerContract].map((wallet) =>
+        [seller, buyer, sellerContract, buyerContract].map((wallet) =>
           faucet(wallet.address, provider)
         )
       );
@@ -1846,7 +1845,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(parseEther("1"), parseEther("1"), zone.address),
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
@@ -1890,7 +1888,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // deploy GP
-      await createZone(gpDeployer);
+      const zoneAddr = await createZone(gpDeployer);
 
       // create basic order using GP as zone
       // execute basic 721 <=> ETH order
@@ -1903,20 +1901,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(parseEther("1"), parseEther("1"), zone.address),
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
       const { order, value } = await createOrder(
         seller,
-        zone,
+        { address: zoneAddr },
         offer,
         consideration,
         2
       );
       // owner nukes the zone
       await whileImpersonating(owner.address, provider, async () => {
-        gpDeployer.killSwitch(zone.address);
+        gpDeployer.killSwitch(zoneAddr);
       });
 
       await expect(
@@ -1938,12 +1935,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // deploy GP
-      await createZone(gpDeployer);
+      const zoneAddr = await createZone(gpDeployer);
 
       // non owner tries to use GPD to nuke the zone, reverts
-      await whileImpersonating(testERC20.address, provider, async () => {
-        await expect(gpDeployer.killSwitch(zone.address)).to.be.reverted;
-      });
+      await expect(gpDeployer.connect(buyer).killSwitch(zoneAddr)).to.be
+        .reverted;
     });
 
     it("Zone can cancel restricted orders.", async () => {
@@ -1969,7 +1965,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(parseEther("1"), parseEther("1"), zone.address),
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
@@ -2011,7 +2006,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(parseEther("1"), parseEther("1"), zone.address),
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
@@ -2039,7 +2033,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // deploy GP
-      await createZone(gpDeployer);
+      const zoneAddr = await createZone(gpDeployer);
 
       const nftId = await mintAndApprove721(
         seller,
@@ -2050,7 +2044,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(parseEther("1"), parseEther("1"), zone.address),
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
@@ -2066,7 +2059,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await expect(
         gpDeployer
           .connect(buyer)
-          .cancelOrderZone(zone.address, marketplaceContract.address, order)
+          .cancelOrderZone(zoneAddr, marketplaceContract.address, order)
       ).to.be.reverted;
     });
 
