@@ -21,8 +21,9 @@ import { OrderParameters } from "./utils/reentrancy/ReentrantStructs.sol";
 contract FulfillBasicOrderTest is BaseOrderTest {
     using ArithmeticUtil for uint128;
 
+    uint256 badIdentifier;
+    address badToken;
     BasicOrderParameters basicOrderParameters;
-    OrderComponents orderComponents;
 
     struct FuzzInputsCommon {
         address zone;
@@ -174,11 +175,17 @@ contract FulfillBasicOrderTest is BaseOrderTest {
 
     function testRevertUnusedItemParametersIdentifierSetOnNative(
         FuzzInputsCommon memory inputs,
-        uint128 tokenAmount
+        uint128 tokenAmount,
+        uint256 _badIdentifier,
+        address _badToken
     )
         public
         validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
     {
+        vm.assume(_badIdentifier != 0 || _badToken != address(0));
+        badIdentifier = _badIdentifier;
+        badToken = _badToken;
+
         addErc1155OfferItem(inputs.tokenId, tokenAmount);
         addEthConsiderationItem(alice, 100);
         test(
@@ -196,31 +203,38 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     ) external stateless {
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
-        _configureOrderComponents(
-            context.args.zone,
-            context.args.zoneHash,
-            context.args.salt,
-            bytes32(0)
-        );
+        considerationItems[0].identifierOrCriteria = badIdentifier;
+        considerationItems[0].token = badToken;
 
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
         _configureOrderComponents(context.consideration.getCounter(alice));
-        _configureBasicOrderParametersEthTo1155(
-            context.args,
-            context.tokenAmount
-        );
 
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
 
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
             orderHash
         );
-        basicOrderParameters.signature = signature;
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
+                signature
+            );
 
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
         context.consideration.fulfillBasicOrder{ value: 100 }(
-            basicOrderParameters
+            _basicOrderParameters
         );
     }
 
@@ -249,8 +263,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
-        orderComponents.counter = counter;
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
@@ -275,8 +291,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
-        orderComponents.counter = counter;
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
@@ -303,8 +321,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
-        orderComponents.counter = counter;
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
@@ -328,8 +348,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
-        orderComponents.counter = counter;
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
@@ -419,16 +441,16 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         uint256 salt,
         bytes32 conduitKey
     ) internal {
-        orderComponents.offerer = alice;
-        orderComponents.zone = zone;
-        orderComponents.offer = offerItems;
-        orderComponents.consideration = considerationItems;
-        orderComponents.orderType = OrderType.FULL_OPEN;
-        orderComponents.startTime = block.timestamp;
-        orderComponents.endTime = block.timestamp + 100;
-        orderComponents.zoneHash = zoneHash;
-        orderComponents.salt = salt;
-        orderComponents.conduitKey = conduitKey;
+        baseOrderComponents.offerer = alice;
+        baseOrderComponents.zone = zone;
+        baseOrderComponents.offer = offerItems;
+        baseOrderComponents.consideration = considerationItems;
+        baseOrderComponents.orderType = OrderType.FULL_OPEN;
+        baseOrderComponents.startTime = block.timestamp;
+        baseOrderComponents.endTime = block.timestamp + 100;
+        baseOrderComponents.zoneHash = zoneHash;
+        baseOrderComponents.salt = salt;
+        baseOrderComponents.conduitKey = conduitKey;
         // don't set counter
     }
 }
