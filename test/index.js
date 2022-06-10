@@ -1977,43 +1977,46 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         toFulfillment(offerArr, considerationArr)
       );
 
-      const unrelatedExecutions = await simulateAdvancedMatchOrders(
-        [orderOne, orderTwo, orderThree],
-        [], // no criteria resolvers
-        fulfillments,
-        owner,
-        0 // no value
-      );
+      const simulateAdvancedMatchOrdersExecutions =
+        await simulateAdvancedMatchOrders(
+          [orderOne, orderTwo, orderThree],
+          [], // no criteria resolvers
+          fulfillments,
+          owner,
+          0 // no value
+        );
 
       console.log(
         "simulateAdvancedMatchOrders executions",
-        unrelatedExecutions.length
+        simulateAdvancedMatchOrdersExecutions.length
       );
 
-      const executeRestrictedMatchOrderZoneExecutions = await gpDeployer
+      const executeRestrictedMatchAdvancedOrderZoneExecutions = await gpDeployer
         .connect(owner)
-        .callStatic.executeRestrictedMatchOrderZone(
+        .callStatic.executeRestrictedMatchAdvancedOrderZone(
           zoneAddr,
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
+          [],
           fulfillments
         );
 
       // expect(executions.length).to.equal(fulfillments.length);
       console.log(
-        "executeRestrictedMatchOrderZone executions",
-        executeRestrictedMatchOrderZoneExecutions.length
+        "executeRestrictedMatchAdvancedOrderZoneExecutions executions",
+        executeRestrictedMatchAdvancedOrderZoneExecutions.length
       );
 
-      const tx = await gpDeployer
-        .connect(owner)
-        .executeRestrictedMatchOrderZone(
-          zoneAddr,
-          marketplaceContract.address,
-          [orderOne, orderTwo, orderThree],
-          fulfillments
-        );
-      const receipt = await tx.wait();
+      // const tx = await gpDeployer
+      //   .connect(owner)
+      //   .executeRestrictedMatchOrderZone(
+      //     zoneAddr,
+      //     marketplaceContract.address,
+      //     [orderOne, orderTwo, orderThree],
+      //     [],
+      //     fulfillments
+      //   );
+      // const receipt = await tx.wait();
       // await checkExpectedEvents(
       //   tx,
       //   receipt,

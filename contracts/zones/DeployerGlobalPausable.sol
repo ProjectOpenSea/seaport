@@ -112,14 +112,14 @@ contract DeployerGlobalPausable {
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external {
+    ) external payable {
         require(
             msg.sender == deployerOwner,
             "Only the owner can execute advanced orders with the zone."
         );
 
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
-        gp.executeRestrictedAdvancedOffer(
+        gp.executeRestrictedAdvancedOffer{ value: msg.value }(
             _seaportAddress,
             orders,
             criteriaResolvers,
