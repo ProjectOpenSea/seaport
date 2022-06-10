@@ -252,33 +252,31 @@ contract CriteriaResolution is CriteriaResolutionErrors {
             // Derive the hash of the leaf to use as the initial proof element.
             let computedHash := keccak256(0, OneWord)
 
+            // Based on https://github.com/Rari-Capital/solmate/blob/v7/src/utils/MerkleProof.sol
             // Get memory start location of the first element in proof array.
             let data := add(proof, OneWord)
 
             // Iterate over proof elements to compute root hash.
             for {
-                let end := add(data, mul(mload(proof), OneWord))
+                // Left shift by 5 is equivalent to multiplying by 0x20.
+                let end := add(data, shl(5, proof.length))
             } lt(data, end) {
                 data := add(data, OneWord)
             } {
                 // Get the proof element.
                 let loadedData := mload(data)
-
                 // Sort proof elements and place them in scratch space.
-                switch gt(computedHash, loadedData)
-                case 0 {
-                    mstore(0, computedHash) // Place existing hash first.
-                    mstore(OneWord, loadedData) // Place new hash next.
-                }
-                default {
-                    mstore(0, loadedData) // Place new hash first.
-                    mstore(OneWord, computedHash) // Place existing hash next.
-                }
+                // Slot of `computedHash` in scratch space.
+                // If the condition is true: 0x20, otherwise: 0x00.
+                let scratch := shl(5, gt(computedHash, loadedData))
 
+                // Store elements to hash contiguously in scratch space.
+                // Scratch space is 64 bytes (0x00 - 0x3f) and both elements are 32 bytes.
+                mstore(scratch, computedHash)
+                mstore(xor(scratch, OneWord), loadedData)
                 // Derive the updated hash.
                 computedHash := keccak256(0, TwoWords)
             }
-
             // Compare the final hash to the supplied root.
             isValid := eq(computedHash, root)
         }
