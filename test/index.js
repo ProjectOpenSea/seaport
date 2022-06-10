@@ -1876,6 +1876,75 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
+    it("Fulfills an order with executeRestrictedMatchOrderZone", async () => {
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+
+      const zoneAddr = await createZone(gpDeployer);
+
+      // create basic order using GP as zone
+      // execute basic 721 <=> ETH order
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        // getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        { address: zoneAddr },
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const { mirrorOrder } = await createMirrorBuyNowOrder(
+        buyer,
+        { address: zoneAddr },
+        order
+      );
+
+      const fulfillments = defaultBuyNowMirrorFulfillment;
+
+      console.log([order, mirrorOrder, fulfillments]);
+
+      await withBalanceChecks([order], 0, null, async () => {
+        const tx = await gpDeployer
+          .connect(owner)
+          .executeRestrictedMatchOrderZone(
+            directMarketplaceContract.address,
+            zoneAddr,
+            [order, mirrorOrder],
+            fulfillments
+          );
+
+        const receipt = await tx.wait();
+        await checkExpectedEvents(tx, receipt, [
+          {
+            order,
+            orderHash,
+            fulfiller: buyer.address,
+            fulfillerConduitKey: toKey(false),
+          },
+        ]);
+        return receipt;
+      });
+    });
+
     it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
