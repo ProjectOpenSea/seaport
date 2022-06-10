@@ -138,8 +138,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         test721_1.mint(address(this), 1);
         test721_1.mint(address(this), 2);
 
-        _configureOfferItem(context.itemType, 1, 100);
-        _configureConsiderationItem(alice, ItemType.ERC721, 1, 1);
+        addOfferItem(context.itemType, 1, 100);
+        addConsiderationItem(alice, ItemType.ERC721, 1, 1);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -169,8 +169,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         delete considerationItems;
 
         // try to overflow the aggregated amount of tokens sent to alice
-        _configureOfferItem(context.itemType, 1, MAX_INT);
-        _configureConsiderationItem(bob, ItemType.ERC721, 2, 1);
+        addOfferItem(context.itemType, 1, MAX_INT);
+        addConsiderationItem(bob, ItemType.ERC721, 2, 1);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(alice),
@@ -204,14 +204,14 @@ contract FulfillAvailableOrder is BaseOrderTest {
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponentsArray.push(considerationComponents);
         delete considerationComponents;
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         vm.expectRevert(stdError.arithmeticError);
         context.consideration.fulfillAvailableOrders(
@@ -227,8 +227,8 @@ contract FulfillAvailableOrder is BaseOrderTest {
         Context memory context
     ) external stateless {
         test721_1.mint(alice, 1);
-        _configureOfferItem(ItemType.ERC721, 1, 1);
-        _configureConsiderationItem(alice, context.itemType, 1, 100);
+        addOfferItem(ItemType.ERC721, 1, 1);
+        addConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -258,9 +258,9 @@ contract FulfillAvailableOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        _configureOfferItem(ItemType.ERC721, 2, 1);
+        addOfferItem(ItemType.ERC721, 2, 1);
         // try to overflow the aggregated amount of tokens sent to alice
-        _configureConsiderationItem(alice, context.itemType, 1, MAX_INT);
+        addConsiderationItem(alice, context.itemType, 1, MAX_INT);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -295,13 +295,13 @@ contract FulfillAvailableOrder is BaseOrderTest {
         delete offerComponents;
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         // aggregate considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
         vm.expectRevert(stdError.arithmeticError);
         context.consideration.fulfillAvailableOrders{ value: 99 }(
             orders,
@@ -390,19 +390,19 @@ contract FulfillAvailableOrder is BaseOrderTest {
 
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 1));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 2));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         assertTrue(considerationComponentsArray.length == 3);
 
@@ -524,22 +524,22 @@ contract FulfillAvailableOrder is BaseOrderTest {
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 1));
         considerationComponents.push(FulfillmentComponent(1, 1));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 2));
         considerationComponents.push(FulfillmentComponent(1, 2));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
         emit log_string("about to add");
 
         context.consideration.fulfillAvailableOrders{
