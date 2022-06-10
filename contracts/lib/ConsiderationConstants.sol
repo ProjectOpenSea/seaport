@@ -372,11 +372,8 @@ uint256 constant InexactFraction_error_signature = (
 uint256 constant InexactFraction_error_len = 0x04;
 
 // Declare constant for errors related to signature verification.
-
-uint256 constant Ecrecover_gas = 5000;
 uint256 constant Ecrecover_precompile = 1;
 uint256 constant Ecrecover_args_size = 0x80;
-
 uint256 constant Signature_lower_v = 27;
 
 // error BadSignatureV(uint8) @ SignatureVerificationErrors.sol

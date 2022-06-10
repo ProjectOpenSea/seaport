@@ -85,4 +85,11 @@ interface TokenTransferrerErrors {
      * @param account The account that should contain code.
      */
     error NoContract(address account);
+
+    /**
+     * @dev Revert with an error when attempting to execute an 1155 batch
+     *      transfer using calldata not produced by default ABI encoding or with
+     *      different lengths for ids and amounts arrays.
+     */
+    error Invalid1155BatchTransferEncoding();
 }
