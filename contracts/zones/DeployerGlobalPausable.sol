@@ -25,35 +25,6 @@ contract DeployerGlobalPausable {
         deployerOwner = _deployerOwner;
     }
 
-    function zoneAddressFromSalt(bytes32 salt)
-        external
-        view
-        returns (address derivedAddress)
-    {
-        // This complicated expression just tells you how the address
-        // can be pre-computed. It is just there for illustration.
-        // You actually only need ``new D{salt: salt}(arg)``.
-        derivedAddress = address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            bytes1(0xff),
-                            address(this),
-                            salt,
-                            keccak256(
-                                abi.encodePacked(
-                                    type(GlobalPausable).creationCode,
-                                    abi.encode(address(this)) //GlobalPausable takes an address as a constructor param.
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        );
-    }
-
     //Deploy a GlobalPausable at. Should be an efficient address
     function createZone(bytes32 salt)
         external
