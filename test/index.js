@@ -1877,9 +1877,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Fulfills an order with executeRestrictedMatchOrderZone", async () => {
-      const zone = new ethers.Wallet(randomHex(32), provider);
-      await faucet(zone.address, provider);
-
       const GPDeployer = await ethers.getContractFactory(
         "DeployerGlobalPausable",
         owner
@@ -1890,62 +1887,165 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       const zoneAddr = await createZone(gpDeployer);
+      const zone = { address: zoneAddr };
 
-      // create basic order using GP as zone
-      // execute basic 721 <=> ETH order
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
       );
+      const secondNFTId = await mintAndApprove721(
+        buyer,
+        marketplaceContract.address
+      );
+      const thirdNFTId = await mintAndApprove721(
+        owner,
+        marketplaceContract.address
+      );
 
-      const offer = [getTestItem721(nftId)];
-
-      const consideration = [
-        getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        // getItemETH(parseEther("1"), parseEther("1"), owner.address),
-        getItemETH(parseEther("1"), parseEther("1"), zone.address),
-        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      const offerOne = [
+        getTestItem721(nftId, toBN(1), toBN(1), undefined, testERC721.address),
       ];
 
-      const { order, orderHash, value } = await createOrder(
+      const considerationOne = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          seller.address,
+          testERC721.address
+        ),
+      ];
+
+      const { order: orderOne, orderHash: orderHashOne } = await createOrder(
         seller,
-        { address: zoneAddr },
-        offer,
-        consideration,
-        2
+        zone,
+        offerOne,
+        considerationOne,
+        0 // FULL_OPEN
       );
 
-      const { mirrorOrder } = await createMirrorBuyNowOrder(
+      const offerTwo = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+
+      const considerationTwo = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          buyer.address,
+          testERC721.address
+        ),
+      ];
+
+      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
         buyer,
-        { address: zoneAddr },
-        order
+        zone,
+        offerTwo,
+        considerationTwo,
+        0 // FULL_OPEN
       );
 
-      const fulfillments = defaultBuyNowMirrorFulfillment;
+      const offerThree = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
 
-      console.log([order, mirrorOrder, fulfillments]);
+      const considerationThree = [
+        getTestItem721(
+          nftId,
+          toBN(1),
+          toBN(1),
+          owner.address,
+          testERC721.address
+        ),
+      ];
 
-      await withBalanceChecks([order], 0, null, async () => {
-        const tx = await gpDeployer
-          .connect(owner)
-          .executeRestrictedMatchOrderZone(
-            zoneAddr,
-            directMarketplaceContract.address,
-            [order, mirrorOrder],
-            fulfillments
-          );
+      const { order: orderThree, orderHash: orderHashThree } =
+        await createOrder(
+          owner,
+          zone,
+          offerThree,
+          considerationThree,
+          0 // FULL_OPEN
+        );
 
-        const receipt = await tx.wait();
-        await checkExpectedEvents(tx, receipt, [
+      const fulfillments = [
+        [[[1, 0]], [[0, 0]]],
+        [[[0, 0]], [[2, 0]]],
+        [[[2, 0]], [[1, 0]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      const executions = await gpDeployer
+        .connect(owner)
+        .callStatic.executeRestrictedMatchOrderZone(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          fulfillments
+        );
+
+      // expect(executions.length).to.equal(fulfillments.length);
+      console.log("HIT!", executions.length);
+      const tx = await gpDeployer
+        .connect(owner)
+        .executeRestrictedMatchOrderZone(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          fulfillments
+        );
+      const receipt = await tx.wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
           {
-            order,
-            orderHash,
-            fulfiller: buyer.address,
-            fulfillerConduitKey: toKey(false),
+            order: orderOne,
+            orderHash: orderHashOne,
+            fulfiller: constants.AddressZero,
           },
-        ]);
-        return receipt;
-      });
+        ],
+        executions
+      );
+
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: orderTwo,
+            orderHash: orderHashTwo,
+            fulfiller: constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: orderThree,
+            orderHash: orderHashThree,
+            fulfiller: constants.AddressZero,
+          },
+        ],
+        executions
+      );
     });
 
     it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
