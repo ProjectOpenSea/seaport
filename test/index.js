@@ -1877,6 +1877,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Fulfills an order with executeRestrictedMatchAdvancedOrderZoneExecutions", async () => {
+      // Create Global Pausable Deployer
       const GPDeployer = await ethers.getContractFactory(
         "DeployerGlobalPausable",
         owner
@@ -1886,9 +1887,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ethers.utils.formatBytes32String("0")
       );
 
+      // Deploy Global Pausable zone
       const zoneAddr = await createZone(gpDeployer);
       const zone = { address: zoneAddr };
 
+      // Mint NFTs for use in orders
       const nftId = await mintAndApprove721(
         seller,
         marketplaceContract.address
@@ -1902,6 +1905,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         marketplaceContract.address
       );
 
+      // Define orders
       const offerOne = [
         getTestItem721(nftId, toBN(1), toBN(1), undefined, testERC721.address),
       ];
@@ -1977,6 +1981,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         toFulfillment(offerArr, considerationArr)
       );
 
+      // Ensure that the number of executions from matching advanced orders with zone
+      // is equal to the number of fulfillments
       const executions = await gpDeployer
         .connect(owner)
         .callStatic.executeRestrictedMatchAdvancedOrderZone(
@@ -1987,9 +1993,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           fulfillments,
           { value: 0 }
         );
-
       expect(executions.length).to.equal(fulfillments.length);
 
+      // Perform the match advanced orders with zone
       const tx = await gpDeployer
         .connect(owner)
         .executeRestrictedMatchAdvancedOrderZone(
@@ -2000,10 +2006,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           fulfillments
         );
 
+      // Decode all events and get the order hashes
       const receipt = await tx.wait();
       const foundOrderHashesFromEvents = new Set(
         receipt.events
           .map((event) => {
+            // Attempt to decode each event to OrderFulfilled.
+            // If the event is not successfully decoded (e.g. if the
+            // event is not an OrderFulfilled event), the catch will be hit
+            // and we return null
             try {
               return marketplaceContract.interface.decodeEventLog(
                 "OrderFulfilled",
@@ -2014,6 +2025,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               return null;
             }
           })
+          // Filter out all nulls so that at the end we are left with
+          // only order hashes from OrderFulfilled events
+          // (e.g. events that were successfully decoded)
           .filter(Boolean)
       );
       expect(foundOrderHashesFromEvents.size).to.equal(fulfillments.length);
