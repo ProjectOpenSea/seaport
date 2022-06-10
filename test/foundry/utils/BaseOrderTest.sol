@@ -3,66 +3,27 @@ pragma solidity >=0.8.13;
 
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
-import { ERC721Recipient } from "./ERC721Recipient.sol";
-import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
 import { OneWord } from "../../../contracts/lib/ConsiderationConstants.sol";
 import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
-import { StructCopier } from "./StructCopier.sol";
 import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
+import { OfferConsiderationItemAdder } from "./OfferConsiderationItemAdder.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
-contract BaseOrderTest is
-    StructCopier,
-    BaseConsiderationTest,
-    AmountDeriver,
-    ERC721Recipient,
-    ERC1155Recipient
-{
+contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     using stdStorage for StdStorage;
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
 
-    uint256 constant MAX_INT = ~uint256(0);
-
-    uint256 internal alicePk = 0xa11ce;
-    uint256 internal bobPk = 0xb0b;
-    uint256 internal calPk = 0xca1;
-    address payable internal alice = payable(vm.addr(alicePk));
-    address payable internal bob = payable(vm.addr(bobPk));
-    address payable internal cal = payable(vm.addr(calPk));
-
-    TestERC20 internal token1;
-    TestERC20 internal token2;
-    TestERC20 internal token3;
-
-    TestERC721 internal test721_1;
-    TestERC721 internal test721_2;
-    TestERC721 internal test721_3;
-
-    TestERC1155 internal test1155_1;
-    TestERC1155 internal test1155_2;
-    TestERC1155 internal test1155_3;
-
-    TestERC20[] erc20s;
-    TestERC721[] erc721s;
-    TestERC1155[] erc1155s;
+    uint256 internal globalSalt;
 
     OrderParameters baseOrderParameters;
     OrderComponents baseOrderComponents;
-
-    OfferItem offerItem;
-    ConsiderationItem considerationItem;
-    OfferItem[] offerItems;
-    ConsiderationItem[] considerationItems;
 
     FulfillmentComponent[] offerComponents;
     FulfillmentComponent[] considerationComponents;
@@ -89,9 +50,6 @@ contract BaseOrderTest is
 
     AdditionalRecipient[] additionalRecipients;
 
-    uint256 internal globalTokenId;
-    uint256 internal globalSalt;
-
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     event TransferSingle(
@@ -101,11 +59,6 @@ contract BaseOrderTest is
         uint256 id,
         uint256 value
     );
-
-    struct RestoreERC20Balance {
-        address token;
-        address who;
-    }
 
     modifier onlyPayable(address _addr) {
         {
@@ -150,11 +103,11 @@ contract BaseOrderTest is
 
     function _validateOrder(
         Order memory order,
-        ConsiderationInterface consideration
-    ) internal {
+        ConsiderationInterface _consideration
+    ) internal returns (bool) {
         Order[] memory orders = new Order[](1);
         orders[0] = order;
-        consideration.validate(orders);
+        return _consideration.validate(orders);
     }
 
     function _prepareOrder(uint256 tokenId, uint256 totalConsiderationItems)
@@ -167,9 +120,9 @@ contract BaseOrderTest is
     {
         test1155_1.mint(address(this), tokenId, 10);
 
-        _configureERC1155OfferItem(tokenId, 10);
+        addErc1155OfferItem(tokenId, 10);
         for (uint256 i = 0; i < totalConsiderationItems; i++) {
-            _configureErc20ConsiderationItem(alice, 10);
+            addErc20ConsiderationItem(alice, 10);
         }
         uint256 nonce = consideration.getCounter(address(this));
 
@@ -254,7 +207,7 @@ contract BaseOrderTest is
     }
 
     function _performTestFulfillOrderRevertInvalidArrayLength(
-        ConsiderationInterface consideration,
+        ConsiderationInterface _consideration,
         Order memory order,
         bytes memory fulfillOrderCalldata,
         // Relative offset of start of order parameters
@@ -266,7 +219,7 @@ contract BaseOrderTest is
         uint256 originalItemsLength,
         uint256 amtToSubtractFromItemsLength
     ) internal {
-        _validateOrder(order, consideration);
+        assertTrue(_validateOrder(order, consideration));
 
         bool overwriteItemsLength = amtToSubtractFromItemsLength > 0;
         if (overwriteItemsLength) {
@@ -312,244 +265,17 @@ contract BaseOrderTest is
         address considerationAddress,
         bytes memory orderCalldata
     ) internal returns (bool success) {
-        uint256 calldataLength = orderCalldata.length;
-        assembly {
-            // Call fulfillOrder
-            success := call(
-                gas(),
-                considerationAddress,
-                0,
-                // The fn signature and calldata starts after the
-                // first OneWord bytes, as those initial bytes just
-                // contain the length of orderCalldata
-                add(orderCalldata, OneWord),
-                calldataLength,
-                // Store output at empty storage location,
-                // identified using "free memory pointer".
-                mload(0x40),
-                OneWord
-            )
-        }
+        (success, ) = considerationAddress.call(orderCalldata);
     }
 
-    function _configureConsiderationItem(
-        address payable recipient,
-        ItemType itemType,
-        uint256 identifier,
-        uint256 amt
-    ) internal {
-        if (itemType == ItemType.NATIVE) {
-            _configureEthConsiderationItem(recipient, amt);
-        } else if (itemType == ItemType.ERC20) {
-            _configureErc20ConsiderationItem(recipient, amt);
-        } else if (itemType == ItemType.ERC1155) {
-            _configureErc1155ConsiderationItem(recipient, identifier, amt);
-        } else {
-            _configureErc721ConsiderationItem(recipient, identifier);
-        }
-    }
-
-    function _configureOfferItem(
-        ItemType itemType,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        if (itemType == ItemType.NATIVE) {
-            _configureEthOfferItem(startAmount, endAmount);
-        } else if (itemType == ItemType.ERC20) {
-            _configureERC20OfferItem(startAmount, endAmount);
-        } else if (itemType == ItemType.ERC1155) {
-            _configureERC1155OfferItem(identifier, startAmount, endAmount);
-        } else {
-            _configureERC721OfferItem(identifier);
-        }
-    }
-
-    function _configureOfferItem(
-        ItemType itemType,
-        uint256 identifier,
-        uint256 amt
-    ) internal {
-        _configureOfferItem(itemType, identifier, amt, amt);
-    }
-
-    function _configureERC721OfferItem(uint256 tokenId) internal {
-        _configureOfferItem(ItemType.ERC721, address(test721_1), tokenId, 1, 1);
-    }
-
-    function _configureERC1155OfferItem(uint256 tokenId, uint256 amount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            amount,
-            amount
-        );
-    }
-
-    function _configureERC20OfferItem(uint256 startAmount, uint256 endAmount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            startAmount,
-            endAmount
-        );
-    }
-
-    function _configureERC20OfferItem(uint256 amount) internal {
-        _configureERC20OfferItem(amount, amount);
-    }
-
-    function _configureERC1155OfferItem(
-        uint256 tokenId,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            startAmount,
-            endAmount
-        );
-    }
-
-    function _configureEthOfferItem(uint256 startAmount, uint256 endAmount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.NATIVE,
+    function configureOrderParameters(address offerer) internal {
+        _configureOrderParameters(
+            offerer,
             address(0),
-            0,
-            startAmount,
-            endAmount
+            bytes32(0),
+            globalSalt++,
+            false
         );
-    }
-
-    function _configureEthOfferItem(uint256 paymentAmount) internal {
-        _configureEthOfferItem(paymentAmount, paymentAmount);
-    }
-
-    function _configureEthConsiderationItem(
-        address payable recipient,
-        uint256 paymentAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            paymentAmount,
-            paymentAmount,
-            recipient
-        );
-    }
-
-    function _configureEthConsiderationItem(
-        address payable recipient,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            startAmount,
-            endAmount,
-            recipient
-        );
-    }
-
-    function _configureErc20ConsiderationItem(
-        address payable receiver,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            startAmount,
-            endAmount,
-            receiver
-        );
-    }
-
-    function _configureErc20ConsiderationItem(
-        address payable receiver,
-        uint256 paymentAmount
-    ) internal {
-        _configureErc20ConsiderationItem(
-            receiver,
-            paymentAmount,
-            paymentAmount
-        );
-    }
-
-    function _configureErc721ConsiderationItem(
-        address payable recipient,
-        uint256 tokenId
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC721,
-            address(test721_1),
-            tokenId,
-            1,
-            1,
-            recipient
-        );
-    }
-
-    function _configureErc1155ConsiderationItem(
-        address payable recipient,
-        uint256 tokenId,
-        uint256 amount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            amount,
-            amount,
-            recipient
-        );
-    }
-
-    function _configureOfferItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        offerItem.itemType = itemType;
-        offerItem.token = token;
-        offerItem.identifierOrCriteria = identifier;
-        offerItem.startAmount = startAmount;
-        offerItem.endAmount = endAmount;
-        offerItems.push(offerItem);
-    }
-
-    function _configureConsiderationItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount,
-        address payable recipient
-    ) internal {
-        considerationItem.itemType = itemType;
-        considerationItem.token = token;
-        considerationItem.identifierOrCriteria = identifier;
-        considerationItem.startAmount = startAmount;
-        considerationItem.endAmount = endAmount;
-        considerationItem.recipient = recipient;
-        considerationItems.push(considerationItem);
     }
 
     function _configureOrderParameters(
@@ -799,6 +525,15 @@ contract BaseOrderTest is
                 new AdditionalRecipient[](0),
                 signature
             );
+    }
+
+    ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
+    function isValidSignature(bytes32, bytes memory)
+        external
+        pure
+        returns (bytes4)
+    {
+        return 0x1626ba7e;
     }
 
     receive() external payable virtual {}

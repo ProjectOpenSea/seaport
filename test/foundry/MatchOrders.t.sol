@@ -98,8 +98,8 @@ contract MatchOrders is BaseOrderTest {
     function testMatchOrdersSingleErc721OfferSingleEthConsideration(
         FuzzInputsCommon memory inputs
     ) public validateInputs(Context(consideration, inputs)) {
-        _configureERC721OfferItem(inputs.id);
-        _configureEthConsiderationItem(alice, 1);
+        addErc721OfferItem(inputs.id);
+        addEthConsiderationItem(alice, 1);
         _configureOrderParameters(
             alice,
             inputs.zone,
@@ -172,13 +172,8 @@ contract MatchOrders is BaseOrderTest {
             ContextAscendingDescending(consideration, inputs)
         )
     {
-        _configureOfferItem(
-            ItemType.ERC20,
-            0,
-            inputs.amount,
-            inputs.amount * 2
-        );
-        _configureConsiderationItem(alice, ItemType.ERC721, inputs.id, 1);
+        addOfferItem(ItemType.ERC20, 0, inputs.amount, inputs.amount * 2);
+        addConsiderationItem(alice, ItemType.ERC721, inputs.id, 1);
         _configureOrderParametersSetEndTime(
             alice,
             inputs.zone,
@@ -206,15 +201,8 @@ contract MatchOrders is BaseOrderTest {
             ContextAscendingDescending(consideration, inputs)
         )
     {
-        _configureOfferItem(ItemType.ERC721, inputs.id, 1);
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            inputs.amount,
-            inputs.amount * 2,
-            alice
-        );
+        addOfferItem(ItemType.ERC721, inputs.id, 1);
+        addErc20ConsiderationItem(alice, inputs.amount, inputs.amount.mul(2));
         _configureOrderParametersSetEndTime(
             alice,
             inputs.zone,
@@ -242,13 +230,8 @@ contract MatchOrders is BaseOrderTest {
             ContextAscendingDescending(consideration, inputs)
         )
     {
-        _configureOfferItem(
-            ItemType.ERC20,
-            0,
-            inputs.amount * 2,
-            inputs.amount
-        );
-        _configureErc721ConsiderationItem(alice, inputs.id);
+        addOfferItem(ItemType.ERC20, 0, inputs.amount * 2, inputs.amount);
+        addErc721ConsiderationItem(alice, inputs.id);
         _configureOrderParametersSetEndTime(
             alice,
             inputs.zone,
@@ -276,15 +259,8 @@ contract MatchOrders is BaseOrderTest {
             ContextAscendingDescending(consideration, inputs)
         )
     {
-        _configureOfferItem(ItemType.ERC721, inputs.id, 1);
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            inputs.amount * 2,
-            inputs.amount,
-            alice
-        );
+        addOfferItem(ItemType.ERC721, inputs.id, 1);
+        addErc20ConsiderationItem(alice, inputs.amount.mul(2), inputs.amount);
         _configureOrderParametersSetEndTime(
             alice,
             inputs.zone,
@@ -312,8 +288,8 @@ contract MatchOrders is BaseOrderTest {
             ? conduitKeyOne
             : bytes32(0);
 
-        _configureOfferItem(itemType, 1, 100);
-        _configureErc721ConsiderationItem(alice, 1);
+        addOfferItem(itemType, 1, 100);
+        addErc721ConsiderationItem(alice, 1);
         _configureOrderParameters(
             bob,
             context.args.zone,
@@ -331,8 +307,8 @@ contract MatchOrders is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
-        _configureOfferItem(itemType, 1, 2**256 - 1);
-        _configureErc721ConsiderationItem(alice, 2);
+        addOfferItem(itemType, 1, 2**256 - 1);
+        addErc721ConsiderationItem(alice, 2);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -363,9 +339,9 @@ contract MatchOrders is BaseOrderTest {
 
         test721_1.mint(alice, 1);
         test721_1.mint(alice, 2);
-        _configureERC721OfferItem(1);
-        _configureERC721OfferItem(2);
-        _configureConsiderationItem(bob, itemType, 1, 99);
+        addErc721OfferItem(1);
+        addErc721OfferItem(2);
+        addConsiderationItem(bob, itemType, 1, 99);
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
             address(alice),
@@ -448,8 +424,8 @@ contract MatchOrders is BaseOrderTest {
             : bytes32(0);
 
         test721_1.mint(alice, 1);
-        _configureERC721OfferItem(1);
-        _configureConsiderationItem(alice, itemType, 1, 100);
+        addErc721OfferItem(1);
+        addConsiderationItem(alice, itemType, 1, 100);
 
         OrderParameters memory firstOrderParameters = OrderParameters(
             address(alice),
@@ -479,8 +455,8 @@ contract MatchOrders is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        _configureERC721OfferItem(2);
-        _configureConsiderationItem(alice, itemType, 1, 2**256 - 1);
+        addErc721OfferItem(2);
+        addConsiderationItem(alice, itemType, 1, 2**256 - 1);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -509,9 +485,9 @@ contract MatchOrders is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
-        _configureOfferItem(itemType, 1, 99);
-        _configureErc721ConsiderationItem(alice, 1);
-        _configureErc721ConsiderationItem(bob, 2);
+        addOfferItem(itemType, 1, 99);
+        addErc721ConsiderationItem(alice, 1);
+        addErc721ConsiderationItem(bob, 2);
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
             address(bob),
@@ -681,15 +657,8 @@ contract MatchOrders is BaseOrderTest {
             false // don't round up offers
         );
 
-        _configureOfferItem(ItemType.ERC721, context.args.id, 1);
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            currentAmount,
-            currentAmount,
-            bob
-        );
+        addOfferItem(ItemType.ERC721, context.args.id, 1);
+        addErc20ConsiderationItem(bob, currentAmount);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),
@@ -778,8 +747,8 @@ contract MatchOrders is BaseOrderTest {
             startTime + 1000, // endTime
             true // round up considerations
         );
-        _configureOfferItem(ItemType.ERC20, 0, currentAmount, currentAmount);
-        _configureConsiderationItem(bob, ItemType.ERC721, context.args.id, 1);
+        addOfferItem(ItemType.ERC20, 0, currentAmount, currentAmount);
+        addConsiderationItem(bob, ItemType.ERC721, context.args.id, 1);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),
@@ -867,15 +836,8 @@ contract MatchOrders is BaseOrderTest {
             false // don't round up offers
         );
 
-        _configureOfferItem(ItemType.ERC721, context.args.id, 1);
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            currentAmount,
-            currentAmount,
-            bob
-        );
+        addOfferItem(ItemType.ERC721, context.args.id, 1);
+        addErc20ConsiderationItem(bob, currentAmount);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),
@@ -966,14 +928,14 @@ contract MatchOrders is BaseOrderTest {
 
         emit log_named_uint("Current Amount: ", currentAmount);
 
-        _configureOfferItem(
+        addOfferItem(
             ItemType.ERC20,
             address(token1),
             0,
             currentAmount,
             currentAmount
         );
-        _configureConsiderationItem(bob, ItemType.ERC721, context.args.id, 1);
+        addConsiderationItem(bob, ItemType.ERC721, context.args.id, 1);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),

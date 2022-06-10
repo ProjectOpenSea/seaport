@@ -28,7 +28,6 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
 
     function setUp() public virtual {
         conduitKeyOne = bytes32(uint256(uint160(address(this))) << 96);
-        vm.label(address(this), "testContract");
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
         emit log("Deploying reference from precompiled source");
@@ -43,6 +42,7 @@ contract BaseConsiderationTest is DifferentialTest, StructCopier {
         );
         vm.label(address(referenceConsideration), "referenceConsideration");
         vm.label(address(referenceConduit), "referenceConduit");
+        vm.label(address(this), "testContract");
     }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source

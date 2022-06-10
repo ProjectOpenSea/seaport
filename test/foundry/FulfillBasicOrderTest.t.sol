@@ -60,8 +60,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputs(Context(consideration, inputs, 0))
     {
-        _configureERC721OfferItem(inputs.tokenId);
-        _configureEthConsiderationItem(alice, inputs.paymentAmount);
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo721(inputs);
 
         test(this.basicEthTo721, Context(consideration, inputs, 0));
@@ -72,8 +72,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputs(Context(consideration, inputs, 0))
     {
-        _configureERC721OfferItem(inputs.tokenId);
-        _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
+        addErc721OfferItem(inputs.tokenId);
+        addErc20ConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersErc20To721(inputs);
 
         test(this.basicErc20To721, Context(consideration, inputs, 0));
@@ -87,8 +87,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
     {
-        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
-        _configureEthConsiderationItem(alice, inputs.paymentAmount);
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo1155(inputs, tokenAmount);
 
         test(this.basicEthTo1155, Context(consideration, inputs, tokenAmount));
@@ -105,8 +105,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
     {
-        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
-        _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addErc20ConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersErc20To1155(inputs, tokenAmount);
 
         test(

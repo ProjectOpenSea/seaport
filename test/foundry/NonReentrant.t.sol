@@ -285,10 +285,10 @@ contract NonReentrantTest is BaseOrderTest {
     {
         test1155_1.mint(address(this), tokenId, 10);
 
-        _configureERC1155OfferItem(tokenId, 10);
-        _configureEthConsiderationItem(payable(this), 10);
-        _configureEthConsiderationItem(payable(0), 10);
-        _configureEthConsiderationItem(alice, 10);
+        addErc1155OfferItem(tokenId, 10);
+        addEthConsiderationItem(payable(this), 10);
+        addEthConsiderationItem(payable(0), 10);
+        addEthConsiderationItem(alice, 10);
         uint256 counter = currentConsideration.getCounter(address(this));
 
         OrderParameters memory _orderParameters = getOrderParameters(
@@ -323,10 +323,10 @@ contract NonReentrantTest is BaseOrderTest {
     {
         test1155_1.mint(address(this), tokenId, 10);
 
-        _configureERC1155OfferItem(tokenId, uint256(10));
-        _configureEthConsiderationItem(payable(this), uint256(10));
-        _configureEthConsiderationItem(payable(address(0)), uint256(10));
-        _configureEthConsiderationItem(payable(address(this)), uint256(10));
+        addErc1155OfferItem(tokenId, uint256(10));
+        addEthConsiderationItem(payable(this), uint256(10));
+        addEthConsiderationItem(payable(address(0)), uint256(10));
+        addEthConsiderationItem(payable(address(this)), uint256(10));
         uint256 counter = currentConsideration.getCounter(address(this));
         OrderParameters memory _orderParameters = getOrderParameters(
             payable(this),
@@ -362,8 +362,8 @@ contract NonReentrantTest is BaseOrderTest {
         )
     {
         test721_1.mint(address(this), tokenId);
-        _configureERC721OfferItem(tokenId);
-        _configureEthConsiderationItem(payable(address(this)), 1);
+        addErc721OfferItem(tokenId);
+        addEthConsiderationItem(payable(address(this)), 1);
         uint256 counter = currentConsideration.getCounter(address(this));
 
         OrderParameters memory _orderParameters = getOrderParameters(
@@ -428,8 +428,8 @@ contract NonReentrantTest is BaseOrderTest {
         returns (Order[] memory, Fulfillment[] memory)
     {
         test721_1.mint(address(this), tokenId);
-        _configureERC721OfferItem(tokenId);
-        _configureEthConsiderationItem(payable(address(this)), 1);
+        addErc721OfferItem(tokenId);
+        addEthConsiderationItem(payable(address(this)), 1);
         uint256 counter = currentConsideration.getCounter(address(this));
         orderComponents.offerer = address(this);
         orderComponents.zone = address(0);
@@ -468,8 +468,8 @@ contract NonReentrantTest is BaseOrderTest {
 
         delete offerItems;
         delete considerationItems;
-        _configureEthOfferItem(1);
-        _configureErc721ConsiderationItem(payable(this), tokenId);
+        addEthOfferItem(1);
+        addErc721ConsiderationItem(payable(this), tokenId);
         counter = currentConsideration.getCounter(address(bob));
         orderComponents.offerer = bob;
         orderComponents.zone = address(0);
@@ -550,15 +550,6 @@ contract NonReentrantTest is BaseOrderTest {
         _orders[1] = _convertOrderToAdvanced(_regOrders[1]);
         criteriaResolvers = new CriteriaResolver[](0);
         return (_orders, criteriaResolvers, _fulfillments);
-    }
-
-    ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
-    function isValidSignature(bytes32, bytes memory)
-        external
-        pure
-        returns (bytes4)
-    {
-        return 0x1626ba7e;
     }
 
     function _doReenter() internal {

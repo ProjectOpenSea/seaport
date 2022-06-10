@@ -29,7 +29,7 @@ const deployConstants = require("../../../constants/constants");
 
 const VERSION = !process.env.REFERENCE ? "1.1" : "rc.1.1";
 
-export const marketplaceFixture = async(
+export const marketplaceFixture = async (
   create2Factory: ImmutableCreate2FactoryInterface,
   conduitController: ConduitControllerInterface,
   conduitOne: ConduitInterface,
@@ -473,4 +473,4 @@ export const marketplaceFixture = async(
     createMirrorBuyNowOrder,
     createMirrorAcceptOfferOrder,
   };
-}
+};
