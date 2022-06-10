@@ -210,8 +210,8 @@ contract FulfillOrderTest is BaseOrderTest {
             ? conduitKeyOne
             : bytes32(0);
 
-        test1155_1.mint(alice, context.args.id, context.erc1155amt);
-        addErc1155OfferItem(context.args.id, context.erc1155amt);
+        test1155_1.mint(alice, context.args.id, context.erc1155Amt);
+        addErc1155OfferItem(context.args.id, context.erc1155Amt);
 
         addErc20ConsiderationItem(
             alice,
@@ -2107,15 +2107,8 @@ contract FulfillOrderTest is BaseOrderTest {
         Context memory context
     ) external stateless {
         test1155_1.mint(alice, context.args.id, context.erc1155Amt);
-        _configureERC1155OfferItem(context.args.id, context.erc1155Amt);
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            bob,
-            69, // set nonzero identifier
-            100,
-            100,
-            alice
-        );
+        addErc1155OfferItem(context.args.id, context.erc1155Amt);
+        addEthConsiderationItem(alice, 100);
 
         OrderComponents memory orderComponents = OrderComponents(
             alice,

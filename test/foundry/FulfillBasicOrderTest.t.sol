@@ -179,15 +179,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
     {
-        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            69,
-            100,
-            100,
-            alice
-        );
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addEthConsiderationItem(alice, 100);
         test(
             this.revertUnusedItemParametersIdentifierSetOnNative,
             Context(consideration, inputs, tokenAmount)
