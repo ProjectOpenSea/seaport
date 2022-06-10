@@ -19,6 +19,7 @@ contract DeployerGlobalPausable {
 
     event PotentialOwnerUpdated(address owner);
     event OwnershipTransferred(address newOwner);
+    event ZoneCreated(address zoneAddress);
 
     constructor(address _deployerOwner, bytes32 _salt) {
         deployerOwner = _deployerOwner;
@@ -63,10 +64,32 @@ contract DeployerGlobalPausable {
             "Only owner can create new Zones from here."
         );
 
-        derivedAddress = this.zoneAddressFromSalt(salt);
+        // This complicated expression just tells you how the address
+        // can be pre-computed. It is just there for illustration.
+        // You actually only need ``new D{salt: salt}(arg)``.
+        derivedAddress = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            bytes1(0xff),
+                            address(this),
+                            salt,
+                            keccak256(
+                                abi.encodePacked(
+                                    type(GlobalPausable).creationCode,
+                                    abi.encode(address(this)) //GlobalPausable takes an address as a constructor param.
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
 
         GlobalPausable zone = new GlobalPausable{ salt: salt }(address(this));
         require(address(zone) == derivedAddress, "Unexpected Derived address");
+        emit ZoneCreated(derivedAddress);
     }
 
     //pause Seaport by self destructing GlobalPausable
@@ -90,8 +113,7 @@ contract DeployerGlobalPausable {
         );
 
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
-        gp.isReal();
-        // gp.cancelOrder(_seaportAddress, orders);
+        gp.cancelOrder(_seaportAddress, orders);
     }
 
     function executeRestrictedMatchOrderZone(
@@ -106,8 +128,7 @@ contract DeployerGlobalPausable {
         );
 
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
-        gp.isReal();
-        // gp.executeRestrictedOffer(_seaportAddress, orders, fulfillments);
+        gp.executeRestrictedOffer(_seaportAddress, orders, fulfillments);
     }
 
     function executeRestrictedMatchAdvancedOrderZone(

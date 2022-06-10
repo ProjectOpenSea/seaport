@@ -20,10 +20,6 @@ contract GlobalPausable is ZoneInterface {
         deployer = owner;
     }
 
-    function isReal() external pure returns (bool) {
-        return true;
-    }
-
     // Called by Seaport whenever extraData is not provided by the caller.
     function isValidOrder(
         bytes32 orderHash,
