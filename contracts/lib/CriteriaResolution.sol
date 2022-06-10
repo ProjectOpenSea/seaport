@@ -259,7 +259,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
             // Iterate over proof elements to compute root hash.
             for {
                 // Left shift by 5 is equivalent to multiplying by 0x20.
-                let end := add(data, shl(5, proof.length))
+                let end := add(data, shl(5, mload(proof)))
             } lt(data, end) {
                 data := add(data, OneWord)
             } {
