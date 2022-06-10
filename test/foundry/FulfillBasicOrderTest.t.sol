@@ -71,6 +71,20 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
     }
 
+    function testBasicEthTo721WithZone(FuzzInputsCommon memory inputs)
+        public
+        validateInputs(Context(consideration, inputs, 0))
+    {
+        inputs.zone = address(0);
+
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
+        _configureBasicOrderParametersEthTo721(inputs);
+
+        test(this.basicEthTo721, Context(consideration, inputs, 0));
+        test(this.basicEthTo721, Context(referenceConsideration, inputs, 0));
+    }
+
     function testBasicErc20To721(FuzzInputsCommon memory inputs)
         public
         validateInputs(Context(consideration, inputs, 0))
@@ -120,19 +134,6 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             this.basicErc20To1155,
             Context(referenceConsideration, inputs, tokenAmount)
         );
-    }
-
-    function testBasicEthTo721WithZone(FuzzInputsCommon memory inputs) public {
-        inputs.zone = address(0);
-
-        _configureERC721OfferItem(inputs.tokenId);
-        _configureEthConsiderationItem(alice, inputs.paymentAmount);
-        _configureBasicOrderParametersEthTo721(inputs);
-
-        _testBasicEthTo721_new(Context(consideration, inputs, 0));
-        _configureERC721OfferItem(inputs.tokenId);
-        _configureEthConsiderationItem(alice, inputs.paymentAmount);
-        _testBasicEthTo721_new(Context(referenceConsideration, inputs, 0));
     }
 
     function testFulfillBasicOrderRevertInvalidAdditionalRecipientsLength(
