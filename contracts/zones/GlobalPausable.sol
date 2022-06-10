@@ -26,7 +26,7 @@ contract GlobalPausable is ZoneInterface {
         address caller,
         address offerer,
         bytes32 zoneHash
-    ) external view returns (bytes4 validOrderMagicValue) {
+    ) external view override returns (bytes4 validOrderMagicValue) {
         validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 
@@ -37,7 +37,7 @@ contract GlobalPausable is ZoneInterface {
         AdvancedOrder calldata order,
         bytes32[] calldata priorOrderHashes,
         CriteriaResolver[] calldata criteriaResolvers
-    ) external view returns (bytes4 validOrderMagicValue) {
+    ) external view override returns (bytes4 validOrderMagicValue) {
         validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 
