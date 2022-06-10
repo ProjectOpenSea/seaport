@@ -58,7 +58,7 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
                 extraCeiling = duration - 1;
             }
 
-            // Aggregate new amounts weighted by time with rounding factor
+            // Aggregate new amounts weighted by time with rounding factor.
             uint256 totalBeforeDivision = ((startAmount * remaining) +
                 (endAmount * elapsed) +
                 extraCeiling);
@@ -66,11 +66,11 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
             // Divide totalBeforeDivision by duration to get the new amount.
             uint256 newAmount = totalBeforeDivision / duration;
 
-            // Return the current amount (expressed as newAmount internally).
+            // Return the current amount.
             return newAmount;
         }
 
-        // Return the original amount (now expressed as endAmount internally).
+        // Return the original amount.
         return endAmount;
     }
 

@@ -45,6 +45,7 @@ contract AmountDeriver is AmountDerivationErrors {
     ) internal view returns (uint256 amount) {
         // Only modify end amount if it doesn't already equal start amount.
         if (startAmount != endAmount) {
+            // Declare variables to derive in the subsequent unchecked scope.
             uint256 duration;
             uint256 elapsed;
             uint256 remaining;
@@ -62,22 +63,24 @@ contract AmountDeriver is AmountDerivationErrors {
             }
 
             // Aggregate new amounts weighted by time with rounding factor.
-            // prettier-ignore
-            uint256 totalBeforeDivision = (startAmount * remaining) + (endAmount * elapsed);
+            uint256 totalBeforeDivision = ((startAmount * remaining) +
+                (endAmount * elapsed));
 
+            // Use assembly to combine operations and skip divide-by-zero check.
             assembly {
                 // Multiply by iszero(iszero(totalBeforeDivision)) to ensure
                 // amount is set to zero if totalBeforeDivision is zero,
                 // as intermediate overflow can occur if it is zero.
                 amount := mul(
-                    // We subtract 1 from the numerator and add 1 to the result
-                    // if roundUp is true to get the proper rounding direction.
-                    // Division performed with no zero check as duration cannot be zero.
+                    iszero(iszero(totalBeforeDivision)),
+                    // Subtract 1 from the numerator and add 1 to the result if
+                    // roundUp is true to get the proper rounding direction.
+                    // Division is performed with no zero check as duration
+                    // cannot be zero as long as startTime < endTime.
                     add(
                         div(sub(totalBeforeDivision, roundUp), duration),
                         roundUp
-                    ),
-                    iszero(iszero(totalBeforeDivision))
+                    )
                 )
             }
 
@@ -85,7 +88,7 @@ contract AmountDeriver is AmountDerivationErrors {
             return amount;
         }
 
-        // Return the original amount (now expressed as endAmount internally).
+        // Return the original amount as startAmount == endAmount.
         return endAmount;
     }
 
