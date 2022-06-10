@@ -18,7 +18,13 @@ interface ConduitInterface {
      * @dev Revert with an error when attempting to execute transfers using a
      *      caller that does not have an open channel.
      */
-    error ChannelClosed();
+    error ChannelClosed(address channel);
+
+    /**
+     * @dev Revert with an error when attempting to update a channel to the
+     *      current status of that channel.
+     */
+    error ChannelStatusAlreadySet(address channel, bool isOpen);
 
     /**
      * @dev Revert with an error when attempting to execute a transfer for an
@@ -45,7 +51,7 @@ interface ConduitInterface {
      * @param channel The channel that has been updated.
      * @param open    A boolean indicating whether the conduit is open or not.
      */
-    event ChannelUpdated(address channel, bool open);
+    event ChannelUpdated(address indexed channel, bool open);
 
     /**
      * @notice Execute a sequence of ERC20/721/1155 transfers. Only a caller

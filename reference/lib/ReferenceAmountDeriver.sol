@@ -9,24 +9,24 @@ import {
 import { FractionData } from "./ReferenceConsiderationStructs.sol";
 
 /**
- * @title AmountDeriver
+ * @title ReferenceAmountDeriver
  * @author 0age
- * @notice AmountDeriver contains pure functions related to deriving item
- *         amounts based on partial fill quantity and on linear extrapolation
- *         based on current time when the start amount and end amount differ.
+ * @notice ReferenceAmountDeriver contains view and pure functions related to
+ *         deriving item amounts based on partial fill quantity and on linear
+ *         interpolation based on current time when the start amount and end
+ *         amount differ.
  */
 contract ReferenceAmountDeriver is AmountDerivationErrors {
     /**
-     * @dev Internal pure function to derive the current amount of a given item
+     * @dev Internal view function to derive the current amount of a given item
      *      based on the current price, the starting price, and the ending
      *      price. If the start and end prices differ, the current price will be
-     *      extrapolated on a linear basis.
+     *      interpolated on a linear basis.
      *
      * @param startAmount The starting amount of the item.
      * @param endAmount   The ending amount of the item.
-     * @param elapsed     The time elapsed since the order's start time.
-     * @param remaining   The time left until the order's end time.
-     * @param duration    The total duration of the order.
+     * @param startTime   The starting time of the order.
+     * @param endTime     The end time of the order.
      * @param roundUp     A boolean indicating whether the resultant amount
      *                    should be rounded up or down.
      *
@@ -35,15 +35,23 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
     function _locateCurrentAmount(
         uint256 startAmount,
         uint256 endAmount,
-        uint256 elapsed,
-        uint256 remaining,
-        uint256 duration,
+        uint256 startTime,
+        uint256 endTime,
         bool roundUp
-    ) internal pure returns (uint256) {
+    ) internal view returns (uint256) {
         // Only modify end amount if it doesn't already equal start amount.
         if (startAmount != endAmount) {
             // Leave extra amount to add for rounding at zero (i.e. round down).
             uint256 extraCeiling = 0;
+
+            // Derive the duration for the order and place it on the stack.
+            uint256 duration = endTime - startTime;
+
+            // Derive time elapsed since the order started & place on stack.
+            uint256 elapsed = block.timestamp - startTime;
+
+            // Derive time remaining until order expires and place on stack.
+            uint256 remaining = duration - elapsed;
 
             // If rounding up, set rounding factor to one less than denominator.
             if (roundUp) {
@@ -101,13 +109,16 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
     }
 
     /**
-     * @dev Internal pure function to apply a fraction to a consideration
+     * @dev Internal view function to apply a fraction to a consideration
      * or offer item.
      *
      * @param startAmount     The starting amount of the item.
      * @param endAmount       The ending amount of the item.
      * @param fractionData    A struct containing the data used to apply a
      *                        fraction to an order.
+     * @param roundUp         A boolean indicating whether the resultant
+     *                        amount should be rounded up or down.
+     *
      * @return amount The received item to transfer with the final amount.
      */
     function _applyFraction(
@@ -115,7 +126,7 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
         uint256 endAmount,
         FractionData memory fractionData,
         bool roundUp
-    ) internal pure returns (uint256 amount) {
+    ) internal view returns (uint256 amount) {
         // If start amount equals end amount, apply fraction to end amount.
         if (startAmount == endAmount) {
             amount = _getFraction(
@@ -124,7 +135,7 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
                 endAmount
             );
         } else {
-            // Otherwise, apply fraction to both to extrapolate final amount.
+            // Otherwise, apply fraction to both to interpolated final amount.
             amount = _locateCurrentAmount(
                 _getFraction(
                     fractionData.numerator,
@@ -136,9 +147,8 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
                     fractionData.denominator,
                     endAmount
                 ),
-                fractionData.elapsed,
-                fractionData.remaining,
-                fractionData.duration,
+                fractionData.startTime,
+                fractionData.endTime,
                 roundUp
             );
         }

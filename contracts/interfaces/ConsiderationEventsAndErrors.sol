@@ -15,9 +15,11 @@ interface ConsiderationEventsAndErrors {
      * @param orderHash     The hash of the fulfilled order.
      * @param offerer       The offerer of the fulfilled order.
      * @param zone          The zone of the fulfilled order.
-     * @param fulfiller     The fulfiller of the order, or the null address if
-     *                      there is no specific fulfiller (i.e. the order is
-     *                      part of a group of orders).
+     * @param recipient     The recipient of each spent item on the fulfilled
+     *                      order, or the null address if there is no specific
+     *                      fulfiller (i.e. the order is part of a group of
+     *                      orders). Defaults to the caller unless explicitly
+     *                      specified otherwise by the fulfiller.
      * @param offer         The offer items spent as part of the order.
      * @param consideration The consideration items received as part of the
      *                      order along with the recipients of each item.
@@ -26,7 +28,7 @@ interface ConsiderationEventsAndErrors {
         bytes32 orderHash,
         address indexed offerer,
         address indexed zone,
-        address fulfiller,
+        address recipient,
         SpentItem[] offer,
         ReceivedItem[] consideration
     );
@@ -60,12 +62,12 @@ interface ConsiderationEventsAndErrors {
     );
 
     /**
-     * @dev Emit an event whenever a nonce for a given offerer is incremented.
+     * @dev Emit an event whenever a counter for a given offerer is incremented.
      *
-     * @param newNonce The new nonce for the offerer.
+     * @param newCounter The new counter for the offerer.
      * @param offerer  The offerer in question.
      */
-    event NonceIncremented(uint256 newNonce, address indexed offerer);
+    event CounterIncremented(uint256 newCounter, address indexed offerer);
 
     /**
      * @dev Revert with an error when attempting to fill an order that has
@@ -179,4 +181,10 @@ interface ConsiderationEventsAndErrors {
      *      available orders when none are fulfillable.
      */
     error NoSpecifiedOrdersAvailable();
+
+    /**
+     * @dev Revert with an error when attempting to fulfill an order with an
+     *      offer for ETH outside of matching orders.
+     */
+    error InvalidNativeOfferItem();
 }

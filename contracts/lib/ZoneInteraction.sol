@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 
@@ -89,7 +89,7 @@ contract ZoneInteraction is ZoneInteractionErrors, LowLevelHelpers {
      *                          identifier, and a proof that the supplied token
      *                          identifier is contained in the order's merkle
      *                          root. Note that a criteria of zero indicates
-     *                          that any (transferrable) token identifier is
+     *                          that any (transferable) token identifier is
      *                          valid and that no proof needs to be supplied.
      * @param priorOrderHashes  The order hashes of each order supplied prior to
      *                          the current order as part of a "match" variety

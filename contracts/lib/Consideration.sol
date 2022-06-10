@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 // prettier-ignore
 import {
@@ -27,7 +27,7 @@ import { OrderCombiner } from "./OrderCombiner.sol";
  * @author 0age
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11
- * @custom:version 1
+ * @custom:version 1.1
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
  *         provides lightweight methods for common routes as well as more
@@ -115,7 +115,8 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         fulfilled = _validateAndFulfillAdvancedOrder(
             _convertOrderToAdvanced(order),
             new CriteriaResolver[](0), // No criteria resolvers supplied.
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            msg.sender
         );
     }
 
@@ -144,7 +145,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                            contained in the merkle root held by the item
      *                            in question's criteria element. Note that an
      *                            empty criteria indicates that any
-     *                            (transferrable) token identifier on the token
+     *                            (transferable) token identifier on the token
      *                            in question is valid and that no associated
      *                            proof needs to be supplied.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
@@ -152,6 +153,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                            from. The zero hash signifies that no conduit
      *                            should be used (and direct approvals set on
      *                            Consideration).
+     * @param recipient           The intended recipient for all received items,
+     *                            with `address(0)` indicating that the caller
+     *                            should receive the items.
      *
      * @return fulfilled A boolean indicating whether the order has been
      *                   successfully fulfilled.
@@ -159,13 +163,15 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     function fulfillAdvancedOrder(
         AdvancedOrder calldata advancedOrder,
         CriteriaResolver[] calldata criteriaResolvers,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) external payable override returns (bool fulfilled) {
         // Validate and fulfill the order.
         fulfilled = _validateAndFulfillAdvancedOrder(
             advancedOrder,
             criteriaResolvers,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient == address(0) ? msg.sender : recipient
         );
     }
 
@@ -232,6 +238,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 offerFulfillments,
                 considerationFulfillments,
                 fulfillerConduitKey,
+                msg.sender,
                 maximumFulfilled
             );
     }
@@ -272,7 +279,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                                  is contained in the merkle root held by
      *                                  the item in question's criteria element.
      *                                  Note that an empty criteria indicates
-     *                                  that any (transferrable) token
+     *                                  that any (transferable) token
      *                                  identifier on the token in question is
      *                                  valid and that no associated proof needs
      *                                  to be supplied.
@@ -288,6 +295,9 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                                  approvals from. The zero hash signifies
      *                                  that no conduit should be used (and
      *                                  direct approvals set on Consideration).
+     * @param recipient                 The intended recipient for all received
+     *                                  items, with `address(0)` indicating that
+     *                                  the caller should receive the items.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
      * @return availableOrders An array of booleans indicating if each order
@@ -303,6 +313,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         FulfillmentComponent[][] calldata offerFulfillments,
         FulfillmentComponent[][] calldata considerationFulfillments,
         bytes32 fulfillerConduitKey,
+        address recipient,
         uint256 maximumFulfilled
     )
         external
@@ -318,6 +329,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 offerFulfillments,
                 considerationFulfillments,
                 fulfillerConduitKey,
+                recipient == address(0) ? msg.sender : recipient,
                 maximumFulfilled
             );
     }
@@ -383,7 +395,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
      *                          contained in the order's merkle root. Note that
-     *                          an empty root indicates that any (transferrable)
+     *                          an empty root indicates that any (transferable)
      *                          token identifier is valid and that no associated
      *                          proof needs to be supplied.
      * @param fulfillments      An array of elements allocating offer components
@@ -455,14 +467,14 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer may increment
-     *         the nonce.
+     *         by incrementing a counter. Note that only the offerer may
+     *         increment the counter.
      *
-     * @return newNonce The new nonce.
+     * @return newCounter The new counter.
      */
-    function incrementNonce() external override returns (uint256 newNonce) {
-        // Increment current nonce for the supplied offerer.
-        newNonce = _incrementNonce();
+    function incrementCounter() external override returns (uint256 newCounter) {
+        // Increment current counter for the supplied offerer.
+        newCounter = _incrementCounter();
     }
 
     /**
@@ -478,7 +490,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
         override
         returns (bytes32 orderHash)
     {
-        // Derive order hash by supplying order parameters along with the nonce.
+        // Derive order hash by supplying order parameters along with counter.
         orderHash = _deriveOrderHash(
             OrderParameters(
                 order.offerer,
@@ -493,7 +505,7 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
                 order.conduitKey,
                 order.consideration.length
             ),
-            order.nonce
+            order.counter
         );
     }
 
@@ -530,20 +542,20 @@ contract Consideration is ConsiderationInterface, OrderCombiner {
     }
 
     /**
-     * @notice Retrieve the current nonce for a given offerer.
+     * @notice Retrieve the current counter for a given offerer.
      *
      * @param offerer The offerer in question.
      *
-     * @return nonce The current nonce.
+     * @return counter The current counter.
      */
-    function getNonce(address offerer)
+    function getCounter(address offerer)
         external
         view
         override
-        returns (uint256 nonce)
+        returns (uint256 counter)
     {
-        // Return the nonce for the supplied offerer.
-        nonce = _getNonce(offerer);
+        // Return the counter for the supplied offerer.
+        counter = _getCounter(offerer);
     }
 
     /**

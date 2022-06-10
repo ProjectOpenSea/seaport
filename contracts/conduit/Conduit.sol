@@ -13,6 +13,8 @@ import {
     ConduitBatch1155Transfer
 } from "./lib/ConduitStructs.sol";
 
+import "./lib/ConduitConstants.sol";
+
 /**
  * @title Conduit
  * @author 0age
@@ -33,6 +35,40 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     mapping(address => bool) private _channels;
 
     /**
+     * @notice Ensure that the caller is currently registered as an open channel
+     *         on the conduit.
+     */
+    modifier onlyOpenChannel() {
+        // Utilize assembly to access channel storage mapping directly.
+        assembly {
+            // Write the caller to scratch space.
+            mstore(ChannelKey_channel_ptr, caller())
+
+            // Write the storage slot for _channels to scratch space.
+            mstore(ChannelKey_slot_ptr, _channels.slot)
+
+            // Derive the position in storage of _channels[msg.sender]
+            // and check if the stored value is zero.
+            if iszero(
+                sload(keccak256(ChannelKey_channel_ptr, ChannelKey_length))
+            ) {
+                // The caller is not an open channel; revert with
+                // ChannelClosed(caller). First, set error signature in memory.
+                mstore(ChannelClosed_error_ptr, ChannelClosed_error_signature)
+
+                // Next, set the caller as the argument.
+                mstore(ChannelClosed_channel_ptr, caller())
+
+                // Finally, revert, returning full custom error with argument.
+                revert(ChannelClosed_error_ptr, ChannelClosed_error_length)
+            }
+        }
+
+        // Continue with function execution.
+        _;
+    }
+
+    /**
      * @notice In the constructor, set the deployer as the controller.
      */
     constructor() {
@@ -42,7 +78,12 @@ contract Conduit is ConduitInterface, TokenTransferrer {
 
     /**
      * @notice Execute a sequence of ERC20/721/1155 transfers. Only a caller
-     *         with an open channel can call this function.
+     *         with an open channel can call this function. Note that channels
+     *         are expected to implement reentrancy protection if desired, and
+     *         that cross-channel reentrancy may be possible if the conduit has
+     *         multiple open channels at once. Also note that channels are
+     *         expected to implement checks against transferring any zero-amount
+     *         items if that constraint is desired.
      *
      * @param transfers The ERC20/721/1155 transfers to perform.
      *
@@ -52,23 +93,16 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     function execute(ConduitTransfer[] calldata transfers)
         external
         override
+        onlyOpenChannel
         returns (bytes4 magicValue)
     {
-        // Ensure that the caller has an open channel.
-        if (!_channels[msg.sender]) {
-            revert ChannelClosed();
-        }
-
         // Retrieve the total number of transfers and place on the stack.
         uint256 totalStandardTransfers = transfers.length;
 
         // Iterate over each transfer.
         for (uint256 i = 0; i < totalStandardTransfers; ) {
-            // Retrieve the transfer in question.
-            ConduitTransfer calldata standardTransfer = transfers[i];
-
-            // Perform the transfer.
-            _transfer(standardTransfer);
+            // Retrieve the transfer in question and perform the transfer.
+            _transfer(transfers[i]);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -81,23 +115,24 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     }
 
     /**
-     * @notice Execute a sequence of batch 1155 transfers. Only a caller with an
-     *         open channel can call this function.
+     * @notice Execute a sequence of batch 1155 item transfers. Only a caller
+     *         with an open channel can call this function. Note that channels
+     *         are expected to implement reentrancy protection if desired, and
+     *         that cross-channel reentrancy may be possible if the conduit has
+     *         multiple open channels at once. Also note that channels are
+     *         expected to implement checks against transferring any zero-amount
+     *         items if that constraint is desired.
      *
-     * @param batchTransfers The 1155 batch transfers to perform.
+     * @param batchTransfers The 1155 batch item transfers to perform.
      *
-     * @return magicValue A magic value indicating that the transfers were
+     * @return magicValue A magic value indicating that the item transfers were
      *                    performed successfully.
      */
     function executeBatch1155(
         ConduitBatch1155Transfer[] calldata batchTransfers
-    ) external override returns (bytes4 magicValue) {
-        // Ensure that the caller has an open channel.
-        if (!_channels[msg.sender]) {
-            revert ChannelClosed();
-        }
-
-        // Perform 1155 batch transfers.
+    ) external override onlyOpenChannel returns (bytes4 magicValue) {
+        // Perform 1155 batch transfers. Note that memory should be considered
+        // entirely corrupted from this point forward.
         _performERC1155BatchTransfers(batchTransfers);
 
         // Return a magic value indicating that the transfers were performed.
@@ -105,34 +140,32 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     }
 
     /**
-     * @notice Execute a sequence of transfers, both single and batch 1155. Only
-     *         a caller with an open channel can call this function.
+     * @notice Execute a sequence of transfers, both single ERC20/721/1155 item
+     *         transfers as well as batch 1155 item transfers. Only a caller
+     *         with an open channel can call this function. Note that channels
+     *         are expected to implement reentrancy protection if desired, and
+     *         that cross-channel reentrancy may be possible if the conduit has
+     *         multiple open channels at once. Also note that channels are
+     *         expected to implement checks against transferring any zero-amount
+     *         items if that constraint is desired.
      *
-     * @param standardTransfers The ERC20/721/1155 transfers to perform.
-     * @param batchTransfers    The 1155 batch transfers to perform.
+     * @param standardTransfers The ERC20/721/1155 item transfers to perform.
+     * @param batchTransfers    The 1155 batch item transfers to perform.
      *
-     * @return magicValue A magic value indicating that the transfers were
+     * @return magicValue A magic value indicating that the item transfers were
      *                    performed successfully.
      */
     function executeWithBatch1155(
         ConduitTransfer[] calldata standardTransfers,
         ConduitBatch1155Transfer[] calldata batchTransfers
-    ) external override returns (bytes4 magicValue) {
-        // Ensure that the caller has an open channel.
-        if (!_channels[msg.sender]) {
-            revert ChannelClosed();
-        }
-
+    ) external override onlyOpenChannel returns (bytes4 magicValue) {
         // Retrieve the total number of transfers and place on the stack.
         uint256 totalStandardTransfers = standardTransfers.length;
 
         // Iterate over each standard transfer.
         for (uint256 i = 0; i < totalStandardTransfers; ) {
-            // Retrieve the transfer in question.
-            ConduitTransfer calldata standardTransfer = standardTransfers[i];
-
-            // Perform the transfer.
-            _transfer(standardTransfer);
+            // Retrieve the transfer in question and perform the transfer.
+            _transfer(standardTransfers[i]);
 
             // Skip overflow check as for loop is indexed starting at zero.
             unchecked {
@@ -140,7 +173,9 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             }
         }
 
-        // Perform 1155 batch transfers.
+        // Perform 1155 batch transfers. Note that memory should be considered
+        // entirely corrupted from this point forward aside from the free memory
+        // pointer having the default value.
         _performERC1155BatchTransfers(batchTransfers);
 
         // Return a magic value indicating that the transfers were performed.
@@ -159,6 +194,11 @@ contract Conduit is ConduitInterface, TokenTransferrer {
             revert InvalidController();
         }
 
+        // Ensure that the channel does not already have the indicated status.
+        if (_channels[channel] == isOpen) {
+            revert ChannelStatusAlreadySet(channel, isOpen);
+        }
+
         // Update the status of the channel.
         _channels[channel] = isOpen;
 
@@ -167,14 +207,19 @@ contract Conduit is ConduitInterface, TokenTransferrer {
     }
 
     /**
-     * @dev Internal function to transfer a given ERC20/721/1155 item.
+     * @dev Internal function to transfer a given ERC20/721/1155 item. Note that
+     *      channels are expected to implement checks against transferring any
+     *      zero-amount items if that constraint is desired.
      *
      * @param item The ERC20/721/1155 item to transfer.
      */
     function _transfer(ConduitTransfer calldata item) internal {
-        // If the item type indicates Ether or a native token...
+        // Determine the transfer method based on the respective item type.
         if (item.itemType == ConduitItemType.ERC20) {
-            // Transfer ERC20 token.
+            // Transfer ERC20 token. Note that item.identifier is ignored and
+            // therefore ERC20 transfer items are potentially malleable — this
+            // check should be performed by the calling channel if a constraint
+            // on item malleability is desired.
             _performERC20Transfer(item.token, item.from, item.to, item.amount);
         } else if (item.itemType == ConduitItemType.ERC721) {
             // Ensure that exactly one 721 item is being transferred.

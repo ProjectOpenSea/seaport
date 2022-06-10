@@ -43,6 +43,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       blockGasLimit: 30_000_000,
       allowUnlimitedContractSize: true,
+      throwOnCallFailures: false,
     },
   },
   gasReporter: {
