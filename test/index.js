@@ -1989,12 +1989,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
 
       expect(executions.length).to.equal(fulfillments.length);
-      console.log(
-        "executeRestrictedMatchAdvancedOrderZoneExecutions executions",
-        executions.length
-      );
 
-      const tx = gpDeployer
+      const tx = await gpDeployer
         .connect(owner)
         .executeRestrictedMatchAdvancedOrderZone(
           zoneAddr,
@@ -2005,6 +2001,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
 
       const receipt = await tx.wait();
+      console.log(receipt.events);
+      // TODO fails here because receipt.events[i].args does not exist.
+      // Using console.log I see that args does not exist on any events in receipt
       await checkExpectedEvents(
         tx,
         receipt,
@@ -2017,30 +2016,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ],
         executions
       );
-      // await checkExpectedEvents(
-      //   tx,
-      //   receipt,
-      //   [
-      //     {
-      //       order: orderTwo,
-      //       orderHash: orderHashTwo,
-      //       fulfiller: constants.AddressZero,
-      //     },
-      //   ],
-      //   executions
-      // );
-      // await checkExpectedEvents(
-      //   tx,
-      //   receipt,
-      //   [
-      //     {
-      //       order: orderThree,
-      //       orderHash: orderHashThree,
-      //       fulfiller: constants.AddressZero,
-      //     },
-      //   ],
-      //   executions
-      // );
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: orderTwo,
+            orderHash: orderHashTwo,
+            fulfiller: constants.AddressZero,
+          },
+        ],
+        executions
+      );
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: orderThree,
+            orderHash: orderHashThree,
+            fulfiller: constants.AddressZero,
+          },
+        ],
+        executions
+      );
     });
 
     it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
