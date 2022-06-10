@@ -92,14 +92,18 @@ contract DeployerGlobalPausable {
         address _seaportAddress,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external {
+    ) external payable {
         require(
             msg.sender == deployerOwner,
             "Only the owner can execute orders with the zone. "
         );
 
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
-        gp.executeRestrictedOffer(_seaportAddress, orders, fulfillments);
+        gp.executeRestrictedOffer{ value: msg.value }(
+            _seaportAddress,
+            orders,
+            fulfillments
+        );
     }
 
     function executeRestrictedMatchAdvancedOrderZone(
