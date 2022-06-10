@@ -1876,6 +1876,168 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
+    it("Fulfills an order with executeRestrictedMatchAdvancedOrderZoneExecutions", async () => {
+      // Create Global Pausable Deployer
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+
+      // Deploy Global Pausable zone
+      const zoneAddr = await createZone(gpDeployer);
+      const zone = { address: zoneAddr };
+
+      // Mint NFTs for use in orders
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+      const secondNFTId = await mintAndApprove721(
+        buyer,
+        marketplaceContract.address
+      );
+      const thirdNFTId = await mintAndApprove721(
+        owner,
+        marketplaceContract.address
+      );
+
+      // Define orders
+      const offerOne = [
+        getTestItem721(nftId, toBN(1), toBN(1), undefined, testERC721.address),
+      ];
+      const considerationOne = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          seller.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderOne, orderHash: orderHashOne } = await createOrder(
+        seller,
+        zone,
+        offerOne,
+        considerationOne,
+        2
+      );
+
+      const offerTwo = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+      const considerationTwo = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          buyer.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+        buyer,
+        zone,
+        offerTwo,
+        considerationTwo,
+        2
+      );
+
+      const offerThree = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+      const considerationThree = [
+        getTestItem721(
+          nftId,
+          toBN(1),
+          toBN(1),
+          owner.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderThree, orderHash: orderHashThree } =
+        await createOrder(owner, zone, offerThree, considerationThree, 2);
+
+      const fulfillments = [
+        [[[1, 0]], [[0, 0]]],
+        [[[0, 0]], [[2, 0]]],
+        [[[2, 0]], [[1, 0]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      // Ensure that the number of executions from matching advanced orders with zone
+      // is equal to the number of fulfillments
+      const executions = await gpDeployer
+        .connect(owner)
+        .callStatic.executeRestrictedMatchAdvancedOrderZone(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          [],
+          fulfillments,
+          { value: 0 }
+        );
+      expect(executions.length).to.equal(fulfillments.length);
+
+      // Perform the match advanced orders with zone
+      const tx = await gpDeployer
+        .connect(owner)
+        .executeRestrictedMatchAdvancedOrderZone(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          [],
+          fulfillments
+        );
+
+      // Decode all events and get the order hashes
+      const receipt = await tx.wait();
+      const foundOrderHashesFromEvents = receipt.events
+        .map((event) => {
+          // Attempt to decode each event to OrderFulfilled.
+          // If the event is not successfully decoded (e.g. if the
+          // event is not an OrderFulfilled event), the catch will be hit
+          // and we return null
+          try {
+            return marketplaceContract.interface.decodeEventLog(
+              "OrderFulfilled",
+              event.data,
+              event.topics
+            ).orderHash;
+          } catch {
+            return null;
+          }
+        })
+        // Filter out all nulls so that at the end we are left with
+        // only order hashes from OrderFulfilled events
+        // (e.g. events that were successfully decoded)
+        .filter(Boolean);
+
+      expect(foundOrderHashesFromEvents.length).to.equal(fulfillments.length);
+
+      // Check that the actual order hashes match those from the events, in order
+      const actualOrderHashes = [orderHashOne, orderHashTwo, orderHashThree];
+      foundOrderHashesFromEvents.forEach((foundOrderHash, i) =>
+        expect(foundOrderHash).to.be.equal(actualOrderHashes[i])
+      );
+    });
+
     it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(

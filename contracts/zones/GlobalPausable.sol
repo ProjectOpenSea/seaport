@@ -62,14 +62,17 @@ contract GlobalPausable is ZoneInterface {
         address _seaport,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external returns (Execution[] memory executions) {
+    ) external payable returns (Execution[] memory executions) {
         require(
             msg.sender == deployer,
             "Only the owner can execute restricted orders with this zone."
         );
         //Create seaport object
         ConsiderationInterface seaport = ConsiderationInterface(_seaport);
-        executions = seaport.matchOrders(orders, fulfillments);
+        executions = seaport.matchOrders{ value: msg.value }(
+            orders,
+            fulfillments
+        );
     }
 
     function executeRestrictedAdvancedOffer(
@@ -77,7 +80,7 @@ contract GlobalPausable is ZoneInterface {
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external returns (Execution[] memory executions) {
+    ) external payable returns (Execution[] memory executions) {
         require(
             msg.sender == deployer,
             "Only the owner can execute advanced restricted orders with this zone."
@@ -85,7 +88,7 @@ contract GlobalPausable is ZoneInterface {
         //Create seaport object
         ConsiderationInterface seaport = ConsiderationInterface(_seaport);
 
-        executions = seaport.matchAdvancedOrders(
+        executions = seaport.matchAdvancedOrders{ value: msg.value }(
             orders,
             criteriaResolvers,
             fulfillments
