@@ -11,6 +11,7 @@ contract CeilEquivalenceTest {
         // but for the sake of this test we'll ignore those cases.
         numerator %= type(uint128).max;
         denominator %= type(uint128).max;
+        denominator++; // Ignore zero.
 
         uint256 optimized;
         assembly {
