@@ -43,7 +43,7 @@ contract AmountDeriver is AmountDerivationErrors {
         uint256 endTime,
         bool roundUp
     ) internal view returns (uint256) {
-      // Only modify end amount if it doesn't already equal start amount.
+        // Only modify end amount if it doesn't already equal start amount.
         if (startAmount != endAmount) {
             uint256 duration;
             uint256 elapsed;
