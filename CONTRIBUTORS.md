@@ -67,4 +67,5 @@ fiveoutofnine                  | `fiveoutofnine.eth`
 asutorufos                     |
 rfart(rfa)                     |
 shuklaayush                    | `shuklaayush.eth`
+Riley Holterhus                |
 big-tech-sux                   |
