@@ -67,3 +67,4 @@ fiveoutofnine                  | `fiveoutofnine.eth`
 asutorufos                     |
 rfart(rfa)                     |
 shuklaayush                    | `shuklaayush.eth`
+big-tech-sux                   |
