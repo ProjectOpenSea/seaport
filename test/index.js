@@ -1877,6 +1877,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Fulfills an order with executeRestrictedMatchOrderZone", async () => {
+      const zone = new ethers.Wallet(randomHex(32), provider);
+      await faucet(zone.address, provider);
+
       const GPDeployer = await ethers.getContractFactory(
         "DeployerGlobalPausable",
         owner
@@ -1899,8 +1902,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
-        getItemETH(parseEther("1"), parseEther("1"), owner.address),
-        // getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        // getItemETH(parseEther("1"), parseEther("1"), owner.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
@@ -1909,7 +1912,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         { address: zoneAddr },
         offer,
         consideration,
-        0 // FULL_OPEN
+        2
       );
 
       const { mirrorOrder } = await createMirrorBuyNowOrder(
@@ -1926,8 +1929,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         const tx = await gpDeployer
           .connect(owner)
           .executeRestrictedMatchOrderZone(
-            directMarketplaceContract.address,
             zoneAddr,
+            directMarketplaceContract.address,
             [order, mirrorOrder],
             fulfillments
           );
