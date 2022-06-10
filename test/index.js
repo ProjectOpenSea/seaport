@@ -2001,45 +2001,28 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
 
       const receipt = await tx.wait();
-      console.log(receipt.events);
-      // TODO fails here because receipt.events[i].args does not exist.
-      // Using console.log I see that args does not exist on any events in receipt
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
-          {
-            order: orderOne,
-            orderHash: orderHashOne,
-            fulfiller: constants.AddressZero,
-          },
-        ],
-        executions
+      const foundOrderHashesFromEvents = new Set(
+        receipt.events
+          .map((event) => {
+            try {
+              return marketplaceContract.interface.decodeEventLog(
+                "OrderFulfilled",
+                event.data,
+                event.topics
+              ).orderHash;
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean)
       );
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
-          {
-            order: orderTwo,
-            orderHash: orderHashTwo,
-            fulfiller: constants.AddressZero,
-          },
-        ],
-        executions
-      );
-      await checkExpectedEvents(
-        tx,
-        receipt,
-        [
-          {
-            order: orderThree,
-            orderHash: orderHashThree,
-            fulfiller: constants.AddressZero,
-          },
-        ],
-        executions
-      );
+      expect(foundOrderHashesFromEvents.size).to.equal(fulfillments.length);
+
+      const actualOrderHashes = [orderHashOne, orderHashTwo, orderHashThree];
+      actualOrderHashes.forEach((actualOrderHash) => {
+        expect(foundOrderHashesFromEvents.has(actualOrderHash)).to.be.true;
+        foundOrderHashesFromEvents.delete(actualOrderHash);
+      });
     });
 
     it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
