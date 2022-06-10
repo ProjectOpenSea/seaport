@@ -1961,25 +1961,23 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Zone can cancel restricted orders.", async () => {
-      let gpDeployer;
-      let actualAddr;
-      await whileImpersonating(owner.address, provider, async () => {
-        // deploy GPD
-        const GPDeployer = await ethers.getContractFactory(
-          "DeployerGlobalPausable",
-          owner
-        );
-        gpDeployer = await GPDeployer.deploy(
-          owner.address,
-          ethers.utils.formatBytes32String("0")
-        );
-        await gpDeployer.deployed();
-        // deploy GP
-        const salt = randomHex();
-        zone.address = await gpDeployer.zoneAddressFromSalt(salt);
-        actualAddr = await gpDeployer.zoneAddressFromSalt(salt);
-        await gpDeployer.createZone(salt);
-      });
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+      await gpDeployer.deployed();
+
+      // deploy GlobalPausable
+      const salt = randomHex();
+      const tx = await gpDeployer.createZone(salt);
+      const receipt = await tx.wait();
+
+      const actualAddr = receipt.events[0].args[0];
 
       const nftId = await mintAndApprove721(
         seller,
@@ -1994,7 +1992,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, orderComponents, orderHash, value } = await createOrder(
+      const { orderComponents } = await createOrder(
         seller,
         { address: actualAddr },
         offer,
