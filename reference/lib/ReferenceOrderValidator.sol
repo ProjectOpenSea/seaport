@@ -56,7 +56,7 @@ contract ReferenceOrderValidator is
         bytes memory signature
     ) internal {
         // Retrieve the order status for the given order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
+        OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Ensure order is fillable and is not cancelled.
         _verifyOrderStatus(
@@ -72,10 +72,10 @@ contract ReferenceOrderValidator is
         }
 
         // Update order status as fully filled, packing struct values.
-        _orderStatus[orderHash].isValidated = true;
-        _orderStatus[orderHash].isCancelled = false;
-        _orderStatus[orderHash].numerator = 1;
-        _orderStatus[orderHash].denominator = 1;
+        orderStatus.isValidated = true;
+        orderStatus.isCancelled = false;
+        orderStatus.numerator = 1;
+        orderStatus.denominator = 1;
     }
 
     /**
@@ -92,7 +92,7 @@ contract ReferenceOrderValidator is
      *                          identifier, and a proof that the supplied token
      *                          identifier is contained in the order's merkle
      *                          root. Note that a criteria of zero indicates
-     *                          that any (transferrable) token identifier is
+     *                          that any (transferable) token identifier is
      *                          valid and that no proof needs to be supplied.
      * @param revertOnInvalid  A boolean indicating whether to revert if the
      *                         order is invalid due to the time or order status.
@@ -152,10 +152,8 @@ contract ReferenceOrderValidator is
             revert PartialFillsNotEnabledForOrder();
         }
 
-        // Retrieve current nonce and use it w/ parameters to derive order hash.
-        orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
-            orderParameters
-        );
+        // Retrieve current counter and use it w/ parameters to get order hash.
+        orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
 
         // Ensure a valid submitter.
         _assertRestrictedAdvancedOrderValidity(
@@ -170,7 +168,7 @@ contract ReferenceOrderValidator is
         );
 
         // Retrieve the order status using the derived order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
+        OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Ensure order is fillable and is not cancelled.
         if (
@@ -195,8 +193,8 @@ contract ReferenceOrderValidator is
         }
 
         // Read filled amount as numerator and denominator and put on the stack.
-        uint256 filledNumerator = orderStatus.numerator;
-        uint256 filledDenominator = orderStatus.denominator;
+        uint256 filledNumerator = uint256(orderStatus.numerator);
+        uint256 filledDenominator = uint256(orderStatus.denominator);
 
         // If order currently has a non-zero denominator it is partially filled.
         if (filledDenominator != 0) {
@@ -222,23 +220,71 @@ contract ReferenceOrderValidator is
                 numerator = denominator - filledNumerator;
             }
 
+            // Increment the filled numerator by the new numerator.
+            filledNumerator += numerator;
+
+            // Ensure fractional amounts are below max uint120.
+            if (
+                filledNumerator > type(uint120).max ||
+                denominator > type(uint120).max
+            ) {
+                // Derive greatest common divisor using euclidean algorithm.
+                uint256 scaleDown = _greatestCommonDivisor(
+                    numerator,
+                    _greatestCommonDivisor(filledNumerator, denominator)
+                );
+
+                // Note: this may not be necessary — need to validate.
+                uint256 safeScaleDown = scaleDown == 0 ? 1 : scaleDown;
+
+                // Scale all fractional values down by gcd.
+                numerator = numerator / safeScaleDown;
+                filledNumerator = filledNumerator / safeScaleDown;
+                denominator = denominator / safeScaleDown;
+
+                // Perform the overflow check a second time.
+                uint256 maxOverhead = type(uint256).max - type(uint120).max;
+                ((filledNumerator + maxOverhead) & (denominator + maxOverhead));
+            }
+
             // Update order status and fill amount, packing struct values.
-            _orderStatus[orderHash].isValidated = true;
-            _orderStatus[orderHash].isCancelled = false;
-            _orderStatus[orderHash].numerator = uint120(
-                filledNumerator + numerator
-            );
-            _orderStatus[orderHash].denominator = uint120(denominator);
+            orderStatus.isValidated = true;
+            orderStatus.isCancelled = false;
+            orderStatus.numerator = uint120(filledNumerator);
+            orderStatus.denominator = uint120(denominator);
         } else {
             // Update order status and fill amount, packing struct values.
-            _orderStatus[orderHash].isValidated = true;
-            _orderStatus[orderHash].isCancelled = false;
-            _orderStatus[orderHash].numerator = uint120(numerator);
-            _orderStatus[orderHash].denominator = uint120(denominator);
+            orderStatus.isValidated = true;
+            orderStatus.isCancelled = false;
+            orderStatus.numerator = uint120(numerator);
+            orderStatus.denominator = uint120(denominator);
         }
 
         // Return order hash, new numerator and denominator.
-        return (orderHash, numerator, denominator);
+        return (orderHash, uint120(numerator), uint120(denominator));
+    }
+
+    /**
+     * @dev Internal function to derive the greatest common divisor of two
+     *      values using the classical euclidian algorithm.
+     *
+     * @param a The first value.
+     * @param b The second value.
+     *
+     * @return greatestCommonDivisor The greatest common divisor.
+     */
+    function _greatestCommonDivisor(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 greatestCommonDivisor)
+    {
+        while (b > 0) {
+            uint256 c = b;
+            b = a % c;
+            a = c;
+        }
+
+        greatestCommonDivisor = a;
     }
 
     /**
@@ -255,6 +301,8 @@ contract ReferenceOrderValidator is
         notEntered
         returns (bool)
     {
+        // Declare variables outside of the loop.
+        OrderStatus storage orderStatus;
         address offerer;
         address zone;
 
@@ -274,7 +322,7 @@ contract ReferenceOrderValidator is
                 revert InvalidCanceller();
             }
 
-            // Derive order hash using the order parameters and the nonce.
+            // Derive order hash using the order parameters and the counter.
             bytes32 orderHash = _deriveOrderHash(
                 OrderParameters(
                     offerer,
@@ -289,12 +337,15 @@ contract ReferenceOrderValidator is
                     order.conduitKey,
                     order.consideration.length
                 ),
-                order.nonce
+                order.counter
             );
 
+            // Retrieve the order status using the derived order hash.
+            orderStatus = _orderStatus[orderHash];
+
             // Update the order status as not valid and cancelled.
-            _orderStatus[orderHash].isValidated = false;
-            _orderStatus[orderHash].isCancelled = true;
+            orderStatus.isValidated = false;
+            orderStatus.isCancelled = true;
 
             // Emit an event signifying that the order has been cancelled.
             emit OrderCancelled(orderHash, offerer, zone);
@@ -319,6 +370,7 @@ contract ReferenceOrderValidator is
         returns (bool)
     {
         // Declare variables outside of the loop.
+        OrderStatus storage orderStatus;
         bytes32 orderHash;
         address offerer;
 
@@ -336,13 +388,13 @@ contract ReferenceOrderValidator is
             // Move offerer from memory to the stack.
             offerer = orderParameters.offerer;
 
-            // Get current nonce and use it w/ params to derive order hash.
-            orderHash = _assertConsiderationLengthAndGetNoncedOrderHash(
+            // Get current counter and use it w/ params to derive order hash.
+            orderHash = _assertConsiderationLengthAndGetOrderHash(
                 orderParameters
             );
 
             // Retrieve the order status using the derived order hash.
-            OrderStatus memory orderStatus = _orderStatus[orderHash];
+            orderStatus = _orderStatus[orderHash];
 
             // Ensure order is fillable and retrieve the filled amount.
             _verifyOrderStatus(
@@ -358,7 +410,7 @@ contract ReferenceOrderValidator is
                 _verifySignature(offerer, orderHash, order.signature);
 
                 // Update order status to mark the order as valid.
-                _orderStatus[orderHash].isValidated = true;
+                orderStatus.isValidated = true;
 
                 // Emit an event signifying the order has been validated.
                 emit OrderValidated(orderHash, offerer, orderParameters.zone);
@@ -396,7 +448,7 @@ contract ReferenceOrderValidator is
         )
     {
         // Retrieve the order status using the order hash.
-        OrderStatus memory orderStatus = _orderStatus[orderHash];
+        OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Return the fields on the order status.
         return (

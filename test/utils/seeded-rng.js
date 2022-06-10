@@ -27,7 +27,7 @@
 	for JavaScript. It is driven by 1536 bits of entropy, stored in an array of
 	48, 32-bit JavaScript variables.  Since many applications of this generator,
 	including ours with the "Off The Grid" Latin Square generator, may require
-	the deteriministic re-generation of a sequence of PRNs, this PRNG's initial
+	the deterministic re-generation of a sequence of PRNs, this PRNG's initial
 	entropic state can be read and written as a static whole, and incrementally
 	evolved by pouring new source entropy into the generator's internal state.
 	----------------------------------------------------------------------------

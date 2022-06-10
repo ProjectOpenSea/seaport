@@ -6,9 +6,9 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 
-dotenv.config();
-
 import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
+
+dotenv.config();
 
 // Filter Reference Contracts
 subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
@@ -26,19 +26,19 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.13",
+        version: "0.8.14",
         settings: {
           viaIR: true,
           optimizer: {
             enabled: true,
-            runs: 15000,
+            runs: 1000,
           },
         },
       },
     ],
     overrides: {
       "contracts/conduit/Conduit.sol": {
-        version: "0.8.13",
+        version: "0.8.14",
         settings: {
           viaIR: true,
           optimizer: {
@@ -48,7 +48,7 @@ const config: HardhatUserConfig = {
         },
       },
       "contracts/conduit/ConduitController.sol": {
-        version: "0.8.13",
+        version: "0.8.14",
         settings: {
           viaIR: true,
           optimizer: {
@@ -62,6 +62,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       blockGasLimit: 30_000_000,
+      throwOnCallFailures: false,
     },
   },
   gasReporter: {

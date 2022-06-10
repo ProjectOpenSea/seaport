@@ -2,7 +2,7 @@ const { ethers } = require("ethers");
 const { bufferToHex, keccak256 } = require("ethereumjs-util");
 
 const merkleTree = (tokenIds) => {
-  let elements = tokenIds
+  const elements = tokenIds
     .map((tokenId) =>
       Buffer.from(tokenId.toHexString().slice(2).padStart(64, "0"), "hex")
     )
@@ -45,7 +45,7 @@ const getLayers = (elements) => {
   }
 
   const layers = [];
-  layers.push(elements);
+  layers.push(elements.map((el) => keccak256(el)));
 
   // Get next layer until we reach the root
   while (layers[layers.length - 1].length > 1) {

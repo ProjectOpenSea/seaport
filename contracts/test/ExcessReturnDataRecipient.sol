@@ -2,12 +2,20 @@
 pragma solidity >=0.8.7;
 
 contract ExcessReturnDataRecipient {
-    uint256 revertDataSize;
+    uint256 private revertDataSize;
 
     function setRevertDataSize(uint256 size) external {
         revertDataSize = size;
     }
 
+    // Code created with the help of Stack Exchange question
+    // https://ethereum.stackexchange.com/questions/8086
+    // Question by Doug King:
+    // https://ethereum.stackexchange.com/users/2041/doug-king
+    // Answer by Tjaden Hess:
+    // https://ethereum.stackexchange.com/users/131/tjaden-hess
+    // Modified to use Yul instead of Solidity and added change of
+    // base to convert to natural logarithm
     function ln(uint256 x) internal pure returns (uint256 y) {
         assembly {
             let arg := x

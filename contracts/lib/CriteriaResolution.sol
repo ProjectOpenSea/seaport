@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 import { ItemType, Side } from "./ConsiderationEnums.sol";
 
@@ -37,7 +37,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
      *                           identifier, and a proof that the supplied token
      *                           identifier is contained in the order's merkle
      *                           root. Note that a root of zero indicates that
-     *                           any transferrable token identifier is valid and
+     *                           any transferable token identifier is valid and
      *                           that no proof needs to be supplied.
      */
     function _applyCriteriaResolvers(
@@ -174,7 +174,7 @@ contract CriteriaResolution is CriteriaResolutionErrors {
 
                 // Retrieve the parameters for the order.
                 OrderParameters memory orderParameters = (
-                    advancedOrders[i].parameters
+                    advancedOrder.parameters
                 );
 
                 // Read consideration length from memory and place on stack.
@@ -246,8 +246,11 @@ contract CriteriaResolution is CriteriaResolutionErrors {
         bool isValid;
 
         assembly {
-            // Start the hash off as just the starting leaf.
-            let computedHash := leaf
+            // Store the leaf at the beginning of scratch space.
+            mstore(0, leaf)
+
+            // Derive the hash of the leaf to use as the initial proof element.
+            let computedHash := keccak256(0, OneWord)
 
             // Get memory start location of the first element in proof array.
             let data := add(proof, OneWord)
@@ -261,15 +264,15 @@ contract CriteriaResolution is CriteriaResolutionErrors {
                 // Get the proof element.
                 let loadedData := mload(data)
 
-                // Sort and store proof element and hash.
+                // Sort proof elements and place them in scratch space.
                 switch gt(computedHash, loadedData)
                 case 0 {
                     mstore(0, computedHash) // Place existing hash first.
-                    mstore(0x20, loadedData) // Place new hash next.
+                    mstore(OneWord, loadedData) // Place new hash next.
                 }
                 default {
                     mstore(0, loadedData) // Place new hash first.
-                    mstore(0x20, computedHash) // Place existing hash next.
+                    mstore(OneWord, computedHash) // Place existing hash next.
                 }
 
                 // Derive the updated hash.
