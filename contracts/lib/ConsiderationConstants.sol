@@ -72,7 +72,7 @@ uint256 constant Execution_conduit_offset = 0x40;
 uint256 constant InvalidFulfillmentComponentData_error_signature = (
     0x7fda727900000000000000000000000000000000000000000000000000000000
 );
-uint256 constant InvalidFulfillmentComponentData_error_len = 0x20;
+uint256 constant InvalidFulfillmentComponentData_error_len = 0x04;
 
 uint256 constant Panic_error_signature = (
     0x4e487b7100000000000000000000000000000000000000000000000000000000
@@ -84,7 +84,7 @@ uint256 constant Panic_arithmetic = 0x11;
 uint256 constant MissingItemAmount_error_signature = (
     0x91b3e51400000000000000000000000000000000000000000000000000000000
 );
-uint256 constant MissingItemAmount_error_len = 0x20;
+uint256 constant MissingItemAmount_error_len = 0x04;
 
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
@@ -369,7 +369,7 @@ uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
 uint256 constant InexactFraction_error_signature = (
     0xc63cf08900000000000000000000000000000000000000000000000000000000
 );
-uint256 constant InexactFraction_error_len = 0x20;
+uint256 constant InexactFraction_error_len = 0x04;
 
 // Declare constant for errors related to signature verification.
 
@@ -390,19 +390,19 @@ uint256 constant BadSignatureV_error_length = 0x24;
 uint256 constant InvalidSigner_error_signature = (
     0x815e1d6400000000000000000000000000000000000000000000000000000000
 );
-uint256 constant InvalidSigner_error_length = 0x20;
+uint256 constant InvalidSigner_error_length = 0x04;
 
 // error InvalidSignature() @ SignatureVerificationErrors.sol
 uint256 constant InvalidSignature_error_signature = (
     0x8baa579f00000000000000000000000000000000000000000000000000000000
 );
-uint256 constant InvalidSignature_error_length = 0x20;
+uint256 constant InvalidSignature_error_length = 0x04;
 
 // error BadContractSignature() @ SignatureVerificationErrors.sol
 uint256 constant BadContractSignature_error_signature = (
     0x4f7fb80d00000000000000000000000000000000000000000000000000000000
 );
-uint256 constant BadContractSignature_error_length = 0x20;
+uint256 constant BadContractSignature_error_length = 0x04;
 
 uint256 constant NumBitsAfterSelector = 0xe0;
 

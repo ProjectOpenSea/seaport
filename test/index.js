@@ -3764,9 +3764,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.signature = "0x";
 
         if (!process.env.REFERENCE) {
-          const expectedRevertReason = getCustomRevertSelector(
-            "InvalidSignature()"
-          ).padEnd(66, "0");
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSignature()");
 
           let tx = await marketplaceContract
             .connect(buyer)
@@ -3888,9 +3887,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // cannot fill it with no signature yet
-          const expectedRevertReason = getCustomRevertSelector(
-            "InvalidSignature()"
-          ).padEnd(66, "0");
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSignature()");
 
           let tx = await marketplaceContract
             .connect(buyer)
@@ -4001,9 +3999,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // cannot fill it with no signature yet
-          const expectedRevertReason = getCustomRevertSelector(
-            "InvalidSignature()"
-          ).padEnd(66, "0");
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSignature()");
 
           let tx = await marketplaceContract
             .connect(buyer)
@@ -4347,9 +4344,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
-          const expectedRevertReason = getCustomRevertSelector(
-            "InvalidSigner()"
-          ).padEnd(66, "0");
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSigner()");
 
           let tx = await marketplaceContract
             .connect(buyer)
@@ -4453,9 +4449,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
-          const expectedRevertReason = getCustomRevertSelector(
-            "InvalidSigner()"
-          ).padEnd(66, "0");
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSigner()");
 
           let tx = await marketplaceContract
             .connect(buyer)
@@ -4559,9 +4554,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
-          const expectedRevertReason = getCustomRevertSelector(
-            "InvalidSigner()"
-          ).padEnd(66, "0");
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSigner()");
 
           let tx = await marketplaceContract
             .connect(buyer)
@@ -11082,9 +11076,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         // construct an invalid signature
         basicOrderParameters.signature = "0x".padEnd(130, "f") + "1c";
 
-        expectedRevertReason = getCustomRevertSelector(
-          "InvalidSigner()"
-        ).padEnd(66, "0");
+        expectedRevertReason = getCustomRevertSelector("InvalidSigner()");
 
         tx = await marketplaceContract
           .connect(buyer)
@@ -11310,7 +11302,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         if (!process.env.REFERENCE) {
           const expectedRevertReason = getCustomRevertSelector(
             "BadContractSignature()"
-          ).padEnd(66, "0");
+          );
 
           let tx = await marketplaceContract
             .connect(buyer)
