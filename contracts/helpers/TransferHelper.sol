@@ -83,7 +83,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     TransferHelperItem calldata item = items[i];
 
                     // Perform a transfer based on the transfer's item type.
-                    // Revert if item being transferred is not a native token.
+                    // Revert if item being transferred is a native token.
                     if (item.itemType == ConduitItemType.NATIVE) {
                         revert InvalidItemType();
                     } else if (item.itemType == ConduitItemType.ERC20) {
