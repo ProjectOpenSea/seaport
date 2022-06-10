@@ -100,7 +100,7 @@ contract TransferHelperTest is BaseOrderTest {
 
     // Helper functions
 
-    function _setApprovals(address _owner) internal override {
+    function _setApprovals(address _owner) internal {
         super._setApprovals(_owner);
         vm.startPrank(_owner);
         for (uint256 i = 0; i < erc20s.length; i++) {
