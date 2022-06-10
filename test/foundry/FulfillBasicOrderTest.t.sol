@@ -4,7 +4,7 @@
 pragma solidity >=0.8.13;
 
 import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { AdditionalRecipient } from "../../contracts/lib/ConsiderationStructs.sol";
+import { AdditionalRecipient, Order } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
@@ -15,6 +15,8 @@ import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
+
+import { OrderParameters } from "./utils/reentrancy/ReentrantStructs.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest {
     using ArithmeticUtil for uint128;
@@ -58,8 +60,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputs(Context(consideration, inputs, 0))
     {
-        _configureERC721OfferItem(inputs.tokenId);
-        _configureEthConsiderationItem(alice, inputs.paymentAmount);
+        addErc721OfferItem(inputs.tokenId);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo721(inputs);
 
         test(this.basicEthTo721, Context(consideration, inputs, 0));
@@ -70,8 +72,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputs(Context(consideration, inputs, 0))
     {
-        _configureERC721OfferItem(inputs.tokenId);
-        _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
+        addErc721OfferItem(inputs.tokenId);
+        addErc20ConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersErc20To721(inputs);
 
         test(this.basicErc20To721, Context(consideration, inputs, 0));
@@ -85,8 +87,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
     {
-        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
-        _configureEthConsiderationItem(alice, inputs.paymentAmount);
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo1155(inputs, tokenAmount);
 
         test(this.basicEthTo1155, Context(consideration, inputs, tokenAmount));
@@ -103,8 +105,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         public
         validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
     {
-        _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
-        _configureErc20ConsiderationItem(alice, inputs.paymentAmount);
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addErc20ConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersErc20To1155(inputs, tokenAmount);
 
         test(
@@ -117,6 +119,73 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         );
     }
 
+    function testFulfillBasicOrderRevertInvalidAdditionalRecipientsLength(
+        uint256 fuzzTotalRecipients,
+        uint256 fuzzAmountToSubtractFromTotalRecipients
+    ) public {
+        uint256 totalRecipients = fuzzTotalRecipients % 200;
+        // Set amount to subtract from total recipients
+        // to be at most totalRecipients.
+        uint256 amountToSubtractFromTotalRecipients = totalRecipients > 0
+            ? fuzzAmountToSubtractFromTotalRecipients % totalRecipients
+            : 0;
+
+        // Create basic order
+        (
+            Order memory myOrder,
+            BasicOrderParameters memory _basicOrderParameters
+        ) = prepareBasicOrder(1);
+
+        // Add additional recipients
+        _basicOrderParameters.additionalRecipients = new AdditionalRecipient[](
+            totalRecipients
+        );
+        for (
+            uint256 i = 0;
+            i < _basicOrderParameters.additionalRecipients.length;
+            i++
+        ) {
+            _basicOrderParameters.additionalRecipients[
+                i
+            ] = AdditionalRecipient({ recipient: alice, amount: 1 });
+        }
+
+        // Get the calldata that will be passed into fulfillOrder.
+        bytes memory fulfillOrderCalldata = abi.encodeWithSelector(
+            consideration.fulfillBasicOrder.selector,
+            _basicOrderParameters
+        );
+
+        _performTestFulfillOrderRevertInvalidArrayLength(
+            consideration,
+            myOrder,
+            fulfillOrderCalldata,
+            // Order parameters starts at 0x44 relative to the start of the
+            // order calldata because the order calldata starts with 0x20 bytes
+            // for order calldata length, 0x04 bytes for selector, and 0x20
+            // bytes until the start of order parameters.
+            0x44,
+            0x200,
+            _basicOrderParameters.additionalRecipients.length,
+            amountToSubtractFromTotalRecipients
+        );
+    }
+
+    function prepareBasicOrder(uint256 tokenId)
+        internal
+        returns (
+            Order memory order,
+            BasicOrderParameters memory _basicOrderParameters
+        )
+    {
+        (Order memory _order, , ) = _prepareOrder(tokenId, 1);
+        order = _order;
+        _basicOrderParameters = toBasicOrderParameters(
+            _order,
+            BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN
+        );
+    }
+
     function basicErc20To1155(Context memory context) external stateless {
         test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
 
@@ -126,8 +195,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             context.args.salt,
             bytes32(0)
         );
-        uint256 nonce = context.consideration.getNonce(alice);
-        orderComponents.nonce = nonce;
+        uint256 counter = context.consideration.getCounter(alice);
+        orderComponents.counter = counter;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -152,8 +221,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             context.args.salt,
             bytes32(0)
         );
-        uint256 nonce = context.consideration.getNonce(alice);
-        orderComponents.nonce = nonce;
+        uint256 counter = context.consideration.getCounter(alice);
+        orderComponents.counter = counter;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -180,8 +249,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             context.args.salt,
             bytes32(0)
         );
-        uint256 nonce = context.consideration.getNonce(alice);
-        orderComponents.nonce = nonce;
+        uint256 counter = context.consideration.getCounter(alice);
+        orderComponents.counter = counter;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -205,8 +274,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             context.args.salt,
             bytes32(0)
         );
-        uint256 nonce = context.consideration.getNonce(alice);
-        orderComponents.nonce = nonce;
+        uint256 counter = context.consideration.getCounter(alice);
+        orderComponents.counter = counter;
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
         bytes memory signature = signOrder(
             context.consideration,
@@ -307,6 +376,6 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         orderComponents.zoneHash = zoneHash;
         orderComponents.salt = salt;
         orderComponents.conduitKey = conduitKey;
-        // don't set nonce
+        // don't set counter
     }
 }

@@ -17,7 +17,7 @@ import {
 /**
  * @title SeaportInterface
  * @author 0age
- * @custom:version 1
+ * @custom:version 1.1
  * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace. It
  *         minimizes external calls to the greatest extent possible and provides
  *         lightweight methods for common routes as well as more flexible
@@ -98,7 +98,7 @@ interface SeaportInterface {
      *                            contained in the merkle root held by the item
      *                            in question's criteria element. Note that an
      *                            empty criteria indicates that any
-     *                            (transferrable) token identifier on the token
+     *                            (transferable) token identifier on the token
      *                            in question is valid and that no associated
      *                            proof needs to be supplied.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
@@ -210,7 +210,7 @@ interface SeaportInterface {
      *                                  is contained in the merkle root held by
      *                                  the item in question's criteria element.
      *                                  Note that an empty criteria indicates
-     *                                  that any (transferrable) token
+     *                                  that any (transferable) token
      *                                  identifier on the token in question is
      *                                  valid and that no associated proof needs
      *                                  to be supplied.
@@ -292,7 +292,7 @@ interface SeaportInterface {
      *                          indicated by the order) to transfer any relevant
      *                          tokens on their behalf and each consideration
      *                          recipient must implement `onERC1155Received` in
-     *                          order toreceive ERC1155 tokens. Also note that
+     *                          order to receive ERC1155 tokens. Also note that
      *                          the offer and consideration components for each
      *                          order must have no remainder after multiplying
      *                          the respective amount with the supplied fraction
@@ -303,7 +303,7 @@ interface SeaportInterface {
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
      *                          contained in the order's merkle root. Note that
-     *                          an empty root indicates that any (transferrable)
+     *                          an empty root indicates that any (transferable)
      *                          token identifier is valid and that no associated
      *                          proof needs to be supplied.
      * @param fulfillments      An array of elements allocating offer components
@@ -357,12 +357,12 @@ interface SeaportInterface {
 
     /**
      * @notice Cancel all orders from a given offerer with a given zone in bulk
-     *         by incrementing a nonce. Note that only the offerer may increment
-     *         the nonce.
+     *         by incrementing a counter. Note that only the offerer may
+     *         increment the counter.
      *
-     * @return newNonce The new nonce.
+     * @return newCounter The new counter.
      */
-    function incrementNonce() external returns (uint256 newNonce);
+    function incrementCounter() external returns (uint256 newCounter);
 
     /**
      * @notice Retrieve the order hash for a given order.
@@ -404,13 +404,16 @@ interface SeaportInterface {
         );
 
     /**
-     * @notice Retrieve the current nonce for a given offerer.
+     * @notice Retrieve the current counter for a given offerer.
      *
      * @param offerer The offerer in question.
      *
-     * @return nonce The current nonce.
+     * @return counter The current counter.
      */
-    function getNonce(address offerer) external view returns (uint256 nonce);
+    function getCounter(address offerer)
+        external
+        view
+        returns (uint256 counter);
 
     /**
      * @notice Retrieve configuration information for this contract.

@@ -83,7 +83,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     TransferHelperItem calldata item = items[i];
 
                     // Perform a transfer based on the transfer's item type.
-                    // Revert if item being transferred is not a native token.
+                    // Revert if item being transferred is a native token.
                     if (item.itemType == ConduitItemType.NATIVE) {
                         revert InvalidItemType();
                     } else if (item.itemType == ConduitItemType.ERC20) {
@@ -114,7 +114,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
         }
         // Otherwise, a conduitKey was provided.
         else {
-            // Derive the conduit address from the deployer, conduit key and creation code hash.
+            // Derive the conduit address from the deployer, conduit key
+            // and creation code hash.
             address conduit = address(
                 uint160(
                     uint256(

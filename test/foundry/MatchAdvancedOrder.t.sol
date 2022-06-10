@@ -2,17 +2,11 @@
 
 pragma solidity >=0.8.13;
 
-import { OrderType, BasicOrderType, ItemType, Side } from "../../contracts/lib/ConsiderationEnums.sol";
-import { Order, Fulfillment } from "../../contracts/lib/ConsiderationStructs.sol";
+import { OrderType, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
+import { Order } from "../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
-import { AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, BasicOrderParameters, CriteriaResolver, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
+import { AdvancedOrder, OfferItem, OrderParameters, ConsiderationItem, OrderComponents, CriteriaResolver, FulfillmentComponent } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../contracts/test/TestERC20.sol";
-import { ProxyRegistry } from "./interfaces/ProxyRegistry.sol";
-import { OwnableDelegateProxy } from "./interfaces/OwnableDelegateProxy.sol";
-import { Merkle } from "../../lib/murky/src/Merkle.sol";
 import { stdError } from "forge-std/Test.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
 
@@ -72,7 +66,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
     function testMatchAdvancedOrdersOverflowOrderSide() public {
         // start at 1 to skip eth
-        for (uint256 i = 1; i < 4; i++) {
+        for (uint256 i = 1; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;
@@ -90,7 +84,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
     function testMatchAdvancedOrdersOverflowConsiderationSide() public {
         // start at 1 to skip eth
-        for (uint256 i = 1; i < 4; i++) {
+        for (uint256 i = 1; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;
@@ -154,8 +148,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         external
         stateless
     {
-        _configureOfferItem(context.itemType, 1, 100);
-        _configureErc721ConsiderationItem(alice, 1);
+        addOfferItem(context.itemType, 1, 100);
+        addErc721ConsiderationItem(alice, 1);
 
         OrderParameters memory firstOrderParameters = OrderParameters(
             address(bob),
@@ -173,7 +167,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             firstOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory firstSignature = signOrder(
             context.consideration,
@@ -184,8 +178,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
-        _configureOfferItem(context.itemType, 1, 2**256 - 1);
-        _configureErc721ConsiderationItem(alice, 2);
+        addOfferItem(context.itemType, 1, 2**256 - 1);
+        addErc721ConsiderationItem(alice, 2);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -203,7 +197,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -216,9 +210,9 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         test721_1.mint(alice, 1);
         test721_1.mint(alice, 2);
-        _configureERC721OfferItem(1);
-        _configureERC721OfferItem(2);
-        _configureConsiderationItem(bob, context.itemType, 1, 99);
+        addErc721OfferItem(1);
+        addErc721OfferItem(2);
+        addConsiderationItem(bob, context.itemType, 1, 99);
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
             address(alice),
@@ -236,7 +230,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
             thirdOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes memory thirdSignature = signOrder(
@@ -318,8 +312,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         Context memory context
     ) external stateless {
         test721_1.mint(alice, 1);
-        _configureERC721OfferItem(1);
-        _configureConsiderationItem(alice, context.itemType, 1, 100);
+        addErc721OfferItem(1);
+        addConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory firstOrderParameters = OrderParameters(
             address(alice),
@@ -337,7 +331,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             firstOrderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory firstSignature = signOrder(
             context.consideration,
@@ -349,8 +343,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        _configureERC721OfferItem(2);
-        _configureConsiderationItem(alice, context.itemType, 1, 2**256 - 1);
+        addErc721OfferItem(2);
+        addConsiderationItem(alice, context.itemType, 1, 2**256 - 1);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -368,7 +362,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -379,9 +373,9 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
-        _configureOfferItem(context.itemType, 1, 99);
-        _configureErc721ConsiderationItem(alice, 1);
-        _configureErc721ConsiderationItem(bob, 2);
+        addOfferItem(context.itemType, 1, 99);
+        addErc721ConsiderationItem(alice, 1);
+        addErc721ConsiderationItem(bob, 2);
 
         OrderParameters memory thirdOrderParameters = OrderParameters(
             address(bob),
@@ -399,7 +393,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory thirdOrderComponents = getOrderComponents(
             thirdOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
 
         bytes memory thirdSignature = signOrder(
@@ -521,7 +515,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -569,7 +563,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
             mirrorOrderParameters,
-            context.consideration.getNonce(cal)
+            context.consideration.getCounter(cal)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -638,27 +632,23 @@ contract MatchAdvancedOrder is BaseOrderTest {
             context.args.baseEnd.mul(20)
         );
         // multiply start and end amounts by multiplier and fractional component
-        _configureOfferItem(
+        addOfferItem(
             ItemType.ERC20,
             0,
             context.args.baseStart.mul(20),
             context.args.baseEnd.mul(20)
         );
-        _configureConsiderationItem(
-            alice,
-            ItemType.ERC1155,
-            context.args.id,
-            20
-        );
+        addConsiderationItem(alice, ItemType.ERC1155, context.args.id, 20);
 
+        uint256 startTime = block.timestamp;
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             context.args.zone,
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            startTime,
+            startTime + 1000,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -667,7 +657,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes memory signature = signOrder(
@@ -679,14 +669,15 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
+        vm.warp(startTime + 500);
+
         // current amount should be mean of start and end amounts
         uint256 currentAmount = _locateCurrentAmount(
             context.args.baseStart.mul(20), // start amount
             context.args.baseEnd.mul(20), // end amount
-            500, // elapsed
-            500, // remaining
-            1000, // duration
-            false // roundUp
+            startTime, // startTime
+            startTime + 1000, // endTime
+            false // don't round up offers
         );
 
         emit log_named_uint("current amount", currentAmount);
@@ -695,16 +686,9 @@ contract MatchAdvancedOrder is BaseOrderTest {
             currentAmount.mul(2) / 10
         );
 
-        _configureERC1155OfferItem(context.args.id, 20);
+        addErc1155OfferItem(context.args.id, 20);
         // create mirror consideration item with current amount
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            currentAmount,
-            currentAmount,
-            bob
-        );
+        addErc20ConsiderationItem(bob, currentAmount);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),
@@ -712,8 +696,8 @@ contract MatchAdvancedOrder is BaseOrderTest {
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            startTime,
+            startTime + 1000,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -721,7 +705,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
             mirrorOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -763,8 +747,6 @@ contract MatchAdvancedOrder is BaseOrderTest {
         fulfillments.push(fulfillment);
         delete fulfillmentComponents;
         delete fulfillment;
-
-        vm.warp(block.timestamp + 500);
 
         uint256 balanceBeforeOrder = token1.balanceOf(bob);
         context.consideration.matchAdvancedOrders(
@@ -804,24 +786,22 @@ contract MatchAdvancedOrder is BaseOrderTest {
             context.args.baseEnd.mul(20)
         );
         // multiply start and end amounts by multiplier and fractional component
-        _configureOfferItem(ItemType.ERC1155, context.args.id, 20, 20);
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
+        addOfferItem(ItemType.ERC1155, context.args.id, 20, 20);
+        addErc20ConsiderationItem(
+            alice,
             context.args.baseStart.mul(20),
-            context.args.baseEnd.mul(20),
-            alice
+            context.args.baseEnd.mul(20)
         );
 
+        uint256 startTime = block.timestamp;
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
             context.args.zone,
             offerItems,
             considerationItems,
             OrderType.PARTIAL_OPEN,
-            block.timestamp,
-            block.timestamp + 1000,
+            startTime,
+            startTime + 1000,
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
@@ -830,7 +810,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory orderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
 
         bytes memory signature = signOrder(
@@ -842,14 +822,15 @@ contract MatchAdvancedOrder is BaseOrderTest {
         delete offerItems;
         delete considerationItems;
 
+        vm.warp(startTime + 500);
+
         // current amount should be mean of start and end amounts
         uint256 currentAmount = _locateCurrentAmount(
             context.args.baseStart.mul(20), // start amount
             context.args.baseEnd.mul(20), // end amount
-            500, // elapsed
-            500, // remaining
-            1000, // duration
-            false // roundUp
+            startTime, // startTime
+            startTime + 1000, // endTime
+            true // round up considerations
         );
 
         emit log_named_uint("current amount", currentAmount);
@@ -858,7 +839,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
             currentAmount.mul(2) / 10
         );
 
-        _configureOfferItem(
+        addOfferItem(
             ItemType.ERC20,
             address(token1),
             0,
@@ -866,14 +847,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
             currentAmount
         );
         // create mirror consideration item with current amount
-        _configureConsiderationItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            context.args.id,
-            20,
-            20,
-            bob
-        );
+        addErc1155ConsiderationItem(bob, context.args.id, 20);
 
         OrderParameters memory mirrorOrderParameters = OrderParameters(
             address(bob),
@@ -890,7 +864,7 @@ contract MatchAdvancedOrder is BaseOrderTest {
         );
         OrderComponents memory mirrorOrderComponents = getOrderComponents(
             mirrorOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
 
         bytes memory mirrorSignature = signOrder(
@@ -932,8 +906,6 @@ contract MatchAdvancedOrder is BaseOrderTest {
         fulfillments.push(fulfillment);
         delete fulfillmentComponents;
         delete fulfillment;
-
-        vm.warp(block.timestamp + 500);
 
         uint256 balanceBeforeOrder = token1.balanceOf(alice);
         context.consideration.matchAdvancedOrders(

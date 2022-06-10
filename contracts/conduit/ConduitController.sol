@@ -95,11 +95,14 @@ contract ConduitController is ConduitControllerInterface {
         // Deploy the conduit via CREATE2 using the conduit key as the salt.
         new Conduit{ salt: conduitKey }();
 
+        // Initialize storage variable referencing conduit properties.
+        ConduitProperties storage conduitProperties = _conduits[conduit];
+
         // Set the supplied initial owner as the owner of the conduit.
-        _conduits[conduit].owner = initialOwner;
+        conduitProperties.owner = initialOwner;
 
         // Set conduit key used to deploy the conduit to enable reverse lookup.
-        _conduits[conduit].key = conduitKey;
+        conduitProperties.key = conduitKey;
 
         // Emit an event indicating that the conduit has been deployed.
         emit NewConduit(conduit, conduitKey);
@@ -154,7 +157,13 @@ contract ConduitController is ConduitControllerInterface {
         } else if (!isOpen && channelPreviouslyOpen) {
             // Set a previously open channel as closed via "swap & pop" method.
             // Decrement located index to get the index of the closed channel.
-            uint256 removedChannelIndex = channelIndexPlusOne - 1;
+            uint256 removedChannelIndex;
+
+            // Skip underflow check as channelPreviouslyOpen being true ensures
+            // that channelIndexPlusOne is nonzero.
+            unchecked {
+                removedChannelIndex = channelIndexPlusOne - 1;
+            }
 
             // Use length of channels array to determine index of last channel.
             uint256 finalChannelIndex = conduitProperties.channels.length - 1;
@@ -190,6 +199,7 @@ contract ConduitController is ConduitControllerInterface {
      *         Only the owner of the conduit in question may call this function.
      *
      * @param conduit The conduit for which to initiate ownership transfer.
+     * @param newPotentialOwner The new potential owner of the conduit.
      */
     function transferOwnership(address conduit, address newPotentialOwner)
         external
@@ -487,12 +497,12 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev Internal view function to revert if the caller is not the owner of a
+     * @dev Private view function to revert if the caller is not the owner of a
      *      given conduit.
      *
      * @param conduit The conduit for which to assert ownership.
      */
-    function _assertCallerIsConduitOwner(address conduit) internal view {
+    function _assertCallerIsConduitOwner(address conduit) private view {
         // Ensure that the conduit in question exists.
         _assertConduitExists(conduit);
 
@@ -504,11 +514,11 @@ contract ConduitController is ConduitControllerInterface {
     }
 
     /**
-     * @dev Internal view function to revert if a given conduit does not exist.
+     * @dev Private view function to revert if a given conduit does not exist.
      *
      * @param conduit The conduit for which to assert existence.
      */
-    function _assertConduitExists(address conduit) internal view {
+    function _assertConduitExists(address conduit) private view {
         // Attempt to retrieve a conduit key for the conduit in question.
         if (_conduits[conduit].key == bytes32(0)) {
             // Revert if no conduit key was located.

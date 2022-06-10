@@ -27,7 +27,7 @@ export {
 
 const { provider } = ethers;
 
-export async function seaportFixture(owner: Wallet) {
+export const seaportFixture = async (owner: Wallet) => {
   const EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
   const reenterer = await deployContract("Reenterer", owner as any);
   const { chainId } = await provider.getNetwork();
@@ -82,7 +82,7 @@ export async function seaportFixture(owner: Wallet) {
 
   const withBalanceChecks = async (
     ordersArray: AdvancedOrder[], // TODO: include order statuses to account for partial fills
-    additonalPayouts: 0 | BigNumber,
+    additionalPayouts: 0 | BigNumber,
     criteriaResolvers: CriteriaResolver[] = [],
     fn: () => Promise<ContractReceipt>,
     multiplier = 1
@@ -312,7 +312,7 @@ export async function seaportFixture(owner: Wallet) {
 
       if (offeredItem.itemType < 4) {
         // TODO: criteria-based
-        if (!additonalPayouts) {
+        if (!additionalPayouts) {
           expect(
             offeredItem.initialBalance.sub(offeredItem.finalBalance).toString()
           ).to.equal(
@@ -328,7 +328,7 @@ export async function seaportFixture(owner: Wallet) {
         } else {
           expect(
             offeredItem.initialBalance.sub(offeredItem.finalBalance).toString()
-          ).to.equal(additonalPayouts.add(offeredItem.endAmount).toString());
+          ).to.equal(additionalPayouts.add(offeredItem.endAmount).toString());
         }
       }
 
@@ -830,6 +830,6 @@ export async function seaportFixture(owner: Wallet) {
     checkTransferEvent,
     checkExpectedEvents,
   };
-}
+};
 
 export type SeaportFixtures = Awaited<ReturnType<typeof seaportFixture>>;

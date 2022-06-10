@@ -73,26 +73,6 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         _;
     }
 
-    modifier only1155Receiver(address recipient) {
-        vm.assume(recipient != address(0));
-        if (recipient.code.length > 0) {
-            try
-                ERC1155Recipient(recipient).onERC1155Received(
-                    address(1),
-                    address(1),
-                    1,
-                    1,
-                    ""
-                )
-            returns (bytes4 response) {
-                vm.assume(response == onERC1155Received.selector);
-            } catch (bytes memory reason) {
-                vm.assume(false);
-            }
-        }
-        _;
-    }
-
     function test(function(Context memory) external fn, Context memory context)
         internal
     {
@@ -102,7 +82,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
     }
 
     function testFulfillAvailableAdvancedOrderOverflow() public {
-        for (uint256 i; i < 4; i++) {
+        for (uint256 i; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;
@@ -119,7 +99,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
     }
 
     function testFulfillAvailableAdvancedOrderMissingItemAmount() public {
-        for (uint256 i; i < 4; i++) {
+        for (uint256 i; i < 4; ++i) {
             // skip 721s
             if (i == 2) {
                 continue;
@@ -185,8 +165,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         stateless
     {
         test721_1.mint(alice, 1);
-        _configureERC721OfferItem(1);
-        _configureConsiderationItem(alice, context.itemType, 1, 100);
+        addErc721OfferItem(1);
+        addConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -204,7 +184,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -216,9 +196,9 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        _configureERC721OfferItem(2);
+        addErc721OfferItem(2);
         // try to overflow the aggregated amount sent to alice
-        _configureConsiderationItem(alice, context.itemType, 1, MAX_INT);
+        addConsiderationItem(alice, context.itemType, 1, MAX_INT);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -236,7 +216,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -265,13 +245,13 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete offerComponents;
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
-        // agregate eth considerations together
+        // aggregate eth considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         CriteriaResolver[] memory criteriaResolvers;
 
@@ -291,8 +271,8 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         Context memory context
     ) external stateless {
         test721_1.mint(alice, 1);
-        _configureERC721OfferItem(1);
-        _configureConsiderationItem(alice, context.itemType, 1, 100);
+        addErc721OfferItem(1);
+        addConsiderationItem(alice, context.itemType, 1, 100);
 
         OrderParameters memory orderParameters = OrderParameters(
             address(alice),
@@ -310,7 +290,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory firstOrderComponents = getOrderComponents(
             orderParameters,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -322,10 +302,10 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete considerationItems;
 
         test721_1.mint(bob, 2);
-        _configureERC721OfferItem(2);
+        addErc721OfferItem(2);
         // try to overflow the aggregated amount sent to alice
-        _configureConsiderationItem(alice, context.itemType, 1, MAX_INT);
-        _configureConsiderationItem(alice, context.itemType, 1, 0);
+        addConsiderationItem(alice, context.itemType, 1, MAX_INT);
+        addConsiderationItem(alice, context.itemType, 1, 0);
 
         OrderParameters memory secondOrderParameters = OrderParameters(
             address(bob),
@@ -343,7 +323,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         OrderComponents memory secondOrderComponents = getOrderComponents(
             secondOrderParameters,
-            context.consideration.getNonce(bob)
+            context.consideration.getCounter(bob)
         );
         bytes memory secondSignature = signOrder(
             context.consideration,
@@ -372,14 +352,14 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
         delete offerComponents;
         offerComponents.push(FulfillmentComponent(1, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
-        // agregate eth considerations together
+        // aggregate eth considerations together
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponents.push(FulfillmentComponent(1, 0));
         considerationComponents.push(FulfillmentComponent(1, 1));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         CriteriaResolver[] memory criteriaResolvers;
 
@@ -453,7 +433,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -463,19 +443,19 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 1));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 2));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         assertTrue(considerationComponentsArray.length == 3);
 
@@ -582,7 +562,7 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             context.args.zoneHash,
             context.args.salt,
             conduitKey,
-            context.consideration.getNonce(alice)
+            context.consideration.getCounter(alice)
         );
         bytes memory signature = signOrder(
             context.consideration,
@@ -592,19 +572,19 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
 
         offerComponents.push(FulfillmentComponent(0, 0));
         offerComponentsArray.push(offerComponents);
-        resetOfferComponents();
+        delete offerComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 0));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 1));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         considerationComponents.push(FulfillmentComponent(0, 2));
         considerationComponentsArray.push(considerationComponents);
-        resetConsiderationComponents();
+        delete considerationComponents;
 
         assertTrue(considerationComponentsArray.length == 3);
 
@@ -652,5 +632,208 @@ contract FulfillAvailableAdvancedOrder is BaseOrderTest {
             .getOrderStatus(orderHash);
         assertEq(totalFilled, context.args.numer);
         assertEq(totalSize, context.args.denom);
+    }
+
+    function testPartialFulfillDenominatorOverflowEthToErc1155() public {
+        test(
+            this.partialFulfillDenominatorOverflowEthToErc1155,
+            Context(referenceConsideration, empty, ItemType(0))
+        );
+        test(
+            this.partialFulfillDenominatorOverflowEthToErc1155,
+            Context(consideration, empty, ItemType(0))
+        );
+    }
+
+    function partialFulfillDenominatorOverflowEthToErc1155(
+        Context memory context
+    ) external stateless {
+        // Mint 100 tokens to alice.
+        test1155_1.mint(alice, 1, 100);
+
+        addErc1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
+
+        _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+        baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
+        OrderComponents memory orderComponents = getOrderComponents(
+            baseOrderParameters,
+            context.consideration.getCounter(alice)
+        );
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertFalse(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 0);
+            assertEq(totalSize, 0);
+        }
+
+        // Aggregate the orders in an AdvancedOrder array.
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = AdvancedOrder(
+            baseOrderParameters,
+            2**118,
+            2**119,
+            signature,
+            ""
+        );
+        orders[1] = AdvancedOrder(baseOrderParameters, 1, 10, signature, "");
+
+        // Aggregate the erc1155 offers together.
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+
+        // Aggregate the eth considerations together.
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+
+        // Pass in the AdvancedOrder array and fulfill both partially-fulfillable orders.
+        context.consideration.fulfillAvailableAdvancedOrders{ value: 60 }(
+            orders,
+            new CriteriaResolver[](0),
+            offerComponentsArray,
+            considerationComponentsArray,
+            bytes32(0),
+            address(0),
+            100
+        );
+
+        // Assert six-tenths of the offer has been fulfilled.
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertTrue(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 6);
+
+            assertEq(totalSize, 10);
+            assertEq(60, test1155_1.balanceOf(address(this), 1));
+        }
+    }
+
+    function testPartialFulfillDenominatorOverflowEthToErc1155NonAggregated()
+        public
+    {
+        test(
+            this.partialFulfillDenominatorOverflowEthToErc1155NonAggregated,
+            Context(referenceConsideration, empty, ItemType(0))
+        );
+        test(
+            this.partialFulfillDenominatorOverflowEthToErc1155NonAggregated,
+            Context(consideration, empty, ItemType(0))
+        );
+    }
+
+    function partialFulfillDenominatorOverflowEthToErc1155NonAggregated(
+        Context memory context
+    ) external stateless {
+        // Mint 100 tokens to alice.
+        test1155_1.mint(alice, 1, 100);
+
+        addErc1155OfferItem(1, 100);
+        addEthConsiderationItem(alice, 100);
+
+        _configureOrderParameters(alice, address(0), bytes32(0), 0, false);
+        baseOrderParameters.orderType = OrderType.PARTIAL_OPEN;
+        OrderComponents memory orderComponents = getOrderComponents(
+            baseOrderParameters,
+            context.consideration.getCounter(alice)
+        );
+        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertFalse(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 0);
+            assertEq(totalSize, 0);
+        }
+
+        // Aggregate the orders in an AdvancedOrder array.
+        AdvancedOrder[] memory orders = new AdvancedOrder[](2);
+        orders[0] = AdvancedOrder(
+            baseOrderParameters,
+            2**118,
+            2**119,
+            signature,
+            ""
+        );
+        orders[1] = AdvancedOrder(baseOrderParameters, 1, 10, signature, "");
+
+        // Add the offer components of the two orders separately to the offer components array.
+        // This results in two separate transfers of erc1155 tokens as opposed to one aggregated transfer.
+        offerComponents.push(FulfillmentComponent(0, 0));
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+        offerComponents.push(FulfillmentComponent(1, 0));
+        offerComponentsArray.push(offerComponents);
+        delete offerComponents;
+
+        // Add the consideration components corresponding to the offer components.
+        considerationComponents.push(FulfillmentComponent(0, 0));
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+        considerationComponents.push(FulfillmentComponent(1, 0));
+        considerationComponentsArray.push(considerationComponents);
+        delete considerationComponents;
+
+        // Pass in the AdvancedOrder array and fulfill both partially-fulfillable orders.
+        context.consideration.fulfillAvailableAdvancedOrders{ value: 60 }(
+            orders,
+            new CriteriaResolver[](0),
+            offerComponentsArray,
+            considerationComponentsArray,
+            bytes32(0),
+            address(0),
+            100
+        );
+
+        // Assert six-tenths of the offer has been fulfilled.
+        {
+            (
+                bool isValidated,
+                bool isCancelled,
+                uint256 totalFilled,
+                uint256 totalSize
+            ) = context.consideration.getOrderStatus(orderHash);
+            assertTrue(isValidated);
+            assertFalse(isCancelled);
+            assertEq(totalFilled, 6);
+
+            assertEq(totalSize, 10);
+            assertEq(60, test1155_1.balanceOf(address(this), 1));
+        }
     }
 }

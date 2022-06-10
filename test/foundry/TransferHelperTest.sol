@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 // prettier-ignore
-import { BaseConsiderationTest } from "../utils/BaseConsiderationTest.sol";
+import { BaseConsiderationTest } from "./utils/BaseConsiderationTest.sol";
 
-import { BaseOrderTest } from "../utils/BaseOrderTest.sol";
+import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 
-import { ConduitInterface } from "../../../contracts/interfaces/ConduitInterface.sol";
+import { ConduitInterface } from "../../contracts/interfaces/ConduitInterface.sol";
 
-import { ConduitItemType } from "../../../contracts/conduit/lib/ConduitEnums.sol";
+import { ConduitItemType } from "../../contracts/conduit/lib/ConduitEnums.sol";
 
-import { TransferHelper } from "../../../contracts/helper/TransferHelper.sol";
+import { TransferHelper } from "../../contracts/helpers/TransferHelper.sol";
 
-import { TransferHelperItem } from "../../../contracts/helper/TransferHelperStructs.sol";
+import { TransferHelperItem } from "../../contracts/helpers/TransferHelperStructs.sol";
 
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
+import { TestERC20 } from "../../contracts/test/TestERC20.sol";
+import { TestERC721 } from "../../contracts/test/TestERC721.sol";
+import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
-import { TokenTransferrerErrors } from "../../../contracts/interfaces/TokenTransferrerErrors.sol";
+import { TokenTransferrerErrors } from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
-import { TransferHelperInterface } from "../../../contracts/interfaces/TransferHelperInterface.sol";
+import { TransferHelperInterface } from "../../contracts/interfaces/TransferHelperInterface.sol";
 
 contract TransferHelperTest is BaseOrderTest {
     TransferHelper transferHelper;
@@ -706,7 +706,9 @@ contract TransferHelperTest is BaseOrderTest {
         bytes32 fuzzConduitKey
     ) public {
         // Assume fuzzConduitKey is not equal to TransferHelper's value for "no conduit".
-        vm.assume(fuzzConduitKey != bytes32(0));
+        vm.assume(
+            fuzzConduitKey != bytes32(0) && fuzzConduitKey != conduitKeyOne
+        );
         TransferHelperItem memory item = _getFuzzedTransferItem(
             ConduitItemType.ERC20,
             inputs.amounts[0],

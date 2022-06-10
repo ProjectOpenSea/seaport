@@ -80,23 +80,24 @@ export const conduitFixture = async (
   };
 
   const deployNewConduit = async (owner: Wallet, conduitKey?: string) => {
-    // Create a conduit key with a random salt if no conduitKey passed in
-    const tempConduitKey = conduitKey ?? owner.address + randomHex(12).slice(2);
+    // Create a conduit key with a random salt
+    const assignedConduitKey =
+      conduitKey || owner.address + randomHex(12).slice(2);
 
     const { conduit: tempConduitAddress } = await conduitController.getConduit(
-      tempConduitKey
+      assignedConduitKey
     );
 
     await whileImpersonating(owner.address, ethers.provider, async () => {
       await expect(
         conduitController
           .connect(owner)
-          .createConduit(tempConduitKey, constants.AddressZero)
+          .createConduit(assignedConduitKey, constants.AddressZero)
       ).to.be.revertedWith("InvalidInitialOwner");
 
       await conduitController
         .connect(owner)
-        .createConduit(tempConduitKey, owner.address);
+        .createConduit(assignedConduitKey, owner.address);
     });
 
     const tempConduit = conduitImplementation.attach(tempConduitAddress);

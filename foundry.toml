@@ -1,4 +1,5 @@
 [default]
+solc = '0.8.14'
 via_ir = true
 src = 'contracts'
 out = 'out'
@@ -13,7 +14,7 @@ remappings = [
 ]
 fuzz_runs = 5000
 fuzz_max_global_rejects = 2_000_000
-optimizer_runs = 15000
+optimizer_runs = 19_066
 
 [reference]
 solc = '0.8.7'
@@ -24,11 +25,9 @@ out = 'reference-out'
 test = 'reference'
 
 [optimized]
-solc = '0.8.13'
 out = 'optimized-out'
 
 [test]
-solc = '0.8.13'
 via_ir = false
 src = 'test/foundry'
 

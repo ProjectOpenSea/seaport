@@ -7,7 +7,7 @@ import { ReferenceGettersAndDerivers } from "./ReferenceGettersAndDerivers.sol";
 
 import { TokenTransferrerErrors } from "contracts/interfaces/TokenTransferrerErrors.sol";
 
-import { ReferenceNonceManager } from "./ReferenceNonceManager.sol";
+import { ReferenceCounterManager } from "./ReferenceCounterManager.sol";
 
 import "contracts/lib/ConsiderationConstants.sol";
 
@@ -19,7 +19,7 @@ import "contracts/lib/ConsiderationConstants.sol";
  */
 contract ReferenceAssertions is
     ReferenceGettersAndDerivers,
-    ReferenceNonceManager,
+    ReferenceCounterManager,
     TokenTransferrerErrors
 {
     /**
@@ -38,28 +38,27 @@ contract ReferenceAssertions is
      * @dev Internal view function to to ensure that the supplied consideration
      *      array length on a given set of order parameters is not less than the
      *      original consideration array length for that order and to retrieve
-     *      the current nonce for a given order's offerer and zone and use it to
-     *      derive the order hash.
+     *      the current counter for a given order's offerer and zone and use it
+     *      to  derive the order hash.
      *
      * @param orderParameters The parameters of the order to hash.
      *
-     * @return The hash.
+     * @return orderHash The order hash.
      */
-    function _assertConsiderationLengthAndGetNoncedOrderHash(
+    function _assertConsiderationLengthAndGetOrderHash(
         OrderParameters memory orderParameters
-    ) internal view returns (bytes32) {
+    ) internal view returns (bytes32 orderHash) {
         // Ensure supplied consideration array length is not less than original.
         _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(
             orderParameters.consideration.length,
             orderParameters.totalOriginalConsiderationItems
         );
 
-        // Derive and return order hash using current nonce for the offerer.
-        return
-            _deriveOrderHash(
-                orderParameters,
-                _getNonce(orderParameters.offerer)
-            );
+        // Derive and return order hash using current counter for the offerer.
+        orderHash = _deriveOrderHash(
+            orderParameters,
+            _getCounter(orderParameters.offerer)
+        );
     }
 
     /**

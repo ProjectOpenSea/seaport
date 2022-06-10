@@ -67,7 +67,7 @@ contract ReferenceOrderFulfiller is
      *                            that the supplied token identifier is
      *                            contained in the order's merkle root. Note
      *                            that a criteria of zero indicates that any
-     *                            (transferrable) token identifier is valid and
+     *                            (transferable) token identifier is valid and
      *                            that no proof needs to be supplied.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
@@ -142,8 +142,9 @@ contract ReferenceOrderFulfiller is
      *                            should be used (and direct approvals set on
      *                            Consideration).
      * @param recipient           The intended recipient for all received items.
-     * @return orderToExecute     Returns the order of items that are being transferred.
-     *                            This will be used for the OrderFulfilled Event.
+     * @return orderToExecute     Returns the order of items that are being
+     *                            transferred. This will be used for the
+     *                            OrderFulfilled Event.
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
@@ -158,14 +159,9 @@ contract ReferenceOrderFulfiller is
             numerator,
             denominator,
             fulfillerConduitKey,
-            (orderParameters.endTime - orderParameters.startTime),
-            (block.timestamp - orderParameters.startTime),
-            ((orderParameters.endTime - orderParameters.startTime) -
-                (block.timestamp - orderParameters.startTime))
+            orderParameters.startTime,
+            orderParameters.endTime
         );
-
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
 
         // Create the accumulator struct.
         AccumulatorStruct memory accumulatorStruct;
@@ -187,6 +183,11 @@ contract ReferenceOrderFulfiller is
             for (uint256 i = 0; i < orderParameters.offer.length; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
+                // Offer items for the native token can not be received
+                // outside of a match order function.
+                if (offerItem.itemType == ItemType.NATIVE) {
+                    revert InvalidNativeOfferItem();
+                }
 
                 // Apply fill fraction to derive offer item amount to transfer.
                 uint256 amount = _applyFraction(
@@ -213,16 +214,6 @@ contract ReferenceOrderFulfiller is
                     amount
                 );
 
-                // Reduce available value if offer spent ETH or a native token.
-                if (receivedItem.itemType == ItemType.NATIVE) {
-                    // Ensure that sufficient native tokens are still available.
-                    if (amount > etherRemaining) {
-                        revert InsufficientEtherSupplied();
-                    }
-                    // Reduce ether remaining by amount.
-                    etherRemaining -= amount;
-                }
-
                 // Transfer the item from the offerer to the recipient.
                 _transfer(receivedItem, offerer, conduitKey, accumulatorStruct);
             }
@@ -232,6 +223,9 @@ contract ReferenceOrderFulfiller is
         orderToExecute.receivedItems = new ReceivedItem[](
             orderParameters.consideration.length
         );
+
+        // Put ether value supplied by the caller on the stack.
+        uint256 etherRemaining = msg.value;
 
         // Declare a nested scope to minimize stack depth.
         {
@@ -346,8 +340,8 @@ contract ReferenceOrderFulfiller is
     }
 
     /**
-     * @dev Internal pure function to convert an advanced order to an order to execute with
-     *      numerator of 1.
+     * @dev Internal pure function to convert an advanced order to an order
+     *      to execute with numerator of 1.
      *
      * @param advancedOrder The advanced order to convert.
      *
@@ -422,8 +416,8 @@ contract ReferenceOrderFulfiller is
     }
 
     /**
-     * @dev Internal pure function to convert an array of advanced orders to an array of
-     *      orders to execute.
+     * @dev Internal pure function to convert an array of advanced orders to
+     *      an array of orders to execute.
      *
      * @param advancedOrders The advanced orders to convert.
      *

@@ -81,10 +81,11 @@ contract ReferenceOrderCombiner is
      *                                  considered valid.
      *
      * @param ordersToExecute           The orders to execute.  This is an
-     *                                  explicit version of advancedOrders without
-     *                                  memory optimization, that provides
-     *                                  an array of spentItems and receivedItems
-     *                                  for fulfillment and event emission.
+     *                                  explicit version of advancedOrders
+     *                                  without memory optimization, that
+     *                                  provides an array of spentItems and
+     *                                  receivedItems for fulfillment and
+     *                                  event emission.
      *
      * @param criteriaResolvers         An array where each element contains a
      *                                  reference to a specific offer or
@@ -93,7 +94,7 @@ contract ReferenceOrderCombiner is
      *                                  is contained in the merkle root held by
      *                                  the item in question's criteria element.
      *                                  Note that an empty criteria indicates
-     *                                  that any (transferrable) token
+     *                                  that any (transferable) token
      *                                  identifier on the token in question is
      *                                  valid and that no associated proof needs
      *                                  to be supplied.
@@ -113,12 +114,13 @@ contract ReferenceOrderCombiner is
      *                                  items.
      * @param maximumFulfilled          The maximum number of orders to fulfill.
      *
-     * @return availableOrders          An array of booleans indicating if each order
-     *                                  with an index corresponding to the index of the
-     *                                  returned boolean was fulfillable or not.
-     * @return executions               An array of elements indicating the sequence of
-     *                                  transfers performed as part of matching the given
-     *                                  orders.
+     * @return availableOrders          An array of booleans indicating if each
+     *                                  order with an index corresponding to the
+     *                                  index of the returned boolean was
+     *                                  fulfillable or not.
+     * @return executions               An array of elements indicating the
+     *                                  sequence of transfers performed as part
+     *                                  of matching the given orders.
      */
     function _fulfillAvailableAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -169,7 +171,7 @@ contract ReferenceOrderCombiner is
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
      *                          contained in the order's merkle root. Note that
-     *                          a root of zero indicates that any transferrable
+     *                          a root of zero indicates that any transferable
      *                          token identifier is valid and that no proof
      *                          needs to be supplied.
      * @param revertOnInvalid   A boolean indicating whether to revert on any
@@ -191,6 +193,10 @@ contract ReferenceOrderCombiner is
 
         // Track the order hash for each order being fulfilled.
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
+
+        // Check if we are in a match function
+        bool nonMatchFn = msg.sig != 0x55944a42 && msg.sig != 0xa8174404;
+        bool anyNativeOfferItems;
 
         // Iterate over each order.
         for (uint256 i = 0; i < totalOrders; ++i) {
@@ -238,20 +244,17 @@ contract ReferenceOrderCombiner is
             // Otherwise, track the order hash in question.
             orderHashes[i] = orderHash;
 
-            // Decrement the number of fulfilled orders.
-            maximumFulfilled--;
+            // Skip underflow check as maximumFulfilled is nonzero.
+            unchecked {
+                // Decrement the number of fulfilled orders.
+                maximumFulfilled--;
+            }
 
             // Place the start time for the order on the stack.
             uint256 startTime = advancedOrder.parameters.startTime;
 
-            // Derive the duration for the order and place it on the stack.
-            uint256 duration = advancedOrder.parameters.endTime - startTime;
-
-            // Derive time elapsed since the order started & place on stack.
-            uint256 elapsed = block.timestamp - startTime;
-
-            // Derive time remaining until order expires and place on stack.
-            uint256 remaining = duration - elapsed;
+            // Place the end for the order on the stack.
+            uint256 endTime = advancedOrder.parameters.endTime;
 
             // Retrieve array of offer items for the order in question.
             OfferItem[] memory offer = advancedOrder.parameters.offer;
@@ -260,6 +263,10 @@ contract ReferenceOrderCombiner is
             for (uint256 j = 0; j < offer.length; ++j) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = offer[j];
+
+                anyNativeOfferItems =
+                    anyNativeOfferItems ||
+                    offerItem.itemType == ItemType.NATIVE;
 
                 // Apply order fill fraction to offer item end amount.
                 uint256 endAmount = _getFraction(
@@ -288,9 +295,8 @@ contract ReferenceOrderCombiner is
                 offerItem.startAmount = _locateCurrentAmount(
                     offerItem.startAmount,
                     offerItem.endAmount,
-                    elapsed,
-                    remaining,
-                    duration,
+                    startTime,
+                    endTime,
                     false // Round down.
                 );
 
@@ -338,9 +344,8 @@ contract ReferenceOrderCombiner is
                     _locateCurrentAmount(
                         considerationItem.startAmount,
                         considerationItem.endAmount,
-                        elapsed,
-                        remaining,
-                        duration,
+                        startTime,
+                        endTime,
                         true // Round up.
                     )
                 );
@@ -349,6 +354,10 @@ contract ReferenceOrderCombiner is
                 orderToExecute.receivedItems[j].amount = considerationItem
                     .startAmount;
             }
+        }
+
+        if (anyNativeOfferItems && nonMatchFn) {
+            revert InvalidNativeOfferItem();
         }
 
         // Apply criteria resolvers to each order as applicable.
@@ -370,7 +379,8 @@ contract ReferenceOrderCombiner is
             // Get the array of spentItems from the orderToExecute struct.
             SpentItem[] memory spentItems = ordersToExecute[i].spentItems;
 
-            // Get the array of spent receivedItems from the orderToExecute struct.
+            // Get the array of spent receivedItems from the
+            // orderToExecute struct.
             ReceivedItem[] memory receivedItems = ordersToExecute[i]
                 .receivedItems;
 
@@ -399,14 +409,15 @@ contract ReferenceOrderCombiner is
      *      order formatting will cause the entire batch to fail.
      *
      * @param ordersToExecute           The orders to execute.  This is an
-     *                                  explicit version of advancedOrders without
-     *                                  memory optimization, that provides
-     *                                  an array of spentItems and receivedItems
-     *                                  for fulfillment and event emission.
+     *                                  explicit version of advancedOrders
+     *                                  without memory optimization, that
+     *                                  provides an array of spentItems and
+     *                                  receivedItems for fulfillment and
+     *                                  event emission.
      *                                  Note that both the offerer and the
      *                                  fulfiller must first approve this
-     *                                  contract (or the conduit if indicated by
-     *                                  the order) to transfer any relevant
+     *                                  contract (or the conduit if indicated
+     *                                  by the order) to transfer any relevant
      *                                  tokens on their behalf and that
      *                                  contracts must implement
      *                                  `onERC1155Received` in order to receive
@@ -432,12 +443,13 @@ contract ReferenceOrderCombiner is
      * @param recipient                 The intended recipient for all received
      *                                  items.
      *
-     * @return availableOrders        An array of booleans indicating if each order
-     *                                  with an index corresponding to the index of the
-     *                                  returned boolean was fulfillable or not.
-     * @return executions               An array of elements indicating the sequence of
-     *                                  transfers performed as part of matching the given
-     *                                  orders.
+     * @return availableOrders          An array of booleans indicating if each
+     *                                  order with an index corresponding to the
+     *                                  index of the returned boolean was
+     *                                  fulfillable or not.
+     * @return executions               An array of elements indicating the
+     *                                  sequence of transfers performed as part
+     *                                  of matching the given orders.
      */
     function _executeAvailableFulfillments(
         OrderToExecute[] memory ordersToExecute,
@@ -481,8 +493,11 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
-                // increment total filtered executions.
-                totalFilteredExecutions += 1;
+                // Executions start at 0, infeasible to increment > 2^256.
+                unchecked {
+                    // Increment total filtered executions.
+                    ++totalFilteredExecutions;
+                }
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[i - totalFilteredExecutions] = execution;
@@ -507,8 +522,11 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
-                // increment total filtered executions.
-                totalFilteredExecutions += 1;
+                // Executions start at 0, infeasible to increment > 2^256.
+                unchecked {
+                    // Increment total filtered executions.
+                    ++totalFilteredExecutions;
+                }
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[
@@ -683,7 +701,7 @@ contract ReferenceOrderCombiner is
      *                          offer or consideration, a token identifier, and
      *                          a proof that the supplied token identifier is
      *                          contained in the order's merkle root. Note that
-     *                          an empty root indicates that any (transferrable)
+     *                          an empty root indicates that any (transferable)
      *                          token identifier is valid and that no associated
      *                          proof needs to be supplied.
      * @param fulfillments      An array of elements allocating offer components
@@ -692,8 +710,8 @@ contract ReferenceOrderCombiner is
      *                          order for the match operation to be valid.
      *
      * @return executions       An array of elements indicating the sequence of
-     *                          transfers performed as part of matching the given
-     *                          orders.
+     *                          transfers performed as part of matching the
+     *                          given orders.
      */
     function _matchAdvancedOrders(
         AdvancedOrder[] memory advancedOrders,
@@ -764,8 +782,11 @@ contract ReferenceOrderCombiner is
 
             // If offerer and recipient on the execution are the same...
             if (execution.item.recipient == execution.offerer) {
-                // increment total filtered executions.
-                totalFilteredExecutions += 1;
+                // Executions start at 0, infeasible to increment > 2^256.
+                unchecked {
+                    // Increment total filtered executions.
+                    ++totalFilteredExecutions;
+                }
             } else {
                 // Otherwise, assign the execution to the executions array.
                 executions[i - totalFilteredExecutions] = execution;
