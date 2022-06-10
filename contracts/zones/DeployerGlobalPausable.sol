@@ -92,14 +92,14 @@ contract DeployerGlobalPausable {
         address _seaportAddress,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable {
+    ) external payable returns (Execution[] memory executions) {
         require(
             msg.sender == deployerOwner,
             "Only the owner can execute orders with the zone. "
         );
 
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
-        gp.executeRestrictedOffer{ value: msg.value }(
+        executions = gp.executeRestrictedOffer{ value: msg.value }(
             _seaportAddress,
             orders,
             fulfillments
@@ -112,14 +112,14 @@ contract DeployerGlobalPausable {
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable {
+    ) external payable returns (Execution[] memory executions) {
         require(
             msg.sender == deployerOwner,
             "Only the owner can execute advanced orders with the zone."
         );
 
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
-        gp.executeRestrictedAdvancedOffer{ value: msg.value }(
+        executions = gp.executeRestrictedAdvancedOffer{ value: msg.value }(
             _seaportAddress,
             orders,
             criteriaResolvers,

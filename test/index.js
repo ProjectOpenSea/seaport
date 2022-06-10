@@ -1876,7 +1876,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    it("Fulfills an order with executeRestrictedMatchOrderZone", async () => {
+    it("Fulfills an order with executeRestrictedMatchAdvancedOrderZoneExecutions", async () => {
       const GPDeployer = await ethers.getContractFactory(
         "DeployerGlobalPausable",
         owner
@@ -1977,23 +1977,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         toFulfillment(offerArr, considerationArr)
       );
 
-      const simulateAdvancedMatchOrdersExecutions = await marketplaceContract
-        .connect(owner)
-        .callStatic.matchAdvancedOrders(
-          [orderOne, orderTwo, orderThree],
-          [],
-          fulfillments,
-          {
-            value: 0,
-          }
-        );
-
-      console.log(
-        "simulateAdvancedMatchOrders executions",
-        simulateAdvancedMatchOrdersExecutions.length
-      );
-
-      const executeRestrictedMatchAdvancedOrderZoneExecutions = await gpDeployer
+      const executions = await gpDeployer
         .connect(owner)
         .callStatic.executeRestrictedMatchAdvancedOrderZone(
           zoneAddr,
@@ -2004,34 +1988,35 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           { value: 0 }
         );
 
-      // expect(executions.length).to.equal(fulfillments.length);
+      expect(executions.length).to.equal(fulfillments.length);
       console.log(
         "executeRestrictedMatchAdvancedOrderZoneExecutions executions",
-        executeRestrictedMatchAdvancedOrderZoneExecutions.length
+        executions.length
       );
 
-      // const tx = await gpDeployer
-      //   .connect(owner)
-      //   .executeRestrictedMatchOrderZone(
-      //     zoneAddr,
-      //     marketplaceContract.address,
-      //     [orderOne, orderTwo, orderThree],
-      //     [],
-      //     fulfillments
-      //   );
-      // const receipt = await tx.wait();
-      // await checkExpectedEvents(
-      //   tx,
-      //   receipt,
-      //   [
-      //     {
-      //       order: orderOne,
-      //       orderHash: orderHashOne,
-      //       fulfiller: constants.AddressZero,
-      //     },
-      //   ],
-      //   executions
-      // );
+      const tx = gpDeployer
+        .connect(owner)
+        .executeRestrictedMatchAdvancedOrderZone(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          [],
+          fulfillments
+        );
+
+      const receipt = await tx.wait();
+      await checkExpectedEvents(
+        tx,
+        receipt,
+        [
+          {
+            order: orderOne,
+            orderHash: orderHashOne,
+            fulfiller: constants.AddressZero,
+          },
+        ],
+        executions
+      );
       // await checkExpectedEvents(
       //   tx,
       //   receipt,
