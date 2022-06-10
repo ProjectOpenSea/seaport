@@ -108,9 +108,39 @@ contract FulfillOrderTest is BaseOrderTest {
     }
 
     function testNoSpendFromNullAddress() public {
+        // mint token to null address
         preapproved721.mint(address(0), 1);
+        // mint erc token to test address
+        token1.mint(address(this), 1);
+        // offer burnt erc721
         addErc721OfferItem(address(preapproved721), 1);
-        addEthConsiderationItem(alice, 1);
+        // consider erc20 to null address
+        addErc20ConsiderationItem(payable(0), 1);
+        // configure baseOrderParameters with null address as offerer
+        configureOrderParameters(address(0));
+        test(
+            this.noSpendFromNullAddress,
+            Context(referenceConsideration, empty, 0, 0, 0)
+        );
+        test(
+            this.noSpendFromNullAddress,
+            Context(consideration, empty, 0, 0, 0)
+        );
+    }
+
+    function noSpendFromNullAddress(Context memory context) external stateless {
+        // create a bad signature
+        bytes memory signature = abi.encodePacked(
+            bytes32(0),
+            bytes32(0),
+            bytes1(uint8(27))
+        );
+        // test that signature is recognized as invalid even though signer recovered is null address
+        vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
+        context.consideration.fulfillOrder(
+            Order(baseOrderParameters, signature),
+            bytes32(0)
+        );
     }
 
     function testFulfillAscendingDescendingOffer(FuzzInputsCommon memory inputs)

@@ -11,7 +11,7 @@ import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
 import { ERC721 } from "../token/ERC721.sol";
 
 contract PreapprovedERC721 is ERC721 {
-    mapping(address => bool) preapprovals;
+    mapping(address => bool) public preapprovals;
 
     constructor(address[] memory preapproved) ERC721("", "") {
         for (uint256 i = 0; i < preapproved.length; i++) {
@@ -70,12 +70,7 @@ contract TestTokenMinter is
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
 
-    address[] preapprovals = [
-        address(consideration),
-        address(referenceConsideration),
-        address(conduit),
-        address(referenceConduit)
-    ];
+    address[] preapprovals;
 
     modifier only1155Receiver(address recipient) {
         vm.assume(recipient != address(0));
@@ -99,6 +94,14 @@ contract TestTokenMinter is
 
     function setUp() public virtual override {
         super.setUp();
+
+        preapprovals = [
+            address(consideration),
+            address(referenceConsideration),
+            address(conduit),
+            address(referenceConduit)
+        ];
+
         vm.label(alice, "alice");
         vm.label(bob, "bob");
         vm.label(cal, "cal");
