@@ -293,7 +293,9 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             );
 
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
-        context.consideration.fulfillBasicOrder(_basicOrderParameters);
+        context.consideration.fulfillBasicOrder{ value: 100 }(
+            _basicOrderParameters
+        );
     }
 
     function testRevertUnusedItemParametersIdentifierSetOnNativeConsideration(
