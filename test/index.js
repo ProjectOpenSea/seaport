@@ -2000,7 +2000,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
           [],
-          fulfillments
+          fulfillments,
+          { value: 0 }
         );
 
       // expect(executions.length).to.equal(fulfillments.length);
