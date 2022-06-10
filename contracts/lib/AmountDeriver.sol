@@ -34,7 +34,7 @@ contract AmountDeriver is AmountDerivationErrors {
      * @param roundUp     A boolean indicating whether the resultant amount
      *                    should be rounded up or down.
      *
-     * @return The current amount.
+     * @return amount The current amount.
      */
     function _locateCurrentAmount(
         uint256 startAmount,
@@ -42,48 +42,53 @@ contract AmountDeriver is AmountDerivationErrors {
         uint256 startTime,
         uint256 endTime,
         bool roundUp
-    ) internal view returns (uint256) {
+    ) internal view returns (uint256 amount) {
         // Only modify end amount if it doesn't already equal start amount.
         if (startAmount != endAmount) {
-            // Leave extra amount to add for rounding at zero (i.e. round down).
-            uint256 extraCeiling = 0;
-
-            // Declare variables to assign in subsequent unchecked block.
+            // Declare variables to derive in the subsequent unchecked scope.
             uint256 duration;
             uint256 elapsed;
             uint256 remaining;
 
             // Skip underflow checks as startTime <= block.timestamp < endTime.
             unchecked {
-                // Derive duration, elapsed and remaining time for the order.
+                // Derive the duration for the order and place it on the stack.
                 duration = endTime - startTime;
-                elapsed = block.timestamp - startTime;
-                remaining = duration - elapsed;
 
-                // If rounding up, set rounding factor to denominator - 1.
-                if (roundUp) {
-                    // Skip underflow check: duration cannot be zero.
-                    extraCeiling = duration - 1;
-                }
+                // Derive time elapsed since the order started & place on stack.
+                elapsed = block.timestamp - startTime;
+
+                // Derive time remaining until order expires and place on stack.
+                remaining = duration - elapsed;
             }
 
             // Aggregate new amounts weighted by time with rounding factor.
-            // prettier-ignore
-            uint256 totalBeforeDivision = (
-                (startAmount * remaining) + (endAmount * elapsed) + extraCeiling
-            );
+            uint256 totalBeforeDivision = ((startAmount * remaining) +
+                (endAmount * elapsed));
 
-            // Division performed with no zero check as duration cannot be zero.
-            uint256 newAmount;
+            // Use assembly to combine operations and skip divide-by-zero check.
             assembly {
-                newAmount := div(totalBeforeDivision, duration)
+                // Multiply by iszero(iszero(totalBeforeDivision)) to ensure
+                // amount is set to zero if totalBeforeDivision is zero,
+                // as intermediate overflow can occur if it is zero.
+                amount := mul(
+                    iszero(iszero(totalBeforeDivision)),
+                    // Subtract 1 from the numerator and add 1 to the result if
+                    // roundUp is true to get the proper rounding direction.
+                    // Division is performed with no zero check as duration
+                    // cannot be zero as long as startTime < endTime.
+                    add(
+                        div(sub(totalBeforeDivision, roundUp), duration),
+                        roundUp
+                    )
+                )
             }
 
-            // Return the current amount (expressed as endAmount internally).
-            return newAmount;
+            // Return the current amount.
+            return amount;
         }
 
-        // Return the original amount (now expressed as endAmount internally).
+        // Return the original amount as startAmount == endAmount.
         return endAmount;
     }
 
