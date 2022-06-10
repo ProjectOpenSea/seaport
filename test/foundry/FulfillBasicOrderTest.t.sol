@@ -180,14 +180,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
     {
         _configureERC1155OfferItem(inputs.tokenId, tokenAmount);
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            inputs.tokenId, // set non-zero identifier
-            100,
-            100,
-            alice
-        );
+        _configureEthConsiderationItem(alice, inputs.paymentAmount);
         _configureBasicOrderParametersEthTo1155(inputs, tokenAmount);
         test(
             this.revertUnusedItemParametersIdentifierSetOnNative,
@@ -211,8 +204,8 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             bytes32(0)
         );
 
-        uint256 counter = context.consideration.getCounter(alice);
-        orderComponents.counter = counter;
+        _configureOrderComponents(context.consideration.getCounter(alice));
+
         bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
 
         bytes memory signature = signOrder(
@@ -223,9 +216,9 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         basicOrderParameters.signature = signature;
 
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
-        context.consideration.fulfillBasicOrder{ value: 100 }(
-            basicOrderParameters
-        );
+        context.consideration.fulfillBasicOrder{
+            value: context.args.paymentAmount
+        }(basicOrderParameters);
     }
 
     function prepareBasicOrder(uint256 tokenId)
