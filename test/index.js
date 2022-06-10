@@ -1921,7 +1921,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         zone,
         offerOne,
         considerationOne,
-        0 // FULL_OPEN
+        2
       );
 
       const offerTwo = [
@@ -1949,7 +1949,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         zone,
         offerTwo,
         considerationTwo,
-        0 // FULL_OPEN
+        2
       );
 
       const offerThree = [
@@ -1973,13 +1973,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ];
 
       const { order: orderThree, orderHash: orderHashThree } =
-        await createOrder(
-          owner,
-          zone,
-          offerThree,
-          considerationThree,
-          0 // FULL_OPEN
-        );
+        await createOrder(owner, zone, offerThree, considerationThree, 2);
 
       const fulfillments = [
         [[[1, 0]], [[0, 0]]],
@@ -2000,6 +1994,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // expect(executions.length).to.equal(fulfillments.length);
       console.log("HIT!", executions.length);
+
       const tx = await gpDeployer
         .connect(owner)
         .executeRestrictedMatchOrderZone(
