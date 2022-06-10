@@ -9,6 +9,36 @@ contract TestGetters is BaseConsiderationTest {
         assertEq(consideration.name(), "Consideration");
     }
 
+    function testCleanName() public {
+        string memory name = consideration.name();
+
+        uint rds;
+        assembly {
+            rds := returndatasize()
+        }
+
+        // offset (0x20) + length (0x20) + content (0x20) = 0x60
+        assertEq(rds, 0x60);
+
+        uint offset;
+        uint length;
+        bytes32 value;
+        assembly {
+            let freeMemoryPointer := mload(0x40)
+            returndatacopy(freeMemoryPointer, 0, returndatasize())
+            offset := mload(freeMemoryPointer)
+            length := mload(add(freeMemoryPointer, 0x20))
+            value := mload(add(freeMemoryPointer, 0x40))
+        }
+
+        // Default offset for abi.encode("Consideration")
+        assertEq(offset, 0x20);
+        // Length of "Consideration"
+        assertEq(length, 13);
+        // Check if there are dirty bits
+        assertEq(value, bytes32("Consideration"));
+    }
+
     function testGetsCorrectVersion() public {
         (string memory version, , ) = consideration.information();
         assertEq(version, "1.1");
