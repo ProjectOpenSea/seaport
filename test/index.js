@@ -2249,7 +2249,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
-  /**
   describe("Getter tests", async () => {
     it("gets correct name", async () => {
       const name = await marketplaceContract.name();
@@ -16492,6 +16491,4 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
   });
-
-  **/
 });
