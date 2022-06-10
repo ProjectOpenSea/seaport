@@ -1977,13 +1977,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         toFulfillment(offerArr, considerationArr)
       );
 
-      const simulateAdvancedMatchOrdersExecutions =
-        await simulateAdvancedMatchOrders(
+      const simulateAdvancedMatchOrdersExecutions = await marketplaceContract
+        .connect(owner)
+        .callStatic.matchAdvancedOrders(
           [orderOne, orderTwo, orderThree],
-          [], // no criteria resolvers
+          [],
           fulfillments,
-          owner,
-          0 // no value
+          {
+            value: 0,
+          }
         );
 
       console.log(
