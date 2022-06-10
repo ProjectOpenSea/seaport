@@ -63,9 +63,10 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
                 (endAmount * elapsed) +
                 extraCeiling);
 
+            // Divide totalBeforeDivision by duration to get the new amount.
             uint256 newAmount = totalBeforeDivision / duration;
 
-            // Return the current amount (expressed as endAmount internally).
+            // Return the current amount (expressed as newAmount internally).
             return newAmount;
         }
 
