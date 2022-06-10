@@ -235,6 +235,67 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         );
     }
 
+    function testRevertUnusedItemParametersAddressSetOnNativeOffer(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount,
+        uint256 _badIdentifier
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
+        vm.assume(_badIdentifier != 0);
+        badIdentifier = _badIdentifier;
+
+        addEthOfferItem(100, 100);
+        addErc1155ConsiderationItem(alice, inputs.tokenId, tokenAmount);
+
+        test(
+            this.revertUnusedItemParametersAddressSetOnNativeOffer,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this.revertUnusedItemParametersAddressSetOnNativeOffer,
+            Context(referenceConsideration, inputs, tokenAmount)
+        );
+    }
+
+    function revertUnusedItemParametersAddressSetOnNativeOffer(
+        Context memory context
+    ) external stateless {
+        test1155_1.mint(bob, context.args.tokenId, context.tokenAmount);
+
+        offerItems[0].token = badToken;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        _configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder(_basicOrderParameters);
+    }
+
     function testRevertUnusedItemParametersIdentifierSetOnNativeConsideration(
         FuzzInputsCommon memory inputs,
         uint128 tokenAmount,
