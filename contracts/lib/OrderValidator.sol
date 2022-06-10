@@ -249,7 +249,7 @@ contract OrderValidator is Executor, ZoneInteraction {
                         gcd(filledNumerator, denominator)
                     )
 
-                    // Note: this may not be necessary — need to validate.
+                    // Ensure that the divisor is at least one.
                     let safeScaleDown := add(scaleDown, iszero(scaleDown))
 
                     // Scale all fractional values down by gcd.
