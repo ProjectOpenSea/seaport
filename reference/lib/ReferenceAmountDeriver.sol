@@ -63,7 +63,6 @@ contract ReferenceAmountDeriver is AmountDerivationErrors {
                 (endAmount * elapsed) +
                 extraCeiling);
 
-            // Division is performed without zero check as it cannot be zero.
             uint256 newAmount = totalBeforeDivision / duration;
 
             // Return the current amount (expressed as endAmount internally).
