@@ -107,6 +107,12 @@ contract FulfillOrderTest is BaseOrderTest {
         _;
     }
 
+    function testNoSpendFromNullAddress() public {
+        preapproved721.mint(address(0), 1);
+        addErc721OfferItem(address(preapproved721), 1);
+        addEthConsiderationItem(alice, 1);
+    }
+
     function testFulfillAscendingDescendingOffer(FuzzInputsCommon memory inputs)
         public
         validateInputs(inputs)
