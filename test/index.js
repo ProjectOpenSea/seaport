@@ -1996,7 +1996,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const { order, orderComponents, orderHash, value } = await createOrder(
         seller,
-        zone,
+        { address: actualAddr },
         offer,
         consideration,
         2 // FULL_RESTRICTED, zone can execute or cancel
