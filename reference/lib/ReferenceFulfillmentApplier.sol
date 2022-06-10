@@ -34,7 +34,7 @@ import {
  */
 contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     /**
-     * @dev Internal view function to match offer items to consideration items
+     * @dev Internal pure function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
      *
      * @param ordersToExecute         The orders to match.
@@ -52,7 +52,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] calldata offerComponents,
         FulfillmentComponent[] calldata considerationComponents
-    ) internal view returns (Execution memory execution) {
+    ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
             offerComponents.length == 0 || considerationComponents.length == 0
@@ -60,6 +60,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             revert OfferAndConsiderationRequiredOnFulfillment();
         }
 
+        // Recipient does not need to be specified because it will always be set
+        // to that of the consideration.
         // Validate and aggregate consideration items and store the result as a
         // ReceivedItem.
         ReceivedItem memory considerationItem = (
@@ -84,7 +86,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         ) = _aggregateValidFulfillmentOfferItems(
             ordersToExecute,
             offerComponents,
-            0
+            0,
+            address(0) // unused
         );
 
         // Ensure offer and consideration share types, tokens and identifiers.
@@ -143,6 +146,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
      *                              approvals from. The zero hash signifies that
      *                              no conduit should be used (and direct
      *                              approvals set on Consideration)
+     * @param recipient             The intended recipient for all received
+     *                              items.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -150,7 +155,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
         OrderToExecute[] memory ordersToExecute,
         Side side,
         FulfillmentComponent[] memory fulfillmentComponents,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal view returns (Execution memory execution) {
         // Retrieve orders array length and place on the stack.
         uint256 totalOrders = ordersToExecute.length;
@@ -210,7 +216,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
             return _aggregateValidFulfillmentOfferItems(
                 ordersToExecute,
                 fulfillmentComponents,
-                nextComponentIndex - 1
+                nextComponentIndex - 1,
+                recipient
             );
         } else {
             // Otherwise, fulfillment components are consideration
@@ -227,13 +234,15 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     }
 
     /**
-     * @dev Internal pure function to check the indicated offer item matches original item.
+     * @dev Internal pure function to check the indicated offer item
+     *      matches original item.
      *
      * @param orderToExecute  The order to compare.
      * @param offer The offer to compare
      * @param execution  The aggregated offer item
      *
-     * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
+     * @return invalidFulfillment A boolean indicating whether the
+     *                            fulfillment is invalid.
      */
     function _checkMatchingOffer(
         OrderToExecute memory orderToExecute,
@@ -265,8 +274,9 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     function _aggregateValidFulfillmentOfferItems(
         OrderToExecute[] memory ordersToExecute,
         FulfillmentComponent[] memory offerComponents,
-        uint256 startIndex
-    ) internal view returns (Execution memory execution) {
+        uint256 startIndex,
+        address recipient
+    ) internal pure returns (Execution memory execution) {
         // Get the order index and item index of the offer component.
         uint256 orderIndex = offerComponents[startIndex].orderIndex;
         uint256 itemIndex = offerComponents[startIndex].itemIndex;
@@ -293,7 +303,7 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         offer.token,
                         offer.identifier,
                         offer.amount,
-                        payable(msg.sender)
+                        payable(recipient)
                     ),
                     orderToExecute.offerer,
                     orderToExecute.conduitKey
@@ -308,7 +318,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     i < offerComponents.length;
                     ++i
                 ) {
-                    // Get the order index and item index of the offer component.
+                    // Get the order index and item index of the offer
+                    // component.
                     orderIndex = offerComponents[i].orderIndex;
                     itemIndex = offerComponents[i].itemIndex;
 
@@ -328,20 +339,27 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         if (invalidFulfillment) {
                             break;
                         }
-                        // Get the spent item based on the offer components item index.
+                        // Get the spent item based on the offer components
+                        // item index.
                         offer = orderToExecute.spentItems[itemIndex];
                         // Update the Received Item Amount.
                         execution.item.amount =
                             execution.item.amount +
                             offer.amount;
-                        // Zero out amount on original offerItem to indicate it is spent,
+                        // Zero out amount on original offerItem to indicate
+                        // it is spent,
                         offer.amount = 0;
-                        // Ensure the indicated offer item matches original item.
+                        // Ensure the indicated offer item matches original
+                        // item.
                         invalidFulfillment = _checkMatchingOffer(
                             orderToExecute,
                             offer,
                             execution
                         );
+                        // Break if invalid
+                        if (invalidFulfillment) {
+                            break;
+                        }
                     }
                 }
             }
@@ -397,12 +415,14 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
     }
 
     /**
-     * @dev Internal pure function to check the indicated consideration item matches original item.
+     * @dev Internal pure function to check the indicated consideration item
+     *      matches original item.
      *
      * @param consideration  The consideration to compare
      * @param receivedItem  The aggregated received item
      *
-     * @return invalidFulfillment A boolean indicating whether the fulfillment is invalid.
+     * @return invalidFulfillment A boolean indicating whether the fulfillment
+     *                            is invalid.
      */
     function _checkMatchingConsideration(
         ReceivedItem memory consideration,
@@ -481,7 +501,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     i < considerationComponents.length;
                     ++i
                 ) {
-                    // Get the order index and item index of the consideration component.
+                    // Get the order index and item index of the consideration
+                    // component.
                     potentialCandidate.orderIndex = considerationComponents[i]
                         .orderIndex;
                     potentialCandidate.itemIndex = considerationComponents[i]
@@ -494,7 +515,8 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                     if (potentialCandidate.invalidFulfillment) {
                         break;
                     }
-                    // Get the order based on consideration components order index.
+                    // Get the order based on consideration components order
+                    // index.
                     orderToExecute = ordersToExecute[
                         potentialCandidate.orderIndex
                     ];
@@ -516,14 +538,20 @@ contract ReferenceFulfillmentApplier is FulfillmentApplicationErrors {
                         receivedItem.amount =
                             receivedItem.amount +
                             consideration.amount;
-                        // Zero out amount on original consideration item to indicate it is spent
+                        // Zero out amount on original consideration item to
+                        // indicate it is spent
                         consideration.amount = 0;
-                        // Ensure the indicated consideration item matches original item.
+                        // Ensure the indicated consideration item matches
+                        // original item.
                         potentialCandidate
                             .invalidFulfillment = _checkMatchingConsideration(
                             consideration,
                             receivedItem
                         );
+                        // Break if invalid
+                        if (potentialCandidate.invalidFulfillment) {
+                            break;
+                        }
                     }
                 }
             }

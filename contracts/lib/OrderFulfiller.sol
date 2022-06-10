@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.13;
 
-import { OrderType, ItemType } from "./ConsiderationEnums.sol";
+import { ItemType } from "./ConsiderationEnums.sol";
 
 // prettier-ignore
 import {
@@ -62,20 +62,22 @@ contract OrderFulfiller is
      *                            that the supplied token identifier is
      *                            contained in the order's merkle root. Note
      *                            that a criteria of zero indicates that any
-     *                            (transferrable) token identifier is valid and
+     *                            (transferable) token identifier is valid and
      *                            that no proof needs to be supplied.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used, with direct approvals set on
      *                            Consideration.
+     * @param recipient           The intended recipient for all received items.
      *
      * @return A boolean indicating whether the order has been fulfilled.
      */
     function _validateAndFulfillAdvancedOrder(
         AdvancedOrder memory advancedOrder,
         CriteriaResolver[] memory criteriaResolvers,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal returns (bool) {
         // Ensure this function cannot be triggered during a reentrant call.
         _setReentrancyGuard();
@@ -112,8 +114,8 @@ contract OrderFulfiller is
             orderParameters,
             fillNumerator,
             fillDenominator,
-            orderParameters.conduitKey,
-            fulfillerConduitKey
+            fulfillerConduitKey,
+            recipient
         );
 
         // Emit an event signifying that the order has been fulfilled.
@@ -121,7 +123,7 @@ contract OrderFulfiller is
             orderHash,
             orderParameters.offerer,
             orderParameters.zone,
-            msg.sender,
+            recipient,
             orderParameters.offer,
             orderParameters.consideration
         );
@@ -141,31 +143,23 @@ contract OrderFulfiller is
      * @param numerator           A value indicating the portion of the order
      *                            that should be filled.
      * @param denominator         A value indicating the total order size.
-     * @param offererConduitKey   An address indicating what conduit, if any, to
-     *                            source the offerer's token approvals from. The
-     *                            zero hash signifies that no conduit should be
-     *                            used, with direct approvals set on
-     *                            Consideration.
      * @param fulfillerConduitKey A bytes32 value indicating what conduit, if
      *                            any, to source the fulfiller's token approvals
      *                            from. The zero hash signifies that no conduit
      *                            should be used, with direct approvals set on
      *                            Consideration.
+     * @param recipient           The intended recipient for all received items.
      */
     function _applyFractionsAndTransferEach(
         OrderParameters memory orderParameters,
         uint256 numerator,
         uint256 denominator,
-        bytes32 offererConduitKey,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal {
-        // Derive order duration, time elapsed, and time remaining.
-        uint256 duration = orderParameters.endTime - orderParameters.startTime;
-        uint256 elapsed = block.timestamp - orderParameters.startTime;
-        uint256 remaining = duration - elapsed;
-
-        // Put ether value supplied by the caller on the stack.
-        uint256 etherRemaining = msg.value;
+        // Read start time & end time from order parameters and place on stack.
+        uint256 startTime = orderParameters.startTime;
+        uint256 endTime = orderParameters.endTime;
 
         // Initialize an accumulator array. From this point forward, no new
         // memory regions can be safely allocated until the accumulator is no
@@ -195,7 +189,7 @@ contract OrderFulfiller is
          */
 
         // Declare a nested scope to minimize stack depth.
-        {
+        unchecked {
             // Declare a virtual function pointer taking an OfferItem argument.
             function(OfferItem memory, address, bytes32, bytes memory)
                 internal _transferOfferItem;
@@ -213,61 +207,62 @@ contract OrderFulfiller is
                 }
             }
 
+            // Read offer array length from memory and place on stack.
+            uint256 totalOfferItems = orderParameters.offer.length;
+
             // Iterate over each offer on the order.
-            for (uint256 i = 0; i < orderParameters.offer.length; ) {
+            // Skip overflow check as for loop is indexed starting at zero.
+            for (uint256 i = 0; i < totalOfferItems; ++i) {
                 // Retrieve the offer item.
                 OfferItem memory offerItem = orderParameters.offer[i];
 
-                // Apply fill fraction to derive offer item amount to transfer.
-                uint256 amount = _applyFraction(
-                    offerItem.startAmount,
-                    offerItem.endAmount,
-                    numerator,
-                    denominator,
-                    elapsed,
-                    remaining,
-                    duration,
-                    false
-                );
-
-                // Utilize assembly to set overloaded offerItem arguments.
-                assembly {
-                    // Write derived fractional amount to startAmount as amount.
-                    mstore(add(offerItem, ReceivedItem_amount_offset), amount)
-                    // Write fulfiller (i.e. caller) to endAmount as recipient.
-                    mstore(
-                        add(offerItem, ReceivedItem_recipient_offset),
-                        caller()
-                    )
-                }
-
-                // Reduce available value if offer spent ETH or a native token.
+                // Offer items for the native token can not be received
+                // outside of a match order function.
                 if (offerItem.itemType == ItemType.NATIVE) {
-                    // Ensure that sufficient native tokens are still available.
-                    if (amount > etherRemaining) {
-                        revert InsufficientEtherSupplied();
-                    }
+                    revert InvalidNativeOfferItem();
+                }
 
-                    // Skip underflow check as a comparison has just been made.
-                    unchecked {
-                        etherRemaining -= amount;
+                // Declare an additional nested scope to minimize stack depth.
+                {
+                    // Apply fill fraction to get offer item amount to transfer.
+                    uint256 amount = _applyFraction(
+                        offerItem.startAmount,
+                        offerItem.endAmount,
+                        numerator,
+                        denominator,
+                        startTime,
+                        endTime,
+                        false
+                    );
+
+                    // Utilize assembly to set overloaded offerItem arguments.
+                    assembly {
+                        // Write new fractional amount to startAmount as amount.
+                        mstore(
+                            add(offerItem, ReceivedItem_amount_offset),
+                            amount
+                        )
+
+                        // Write recipient to endAmount.
+                        mstore(
+                            add(offerItem, ReceivedItem_recipient_offset),
+                            recipient
+                        )
                     }
                 }
 
-                // Transfer the item from the offerer to the caller.
+                // Transfer the item from the offerer to the recipient.
                 _transferOfferItem(
                     offerItem,
                     orderParameters.offerer,
-                    offererConduitKey,
+                    orderParameters.conduitKey,
                     accumulator
                 );
-
-                // Skip overflow check as for loop is indexed starting at zero.
-                unchecked {
-                    ++i;
-                }
             }
         }
+
+        // Put ether value supplied by the caller on the stack.
+        uint256 etherRemaining = msg.value;
 
         /**
          * Repurpose existing ConsiderationItem memory regions on the
@@ -285,7 +280,7 @@ contract OrderFulfiller is
          */
 
         // Declare a nested scope to minimize stack depth.
-        {
+        unchecked {
             // Declare virtual function pointer with ConsiderationItem argument.
             function(ConsiderationItem memory, address, bytes32, bytes memory)
                 internal _transferConsiderationItem;
@@ -302,8 +297,14 @@ contract OrderFulfiller is
                 }
             }
 
+            // Read consideration array length from memory and place on stack.
+            uint256 totalConsiderationItems = orderParameters
+                .consideration
+                .length;
+
             // Iterate over each consideration item on the order.
-            for (uint256 i = 0; i < orderParameters.consideration.length; ) {
+            // Skip overflow check as for loop is indexed starting at zero.
+            for (uint256 i = 0; i < totalConsiderationItems; ++i) {
                 // Retrieve the consideration item.
                 ConsiderationItem memory considerationItem = (
                     orderParameters.consideration[i]
@@ -315,9 +316,8 @@ contract OrderFulfiller is
                     considerationItem.endAmount,
                     numerator,
                     denominator,
-                    elapsed,
-                    remaining,
-                    duration,
+                    startTime,
+                    endTime,
                     true
                 );
 
@@ -349,9 +349,7 @@ contract OrderFulfiller is
                     }
 
                     // Skip underflow check as a comparison has just been made.
-                    unchecked {
-                        etherRemaining -= amount;
-                    }
+                    etherRemaining -= amount;
                 }
 
                 // Transfer item from caller to recipient specified by the item.
@@ -361,11 +359,6 @@ contract OrderFulfiller is
                     fulfillerConduitKey,
                     accumulator
                 );
-
-                // Skip overflow check as for loop is indexed starting at zero.
-                unchecked {
-                    ++i;
-                }
             }
         }
 

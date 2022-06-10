@@ -3,60 +3,27 @@ pragma solidity >=0.8.13;
 
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
-import { TestERC1155 } from "../../../contracts/test/TestERC1155.sol";
-import { TestERC20 } from "../../../contracts/test/TestERC20.sol";
-import { TestERC721 } from "../../../contracts/test/TestERC721.sol";
-import { ERC721Recipient } from "./ERC721Recipient.sol";
-import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ProxyRegistry } from "../interfaces/ProxyRegistry.sol";
 import { OwnableDelegateProxy } from "../interfaces/OwnableDelegateProxy.sol";
-import { ConsiderationItem, OfferItem, Fulfillment, FulfillmentComponent, ItemType, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
+import { OneWord } from "../../../contracts/lib/ConsiderationConstants.sol";
+import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
+import { BasicOrderType, OrderType } from "../../../contracts/lib/ConsiderationEnums.sol";
+import { BasicOrderParameters, ConsiderationItem, AdditionalRecipient, OfferItem, Fulfillment, FulfillmentComponent, ItemType, Order, OrderComponents, OrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ArithmeticUtil } from "./ArithmeticUtil.sol";
+import { OfferConsiderationItemAdder } from "./OfferConsiderationItemAdder.sol";
 import { AmountDeriver } from "../../../contracts/lib/AmountDeriver.sol";
 
 /// @dev base test class for cases that depend on pre-deployed token contracts
-contract BaseOrderTest is
-    BaseConsiderationTest,
-    AmountDeriver,
-    ERC721Recipient,
-    ERC1155Recipient
-{
+contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
     using stdStorage for StdStorage;
     using ArithmeticUtil for uint256;
     using ArithmeticUtil for uint128;
     using ArithmeticUtil for uint120;
 
-    uint256 constant MAX_INT = ~uint256(0);
+    uint256 internal globalSalt;
 
-    uint256 internal alicePk = 0xa11ce;
-    uint256 internal bobPk = 0xb0b;
-    uint256 internal calPk = 0xca1;
-    address payable internal alice = payable(vm.addr(alicePk));
-    address payable internal bob = payable(vm.addr(bobPk));
-    address payable internal cal = payable(vm.addr(calPk));
-
-    TestERC20 internal token1;
-    TestERC20 internal token2;
-    TestERC20 internal token3;
-
-    TestERC721 internal test721_1;
-    TestERC721 internal test721_2;
-    TestERC721 internal test721_3;
-
-    TestERC1155 internal test1155_1;
-    TestERC1155 internal test1155_2;
-    TestERC1155 internal test1155_3;
-
-    address[] allTokens;
-    TestERC20[] erc20s;
-    TestERC721[] erc721s;
-    TestERC1155[] erc1155s;
-    address[] accounts;
-
-    OfferItem offerItem;
-    ConsiderationItem considerationItem;
-    OfferItem[] offerItems;
-    ConsiderationItem[] considerationItems;
+    OrderParameters baseOrderParameters;
+    OrderComponents baseOrderComponents;
 
     FulfillmentComponent[] offerComponents;
     FulfillmentComponent[] considerationComponents;
@@ -81,7 +48,7 @@ contract BaseOrderTest is
     FulfillmentComponent[] fulfillmentComponents;
     Fulfillment fulfillment;
 
-    uint256 internal globalTokenId;
+    AdditionalRecipient[] additionalRecipients;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
@@ -93,11 +60,6 @@ contract BaseOrderTest is
         uint256 value
     );
 
-    struct RestoreERC20Balance {
-        address token;
-        address who;
-    }
-
     modifier onlyPayable(address _addr) {
         {
             bool success;
@@ -106,67 +68,13 @@ contract BaseOrderTest is
                 success := call(gas(), _addr, 1, 0, 0, 0, 0)
             }
             vm.assume(success);
-        }
-        _;
-    }
-
-    /**
-    @dev top up eth of this contract to uint128(MAX_INT) to avoid fuzz failures
-     */
-    modifier topUp() {
-        vm.deal(address(this), uint128(MAX_INT));
-        _;
-    }
-
-    /**
-     * @dev hook to record storage writes and reset token balances in between differential runs
-     */
-
-    modifier resetTokenBalancesBetweenRuns() {
-        vm.record();
-        _;
-        _resetTokensAndEthForTestAccounts();
-        // todo: don't delete these between runs, do setup outside of test logic
-        delete offerItems;
-        delete considerationItems;
-        delete offerComponentsArray;
-        delete considerationComponentsArray;
-        delete fulfillments;
-        delete firstFulfillment;
-        delete secondFulfillment;
-        delete fulfillmentComponent;
-        delete fulfillmentComponents;
-    }
-
-    modifier sumNotGreaterThanMaxInt128(uint256[] memory _values) {
-        {
-            uint256 sum = 0;
-            for (uint256 i; i < _values.length; i++) {
-                sum += _values[i];
-            }
-            vm.assume(sum <= uint128(MAX_INT));
-        }
-        _;
-    }
-
-    modifier sum3NotGreaterThanMaxInt128(uint128[3] memory _values) {
-        {
-            uint256 sum = 0;
-            for (uint256 i; i < _values.length; i++) {
-                sum += _values[i];
-            }
-            vm.assume(sum <= uint128(MAX_INT));
+            vm.deal(address(this), uint128(MAX_INT));
         }
         _;
     }
 
     function setUp() public virtual override {
         super.setUp();
-        delete offerItems;
-        delete considerationItems;
-        delete offerComponentsArray;
-        delete considerationComponentsArray;
-        delete fulfillments;
 
         vm.label(alice, "alice");
         vm.label(bob, "bob");
@@ -174,24 +82,11 @@ contract BaseOrderTest is
         vm.label(address(this), "testContract");
 
         _deployTestTokenContracts();
-        accounts = [alice, bob, cal, address(this)];
         erc20s = [token1, token2, token3];
         erc721s = [test721_1, test721_2, test721_3];
         erc1155s = [test1155_1, test1155_2, test1155_3];
-        allTokens = [
-            address(token1),
-            address(token2),
-            address(token3),
-            address(test721_1),
-            address(test721_2),
-            address(test721_3),
-            address(test1155_1),
-            address(test1155_2),
-            address(test1155_3)
-        ];
 
         // allocate funds and tokens to test addresses
-        globalTokenId = 1;
         allocateTokensAndApprovals(address(this), uint128(MAX_INT));
         allocateTokensAndApprovals(alice, uint128(MAX_INT));
         allocateTokensAndApprovals(bob, uint128(MAX_INT));
@@ -206,367 +101,237 @@ contract BaseOrderTest is
         delete considerationComponents;
     }
 
-    function _configureConsiderationItem(
-        address payable recipient,
-        ItemType itemType,
-        uint256 identifier,
-        uint256 amt
-    ) internal {
-        if (itemType == ItemType.NATIVE) {
-            _configureEthConsiderationItem(recipient, amt);
-        } else if (itemType == ItemType.ERC20) {
-            _configureErc20ConsiderationItem(recipient, amt);
-        } else if (itemType == ItemType.ERC1155) {
-            _configureErc1155ConsiderationItem(recipient, identifier, amt);
-        } else {
-            _configureErc721ConsiderationItem(recipient, identifier);
+    function _validateOrder(
+        Order memory order,
+        ConsiderationInterface _consideration
+    ) internal returns (bool) {
+        Order[] memory orders = new Order[](1);
+        orders[0] = order;
+        return _consideration.validate(orders);
+    }
+
+    function _prepareOrder(uint256 tokenId, uint256 totalConsiderationItems)
+        internal
+        returns (
+            Order memory order,
+            OrderParameters memory orderParameters,
+            bytes memory signature
+        )
+    {
+        test1155_1.mint(address(this), tokenId, 10);
+
+        addErc1155OfferItem(tokenId, 10);
+        for (uint256 i = 0; i < totalConsiderationItems; i++) {
+            addErc20ConsiderationItem(alice, 10);
+        }
+        uint256 nonce = consideration.getCounter(address(this));
+
+        orderParameters = getOrderParameters(
+            payable(this),
+            OrderType.FULL_OPEN
+        );
+        OrderComponents memory orderComponents = toOrderComponents(
+            orderParameters,
+            nonce
+        );
+
+        bytes32 orderHash = consideration.getOrderHash(orderComponents);
+
+        signature = signOrder(consideration, alicePk, orderHash);
+        order = Order(orderParameters, signature);
+    }
+
+    function _subtractAmountFromLengthInOrderCalldata(
+        bytes memory orderCalldata,
+        uint256 relativeOrderParametersOffset,
+        uint256 relativeItemsLengthOffset,
+        uint256 amtToSubtractFromLength
+    ) internal pure {
+        bytes32 lengthPtr = _getItemsLengthPointerInOrderCalldata(
+            orderCalldata,
+            relativeOrderParametersOffset,
+            relativeItemsLengthOffset
+        );
+        assembly {
+            let length := mload(lengthPtr)
+            mstore(lengthPtr, sub(length, amtToSubtractFromLength))
         }
     }
 
-    function _configureOfferItem(
-        ItemType itemType,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        if (itemType == ItemType.NATIVE) {
-            _configureEthOfferItem(startAmount, endAmount);
-        } else if (itemType == ItemType.ERC20) {
-            _configureERC20OfferItem(startAmount, endAmount);
-        } else if (itemType == ItemType.ERC1155) {
-            _configureERC1155OfferItem(identifier, startAmount, endAmount);
-        } else {
-            _configureERC721OfferItem(identifier);
+    function _getItemsLengthPointerInOrderCalldata(
+        bytes memory orderCalldata,
+        uint256 relativeOrderParametersOffset,
+        uint256 relativeItemsLengthOffset
+    ) internal pure returns (bytes32 lengthPtr) {
+        assembly {
+            // Points to the order parameters in the order calldata.
+            let orderParamsOffsetPtr := add(
+                orderCalldata,
+                relativeOrderParametersOffset
+            )
+            // Points to the items offset value.
+            // Note: itemsOffsetPtr itself is not the offset value;
+            // the value stored at itemsOffsetPtr is the offset value.
+            let itemsOffsetPtr := add(
+                orderParamsOffsetPtr,
+                relativeItemsLengthOffset
+            )
+            // Value of the items offset, which is the offset of the items
+            // array relative to the start of order parameters.
+            let itemsOffsetValue := mload(itemsOffsetPtr)
+
+            // The memory for an array will always start with a word
+            // indicating the length of the array, so length pointer
+            // can simply point to the start of the items array.
+            lengthPtr := add(orderParamsOffsetPtr, itemsOffsetValue)
         }
     }
 
-    function _configureOfferItem(
-        ItemType itemType,
-        uint256 identifier,
-        uint256 amt
-    ) internal {
-        _configureOfferItem(itemType, identifier, amt, amt);
-    }
-
-    function _configureERC721OfferItem(uint256 tokenId) internal {
-        _configureOfferItem(ItemType.ERC721, address(test721_1), tokenId, 1, 1);
-    }
-
-    function _configureERC1155OfferItem(uint256 tokenId, uint256 amount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            amount,
-            amount
+    function _getItemsLengthAtOffsetInOrderCalldata(
+        bytes memory orderCalldata,
+        // Relative offset of start of order parameters
+        // in the order calldata.
+        uint256 relativeOrderParametersOffset,
+        // Relative offset of items pointer (which points to items' length)
+        // to the start of order parameters in order calldata.
+        uint256 relativeItemsLengthOffset
+    ) internal pure returns (uint256 length) {
+        bytes32 lengthPtr = _getItemsLengthPointerInOrderCalldata(
+            orderCalldata,
+            relativeOrderParametersOffset,
+            relativeItemsLengthOffset
         );
+        assembly {
+            length := mload(lengthPtr)
+        }
     }
 
-    function _configureERC20OfferItem(uint256 startAmount, uint256 endAmount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            startAmount,
-            endAmount
-        );
-    }
-
-    function _configureERC20OfferItem(uint256 amount) internal {
-        _configureERC20OfferItem(amount, amount);
-    }
-
-    function _configureERC1155OfferItem(
-        uint256 tokenId,
-        uint256 startAmount,
-        uint256 endAmount
+    function _performTestFulfillOrderRevertInvalidArrayLength(
+        ConsiderationInterface _consideration,
+        Order memory order,
+        bytes memory fulfillOrderCalldata,
+        // Relative offset of start of order parameters
+        // in the order calldata.
+        uint256 relativeOrderParametersOffset,
+        // Relative offset of items pointer (which points to items' length)
+        // to the start of order parameters in order calldata.
+        uint256 relativeItemsLengthOffset,
+        uint256 originalItemsLength,
+        uint256 amtToSubtractFromItemsLength
     ) internal {
-        _configureOfferItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            startAmount,
-            endAmount
-        );
-    }
+        assertTrue(_validateOrder(order, consideration));
 
-    function _configureEthOfferItem(uint256 startAmount, uint256 endAmount)
-        internal
-    {
-        _configureOfferItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            startAmount,
-            endAmount
-        );
-    }
-
-    function _configureEthOfferItem(uint256 paymentAmount) internal {
-        _configureEthOfferItem(paymentAmount, paymentAmount);
-    }
-
-    function _configureEthConsiderationItem(
-        address payable recipient,
-        uint256 paymentAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            paymentAmount,
-            paymentAmount,
-            recipient
-        );
-    }
-
-    function _configureEthConsiderationItem(
-        address payable recipient,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.NATIVE,
-            address(0),
-            0,
-            startAmount,
-            endAmount,
-            recipient
-        );
-    }
-
-    function _configureErc20ConsiderationItem(
-        address payable receiver,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC20,
-            address(token1),
-            0,
-            startAmount,
-            endAmount,
-            receiver
-        );
-    }
-
-    function _configureErc20ConsiderationItem(
-        address payable receiver,
-        uint256 paymentAmount
-    ) internal {
-        _configureErc20ConsiderationItem(
-            receiver,
-            paymentAmount,
-            paymentAmount
-        );
-    }
-
-    function _configureErc721ConsiderationItem(
-        address payable recipient,
-        uint256 tokenId
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC721,
-            address(test721_1),
-            tokenId,
-            1,
-            1,
-            recipient
-        );
-    }
-
-    function _configureErc1155ConsiderationItem(
-        address payable recipient,
-        uint256 tokenId,
-        uint256 amount
-    ) internal {
-        _configureConsiderationItem(
-            ItemType.ERC1155,
-            address(test1155_1),
-            tokenId,
-            amount,
-            amount,
-            recipient
-        );
-    }
-
-    function _configureOfferItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount
-    ) internal {
-        offerItem.itemType = itemType;
-        offerItem.token = token;
-        offerItem.identifierOrCriteria = identifier;
-        offerItem.startAmount = startAmount;
-        offerItem.endAmount = endAmount;
-        offerItems.push(offerItem);
-    }
-
-    function _configureConsiderationItem(
-        ItemType itemType,
-        address token,
-        uint256 identifier,
-        uint256 startAmount,
-        uint256 endAmount,
-        address payable recipient
-    ) internal {
-        considerationItem.itemType = itemType;
-        considerationItem.token = token;
-        considerationItem.identifierOrCriteria = identifier;
-        considerationItem.startAmount = startAmount;
-        considerationItem.endAmount = endAmount;
-        considerationItem.recipient = recipient;
-        considerationItems.push(considerationItem);
-    }
-
-    /**
-    @dev deploy test token contracts
-     */
-    function _deployTestTokenContracts() internal {
-        token1 = new TestERC20();
-        token2 = new TestERC20();
-        token3 = new TestERC20();
-        test721_1 = new TestERC721();
-        test721_2 = new TestERC721();
-        test721_3 = new TestERC721();
-        test1155_1 = new TestERC1155();
-        test1155_2 = new TestERC1155();
-        test1155_3 = new TestERC1155();
-        vm.label(address(token1), "token1");
-        vm.label(address(test721_1), "test721_1");
-        vm.label(address(test1155_1), "test1155_1");
-
-        emit log("Deployed test token contracts");
-    }
-
-    function toConsiderationItems(
-        OfferItem[] memory _offerItems,
-        address payable receiver
-    ) internal pure returns (ConsiderationItem[] memory) {
-        ConsiderationItem[]
-            memory _considerationItems = new ConsiderationItem[](
-                _offerItems.length
-            );
-        for (uint256 i = 0; i < _offerItems.length; i++) {
-            _considerationItems[i] = ConsiderationItem(
-                _offerItems[i].itemType,
-                _offerItems[i].token,
-                _offerItems[i].identifierOrCriteria,
-                _offerItems[i].startAmount,
-                _offerItems[i].endAmount,
-                receiver
+        bool overwriteItemsLength = amtToSubtractFromItemsLength > 0;
+        if (overwriteItemsLength) {
+            // Get the array length from the calldata and
+            // store the length - amtToSubtractFromItemsLength in the calldata
+            // so that the length value does _not_ accurately represent the actual
+            // total array length.
+            _subtractAmountFromLengthInOrderCalldata(
+                fulfillOrderCalldata,
+                relativeOrderParametersOffset,
+                relativeItemsLengthOffset,
+                amtToSubtractFromItemsLength
             );
         }
-        return _considerationItems;
+
+        uint256 finalItemsLength = _getItemsLengthAtOffsetInOrderCalldata(
+            fulfillOrderCalldata,
+            // Relative offset of start of order parameters
+            // in the order calldata.
+            relativeOrderParametersOffset,
+            // Relative offset of items
+            // pointer to the start of order parameters in order calldata.
+            relativeItemsLengthOffset
+        );
+
+        assertEq(
+            finalItemsLength,
+            originalItemsLength - amtToSubtractFromItemsLength
+        );
+
+        bool success = _callConsiderationFulfillOrderWithCalldata(
+            address(consideration),
+            fulfillOrderCalldata
+        );
+
+        // If overwriteItemsLength is True, the call should
+        // have failed (success should be False) and if overwriteItemsLength is False,
+        // the call should have succeeded (success should be True).
+        assertEq(success, !overwriteItemsLength);
     }
 
-    function toOfferItems(ConsiderationItem[] memory _considerationItems)
-        internal
-        pure
-        returns (OfferItem[] memory)
-    {
-        OfferItem[] memory _offerItems = new OfferItem[](
-            _considerationItems.length
-        );
-        for (uint256 i = 0; i < _offerItems.length; i++) {
-            _offerItems[i] = OfferItem(
-                _considerationItems[i].itemType,
-                _considerationItems[i].token,
-                _considerationItems[i].identifierOrCriteria,
-                _considerationItems[i].startAmount,
-                _considerationItems[i].endAmount
-            );
-        }
-        return _offerItems;
+    function _callConsiderationFulfillOrderWithCalldata(
+        address considerationAddress,
+        bytes memory orderCalldata
+    ) internal returns (bool success) {
+        (success, ) = considerationAddress.call(orderCalldata);
     }
 
-    function createMirrorOrderParameters(
-        OrderParameters memory orderParameters,
-        address payable offerer,
-        address zone,
-        bytes32 conduitKey
-    ) public pure returns (OrderParameters memory) {
-        OfferItem[] memory _offerItems = toOfferItems(
-            orderParameters.consideration
-        );
-        ConsiderationItem[] memory _considerationItems = toConsiderationItems(
-            orderParameters.offer,
-            offerer
-        );
-
-        OrderParameters memory _mirrorOrderParameters = OrderParameters(
+    function configureOrderParameters(address offerer) internal {
+        _configureOrderParameters(
             offerer,
-            zone,
-            _offerItems,
-            _considerationItems,
-            orderParameters.orderType,
-            orderParameters.startTime,
-            orderParameters.endTime,
-            orderParameters.zoneHash,
-            orderParameters.salt,
-            conduitKey,
-            _considerationItems.length
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
         );
-        return _mirrorOrderParameters;
+    }
+
+    function _configureOrderParameters(
+        address offerer,
+        address zone,
+        bytes32 zoneHash,
+        uint256 salt,
+        bool useConduit
+    ) internal {
+        bytes32 conduitKey = useConduit ? conduitKeyOne : bytes32(0);
+        baseOrderParameters.offerer = offerer;
+        baseOrderParameters.zone = zone;
+        baseOrderParameters.offer = offerItems;
+        baseOrderParameters.consideration = considerationItems;
+        baseOrderParameters.orderType = OrderType.FULL_OPEN;
+        baseOrderParameters.startTime = block.timestamp;
+        baseOrderParameters.endTime = block.timestamp + 1;
+        baseOrderParameters.zoneHash = zoneHash;
+        baseOrderParameters.salt = salt;
+        baseOrderParameters.conduitKey = conduitKey;
+        baseOrderParameters.totalOriginalConsiderationItems = considerationItems
+            .length;
+    }
+
+    function _configureOrderParametersSetEndTime(
+        address offerer,
+        address zone,
+        uint256 endTime,
+        bytes32 zoneHash,
+        uint256 salt,
+        bool useConduit
+    ) internal {
+        _configureOrderParameters(offerer, zone, zoneHash, salt, useConduit);
+        baseOrderParameters.endTime = endTime;
     }
 
     /**
-    @dev allocate amount of each token, 1 of each 721, and 1, 5, and 10 of respective 1155s 
-    */
-    function allocateTokensAndApprovals(address _to, uint128 _amount) internal {
-        vm.deal(_to, _amount);
-        for (uint256 i = 0; i < erc20s.length; i++) {
-            erc20s[i].mint(_to, _amount);
-        }
-        emit log_named_address("Allocated tokens to", _to);
-        _setApprovals(_to);
-    }
-
-    function _setApprovals(address _owner) internal {
-        vm.startPrank(_owner);
-        for (uint256 i = 0; i < erc20s.length; i++) {
-            erc20s[i].approve(address(consideration), MAX_INT);
-            erc20s[i].approve(address(referenceConsideration), MAX_INT);
-            erc20s[i].approve(address(conduit), MAX_INT);
-            erc20s[i].approve(address(referenceConduit), MAX_INT);
-        }
-        for (uint256 i = 0; i < erc721s.length; i++) {
-            erc721s[i].setApprovalForAll(address(consideration), true);
-            erc721s[i].setApprovalForAll(address(referenceConsideration), true);
-            erc721s[i].setApprovalForAll(address(conduit), true);
-            erc721s[i].setApprovalForAll(address(referenceConduit), true);
-        }
-        for (uint256 i = 0; i < erc1155s.length; i++) {
-            erc1155s[i].setApprovalForAll(address(consideration), true);
-            erc1155s[i].setApprovalForAll(
-                address(referenceConsideration),
-                true
-            );
-            erc1155s[i].setApprovalForAll(address(conduit), true);
-            erc1155s[i].setApprovalForAll(address(referenceConduit), true);
-        }
-
-        vm.stopPrank();
-        emit log_named_address(
-            "Owner proxy approved for all tokens from",
-            _owner
-        );
-        emit log_named_address(
-            "Consideration approved for all tokens from",
-            _owner
-        );
+    @dev configures order components based on order parameters in storage and counter param
+     */
+    function _configureOrderComponents(uint256 counter) internal {
+        baseOrderComponents.offerer = baseOrderParameters.offerer;
+        baseOrderComponents.zone = baseOrderParameters.zone;
+        baseOrderComponents.offer = baseOrderParameters.offer;
+        baseOrderComponents.consideration = baseOrderParameters.consideration;
+        baseOrderComponents.orderType = baseOrderParameters.orderType;
+        baseOrderComponents.startTime = baseOrderParameters.startTime;
+        baseOrderComponents.endTime = baseOrderParameters.endTime;
+        baseOrderComponents.zoneHash = baseOrderParameters.zoneHash;
+        baseOrderComponents.salt = baseOrderParameters.salt;
+        baseOrderComponents.conduitKey = baseOrderParameters.conduitKey;
+        baseOrderComponents.counter = counter;
     }
 
     function getMaxConsiderationValue() internal view returns (uint256) {
         uint256 value = 0;
-        for (uint256 i = 0; i < considerationItems.length; i++) {
+        for (uint256 i = 0; i < considerationItems.length; ++i) {
             uint256 amount = considerationItems[i].startAmount >
                 considerationItems[i].endAmount
                 ? considerationItems[i].startAmount
@@ -577,11 +342,11 @@ contract BaseOrderTest is
     }
 
     /**
-     * @dev return OrderComponents for a given OrderParameters and offerer nonce
+     * @dev return OrderComponents for a given OrderParameters and offerer counter
      */
     function getOrderComponents(
         OrderParameters memory parameters,
-        uint256 nonce
+        uint256 counter
     ) internal pure returns (OrderComponents memory) {
         return
             OrderComponents(
@@ -595,60 +360,113 @@ contract BaseOrderTest is
                 parameters.zoneHash,
                 parameters.salt,
                 parameters.conduitKey,
+                counter
+            );
+    }
+
+    function getOrderParameters(address payable offerer, OrderType orderType)
+        internal
+        returns (OrderParameters memory)
+    {
+        return
+            OrderParameters(
+                offerer,
+                address(0),
+                offerItems,
+                considerationItems,
+                orderType,
+                block.timestamp,
+                block.timestamp + 1,
+                bytes32(0),
+                globalSalt++,
+                bytes32(0),
+                considerationItems.length
+            );
+    }
+
+    function toOrderComponents(OrderParameters memory _params, uint256 nonce)
+        internal
+        pure
+        returns (OrderComponents memory)
+    {
+        return
+            OrderComponents(
+                _params.offerer,
+                _params.zone,
+                _params.offer,
+                _params.consideration,
+                _params.orderType,
+                _params.startTime,
+                _params.endTime,
+                _params.zoneHash,
+                _params.salt,
+                _params.conduitKey,
                 nonce
             );
     }
 
-    /**
-     * @dev reset written token storage slots to 0 and reinitialize uint128(MAX_INT) erc20 balances for 3 test accounts and this
-     */
-    function _resetTokensAndEthForTestAccounts() internal {
-        _resetTokensStorage();
-        _restoreERC20Balances();
-        _restoreEthBalances();
+    function toBasicOrderParameters(
+        Order memory _order,
+        BasicOrderType basicOrderType
+    ) internal pure returns (BasicOrderParameters memory) {
+        return
+            BasicOrderParameters(
+                _order.parameters.consideration[0].token,
+                _order.parameters.consideration[0].identifierOrCriteria,
+                _order.parameters.consideration[0].endAmount,
+                payable(_order.parameters.offerer),
+                _order.parameters.zone,
+                _order.parameters.offer[0].token,
+                _order.parameters.offer[0].identifierOrCriteria,
+                _order.parameters.offer[0].endAmount,
+                basicOrderType,
+                _order.parameters.startTime,
+                _order.parameters.endTime,
+                _order.parameters.zoneHash,
+                _order.parameters.salt,
+                _order.parameters.conduitKey,
+                _order.parameters.conduitKey,
+                0,
+                new AdditionalRecipient[](0),
+                _order.signature
+            );
     }
 
-    function _restoreEthBalances() internal {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            vm.deal(accounts[i], uint128(MAX_INT));
-        }
+    function toBasicOrderParameters(
+        OrderComponents memory _order,
+        BasicOrderType basicOrderType,
+        bytes memory signature
+    ) internal pure returns (BasicOrderParameters memory) {
+        return
+            BasicOrderParameters(
+                _order.consideration[0].token,
+                _order.consideration[0].identifierOrCriteria,
+                _order.consideration[0].endAmount,
+                payable(_order.offerer),
+                _order.zone,
+                _order.offer[0].token,
+                _order.offer[0].identifierOrCriteria,
+                _order.offer[0].endAmount,
+                basicOrderType,
+                _order.startTime,
+                _order.endTime,
+                _order.zoneHash,
+                _order.salt,
+                _order.conduitKey,
+                _order.conduitKey,
+                0,
+                new AdditionalRecipient[](0),
+                signature
+            );
     }
 
-    function _resetTokensStorage() internal {
-        for (uint256 i = 0; i < allTokens.length; i++) {
-            _resetStorage(allTokens[i]);
-        }
-    }
-
-    /**
-     * @dev restore erc20 balances for all accounts
-     */
-    function _restoreERC20Balances() internal {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            _restoreERC20BalancesForAddress(accounts[i]);
-        }
-    }
-
-    /**
-     * @dev restore all erc20 balances for a given address
-     */
-    function _restoreERC20BalancesForAddress(address _who) internal {
-        for (uint256 i = 0; i < erc20s.length; i++) {
-            _restoreERC20Balance(RestoreERC20Balance(address(erc20s[i]), _who));
-        }
-    }
-
-    /**
-     * @dev reset token balance for an address to uint128(MAX_INT)
-     */
-    function _restoreERC20Balance(
-        RestoreERC20Balance memory restoreErc20Balance
-    ) internal {
-        stdstore
-            .target(restoreErc20Balance.token)
-            .sig("balanceOf(address)")
-            .with_key(restoreErc20Balance.who)
-            .checked_write(uint128(MAX_INT));
+    ///@dev allow signing for this contract since it needs to be recipient of basic order to reenter on receive
+    function isValidSignature(bytes32, bytes memory)
+        external
+        pure
+        returns (bytes4)
+    {
+        return 0x1626ba7e;
     }
 
     receive() external payable virtual {}

@@ -11,7 +11,7 @@ import { getWalletWithEther } from "../utils/impersonate";
 import { AdvancedOrder, ConsiderationItem } from "../utils/types";
 import { getScuffedContract } from "scuffed-abi";
 import { hexZeroPad } from "ethers/lib/utils";
-import { ethers, network } from "hardhat";
+import { network } from "hardhat";
 
 const IS_FIXED = true;
 
@@ -37,9 +37,6 @@ describe("Additional recipients off by one error allows skipping second consider
   });
 
   before(async function () {
-    if (process.env.REFERENCE) {
-      this.skip();
-    }
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
     carol = await getWalletWithEther();

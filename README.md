@@ -8,6 +8,7 @@ Seaport is a new marketplace protocol for safely and efficiently buying and sell
 
 - [Background](#background)
 - [Deployments](#deployments)
+- [Diagram](#diagram)
 - [Install](#install)
 - [Usage](#usage)
 - [Audits](#audits)
@@ -39,6 +40,42 @@ Conduit Controller deployment addresses:
 | Polygon Mainnet  | [0x00000000006cE100a8b5eD8eDf18ceeF9e500697](https://polygonscan.com/address/0x00000000006ce100a8b5ed8edf18ceef9e500697) |
 | Goerli           | [0x00000000006cE100a8b5eD8eDf18ceeF9e500697](https://goerli.etherscan.io/address/0x00000000006ce100a8b5ed8edf18ceef9e500697) |
 | Rinkeby          | [0x00000000006cE100a8b5eD8eDf18ceeF9e500697](https://rinkeby.etherscan.io/address/0x00000000006ce100a8b5ed8edf18ceef9e500697) |
+
+## Diagram
+
+```mermaid
+graph TD
+    Offer & Consideration --> Order
+    zone & conduitKey --> Order
+
+    subgraph Seaport[ ]
+    Order --> Fulfill & Match
+    Order --> Validate & Cancel
+    end
+
+    Validate --> Verify
+    Cancel --> OrderStatus
+
+    Fulfill & Match --> OrderCombiner --> OrderFulfiller
+
+    OrderCombiner --> BasicOrderFulfiller --> OrderValidator
+    OrderCombiner --> FulfillmentApplier
+
+    OrderFulfiller --> CriteriaResolution
+    OrderFulfiller --> AmountDeriver
+    OrderFulfiller --> OrderValidator
+
+    OrderValidator --> ZoneInteraction
+    OrderValidator --> Executor --> TokenTransferrer
+    Executor --> Conduit --> TokenTransferrer
+    Executor --> Verify
+
+    subgraph Verifiers[ ]
+    Verify --> Time & Signature & OrderStatus
+    end
+```
+
+For a more thorough flowchart see [Seaport diagram](./diagrams/Seaport.drawio.svg).
 
 ## Install
 
@@ -98,7 +135,7 @@ forge install
 
 To precompile contracts:
 
-The optimized contracts are compiled using the IR pipeline, which can take a long time to compile. By default, the differential test suite depends deploys precompiled versions of both the optimized and reference contracts. Precompilation can be done by specifying specific Foundry profiles.
+The optimized contracts are compiled using the IR pipeline, which can take a long time to compile. By default, the differential test suite deploys precompiled versions of both the optimized and reference contracts. Precompilation can be done by specifying specific Foundry profiles.
 
 ```bash
 FOUNDRY_PROFILE=optimized forge build

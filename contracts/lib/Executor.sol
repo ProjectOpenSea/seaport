@@ -1,14 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.13;
 
-// prettier-ignore
-import {
-    ERC20Interface,
-    ERC721Interface,
-    ERC1155Interface
-} from "../interfaces/AbridgedTokenInterfaces.sol";
-
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+
+import { ConduitItemType } from "../conduit/lib/ConduitEnums.sol";
 
 import { ItemType } from "./ConsiderationEnums.sol";
 
@@ -59,9 +54,19 @@ contract Executor is Verifiers, TokenTransferrer {
     ) internal {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
+            // Ensure neither the token nor the identifier parameters are set.
+            if ((uint160(item.token) | item.identifier) != 0) {
+                revert UnusedItemParameters();
+            }
+
             // transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
         } else if (item.itemType == ItemType.ERC20) {
+            // Ensure that no identifier is supplied.
+            if (item.identifier != 0) {
+                revert UnusedItemParameters();
+            }
+
             // Transfer ERC20 tokens from the source to the recipient.
             _transferERC20(
                 item.token,
@@ -280,7 +285,7 @@ contract Executor is Verifiers, TokenTransferrer {
             _insert(
                 conduitKey,
                 accumulator,
-                uint256(1),
+                ConduitItemType.ERC20,
                 token,
                 from,
                 to,
@@ -333,7 +338,7 @@ contract Executor is Verifiers, TokenTransferrer {
             _insert(
                 conduitKey,
                 accumulator,
-                uint256(2),
+                ConduitItemType.ERC721,
                 token,
                 from,
                 to,
@@ -384,7 +389,7 @@ contract Executor is Verifiers, TokenTransferrer {
             _insert(
                 conduitKey,
                 accumulator,
-                uint256(3),
+                ConduitItemType.ERC1155,
                 token,
                 from,
                 to,
@@ -430,7 +435,7 @@ contract Executor is Verifiers, TokenTransferrer {
      */
     function _triggerIfArmed(bytes memory accumulator) internal {
         // Exit if the accumulator is not "armed".
-        if (accumulator.length != 64) {
+        if (accumulator.length != AccumulatorArmed) {
             return;
         }
 
@@ -504,6 +509,7 @@ contract Executor is Verifiers, TokenTransferrer {
         address conduit = _deriveConduit(conduitKey);
 
         bool success;
+        bytes4 result;
 
         // call the conduit.
         assembly {
@@ -520,6 +526,9 @@ contract Executor is Verifiers, TokenTransferrer {
                 0,
                 OneWord
             )
+
+            // Take value from scratch space and place it on the stack.
+            result := mload(0)
         }
 
         // If the call failed...
@@ -529,13 +538,6 @@ contract Executor is Verifiers, TokenTransferrer {
 
             // Otherwise, revert with a generic error.
             revert InvalidCallToConduit(conduit);
-        }
-
-        // Ensure that the conduit returned the correct magic value.
-        bytes4 result;
-        assembly {
-            // Take value from scratch space and place it on the stack.
-            result := mload(0)
         }
 
         // Ensure result was extracted and matches EIP-1271 magic value.
@@ -588,7 +590,7 @@ contract Executor is Verifiers, TokenTransferrer {
     function _insert(
         bytes32 conduitKey,
         bytes memory accumulator,
-        uint256 itemType,
+        ConduitItemType itemType,
         address token,
         address from,
         address to,

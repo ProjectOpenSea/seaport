@@ -6,6 +6,8 @@ import { ConsiderationInterface } from "../../../contracts/interfaces/Considerat
 import { OrderType, BasicOrderType, ItemType, Side } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { Test } from "forge-std/Test.sol";
+import { DifferentialTest } from "./DifferentialTest.sol";
+import { StructCopier } from "./StructCopier.sol";
 import { stdStorage, StdStorage } from "forge-std/Test.sol";
 import { ReferenceConduitController } from "../../../reference/conduit/ReferenceConduitController.sol";
 import { ReferenceConsideration } from "../../../reference/ReferenceConsideration.sol";
@@ -13,7 +15,7 @@ import { Conduit } from "../../../contracts/conduit/Conduit.sol";
 import { Consideration } from "../../../contracts/lib/Consideration.sol";
 
 /// @dev Base test case that deploys Consideration and its dependencies
-contract BaseConsiderationTest is Test {
+contract BaseConsiderationTest is DifferentialTest, StructCopier {
     using stdStorage for StdStorage;
 
     ConsiderationInterface consideration;
@@ -26,24 +28,10 @@ contract BaseConsiderationTest is Test {
 
     function setUp() public virtual {
         conduitKeyOne = bytes32(uint256(uint160(address(this))) << 96);
-        vm.label(address(this), "testContract");
         _deployAndConfigurePrecompiledOptimizedConsideration();
 
-        string[] memory args = new string[](2);
-        args[0] = "echo";
-        args[1] = "-n";
-        // if ffi is enabled, this will not enter the catch block.
-        // assume that the local foundry profile is specified, and deploy
-        // reference normally, so stack traces and debugger have source map,
-        // with the caveat that reference contracts will have been compiled
-        // with 0.8.14
-        try vm.ffi(args) {
-            emit log("Deploying reference from import");
-            _deployAndConfigureReferenceConsideration();
-        } catch (bytes memory) {
-            emit log("Deploying reference from precompiled source");
-            _deployAndConfigurePrecompiledReferenceConsideration();
-        }
+        emit log("Deploying reference from precompiled source");
+        _deployAndConfigurePrecompiledReferenceConsideration();
 
         vm.label(address(conduitController), "conduitController");
         vm.label(address(consideration), "consideration");
@@ -54,28 +42,7 @@ contract BaseConsiderationTest is Test {
         );
         vm.label(address(referenceConsideration), "referenceConsideration");
         vm.label(address(referenceConduit), "referenceConduit");
-    }
-
-    function _deployAndConfigureReferenceConsideration() public {
-        referenceConduitController = ConduitController(
-            address(new ReferenceConduitController())
-        );
-        referenceConsideration = ConsiderationInterface(
-            address(
-                new ReferenceConsideration(address(referenceConduitController))
-            )
-        );
-        referenceConduit = Conduit(
-            referenceConduitController.createConduit(
-                conduitKeyOne,
-                address(this)
-            )
-        );
-        referenceConduitController.updateChannel(
-            address(referenceConduit),
-            address(referenceConsideration),
-            true
-        );
+        vm.label(address(this), "testContract");
     }
 
     ///@dev deploy optimized consideration contracts from pre-compiled source
@@ -221,18 +188,5 @@ contract BaseConsiderationTest is Test {
             )
         );
         return (r, s, v);
-    }
-
-    /**
-     * @dev reset all storage written at an address thus far to 0; will overwrite totalSupply()for ERC20s but that should be fine
-     *      with the goal of resetting the balances and owners of tokens - but note: should be careful about approvals, etc
-     *
-     *      note: must be called in conjunction with vm.record()
-     */
-    function _resetStorage(address _addr) internal {
-        (, bytes32[] memory writeSlots) = vm.accesses(_addr);
-        for (uint256 i = 0; i < writeSlots.length; i++) {
-            vm.store(_addr, writeSlots[i], bytes32(0));
-        }
     }
 }

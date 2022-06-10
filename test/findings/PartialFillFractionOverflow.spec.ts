@@ -107,7 +107,7 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
       order.denominator = 2;
       await marketplaceContract
         .connect(bob)
-        .fulfillAdvancedOrder(order, [], toKey(false));
+        .fulfillAdvancedOrder(order, [], toKey(false), bob.address);
       expect(await testERC1155.balanceOf(bob.address, 1)).to.eq(1);
     });
 
@@ -122,7 +122,7 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
       order.denominator = toBN(2).pow(119);
       await marketplaceContract
         .connect(carol)
-        .fulfillAdvancedOrder(order, [], toKey(false));
+        .fulfillAdvancedOrder(order, [], toKey(false), carol.address);
     });
 
     it("Carol receives one 1155 token from Alice", async () => {
@@ -149,12 +149,12 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
           order.denominator = toBN(2).pow(2);
           await marketplaceContract
             .connect(carol)
-            .fulfillAdvancedOrder(order, [], toKey(false));
+            .fulfillAdvancedOrder(order, [], toKey(false), carol.address);
           order.numerator = toBN(2).pow(118);
           order.denominator = toBN(2).pow(119);
           await marketplaceContract
             .connect(carol)
-            .fulfillAdvancedOrder(order, [], toKey(false));
+            .fulfillAdvancedOrder(order, [], toKey(false), carol.address);
         }
       });
 

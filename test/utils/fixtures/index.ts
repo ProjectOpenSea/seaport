@@ -27,7 +27,7 @@ export {
 
 const { provider } = ethers;
 
-export async function seaportFixture(owner: Wallet) {
+export const seaportFixture = async (owner: Wallet) => {
   const EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
   const reenterer = await deployContract("Reenterer", owner as any);
   const { chainId } = await provider.getNetwork();
@@ -82,7 +82,7 @@ export async function seaportFixture(owner: Wallet) {
 
   const withBalanceChecks = async (
     ordersArray: AdvancedOrder[], // TODO: include order statuses to account for partial fills
-    additonalPayouts: 0 | BigNumber,
+    additionalPayouts: 0 | BigNumber,
     criteriaResolvers: CriteriaResolver[] = [],
     fn: () => Promise<ContractReceipt>,
     multiplier = 1
@@ -312,7 +312,7 @@ export async function seaportFixture(owner: Wallet) {
 
       if (offeredItem.itemType < 4) {
         // TODO: criteria-based
-        if (!additonalPayouts) {
+        if (!additionalPayouts) {
           expect(
             offeredItem.initialBalance.sub(offeredItem.finalBalance).toString()
           ).to.equal(
@@ -328,7 +328,7 @@ export async function seaportFixture(owner: Wallet) {
         } else {
           expect(
             offeredItem.initialBalance.sub(offeredItem.finalBalance).toString()
-          ).to.equal(additonalPayouts.add(offeredItem.endAmount).toString());
+          ).to.equal(additionalPayouts.add(offeredItem.endAmount).toString());
         }
       }
 
@@ -409,6 +409,7 @@ export async function seaportFixture(owner: Wallet) {
       orderHash: string;
       fulfiller?: string;
       fulfillerConduitKey?: string;
+      recipient?: string;
     }>,
     standardExecutions: any[] = [],
     criteriaResolvers: any[] = [],
@@ -451,12 +452,16 @@ export async function seaportFixture(owner: Wallet) {
       }
     }
 
-    for (const {
+    for (let {
       order,
       orderHash,
       fulfiller,
       fulfillerConduitKey,
+      recipient,
     } of orderGroups) {
+      if (!recipient) {
+        recipient = fulfiller;
+      }
       const duration = toBN(order.parameters.endTime).sub(
         order.parameters.startTime as any
       );
@@ -471,7 +476,7 @@ export async function seaportFixture(owner: Wallet) {
           orderHash: x.args.orderHash,
           offerer: x.args.offerer,
           zone: x.args.zone,
-          fulfiller: x.args.fulfiller,
+          recipient: x.args.recipient,
           offer: x.args.offer.map((y: any) => ({
             itemType: y.itemType,
             token: y.token,
@@ -502,7 +507,7 @@ export async function seaportFixture(owner: Wallet) {
       expect(event.orderHash).to.equal(orderHash);
       expect(event.offerer).to.equal(order.parameters.offerer);
       expect(event.zone).to.equal(order.parameters.zone);
-      expect(event.fulfiller).to.equal(fulfiller);
+      expect(event.recipient).to.equal(recipient);
 
       const { offerer, conduitKey, consideration, offer } = order.parameters;
       const compareEventItems = async (
@@ -603,7 +608,7 @@ export async function seaportFixture(owner: Wallet) {
 
           await checkTransferEvent(
             tx,
-            { ...item, amount, recipient: receipt.from },
+            { ...item, amount, recipient },
             {
               offerer,
               conduitKey,
@@ -631,8 +636,8 @@ export async function seaportFixture(owner: Wallet) {
               (x) =>
                 x.signature === "Transfer(address,address,uint256)" &&
                 x.args.from === event.offerer &&
-                (fulfiller !== constants.AddressZero
-                  ? x.args.to === fulfiller
+                (recipient !== constants.AddressZero
+                  ? x.args.to === recipient
                   : true)
             );
 
@@ -649,8 +654,8 @@ export async function seaportFixture(owner: Wallet) {
               (x) =>
                 x.signature === "Transfer(address,address,uint256)" &&
                 x.args.from === event.offerer &&
-                (fulfiller !== constants.AddressZero
-                  ? x.args.to === fulfiller
+                (recipient !== constants.AddressZero
+                  ? x.args.to === recipient
                   : true)
             );
 
@@ -825,6 +830,6 @@ export async function seaportFixture(owner: Wallet) {
     checkTransferEvent,
     checkExpectedEvents,
   };
-}
+};
 
 export type SeaportFixtures = Awaited<ReturnType<typeof seaportFixture>>;

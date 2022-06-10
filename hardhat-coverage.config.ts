@@ -28,6 +28,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       blockGasLimit: 30_000_000,
+      throwOnCallFailures: false,
     },
   },
   gasReporter: {

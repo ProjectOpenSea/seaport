@@ -39,8 +39,14 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
         bytes32 s;
         uint8 v;
 
-        // If signature contains 64 bytes, parse as EIP-2098 signature. (r+s&v)
-        if (signature.length == 64) {
+        if (signer.code.length > 0) {
+            // If signer is a contract, try verification via EIP-1271.
+            _assertValidEIP1271Signature(signer, digest, signature);
+
+            // Return early if the ERC-1271 signature check succeeded.
+            return;
+        } else if (signature.length == 64) {
+            // If signature contains 64 bytes, parse as EIP-2098 signature. (r+s&v)
             // Declare temporary vs that will be decomposed into s and v.
             bytes32 vs;
 
@@ -58,12 +64,7 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
                 revert BadSignatureV(v);
             }
         } else {
-            // For all other signature lengths, try verification via EIP-1271.
-            // Attempt EIP-1271 static call to signer in case it's a contract.
-            _assertValidEIP1271Signature(signer, digest, signature);
-
-            // Return early if the ERC-1271 signature check succeeded.
-            return;
+            revert InvalidSignature();
         }
 
         // Attempt to recover signer using the digest and signature parameters.
@@ -71,7 +72,7 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
 
         // Disallow invalid signers.
         if (recoveredSigner == address(0)) {
-            revert InvalidSignature();
+            revert InvalidSigner();
             // Should a signer be recovered, but it doesn't match the signer...
         } else if (recoveredSigner != signer) {
             // Attempt EIP-1271 static call to signer in case it's a contract.

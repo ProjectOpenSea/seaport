@@ -29,10 +29,11 @@ contract TokenTransferrer is TokenTransferrerErrors {
     ) internal {
         // Utilize assembly to perform an optimized ERC20 token transfer.
         assembly {
-            // Write calldata to the free memory pointer, but restore it later.
+            // The free memory pointer memory slot will be used when populating
+            // call data for the transfer; read the value and restore it later.
             let memPointer := mload(FreeMemoryPointerSlot)
 
-            // Write calldata into memory, starting with function selector.
+            // Write call data into memory, starting with function selector.
             mstore(ERC20_transferFrom_sig_ptr, ERC20_transferFrom_signature)
             mstore(ERC20_transferFrom_from_ptr, from)
             mstore(ERC20_transferFrom_to_ptr, to)
@@ -66,9 +67,9 @@ contract TokenTransferrer is TokenTransferrerErrors {
             // Equivalent to `or(iszero(success), iszero(returndatasize()))`
             // but after it's inverted for JUMPI this expression is cheaper.
             if iszero(and(success, iszero(iszero(returndatasize())))) {
-                // If the token has no code or the transfer failed:
-                // Equivalent to `or(iszero(success), iszero(extcodesize(token)))`
-                // but after it's inverted for JUMPI this expression is cheaper.
+                // If the token has no code or the transfer failed: Equivalent
+                // to `or(iszero(success), iszero(extcodesize(token)))` but
+                // after it's inverted for JUMPI this expression is cheaper.
                 if iszero(and(iszero(iszero(extcodesize(token))), success)) {
                     // If the transfer failed:
                     if iszero(success) {
@@ -162,7 +163,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         }
 
                         // Otherwise revert with a message about the token
-                        // returning false.
+                        // returning false or non-compliant return values.
                         mstore(
                             BadReturnValueFromERC20OnTransfer_error_sig_ptr,
                             BadReturnValueFromERC20OnTransfer_error_signature
@@ -235,10 +236,11 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 revert(NoContract_error_sig_ptr, NoContract_error_length)
             }
 
-            // Write calldata to free memory pointer (restore it later).
+            // The free memory pointer memory slot will be used when populating
+            // call data for the transfer; read the value and restore it later.
             let memPointer := mload(FreeMemoryPointerSlot)
 
-            // Write calldata to memory starting with function selector.
+            // Write call data to memory starting with function selector.
             mstore(ERC721_transferFrom_sig_ptr, ERC721_transferFrom_signature)
             mstore(ERC721_transferFrom_from_ptr, from)
             mstore(ERC721_transferFrom_to_ptr, to)
@@ -337,8 +339,8 @@ contract TokenTransferrer is TokenTransferrerErrors {
      * @dev Internal function to transfer ERC1155 tokens from a given
      *      originator to a given recipient. Sufficient approvals must be set on
      *      the contract performing the transfer and contract recipients must
-     *      implement onReceived to indicate that they are willing to accept the
-     *      transfer.
+     *      implement the ERC1155TokenReceiver interface to indicate that they
+     *      are willing to accept the transfer.
      *
      * @param token      The ERC1155 token to transfer.
      * @param from       The originator of the transfer.
@@ -362,13 +364,14 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 revert(NoContract_error_sig_ptr, NoContract_error_length)
             }
 
-            // Write calldata to these slots below, but restore them later.
+            // The following memory slots will be used when populating call data
+            // for the transfer; read the values and restore them later.
             let memPointer := mload(FreeMemoryPointerSlot)
             let slot0x80 := mload(Slot0x80)
             let slot0xA0 := mload(Slot0xA0)
             let slot0xC0 := mload(Slot0xC0)
 
-            // Write calldata into memory, beginning with function selector.
+            // Write call data into memory, beginning with function selector.
             mstore(
                 ERC1155_safeTransferFrom_sig_ptr,
                 ERC1155_safeTransferFrom_signature
@@ -383,6 +386,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
             )
             mstore(ERC1155_safeTransferFrom_data_length_ptr, 0)
 
+            // Perform the call, ignoring return data.
             let success := call(
                 gas(),
                 token,
@@ -479,14 +483,14 @@ contract TokenTransferrer is TokenTransferrerErrors {
      * @dev Internal function to transfer ERC1155 tokens from a given
      *      originator to a given recipient. Sufficient approvals must be set on
      *      the contract performing the transfer and contract recipients must
-     *      implement onReceived to indicate that they are willing to accept the
-     *      transfer. NOTE: this function is not memory-safe; it will overwrite
-     *      existing memory, restore the free memory pointer to the default
-     *      value, and overrite the zero slot. This function should only be
-     *      called once memory is no longer required and when uninitialized
-     *      arrays are not utilized, and memory should be considered fully
-     *      corrupted (aside from the existence of a free memory pointer) after
-     *      calling this function.
+     *      implement the ERC1155TokenReceiver interface to indicate that they
+     *      are willing to accept the transfer. NOTE: this function is not
+     *      memory-safe; it will overwrite existing memory, restore the free
+     *      memory pointer to the default value, and overwrite the zero slot.
+     *      This function should only be called once memory is no longer
+     *      required and when uninitialized arrays are not utilized, and memory
+     *      should be considered fully corrupted (aside from the existence of a
+     *      default-value free memory pointer) after calling this function.
      *
      * @param batchTransfers The group of 1155 batch transfers to perform.
      */
@@ -527,54 +531,19 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     calldataload(nextElementHeadPtr)
                 )
 
-                // Update the offset position for the next loop
-                nextElementHeadPtr := add(nextElementHeadPtr, OneWord)
+                // Retrieve the token from calldata.
+                let token := calldataload(elementPtr)
 
-                // Copy the first section of calldata (before dynamic values).
-                calldatacopy(
-                    BatchTransfer1155Params_ptr,
-                    add(elementPtr, ConduitBatch1155Transfer_from_offset),
-                    ConduitBatch1155Transfer_usable_head_size
-                )
+                // If the token has no code, revert.
+                if iszero(extcodesize(token)) {
+                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
+                    mstore(NoContract_error_token_ptr, token)
+                    revert(NoContract_error_sig_ptr, NoContract_error_length)
+                }
 
                 // Get the total number of supplied ids.
                 let idsLength := calldataload(
                     add(elementPtr, ConduitBatch1155Transfer_ids_length_offset)
-                )
-
-                // Determine size of calldata required for ids and amounts. Note
-                // that the size includes both lengths as well as the data.
-                let idsAndAmountsSize := add(TwoWords, mul(idsLength, TwoWords))
-
-                // Update the offset for the data array in memory.
-                mstore(
-                    BatchTransfer1155Params_data_head_ptr,
-                    add(
-                        BatchTransfer1155Params_ids_length_offset,
-                        idsAndAmountsSize
-                    )
-                )
-
-                // Set the length of the data array in memory to zero.
-                mstore(
-                    add(
-                        BatchTransfer1155Params_data_length_basePtr,
-                        idsAndAmountsSize
-                    ),
-                    0
-                )
-
-                // Determine the total calldata size for the call to transfer.
-                let transferDataSize := add(
-                    BatchTransfer1155Params_data_length_basePtr,
-                    mul(idsLength, TwoWords)
-                )
-
-                // Copy second section of calldata (including dynamic values).
-                calldatacopy(
-                    BatchTransfer1155Params_ids_length_ptr,
-                    add(elementPtr, ConduitBatch1155Transfer_ids_length_offset),
-                    idsAndAmountsSize
                 )
 
                 // Determine the expected offset for the amounts array.
@@ -607,7 +576,7 @@ contract TokenTransferrer is TokenTransferrerErrors {
                                 calldataload(
                                     add(
                                         elementPtr,
-                                        ConduitBatch1155Transfer_amounts_head_offset
+                                        ConduitBatchTransfer_amounts_head_offset
                                     )
                                 ),
                                 expectedAmountsOffset
@@ -628,15 +597,50 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     )
                 }
 
-                // Retrieve the token from calldata.
-                let token := calldataload(elementPtr)
+                // Update the offset position for the next loop
+                nextElementHeadPtr := add(nextElementHeadPtr, OneWord)
 
-                // If the token has no code, revert.
-                if iszero(extcodesize(token)) {
-                    mstore(NoContract_error_sig_ptr, NoContract_error_signature)
-                    mstore(NoContract_error_token_ptr, token)
-                    revert(NoContract_error_sig_ptr, NoContract_error_length)
-                }
+                // Copy the first section of calldata (before dynamic values).
+                calldatacopy(
+                    BatchTransfer1155Params_ptr,
+                    add(elementPtr, ConduitBatch1155Transfer_from_offset),
+                    ConduitBatch1155Transfer_usable_head_size
+                )
+
+                // Determine size of calldata required for ids and amounts. Note
+                // that the size includes both lengths as well as the data.
+                let idsAndAmountsSize := add(TwoWords, mul(idsLength, TwoWords))
+
+                // Update the offset for the data array in memory.
+                mstore(
+                    BatchTransfer1155Params_data_head_ptr,
+                    add(
+                        BatchTransfer1155Params_ids_length_offset,
+                        idsAndAmountsSize
+                    )
+                )
+
+                // Set the length of the data array in memory to zero.
+                mstore(
+                    add(
+                        BatchTransfer1155Params_data_length_basePtr,
+                        idsAndAmountsSize
+                    ),
+                    0
+                )
+
+                // Determine the total calldata size for the call to transfer.
+                let transferDataSize := add(
+                    BatchTransfer1155Params_calldata_baseSize,
+                    idsAndAmountsSize
+                )
+
+                // Copy second section of calldata (including dynamic values).
+                calldatacopy(
+                    BatchTransfer1155Params_ids_length_ptr,
+                    add(elementPtr, ConduitBatch1155Transfer_ids_length_offset),
+                    idsAndAmountsSize
+                )
 
                 // Perform the call to transfer 1155 tokens.
                 let success := call(
@@ -720,11 +724,13 @@ contract TokenTransferrer is TokenTransferrerErrors {
                     // Write the token.
                     mstore(ERC1155BatchTransferGenericFailure_token_ptr, token)
 
-                    // Move the ids and amounts offsets forward a word.
+                    // Increase the offset to ids by 32.
                     mstore(
                         BatchTransfer1155Params_ids_head_ptr,
-                        ConduitBatch1155Transfer_amounts_head_offset
+                        ERC1155BatchTransferGenericFailure_ids_offset
                     )
+
+                    // Increase the offset to amounts by 32.
                     mstore(
                         BatchTransfer1155Params_amounts_head_ptr,
                         add(
@@ -733,11 +739,9 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         )
                     )
 
-                    // Return modified region with one fewer word at the end.
-                    revert(
-                        0,
-                        add(transferDataSize, BatchTransfer1155Params_ptr)
-                    )
+                    // Return modified region. The total size stays the same as
+                    // `token` uses the same number of bytes as `data.length`.
+                    revert(0, transferDataSize)
                 }
             }
 
