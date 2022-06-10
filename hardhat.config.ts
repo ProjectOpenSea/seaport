@@ -57,6 +57,16 @@ const config: HardhatUserConfig = {
           },
         },
       },
+      "contracts/helper/TransferHelper.sol": {
+        version: "0.8.14",
+        settings: {
+          viaIR: true,
+          optimizer: {
+            enabled: true,
+            runs: 1000000,
+          },
+        },
+      },
     },
   },
   networks: {

@@ -9278,12 +9278,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, from, to, amount, identifier
-        itemType = transfers[i].itemType;
-        token = contracts[i];
-        from = transfers[i].from;
-        to = transfers[i].to;
-        amount = transfers[i].amount;
-        identifier = transfers[i].identifier;
+        const { itemType, from, to, amount, identifier } = transfers[i];
+        const token = contracts[i];
 
         switch (itemType) {
           case 1: // ERC20
