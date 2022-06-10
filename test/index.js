@@ -1792,12 +1792,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   });
 
   describe("Zone - Global Pausable", async () => {
-    const zone = new ethers.Wallet(randomHex(32), provider);
+    let zone;
 
     let seller;
     let sellerContract;
     let buyerContract;
     let buyer;
+
+    before(() => {
+      zone = new ethers.Wallet(randomHex(32), provider);
+    });
 
     beforeEach(async () => {
       // Setup basic buyer/seller wallets with ETH
@@ -1813,7 +1817,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         )
       );
     });
+
     it("Fulfills an order with a global pausable zone", async () => {
+      let zoneAddr;
       await whileImpersonating(owner.address, provider, async () => {
         // deploy GPD
         const GPDeployer = await ethers.getContractFactory(
@@ -1829,7 +1835,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         console.log("gp creator deployed");
         // deploy GP
         const salt = randomHex();
-        zone.address = await gpDeployer.createZone(salt);
+        zoneAddr = await gpDeployer.zoneAddressFromSalt(salt);
+        await gpDeployer.createZone(salt);
+        console.log(zoneAddr);
         console.log("called the createZone with: ");
       });
       // create basic order using GP as zone
@@ -1849,19 +1857,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const { order, orderHash, value } = await createOrder(
         seller,
-        zone,
+        { address: zoneAddr },
         offer,
         consideration,
-        0 // FULL_OPEN
+        2
       );
 
       await withBalanceChecks([order], 0, null, async () => {
-        const tx = marketplaceContract
+        const tx = await marketplaceContract
           .connect(buyer)
           .fulfillOrder(order, toKey(false), {
             value,
           });
-        const receipt = await (await tx).wait();
+
+        const receipt = await tx.wait();
         await checkExpectedEvents(tx, receipt, [
           {
             order,
@@ -1967,7 +1976,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await gpDeployer.deployed();
         // deploy GP
         const salt = randomHex();
-        console.log("1 INITIAL ZONE ADDRESS", zone.address);
         zone.address = await gpDeployer.zoneAddressFromSalt(salt);
         actualAddr = await gpDeployer.zoneAddressFromSalt(salt);
         await gpDeployer.createZone(salt);
