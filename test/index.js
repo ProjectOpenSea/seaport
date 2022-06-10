@@ -1977,7 +1977,20 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         toFulfillment(offerArr, considerationArr)
       );
 
-      const executions = await gpDeployer
+      const unrelatedExecutions = await simulateAdvancedMatchOrders(
+        [orderOne, orderTwo, orderThree],
+        [], // no criteria resolvers
+        fulfillments,
+        owner,
+        0 // no value
+      );
+
+      console.log(
+        "simulateAdvancedMatchOrders executions",
+        unrelatedExecutions.length
+      );
+
+      const executeRestrictedMatchOrderZoneExecutions = await gpDeployer
         .connect(owner)
         .callStatic.executeRestrictedMatchOrderZone(
           zoneAddr,
@@ -1987,7 +2000,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
 
       // expect(executions.length).to.equal(fulfillments.length);
-      console.log("HIT!", executions.length);
+      console.log(
+        "executeRestrictedMatchOrderZone executions",
+        executeRestrictedMatchOrderZoneExecutions.length
+      );
 
       const tx = await gpDeployer
         .connect(owner)
