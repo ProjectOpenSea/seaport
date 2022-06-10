@@ -173,7 +173,131 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         );
     }
 
+    function testRevertUnusedItemParametersAddressSetOnNative(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount,
+        address _badToken
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
+        vm.assume(_badToken != address(0));
+        badToken = _badToken;
+
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addEthConsiderationItem(alice, 100);
+        test(
+            this.revertUnusedItemParametersAddressSetOnNative,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this.revertUnusedItemParametersAddressSetOnNative,
+            Context(referenceConsideration, inputs, tokenAmount)
+        );
+    }
+
+    function revertUnusedItemParametersAddressSetOnNative(
+        Context memory context
+    ) external stateless {
+        test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
+
+        considerationItems[0].token = badToken;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        _configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder{ value: 100 }(
+            _basicOrderParameters
+        );
+    }
+
     function testRevertUnusedItemParametersIdentifierSetOnNative(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount,
+        uint256 _badIdentifier
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
+        vm.assume(_badIdentifier != 0);
+        badIdentifier = _badIdentifier;
+
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addEthConsiderationItem(alice, 100);
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnNative,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnNative,
+            Context(referenceConsideration, inputs, tokenAmount)
+        );
+    }
+
+    function revertUnusedItemParametersIdentifierSetOnNative(
+        Context memory context
+    ) external stateless {
+        test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
+
+        considerationItems[0].identifierOrCriteria = badIdentifier;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        _configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder{ value: 100 }(
+            _basicOrderParameters
+        );
+    }
+
+    function testRevertUnusedItemParametersAddressAndIdentifierSetOnNative(
         FuzzInputsCommon memory inputs,
         uint128 tokenAmount,
         uint256 _badIdentifier,
