@@ -1905,7 +1905,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       const offerOne = [
         getTestItem721(nftId, toBN(1), toBN(1), undefined, testERC721.address),
       ];
-
       const considerationOne = [
         getTestItem721(
           secondNFTId,
@@ -1915,7 +1914,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           testERC721.address
         ),
       ];
-
       const { order: orderOne, orderHash: orderHashOne } = await createOrder(
         seller,
         zone,
@@ -1933,7 +1931,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           testERC721.address
         ),
       ];
-
       const considerationTwo = [
         getTestItem721(
           thirdNFTId,
@@ -1943,7 +1940,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           testERC721.address
         ),
       ];
-
       const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
         buyer,
         zone,
@@ -1961,7 +1957,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           testERC721.address
         ),
       ];
-
       const considerationThree = [
         getTestItem721(
           nftId,
@@ -1971,7 +1966,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           testERC721.address
         ),
       ];
-
       const { order: orderThree, orderHash: orderHashThree } =
         await createOrder(owner, zone, offerThree, considerationThree, 2);
 
@@ -2016,7 +2010,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ],
         executions
       );
-
       await checkExpectedEvents(
         tx,
         receipt,
