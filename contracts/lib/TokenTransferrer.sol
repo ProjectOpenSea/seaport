@@ -10,6 +10,18 @@ import {
 
 import { ConduitBatch1155Transfer } from "../conduit/lib/ConduitStructs.sol";
 
+/**
+ * @title TokenTransferrer
+ * @author 0age
+ * @custom:coauthor d1ll0n
+ * @custom:coauthor transmissions11
+ * @notice TokenTransferrer is a library for performing optimized ERC20, ERC721,
+ *         ERC1155, and batch ERC1155 transfers, used by both Seaport as well as
+ *         by conduits deployed by the ConduitController. Use great caution when
+ *         considering these functions for use in other codebases, as there are
+ *         significant side effects and edge cases that need to be thoroughly
+ *         understood and carefully addressed.
+ */
 contract TokenTransferrer is TokenTransferrerErrors {
     /**
      * @dev Internal function to transfer ERC20 tokens from a given originator
@@ -40,6 +52,11 @@ contract TokenTransferrer is TokenTransferrerErrors {
             mstore(ERC20_transferFrom_amount_ptr, amount)
 
             // Make call & copy up to 32 bytes of return data to scratch space.
+            // Scratch space does not need to be cleared ahead of time, as the
+            // subsequent check will ensure that either at least a full word of
+            // return data is received (in which case it will be overwritten) or
+            // that no data is received (in which case scratch space will be
+            // ignored) on a successful call to the given token.
             let callStatus := call(
                 gas(),
                 token,
@@ -62,8 +79,8 @@ contract TokenTransferrer is TokenTransferrerErrors {
                 callStatus
             )
 
-            // If the transfer failed or it returned nothing:
-            // Group these because they should be uncommon.
+            // Handle cases where either the transfer failed or no data was
+            // returned. Group these, as most transfers will succeed with data.
             // Equivalent to `or(iszero(success), iszero(returndatasize()))`
             // but after it's inverted for JUMPI this expression is cheaper.
             if iszero(and(success, iszero(iszero(returndatasize())))) {
@@ -190,14 +207,14 @@ contract TokenTransferrer is TokenTransferrerErrors {
                         )
                     }
 
-                    // Otherwise revert with error about token not having code:
+                    // Otherwise, revert with error about token not having code:
                     mstore(NoContract_error_sig_ptr, NoContract_error_signature)
                     mstore(NoContract_error_token_ptr, token)
                     revert(NoContract_error_sig_ptr, NoContract_error_length)
                 }
 
-                // Otherwise the token just returned nothing but otherwise
-                // succeeded; no need to optimize for this as it's not
+                // Otherwise, the token just returned no data despite the call
+                // having succeeded; no need to optimize for this as it's not
                 // technically ERC20 compliant.
             }
 
@@ -747,6 +764,8 @@ contract TokenTransferrer is TokenTransferrerErrors {
 
             // Reset the free memory pointer to the default value; memory must
             // be assumed to be dirtied and not reused from this point forward.
+            // Also note that the zero slot is not reset to zero, meaning empty
+            // arrays cannot be safely created or utilized until it is restored.
             mstore(FreeMemoryPointerSlot, DefaultFreeMemoryPointer)
         }
     }
