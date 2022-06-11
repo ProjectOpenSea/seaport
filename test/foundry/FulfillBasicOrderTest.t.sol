@@ -247,7 +247,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         badIdentifier = _badIdentifier;
 
         addErc20OfferItem(100);
-        addErc1155ConsiderationItem(alice, inputs.tokenId, tokenAmount);
+        addErc721ConsiderationItem(alice, inputs.tokenId);
 
         test(
             this.revertUnusedItemParametersIdentifierSetOnErc20Offer,
@@ -262,9 +262,9 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     function revertUnusedItemParametersIdentifierSetOnErc20Offer(
         Context memory context
     ) external stateless {
-        test1155_1.mint(bob, context.args.tokenId, context.tokenAmount);
+        test721_1.mint(bob, context.args.tokenId);
 
-        offerItems[0].identifierOrCriteria = badIdentifier;
+        offerItems[0].identifierOrCriteria = 69;
 
         _configureOrderParameters(
             alice,
@@ -288,14 +288,13 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         BasicOrderParameters
             memory _basicOrderParameters = toBasicOrderParameters(
                 baseOrderComponents,
-                BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN,
+                BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
                 signature
             );
 
+        vm.prank(alice);
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
-        context.consideration.fulfillBasicOrder{ value: 100 }(
-            _basicOrderParameters
-        );
+        context.consideration.fulfillBasicOrder(_basicOrderParameters);
     }
 
     function testRevertUnusedItemParametersIdentifierSetOnNativeConsideration(
