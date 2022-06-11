@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 import { ItemType, Side } from "./ConsiderationEnums.sol";
 
@@ -31,7 +31,7 @@ import {
  */
 contract FulfillmentApplier is FulfillmentApplicationErrors {
     /**
-     * @dev Internal view function to match offer items to consideration items
+     * @dev Internal pure function to match offer items to consideration items
      *      on a group of orders via a supplied fulfillment.
      *
      * @param advancedOrders          The orders to match.
@@ -49,7 +49,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] calldata offerComponents,
         FulfillmentComponent[] calldata considerationComponents
-    ) internal view returns (Execution memory execution) {
+    ) internal pure returns (Execution memory execution) {
         // Ensure 1+ of both offer and consideration components are supplied.
         if (
             offerComponents.length == 0 || considerationComponents.length == 0
@@ -70,6 +70,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         // Retrieve the consideration item from the execution struct.
         ReceivedItem memory considerationItem = considerationExecution.item;
 
+        // Recipient does not need to be specified because it will always be set
+        // to that of the consideration.
         // Validate & aggregate offer items to Execution object.
         _aggregateValidFulfillmentOfferItems(
             advancedOrders,
@@ -93,27 +95,39 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 considerationComponents[0]
             );
 
-            // Add excess consideration item amount to original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .consideration[targetComponent.itemIndex]
-                .startAmount = considerationItem.amount - execution.item.amount;
+            // Skip underflow check as the conditional being true implies that
+            // considerationItem.amount > execution.item.amount.
+            unchecked {
+                // Add excess consideration item amount to original order array.
+                advancedOrders[targetComponent.orderIndex]
+                    .parameters
+                    .consideration[targetComponent.itemIndex]
+                    .startAmount = (considerationItem.amount -
+                    execution.item.amount);
+            }
 
             // Reduce total consideration amount to equal the offer amount.
             considerationItem.amount = execution.item.amount;
         } else {
             // Retrieve the first offer component from the fulfillment.
-            FulfillmentComponent memory targetComponent = (offerComponents[0]);
+            FulfillmentComponent memory targetComponent = offerComponents[0];
 
-            // Add excess offer item amount to the original array of orders.
-            advancedOrders[targetComponent.orderIndex]
-                .parameters
-                .offer[targetComponent.itemIndex]
-                .startAmount = execution.item.amount - considerationItem.amount;
+            // Skip underflow check as the conditional being false implies that
+            // execution.item.amount >= considerationItem.amount.
+            unchecked {
+                // Add excess offer item amount to the original array of orders.
+                advancedOrders[targetComponent.orderIndex]
+                    .parameters
+                    .offer[targetComponent.itemIndex]
+                    .startAmount = (execution.item.amount -
+                    considerationItem.amount);
+            }
+
+            // Reduce total offer amount to equal the consideration amount.
+            execution.item.amount = considerationItem.amount;
         }
 
-        // Reuse execution struct with consideration amount and recipient.
-        execution.item.amount = considerationItem.amount;
+        // Reuse consideration recipient.
         execution.item.recipient = considerationItem.recipient;
 
         // Return the final execution that will be triggered for relevant items.
@@ -135,6 +149,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
      *                              approvals from. The zero hash signifies that
      *                              no conduit should be used, with approvals
      *                              set directly on this contract.
+     * @param recipient             The intended recipient for all received
+     *                              items.
      *
      * @return execution The transfer performed as a result of the fulfillment.
      */
@@ -142,7 +158,8 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         AdvancedOrder[] memory advancedOrders,
         Side side,
         FulfillmentComponent[] memory fulfillmentComponents,
-        bytes32 fulfillerConduitKey
+        bytes32 fulfillerConduitKey,
+        address recipient
     ) internal view returns (Execution memory execution) {
         // Skip overflow / underflow checks; conditions checked or unreachable.
         unchecked {
@@ -154,6 +171,9 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             // If the fulfillment components are offer components...
             if (side == Side.OFFER) {
+                // Set the supplied recipient on the execution item.
+                execution.item.recipient = payable(recipient);
+
                 // Return execution for aggregated items provided by offerer.
                 _aggregateValidFulfillmentOfferItems(
                     advancedOrders,
@@ -177,9 +197,11 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 execution.conduitKey = fulfillerConduitKey;
             }
 
-            // Set the offerer as the receipient if execution amount is nonzero.
+            // Set the offerer and recipient to null address if execution
+            // amount is zero. This will cause the execution item to be skipped.
             if (execution.item.amount == 0) {
-                execution.item.recipient = payable(execution.offerer);
+                execution.offerer = address(0);
+                execution.item.recipient = payable(0);
             }
         }
     }
@@ -199,7 +221,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
         AdvancedOrder[] memory advancedOrders,
         FulfillmentComponent[] memory offerComponents,
         Execution memory execution
-    ) internal view {
+    ) internal pure {
         assembly {
             // Declare function for reverts on invalid fulfillment data.
             function throwInvalidFulfillmentComponentData() {
@@ -290,12 +312,6 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
 
             // Retrieve the received item pointer.
             let receivedItemPtr := mload(execution)
-
-            // Set the caller as the recipient on the received item.
-            mstore(
-                add(receivedItemPtr, ReceivedItem_recipient_offset),
-                caller()
-            )
 
             // Set the item type on the received item.
             mstore(receivedItemPtr, mload(offerItemPtr))
@@ -402,7 +418,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Update error buffer (1 = zero amount, 2 = overflow).
+                // Update error buffer: 1 = zero amount, 2 = overflow, 3 = both.
                 errorBuffer := or(
                   errorBuffer,
                   or(
@@ -461,17 +477,19 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Write final amount to execution.
             mstore(add(mload(execution), Common_amount_offset), amount)
 
-            // Determine if an error code is contained in the error buffer.
-            switch errorBuffer
-            case 1 {
-                // Store the MissingItemAmount error signature.
-                mstore(0, MissingItemAmount_error_signature)
+            // Determine whether the error buffer contains a nonzero error code.
+            if errorBuffer {
+                // If errorBuffer is 1, an item had an amount of zero.
+                if eq(errorBuffer, 1) {
+                    // Store the MissingItemAmount error signature.
+                    mstore(0, MissingItemAmount_error_signature)
 
-                // Return, supplying MissingItemAmount signature.
-                revert(0, MissingItemAmount_error_len)
-            }
-            case 2 {
-                // If the sum overflowed, panic.
+                    // Return, supplying MissingItemAmount signature.
+                    revert(0, MissingItemAmount_error_len)
+                }
+
+                // If errorBuffer is not 1 or 0, the sum overflowed.
+                // Panic!
                 throwOverflow()
             }
         }
@@ -692,7 +710,7 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
                 // Add offer amount to execution amount.
                 let newAmount := add(amount, mload(amountPtr))
 
-                // Update error buffer (1 = zero amount, 2 = overflow).
+                // Update error buffer: 1 = zero amount, 2 = overflow, 3 = both.
                 errorBuffer := or(
                   errorBuffer,
                   or(
@@ -742,17 +760,19 @@ contract FulfillmentApplier is FulfillmentApplicationErrors {
             // Write final amount to execution.
             mstore(add(receivedItem, Common_amount_offset), amount)
 
-            // Determine if an error code is contained in the error buffer.
-            switch errorBuffer
-            case 1 {
-                // Store the MissingItemAmount error signature.
-                mstore(0, MissingItemAmount_error_signature)
+            // Determine whether the error buffer contains a nonzero error code.
+            if errorBuffer {
+                // If errorBuffer is 1, an item had an amount of zero.
+                if eq(errorBuffer, 1) {
+                    // Store the MissingItemAmount error signature.
+                    mstore(0, MissingItemAmount_error_signature)
 
-                // Return, supplying MissingItemAmount signature.
-                revert(0, MissingItemAmount_error_len)
-            }
-            case 2 {
-                // If the sum overflowed, panic.
+                    // Return, supplying MissingItemAmount signature.
+                    revert(0, MissingItemAmount_error_len)
+                }
+
+                // If errorBuffer is not 1 or 0, the sum overflowed.
+                // Panic!
                 throwOverflow()
             }
         }

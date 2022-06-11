@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 import { OrderStatus } from "./ConsiderationStructs.sol";
 
@@ -85,7 +85,7 @@ contract Verifiers is Assertions, SignatureVerification {
     }
 
     /**
-     * @dev Internal pure function to validate that a given order is fillable
+     * @dev Internal view function to validate that a given order is fillable
      *      and not cancelled based on the order status.
      *
      * @param orderHash       The order hash.
@@ -101,10 +101,10 @@ contract Verifiers is Assertions, SignatureVerification {
      */
     function _verifyOrderStatus(
         bytes32 orderHash,
-        OrderStatus memory orderStatus,
+        OrderStatus storage orderStatus,
         bool onlyAllowUnused,
         bool revertOnInvalid
-    ) internal pure returns (bool valid) {
+    ) internal view returns (bool valid) {
         // Ensure that the order has not been cancelled.
         if (orderStatus.isCancelled) {
             // Only revert if revertOnInvalid has been supplied as true.
@@ -116,14 +116,18 @@ contract Verifiers is Assertions, SignatureVerification {
             return false;
         }
 
+        // Read order status numerator from storage and place on stack.
+        uint256 orderStatusNumerator = orderStatus.numerator;
+
         // If the order is not entirely unused...
-        if (orderStatus.numerator != 0) {
+        if (orderStatusNumerator != 0) {
             // ensure the order has not been partially filled when not allowed.
             if (onlyAllowUnused) {
                 // Always revert on partial fills when onlyAllowUnused is true.
                 revert OrderPartiallyFilled(orderHash);
-                // Otherwise, ensure that order has not been entirely filled.
-            } else if (orderStatus.numerator >= orderStatus.denominator) {
+            }
+            // Otherwise, ensure that order has not been entirely filled.
+            else if (orderStatusNumerator >= orderStatus.denominator) {
                 // Only revert if revertOnInvalid has been supplied as true.
                 if (revertOnInvalid) {
                     revert OrderAlreadyFilled(orderHash);

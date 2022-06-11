@@ -33,40 +33,60 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         _controller = msg.sender;
     }
 
+    /**
+     * @notice Execute a sequence of ERC20/721/1155 transfers. Only a caller
+     *         with an open channel can call this function. Note that channels
+     *         are expected to implement reentrancy protection if desired, and
+     *         that cross-channel reentrancy may be possible if the conduit has
+     *         multiple open channels at once. Also note that channels are
+     *         expected to implement checks against transferring any zero-amount
+     *         items if that constraint is desired.
+     *
+     * @param transfers The ERC20/721/1155 transfers to perform.
+     *
+     * @return magicValue A magic value indicating that the transfers were
+     *                    performed successfully.
+     */
     function execute(ConduitTransfer[] calldata transfers)
         external
         override
         returns (bytes4 magicValue)
     {
         if (!_channels[msg.sender]) {
-            revert ChannelClosed();
+            revert ChannelClosed(msg.sender);
         }
 
-        uint256 totalStandardTransfers = transfers.length;
-
-        // Iterate over each standard execution.
-        for (uint256 i = 0; i < totalStandardTransfers; i++) {
-            // Retrieve the transfer in question.
-            ConduitTransfer calldata standardTransfer = transfers[i];
-
-            // Perform the transfer.
-            _transfer(standardTransfer);
-        }
+        // Perform standard transfers
+        _performTransfers(transfers);
 
         return this.execute.selector;
     }
 
+    /**
+     * @notice Execute a sequence of batch 1155 transfers. Only a caller with an
+     *         open channel can call this function. Note that channels are
+     *         expected to implement reentrancy protection if desired, and that
+     *         cross-channel reentrancy may be possible if the conduit has
+     *         multiple open channels at once. Also note that channels are
+     *         expected to implement checks against transferring any zero-amount
+     *         items if that constraint is desired.
+     *
+     * @param batchTransfers The 1155 batch transfers to perform.
+     *
+     * @return magicValue A magic value indicating that the transfers were
+     *                    performed successfully.
+     */
     function executeBatch1155(
         ConduitBatch1155Transfer[] calldata batchTransfers
     ) external override returns (bytes4 magicValue) {
         if (!_channels[msg.sender]) {
-            revert ChannelClosed();
+            revert ChannelClosed(msg.sender);
         }
 
         uint256 totalBatchTransfers = batchTransfers.length;
 
         // Iterate over each batch transfer.
-        for (uint256 i = 0; i < totalBatchTransfers; i++) {
+        for (uint256 i = 0; i < totalBatchTransfers; ++i) {
             // Retrieve the batch transfer in question.
             ConduitBatch1155Transfer calldata batchTransfer = batchTransfers[i];
 
@@ -77,29 +97,36 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         return this.executeBatch1155.selector;
     }
 
+    /**
+     * @notice Execute a sequence of transfers, both single and batch 1155. Only
+     *         a caller with an open channel can call this function. Note that
+     *         channels are expected to implement reentrancy protection if
+     *         desired, and that cross-channel reentrancy may be possible if the
+     *         conduit has multiple open channels at once. Also note that
+     *         channels are expected to implement checks against transferring
+     *         any zero-amount items if that constraint is desired.
+     *
+     * @param standardTransfers The ERC20/721/1155 transfers to perform.
+     * @param batchTransfers    The 1155 batch transfers to perform.
+     *
+     * @return magicValue A magic value indicating that the transfers were
+     *                    performed successfully.
+     */
     function executeWithBatch1155(
         ConduitTransfer[] calldata standardTransfers,
         ConduitBatch1155Transfer[] calldata batchTransfers
     ) external override returns (bytes4 magicValue) {
         if (!_channels[msg.sender]) {
-            revert ChannelClosed();
+            revert ChannelClosed(msg.sender);
         }
 
-        uint256 totalStandardTransfers = standardTransfers.length;
-
-        // Iterate over each standard transfer.
-        for (uint256 i = 0; i < totalStandardTransfers; i++) {
-            // Retrieve the transfer in question.
-            ConduitTransfer calldata standardTransfer = standardTransfers[i];
-
-            // Perform the transfer.
-            _transfer(standardTransfer);
-        }
+        // Perform standard transfers
+        _performTransfers(standardTransfers);
 
         uint256 totalBatchTransfers = batchTransfers.length;
 
         // Iterate over each batch transfer.
-        for (uint256 i = 0; i < totalBatchTransfers; i++) {
+        for (uint256 i = 0; i < totalBatchTransfers; ++i) {
             // Retrieve the batch transfer in question.
             ConduitBatch1155Transfer calldata batchTransfer = batchTransfers[i];
 
@@ -110,9 +137,20 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
         return this.executeWithBatch1155.selector;
     }
 
+    /**
+     * @notice Open or close a given channel. Only callable by the controller.
+     *
+     * @param channel The channel to open or close.
+     * @param isOpen  The status of the channel (either open or closed).
+     */
     function updateChannel(address channel, bool isOpen) external override {
         if (msg.sender != _controller) {
             revert InvalidController();
+        }
+
+        // Ensure that the channel does not already have the indicated status.
+        if (_channels[channel] == isOpen) {
+            revert ChannelStatusAlreadySet(channel, isOpen);
         }
 
         _channels[channel] = isOpen;
@@ -121,14 +159,40 @@ contract ReferenceConduit is ConduitInterface, ReferenceTokenTransferrer {
     }
 
     /**
-     * @dev Internal function to transfer a given item.
+     * @dev Internal function to transfer a list of given ERC20/721/1155 items.
+     *      Sufficient approvals must be set, either on the respective proxy or
+     *      on this contract itself.
      *
-     * @param item     The item to transfer, including an amount and recipient.
+     * @param transfers The tokens to be transferred.
+     */
+    function _performTransfers(ConduitTransfer[] calldata transfers) internal {
+        uint256 totalStandardTransfers = transfers.length;
+
+        // Iterate over each standard execution.
+        for (uint256 i = 0; i < totalStandardTransfers; ++i) {
+            // Retrieve the transfer in question.
+            ConduitTransfer calldata standardTransfer = transfers[i];
+
+            // Perform the transfer.
+            _transfer(standardTransfer);
+        }
+    }
+
+    /**
+     * @dev Internal function to transfer a given ERC20/721/1155 item. Note that
+     *      channels are expected to implement checks against transferring any
+     *      zero-amount items if that constraint is desired.
+     *
+     * @param item The ERC20/721/1155 item to transfer, including an amount and
+     *             recipient.
      */
     function _transfer(ConduitTransfer calldata item) internal {
-        // If the item type indicates Ether or a native token...
+        // Perform the transfer based on the item's type.
         if (item.itemType == ConduitItemType.ERC20) {
-            // Transfer ERC20 token.
+            // Transfer ERC20 token. Note that item.identifier is ignored and
+            // therefore ERC20 transfer items are potentially malleable — this
+            // check should be performed by the calling channel if a constraint
+            // on item malleability is desired.
             _performERC20Transfer(item.token, item.from, item.to, item.amount);
         } else if (item.itemType == ConduitItemType.ERC721) {
             // Ensure that exactly one 721 item is being transferred.

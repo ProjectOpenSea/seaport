@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 import "./ConsiderationConstants.sol";
 
@@ -51,7 +51,10 @@ contract LowLevelHelpers {
                 // Ensure that sufficient gas is available to copy returndata
                 // while expanding memory where necessary. Start by computing
                 // the word size of returndata and allocated memory.
-                let returnDataWords := div(returndatasize(), OneWord)
+                let returnDataWords := div(
+                    add(returndatasize(), AlmostOneWord),
+                    OneWord
+                )
 
                 // Note: use the free memory pointer in place of msize() to work
                 // around a Yul warning that prevents accessing msize directly

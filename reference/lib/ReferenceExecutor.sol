@@ -48,14 +48,17 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
     /**
      * @dev Internal function to transfer a given item.
      *
-     * @param item                  The item to transfer including an amount and recipient.
-     * @param offerer               The account offering the item, i.e. the from address.
-     * @param conduitKey            A bytes32 value indicating what corresponding conduit,
-     *                              if any, to source token approvals from. The zero hash
-     *                              signifies that no conduit should be used (and direct
-     *                              approvals set on Consideration)
-     * @param accumulatorStruct     A struct containing conduit transfer data and its
-     *                              corresponding conduitKey.
+     * @param item                  The item to transfer including an amount
+     *                              and recipient.
+     * @param offerer               The account offering the item, i.e. the
+     *                              from address.
+     * @param conduitKey            A bytes32 value indicating what
+     *                              corresponding conduit, if any, to source
+     *                              token approvals from. The zero hash
+     *                              signifies that no conduit should be used
+     *                              (and direct approvals set on Consideration)
+     * @param accumulatorStruct     A struct containing conduit transfer data
+     *                              and its corresponding conduitKey.
      */
     function _transfer(
         ReceivedItem memory item,
@@ -65,9 +68,19 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
     ) internal {
         // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
-            // transfer the native tokens to the recipient.
+            // Ensure neither the token nor the identifier parameters are set.
+            if ((uint160(item.token) | item.identifier) != 0) {
+                revert UnusedItemParameters();
+            }
+
+            // Transfer the native tokens to the recipient.
             _transferEth(item.recipient, item.amount);
         } else if (item.itemType == ItemType.ERC20) {
+            // Ensure that no identifier is supplied.
+            if (item.identifier != 0) {
+                revert UnusedItemParameters();
+            }
+
             // Transfer ERC20 tokens from the offerer to the recipient.
             _transferERC20(
                 item.token,
@@ -132,12 +145,13 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      * @param from                  The originator of the transfer.
      * @param to                    The recipient of the transfer.
      * @param amount                The amount to transfer.
-     * @param conduitKey            A bytes32 value indicating what corresponding conduit,
-     *                              if any, to source token approvals from. The zero hash
-     *                              signifies that no conduit should be used (and direct
-     *                              approvals set on Consideration).
-     * @param accumulatorStruct     A struct containing conduit transfer data and its
-     *                              corresponding conduitKey.
+     * @param conduitKey            A bytes32 value indicating what
+     *                              corresponding conduit, if any, to source
+     *                              token approvals from. The zero hash
+     *                              signifies that no conduit should be used
+     *                              (and direct approvals set on Consideration)
+     * @param accumulatorStruct     A struct containing conduit transfer data
+     *                              and its corresponding conduitKey.
      */
     function _transferERC20(
         address token,
@@ -162,7 +176,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
             _insert(
                 conduitKey,
                 accumulatorStruct,
-                uint256(1),
+                ConduitItemType.ERC20,
                 token,
                 from,
                 to,
@@ -181,13 +195,15 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      * @param from                  The originator of the transfer.
      * @param to                    The recipient of the transfer.
      * @param identifier            The tokenId to transfer.
-     * @param amount                The "amount" (this value must be equal to one).
-     * @param conduitKey            A bytes32 value indicating what corresponding conduit,
-     *                              if any, to source token approvals from. The zero hash
-     *                              signifies that no conduit should be used (and direct
-     *                              approvals set on Consideration).
-     * @param accumulatorStruct     A struct containing conduit transfer data and its
-     *                              corresponding conduitKey.
+     * @param amount                The "amount" (this value must be equal
+     *                              to one).
+     * @param conduitKey            A bytes32 value indicating what
+     *                              corresponding conduit, if any, to source
+     *                              token approvals from. The zero hash
+     *                              signifies that no conduit should be used
+     *                              (and direct approvals set on Consideration)
+     * @param accumulatorStruct     A struct containing conduit transfer data
+     *                              and its corresponding conduitKey.
      */
     function _transferERC721(
         address token,
@@ -215,7 +231,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
             _insert(
                 conduitKey,
                 accumulatorStruct,
-                uint256(2),
+                ConduitItemType.ERC721,
                 token,
                 from,
                 to,
@@ -235,12 +251,13 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      * @param to                    The recipient of the transfer.
      * @param identifier            The tokenId to transfer.
      * @param amount                The amount to transfer.
-     * @param conduitKey            A bytes32 value indicating what corresponding conduit,
-     *                              if any, to source token approvals from. The zero hash
-     *                              signifies that no conduit should be used (and direct
-     *                              approvals set on Consideration).
-     * @param accumulatorStruct     A struct containing conduit transfer data and its
-     *                              corresponding conduitKey.
+     * @param conduitKey            A bytes32 value indicating what
+     *                              corresponding conduit, if any, to source
+     *                              token approvals from. The zero hash
+     *                              signifies that no conduit should be used
+     *                              (and direct approvals set on Consideration)
+     * @param accumulatorStruct     A struct containing conduit transfer data
+     *                              and its corresponding conduitKey.
      */
     function _transferERC1155(
         address token,
@@ -266,7 +283,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
             _insert(
                 conduitKey,
                 accumulatorStruct,
-                uint256(3),
+                ConduitItemType.ERC1155,
                 token,
                 from,
                 to,
@@ -282,12 +299,13 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      *      is "armed") and the supplied conduit key does not match the key held
      *      by the accumulator.
      *
-     * @param accumulatorStruct A struct containing conduit transfer data and its
-     *                          corresponding conduitKey.
-     * @param conduitKey        A bytes32 value indicating what corresponding conduit,
-     *                          if any, to source token approvals from. The zero hash
-     *                          signifies that no conduit should be used, with direct
-     *                          approvals set on this contract.
+     * @param accumulatorStruct A struct containing conduit transfer data
+     *                          and its corresponding conduitKey.
+     * @param conduitKey        A bytes32 value indicating what corresponding
+     *                          conduit, if any, to source token approvals
+     *                          from. The zero hash signifies that no conduit
+     *                          should be used (and direct approvals set on
+     *                          Consideration)
      */
     function _triggerIfArmedAndNotAccumulatable(
         AccumulatorStruct memory accumulatorStruct,
@@ -304,8 +322,8 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      *      the accumulator if the accumulator contains item transfers (i.e. it
      *      is "armed").
      *
-     * @param accumulatorStruct A struct containing conduit transfer data and its
-     *                          corresponding conduitKey.
+     * @param accumulatorStruct A struct containing conduit transfer data
+     *                          and its corresponding conduitKey.
      */
     function _triggerIfArmed(AccumulatorStruct memory accumulatorStruct)
         internal
@@ -324,8 +342,8 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      *      a given conduit key, supplying all accumulated item transfers. The
      *      accumulator will be "disarmed" and reset in the process.
      *
-     * @param accumulatorStruct A struct containing conduit transfer data and its
-     *                          corresponding conduitKey.
+     * @param accumulatorStruct A struct containing conduit transfer data
+     *                          and its corresponding conduitKey.
      */
     function _trigger(AccumulatorStruct memory accumulatorStruct) internal {
         // Call the conduit with all the accumulated transfers.
@@ -342,12 +360,13 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      *      that collects a series of transfers to execute against a given
      *      conduit in a single call.
      *
-     * @param conduitKey        A bytes32 value indicating what corresponding conduit,
-     *                          if any, to source token approvals from. The zero hash
-     *                          signifies that no conduit should be used, with direct
-     *                          approvals set on this contract.
-     * @param accumulatorStruct A struct containing conduit transfer data and its
-     *                          corresponding conduitKey.
+     * @param conduitKey        A bytes32 value indicating what
+     *                          corresponding conduit, if any, to source
+     *                          token approvals from. The zero hash
+     *                          signifies that no conduit should be used
+     *                          (and direct approvals set on Consideration)
+     * @param accumulatorStruct A struct containing conduit transfer data
+     *                          and its corresponding conduitKey.
      * @param itemType          The type of the item to transfer.
      * @param token             The token to transfer.
      * @param from              The originator of the transfer.
@@ -358,7 +377,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
     function _insert(
         bytes32 conduitKey,
         AccumulatorStruct memory accumulatorStruct,
-        uint256 itemType,
+        ConduitItemType itemType,
         address token,
         address from,
         address to,
@@ -396,7 +415,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
 
         // Insert new transfer into array.
         newTransfers[currentTransferLength] = ConduitTransfer(
-            ConduitItemType(itemType),
+            itemType,
             token,
             from,
             to,
@@ -420,8 +439,8 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
      *                   the "salt" parameter supplied by the deployer (i.e. the
      *                   conduit controller) when deploying the given conduit.
      *
-     * @return conduit The address of the conduit associated with the given
-     *                 conduit key.
+     * @return conduit   The address of the conduit associated with the given
+     *                   conduit key.
      */
     function _getConduit(bytes32 conduitKey)
         internal
@@ -433,7 +452,7 @@ contract ReferenceExecutor is ReferenceVerifiers, ReferenceTokenTransferrer {
 
         // If the conduit does not have runtime code (i.e. is not deployed)...
         if (conduit.code.length == 0) {
-            // Revert with an error indicating an invalud conduit.
+            // Revert with an error indicating an invalid conduit.
             revert InvalidConduit(conduitKey, conduit);
         }
     }

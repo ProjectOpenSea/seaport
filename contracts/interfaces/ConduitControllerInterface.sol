@@ -46,21 +46,37 @@ interface ConduitControllerInterface {
      * @dev Emit an event whenever a conduit owner registers a new potential
      *      owner for that conduit.
      *
-     * @param conduit           The conduit for which ownership may now be
-     *                          transferred.
      * @param newPotentialOwner The new potential owner of the conduit.
      */
-    event PotentialOwnerUpdated(
-        address indexed conduit,
-        address indexed newPotentialOwner
-    );
+    event PotentialOwnerUpdated(address indexed newPotentialOwner);
 
     /**
      * @dev Revert with an error when attempting to create a new conduit using a
-     *      conduit key where the last twenty bytes of the key do not match the
+     *      conduit key where the first twenty bytes of the key do not match the
      *      address of the caller.
      */
     error InvalidCreator();
+
+    /**
+     * @dev Revert with an error when attempting to create a new conduit when no
+     *      initial owner address is supplied.
+     */
+    error InvalidInitialOwner();
+
+    /**
+     * @dev Revert with an error when attempting to set a new potential owner
+     *      that is already set.
+     */
+    error NewPotentialOwnerAlreadySet(
+        address conduit,
+        address newPotentialOwner
+    );
+
+    /**
+     * @dev Revert with an error when attempting to cancel ownership transfer
+     *      when no new potential owner is currently set.
+     */
+    error NoPotentialOwnerCurrentlySet(address conduit);
 
     /**
      * @dev Revert with an error when attempting to interact with a conduit that
@@ -102,13 +118,13 @@ interface ConduitControllerInterface {
 
     /**
      * @notice Deploy a new conduit using a supplied conduit key and assigning
-     *         an initial owner for the deployed conduit. Note that the last
+     *         an initial owner for the deployed conduit. Note that the first
      *         twenty bytes of the supplied conduit key must match the caller
      *         and that a new conduit cannot be created if one has already been
      *         deployed using the same conduit key.
      *
      * @param conduitKey   The conduit key used to deploy the conduit. Note that
-     *                     the last twenty bytes of the conduit key must match
+     *                     the first twenty bytes of the conduit key must match
      *                     the caller of this contract.
      * @param initialOwner The initial owner to set for the new conduit.
      *
@@ -143,6 +159,7 @@ interface ConduitControllerInterface {
      *         Only the owner of the conduit in question may call this function.
      *
      * @param conduit The conduit for which to initiate ownership transfer.
+     * @param newPotentialOwner The new potential owner of the conduit.
      */
     function transferOwnership(address conduit, address newPotentialOwner)
         external;
