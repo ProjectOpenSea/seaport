@@ -2308,6 +2308,79 @@ contract FulfillOrderTest is BaseOrderTest {
         );
     }
 
+    function testFulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer(
+        FuzzInputsCommon memory inputs,
+        uint256 tokenAmount,
+        uint256 _badIdentifier
+    ) public validateInputs(inputs) onlyPayable(inputs.zone) {
+        vm.assume(_badIdentifier != 0);
+        badIdentifier = _badIdentifier;
+
+        vm.assume(inputs.id > 0);
+        vm.assume(tokenAmount > 0);
+        test(
+            this
+                .fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer,
+            Context(consideration, inputs, tokenAmount, 0, 0)
+        );
+        test(
+            this
+                .fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer,
+            Context(referenceConsideration, inputs, tokenAmount, 0, 0)
+        );
+    }
+
+    function fulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Offer(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(bob, context.args.id);
+
+        addErc20OfferItem(100);
+        addErc721ConsiderationItem(alice, context.args.id);
+
+        offerItems[0].identifierOrCriteria = badIdentifier;
+
+        OrderComponents memory orderComponents = OrderComponents(
+            alice,
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            context.args.zoneHash,
+            context.args.salt,
+            bytes32(0),
+            context.consideration.getCounter(alice)
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            context.consideration.getOrderHash(orderComponents)
+        );
+
+        OrderParameters memory orderParameters = OrderParameters(
+            address(alice),
+            context.args.zone,
+            offerItems,
+            considerationItems,
+            OrderType.FULL_OPEN,
+            block.timestamp,
+            block.timestamp + 1,
+            context.args.zoneHash,
+            context.args.salt,
+            bytes32(0),
+            considerationItems.length
+        );
+
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillOrder(
+            Order(orderParameters, signature),
+            bytes32(0)
+        );
+    }
+
     function testFulfillOrderRevertUnusedItemParametersIdentifierSetOnErc20Consideration(
         FuzzInputsCommon memory inputs,
         uint256 tokenAmount,

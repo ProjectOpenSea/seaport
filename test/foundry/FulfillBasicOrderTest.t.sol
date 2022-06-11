@@ -235,7 +235,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         );
     }
 
-    function testRevertUnusedItemParametersAddressSetOnNativeOffer(
+    function testRevertUnusedItemParametersIdentifierSetOnErc20Offer(
         FuzzInputsCommon memory inputs,
         uint128 tokenAmount,
         uint256 _badIdentifier
@@ -250,21 +250,21 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         addErc1155ConsiderationItem(alice, inputs.tokenId, tokenAmount);
 
         test(
-            this.revertUnusedItemParametersAddressSetOnNativeOffer,
+            this.revertUnusedItemParametersIdentifierSetOnErc20Offer,
             Context(consideration, inputs, tokenAmount)
         );
         test(
-            this.revertUnusedItemParametersAddressSetOnNativeOffer,
+            this.revertUnusedItemParametersIdentifierSetOnErc20Offer,
             Context(referenceConsideration, inputs, tokenAmount)
         );
     }
 
-    function revertUnusedItemParametersAddressSetOnNativeOffer(
+    function revertUnusedItemParametersIdentifierSetOnErc20Offer(
         Context memory context
     ) external stateless {
         test1155_1.mint(bob, context.args.tokenId, context.tokenAmount);
 
-        offerItems[0].token = badToken;
+        offerItems[0].identifierOrCriteria = badIdentifier;
 
         _configureOrderParameters(
             alice,
