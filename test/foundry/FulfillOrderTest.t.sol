@@ -151,7 +151,7 @@ contract FulfillOrderTest is BaseOrderTest {
         );
 
         vm.expectRevert(abi.encodeWithSignature("InvalidNativeOfferItem()"));
-        
+
         context.consideration.fulfillOrder(
             Order(baseOrderParameters, signature),
             bytes32(0)
