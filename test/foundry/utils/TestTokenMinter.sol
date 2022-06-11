@@ -8,6 +8,36 @@ import { ERC721Recipient } from "./ERC721Recipient.sol";
 import { ERC1155Recipient } from "./ERC1155Recipient.sol";
 import { ItemType } from "../../../contracts/lib/ConsiderationEnums.sol";
 import { BaseConsiderationTest } from "./BaseConsiderationTest.sol";
+import { ERC721 } from "../token/ERC721.sol";
+
+contract PreapprovedERC721 is ERC721 {
+    mapping(address => bool) public preapprovals;
+
+    constructor(address[] memory preapproved) ERC721("", "") {
+        for (uint256 i = 0; i < preapproved.length; i++) {
+            preapprovals[preapproved[i]] = true;
+        }
+    }
+
+    function mint(address to, uint256 amount) external returns (bool) {
+        _mint(to, amount);
+        return true;
+    }
+
+    function isApprovedForAll(address owner, address operator)
+        public
+        view
+        override
+        returns (bool)
+    {
+        return
+            preapprovals[operator] || super.isApprovedForAll(owner, operator);
+    }
+
+    function tokenURI(uint256) public pure override returns (string memory) {
+        return "";
+    }
+}
 
 contract TestTokenMinter is
     BaseConsiderationTest,
@@ -30,6 +60,7 @@ contract TestTokenMinter is
     TestERC721 internal test721_1;
     TestERC721 internal test721_2;
     TestERC721 internal test721_3;
+    PreapprovedERC721 internal preapproved721;
 
     TestERC1155 internal test1155_1;
     TestERC1155 internal test1155_2;
@@ -38,6 +69,8 @@ contract TestTokenMinter is
     TestERC20[] erc20s;
     TestERC721[] erc721s;
     TestERC1155[] erc1155s;
+
+    address[] preapprovals;
 
     modifier only1155Receiver(address recipient) {
         vm.assume(recipient != address(0));
@@ -61,6 +94,14 @@ contract TestTokenMinter is
 
     function setUp() public virtual override {
         super.setUp();
+
+        preapprovals = [
+            address(consideration),
+            address(referenceConsideration),
+            address(conduit),
+            address(referenceConduit)
+        ];
+
         vm.label(alice, "alice");
         vm.label(bob, "bob");
         vm.label(cal, "cal");
@@ -174,9 +215,12 @@ contract TestTokenMinter is
         test1155_1 = new TestERC1155();
         test1155_2 = new TestERC1155();
         test1155_3 = new TestERC1155();
+        preapproved721 = new PreapprovedERC721(preapprovals);
+
         vm.label(address(token1), "token1");
         vm.label(address(test721_1), "test721_1");
         vm.label(address(test1155_1), "test1155_1");
+        vm.label(address(preapproved721), "preapproved721");
 
         emit log("Deployed test token contracts");
     }

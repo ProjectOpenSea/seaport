@@ -219,7 +219,7 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
         uint256 originalItemsLength,
         uint256 amtToSubtractFromItemsLength
     ) internal {
-        assertTrue(_validateOrder(order, consideration));
+        assertTrue(_validateOrder(order, _consideration));
 
         bool overwriteItemsLength = amtToSubtractFromItemsLength > 0;
         if (overwriteItemsLength) {
@@ -251,7 +251,7 @@ contract BaseOrderTest is OfferConsiderationItemAdder, AmountDeriver {
         );
 
         bool success = _callConsiderationFulfillOrderWithCalldata(
-            address(consideration),
+            address(_consideration),
             fulfillOrderCalldata
         );
 
