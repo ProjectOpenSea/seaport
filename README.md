@@ -35,7 +35,7 @@ Conduit Controller deployment addresses:
 | Network          | Address                                    |
 | ---------------- | ------------------------------------------ |
 | Ethereum Mainnet | [0x00000000F9490004C11Cef243f5400493c00Ad63](https://etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code) |
-| Rinkeby          | [0x00000000F9490004C11Cef243f5400493c00Ad63](https://rinkeby.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63) |
+| Rinkeby          | [0x00000000F9490004C11Cef243f5400493c00Ad63](https://rinkeby.etherscan.io/address/0x00000000F9490004C11Cef243f5400493c00Ad63#code) |
 
 ## Diagram
 
