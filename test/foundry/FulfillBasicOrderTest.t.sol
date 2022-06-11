@@ -262,7 +262,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
     function revertUnusedItemParametersIdentifierSetOnErc20Offer(
         Context memory context
     ) external stateless {
-        test721_1.mint(bob, context.args.tokenId);
+        test721_1.mint(address(this), context.args.tokenId);
 
         offerItems[0].identifierOrCriteria = 69;
 
@@ -288,11 +288,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         BasicOrderParameters
             memory _basicOrderParameters = toBasicOrderParameters(
                 baseOrderComponents,
-                BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
+                BasicOrderType.ERC721_TO_ERC20_FULL_OPEN,
                 signature
             );
 
-        vm.prank(alice);
         vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
         context.consideration.fulfillBasicOrder(_basicOrderParameters);
     }
