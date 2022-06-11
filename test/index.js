@@ -263,9 +263,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const { root, proofs } = merkleTree([nftId]);
 
-      const offer = [
-        getTestItem721WithCriteria(root, nftId, nftId),
-      ];
+      const offer = [getTestItem721WithCriteria(root, toBN(1), toBN(1))];
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
@@ -5040,12 +5038,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const expectedRevertReason =
             getCustomRevertSelector("InvalidSigner()");
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillOrder(order, toKey(false), {
               value,
             });
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
@@ -5145,12 +5143,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const expectedRevertReason =
             getCustomRevertSelector("InvalidSigner()");
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillOrder(order, toKey(false), {
               value,
             });
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
@@ -5250,12 +5248,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const expectedRevertReason =
             getCustomRevertSelector("InvalidSigner()");
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillOrder(order, toKey(false), {
               value,
             });
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
@@ -10472,12 +10470,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
-      let expectedRevertReason =
+      const expectedRevertReason =
         getCustomRevertSelector("ChannelClosed(address)") +
         owner.address.slice(2).padStart(64, "0").toLowerCase();
 
-      let tx = await conduitOne.connect(owner).populateTransaction.execute([]);
-      let returnData = await provider.call(tx);
+      const tx = await conduitOne
+        .connect(owner)
+        .populateTransaction.execute([]);
+      const returnData = await provider.call(tx);
       expect(returnData).to.equal(expectedRevertReason);
 
       await expect(conduitOne.connect(owner).execute([])).to.be.reverted;
@@ -11671,7 +11671,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             })
         ).to.be.revertedWith(`UnusedItemParameters`);
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11716,7 +11716,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             })
         ).to.be.revertedWith(`UnusedItemParameters`);
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11748,7 +11748,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11794,7 +11794,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11840,7 +11840,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -12034,7 +12034,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
             value,
           });
-        let returnData = await provider.call(tx);
+        const returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
 
         await expect(
@@ -12276,10 +12276,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             "BadContractSignature()"
           );
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillBasicOrder(basicOrderParameters);
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
