@@ -246,7 +246,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         vm.assume(_badIdentifier != 0);
         badIdentifier = _badIdentifier;
 
-        addEthOfferItem(100, 100);
+        addErc20OfferItem(100);
         addErc1155ConsiderationItem(alice, inputs.tokenId, tokenAmount);
 
         test(
@@ -288,7 +288,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         BasicOrderParameters
             memory _basicOrderParameters = toBasicOrderParameters(
                 baseOrderComponents,
-                BasicOrderType.ETH_TO_ERC721_FULL_OPEN,
+                BasicOrderType.ERC20_TO_ERC1155_FULL_OPEN,
                 signature
             );
 
