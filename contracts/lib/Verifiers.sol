@@ -125,8 +125,9 @@ contract Verifiers is Assertions, SignatureVerification {
             if (onlyAllowUnused) {
                 // Always revert on partial fills when onlyAllowUnused is true.
                 revert OrderPartiallyFilled(orderHash);
-                // Otherwise, ensure that order has not been entirely filled.
-            } else if (orderStatusNumerator >= orderStatus.denominator) {
+            }
+            // Otherwise, ensure that order has not been entirely filled.
+            else if (orderStatusNumerator >= orderStatus.denominator) {
                 // Only revert if revertOnInvalid has been supplied as true.
                 if (revertOnInvalid) {
                     revert OrderAlreadyFilled(orderHash);
