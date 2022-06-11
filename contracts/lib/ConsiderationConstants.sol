@@ -100,6 +100,7 @@ uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
 uint256 constant FourWords = 0x80;
+uint256 constant FiveWords = 0xa0;
 
 uint256 constant FreeMemoryPointerSlot = 0x40;
 uint256 constant ZeroSlot = 0x60;
