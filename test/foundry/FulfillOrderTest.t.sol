@@ -109,6 +109,55 @@ contract FulfillOrderTest is BaseOrderTest {
         _;
     }
 
+    function testNoNativeOffers(uint8[8] memory itemTypes) public {
+        uint256 tokenId;
+        for (uint256 i; i < 8; i++) {
+            ItemType itemType = ItemType(itemTypes[i] % 4);
+            if (itemType == ItemType.NATIVE) {
+                addEthOfferItem(1);
+            } else if (itemType == ItemType.ERC20) {
+                addErc20OfferItem(1);
+            } else if (itemType == ItemType.ERC1155) {
+                test1155_1.mint(alice, tokenId, 1);
+                addErc1155OfferItem(tokenId, 1);
+            } else {
+                test721_1.mint(alice, tokenId);
+                addErc721OfferItem(tokenId);
+            }
+            tokenId++;
+        }
+        addEthOfferItem(1);
+
+        addEthConsiderationItem(alice, 1);
+
+        test(this.noNativeOfferItems, Context(consideration, empty, 0, 0, 0));
+        test(
+            this.noNativeOfferItems,
+            Context(referenceConsideration, empty, 0, 0, 0)
+        );
+    }
+
+    function noNativeOfferItems(Context memory context) external stateless {
+        configureOrderParameters(alice);
+        uint256 counter = context.consideration.getCounter(alice);
+        _configureOrderComponents(counter);
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        vm.expectRevert(abi.encodeWithSignature("InvalidNativeOfferItem()"));
+
+        context.consideration.fulfillOrder(
+            Order(baseOrderParameters, signature),
+            bytes32(0)
+        );
+    }
+
     function testNullAddressSpendReverts() public {
         // mint token to null address
         preapproved721.mint(address(0), 1);
@@ -142,6 +191,7 @@ contract FulfillOrderTest is BaseOrderTest {
         );
         // test that signature is recognized as invalid even though signer recovered is null address
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
+
         context.consideration.fulfillOrder(
             Order(baseOrderParameters, signature),
             bytes32(0)
