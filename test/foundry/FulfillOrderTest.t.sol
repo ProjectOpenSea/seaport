@@ -107,7 +107,7 @@ contract FulfillOrderTest is BaseOrderTest {
         _;
     }
 
-    function testNoSpendFromNullAddress() public {
+    function testNullAddressSpendReverts() public {
         // mint token to null address
         preapproved721.mint(address(0), 1);
         // mint erc token to test address
@@ -119,16 +119,19 @@ contract FulfillOrderTest is BaseOrderTest {
         // configure baseOrderParameters with null address as offerer
         configureOrderParameters(address(0));
         test(
-            this.noSpendFromNullAddress,
+            this.nullAddressSpendReverts,
             Context(referenceConsideration, empty, 0, 0, 0)
         );
         test(
-            this.noSpendFromNullAddress,
+            this.nullAddressSpendReverts,
             Context(consideration, empty, 0, 0, 0)
         );
     }
 
-    function noSpendFromNullAddress(Context memory context) external stateless {
+    function nullAddressSpendReverts(Context memory context)
+        external
+        stateless
+    {
         // create a bad signature
         bytes memory signature = abi.encodePacked(
             bytes32(0),
