@@ -121,7 +121,7 @@ contract GlobalPausable is GlobalPausableEventsAndErrors, ZoneInterface {
      *
      * @param operatorToAssign Address to assign role.
      */
-    function assignOperator(address operatorToAssign) public {
+    function assignOperator(address operatorToAssign) external {
         require(msg.sender == deployer, "Can only be set by the deployer");
         require(
             operatorToAssign != address(0),
