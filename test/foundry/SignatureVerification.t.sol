@@ -172,8 +172,8 @@ contract SignatureVerificationTest is BaseOrderTest {
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         logic.signatureVerificationDirtyScratchSpace();
         ReferenceSignatureVerifierLogic referenceLogic = new ReferenceSignatureVerifierLogic(
-                address(conduitController),
-                consideration
+                address(referenceConduitController),
+                referenceConsideration
             );
         vm.expectRevert(abi.encodeWithSignature("InvalidSigner()"));
         referenceLogic.referenceSignatureVerificationDirtyScratchSpace();
