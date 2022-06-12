@@ -17,7 +17,7 @@ import { AdvancedOrder, CriteriaResolver, Order, OrderComponents, Fulfillment, E
  * Can be self-destructed to pause orders using it as a zone, by its deployer.
  */
 
-contract GlobalPausable is ZoneInterface {
+contract GlobalPausable is GlobalPausableEventsAndErrors, ZoneInterface {
     // Address of the deployer of the zone.
     address internal immutable deployer;
 
