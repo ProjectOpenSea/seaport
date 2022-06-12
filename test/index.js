@@ -4347,12 +4347,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const expectedRevertReason =
             getCustomRevertSelector("InvalidSigner()");
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillOrder(order, toKey(false), {
               value,
             });
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
@@ -4452,12 +4452,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const expectedRevertReason =
             getCustomRevertSelector("InvalidSigner()");
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillOrder(order, toKey(false), {
               value,
             });
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
@@ -4557,12 +4557,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const expectedRevertReason =
             getCustomRevertSelector("InvalidSigner()");
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillOrder(order, toKey(false), {
               value,
             });
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
@@ -9783,12 +9783,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
-      let expectedRevertReason =
+      const expectedRevertReason =
         getCustomRevertSelector("ChannelClosed(address)") +
         owner.address.slice(2).padStart(64, "0").toLowerCase();
 
-      let tx = await conduitOne.connect(owner).populateTransaction.execute([]);
-      let returnData = await provider.call(tx);
+      const tx = await conduitOne
+        .connect(owner)
+        .populateTransaction.execute([]);
+      const returnData = await provider.call(tx);
       expect(returnData).to.equal(expectedRevertReason);
 
       await expect(conduitOne.connect(owner).execute([])).to.be.reverted;
@@ -10142,6 +10144,134 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const ownerOf = await conduitController.ownerOf(conduitOne.address);
       expect(ownerOf).to.equal(buyer.address);
+    });
+  });
+
+  describe("DigestHelper", async () => {
+    let tempDigestHelper;
+    let buyer;
+    let seller;
+    let senderContract;
+    let recipientContract;
+
+    beforeEach(async () => {
+      // Setup basic buyer/seller wallets with ETH
+      buyer = new ethers.Wallet(randomHex(32), provider);
+      seller = new ethers.Wallet(randomHex(32), provider);
+      zone = new ethers.Wallet(randomHex(32), provider);
+
+      senderContract = await EIP1271WalletFactory.deploy(buyer.address);
+      recipientContract = await EIP1271WalletFactory.deploy(seller.address);
+
+      await Promise.all(
+        [buyer, seller, zone, senderContract, recipientContract].map((wallet) =>
+          faucet(wallet.address, provider)
+        )
+      );
+
+      // Deploy a new DomainHelper
+      const digestHelperFactory = await ethers.getContractFactory(
+        "TestOrderHashDigestHelper"
+      );
+      tempDigestHelper = await digestHelperFactory.deploy(
+        marketplaceContract.address
+      );
+    });
+
+    it("Check Digest Helper gets the correct digest with given order hash", async () => {
+      const { domainSeparator } = await marketplaceContract.information();
+
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { orderHash } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const digest = keccak256(
+        `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
+      );
+
+      const digestHelped = await tempDigestHelper
+        .connect(seller)
+        .testDeriveEIP712Digest(orderHash);
+
+      expect(digest).to.equal(digestHelped);
+    });
+  });
+
+  describe("OrderHashHelper", async () => {
+    let buyer;
+    let seller;
+    let senderContract;
+    let recipientContract;
+    let tempOrderHashHelper;
+
+    beforeEach(async () => {
+      // Setup basic buyer/seller wallets with ETH
+      buyer = new ethers.Wallet(randomHex(32), provider);
+      seller = new ethers.Wallet(randomHex(32), provider);
+      zone = new ethers.Wallet(randomHex(32), provider);
+
+      senderContract = await EIP1271WalletFactory.deploy(buyer.address);
+      recipientContract = await EIP1271WalletFactory.deploy(seller.address);
+
+      await Promise.all(
+        [buyer, seller, zone, senderContract, recipientContract].map((wallet) =>
+          faucet(wallet.address, provider)
+        )
+      );
+
+      // Deploy a new OrderHashHelper
+      const orderHashHelperFactory = await ethers.getContractFactory(
+        "TestOrderHashDigestHelper"
+      );
+      tempOrderHashHelper = await orderHashHelperFactory.deploy(
+        marketplaceContract.address
+      );
+    });
+
+    it("Check order hash matches create order: ERC721 <=> ETH (basic)", async () => {
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { orderHash, orderComponents } = await createOrder(
+        seller,
+        zone,
+        offer,
+        consideration,
+        0 // FULL_OPEN
+      );
+
+      const orderHashHelped = await tempOrderHashHelper
+        .connect(seller)
+        .testDeriveOrderHash(orderComponents, orderComponents.counter);
+
+      expect(orderHash).to.equal(orderHashHelped);
     });
   });
 
@@ -10982,7 +11112,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             })
         ).to.be.revertedWith(`UnusedItemParameters`);
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11027,7 +11157,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             })
         ).to.be.revertedWith(`UnusedItemParameters`);
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11059,7 +11189,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11105,7 +11235,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11151,7 +11281,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11345,7 +11475,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
             value,
           });
-        let returnData = await provider.call(tx);
+        const returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
 
         await expect(
@@ -11587,10 +11717,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             "BadContractSignature()"
           );
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillBasicOrder(basicOrderParameters);
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
