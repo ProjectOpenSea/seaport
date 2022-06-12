@@ -772,7 +772,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
-    it.only("Operator of zone can cancel restricted orders.", async () => {
+    it("Operator of zone can cancel restricted orders.", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
         "DeployerGlobalPausable",
@@ -833,7 +833,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         .cancelOrder(marketplaceContract.address, [orderComponents]);
     });
 
-    it.only("Reverts trying to assign operator as non-deployer", async () => {
+    it("Reverts trying to assign operator as non-deployer", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
         "DeployerGlobalPausable",
