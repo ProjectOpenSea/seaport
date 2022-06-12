@@ -224,13 +224,16 @@ contract DeployerGlobalPausable is GlobalPausableEventsAndErrors {
     }
 
     /**
-     * @notice Assigns the given address with the ability to operate the 
+     * @notice Assigns the given address with the ability to operate the
      *         give zone.
      *
      * @param _globalPausableAddress Zone Address to assign operator role.
      * @param operatorToAssign       Address to assign role.
      */
-    function assignOperatorOfZone(address _globalPausableAddress, address operatorToAssign) external {
+    function assignOperatorOfZone(
+        address _globalPausableAddress,
+        address operatorToAssign
+    ) external {
         require(msg.sender == deployerOwner, "Can only be set by the deployer");
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
         gp.assignOperator(operatorToAssign);
