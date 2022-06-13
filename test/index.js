@@ -715,7 +715,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("InvalidPauser");
 
       // Try to nuke the zone directly before being assigned pauser
-      await expect(gpZone.connect(buyer).kill()).to.be.revertedWith(
+      await expect(gpZone.connect(buyer).pause()).to.be.revertedWith(
         "Only the owner can kill this contract."
       );
 
