@@ -12,11 +12,13 @@ import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol
 
 import { AdvancedOrder, CriteriaResolver, Order, OrderComponents, Fulfillment, Execution } from "../lib/ConsiderationStructs.sol";
 
-/*
- * Basic example Zone, that approves every order.
- * Can be self-destructed to pause orders using it as a zone, by its deployer.
+/**
+ * @title  GlobalPausable
+ * @author cupOJoseph, BCLeFevre, ryanio
+ * @notice GlobalPausable is a basic example zone that approves every order.
+ *         It can be self-destructed by its deployer to pause orders
+ *         using it as a zone.
  */
-
 contract GlobalPausable is GlobalPausableEventsAndErrors, ZoneInterface {
     // Address of the deployer of the zone.
     address internal immutable deployer;
@@ -28,6 +30,7 @@ contract GlobalPausable is GlobalPausableEventsAndErrors, ZoneInterface {
      * @dev Throws if called by any account other than the owner or operator.
      */
     modifier isOperator() {
+        //
         if (msg.sender != operatorAddress && msg.sender != deployer) {
             revert InvalidOperator();
         }
@@ -71,8 +74,8 @@ contract GlobalPausable is GlobalPausableEventsAndErrors, ZoneInterface {
         cancelled = seaport.cancel(orders);
     }
 
-    //executes a restricted order
-    function executeRestrictedOffer(
+    // executes a restricted order
+    function executeMatchOrders(
         address _seaport,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
@@ -106,7 +109,7 @@ contract GlobalPausable is GlobalPausableEventsAndErrors, ZoneInterface {
      * Orders with this address as a zone are bricked until the Deployer makes a new zone
      * with the same address as this one.
      */
-    function kill() external {
+    function pause() external {
         require(
             msg.sender == deployer,
             "Only the owner can kill this contract."
