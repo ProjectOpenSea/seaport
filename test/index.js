@@ -637,6 +637,34 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
+    it("Assign pauser and self destruct the zone", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+
+      // deploy GP
+      const zoneAddr = await createZone(gpDeployer);
+
+      // Try to nuke the zone before being assigned pauser
+      await expect(
+        gpDeployer.connect(buyer).killSwitch(zoneAddr)
+      ).to.be.revertedWith("InvalidPauser");
+
+      // owner assigns the pauser of the zone
+      await whileImpersonating(owner.address, provider, async () => {
+        gpDeployer.assignPauser(buyer.address);
+      });
+
+      // Now as pauser, nuke the zone
+      await gpDeployer.connect(buyer).killSwitch(zoneAddr);
+    });
+
     it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
@@ -742,6 +770,103 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         marketplaceContract.address,
         [orderComponents]
       );
+    });
+
+    it("Operator of zone can cancel restricted orders.", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+
+      // deploy GlobalPausable
+      const zoneAddress = await createZone(gpDeployer);
+
+      // Attach to GlobalPausable zone
+      const gpZoneContract = await ethers.getContractFactory(
+        "GlobalPausable",
+        owner
+      );
+
+      // Attach to zone
+      const gpZone = await gpZoneContract.attach(zoneAddress);
+
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { orderComponents } = await createOrder(
+        seller,
+        { address: zoneAddress },
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED, zone can execute or cancel
+      );
+
+      // Non operator address should not be allowed to operate the zone
+      await expect(
+        gpZone
+          .connect(seller)
+          .cancelOrder(marketplaceContract.address, [orderComponents])
+      ).to.be.revertedWith("InvalidOperator");
+
+      // Approve operator
+      await gpDeployer
+        .connect(owner)
+        .assignOperatorOfZone(zoneAddress, seller.address);
+
+      // Now allowed to operate the zone
+      await gpZone
+        .connect(seller)
+        .cancelOrder(marketplaceContract.address, [orderComponents]);
+    });
+
+    it("Reverts trying to assign operator as non-deployer", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+
+      // deploy GlobalPausable
+      const zoneAddress = await createZone(gpDeployer);
+
+      // Attach to GlobalPausable zone
+      const gpZoneContract = await ethers.getContractFactory(
+        "GlobalPausable",
+        owner
+      );
+
+      // Attach to zone
+      const gpZone = await gpZoneContract.attach(zoneAddress);
+
+      // Try to approve operator without permission
+      await expect(
+        gpDeployer
+          .connect(seller)
+          .assignOperatorOfZone(zoneAddress, seller.address)
+      ).to.be.revertedWith("Can only be set by the deployer");
+
+      // Try to approve operator directly without permission
+      await expect(
+        gpZone.connect(seller).assignOperator(seller.address)
+      ).to.be.revertedWith("Can only be set by the deployer");
     });
 
     it("Reverts if non-Zone tries to cancel restricted orders.", async () => {

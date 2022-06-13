@@ -9,17 +9,32 @@ pragma solidity >=0.8.7;
 
 import { GlobalPausable } from "./GlobalPausable.sol";
 
+// prettier-ignore
+import {
+    GlobalPausableEventsAndErrors
+} from "./interfaces/GlobalPausableEventsAndErrors.sol";
+
 import { Order, Fulfillment, OrderComponents, AdvancedOrder, CriteriaResolver, Execution } from "../lib/ConsiderationStructs.sol";
 
-contract DeployerGlobalPausable {
+contract DeployerGlobalPausable is GlobalPausableEventsAndErrors {
     //owns this deployer and can activate the kill switch for the GlobalPausable
     address public deployerOwner;
 
-    address private potentialOwner;
+    // Address of the new potential owner of the zone.
+    address private _potentialOwner;
 
-    event PotentialOwnerUpdated(address owner);
-    event OwnershipTransferred(address newOwner);
-    event ZoneCreated(address zoneAddress);
+    // Address with the ability to pause the zone.
+    address public pauserAddress;
+
+    /**
+     * @dev Throws if called by any account other than the owner or pauser.
+     */
+    modifier isPauser() {
+        if (msg.sender != pauserAddress && msg.sender != deployerOwner) {
+            revert InvalidPauser();
+        }
+        _;
+    }
 
     constructor(address _deployerOwner, bytes32 _salt) {
         deployerOwner = _deployerOwner;
@@ -64,8 +79,7 @@ contract DeployerGlobalPausable {
     }
 
     //pause Seaport by self destructing GlobalPausable
-    function killSwitch(address _zone) external returns (bool) {
-        require(msg.sender == deployerOwner);
+    function killSwitch(address _zone) external isPauser returns (bool) {
         GlobalPausable zone = GlobalPausable(_zone);
         zone.kill();
     }
@@ -150,7 +164,7 @@ contract DeployerGlobalPausable {
         // Emit an event indicating that the potential owner has been updated.
         emit PotentialOwnerUpdated(newPotentialOwner);
 
-        potentialOwner = newPotentialOwner;
+        _potentialOwner = newPotentialOwner;
     }
 
     /**
@@ -165,7 +179,7 @@ contract DeployerGlobalPausable {
         emit PotentialOwnerUpdated(address(0));
 
         // Clear the current new potential owner.
-        delete potentialOwner;
+        delete _potentialOwner;
     }
 
     /**
@@ -175,7 +189,7 @@ contract DeployerGlobalPausable {
      */
     function acceptOwnership() external {
         require(
-            msg.sender == potentialOwner,
+            msg.sender == _potentialOwner,
             "Only Potential Owner can claim."
         );
 
@@ -183,12 +197,45 @@ contract DeployerGlobalPausable {
         emit PotentialOwnerUpdated(address(0));
 
         // Clear the current new potential owner
-        delete potentialOwner;
+        delete _potentialOwner;
 
         // Emit an event indicating ownership has been transferred.
-        emit OwnershipTransferred(msg.sender);
+        emit OwnershipTransferred(deployerOwner, msg.sender);
 
         // Set the caller as the owner of this contract.
         deployerOwner = msg.sender;
+    }
+
+    /**
+     * @notice Assigns the given address with the ability to pause the zone.
+     *
+     * @param pauserToAssign Address to assign role.
+     */
+    function assignPauser(address pauserToAssign) public {
+        require(msg.sender == deployerOwner, "Can only be set by the deployer");
+        require(
+            pauserToAssign != address(0),
+            "Pauser can not be set to the null address"
+        );
+        pauserAddress = pauserToAssign;
+
+        // Emit the epvent
+        emit PauserUpdated(pauserAddress);
+    }
+
+    /**
+     * @notice Assigns the given address with the ability to operate the
+     *         give zone.
+     *
+     * @param _globalPausableAddress Zone Address to assign operator role.
+     * @param operatorToAssign       Address to assign role.
+     */
+    function assignOperatorOfZone(
+        address _globalPausableAddress,
+        address operatorToAssign
+    ) external {
+        require(msg.sender == deployerOwner, "Can only be set by the deployer");
+        GlobalPausable gp = GlobalPausable(_globalPausableAddress);
+        gp.assignOperator(operatorToAssign);
     }
 }
