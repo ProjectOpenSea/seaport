@@ -420,6 +420,18 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         toFulfillment(offerArr, considerationArr)
       );
 
+      await expect(
+        gpDeployer
+          .connect(buyer)
+          .callStatic.executeRestrictedMatchOrderZone(
+            zoneAddr,
+            marketplaceContract.address,
+            [orderOne, orderTwo, orderThree],
+            fulfillments,
+            { value: 0 }
+          )
+      ).to.be.revertedWith("Only the owner can execute orders with the zone.");
+
       // Ensure that the number of executions from matching orders with zone
       // is equal to the number of fulfillments
       const executions = await gpDeployer
@@ -580,6 +592,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         toFulfillment(offerArr, considerationArr)
       );
 
+      await expect(
+        gpDeployer
+          .connect(buyer)
+          .executeRestrictedMatchAdvancedOrderZone(
+            zoneAddr,
+            marketplaceContract.address,
+            [orderOne, orderTwo, orderThree],
+            [],
+            fulfillments,
+            { value: 0 }
+          )
+      ).to.be.revertedWith(
+        "Only the owner can execute advanced orders with the zone."
+      );
+
       // Ensure that the number of executions from matching advanced orders with zone
       // is equal to the number of fulfillments
       const executions = await gpDeployer
@@ -637,6 +664,28 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
+    it("Only the deployer owner can create a zone", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+
+      // deploy GP from non-deployer owner
+      const salt = randomHex();
+      await expect(
+        gpDeployer.connect(seller).createZone(salt)
+      ).to.be.revertedWith("Only owner can create new Zones from here.");
+
+      // deploy GP from owner
+      await createZone(gpDeployer);
+    });
+
     it("Assign pauser and self destruct the zone", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
@@ -651,15 +700,35 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // deploy GP
       const zoneAddr = await createZone(gpDeployer);
 
-      // Try to nuke the zone before being assigned pauser
+      // Attach to GlobalPausable zone
+      const gpZoneContract = await ethers.getContractFactory(
+        "GlobalPausable",
+        owner
+      );
+
+      // Attach to zone
+      const gpZone = await gpZoneContract.attach(zoneAddr);
+
+      // Try to nuke the zone through the deployer before being assigned pauser
       await expect(
         gpDeployer.connect(buyer).killSwitch(zoneAddr)
       ).to.be.revertedWith("InvalidPauser");
 
+      // Try to nuke the zone directly before being assigned pauser
+      await expect(gpZone.connect(buyer).kill()).to.be.revertedWith(
+        "Only the owner can kill this contract."
+      );
+
+      await expect(
+        gpDeployer.connect(buyer).assignPauser(seller.address)
+      ).to.be.revertedWith("Can only be set by the deployer");
+
+      await expect(
+        gpDeployer.connect(owner).assignPauser(toAddress(0))
+      ).to.be.revertedWith("Pauser can not be set to the null address");
+
       // owner assigns the pauser of the zone
-      await whileImpersonating(owner.address, provider, async () => {
-        gpDeployer.assignPauser(buyer.address);
-      });
+      gpDeployer.connect(owner).assignPauser(buyer.address);
 
       // Now as pauser, nuke the zone
       await gpDeployer.connect(buyer).killSwitch(zoneAddr);
@@ -700,6 +769,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         consideration,
         2
       );
+
       // owner nukes the zone
       await whileImpersonating(owner.address, provider, async () => {
         gpDeployer.killSwitch(zoneAddr);
@@ -764,6 +834,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         consideration,
         2 // FULL_RESTRICTED, zone can execute or cancel
       );
+
+      await expect(
+        gpDeployer
+          .connect(buyer)
+          .cancelOrderZone(zoneAddress, marketplaceContract.address, [
+            orderComponents,
+          ])
+      ).to.be.revertedWith("Only the owner can cancel orders with the zone.");
 
       await gpDeployer.cancelOrderZone(
         zoneAddress,
@@ -831,6 +909,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await gpZone
         .connect(seller)
         .cancelOrder(marketplaceContract.address, [orderComponents]);
+
+      // Cannot assign operator to zero address
+      await expect(
+        gpDeployer
+          .connect(owner)
+          .assignOperatorOfZone(zoneAddress, toAddress(0))
+      ).to.be.revertedWith("Operator can not be set to the null address");
     });
 
     it("Reverts trying to assign operator as non-deployer", async () => {
@@ -962,6 +1047,22 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // deploy GP
       await createZone(gpDeployer);
+
+      await expect(
+        gpDeployer.connect(buyer).transferOwnership(buyer.address)
+      ).to.be.revertedWith("Only Owner can transfer Ownership.");
+
+      await expect(
+        gpDeployer.connect(owner).transferOwnership(toAddress(0))
+      ).to.be.revertedWith("New Owner can not be 0 address.");
+
+      await expect(
+        gpDeployer.connect(seller).cancelOwnershipTransfer()
+      ).to.be.revertedWith("Only Owner can cancel.");
+
+      await expect(
+        gpDeployer.connect(buyer).acceptOwnership()
+      ).to.be.revertedWith("Only Potential Owner can claim.");
 
       // just get any random address as the next potential owner.
       await gpDeployer.connect(owner).transferOwnership(buyer.address);

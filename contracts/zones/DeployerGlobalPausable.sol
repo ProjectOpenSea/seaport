@@ -109,7 +109,7 @@ contract DeployerGlobalPausable is GlobalPausableEventsAndErrors {
     ) external payable returns (Execution[] memory executions) {
         require(
             msg.sender == deployerOwner,
-            "Only the owner can execute orders with the zone. "
+            "Only the owner can execute orders with the zone."
         );
 
         GlobalPausable gp = GlobalPausable(_globalPausableAddress);
