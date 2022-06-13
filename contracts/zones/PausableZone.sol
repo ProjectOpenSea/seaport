@@ -96,50 +96,91 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
     }
 
     /**
-     * @notice Cancel a list of orders that have agreed to use the
+     * @notice Cancel an arbitrary number of orders that have agreed to use the
      *         PausableZone as their zone.
      *
-     * @param _seaport The Seaport address.
-     * @param orders   The list of orders to be cancelled.
+     * @param seaport  The Seaport address.
+     * @param orders   The orders to cancel.
      *
-     * @return cancelled A boolean indicating if the orders have been cancelled.
+     * @return cancelled A boolean indicating whether the supplied orders have
+     *                   been successfully cancelled.
      */
-    function cancelOrder(address _seaport, OrderComponents[] calldata orders)
+    function cancelOrder(address seaport, OrderComponents[] calldata orders)
         external
         isOperator
         returns (bool cancelled)
     {
         // Create a seaport object.
-        ConsiderationInterface seaport = ConsiderationInterface(_seaport);
+        ConsiderationInterface seaportObject = ConsiderationInterface(seaport);
 
-        // Call seaport's cancel function and return its boolean value.
-        cancelled = seaport.cancel(orders);
+        // Call cancel on the seaport object and return its boolean value.
+        cancelled = seaportObject.cancel(orders);
     }
 
-    // executes a restricted order
+    /**
+     * @notice Execute an arbitrary number of matched orders, each with
+     *         an arbitrary number of items for offer and consideration
+     *         along with a set of fulfillments allocating offer components
+     *         to consideration components.
+     *
+     * @param seaport      The Seaport address.
+     * @param orders       The orders to match.
+     * @param fulfillments An array of elements allocating offer components
+     *                     to consideration components.
+     *
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
+     */
     function executeMatchOrders(
-        address _seaport,
+        address seaport,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
     ) external payable isOperator returns (Execution[] memory executions) {
-        //Create seaport object
-        ConsiderationInterface seaport = ConsiderationInterface(_seaport);
-        executions = seaport.matchOrders{ value: msg.value }(
+        // Create a seaport object.
+        ConsiderationInterface seaportObject = ConsiderationInterface(seaport);
+
+        // Call matchOrders on the seaport object and return the sequence
+        // of transfers performed as part of matching the given orders.
+        executions = seaportObject.matchOrders{ value: msg.value }(
             orders,
             fulfillments
         );
     }
 
-    function executeRestrictedAdvancedOffer(
-        address _seaport,
+    /**
+     * @notice Execute an arbitrary number of matched advanced orders,
+     *         each with an arbitrary number of items for offer and
+     *         consideration along with a set of fulfillments allocating
+     *         offer components to consideration components.
+     *
+     * @param seaport           The Seaport address.
+     * @param orders            The orders to match.
+     * @param criteriaResolvers An array where each element contains a reference
+     *                          to a specific order as well as that order's
+     *                          offer or consideration, a token identifier, and
+     *                          a proof that the supplied token identifier is
+     *                          contained in the order's merkle root.
+     * @param fulfillments      An array of elements allocating offer components
+     *                          to consideration components.
+     *
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
+     */
+    function executeMatchAdvancedOrders(
+        address seaport,
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
     ) external payable isOperator returns (Execution[] memory executions) {
-        //Create seaport object
-        ConsiderationInterface seaport = ConsiderationInterface(_seaport);
+        // Create a seaport object.
+        ConsiderationInterface seaportObject = ConsiderationInterface(seaport);
 
-        executions = seaport.matchAdvancedOrders{ value: msg.value }(
+        // Call matchAdvancedOrders on the seaport object and return
+        // the sequence of transfers performed as part of matching
+        // the given orders
+        executions = seaportObject.matchAdvancedOrders{ value: msg.value }(
             orders,
             criteriaResolvers,
             fulfillments
@@ -147,34 +188,42 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
     }
 
     /**
-     * Self-descructs this contract, safely stopping orders from using this as a zone.
-     * Orders with this address as a zone are bricked until the Deployer makes a new zone
-     * with the same address as this one.
+     * @notice Pause this contract, safely stopping orders from using
+     *         the contract as a zone. Orders with this address as a zone are
+     *         bricked until the Deployer makes a new zone with the same address
+     *         as this one.
      */
     function pause() external {
+        // Ensure the deployer is pausing the contract.
         require(
             msg.sender == deployer,
             "Only the owner can kill this contract."
         );
 
-        //There shouldn't be any eth on the zone, but in case there is, send it to the deployer caller address.
+        // In case there is Ether on the zone, send it to the deployer
+        // caller address.
         selfdestruct(payable(tx.origin));
     }
 
     /**
-     * @notice Assigns the given address with the ability to operate the zone.
+     * @notice Assign the given address with the ability to operate the zone.
      *
-     * @param operatorToAssign Address to assign role.
+     * @param operatorToAssign The address to assign as the operator.
      */
     function assignOperator(address operatorToAssign) external {
+        // Ensure the deployer is assigning the operator.
         require(msg.sender == deployer, "Can only be set by the deployer");
+
+        // Ensure the operator being assigned is not the null address.
         require(
             operatorToAssign != address(0),
             "Operator can not be set to the null address"
         );
+
+        // Set the given address as the new operator.
         operator = operatorToAssign;
 
-        // Emit the event
+        // Emit an event indicating the operator has been updated.
         emit OperatorUpdated(operator);
     }
 }
