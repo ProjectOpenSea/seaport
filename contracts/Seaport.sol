@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity >=0.8.13;
 
 import { Consideration } from "./lib/Consideration.sol";
 
@@ -8,7 +8,7 @@ import { Consideration } from "./lib/Consideration.sol";
  * @author 0age
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11
- * @custom:version 1
+ * @custom:version 1.1
  * @notice Seaport is a generalized ETH/ERC20/ERC721/ERC1155 marketplace. It
  *         minimizes external calls to the greatest extent possible and provides
  *         lightweight methods for common routes as well as more flexible
@@ -37,9 +37,9 @@ contract Seaport is Consideration {
     function _name() internal pure override returns (string memory) {
         // Return the name of the contract.
         assembly {
-            mstore(0, 0x20)
-            mstore(0x27, 0x07536561706f7274)
-            return(0, 0x60)
+            mstore(0x20, 0x20)
+            mstore(0x47, 0x07536561706f7274)
+            return(0x20, 0x60)
         }
     }
 

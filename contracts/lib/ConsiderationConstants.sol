@@ -8,7 +8,7 @@ pragma solidity >=0.8.7;
  *      offset or pointer to the body of a dynamic type. In calldata, the head
  *      is always an offset (relative to the parent object), while in memory,
  *      the head is always the pointer to the body. More information found here:
- *      https://docs.soliditylang.org/en/v0.8.13/abi-spec.html#argument-encoding
+ *      https://docs.soliditylang.org/en/v0.8.14/abi-spec.html#argument-encoding
  *        - Note that the length of an array is separate from and precedes the
  *          head of the array.
  *
@@ -35,15 +35,15 @@ pragma solidity >=0.8.7;
 
 // Declare constants for name, version, and reentrancy sentinel values.
 
-// Name is right padded, so it touches the length which is left padded.
-// This lets us write both values at once.
-// Length goes at byte 63, and name fills bytes 64-77, so we write
-// both values left-padded to 45.
-uint256 constant NameLengthPtr = 45;
+// Name is right padded, so it touches the length which is left padded. This
+// enables writing both values at once. Length goes at byte 95 in memory, and
+// name fills bytes 96-109, so both values can be written left-padded to 77.
+uint256 constant NameLengthPtr = 77;
 uint256 constant NameWithLength = 0x0d436F6E73696465726174696F6E;
 
-uint256 constant Version = 0x31;
-uint256 constant Version_length = 1;
+uint256 constant Version = 0x312e31;
+uint256 constant Version_length = 3;
+uint256 constant Version_shift = 0xe8;
 
 uint256 constant _NOT_ENTERED = 1;
 uint256 constant _ENTERED = 2;
@@ -72,7 +72,7 @@ uint256 constant Execution_conduit_offset = 0x40;
 uint256 constant InvalidFulfillmentComponentData_error_signature = (
     0x7fda727900000000000000000000000000000000000000000000000000000000
 );
-uint256 constant InvalidFulfillmentComponentData_error_len = 0x20;
+uint256 constant InvalidFulfillmentComponentData_error_len = 0x04;
 
 uint256 constant Panic_error_signature = (
     0x4e487b7100000000000000000000000000000000000000000000000000000000
@@ -84,17 +84,18 @@ uint256 constant Panic_arithmetic = 0x11;
 uint256 constant MissingItemAmount_error_signature = (
     0x91b3e51400000000000000000000000000000000000000000000000000000000
 );
-uint256 constant MissingItemAmount_error_len = 0x20;
+uint256 constant MissingItemAmount_error_len = 0x04;
 
 uint256 constant OrderParameters_offer_head_offset = 0x40;
 uint256 constant OrderParameters_consideration_head_offset = 0x60;
 uint256 constant OrderParameters_conduit_offset = 0x120;
-uint256 constant OrderParameters_nonce_offset = 0x140;
+uint256 constant OrderParameters_counter_offset = 0x140;
 
 uint256 constant Fulfillment_itemIndex_offset = 0x20;
 
 uint256 constant AdvancedOrder_numerator_offset = 0x20;
 
+uint256 constant AlmostOneWord = 0x1f;
 uint256 constant OneWord = 0x20;
 uint256 constant TwoWords = 0x40;
 uint256 constant ThreeWords = 0x60;
@@ -203,6 +204,8 @@ uint256 constant BasicOrder_additionalRecipients_data_cdPtr = 0x284;
 
 uint256 constant BasicOrder_parameters_ptr = 0x20;
 
+uint256 constant BasicOrder_basicOrderType_range = 0x18; // 24 values
+
 /*
  *  Memory layout in _prepareBasicFulfillmentFromCalldata of
  *  EIP712 data for ConsiderationItem
@@ -253,7 +256,7 @@ uint256 constant BasicOrder_offerItem_endAmount_ptr = 0x120;
  *   - 0x180:  zoneHash
  *   - 0x1a0:  salt
  *   - 0x1c0:  conduit
- *   - 0x1e0:  _nonces[orderParameters.offerer] (from storage)
+ *   - 0x1e0:  _counters[orderParameters.offerer] (from storage)
  */
 uint256 constant BasicOrder_order_typeHash_ptr = 0x80;
 uint256 constant BasicOrder_order_offerer_ptr = 0xa0;
@@ -266,7 +269,7 @@ uint256 constant BasicOrder_order_startTime_ptr = 0x140;
 // uint256 constant BasicOrder_order_zoneHash_ptr = 0x180;
 // uint256 constant BasicOrder_order_salt_ptr = 0x1a0;
 // uint256 constant BasicOrder_order_conduitKey_ptr = 0x1c0;
-uint256 constant BasicOrder_order_nonce_ptr = 0x1e0;
+uint256 constant BasicOrder_order_counter_ptr = 0x1e0;
 uint256 constant BasicOrder_additionalRecipients_head_ptr = 0x240;
 uint256 constant BasicOrder_signature_ptr = 0x260;
 
@@ -274,6 +277,22 @@ uint256 constant BasicOrder_signature_ptr = 0x260;
 bytes32 constant EIP2098_allButHighestBitMask = (
     0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 );
+bytes32 constant ECDSA_twentySeventhAndTwentyEighthBytesSet = (
+    0x0000000000000000000000000000000000000000000000000000000101000000
+);
+uint256 constant ECDSA_MaxLength = 65;
+uint256 constant ECDSA_signature_s_offset = 0x40;
+uint256 constant ECDSA_signature_v_offset = 0x60;
+
+bytes32 constant EIP1271_isValidSignature_selector = (
+    0x1626ba7e00000000000000000000000000000000000000000000000000000000
+);
+uint256 constant EIP1271_isValidSignature_signatureHead_negativeOffset = 0x20;
+uint256 constant EIP1271_isValidSignature_digest_negativeOffset = 0x40;
+uint256 constant EIP1271_isValidSignature_selector_negativeOffset = 0x44;
+uint256 constant EIP1271_isValidSignature_calldata_baseLength = 0x64;
+
+uint256 constant EIP1271_isValidSignature_signature_head_offset = 0x40;
 
 // abi.encodeWithSignature("NoContract(address)")
 uint256 constant NoContract_error_signature = (
@@ -289,7 +308,7 @@ uint256 constant EIP_712_PREFIX = (
 
 uint256 constant ExtraGasBuffer = 0x20;
 uint256 constant CostPerWord = 3;
-uint256 constant MemoryExpansionCoefficient = 0x200;
+uint256 constant MemoryExpansionCoefficient = 0x200; // 512
 
 uint256 constant Create2AddressDerivation_ptr = 0x0b;
 uint256 constant Create2AddressDerivation_length = 0x55;
@@ -309,6 +328,9 @@ uint256 constant MaskOverFirstFourBytes = (
 uint256 constant Conduit_execute_signature = (
     0x4ce34aa200000000000000000000000000000000000000000000000000000000
 );
+
+uint256 constant MaxUint8 = 0xff;
+uint256 constant MaxUint120 = 0xffffffffffffffffffffffffffffff;
 
 uint256 constant Conduit_execute_ConduitTransfer_ptr = 0x20;
 uint256 constant Conduit_execute_ConduitTransfer_length = 0x01;
@@ -341,3 +363,50 @@ uint256 constant Conduit_transferItem_from_ptr = 0x40;
 uint256 constant Conduit_transferItem_to_ptr = 0x60;
 uint256 constant Conduit_transferItem_identifier_ptr = 0x80;
 uint256 constant Conduit_transferItem_amount_ptr = 0xa0;
+
+// Declare constant for errors related to amount derivation.
+// error InexactFraction() @ AmountDerivationErrors.sol
+uint256 constant InexactFraction_error_signature = (
+    0xc63cf08900000000000000000000000000000000000000000000000000000000
+);
+uint256 constant InexactFraction_error_len = 0x04;
+
+// Declare constant for errors related to signature verification.
+uint256 constant Ecrecover_precompile = 1;
+uint256 constant Ecrecover_args_size = 0x80;
+uint256 constant Signature_lower_v = 27;
+
+// error BadSignatureV(uint8) @ SignatureVerificationErrors.sol
+uint256 constant BadSignatureV_error_signature = (
+    0x1f003d0a00000000000000000000000000000000000000000000000000000000
+);
+uint256 constant BadSignatureV_error_offset = 0x04;
+uint256 constant BadSignatureV_error_length = 0x24;
+
+// error InvalidSigner() @ SignatureVerificationErrors.sol
+uint256 constant InvalidSigner_error_signature = (
+    0x815e1d6400000000000000000000000000000000000000000000000000000000
+);
+uint256 constant InvalidSigner_error_length = 0x04;
+
+// error InvalidSignature() @ SignatureVerificationErrors.sol
+uint256 constant InvalidSignature_error_signature = (
+    0x8baa579f00000000000000000000000000000000000000000000000000000000
+);
+uint256 constant InvalidSignature_error_length = 0x04;
+
+// error BadContractSignature() @ SignatureVerificationErrors.sol
+uint256 constant BadContractSignature_error_signature = (
+    0x4f7fb80d00000000000000000000000000000000000000000000000000000000
+);
+uint256 constant BadContractSignature_error_length = 0x04;
+
+uint256 constant NumBitsAfterSelector = 0xe0;
+
+// 69 is the lowest modulus for which the remainder
+// of every selector other than the two match functions
+// is greater than those of the match functions.
+uint256 constant NonMatchSelector_MagicModulus = 69;
+// Of the two match function selectors, the highest
+// remainder modulo 69 is 29.
+uint256 constant NonMatchSelector_MagicRemainder = 0x1d;

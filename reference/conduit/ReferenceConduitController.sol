@@ -61,6 +61,11 @@ contract ReferenceConduitController is ConduitControllerInterface {
         override
         returns (address conduit)
     {
+        // Ensure that an initial owner has been supplied.
+        if (initialOwner == address(0)) {
+            revert InvalidInitialOwner();
+        }
+
         // If the first 20 bytes of the conduit key do not match the caller...
         if (address(uint160(bytes20(conduitKey))) != msg.sender) {
             // Revert with an error indicating that the creator is invalid.
@@ -92,11 +97,14 @@ contract ReferenceConduitController is ConduitControllerInterface {
         // Deploy the conduit via CREATE2 using the conduit key as the salt.
         new ReferenceConduit{ salt: conduitKey }();
 
+        // Initialize storage variable referencing conduit properties.
+        ConduitProperties storage conduitProperties = _conduits[conduit];
+
         // Set the supplied initial owner as the owner of the conduit.
-        _conduits[conduit].owner = initialOwner;
+        conduitProperties.owner = initialOwner;
 
         // Set conduit key used to deploy the conduit to enable reverse lookup.
-        _conduits[conduit].key = conduitKey;
+        conduitProperties.key = conduitKey;
 
         // Emit an event indicating that the conduit has been deployed.
         emit NewConduit(conduit, conduitKey);
@@ -189,6 +197,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
      *      function.
      *
      * @param conduit The conduit for which to initiate ownership transfer.
+     * @param newPotentialOwner The new potential owner of the conduit.
      */
     function transferOwnership(address conduit, address newPotentialOwner)
         external
@@ -202,8 +211,13 @@ contract ReferenceConduitController is ConduitControllerInterface {
             revert NewPotentialOwnerIsZeroAddress(conduit);
         }
 
+        // Ensure the new potential owner is not already set.
+        if (newPotentialOwner == _conduits[conduit].potentialOwner) {
+            revert NewPotentialOwnerAlreadySet(conduit, newPotentialOwner);
+        }
+
         // Emit an event indicating that the potential owner has been updated.
-        emit PotentialOwnerUpdated(conduit, newPotentialOwner);
+        emit PotentialOwnerUpdated(newPotentialOwner);
 
         // Set the new potential owner as the potential owner of the conduit.
         _conduits[conduit].potentialOwner = newPotentialOwner;
@@ -220,8 +234,13 @@ contract ReferenceConduitController is ConduitControllerInterface {
         // Ensure the caller is the current owner of the conduit in question.
         _assertCallerIsConduitOwner(conduit);
 
+        // Ensure that ownership transfer is currently possible.
+        if (_conduits[conduit].potentialOwner == address(0)) {
+            revert NoPotentialOwnerCurrentlySet(conduit);
+        }
+
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(conduit, address(0));
+        emit PotentialOwnerUpdated(address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;
@@ -245,7 +264,7 @@ contract ReferenceConduitController is ConduitControllerInterface {
         }
 
         // Emit an event indicating that the potential owner has been cleared.
-        emit PotentialOwnerUpdated(conduit, address(0));
+        emit PotentialOwnerUpdated(address(0));
 
         // Clear the current new potential owner from the conduit.
         delete _conduits[conduit].potentialOwner;

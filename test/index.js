@@ -2,14 +2,15 @@
 const { expect } = require("chai");
 const {
   constants,
-  utils: { parseEther, keccak256, toUtf8Bytes, recoverAddress },
-  Contract,
+  utils: { parseEther, keccak256, toUtf8Bytes },
 } = require("ethers");
-const { ethers } = require("hardhat");
-const { faucet, whileImpersonating } = require("./utils/impersonate");
-const { deployContract } = require("./utils/contracts");
+const { ethers, network } = require("hardhat");
+const {
+  faucet,
+  whileImpersonating,
+  getWalletWithEther,
+} = require("./utils/impersonate");
 const { merkleTree } = require("./utils/criteria");
-const deployConstants = require("../constants/constants");
 const {
   randomHex,
   random128,
@@ -17,47 +18,45 @@ const {
   toKey,
   convertSignatureToEIP2098,
   getBasicOrderParameters,
-  getOfferOrConsiderationItem,
   getItemETH,
   toBN,
   randomBN,
+  toFulfillment,
+  toFulfillmentComponents,
+  getBasicOrderExecutions,
+  buildResolver,
+  buildOrderStatus,
+  defaultBuyNowMirrorFulfillment,
+  defaultAcceptOfferMirrorFulfillment,
 } = require("./utils/encoding");
-const { orderType } = require("../eip-712-types/order");
 const { randomInt } = require("crypto");
-const { getCreate2Address } = require("ethers/lib/utils");
-const { tokensFixture } = require("./utils/fixtures");
+const {
+  fixtureERC20,
+  fixtureERC721,
+  fixtureERC1155,
+  seaportFixture,
+} = require("./utils/fixtures");
+const { deployContract } = require("./utils/contracts");
 
-const VERSION = !process.env.REFERENCE ? "1" : "rc.1";
+const VERSION = !process.env.REFERENCE ? "1.1" : "rc.1.1";
 
 const minRandom = (min) => randomBN(10).add(min);
 
-const buildOrderStatus = (...arr) => {
-  const values = arr.map((v) => (typeof v === "number" ? toBN(v) : v));
-  return ["isValidated", "isCancelled", "totalFilled", "totalSize"].reduce(
-    (obj, key, i) => ({
-      ...obj,
-      [key]: values[i],
-      [i]: values[i],
-    }),
-    {}
-  );
-};
+const getCustomRevertSelector = (customErrorString) =>
+  ethers.utils
+    .keccak256(ethers.utils.toUtf8Bytes(customErrorString))
+    .slice(0, 10);
 
 describe(`Consideration (version: ${VERSION}) — initial test suite`, function () {
   const provider = ethers.provider;
-  let chainId;
   let zone;
   let marketplaceContract;
   let testERC20;
   let testERC721;
   let testERC1155;
   let testERC1155Two;
-  let tokenByType;
   let owner;
-  let domainData;
   let withBalanceChecks;
-  let simulateMatchOrders;
-  let simulateAdvancedMatchOrders;
   let EIP1271WalletFactory;
   let reenterer;
   let stubZone;
@@ -66,1729 +65,96 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
   let conduitOne;
   let conduitKeyOne;
   let directMarketplaceContract;
-  let conduitCodeHash;
+  let mintAndApproveERC20;
+  let getTestItem20;
+  let set721ApprovalForAll;
+  let mint721;
+  let mint721s;
+  let mintAndApprove721;
+  let getTestItem721;
+  let getTestItem721WithCriteria;
+  let set1155ApprovalForAll;
+  let mint1155;
+  let mintAndApprove1155;
+  let getTestItem1155WithCriteria;
+  let getTestItem1155;
+  let deployNewConduit;
+  let createTransferWithApproval;
+  let createOrder;
+  let createMirrorBuyNowOrder;
+  let createMirrorAcceptOfferOrder;
+  let checkExpectedEvents;
 
-  const resetTokens = async () => {
-    ({ testERC20, testERC721, testERC1155, testERC1155Two, tokenByType } =
-      await tokensFixture(owner));
+  const simulateMatchOrders = async (orders, fulfillments, caller, value) => {
+    return marketplaceContract
+      .connect(caller)
+      .callStatic.matchOrders(orders, fulfillments, {
+        value,
+      });
   };
 
-  const buildResolver = (
-    orderIndex,
-    side,
-    index,
-    identifier,
-    criteriaProof
-  ) => ({
-    orderIndex,
-    side,
-    index,
-    identifier,
-    criteriaProof,
-  });
-
-  const getBasicOrderExecutions = (order, fulfiller, fulfillerConduitKey) => {
-    const { offerer, conduitKey, offer, consideration } = order.parameters;
-    const offerItem = offer[0];
-    const considerationItem = consideration[0];
-    const executions = [
-      {
-        item: {
-          ...offerItem,
-          amount: offerItem.endAmount,
-          recipient: fulfiller,
-        },
-        offerer: offerer,
-        conduitKey: conduitKey,
-      },
-      {
-        item: {
-          ...considerationItem,
-          amount: considerationItem.endAmount,
-        },
-        offerer: fulfiller,
-        conduitKey: fulfillerConduitKey,
-      },
-    ];
-    if (consideration.length > 1) {
-      for (const additionalRecipient of consideration.slice(1)) {
-        const execution = {
-          item: {
-            ...additionalRecipient,
-            amount: additionalRecipient.endAmount,
-          },
-          offerer: fulfiller,
-          conduitKey: fulfillerConduitKey,
-        };
-        if (additionalRecipient.itemType === offerItem.itemType) {
-          execution.offerer = offerer;
-          execution.conduitKey = conduitKey;
-          executions[0].item.amount = executions[0].item.amount.sub(
-            execution.item.amount
-          );
-        }
-        executions.push(execution);
-      }
-    }
-    return executions;
-  };
-
-  const toFulfillmentComponents = (arr) =>
-    arr.map(([orderIndex, itemIndex]) => ({ orderIndex, itemIndex }));
-
-  const toFulfillment = (offerArr, considerationsArr) => ({
-    offerComponents: toFulfillmentComponents(offerArr),
-    considerationComponents: toFulfillmentComponents(considerationsArr),
-  });
-
-  const set721ApprovalForAll = async (
-    signer,
-    spender,
-    approved = true,
-    contract = testERC721
-  ) =>
-    expect(contract.connect(signer).setApprovalForAll(spender, approved))
-      .to.emit(contract, "ApprovalForAll")
-      .withArgs(signer.address, spender, approved);
-
-  const set1155ApprovalForAll = async (
-    signer,
-    spender,
-    approved = true,
-    contract = testERC1155
-  ) =>
-    expect(contract.connect(signer).setApprovalForAll(spender, approved))
-      .to.emit(contract, "ApprovalForAll")
-      .withArgs(signer.address, spender, approved);
-
-  const mintAndApproveERC20 = async (signer, spender, tokenAmount) => {
-    // Offerer mints ERC20
-    await testERC20.mint(signer.address, tokenAmount);
-
-    // Offerer approves marketplace contract to tokens
-    await expect(testERC20.connect(signer).approve(spender, tokenAmount))
-      .to.emit(testERC20, "Approval")
-      .withArgs(signer.address, spender, tokenAmount);
-  };
-
-  const mint721 = async (signer, id) => {
-    const nftId = id ? toBN(id) : randomBN();
-    await testERC721.mint(signer.address, nftId);
-    return nftId;
-  };
-
-  const mint721s = async (signer, count) => {
-    const arr = [];
-    for (let i = 0; i < count; i++) arr.push(await mint721(signer));
-    return arr;
-  };
-
-  const mintAndApprove721 = async (signer, spender, id) => {
-    await set721ApprovalForAll(signer, spender, true);
-    return mint721(signer, id);
-  };
-
-  const getTransferSender = (account, conduitKey) => {
-    if (!conduitKey || conduitKey === constants.HashZero) {
-      return account;
-    }
-    return getCreate2Address(
-      conduitController.address,
-      conduitKey,
-      conduitCodeHash
-    );
-  };
-
-  const mint1155 = async (
-    signer,
-    multiplier = 1,
-    token = testERC1155,
-    id = null,
-    amt = null
-  ) => {
-    const nftId = id ? toBN(id) : randomBN();
-    const amount = amt ? toBN(amt) : toBN(randomBN(4));
-    await token.mint(signer.address, nftId, amount.mul(multiplier));
-    return { nftId, amount };
-  };
-
-  const mintAndApprove1155 = async (
-    signer,
-    spender,
-    multiplier = 1,
-    id = null,
-    amt = null
-  ) => {
-    const { nftId, amount } = await mint1155(
-      signer,
-      multiplier,
-      testERC1155,
-      id,
-      amt
-    );
-    await set1155ApprovalForAll(signer, spender, true);
-    return { nftId, amount };
-  };
-
-  const getTestItem721 = (
-    identifierOrCriteria,
-    startAmount = 1,
-    endAmount = 1,
-    recipient,
-    token = testERC721.address
-  ) =>
-    getOfferOrConsiderationItem(
-      2,
-      token,
-      identifierOrCriteria,
-      startAmount,
-      endAmount,
-      recipient
-    );
-
-  const getTestItem721WithCriteria = (
-    identifierOrCriteria,
-    startAmount = 1,
-    endAmount = 1,
-    recipient
-  ) =>
-    getOfferOrConsiderationItem(
-      4,
-      testERC721.address,
-      identifierOrCriteria,
-      startAmount,
-      endAmount,
-      recipient
-    );
-
-  const getTestItem1155WithCriteria = (
-    identifierOrCriteria,
-    startAmount = 1,
-    endAmount = 1,
-    recipient
-  ) =>
-    getOfferOrConsiderationItem(
-      5,
-      testERC1155.address,
-      identifierOrCriteria,
-      startAmount,
-      endAmount,
-      recipient
-    );
-
-  const getTestItem20 = (
-    startAmount = 50,
-    endAmount = 50,
-    recipient,
-    token = testERC20.address
-  ) =>
-    getOfferOrConsiderationItem(1, token, 0, startAmount, endAmount, recipient);
-
-  const getTestItem1155 = (
-    identifierOrCriteria,
-    startAmount,
-    endAmount,
-    token = testERC1155.address,
-    recipient
-  ) =>
-    getOfferOrConsiderationItem(
-      3,
-      token,
-      identifierOrCriteria,
-      startAmount,
-      endAmount,
-      recipient
-    );
-
-  const getAndVerifyOrderHash = async (orderComponents) => {
-    const orderHash = await marketplaceContract.getOrderHash(orderComponents);
-
-    const offerItemTypeString =
-      "OfferItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount)";
-    const considerationItemTypeString =
-      "ConsiderationItem(uint8 itemType,address token,uint256 identifierOrCriteria,uint256 startAmount,uint256 endAmount,address recipient)";
-    const orderComponentsPartialTypeString =
-      "OrderComponents(address offerer,address zone,OfferItem[] offer,ConsiderationItem[] consideration,uint8 orderType,uint256 startTime,uint256 endTime,bytes32 zoneHash,uint256 salt,bytes32 conduitKey,uint256 nonce)";
-    const orderTypeString = `${orderComponentsPartialTypeString}${considerationItemTypeString}${offerItemTypeString}`;
-
-    const offerItemTypeHash = keccak256(toUtf8Bytes(offerItemTypeString));
-    const considerationItemTypeHash = keccak256(
-      toUtf8Bytes(considerationItemTypeString)
-    );
-    const orderTypeHash = keccak256(toUtf8Bytes(orderTypeString));
-
-    const offerHash = keccak256(
-      "0x" +
-        orderComponents.offer
-          .map((offerItem) => {
-            return ethers.utils
-              .keccak256(
-                "0x" +
-                  [
-                    offerItemTypeHash.slice(2),
-                    offerItem.itemType.toString().padStart(64, "0"),
-                    offerItem.token.slice(2).padStart(64, "0"),
-                    toBN(offerItem.identifierOrCriteria)
-                      .toHexString()
-                      .slice(2)
-                      .padStart(64, "0"),
-                    toBN(offerItem.startAmount)
-                      .toHexString()
-                      .slice(2)
-                      .padStart(64, "0"),
-                    toBN(offerItem.endAmount)
-                      .toHexString()
-                      .slice(2)
-                      .padStart(64, "0"),
-                  ].join("")
-              )
-              .slice(2);
-          })
-          .join("")
-    );
-
-    const considerationHash = keccak256(
-      "0x" +
-        orderComponents.consideration
-          .map((considerationItem) => {
-            return ethers.utils
-              .keccak256(
-                "0x" +
-                  [
-                    considerationItemTypeHash.slice(2),
-                    considerationItem.itemType.toString().padStart(64, "0"),
-                    considerationItem.token.slice(2).padStart(64, "0"),
-                    toBN(considerationItem.identifierOrCriteria)
-                      .toHexString()
-                      .slice(2)
-                      .padStart(64, "0"),
-                    toBN(considerationItem.startAmount)
-                      .toHexString()
-                      .slice(2)
-                      .padStart(64, "0"),
-                    toBN(considerationItem.endAmount)
-                      .toHexString()
-                      .slice(2)
-                      .padStart(64, "0"),
-                    considerationItem.recipient.slice(2).padStart(64, "0"),
-                  ].join("")
-              )
-              .slice(2);
-          })
-          .join("")
-    );
-
-    const derivedOrderHash = keccak256(
-      "0x" +
-        [
-          orderTypeHash.slice(2),
-          orderComponents.offerer.slice(2).padStart(64, "0"),
-          orderComponents.zone.slice(2).padStart(64, "0"),
-          offerHash.slice(2),
-          considerationHash.slice(2),
-          orderComponents.orderType.toString().padStart(64, "0"),
-          toBN(orderComponents.startTime)
-            .toHexString()
-            .slice(2)
-            .padStart(64, "0"),
-          toBN(orderComponents.endTime)
-            .toHexString()
-            .slice(2)
-            .padStart(64, "0"),
-          orderComponents.zoneHash.slice(2),
-          orderComponents.salt.slice(2).padStart(64, "0"),
-          orderComponents.conduitKey.slice(2).padStart(64, "0"),
-          toBN(orderComponents.nonce).toHexString().slice(2).padStart(64, "0"),
-        ].join("")
-    );
-    expect(orderHash).to.equal(derivedOrderHash);
-
-    return orderHash;
-  };
-
-  // Returns signature
-  const signOrder = async (orderComponents, signer) => {
-    const signature = await signer._signTypedData(
-      domainData,
-      orderType,
-      orderComponents
-    );
-
-    const orderHash = await getAndVerifyOrderHash(orderComponents);
-
-    const { domainSeparator } = await marketplaceContract.information();
-    const digest = keccak256(
-      `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
-    );
-    const recoveredAddress = recoverAddress(digest, signature);
-
-    expect(recoveredAddress).to.equal(signer.address);
-
-    return signature;
-  };
-
-  const createOrder = async (
-    offerer,
-    zone,
-    offer,
-    consideration,
-    orderType,
+  const simulateAdvancedMatchOrders = async (
+    orders,
     criteriaResolvers,
-    timeFlag,
-    signer,
-    zoneHash = constants.HashZero,
-    conduitKey = constants.HashZero,
-    extraCheap = false
+    fulfillments,
+    caller,
+    value
   ) => {
-    const nonce = await marketplaceContract.getNonce(offerer.address);
-
-    const salt = !extraCheap ? randomHex() : constants.HashZero;
-    const startTime =
-      timeFlag !== "NOT_STARTED" ? 0 : toBN("0xee00000000000000000000000000");
-    const endTime =
-      timeFlag !== "EXPIRED" ? toBN("0xff00000000000000000000000000") : 1;
-
-    const orderParameters = {
-      offerer: offerer.address,
-      zone: !extraCheap ? zone.address : constants.AddressZero,
-      offer,
-      consideration,
-      totalOriginalConsiderationItems: consideration.length,
-      orderType,
-      zoneHash,
-      salt,
-      conduitKey,
-      startTime,
-      endTime,
-    };
-
-    const orderComponents = {
-      ...orderParameters,
-      nonce,
-    };
-
-    const orderHash = await getAndVerifyOrderHash(orderComponents);
-
-    const { isValidated, isCancelled, totalFilled, totalSize } =
-      await marketplaceContract.getOrderStatus(orderHash);
-
-    expect(isCancelled).to.equal(false);
-
-    const orderStatus = {
-      isValidated,
-      isCancelled,
-      totalFilled,
-      totalSize,
-    };
-
-    const flatSig = await signOrder(orderComponents, signer || offerer);
-
-    const order = {
-      parameters: orderParameters,
-      signature: !extraCheap ? flatSig : convertSignatureToEIP2098(flatSig),
-      numerator: 1, // only used for advanced orders
-      denominator: 1, // only used for advanced orders
-      extraData: "0x", // only used for advanced orders
-    };
-
-    // How much ether (at most) needs to be supplied when fulfilling the order
-    const value = offer
-      .map((x) =>
-        x.itemType === 0
-          ? x.endAmount.gt(x.startAmount)
-            ? x.endAmount
-            : x.startAmount
-          : toBN(0)
-      )
-      .reduce((a, b) => a.add(b), toBN(0))
-      .add(
-        consideration
-          .map((x) =>
-            x.itemType === 0
-              ? x.endAmount.gt(x.startAmount)
-                ? x.endAmount
-                : x.startAmount
-              : toBN(0)
-          )
-          .reduce((a, b) => a.add(b), toBN(0))
-      );
-
-    return {
-      order,
-      orderHash,
-      value,
-      orderStatus,
-      orderComponents,
-    };
+    return marketplaceContract
+      .connect(caller)
+      .callStatic.matchAdvancedOrders(orders, criteriaResolvers, fulfillments, {
+        value,
+      });
   };
 
-  const createMirrorBuyNowOrder = async (
-    offerer,
-    zone,
-    order,
-    conduitKey = constants.HashZero
-  ) => {
-    const nonce = await marketplaceContract.getNonce(offerer.address);
-    const salt = randomHex();
-    const startTime = order.parameters.startTime;
-    const endTime = order.parameters.endTime;
-
-    const compressedOfferItems = [];
-    for (const {
-      itemType,
-      token,
-      identifierOrCriteria,
-      startAmount,
-      endAmount,
-    } of order.parameters.offer) {
-      if (
-        !compressedOfferItems
-          .map((x) => `${x.itemType}+${x.token}+${x.identifierOrCriteria}`)
-          .includes(`${itemType}+${token}+${identifierOrCriteria}`)
-      ) {
-        compressedOfferItems.push({
-          itemType,
-          token,
-          identifierOrCriteria,
-          startAmount: startAmount.eq(endAmount)
-            ? startAmount
-            : startAmount.sub(1),
-          endAmount: startAmount.eq(endAmount) ? endAmount : endAmount.sub(1),
-        });
-      } else {
-        const index = compressedOfferItems
-          .map((x) => `${x.itemType}+${x.token}+${x.identifierOrCriteria}`)
-          .indexOf(`${itemType}+${token}+${identifierOrCriteria}`);
-
-        compressedOfferItems[index].startAmount = compressedOfferItems[
-          index
-        ].startAmount.add(
-          startAmount.eq(endAmount) ? startAmount : startAmount.sub(1)
-        );
-        compressedOfferItems[index].endAmount = compressedOfferItems[
-          index
-        ].endAmount.add(
-          startAmount.eq(endAmount) ? endAmount : endAmount.sub(1)
-        );
-      }
-    }
-
-    const compressedConsiderationItems = [];
-    for (const {
-      itemType,
-      token,
-      identifierOrCriteria,
-      startAmount,
-      endAmount,
-      recipient,
-    } of order.parameters.consideration) {
-      if (
-        !compressedConsiderationItems
-          .map((x) => `${x.itemType}+${x.token}+${x.identifierOrCriteria}`)
-          .includes(`${itemType}+${token}+${identifierOrCriteria}`)
-      ) {
-        compressedConsiderationItems.push({
-          itemType,
-          token,
-          identifierOrCriteria,
-          startAmount: startAmount.eq(endAmount)
-            ? startAmount
-            : startAmount.add(1),
-          endAmount: startAmount.eq(endAmount) ? endAmount : endAmount.add(1),
-          recipient,
-        });
-      } else {
-        const index = compressedConsiderationItems
-          .map((x) => `${x.itemType}+${x.token}+${x.identifierOrCriteria}`)
-          .indexOf(`${itemType}+${token}+${identifierOrCriteria}`);
-
-        compressedConsiderationItems[index].startAmount =
-          compressedConsiderationItems[index].startAmount.add(
-            startAmount.eq(endAmount) ? startAmount : startAmount.add(1)
-          );
-        compressedConsiderationItems[index].endAmount =
-          compressedConsiderationItems[index].endAmount.add(
-            startAmount.eq(endAmount) ? endAmount : endAmount.add(1)
-          );
-      }
-    }
-
-    const orderParameters = {
-      offerer: offerer.address,
-      zone: zone.address,
-      offer: compressedConsiderationItems.map((x) => ({ ...x })),
-      consideration: compressedOfferItems.map((x) => ({
-        ...x,
-        recipient: offerer.address,
-      })),
-      totalOriginalConsiderationItems: compressedOfferItems.length,
-      orderType: order.parameters.orderType, // FULL_OPEN
-      zoneHash: "0x".padEnd(66, "0"),
-      salt,
-      conduitKey,
-      startTime,
-      endTime,
-    };
-
-    const orderComponents = {
-      ...orderParameters,
-      nonce,
-    };
-
-    const flatSig = await signOrder(orderComponents, offerer);
-
-    const mirrorOrderHash = await getAndVerifyOrderHash(orderComponents);
-
-    const mirrorOrder = {
-      parameters: orderParameters,
-      signature: flatSig,
-      numerator: order.numerator, // only used for advanced orders
-      denominator: order.denominator, // only used for advanced orders
-      extraData: "0x", // only used for advanced orders
-    };
-
-    // How much ether (at most) needs to be supplied when fulfilling the order
-    const mirrorValue = orderParameters.consideration
-      .map((x) =>
-        x.itemType === 0
-          ? x.endAmount.gt(x.startAmount)
-            ? x.endAmount
-            : x.startAmount
-          : toBN(0)
-      )
-      .reduce((a, b) => a.add(b), toBN(0));
-
-    return {
-      mirrorOrder,
-      mirrorOrderHash,
-      mirrorValue,
-    };
-  };
-
-  const createMirrorAcceptOfferOrder = async (
-    offerer,
-    zone,
-    order,
-    criteriaResolvers,
-    conduitKey = constants.HashZero
-  ) => {
-    const nonce = await marketplaceContract.getNonce(offerer.address);
-    const salt = randomHex();
-    const startTime = order.parameters.startTime;
-    const endTime = order.parameters.endTime;
-
-    const orderParameters = {
-      offerer: offerer.address,
-      zone: zone.address,
-      offer: order.parameters.consideration
-        .filter((x) => x.itemType !== 1)
-        .map((x) => ({
-          itemType: x.itemType < 4 ? x.itemType : x.itemType - 2,
-          token: x.token,
-          identifierOrCriteria:
-            x.itemType < 4
-              ? x.identifierOrCriteria
-              : criteriaResolvers[0].identifier,
-          startAmount: x.startAmount,
-          endAmount: x.endAmount,
-        })),
-      consideration: order.parameters.offer.map((x) => ({
-        itemType: x.itemType < 4 ? x.itemType : x.itemType - 2,
-        token: x.token,
-        identifierOrCriteria:
-          x.itemType < 4
-            ? x.identifierOrCriteria
-            : criteriaResolvers[0].identifier,
-        recipient: offerer.address,
-        startAmount: toBN(x.endAmount).sub(
-          order.parameters.consideration
-            .filter(
-              (i) =>
-                i.itemType < 2 &&
-                i.itemType === x.itemType &&
-                i.token === x.token
-            )
-            .map((i) => i.endAmount)
-            .reduce((a, b) => a.add(b), toBN(0))
-        ),
-        endAmount: toBN(x.endAmount).sub(
-          order.parameters.consideration
-            .filter(
-              (i) =>
-                i.itemType < 2 &&
-                i.itemType === x.itemType &&
-                i.token === x.token
-            )
-            .map((i) => i.endAmount)
-            .reduce((a, b) => a.add(b), toBN(0))
-        ),
-      })),
-      totalOriginalConsiderationItems: order.parameters.offer.length,
-      orderType: 0, // FULL_OPEN
-      zoneHash: constants.HashZero,
-      salt,
-      conduitKey,
-      startTime,
-      endTime,
-    };
-
-    const orderComponents = {
-      ...orderParameters,
-      nonce,
-    };
-
-    const flatSig = await signOrder(orderComponents, offerer);
-
-    const mirrorOrderHash = await getAndVerifyOrderHash(orderComponents);
-
-    const mirrorOrder = {
-      parameters: orderParameters,
-      signature: flatSig,
-      numerator: 1, // only used for advanced orders
-      denominator: 1, // only used for advanced orders
-      extraData: "0x", // only used for advanced orders
-    };
-
-    // How much ether (at most) needs to be supplied when fulfilling the order
-    const mirrorValue = orderParameters.consideration
-      .map((x) =>
-        x.itemType === 0
-          ? x.endAmount.gt(x.startAmount)
-            ? x.endAmount
-            : x.startAmount
-          : toBN(0)
-      )
-      .reduce((a, b) => a.add(b), toBN(0));
-
-    return {
-      mirrorOrder,
-      mirrorOrderHash,
-      mirrorValue,
-    };
-  };
-
-  const deployNewConduit = async (owner) => {
-    // Create a conduit key with a random salt
-    const tempConduitKey = owner.address + randomHex(12).slice(2);
-
-    const { conduit: tempConduitAddress } = await conduitController.getConduit(
-      tempConduitKey
-    );
-
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .createConduit(tempConduitKey, owner.address);
+  after(async () => {
+    await network.provider.request({
+      method: "hardhat_reset",
     });
-
-    const tempConduit = conduitImplementation.attach(tempConduitAddress);
-    return tempConduit;
-  };
-
-  // Deploys a new contract based on itemType
-  const deployContracts = async (itemType) => {
-    let tempContract;
-
-    switch (itemType) {
-      case 0:
-        break;
-      case 1: // ERC20
-        tempContract = await deployContract("TestERC20", owner);
-        break;
-      case 2: // ERC721
-      case 4: // ERC721_WITH_CRITERIA
-        tempContract = await deployContract("TestERC721", owner);
-        break;
-      case 3: // ERC1155
-      case 5: // ERC1155_WITH_CRITERIA
-        tempContract = await deployContract("TestERC1155", owner);
-        break;
-    }
-    return tempContract;
-  };
-
-  const checkTransferEvent = async (
-    tx,
-    item,
-    { offerer, conduitKey, target }
-  ) => {
-    const {
-      itemType,
-      token,
-      identifier: id1,
-      identifierOrCriteria: id2,
-      amount,
-      recipient,
-    } = item;
-    const identifier = id1 || id2;
-    const sender = getTransferSender(offerer, conduitKey);
-    if ([1, 2, 5].includes(itemType)) {
-      const contract = new Contract(
-        token,
-        (itemType === 1 ? testERC20 : testERC721).interface,
-        provider
-      );
-      await expect(tx)
-        .to.emit(contract, "Transfer")
-        .withArgs(offerer, recipient, itemType === 1 ? amount : identifier);
-    } else if ([3, 4].includes(itemType)) {
-      const contract = new Contract(token, testERC1155.interface, provider);
-      const operator = sender !== offerer ? sender : target;
-      await expect(tx)
-        .to.emit(contract, "TransferSingle")
-        .withArgs(operator, offerer, recipient, identifier, amount);
-    }
-  };
-
-  // Creates a transfer object after minting a random amount
-  // of tokens, and setting receiver's token approval based on itemType
-  const createTransferWithApproval = async (
-    contract,
-    receiver,
-    itemType,
-    approvalAddress,
-    from,
-    to
-  ) => {
-    let identifier = 0;
-    let amount;
-    const token = contract.address;
-
-    switch (itemType) {
-      case 0:
-        break;
-      case 1: // ERC20
-        amount = minRandom(100);
-        await contract.mint(receiver.address, amount);
-
-        // Receiver approves contract to transfer tokens
-        await whileImpersonating(receiver.address, provider, async () => {
-          await expect(
-            contract.connect(receiver).approve(approvalAddress, amount)
-          )
-            .to.emit(contract, "Approval")
-            .withArgs(receiver.address, approvalAddress, amount);
-        });
-        break;
-      case 2: // ERC721
-      case 4: // ERC721_WITH_CRITERIA
-        amount = 1;
-        identifier = randomBN();
-        await contract.mint(receiver.address, identifier);
-
-        // Receiver approves contract to transfer tokens
-        await set721ApprovalForAll(receiver, approvalAddress, true, contract);
-        break;
-      case 3: // ERC1155
-      case 5: // ERC1155_WITH_CRITERIA
-        identifier = random128();
-        amount = minRandom(1);
-        await contract.mint(receiver.address, identifier, amount);
-
-        // Receiver approves contract to transfer tokens
-        await set1155ApprovalForAll(receiver, approvalAddress, true, contract);
-        break;
-    }
-    return { itemType, token, from, to, identifier, amount };
-  };
-
-  const checkExpectedEvents = async (
-    tx,
-    receipt,
-    orderGroups,
-    standardExecutions,
-    criteriaResolvers = [],
-    shouldSkipAmountComparison = false,
-    multiplier = 1
-  ) => {
-    const { timestamp } = await provider.getBlock(receipt.blockHash);
-
-    if (standardExecutions && standardExecutions.length) {
-      for (const standardExecution of standardExecutions) {
-        const { item, offerer, conduitKey } = standardExecution;
-        await checkTransferEvent(tx, item, {
-          offerer,
-          conduitKey,
-          target: receipt.to,
-        });
-      }
-
-      // TODO: sum up executions and compare to orders to ensure that all the
-      // items (or partially-filled items) are accounted for
-    }
-
-    if (criteriaResolvers && criteriaResolvers.length) {
-      for (const { orderIndex, side, index, identifier } of criteriaResolvers) {
-        const itemType =
-          orderGroups[orderIndex].order.parameters[
-            side === 0 ? "offer" : "consideration"
-          ][index].itemType;
-        if (itemType < 4) {
-          console.error("APPLYING CRITERIA TO NON-CRITERIA-BASED ITEM");
-          process.exit(1);
-        }
-
-        orderGroups[orderIndex].order.parameters[
-          side === 0 ? "offer" : "consideration"
-        ][index].itemType = itemType - 2;
-        orderGroups[orderIndex].order.parameters[
-          side === 0 ? "offer" : "consideration"
-        ][index].identifierOrCriteria = identifier;
-      }
-    }
-
-    for (const {
-      order,
-      orderHash,
-      fulfiller,
-      fulfillerConduitKey,
-    } of orderGroups) {
-      const duration = toBN(order.parameters.endTime).sub(
-        order.parameters.startTime
-      );
-      const elapsed = toBN(timestamp).sub(order.parameters.startTime);
-      const remaining = duration.sub(elapsed);
-
-      const marketplaceContractEvents = receipt.events
-        .filter((x) => x.address === marketplaceContract.address)
-        .map((x) => ({
-          eventName: x.event,
-          eventSignature: x.eventSignature,
-          orderHash: x.args.orderHash,
-          offerer: x.args.offerer,
-          zone: x.args.zone,
-          fulfiller: x.args.fulfiller,
-          offer: x.args.offer.map((y) => ({
-            itemType: y.itemType,
-            token: y.token,
-            identifier: y.identifier,
-            amount: y.amount,
-          })),
-          consideration: x.args.consideration.map((y) => ({
-            itemType: y.itemType,
-            token: y.token,
-            identifier: y.identifier,
-            amount: y.amount,
-            recipient: y.recipient,
-          })),
-        }))
-        .filter((x) => x.orderHash === orderHash);
-
-      expect(marketplaceContractEvents.length).to.equal(1);
-
-      const event = marketplaceContractEvents[0];
-
-      expect(event.eventName).to.equal("OrderFulfilled");
-      expect(event.eventSignature).to.equal(
-        "OrderFulfilled(" +
-          "bytes32,address,address,address,(" +
-          "uint8,address,uint256,uint256)[],(" +
-          "uint8,address,uint256,uint256,address)[])"
-      );
-      expect(event.orderHash).to.equal(orderHash);
-      expect(event.offerer).to.equal(order.parameters.offerer);
-      expect(event.zone).to.equal(order.parameters.zone);
-      expect(event.fulfiller).to.equal(fulfiller);
-
-      const { offerer, conduitKey, consideration, offer } = order.parameters;
-      const compareEventItems = async (
-        item,
-        orderItem,
-        isConsiderationItem
-      ) => {
-        expect(item.itemType).to.equal(
-          orderItem.itemType > 3 ? orderItem.itemType - 2 : orderItem.itemType
-        );
-        expect(item.token).to.equal(orderItem.token);
-        expect(item.token).to.equal(tokenByType[item.itemType].address);
-        if (orderItem.itemType < 4) {
-          // no criteria-based
-          expect(item.identifier).to.equal(orderItem.identifierOrCriteria);
-        } else {
-          console.error("CRITERIA-BASED EVENT VALIDATION NOT MET");
-          process.exit(1);
-        }
-
-        if (order.parameters.orderType === 0) {
-          // FULL_OPEN (no partial fills)
-          if (
-            orderItem.startAmount.toString() === orderItem.endAmount.toString()
-          ) {
-            expect(item.amount.toString()).to.equal(
-              orderItem.endAmount.toString()
-            );
-          } else {
-            expect(item.amount.toString()).to.equal(
-              toBN(orderItem.startAmount)
-                .mul(remaining)
-                .add(toBN(orderItem.endAmount).mul(elapsed))
-                .add(isConsiderationItem ? duration.sub(1) : 0)
-                .div(duration)
-                .toString()
-            );
-          }
-        } else {
-          if (
-            orderItem.startAmount.toString() === orderItem.endAmount.toString()
-          ) {
-            expect(item.amount.toString()).to.equal(
-              orderItem.endAmount
-                .mul(order.numerator)
-                .div(order.denominator)
-                .toString()
-            );
-          } else {
-            console.error("SLIDING AMOUNT NOT IMPLEMENTED YET");
-            process.exit(1);
-          }
-        }
-      };
-
-      if (!standardExecutions || !standardExecutions.length) {
-        for (const item of consideration) {
-          const { startAmount, endAmount } = item;
-          let amount;
-          if (order.parameters.orderType === 0) {
-            amount = startAmount.eq(endAmount)
-              ? endAmount
-              : startAmount
-                  .mul(remaining)
-                  .add(endAmount.mul(elapsed))
-                  .add(duration.sub(1))
-                  .div(duration);
-          } else {
-            amount = endAmount.mul(order.numerator).div(order.denominator);
-          }
-          amount = amount.mul(multiplier);
-
-          await checkTransferEvent(
-            tx,
-            { ...item, amount },
-            {
-              offerer: receipt.from,
-              conduitKey: fulfillerConduitKey,
-              target: receipt.to,
-            }
-          );
-        }
-
-        for (const item of offer) {
-          const { startAmount, endAmount } = item;
-          let amount;
-          if (order.parameters.orderType === 0) {
-            amount = startAmount.eq(endAmount)
-              ? endAmount
-              : startAmount
-                  .mul(remaining)
-                  .add(endAmount.mul(elapsed))
-                  .div(duration);
-          } else {
-            amount = endAmount.mul(order.numerator).div(order.denominator);
-          }
-          amount = amount.mul(multiplier);
-
-          await checkTransferEvent(
-            tx,
-            { ...item, amount, recipient: receipt.from },
-            {
-              offerer,
-              conduitKey,
-              target: receipt.to,
-            }
-          );
-        }
-      }
-
-      expect(event.offer.length).to.equal(order.parameters.offer.length);
-      for (const [index, offer] of Object.entries(event.offer)) {
-        const offerItem = order.parameters.offer[index];
-        await compareEventItems(offer, offerItem, false);
-
-        const tokenEvents = receipt.events.filter(
-          (x) => x.address === offerItem.token
-        );
-
-        if (offer.itemType === 1) {
-          // ERC20
-          // search for transfer
-          const transferLogs = tokenEvents
-            .map((x) => testERC20.interface.parseLog(x))
-            .filter(
-              (x) =>
-                x.signature === "Transfer(address,address,uint256)" &&
-                x.args.from === event.offerer &&
-                (fulfiller !== constants.AddressZero
-                  ? x.args.to === fulfiller
-                  : true)
-            );
-
-          expect(transferLogs.length).to.be.above(0);
-          for (const transferLog of transferLogs) {
-            // TODO: check each transferred amount
-          }
-        } else if (offer.itemType === 2) {
-          // ERC721
-          // search for transfer
-          const transferLogs = tokenEvents
-            .map((x) => testERC721.interface.parseLog(x))
-            .filter(
-              (x) =>
-                x.signature === "Transfer(address,address,uint256)" &&
-                x.args.from === event.offerer &&
-                (fulfiller !== constants.AddressZero
-                  ? x.args.to === fulfiller
-                  : true)
-            );
-
-          expect(transferLogs.length).to.equal(1);
-          const transferLog = transferLogs[0];
-          expect(transferLog.args.id.toString()).to.equal(
-            offer.identifier.toString()
-          );
-        } else if (offer.itemType === 3) {
-          // search for transfer
-          const transferLogs = tokenEvents
-            .map((x) => testERC1155.interface.parseLog(x))
-            .filter(
-              (x) =>
-                (x.signature ===
-                  "TransferSingle(address,address,address,uint256,uint256)" &&
-                  x.args.from === event.offerer &&
-                  (fulfiller !== constants.AddressZero
-                    ? x.args.to === fulfiller
-                    : true)) ||
-                (x.signature ===
-                  "TransferBatch(address,address,address,uint256[],uint256[])" &&
-                  x.args.from === event.offerer &&
-                  (fulfiller !== constants.AddressZero
-                    ? x.args.to === fulfiller
-                    : true))
-            );
-
-          expect(transferLogs.length > 0).to.be.true;
-
-          let found = false;
-          for (const transferLog of transferLogs) {
-            if (
-              transferLog.signature ===
-                "TransferSingle(address,address,address,uint256,uint256)" &&
-              transferLog.args.id.toString() === offer.identifier.toString() &&
-              (shouldSkipAmountComparison ||
-                transferLog.args.amount.toString() ===
-                  offer.amount.mul(multiplier).toString())
-            ) {
-              found = true;
-              break;
-            }
-          }
-
-          expect(found).to.be.true;
-        }
-      }
-
-      expect(event.consideration.length).to.equal(
-        order.parameters.consideration.length
-      );
-      for (const [index, consideration] of Object.entries(
-        event.consideration
-      )) {
-        const considerationItem = order.parameters.consideration[index];
-        await compareEventItems(consideration, considerationItem, true);
-        expect(consideration.recipient).to.equal(considerationItem.recipient);
-
-        const tokenEvents = receipt.events.filter(
-          (x) => x.address === considerationItem.token
-        );
-
-        if (consideration.itemType === 1) {
-          // ERC20
-          // search for transfer
-          const transferLogs = tokenEvents
-            .map((x) => testERC20.interface.parseLog(x))
-            .filter(
-              (x) =>
-                x.signature === "Transfer(address,address,uint256)" &&
-                x.args.to === consideration.recipient
-            );
-
-          expect(transferLogs.length).to.be.above(0);
-          for (const transferLog of transferLogs) {
-            // TODO: check each transferred amount
-          }
-        } else if (consideration.itemType === 2) {
-          // ERC721
-          // search for transfer
-
-          const transferLogs = tokenEvents
-            .map((x) => testERC721.interface.parseLog(x))
-            .filter(
-              (x) =>
-                x.signature === "Transfer(address,address,uint256)" &&
-                x.args.to === consideration.recipient
-            );
-
-          expect(transferLogs.length).to.equal(1);
-          const transferLog = transferLogs[0];
-          expect(transferLog.args.id.toString()).to.equal(
-            consideration.identifier.toString()
-          );
-        } else if (consideration.itemType === 3) {
-          // search for transfer
-          const transferLogs = tokenEvents
-            .map((x) => testERC1155.interface.parseLog(x))
-            .filter(
-              (x) =>
-                (x.signature ===
-                  "TransferSingle(address,address,address,uint256,uint256)" &&
-                  x.args.to === consideration.recipient) ||
-                (x.signature ===
-                  "TransferBatch(address,address,address,uint256[],uint256[])" &&
-                  x.args.to === consideration.recipient)
-            );
-
-          expect(transferLogs.length > 0).to.be.true;
-
-          let found = false;
-          for (const transferLog of transferLogs) {
-            if (
-              transferLog.signature ===
-                "TransferSingle(address,address,address,uint256,uint256)" &&
-              transferLog.args.id.toString() ===
-                consideration.identifier.toString() &&
-              (shouldSkipAmountComparison ||
-                transferLog.args.amount.toString() ===
-                  consideration.amount.mul(multiplier).toString())
-            ) {
-              found = true;
-              break;
-            }
-          }
-
-          expect(found).to.be.true;
-        }
-      }
-    }
-  };
-
-  const defaultBuyNowMirrorFulfillment = [
-    [[[0, 0]], [[1, 0]]],
-    [[[1, 0]], [[0, 0]]],
-    [[[1, 0]], [[0, 1]]],
-    [[[1, 0]], [[0, 2]]],
-  ].map(([offerArr, considerationArr]) =>
-    toFulfillment(offerArr, considerationArr)
-  );
-
-  const defaultAcceptOfferMirrorFulfillment = [
-    [[[1, 0]], [[0, 0]]],
-    [[[0, 0]], [[1, 0]]],
-    [[[0, 0]], [[0, 1]]],
-    [[[0, 0]], [[0, 2]]],
-  ].map(([offerArr, considerationArr]) =>
-    toFulfillment(offerArr, considerationArr)
-  );
+  });
 
   before(async () => {
-    const network = await provider.getNetwork();
-
-    chainId = network.chainId;
-
     owner = new ethers.Wallet(randomHex(32), provider);
 
     await Promise.all(
       [owner].map((wallet) => faucet(wallet.address, provider))
     );
 
-    // Deploy keyless create2 deployer
-    await faucet(deployConstants.KEYLESS_CREATE2_DEPLOYER_ADDRESS, provider);
-    await provider.sendTransaction(
-      deployConstants.KEYLESS_CREATE2_DEPLOYMENT_TRANSACTION
-    );
-    let deployedCode = await provider.getCode(
-      deployConstants.KEYLESS_CREATE2_ADDRESS
-    );
-    expect(deployedCode).to.equal(deployConstants.KEYLESS_CREATE2_RUNTIME_CODE);
-
-    let { gasLimit } = await provider.getBlock();
-
-    if (hre.__SOLIDITY_COVERAGE_RUNNING) {
-      gasLimit = ethers.BigNumber.from(300_000_000);
-    }
-
-    // Deploy inefficient deployer through keyless
-    await owner.sendTransaction({
-      to: deployConstants.KEYLESS_CREATE2_ADDRESS,
-      data: deployConstants.IMMUTABLE_CREATE2_FACTORY_CREATION_CODE,
-      gasLimit,
-    });
-    deployedCode = await provider.getCode(
-      deployConstants.INEFFICIENT_IMMUTABLE_CREATE2_FACTORY_ADDRESS
-    );
-    expect(ethers.utils.keccak256(deployedCode)).to.equal(
-      deployConstants.IMMUTABLE_CREATE2_FACTORY_RUNTIME_HASH
-    );
-
-    const inefficientFactory = await ethers.getContractAt(
-      "ImmutableCreate2FactoryInterface",
-      deployConstants.INEFFICIENT_IMMUTABLE_CREATE2_FACTORY_ADDRESS,
-      owner
-    );
-
-    // Deploy effecient deployer through inefficient deployer
-    await inefficientFactory
-      .connect(owner)
-      .safeCreate2(
-        deployConstants.IMMUTABLE_CREATE2_FACTORY_SALT,
-        deployConstants.IMMUTABLE_CREATE2_FACTORY_CREATION_CODE,
-        {
-          gasLimit,
-        }
-      );
-
-    deployedCode = await provider.getCode(
-      deployConstants.IMMUTABLE_CREATE2_FACTORY_ADDRESS
-    );
-    expect(ethers.utils.keccak256(deployedCode)).to.equal(
-      deployConstants.IMMUTABLE_CREATE2_FACTORY_RUNTIME_HASH
-    );
-    const create2Factory = await ethers.getContractAt(
-      "ImmutableCreate2FactoryInterface",
-      deployConstants.IMMUTABLE_CREATE2_FACTORY_ADDRESS,
-      owner
-    );
-
-    EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
-
-    reenterer = await deployContract("Reenterer", owner);
-
-    if (process.env.REFERENCE) {
-      conduitImplementation = await ethers.getContractFactory(
-        "ReferenceConduit"
-      );
-      conduitController = await deployContract("ConduitController", owner);
-    } else {
-      conduitImplementation = await ethers.getContractFactory("Conduit");
-
-      // Deploy conduit controller through efficient create2 factory
-      const conduitControllerFactory = await ethers.getContractFactory(
-        "ConduitController"
-      );
-
-      const conduitControllerAddress = await create2Factory.findCreate2Address(
-        deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
-        conduitControllerFactory.bytecode
-      );
-
-      await create2Factory.safeCreate2(
-        deployConstants.CONDUIT_CONTROLLER_CREATION_SALT,
-        conduitControllerFactory.bytecode,
-        {
-          gasLimit,
-        }
-      );
-
-      conduitController = await ethers.getContractAt(
-        "ConduitController",
-        conduitControllerAddress,
-        owner
-      );
-    }
-    conduitCodeHash = keccak256(conduitImplementation.bytecode);
-
-    conduitKeyOne = `${owner.address}000000000000000000000000`;
-
-    await conduitController.createConduit(conduitKeyOne, owner.address);
-
-    const { conduit: conduitOneAddress, exists } =
-      await conduitController.getConduit(conduitKeyOne);
-
-    expect(exists).to.be.true;
-
-    conduitOne = conduitImplementation.attach(conduitOneAddress);
-
-    // Deploy marketplace contract through efficient create2 factory
-    const marketplaceContractFactory = await ethers.getContractFactory(
-      process.env.REFERENCE ? "ReferenceConsideration" : "Seaport"
-    );
-
-    directMarketplaceContract = await deployContract(
-      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
-      owner,
-      conduitController.address
-    );
-
-    const marketplaceContractAddress = await create2Factory.findCreate2Address(
-      deployConstants.MARKETPLACE_CONTRACT_CREATION_SALT,
-      marketplaceContractFactory.bytecode +
-        conduitController.address.slice(2).padStart(64, "0")
-    );
-
-    const tx = await create2Factory.safeCreate2(
-      deployConstants.MARKETPLACE_CONTRACT_CREATION_SALT,
-      marketplaceContractFactory.bytecode +
-        conduitController.address.slice(2).padStart(64, "0"),
-      {
-        gasLimit,
-      }
-    );
-
-    const { gasUsed } = await tx.wait(); // as of now: 5_479_569
-
-    marketplaceContract = await ethers.getContractAt(
-      process.env.REFERENCE ? "ReferenceConsideration" : "Seaport",
-      marketplaceContractAddress,
-      owner
-    );
-
-    await conduitController
-      .connect(owner)
-      .updateChannel(conduitOne.address, marketplaceContract.address, true);
-
-    await resetTokens();
-
-    stubZone = await deployContract("TestZone", owner);
-
-    tokenByType = [
-      {
-        address: constants.AddressZero,
-      }, // ETH
+    ({
+      EIP1271WalletFactory,
+      reenterer,
+      conduitController,
+      conduitImplementation,
+      conduitKeyOne,
+      conduitOne,
+      deployNewConduit,
       testERC20,
+      mintAndApproveERC20,
+      getTestItem20,
       testERC721,
+      set721ApprovalForAll,
+      mint721,
+      mint721s,
+      mintAndApprove721,
+      getTestItem721,
+      getTestItem721WithCriteria,
       testERC1155,
-    ];
-
-    // Required for EIP712 signing
-    domainData = {
-      name: process.env.REFERENCE ? "Consideration" : "Seaport",
-      version: VERSION,
-      chainId: chainId,
-      verifyingContract: marketplaceContract.address,
-    };
-
-    withBalanceChecks = async (
-      ordersArray, // TODO: include order statuses to account for partial fills
-      additonalPayouts,
-      criteriaResolvers,
-      fn,
-      multiplier = 1
-    ) => {
-      const ordersClone = JSON.parse(JSON.stringify(ordersArray));
-      for (const [i, order] of Object.entries(ordersClone)) {
-        order.parameters.startTime = ordersArray[i].parameters.startTime;
-        order.parameters.endTime = ordersArray[i].parameters.endTime;
-
-        for (const [j, offerItem] of Object.entries(order.parameters.offer)) {
-          offerItem.startAmount =
-            ordersArray[i].parameters.offer[j].startAmount;
-          offerItem.endAmount = ordersArray[i].parameters.offer[j].endAmount;
-        }
-
-        for (const [j, considerationItem] of Object.entries(
-          order.parameters.consideration
-        )) {
-          considerationItem.startAmount =
-            ordersArray[i].parameters.consideration[j].startAmount;
-          considerationItem.endAmount =
-            ordersArray[i].parameters.consideration[j].endAmount;
-        }
-      }
-
-      if (criteriaResolvers) {
-        for (const {
-          orderIndex,
-          side,
-          index,
-          identifier,
-        } of criteriaResolvers) {
-          const itemType =
-            ordersClone[orderIndex].parameters[
-              side === 0 ? "offer" : "consideration"
-            ][index].itemType;
-          if (itemType < 4) {
-            console.error("APPLYING CRITERIA TO NON-CRITERIA-BASED ITEM");
-            process.exit(1);
-          }
-
-          ordersClone[orderIndex].parameters[
-            side === 0 ? "offer" : "consideration"
-          ][index].itemType = itemType - 2;
-          ordersClone[orderIndex].parameters[
-            side === 0 ? "offer" : "consideration"
-          ][index].identifierOrCriteria = identifier;
-        }
-      }
-
-      const allOfferedItems = ordersClone
-        .map((x) =>
-          x.parameters.offer.map((offerItem) => ({
-            ...offerItem,
-            account: x.parameters.offerer,
-            numerator: x.numerator,
-            denominator: x.denominator,
-            startTime: x.parameters.startTime,
-            endTime: x.parameters.endTime,
-          }))
-        )
-        .flat();
-
-      const allReceivedItems = ordersClone
-        .map((x) =>
-          x.parameters.consideration.map((considerationItem) => ({
-            ...considerationItem,
-            numerator: x.numerator,
-            denominator: x.denominator,
-            startTime: x.parameters.startTime,
-            endTime: x.parameters.endTime,
-          }))
-        )
-        .flat();
-
-      for (const offeredItem of allOfferedItems) {
-        if (offeredItem.itemType > 3) {
-          console.error("CRITERIA ON OFFERED ITEM NOT RESOLVED");
-          process.exit(1);
-        }
-
-        if (offeredItem.itemType === 0) {
-          // ETH
-          offeredItem.initialBalance = await provider.getBalance(
-            offeredItem.account
-          );
-        } else if (offeredItem.itemType === 3) {
-          // ERC1155
-          offeredItem.initialBalance = await tokenByType[
-            offeredItem.itemType
-          ].balanceOf(offeredItem.account, offeredItem.identifierOrCriteria);
-        } else if (offeredItem.itemType < 4) {
-          offeredItem.initialBalance = await tokenByType[
-            offeredItem.itemType
-          ].balanceOf(offeredItem.account);
-        }
-
-        if (offeredItem.itemType === 2) {
-          // ERC721
-          offeredItem.ownsItemBefore =
-            (await tokenByType[offeredItem.itemType].ownerOf(
-              offeredItem.identifierOrCriteria
-            )) === offeredItem.account;
-        }
-      }
-
-      for (const receivedItem of allReceivedItems) {
-        if (receivedItem.itemType > 3) {
-          console.error(
-            "CRITERIA-BASED BALANCE RECEIVED CHECKS NOT IMPLEMENTED YET"
-          );
-          process.exit(1);
-        }
-
-        if (receivedItem.itemType === 0) {
-          // ETH
-          receivedItem.initialBalance = await provider.getBalance(
-            receivedItem.recipient
-          );
-        } else if (receivedItem.itemType === 3) {
-          // ERC1155
-          receivedItem.initialBalance = await tokenByType[
-            receivedItem.itemType
-          ].balanceOf(
-            receivedItem.recipient,
-            receivedItem.identifierOrCriteria
-          );
-        } else {
-          receivedItem.initialBalance = await tokenByType[
-            receivedItem.itemType
-          ].balanceOf(receivedItem.recipient);
-        }
-
-        if (receivedItem.itemType === 2) {
-          // ERC721
-          receivedItem.ownsItemBefore =
-            (await tokenByType[receivedItem.itemType].ownerOf(
-              receivedItem.identifierOrCriteria
-            )) === receivedItem.recipient;
-        }
-      }
-
-      const receipt = await fn();
-
-      const from = receipt.from;
-      const gasUsed = receipt.gasUsed;
-
-      for (const offeredItem of allOfferedItems) {
-        if (offeredItem.account === from && offeredItem.itemType === 0) {
-          offeredItem.initialBalance = offeredItem.initialBalance.sub(gasUsed);
-        }
-      }
-
-      for (const receivedItem of allReceivedItems) {
-        if (receivedItem.recipient === from && receivedItem.itemType === 0) {
-          receivedItem.initialBalance =
-            receivedItem.initialBalance.sub(gasUsed);
-        }
-      }
-
-      for (const offeredItem of allOfferedItems) {
-        if (offeredItem.itemType > 3) {
-          console.error("CRITERIA-BASED BALANCE OFFERED CHECKS NOT MET");
-          process.exit(1);
-        }
-
-        if (offeredItem.itemType === 0) {
-          // ETH
-          offeredItem.finalBalance = await provider.getBalance(
-            offeredItem.account
-          );
-        } else if (offeredItem.itemType === 3) {
-          // ERC1155
-          offeredItem.finalBalance = await tokenByType[
-            offeredItem.itemType
-          ].balanceOf(offeredItem.account, offeredItem.identifierOrCriteria);
-        } else if (offeredItem.itemType < 3) {
-          // TODO: criteria-based
-          offeredItem.finalBalance = await tokenByType[
-            offeredItem.itemType
-          ].balanceOf(offeredItem.account);
-        }
-
-        if (offeredItem.itemType === 2) {
-          // ERC721
-          offeredItem.ownsItemAfter =
-            (await tokenByType[offeredItem.itemType].ownerOf(
-              offeredItem.identifierOrCriteria
-            )) === offeredItem.account;
-        }
-      }
-
-      for (const receivedItem of allReceivedItems) {
-        if (receivedItem.itemType > 3) {
-          console.error("CRITERIA-BASED BALANCE RECEIVED CHECKS NOT MET");
-          process.exit(1);
-        }
-
-        if (receivedItem.itemType === 0) {
-          // ETH
-          receivedItem.finalBalance = await provider.getBalance(
-            receivedItem.recipient
-          );
-        } else if (receivedItem.itemType === 3) {
-          // ERC1155
-          receivedItem.finalBalance = await tokenByType[
-            receivedItem.itemType
-          ].balanceOf(
-            receivedItem.recipient,
-            receivedItem.identifierOrCriteria
-          );
-        } else {
-          receivedItem.finalBalance = await tokenByType[
-            receivedItem.itemType
-          ].balanceOf(receivedItem.recipient);
-        }
-
-        if (receivedItem.itemType === 2) {
-          // ERC721
-          receivedItem.ownsItemAfter =
-            (await tokenByType[receivedItem.itemType].ownerOf(
-              receivedItem.identifierOrCriteria
-            )) === receivedItem.recipient;
-        }
-      }
-
-      const { timestamp } = await provider.getBlock(receipt.blockHash);
-
-      for (const offeredItem of allOfferedItems) {
-        const duration = toBN(offeredItem.endTime).sub(offeredItem.startTime);
-        const elapsed = toBN(timestamp).sub(offeredItem.startTime);
-        const remaining = duration.sub(elapsed);
-
-        if (offeredItem.itemType < 4) {
-          // TODO: criteria-based
-          if (!additonalPayouts) {
-            expect(
-              offeredItem.initialBalance
-                .sub(offeredItem.finalBalance)
-                .toString()
-            ).to.equal(
-              toBN(offeredItem.startAmount)
-                .mul(remaining)
-                .add(toBN(offeredItem.endAmount).mul(elapsed))
-                .div(duration)
-                .mul(offeredItem.numerator)
-                .div(offeredItem.denominator)
-                .mul(multiplier)
-                .toString()
-            );
-          } else {
-            expect(
-              offeredItem.initialBalance
-                .sub(offeredItem.finalBalance)
-                .toString()
-            ).to.equal(additonalPayouts.add(offeredItem.endAmount).toString());
-          }
-        }
-
-        if (offeredItem.itemType === 2) {
-          // ERC721
-          expect(offeredItem.ownsItemBefore).to.equal(true);
-          expect(offeredItem.ownsItemAfter).to.equal(false);
-        }
-      }
-
-      for (const receivedItem of allReceivedItems) {
-        const duration = toBN(receivedItem.endTime).sub(receivedItem.startTime);
-        const elapsed = toBN(timestamp).sub(receivedItem.startTime);
-        const remaining = duration.sub(elapsed);
-
-        expect(
-          receivedItem.finalBalance.sub(receivedItem.initialBalance).toString()
-        ).to.equal(
-          toBN(receivedItem.startAmount)
-            .mul(remaining)
-            .add(toBN(receivedItem.endAmount).mul(elapsed))
-            .add(duration.sub(1))
-            .div(duration)
-            .mul(receivedItem.numerator)
-            .div(receivedItem.denominator)
-            .mul(multiplier)
-            .toString()
-        );
-
-        if (receivedItem.itemType === 2) {
-          // ERC721
-          expect(receivedItem.ownsItemBefore).to.equal(false);
-          expect(receivedItem.ownsItemAfter).to.equal(true);
-        }
-      }
-
-      return receipt;
-    };
-
-    simulateMatchOrders = async (orders, fulfillments, caller, value) => {
-      return marketplaceContract
-        .connect(caller)
-        .callStatic.matchOrders(orders, fulfillments, {
-          value,
-        });
-    };
-
-    simulateAdvancedMatchOrders = async (
-      orders,
-      criteriaResolvers,
-      fulfillments,
-      caller,
-      value
-    ) => {
-      return marketplaceContract
-        .connect(caller)
-        .callStatic.matchAdvancedOrders(
-          orders,
-          criteriaResolvers,
-          fulfillments,
-          {
-            value,
-          }
-        );
-    };
+      set1155ApprovalForAll,
+      mint1155,
+      mintAndApprove1155,
+      getTestItem1155WithCriteria,
+      getTestItem1155,
+      testERC1155Two,
+      createTransferWithApproval,
+      marketplaceContract,
+      directMarketplaceContract,
+      stubZone,
+      createOrder,
+      createMirrorBuyNowOrder,
+      createMirrorAcceptOfferOrder,
+      withBalanceChecks,
+      checkExpectedEvents,
+    } = await seaportFixture(owner));
   });
 
   describe("Zone - Global Pausable", async () => {
@@ -1853,7 +219,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         { address: zoneAddr },
         offer,
         consideration,
-        2
+        2 // FULL_RESTRICTED
       );
 
       await withBalanceChecks([order], 0, null, async () => {
@@ -1876,7 +242,240 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    it("Fulfills an order with executeRestrictedMatchAdvancedOrderZoneExecutions", async () => {
+    it("Fulfills an advanced order with criteria with a global pausable zone", async () => {
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+
+      const zoneAddr = await createZone(gpDeployer);
+
+      // create basic order using GP as zone
+      // execute basic 721 <=> ETH order
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const { root, proofs } = merkleTree([nftId]);
+
+      const offer = [getTestItem721WithCriteria(root, toBN(1), toBN(1))];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const criteriaResolvers = [
+        buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        { address: zoneAddr },
+        offer,
+        consideration,
+        2, // FULL_RESTRICTED
+        criteriaResolvers
+      );
+
+      await withBalanceChecks([order], 0, criteriaResolvers, async () => {
+        const tx = await marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            criteriaResolvers,
+            toKey(false),
+            constants.AddressZero,
+            {
+              value,
+            }
+          );
+
+        const receipt = await tx.wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(false),
+            },
+          ],
+          null,
+          criteriaResolvers
+        );
+        return receipt;
+      });
+    });
+
+    it("Fulfills an order with executeRestrictedMatchOrderZone", async () => {
+      // Create Global Pausable Deployer
+      const GPDeployer = await ethers.getContractFactory(
+        "DeployerGlobalPausable",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(
+        owner.address,
+        ethers.utils.formatBytes32String("0")
+      );
+
+      // Deploy Global Pausable zone
+      const zoneAddr = await createZone(gpDeployer);
+      const zone = { address: zoneAddr };
+
+      // Mint NFTs for use in orders
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+      const secondNFTId = await mintAndApprove721(
+        buyer,
+        marketplaceContract.address
+      );
+      const thirdNFTId = await mintAndApprove721(
+        owner,
+        marketplaceContract.address
+      );
+
+      // Define orders
+      const offerOne = [
+        getTestItem721(nftId, toBN(1), toBN(1), undefined, testERC721.address),
+      ];
+      const considerationOne = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          seller.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderOne, orderHash: orderHashOne } = await createOrder(
+        seller,
+        zone,
+        offerOne,
+        considerationOne,
+        2
+      );
+
+      const offerTwo = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+      const considerationTwo = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          buyer.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+        buyer,
+        zone,
+        offerTwo,
+        considerationTwo,
+        2
+      );
+
+      const offerThree = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+      const considerationThree = [
+        getTestItem721(
+          nftId,
+          toBN(1),
+          toBN(1),
+          owner.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderThree, orderHash: orderHashThree } =
+        await createOrder(owner, zone, offerThree, considerationThree, 2);
+
+      const fulfillments = [
+        [[[1, 0]], [[0, 0]]],
+        [[[0, 0]], [[2, 0]]],
+        [[[2, 0]], [[1, 0]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      // Ensure that the number of executions from matching orders with zone
+      // is equal to the number of fulfillments
+      const executions = await gpDeployer
+        .connect(owner)
+        .callStatic.executeRestrictedMatchOrderZone(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          fulfillments,
+          { value: 0 }
+        );
+      expect(executions.length).to.equal(fulfillments.length);
+
+      // Perform the match orders with zone
+      const tx = await gpDeployer
+        .connect(owner)
+        .executeRestrictedMatchOrderZone(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          fulfillments
+        );
+
+      // Decode all events and get the order hashes
+      const receipt = await tx.wait();
+      const foundOrderHashesFromEvents = receipt.events
+        .map((event) => {
+          // Attempt to decode each event to OrderFulfilled.
+          // If the event is not successfully decoded (e.g. if the
+          // event is not an OrderFulfilled event), the catch will be hit
+          // and we return null
+          try {
+            return marketplaceContract.interface.decodeEventLog(
+              "OrderFulfilled",
+              event.data,
+              event.topics
+            ).orderHash;
+          } catch {
+            return null;
+          }
+        })
+        // Filter out all nulls so that at the end we are left with
+        // only order hashes from OrderFulfilled events
+        // (e.g. events that were successfully decoded)
+        .filter(Boolean);
+
+      expect(foundOrderHashesFromEvents.length).to.equal(fulfillments.length);
+
+      // Check that the actual order hashes match those from the events, in order
+      const actualOrderHashes = [orderHashOne, orderHashTwo, orderHashThree];
+      foundOrderHashesFromEvents.forEach((foundOrderHash, i) =>
+        expect(foundOrderHash).to.be.equal(actualOrderHashes[i])
+      );
+    });
+
+    it("Fulfills an order with executeRestrictedMatchAdvancedOrderZone", async () => {
       // Create Global Pausable Deployer
       const GPDeployer = await ethers.getContractFactory(
         "DeployerGlobalPausable",
@@ -2249,7 +848,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
-  /**
   describe("Getter tests", async () => {
     it("gets correct name", async () => {
       const name = await marketplaceContract.name();
@@ -2316,7 +914,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("A single ERC721 is to be transferred", async () => {
-      describe("[Buy now] User fullfills a sell order for a single ERC721", async () => {
+      describe("[Buy now] User fulfills a sell order for a single ERC721", async () => {
         it("ERC721 <=> ETH (standard)", async () => {
           const nftId = await mintAndApprove721(
             seller,
@@ -2351,7 +949,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 order,
                 orderHash,
                 fulfiller: buyer.address,
-                fulfillerConduitKey: toKey(false),
               },
             ]);
             return receipt;
@@ -2438,7 +1035,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 order,
                 orderHash,
                 fulfiller: buyer.address,
-                fulfillerConduitKey: toKey(false),
               },
             ]);
 
@@ -2513,7 +1109,54 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), {
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              );
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ETH (standard with restricted order, specified recipient and extra data)", async () => {
+          const nftId = await mintAndApprove721(
+            seller,
+            marketplaceContract.address
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getItemETH(parseEther("10"), parseEther("10"), seller.address),
+            getItemETH(parseEther("1"), parseEther("1"), zone.address),
+          ];
+
+          const { order, orderHash, value } = await createOrder(
+            seller,
+            stubZone,
+            offer,
+            consideration,
+            2 // FULL_RESTRICTED
+          );
+
+          order.extraData = "0x1234";
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillAdvancedOrder(order, [], toKey(false), owner.address, {
                 value,
               });
             const receipt = await (await tx).wait();
@@ -2522,6 +1165,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                 order,
                 orderHash,
                 fulfiller: buyer.address,
+                recipient: owner.address,
               },
             ]);
 
@@ -2726,7 +1370,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
           const offer = [getTestItem721(nftId)];
 
-          const consideration = [getItemETH(toBN(1), toBN(1), seller.address)];
+          const consideration = [
+            getItemETH(toBN(1), toBN(1), constants.AddressZero),
+          ];
 
           const { order, orderHash, value } = await createOrder(
             seller,
@@ -2794,9 +1440,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), {
-                value,
-              });
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              );
             const receipt = await (await tx).wait();
             await checkExpectedEvents(tx, receipt, [
               {
@@ -2842,9 +1494,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await withBalanceChecks([order], 0, null, async () => {
             const tx = marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), {
-                value,
-              });
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              );
             const receipt = await (await tx).wait();
             await checkExpectedEvents(tx, receipt, [
               {
@@ -3718,6 +2376,182 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             return receipt;
           });
         });
+        it("ERC721 <=> ERC20 (EIP-1271 signature on non-ECDSA 64 bytes)", async () => {
+          const sellerContract = await deployContract(
+            "EIP1271Wallet",
+            seller,
+            seller.address
+          );
+
+          // Seller mints nft to contract
+          const nftId = await mint721(sellerContract);
+
+          // Seller approves marketplace contract to transfer NFT
+          await expect(
+            sellerContract
+              .connect(seller)
+              .approveNFT(testERC721.address, marketplaceContract.address)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(
+              sellerContract.address,
+              marketplaceContract.address,
+              true
+            );
+
+          // Buyer mints ERC20
+          const tokenAmount = minRandom(100);
+          await mintAndApproveERC20(
+            buyer,
+            marketplaceContract.address,
+            tokenAmount
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              sellerContract.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash } = await createOrder(
+            sellerContract,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller
+          );
+
+          // Compute the digest based on the order hash
+          const { domainSeparator } = await marketplaceContract.information();
+          const digest = keccak256(
+            `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
+          );
+
+          const signature = `0x`.padEnd(130, "f");
+
+          const basicOrderParameters = {
+            ...getBasicOrderParameters(
+              2, // ERC20ForERC721
+              order
+            ),
+            signature,
+          };
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters);
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+        });
+        it("ERC721 <=> ERC20 (EIP-1271 signature on non-ECDSA 65 bytes)", async () => {
+          const sellerContract = await deployContract(
+            "EIP1271Wallet",
+            seller,
+            seller.address
+          );
+
+          // Seller mints nft to contract
+          const nftId = await mint721(sellerContract);
+
+          // Seller approves marketplace contract to transfer NFT
+          await expect(
+            sellerContract
+              .connect(seller)
+              .approveNFT(testERC721.address, marketplaceContract.address)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(
+              sellerContract.address,
+              marketplaceContract.address,
+              true
+            );
+
+          // Buyer mints ERC20
+          const tokenAmount = minRandom(100);
+          await mintAndApproveERC20(
+            buyer,
+            marketplaceContract.address,
+            tokenAmount
+          );
+
+          const offer = [getTestItem721(nftId)];
+
+          const consideration = [
+            getTestItem20(
+              tokenAmount.sub(100),
+              tokenAmount.sub(100),
+              sellerContract.address
+            ),
+            getTestItem20(50, 50, zone.address),
+            getTestItem20(50, 50, owner.address),
+          ];
+
+          const { order, orderHash } = await createOrder(
+            sellerContract,
+            zone,
+            offer,
+            consideration,
+            0, // FULL_OPEN
+            [],
+            null,
+            seller
+          );
+
+          // Compute the digest based on the order hash
+          const { domainSeparator } = await marketplaceContract.information();
+          const digest = keccak256(
+            `0x1901${domainSeparator.slice(2)}${orderHash.slice(2)}`
+          );
+
+          await sellerContract.registerDigest(digest, true);
+
+          const signature = `0x`.padEnd(132, "f");
+
+          const basicOrderParameters = {
+            ...getBasicOrderParameters(
+              2, // ERC20ForERC721
+              order
+            ),
+            signature,
+          };
+
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters);
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+              },
+            ]);
+
+            return receipt;
+          });
+
+          await sellerContract.registerDigest(digest, false);
+        });
         it("ERC721 <=> ERC20 (basic, EIP-1271 signature w/ non-standard length)", async () => {
           // Seller mints nft to contract
           const nftId = await mint721(sellerContract);
@@ -4478,7 +3312,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     describe("A single ERC1155 is to be transferred", async () => {
-      describe("[Buy now] User fullfills a sell order for a single ERC1155", async () => {
+      describe("[Buy now] User fulfills a sell order for a single ERC1155", async () => {
         it("ERC1155 <=> ETH (standard)", async () => {
           // Seller mints nft
           const { nftId, amount } = await mintAndApprove1155(
@@ -5570,7 +4404,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
-  describe("Validate, cancel, and increment nonce flows", async () => {
+  describe("Validate, cancel, and increment counter flows", async () => {
     let seller;
     let buyer;
 
@@ -5621,18 +4455,36 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         order.signature = "0x";
 
         if (!process.env.REFERENCE) {
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSignature()");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
 
           // cannot validate it with no signature from a random account
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
+          await expect(marketplaceContract.connect(owner).validate([order])).to
+            .be.reverted;
+
+          tx = await marketplaceContract
+            .connect(owner)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
         } else {
           await expect(
             marketplaceContract
@@ -5726,18 +4578,34 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // cannot fill it with no signature yet
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSignature()");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
 
           // cannot validate it with no signature from a random account
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
+          tx = await marketplaceContract
+            .connect(owner)
+            .populateTransaction.validate([order]);
+          returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
+          await expect(marketplaceContract.connect(owner).validate([order])).to
+            .be.reverted;
         } else {
           // cannot fill it with no signature yet
           await expect(
@@ -5822,18 +4690,34 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         if (!process.env.REFERENCE) {
           // cannot fill it with no signature yet
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSignature()");
+
+          let tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          let returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
+
+          tx = await marketplaceContract
+            .connect(owner)
+            .populateTransaction.validate([order]);
+          returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
 
           // cannot validate it with no signature from a random account
-          await expect(
-            marketplaceContract.connect(owner).validate([order])
-          ).to.be.revertedWith("InvalidSigner");
+          await expect(marketplaceContract.connect(owner).validate([order])).to
+            .be.reverted;
         } else {
           // cannot fill it with no signature yet
           await expect(
@@ -6113,8 +4997,8 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    describe("Increment Nonce", async () => {
-      it("Can increment the nonce", async () => {
+    describe("Increment Counter", async () => {
+      it("Can increment the counter", async () => {
         // Seller mints nft
         const nftId = await mintAndApprove721(
           seller,
@@ -6137,27 +5021,38 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        const nonce = await marketplaceContract.getNonce(seller.address);
-        expect(nonce).to.equal(0);
-        expect(orderComponents.nonce).to.equal(nonce);
+        const counter = await marketplaceContract.getCounter(seller.address);
+        expect(counter).to.equal(0);
+        expect(orderComponents.counter).to.equal(counter);
 
-        // can increment the nonce
-        await expect(marketplaceContract.connect(seller).incrementNonce())
-          .to.emit(marketplaceContract, "NonceIncremented")
+        // can increment the counter
+        await expect(marketplaceContract.connect(seller).incrementCounter())
+          .to.emit(marketplaceContract, "CounterIncremented")
           .withArgs(1, seller.address);
 
-        const newNonce = await marketplaceContract.getNonce(seller.address);
-        expect(newNonce).to.equal(1);
+        const newCounter = await marketplaceContract.getCounter(seller.address);
+        expect(newCounter).to.equal(1);
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSigner()");
+
+          const tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          const returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           // Cannot fill order anymore
           await expect(
@@ -6182,9 +5077,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         value = newOrderDetails.value;
         orderComponents = newOrderDetails.orderComponents;
 
-        expect(orderComponents.nonce).to.equal(newNonce);
+        expect(orderComponents.counter).to.equal(newCounter);
 
-        // Can fill order with new nonce
+        // Can fill order with new counter
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
@@ -6204,7 +5099,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("Can increment the nonce and implicitly cancel a validated order", async () => {
+      it("Can increment the counter and implicitly cancel a validated order", async () => {
         // Seller mints nft
         const nftId = await mintAndApprove721(
           seller,
@@ -6227,31 +5122,42 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        const nonce = await marketplaceContract.getNonce(seller.address);
-        expect(nonce).to.equal(0);
-        expect(orderComponents.nonce).to.equal(nonce);
+        const counter = await marketplaceContract.getCounter(seller.address);
+        expect(counter).to.equal(0);
+        expect(orderComponents.counter).to.equal(counter);
 
         await expect(marketplaceContract.connect(owner).validate([order]))
           .to.emit(marketplaceContract, "OrderValidated")
           .withArgs(orderHash, seller.address, zone.address);
 
-        // can increment the nonce
-        await expect(marketplaceContract.connect(seller).incrementNonce())
-          .to.emit(marketplaceContract, "NonceIncremented")
+        // can increment the counter
+        await expect(marketplaceContract.connect(seller).incrementCounter())
+          .to.emit(marketplaceContract, "CounterIncremented")
           .withArgs(1, seller.address);
 
-        const newNonce = await marketplaceContract.getNonce(seller.address);
-        expect(newNonce).to.equal(1);
+        const newCounter = await marketplaceContract.getCounter(seller.address);
+        expect(newCounter).to.equal(1);
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSigner()");
+
+          const tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          const returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           // Cannot fill order anymore
           await expect(
@@ -6276,9 +5182,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         value = newOrderDetails.value;
         orderComponents = newOrderDetails.orderComponents;
 
-        expect(orderComponents.nonce).to.equal(newNonce);
+        expect(orderComponents.counter).to.equal(newCounter);
 
-        // Can fill order with new nonce
+        // Can fill order with new counter
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
@@ -6298,7 +5204,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("Can increment the nonce as the zone and implicitly cancel a validated order", async () => {
+      it("Can increment the counter as the zone and implicitly cancel a validated order", async () => {
         // Seller mints nft
         const nftId = await mintAndApprove721(
           seller,
@@ -6321,31 +5227,42 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        const nonce = await marketplaceContract.getNonce(seller.address);
-        expect(nonce).to.equal(0);
-        expect(orderComponents.nonce).to.equal(nonce);
+        const counter = await marketplaceContract.getCounter(seller.address);
+        expect(counter).to.equal(0);
+        expect(orderComponents.counter).to.equal(counter);
 
         await expect(marketplaceContract.connect(owner).validate([order]))
           .to.emit(marketplaceContract, "OrderValidated")
           .withArgs(orderHash, seller.address, zone.address);
 
-        // can increment the nonce as the offerer
-        await expect(marketplaceContract.connect(seller).incrementNonce())
-          .to.emit(marketplaceContract, "NonceIncremented")
+        // can increment the counter as the offerer
+        await expect(marketplaceContract.connect(seller).incrementCounter())
+          .to.emit(marketplaceContract, "CounterIncremented")
           .withArgs(1, seller.address);
 
-        const newNonce = await marketplaceContract.getNonce(seller.address);
-        expect(newNonce).to.equal(1);
+        const newCounter = await marketplaceContract.getCounter(seller.address);
+        expect(newCounter).to.equal(1);
 
         if (!process.env.REFERENCE) {
           // Cannot fill order anymore
+          const expectedRevertReason =
+            getCustomRevertSelector("InvalidSigner()");
+
+          const tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillOrder(order, toKey(false), {
+              value,
+            });
+          const returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillOrder(order, toKey(false), {
                 value,
               })
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           // Cannot fill order anymore
           await expect(
@@ -6370,9 +5287,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         value = newOrderDetails.value;
         orderComponents = newOrderDetails.orderComponents;
 
-        expect(orderComponents.nonce).to.equal(newNonce);
+        expect(orderComponents.counter).to.equal(newCounter);
 
-        // Can fill order with new nonce
+        // Can fill order with new counter
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
@@ -6446,9 +5363,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -6480,9 +5403,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -6540,9 +5469,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks(ordersClone, 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -6602,9 +5537,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -6636,9 +5577,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -6696,9 +5643,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks(ordersClone, 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -6900,14 +5853,187 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ],
           executions
         );
-        return receipt3;
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(true, false, 10, 10)
+        );
       });
 
-      const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+      it("Simplifies fraction when numerator/denominator would overflow", async () => {
+        const numer1 = toBN(2).pow(100);
+        const denom1 = toBN(2).pow(101);
+        const numer2 = toBN(2).pow(20);
+        const denom2 = toBN(2).pow(22);
+        const amt = 8;
+        await mintAndApproveERC20(buyer, marketplaceContract.address, amt);
+        // Seller mints nft
+        const { nftId } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000,
+          undefined,
+          amt
+        );
 
-      expect({ ...orderStatus }).to.deep.equal(
-        buildOrderStatus(true, false, 10, 10)
-      );
+        const offer = [getTestItem1155(nftId, amt, amt)];
+
+        const consideration = [getTestItem20(amt, amt, seller.address)];
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          undefined,
+          offer,
+          consideration,
+          1, // PARTIAL_OPEN
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          true
+        );
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        // 1/2
+        order.numerator = numer1;
+        order.denominator = denom1;
+
+        await withBalanceChecks([order], 0, [], async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+              value,
+            });
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+                fulfillerConduitKey: toKey(false),
+              },
+            ],
+            null,
+            []
+          );
+
+          return receipt;
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(true, false, numer1, denom1)
+        );
+
+        order.numerator = numer2;
+        order.denominator = denom2;
+
+        await marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+            value,
+          });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(true, false, toBN(3), toBN(4))
+        );
+      });
+
+      it("Reverts when numerator/denominator overflow", async () => {
+        const prime1 = toBN(2).pow(7).sub(1);
+        const prime2 = toBN(2).pow(61).sub(1);
+        const prime3 = toBN(2).pow(107).sub(1);
+        const amt = prime1.mul(prime2).mul(prime3);
+        await mintAndApproveERC20(buyer, marketplaceContract.address, amt);
+        // Seller mints nft
+        const { nftId } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000,
+          undefined,
+          amt
+        );
+
+        const offer = [getTestItem1155(nftId, amt, amt)];
+
+        const consideration = [getTestItem20(amt, amt, seller.address)];
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          undefined,
+          offer,
+          consideration,
+          1, // PARTIAL_OPEN
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          true
+        );
+        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        // 1/2
+        order.numerator = 1;
+        order.denominator = prime2;
+
+        await withBalanceChecks([order], 0, [], async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+              value,
+            });
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(
+            tx,
+            receipt,
+            [
+              {
+                order,
+                orderHash,
+                fulfiller: buyer.address,
+                fulfillerConduitKey: toKey(false),
+              },
+            ],
+            null,
+            []
+          );
+
+          return receipt;
+        });
+
+        orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(true, false, toBN(1), prime2)
+        );
+
+        order.numerator = prime1;
+        order.denominator = prime3;
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+              value,
+            })
+        ).to.be.revertedWith(
+          "0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
+        );
+      });
     });
 
     describe("Criteria-based orders", async () => {
@@ -6946,9 +6072,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, criteriaResolvers, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -7001,9 +6133,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, criteriaResolvers, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -7060,9 +6198,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, criteriaResolvers, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -7296,8 +6440,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await testERC721.mint(seller.address, secondNFTId);
         await testERC721.mint(seller.address, thirdNFTId);
 
-        const tokenIds = [nftId, secondNFTId, thirdNFTId];
-
         // Seller approves marketplace contract to transfer NFTs
         await set721ApprovalForAll(seller, marketplaceContract.address, true);
 
@@ -7406,8 +6548,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await set721ApprovalForAll(buyer, marketplaceContract.address, true);
 
         const { root, proofs } = merkleTree(tokenIds);
-
-        const offer = [getItemETH(parseEther("10"), parseEther("10"))];
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
 
         const consideration = [
           getTestItem721WithCriteria(root, toBN(1), toBN(1), seller.address),
@@ -7433,9 +6580,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           async () => {
             const tx = marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-                value,
-              });
+              .fulfillAdvancedOrder(
+                order,
+                criteriaResolvers,
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              );
             const receipt = await (await tx).wait();
             await checkExpectedEvents(
               tx,
@@ -7464,8 +6617,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await set1155ApprovalForAll(buyer, marketplaceContract.address, true);
 
         const { root, proofs } = merkleTree([nftId]);
-
-        const offer = [getItemETH(parseEther("10"), parseEther("10"))];
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
 
         const consideration = [
           getTestItem1155WithCriteria(root, toBN(1), toBN(1), seller.address),
@@ -7491,9 +6649,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           async () => {
             const tx = marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-                value,
-              });
+              .fulfillAdvancedOrder(
+                order,
+                criteriaResolvers,
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              );
             const receipt = await (await tx).wait();
             await checkExpectedEvents(
               tx,
@@ -7516,12 +6680,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
       it("Criteria-based wildcard consideration item (standard)", async () => {
         // buyer mints nft
-        const nftId = await mint721(buyer);
-
-        // Seller approves marketplace contract to transfer NFTs
-        await set721ApprovalForAll(buyer, marketplaceContract.address, true);
-
-        const offer = [getItemETH(parseEther("10"), parseEther("10"))];
+        const nftId = await mintAndApprove721(
+          buyer,
+          marketplaceContract.address
+        );
+        const tokenAmount = minRandom(100);
+        await mintAndApproveERC20(
+          seller,
+          marketplaceContract.address,
+          tokenAmount
+        );
+        const offer = [getTestItem20(tokenAmount, tokenAmount)];
 
         const consideration = [
           getTestItem721WithCriteria(
@@ -7550,9 +6719,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           async () => {
             const tx = marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-                value,
-              });
+              .fulfillAdvancedOrder(
+                order,
+                criteriaResolvers,
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              );
             const receipt = await (await tx).wait();
             await checkExpectedEvents(
               tx,
@@ -7844,9 +7019,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -7930,9 +7111,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -8601,7 +7788,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             true
           );
 
-          // TODO: inlcude balance checks on the duplicate ERC20 transfers
+          // TODO: include balance checks on the duplicate ERC20 transfers
 
           return receipt;
         });
@@ -9346,6 +8533,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value,
@@ -9357,6 +8545,60 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               order,
               orderHash,
               fulfiller: buyer.address,
+            },
+          ]);
+
+          return receipt;
+        });
+      });
+      it("Can fulfill a single order via fulfillAvailableAdvancedOrders with recipient specified", async () => {
+        // Seller mints nft
+        const nftId = await mintAndApprove721(
+          seller,
+          marketplaceContract.address
+        );
+
+        const offer = [getTestItem721(nftId)];
+
+        const consideration = [
+          getItemETH(parseEther("10"), parseEther("10"), seller.address),
+          getItemETH(parseEther("1"), parseEther("1"), zone.address),
+        ];
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const offerComponents = [[[0, 0]]];
+
+        const considerationComponents = [[[0, 0]], [[0, 1]]];
+
+        await withBalanceChecks([order], 0, null, async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [order],
+              [],
+              offerComponents,
+              considerationComponents,
+              toKey(false),
+              owner.address,
+              100,
+              {
+                value,
+              }
+            );
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(tx, receipt, [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              recipient: owner.address,
             },
           ]);
 
@@ -9542,6 +8784,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   offerComponents,
                   considerationComponents,
                   toKey(false),
+                  constants.AddressZero,
                   100,
                   {
                     value: value.mul(2),
@@ -9758,6 +9001,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
                   offerComponents,
                   considerationComponents,
                   toKey(false),
+                  constants.AddressZero,
                   1,
                   {
                     value: value.mul(2),
@@ -10060,6 +9304,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value: value.mul(4),
@@ -10178,6 +9423,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value: value.mul(2),
@@ -10582,7 +9828,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       // Create/Approve X amount of  ERC20s
-      let erc20Transfer = await createTransferWithApproval(
+      const erc20Transfer = await createTransferWithApproval(
         testERC20,
         seller,
         1,
@@ -10592,7 +9838,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // Create/Approve Y amount of  ERC721s
-      let erc721Transfer = await createTransferWithApproval(
+      const erc721Transfer = await createTransferWithApproval(
         testERC721,
         seller,
         2,
@@ -10602,7 +9848,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // Create/Approve Z amount of ERC1155s
-      let erc1155Transfer = await createTransferWithApproval(
+      const erc1155Transfer = await createTransferWithApproval(
         testERC1155,
         seller,
         3,
@@ -10642,26 +9888,26 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
 
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
-      let itemsToCreate = 64;
-      let numERC20s = randomInt(itemsToCreate - 2);
-      let numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
-      let numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+      const itemsToCreate = 64;
+      const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
+      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
-      let erc20Contracts = [numERC20s];
-      let erc20Transfers = [numERC20s];
+      const erc20Contracts = [numERC20s];
+      const erc20Transfers = [numERC20s];
 
-      let erc721Contracts = [numEC721s];
-      let erc721Transfers = [numEC721s];
+      const erc721Contracts = [numEC721s];
+      const erc721Transfers = [numEC721s];
 
-      let erc1155Contracts = [numERC1155s];
-      let erc1155Transfers = [numERC1155s];
+      const erc1155Contracts = [numERC1155s];
+      const erc1155Transfers = [numERC1155s];
 
       // Create numERC20s amount of ERC20 objects
       for (let i = 0; i < numERC20s; i++) {
         // Deploy Contract
-        let tempERC20Contract = await deployContracts(1);
+        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
         // Create/Approve X amount of  ERC20s
-        let erc20Transfer = await createTransferWithApproval(
+        const erc20Transfer = await createTransferWithApproval(
           tempERC20Contract,
           seller,
           1,
@@ -10676,9 +9922,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numEC721s amount of ERC20 objects
       for (let i = 0; i < numEC721s; i++) {
         // Deploy Contract
-        let tempERC721Contract = await deployContracts(2);
+        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
         // Create/Approve numEC721s amount of  ERC721s
-        let erc721Transfer = await createTransferWithApproval(
+        const erc721Transfer = await createTransferWithApproval(
           tempERC721Contract,
           seller,
           2,
@@ -10693,9 +9939,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Create numERC1155s amount of ERC1155 objects
       for (let i = 0; i < numERC1155s; i++) {
         // Deploy Contract
-        let tempERC1155Contract = await deployContracts(3);
+        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
+          owner
+        );
         // Create/Approve numERC1155s amount of ERC1155s
-        let erc1155Transfer = await createTransferWithApproval(
+        const erc1155Transfer = await createTransferWithApproval(
           tempERC1155Contract,
           seller,
           3,
@@ -10707,20 +9955,22 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         erc1155Transfers[i] = erc1155Transfer;
       }
 
-      let transfers = erc20Transfers.concat(erc721Transfers, erc1155Transfers);
-      let contracts = erc20Contracts.concat(erc721Contracts, erc1155Contracts);
+      const transfers = erc20Transfers.concat(
+        erc721Transfers,
+        erc1155Transfers
+      );
+      const contracts = erc20Contracts.concat(
+        erc721Contracts,
+        erc1155Contracts
+      );
       // Send the transfers
       await tempConduit.connect(seller).execute(transfers);
 
       // Loop through all transfer to do ownership/balance checks
       for (let i = 0; i < transfers.length; i++) {
         // Get Itemtype, token, from, to, amount, identifier
-        itemType = transfers[i].itemType;
-        token = contracts[i];
-        from = transfers[i].from;
-        to = transfers[i].to;
-        amount = transfers[i].amount;
-        identifier = transfers[i].identifier;
+        const { itemType, from, to, amount, identifier } = transfers[i];
+        const token = contracts[i];
 
         switch (itemType) {
           case 1: // ERC20
@@ -10802,6 +10052,111 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ])
       ).to.be.revertedWith("NoContract");
     });
+
+    it("ERC1155 batch transfer reverts with revert data if it has sufficient gas", async () => {
+      // Owner updates conduit channel to allow seller access
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
+      });
+
+      await expect(
+        tempConduit.connect(seller).executeWithBatch1155(
+          [],
+          [
+            {
+              token: testERC1155.address,
+              from: seller.address,
+              to: buyer.address,
+              ids: [1],
+              amounts: [1],
+            },
+          ]
+        )
+      ).to.be.revertedWith("NOT_AUTHORIZED");
+    });
+    if (!process.env.REFERENCE) {
+      it("ERC1155 batch transfer sends no data", async () => {
+        const receiver = await deployContract("ERC1155BatchRecipient", owner);
+        // Owner updates conduit channel to allow seller access
+        await whileImpersonating(owner.address, provider, async () => {
+          await conduitController
+            .connect(owner)
+            .updateChannel(tempConduit.address, seller.address, true);
+        });
+
+        const { nftId, amount } = await mint1155(owner, 2);
+
+        const { nftId: secondNftId, amount: secondAmount } = await mint1155(
+          owner,
+          2
+        );
+        const { nftId: thirdNftId, amount: thirdAmount } = await mint1155(
+          owner,
+          2
+        );
+
+        await testERC1155.mint(seller.address, nftId, amount.mul(2));
+        await testERC1155.mint(
+          seller.address,
+          secondNftId,
+          secondAmount.mul(2)
+        );
+        await testERC1155.mint(seller.address, thirdNftId, thirdAmount.mul(2));
+        await set1155ApprovalForAll(seller, tempConduit.address, true);
+
+        await tempConduit.connect(seller).executeWithBatch1155(
+          [],
+          [
+            {
+              token: testERC1155.address,
+              from: seller.address,
+              to: receiver.address,
+              ids: [nftId, secondNftId, thirdNftId],
+              amounts: [amount, secondAmount, thirdAmount],
+            },
+            {
+              token: testERC1155.address,
+              from: seller.address,
+              to: receiver.address,
+              ids: [secondNftId, nftId],
+              amounts: [secondAmount, amount],
+            },
+          ]
+        );
+      });
+
+      it("ERC1155 batch transfer reverts with generic error if it has insufficient gas to copy revert data", async () => {
+        const receiver = await deployContract(
+          "ExcessReturnDataRecipient",
+          owner
+        );
+        // Owner updates conduit channel to allow seller access
+        await whileImpersonating(owner.address, provider, async () => {
+          await conduitController
+            .connect(owner)
+            .updateChannel(tempConduit.address, seller.address, true);
+        });
+
+        await expect(
+          tempConduit.connect(seller).executeWithBatch1155(
+            [],
+            [
+              {
+                token: receiver.address,
+                from: seller.address,
+                to: receiver.address,
+                ids: [1],
+                amounts: [1],
+              },
+            ]
+          )
+        ).to.be.revertedWith(
+          `ERC1155BatchTransferGenericFailure("${receiver.address}", "${seller.address}", "${receiver.address}", [1], [1])`
+        );
+      });
+    }
 
     it("Makes batch transfer 1155 items through a conduit", async () => {
       const tempConduitKey = owner.address + "ff00000000000000000000f1";
@@ -11115,21 +10470,29 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
-      await expect(conduitOne.connect(owner).execute([])).to.be.revertedWith(
-        "ChannelClosed"
-      );
+      const expectedRevertReason =
+        getCustomRevertSelector("ChannelClosed(address)") +
+        owner.address.slice(2).padStart(64, "0").toLowerCase();
+
+      const tx = await conduitOne
+        .connect(owner)
+        .populateTransaction.execute([]);
+      const returnData = await provider.call(tx);
+      expect(returnData).to.equal(expectedRevertReason);
+
+      await expect(conduitOne.connect(owner).execute([])).to.be.reverted;
     });
 
     it("Reverts when attempting to execute with 1155 transfers on a conduit when not called from a channel", async () => {
       await expect(
         conduitOne.connect(owner).executeWithBatch1155([], [])
-      ).to.be.revertedWith("ChannelClosed");
+      ).to.be.revertedWith("ChannelClosed", owner);
     });
 
     it("Reverts when attempting to execute batch 1155 transfers on a conduit when not called from a channel", async () => {
       await expect(
         conduitOne.connect(owner).executeBatch1155([])
-      ).to.be.revertedWith("ChannelClosed");
+      ).to.be.revertedWith("ChannelClosed", owner);
     });
 
     it("Retrieves the owner of a conduit", async () => {
@@ -11223,9 +10586,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(isOpen).to.be.true;
 
       // No-op
-      await conduitController
-        .connect(owner)
-        .updateChannel(conduitOne.address, marketplaceContract.address, true);
+      await expect(
+        conduitController
+          .connect(owner)
+          .updateChannel(conduitOne.address, marketplaceContract.address, true)
+      ).to.be.reverted; // ChannelStatusAlreadySet
 
       isOpen = await conduitController.getChannelStatus(
         conduitOne.address,
@@ -11319,20 +10684,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitOne.connect(seller).executeWithBatch1155(
           [
             {
-              itemType: 1, // ERC20
-              token: testERC20.address,
-              from: buyer.address,
-              to: seller.address,
-              identifier: 0,
-              amount: 0,
-            },
-            {
               itemType: 0, // NATIVE (invalid)
               token: constants.AddressZero,
               from: conduitOne.address,
               to: seller.address,
               identifier: 0,
-              amount: 1,
+              amount: 0,
             },
           ],
           []
@@ -11414,6 +10771,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       await expect(
         conduitController
+          .connect(owner)
+          .transferOwnership(conduitOne.address, buyer.address)
+      ).to.be.revertedWith(
+        "NewPotentialOwnerAlreadySet",
+        conduitOne.address,
+        buyer.address
+      );
+
+      await expect(
+        conduitController
           .connect(buyer)
           .cancelOwnershipTransfer(conduitOne.address)
       ).to.be.revertedWith("CallerIsNotOwner", conduitOne.address);
@@ -11428,6 +10795,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitOne.address
       );
       expect(potentialOwner).to.equal(constants.AddressZero);
+
+      await expect(
+        conduitController
+          .connect(owner)
+          .cancelOwnershipTransfer(conduitOne.address)
+      ).to.be.revertedWith("NoPotentialOwnerCurrentlySet", conduitOne.address);
 
       await conduitController.transferOwnership(
         conduitOne.address,
@@ -11458,6 +10831,289 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       const ownerOf = await conduitController.ownerOf(conduitOne.address);
       expect(ownerOf).to.equal(buyer.address);
+    });
+  });
+
+  describe("TransferHelper tests", async () => {
+    let sender;
+    let recipient;
+    let senderContract;
+    let recipientContract;
+    let tempTransferHelper;
+    let tempConduit;
+    let tempConduitKey;
+
+    beforeEach(async () => {
+      // Setup basic buyer/seller wallets with ETH
+      sender = new ethers.Wallet(randomHex(32), provider);
+      recipient = new ethers.Wallet(randomHex(32), provider);
+      zone = new ethers.Wallet(randomHex(32), provider);
+
+      senderContract = await EIP1271WalletFactory.deploy(sender.address);
+      recipientContract = await EIP1271WalletFactory.deploy(recipient.address);
+
+      tempConduitKey = owner.address + randomHex(12).slice(2);
+      tempConduit = await deployNewConduit(owner, tempConduitKey);
+
+      await Promise.all(
+        [sender, recipient, zone, senderContract, recipientContract].map(
+          (wallet) => faucet(wallet.address, provider)
+        )
+      );
+
+      // Deploy a new TransferHelper with the tempConduitController address
+      const transferHelperFactory = await ethers.getContractFactory(
+        "TransferHelper"
+      );
+      tempTransferHelper = await transferHelperFactory.deploy(
+        conduitController.address
+      );
+
+      await whileImpersonating(owner.address, provider, async () => {
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, tempTransferHelper.address, true);
+      });
+    });
+
+    it("Executes transfers (many token types) with a conduit", async () => {
+      // Get 3 Numbers that's value adds to Item Amount and minimum 1.
+      const itemsToCreate = 10;
+      const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
+      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+
+      const erc20Contracts = [numERC20s];
+      const erc20Transfers = [numERC20s];
+
+      const erc721Contracts = [numEC721s];
+      const erc721Transfers = [numEC721s];
+
+      const erc1155Contracts = [numERC1155s];
+      const erc1155Transfers = [numERC1155s];
+
+      // Create numERC20s amount of ERC20 objects
+      for (let i = 0; i < numERC20s; i++) {
+        // Deploy Contract
+        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+        // Create/Approve X amount of  ERC20s
+        const erc20Transfer = await createTransferWithApproval(
+          tempERC20Contract,
+          sender,
+          1,
+          tempConduit.address
+        );
+        erc20Contracts[i] = tempERC20Contract;
+        erc20Transfers[i] = erc20Transfer;
+      }
+
+      // Create numEC721s amount of ERC20 objects
+      for (let i = 0; i < numEC721s; i++) {
+        // Deploy Contract
+        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+        // Create/Approve numEC721s amount of  ERC721s
+        const erc721Transfer = await createTransferWithApproval(
+          tempERC721Contract,
+          sender,
+          2,
+          tempConduit.address
+        );
+        erc721Contracts[i] = tempERC721Contract;
+        erc721Transfers[i] = erc721Transfer;
+      }
+
+      // Create numERC1155s amount of ERC1155 objects
+      for (let i = 0; i < numERC1155s; i++) {
+        // Deploy Contract
+        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
+          owner
+        );
+        // Create/Approve numERC1155s amount of ERC1155s
+        const erc1155Transfer = await createTransferWithApproval(
+          tempERC1155Contract,
+          sender,
+          3,
+          tempConduit.address
+        );
+        erc1155Contracts[i] = tempERC1155Contract;
+        erc1155Transfers[i] = erc1155Transfer;
+      }
+
+      const transfers = erc20Transfers.concat(
+        erc721Transfers,
+        erc1155Transfers
+      );
+      const contracts = erc20Contracts.concat(
+        erc721Contracts,
+        erc1155Contracts
+      );
+      // Send the bulk transfers
+      await tempTransferHelper
+        .connect(sender)
+        .bulkTransfer(transfers, recipient.address, tempConduitKey);
+      // Loop through all transfer to do ownership/balance checks
+      for (let i = 0; i < transfers.length; i++) {
+        // Get Itemtype, token, amount, identifier
+        const { itemType, amount, identifier } = transfers[i];
+        const token = contracts[i];
+
+        switch (itemType) {
+          case 1: // ERC20
+            // Check balance
+            expect(await token.balanceOf(sender.address)).to.equal(0);
+            expect(await token.balanceOf(recipient.address)).to.equal(amount);
+            break;
+          case 2: // ERC721
+          case 4: // ERC721_WITH_CRITERIA
+            expect(await token.ownerOf(identifier)).to.equal(recipient.address);
+            break;
+          case 3: // ERC1155
+          case 5: // ERC1155_WITH_CRITERIA
+            // Check balance
+            expect(await token.balanceOf(sender.address, identifier)).to.equal(
+              0
+            );
+            expect(
+              await token.balanceOf(recipient.address, identifier)
+            ).to.equal(amount);
+            break;
+        }
+      }
+    });
+
+    it("Executes transfers (many token types) without a conduit", async () => {
+      // Get 3 Numbers that's value adds to Item Amount and minimum 1.
+      const itemsToCreate = 10;
+      const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
+      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+
+      const erc20Contracts = [numERC20s];
+      const erc20Transfers = [numERC20s];
+
+      const erc721Contracts = [numEC721s];
+      const erc721Transfers = [numEC721s];
+
+      const erc1155Contracts = [numERC1155s];
+      const erc1155Transfers = [numERC1155s];
+
+      // Create numERC20s amount of ERC20 objects
+      for (let i = 0; i < numERC20s; i++) {
+        // Deploy Contract
+        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+        // Create/Approve X amount of  ERC20s
+        const erc20Transfer = await createTransferWithApproval(
+          tempERC20Contract,
+          sender,
+          1,
+          tempTransferHelper.address
+        );
+        erc20Contracts[i] = tempERC20Contract;
+        erc20Transfers[i] = erc20Transfer;
+      }
+
+      // Create numEC721s amount of ERC20 objects
+      for (let i = 0; i < numEC721s; i++) {
+        // Deploy Contract
+        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+        // Create/Approve numEC721s amount of  ERC721s
+        const erc721Transfer = await createTransferWithApproval(
+          tempERC721Contract,
+          sender,
+          2,
+          tempTransferHelper.address
+        );
+        erc721Contracts[i] = tempERC721Contract;
+        erc721Transfers[i] = erc721Transfer;
+      }
+
+      // Create numERC1155s amount of ERC1155 objects
+      for (let i = 0; i < numERC1155s; i++) {
+        // Deploy Contract
+        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
+          owner
+        );
+        // Create/Approve numERC1155s amount of ERC1155s
+        const erc1155Transfer = await createTransferWithApproval(
+          tempERC1155Contract,
+          sender,
+          3,
+          tempTransferHelper.address
+        );
+        erc1155Contracts[i] = tempERC1155Contract;
+        erc1155Transfers[i] = erc1155Transfer;
+      }
+
+      const transfers = erc20Transfers.concat(
+        erc721Transfers,
+        erc1155Transfers
+      );
+      const contracts = erc20Contracts.concat(
+        erc721Contracts,
+        erc1155Contracts
+      );
+      // Send the bulk transfers
+      await tempTransferHelper
+        .connect(sender)
+        .bulkTransfer(
+          transfers,
+          recipient.address,
+          ethers.utils.formatBytes32String("")
+        );
+      // Loop through all transfer to do ownership/balance checks
+      for (let i = 0; i < transfers.length; i++) {
+        // Get Itemtype, token, amount, identifier
+        const { itemType, amount, identifier } = transfers[i];
+        const token = contracts[i];
+
+        switch (itemType) {
+          case 1: // ERC20
+            // Check balance
+            expect(await token.balanceOf(sender.address)).to.equal(0);
+            expect(await token.balanceOf(recipient.address)).to.equal(amount);
+            break;
+          case 2: // ERC721
+          case 4: // ERC721_WITH_CRITERIA
+            expect(await token.ownerOf(identifier)).to.equal(recipient.address);
+            break;
+          case 3: // ERC1155
+          case 5: // ERC1155_WITH_CRITERIA
+            // Check balance
+            expect(await token.balanceOf(sender.address, identifier)).to.equal(
+              0
+            );
+            expect(
+              await token.balanceOf(recipient.address, identifier)
+            ).to.equal(amount);
+            break;
+        }
+      }
+    });
+
+    it("Reverts on native token transfers", async () => {
+      const ethTransferHelperItems = [
+        {
+          itemType: 0,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 10,
+        },
+        {
+          itemType: 0,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 20,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            ethTransferHelperItems,
+            recipient.address,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith("InvalidItemType");
     });
   });
 
@@ -11520,9 +11176,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("BadFraction");
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -11537,9 +11199,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("BadFraction");
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -11554,9 +11222,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("BadFraction");
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -11571,9 +11245,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -11635,9 +11315,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("InexactFraction");
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -11652,9 +11338,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -11716,9 +11408,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("PartialFillsNotEnabledForOrder");
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -11733,9 +11431,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -11797,9 +11501,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -11874,9 +11584,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -11905,10 +11621,244 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWith(`OrderAlreadyFilled("${orderHash}")`);
+      });
+      it("Reverts on non-zero unused item parameters (identifier set on native, basic)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+          getItemETH(amount.mul(10), amount.mul(10), zone.address),
+          getItemETH(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].identifierOrCriteria = amount;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          1, // EthForERC1155
+          order
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith(`OrderAlreadyFilled("${orderHash}")`);
+        ).to.be.revertedWith(`UnusedItemParameters`);
+
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+      });
+      it("Reverts on non-zero unused item parameters (identifier set on ERC20, basic)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getTestItem20(amount.mul(1000), amount.mul(1000), seller.address),
+          getTestItem20(amount.mul(10), amount.mul(10), zone.address),
+          getTestItem20(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].identifierOrCriteria = amount;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const basicOrderParameters = getBasicOrderParameters(
+          3, // ERC20ForERC1155
+          order
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters, {
+              value,
+            })
+        ).to.be.revertedWith(`UnusedItemParameters`);
+
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+      });
+      it("Reverts on non-zero unused item parameters (token set on native, standard)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+          getItemETH(amount.mul(10), amount.mul(10), zone.address),
+          getItemETH(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].token = seller.address;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWith(`UnusedItemParameters`);
+      });
+      it("Reverts on non-zero unused item parameters (identifier set on native, standard)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getItemETH(amount.mul(1000), amount.mul(1000), seller.address),
+          getItemETH(amount.mul(10), amount.mul(10), zone.address),
+          getItemETH(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].identifierOrCriteria = amount;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWith(`UnusedItemParameters`);
+      });
+      it("Reverts on non-zero unused item parameters (identifier set on ERC20, standard)", async () => {
+        // Seller mints nft
+        const { nftId, amount } = await mintAndApprove1155(
+          seller,
+          marketplaceContract.address,
+          10000
+        );
+
+        const offer = [getTestItem1155(nftId, amount.mul(10), amount.mul(10))];
+
+        const consideration = [
+          getTestItem20(amount.mul(1000), amount.mul(1000), seller.address),
+          getTestItem20(amount.mul(10), amount.mul(10), zone.address),
+          getTestItem20(amount.mul(20), amount.mul(20), owner.address),
+        ];
+
+        consideration[0].identifierOrCriteria = amount;
+
+        const { order, orderHash, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+
+        expect({ ...orderStatus }).to.deep.equal(
+          buildOrderStatus(false, false, 0, 0)
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
+        ).to.be.revertedWith(`UnusedItemParameters`);
       });
       it("Reverts on inadequate consideration items", async () => {
         // Seller mints nft
@@ -11948,9 +11898,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("MissingOriginalConsiderationItems");
       });
       it("Reverts on invalid submitter when required by order", async () => {
@@ -12069,24 +12025,45 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           order
         );
 
+        let expectedRevertReason =
+          getCustomRevertSelector("BadSignatureV(uint8)") +
+          "1".padStart(64, "0");
+
+        let tx = await marketplaceContract
+          .connect(buyer)
+          .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
+            value,
+          });
+        const returnData = await provider.call(tx);
+        expect(returnData).to.equal(expectedRevertReason);
+
         await expect(
           marketplaceContract
             .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith("BadSignatureV(1)");
+        ).to.be.reverted;
 
         // construct an invalid signature
         basicOrderParameters.signature = "0x".padEnd(130, "f") + "1c";
 
+        expectedRevertReason = getCustomRevertSelector("InvalidSigner()");
+
+        tx = await marketplaceContract
+          .connect(buyer)
+          .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
+            value,
+          });
+        expect(provider.call(tx)).to.be.revertedWith("InvalidSigner");
+
         await expect(
           marketplaceContract
             .connect(buyer)
             .fulfillBasicOrder(basicOrderParameters, {
               value,
             })
-        ).to.be.revertedWith("InvalidSignature");
+        ).to.be.reverted;
 
         basicOrderParameters.signature = originalSignature;
 
@@ -12295,11 +12272,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         );
 
         if (!process.env.REFERENCE) {
+          const expectedRevertReason = getCustomRevertSelector(
+            "BadContractSignature()"
+          );
+
+          const tx = await marketplaceContract
+            .connect(buyer)
+            .populateTransaction.fulfillBasicOrder(basicOrderParameters);
+          const returnData = await provider.call(tx);
+          expect(returnData).to.equal(expectedRevertReason);
+
           await expect(
             marketplaceContract
               .connect(buyer)
               .fulfillBasicOrder(basicOrderParameters)
-          ).to.be.revertedWith("InvalidSigner");
+          ).to.be.reverted;
         } else {
           await expect(
             marketplaceContract
@@ -12361,17 +12348,29 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), {
-                value,
-              })
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              )
           ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
         } else {
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), {
-                value,
-              })
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              )
           ).to.be.reverted;
         }
       });
@@ -12449,17 +12448,29 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), {
-                value,
-              })
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              )
           ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
         } else {
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), {
-                value,
-              })
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              )
           ).to.be.reverted;
         }
       });
@@ -13178,6 +13189,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value,
@@ -13230,6 +13242,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value,
@@ -13282,6 +13295,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value,
@@ -13296,22 +13310,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           marketplaceContract.address
         );
 
-        const offer = [
-          {
-            itemType: 0, // ETH
-            token: constants.AddressZero,
-            identifierOrCriteria: 0, // ignored for ETH
-            startAmount: parseEther("1"),
-            endAmount: parseEther("1"),
-          },
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: toBN(1),
-            endAmount: toBN(1),
-          },
-        ];
+        const offer = [getTestItem721(nftId), getTestItem20(1, 1)];
 
         const consideration = [
           getItemETH(parseEther("10"), parseEther("10"), seller.address),
@@ -13345,6 +13344,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value,
@@ -13394,6 +13394,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value,
@@ -13448,6 +13449,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value,
@@ -13565,6 +13567,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
               offerComponents,
               considerationComponents,
               toKey(false),
+              constants.AddressZero,
               100,
               {
                 value: value.mul(3),
@@ -13613,9 +13616,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("OrderCriteriaResolverOutOfRange");
 
         criteriaResolvers = [
@@ -13625,9 +13634,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("OfferCriteriaResolverOutOfRange");
 
         criteriaResolvers = [
@@ -13637,9 +13652,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("ConsiderationCriteriaResolverOutOfRange");
 
         criteriaResolvers = [
@@ -13649,9 +13670,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, criteriaResolvers, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -13804,9 +13831,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("UnresolvedConsiderationCriteria");
 
         criteriaResolvers = [
@@ -13816,9 +13849,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("UnresolvedOfferCriteria");
 
         criteriaResolvers = [
@@ -13829,9 +13868,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, criteriaResolvers, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -13985,9 +14030,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("CriteriaNotEnabledForItem");
       });
       if (process.env.REFERENCE) {
@@ -14053,7 +14104,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         });
       }
       it("Reverts on offer amount overflow", async () => {
-        const testERC20Two = await deployContracts(1);
+        const { testERC20: testERC20Two } = await fixtureERC20(owner);
         // Buyer mints nfts
         const nftId = await mintAndApprove721(
           buyer,
@@ -14128,8 +14179,88 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
         );
       });
+
+      it("Reverts on offer amount overflow when another amount is 0", async () => {
+        const { testERC20: testERC20Two } = await fixtureERC20(owner);
+        // Buyer mints nfts
+        const nftId = await mintAndApprove721(
+          buyer,
+          marketplaceContract.address
+        );
+
+        await testERC20Two.mint(seller.address, constants.MaxUint256);
+        // Seller approves marketplace contract to transfer NFTs
+        await testERC20Two
+          .connect(seller)
+          .approve(marketplaceContract.address, constants.MaxUint256);
+
+        const offer = [
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            undefined,
+            testERC20Two.address
+          ),
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            undefined,
+            testERC20Two.address
+          ),
+          getTestItem20(0, 0, undefined, testERC20Two.address),
+        ];
+
+        const consideration = [getTestItem721(nftId, 1, 1, seller.address)];
+
+        const offer2 = [getTestItem721(nftId, 1, 1)];
+        const consideration2 = [
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            buyer.address,
+            testERC20Two.address
+          ),
+        ];
+
+        const fulfillments = [
+          toFulfillment(
+            [
+              [0, 0],
+              [0, 1],
+              [0, 2],
+            ],
+            [[1, 0]]
+          ),
+          toFulfillment([[1, 0]], [[0, 0]]),
+        ];
+
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          1
+        );
+
+        const { order: order2 } = await createOrder(
+          buyer,
+          zone,
+          offer2,
+          consideration2,
+          1
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(owner)
+            .matchAdvancedOrders([order, order2], [], fulfillments)
+        ).to.be.revertedWith(
+          "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
+        );
+      });
+
       it("Reverts on consideration amount overflow", async () => {
-        const testERC20Two = await deployContracts(1);
+        const { testERC20: testERC20Two } = await fixtureERC20(owner);
         // Buyer mints nfts
         const nftId = await mintAndApprove721(
           buyer,
@@ -14204,6 +14335,88 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
         );
       });
+
+      it("Reverts on consideration amount overflow when another amount is 0", async () => {
+        const { testERC20: testERC20Two } = await fixtureERC20(owner);
+        // Buyer mints nfts
+        const nftId = await mintAndApprove721(
+          seller,
+          marketplaceContract.address
+        );
+
+        await testERC20Two.mint(buyer.address, constants.MaxUint256);
+        // Seller approves marketplace contract to transfer NFTs
+        await testERC20Two
+          .connect(buyer)
+          .approve(marketplaceContract.address, constants.MaxUint256);
+
+        const offer = [getTestItem721(nftId, 1, 1)];
+
+        const consideration = [
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            seller.address,
+            testERC20Two.address
+          ),
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            seller.address,
+            testERC20Two.address
+          ),
+          getTestItem20(0, 0, seller.address, testERC20Two.address),
+        ];
+
+        const offer2 = [
+          getTestItem20(
+            constants.MaxUint256,
+            constants.MaxUint256,
+            undefined,
+            testERC20Two.address
+          ),
+        ];
+        const consideration2 = [getTestItem721(nftId, 1, 1, buyer.address)];
+
+        const fulfillments = [
+          toFulfillment(
+            [[1, 0]],
+            [
+              [0, 0],
+              [0, 1],
+              [0, 2],
+            ]
+          ),
+          toFulfillment([[0, 0]], [[1, 0]]),
+        ];
+
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          1
+        );
+
+        const { order: order2 } = await createOrder(
+          buyer,
+          zone,
+          offer2,
+          consideration2,
+          1
+        );
+
+        await expect(
+          marketplaceContract.matchAdvancedOrders(
+            [order, order2],
+            [],
+            fulfillments
+          )
+        ).to.be.revertedWith(
+          "panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)"
+        );
+      });
+
       it("Reverts on invalid criteria proof", async () => {
         // Seller mints nfts
         const nftId = randomBN();
@@ -14248,9 +14461,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("InvalidProof");
 
         criteriaResolvers[0].identifier =
@@ -14259,9 +14478,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, criteriaResolvers, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, criteriaResolvers, toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              criteriaResolvers,
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -14738,31 +14963,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           return receipt;
         });
       });
-      it("Reverts when not enough ether is supplied as offer item (standard)", async () => {
+      it("Reverts when not enough ether is supplied as offer item (match)", async () => {
         // NOTE: this is a ridiculous scenario, buyer is paying the seller's offer
-
-        // buyer mints nft
-        const nftId = await mintAndApprove721(
-          buyer,
-          marketplaceContract.address
-        );
-
         const offer = [getItemETH(parseEther("10"), parseEther("10"))];
 
         const consideration = [
-          {
-            itemType: 2, // ERC721
-            token: testERC721.address,
-            identifierOrCriteria: nftId,
-            startAmount: toBN(1),
-            endAmount: toBN(1),
-            recipient: seller.address,
-          },
+          getItemETH(parseEther("1"), parseEther("1"), seller.address),
           getItemETH(parseEther("1"), parseEther("1"), zone.address),
           getItemETH(parseEther("1"), parseEther("1"), owner.address),
         ];
 
-        const { order, orderHash } = await createOrder(
+        const { order, orderHash, value } = await createOrder(
           seller,
           zone,
           offer,
@@ -14770,41 +14981,44 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
-            value: toBN(1),
-          })
-        ).to.be.revertedWith("InsufficientEtherSupplied");
-
-        await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
-            value: parseEther("9.999999"),
-          })
-        ).to.be.revertedWith("InsufficientEtherSupplied");
-
-        await withBalanceChecks(
-          [order],
-          parseEther("10").mul(-1),
-          null,
-          async () => {
-            const tx = marketplaceContract
-              .connect(buyer)
-              .fulfillOrder(order, toKey(false), {
-                value: parseEther("12"),
-              });
-            const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              {
-                order,
-                orderHash,
-                fulfiller: buyer.address,
-                fulfillerConduitKey: toKey(false),
-              },
-            ]);
-
-            return receipt;
-          }
+        const { mirrorOrder, mirrorOrderHash } = await createMirrorBuyNowOrder(
+          buyer,
+          zone,
+          order
         );
+
+        const fulfillments = defaultBuyNowMirrorFulfillment;
+
+        const executions = await simulateMatchOrders(
+          [order, mirrorOrder],
+          fulfillments,
+          owner,
+          value
+        );
+
+        expect(executions.length).to.equal(4);
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchOrders([order, mirrorOrder], fulfillments, {
+              value: toBN(1),
+            })
+        ).to.be.revertedWith("InsufficientEtherSupplied");
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .matchOrders([order, mirrorOrder], fulfillments, {
+              value: parseEther("9.999999"),
+            })
+        ).to.be.revertedWith("InsufficientEtherSupplied");
+
+        await marketplaceContract
+          .connect(buyer)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value: parseEther("13"),
+          });
       });
       it("Reverts when not enough ether is supplied (standard + advanced)", async () => {
         // Seller mints nft
@@ -14839,9 +15053,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value: toBN(1),
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value: toBN(1),
+              }
+            )
         ).to.be.revertedWith("InsufficientEtherSupplied");
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -14853,9 +15073,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value: value.sub(1),
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value: value.sub(1),
+              }
+            )
         ).to.be.revertedWith("InsufficientEtherSupplied");
 
         orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -14868,9 +15094,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value: value.add(1),
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value: value.add(1),
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -15184,9 +15416,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.reverted; // panic code thrown by underlying 721
 
         let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -15207,9 +15445,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -15255,9 +15499,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("NOT_AUTHORIZED");
       });
       it("Reverts when 1155 token transfer reverts (via conduit)", async () => {
@@ -15286,9 +15536,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith(`NOT_AUTHORIZED`);
       });
 
@@ -15359,9 +15615,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const { order: initialOrder, value } = await setup();
           const baseGas = await marketplaceContract
             .connect(buyer)
-            .estimateGas.fulfillAdvancedOrder(initialOrder, [], conduitKeyOne, {
-              value,
-            });
+            .estimateGas.fulfillAdvancedOrder(
+              initialOrder,
+              [],
+              conduitKeyOne,
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
 
           // TODO: clean *this* up
           const { order } = await setup();
@@ -15369,10 +15631,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], conduitKeyOne, {
-                value,
-                gasLimit: baseGas.add(74000),
-              })
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                conduitKeyOne,
+                constants.AddressZero,
+                {
+                  value,
+                  gasLimit: baseGas.add(74000),
+                }
+              )
           ).to.be.revertedWith("InvalidCallToConduit");
         });
       }
@@ -15418,9 +15686,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith("MissingItemAmount");
       });
       it("Reverts when ERC20 tokens return falsey values", async () => {
@@ -15469,9 +15743,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.reverted; // TODO: hardhat can't find error msg on IR pipeline
 
         let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -15487,9 +15767,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -15560,9 +15846,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -15646,9 +15938,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], conduitKeyOne, {
-                value,
-              })
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                conduitKeyOne,
+                constants.AddressZero,
+                {
+                  value,
+                }
+              )
           ).to.be.revertedWith(
             `BadReturnValueFromERC20OnTransfer("${testERC20.address}", "${
               buyer.address
@@ -15658,9 +15956,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], conduitKeyOne, {
-                value,
-              })
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                conduitKeyOne,
+                constants.AddressZero,
+                {
+                  value,
+                }
+              )
           ).to.be.reverted;
         }
 
@@ -15675,9 +15979,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], conduitKeyOne, {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              conduitKeyOne,
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -15756,7 +16066,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], badKey, {
+            .fulfillAdvancedOrder(order, [], badKey, constants.AddressZero, {
               value,
             })
         ).to.be.revertedWith("InvalidConduit", badKey, missingConduit);
@@ -15770,9 +16080,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await withBalanceChecks([order], 0, [], async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], conduitKeyOne, {
-              value,
-            });
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              conduitKeyOne,
+              constants.AddressZero,
+              {
+                value,
+              }
+            );
           const receipt = await (await tx).wait();
           await checkExpectedEvents(
             tx,
@@ -15969,9 +16285,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.reverted; // TODO: look into the revert reason more thoroughly
         // Transaction reverted: function returned an unexpected amount of data
       });
@@ -15993,7 +16315,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), { value })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              { value }
+            )
         ).to.be.revertedWith(`NoContract("${buyer.address}")`);
       });
       it("Reverts when 1155 account with no code is supplied", async () => {
@@ -16018,9 +16346,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith(`NoContract("${constants.AddressZero}")`);
       });
       it("Reverts when 1155 account with no code is supplied (via conduit)", async () => {
@@ -16050,9 +16384,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith(`NoContract("${constants.AddressZero}")`);
       });
       it("Reverts when non-token account is supplied as the token", async () => {
@@ -16084,9 +16424,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              toKey(false),
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith(
           `TokenTransferGenericFailure("${marketplaceContract.address}", "${
             buyer.address
@@ -16122,9 +16468,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         await expect(
           marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], conduitKeyOne, {
-              value,
-            })
+            .fulfillAdvancedOrder(
+              order,
+              [],
+              conduitKeyOne,
+              constants.AddressZero,
+              {
+                value,
+              }
+            )
         ).to.be.revertedWith(
           `TokenTransferGenericFailure("${marketplaceContract.address}", "${
             buyer.address
@@ -16154,9 +16506,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), {
-                value,
-              })
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              )
           ).to.be.revertedWith(
             `TokenTransferGenericFailure("${marketplaceContract.address}", "${
               seller.address
@@ -16166,9 +16524,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await expect(
             marketplaceContract
               .connect(buyer)
-              .fulfillAdvancedOrder(order, [], toKey(false), {
-                value,
-              })
+              .fulfillAdvancedOrder(
+                order,
+                [],
+                toKey(false),
+                constants.AddressZero,
+                {
+                  value,
+                }
+              )
           ).to.be.reverted;
         }
       });
@@ -16491,7 +16855,169 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         }
       });
     });
-  });
 
-  **/
+    describe("ETH offer items", async () => {
+      let ethAmount;
+      const tokenAmount = minRandom(100);
+      let offer;
+      let consideration;
+      let seller;
+      let buyer;
+
+      before(async () => {
+        ethAmount = parseEther("1");
+        seller = await getWalletWithEther();
+        buyer = await getWalletWithEther();
+        zone = new ethers.Wallet(randomHex(32), provider);
+        offer = [getItemETH(ethAmount, ethAmount)];
+        consideration = [
+          getTestItem20(tokenAmount, tokenAmount, seller.address),
+        ];
+      });
+
+      it("fulfillOrder reverts if any offer item is ETH", async () => {
+        const { order, value } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillOrder(order, toKey(false), { value })
+        ).to.be.revertedWith("InvalidNativeOfferItem");
+      });
+
+      it("fulfillAdvancedOrder reverts if any offer item is ETH", async () => {
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+              value: ethAmount,
+            })
+        ).to.be.revertedWith("InvalidNativeOfferItem");
+      });
+
+      it("fulfillAvailableOrders reverts if any offer item is ETH", async () => {
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableOrders(
+              [order],
+              [[[0, 0]]],
+              [[[0, 0]]],
+              toKey(false),
+              100,
+              { value: ethAmount }
+            )
+        ).to.be.revertedWith("InvalidNativeOfferItem");
+      });
+
+      it("fulfillAvailableAdvancedOrders reverts if any offer item is ETH", async () => {
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+
+        await expect(
+          marketplaceContract
+            .connect(buyer)
+            .fulfillAvailableAdvancedOrders(
+              [order],
+              [],
+              [[[0, 0]]],
+              [[[0, 0]]],
+              toKey(false),
+              buyer.address,
+              100,
+              { value: ethAmount }
+            )
+        ).to.be.revertedWith("InvalidNativeOfferItem");
+      });
+
+      it("matchOrders allows fulfilling with native offer items", async () => {
+        await mintAndApproveERC20(
+          buyer,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+        const { mirrorOrder } = await createMirrorBuyNowOrder(
+          buyer,
+          zone,
+          order
+        );
+        const fulfillments = [
+          toFulfillment([[0, 0]], [[1, 0]]),
+          toFulfillment([[1, 0]], [[0, 0]]),
+        ];
+
+        await marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value: ethAmount,
+          });
+      });
+
+      it("matchAdvancedOrders allows fulfilling with native offer items", async () => {
+        await mintAndApproveERC20(
+          buyer,
+          marketplaceContract.address,
+          tokenAmount
+        );
+
+        const { order } = await createOrder(
+          seller,
+          zone,
+          offer,
+          consideration,
+          0 // FULL_OPEN
+        );
+        const { mirrorOrder } = await createMirrorBuyNowOrder(
+          buyer,
+          zone,
+          order
+        );
+        const fulfillments = [
+          toFulfillment([[0, 0]], [[1, 0]]),
+          toFulfillment([[1, 0]], [[0, 0]]),
+        ];
+
+        await marketplaceContract
+          .connect(owner)
+          .matchAdvancedOrders([order, mirrorOrder], [], fulfillments, {
+            value: ethAmount,
+          });
+      });
+    });
+  });
 });

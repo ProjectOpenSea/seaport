@@ -18,7 +18,13 @@ interface ConduitInterface {
      * @dev Revert with an error when attempting to execute transfers using a
      *      caller that does not have an open channel.
      */
-    error ChannelClosed();
+    error ChannelClosed(address channel);
+
+    /**
+     * @dev Revert with an error when attempting to update a channel to the
+     *      current status of that channel.
+     */
+    error ChannelStatusAlreadySet(address channel, bool isOpen);
 
     /**
      * @dev Revert with an error when attempting to execute a transfer for an
@@ -33,19 +39,12 @@ interface ConduitInterface {
     error InvalidController();
 
     /**
-     * @dev Revert with an error when attempting to execute an 1155 batch
-     *      transfer using calldata not produced by default ABI encoding or with
-     *      different lengths for ids and amounts arrays.
-     */
-    error Invalid1155BatchTransferEncoding();
-
-    /**
      * @dev Emit an event whenever a channel is opened or closed.
      *
      * @param channel The channel that has been updated.
      * @param open    A boolean indicating whether the conduit is open or not.
      */
-    event ChannelUpdated(address channel, bool open);
+    event ChannelUpdated(address indexed channel, bool open);
 
     /**
      * @notice Execute a sequence of ERC20/721/1155 transfers. Only a caller
