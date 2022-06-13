@@ -10,7 +10,14 @@ import {
 
 import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
 
-import { AdvancedOrder, CriteriaResolver, Order, OrderComponents, Fulfillment, Execution } from "../lib/ConsiderationStructs.sol";
+import {
+    AdvancedOrder,
+    CriteriaResolver,
+    Order,
+    OrderComponents,
+    Fulfillment,
+    Execution
+} from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title  PausableZone
@@ -20,17 +27,17 @@ import { AdvancedOrder, CriteriaResolver, Order, OrderComponents, Fulfillment, E
  *         using it as a zone.
  */
 contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
-    // Set an immutable deployer that can pause orders passing through the zone.
+    // Set an immutable deployer that can pause orders on the zone.
     address internal immutable deployer;
 
     // Set an operator that can call operations on the zone.
     address public operator;
 
     /**
-     * @dev Modifier to check that the caller is either the owner or operator.
+     * @dev Ensure that the caller is either the operator or deployer.
      */
     modifier isOperator() {
-        // Check if msg.sender is either the operator or deployer.
+        // Check if the caller is either the operator or deployer.
         if (msg.sender != operator && msg.sender != deployer) {
             revert InvalidOperator();
         }
@@ -38,9 +45,9 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
     }
 
     /**
-     * @notice Set an address as the deployer of PausableZone.
+     * @notice Set the owner as the deployer of the zone.
      *
-     * @param owner An address to be set as the deployer.
+     * @param owner The owner to be set as the deployer.
      */
     constructor(address owner) {
         deployer = owner;
@@ -66,6 +73,7 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
         address offerer,
         bytes32 zoneHash
     ) external view override returns (bytes4 validOrderMagicValue) {
+        // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 
@@ -78,7 +86,9 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
      * @param orderHash         The hash of the order.
      * @param caller            The caller in question.
      * @param order             The order in question.
-     * @param priorOrderHashes  The prior order hashes of the order.
+     * @param priorOrderHashes  The order hashes of each order supplied prior to
+     *                          the current order as part of a "match" variety
+     *                          of order fulfillment.
      * @param criteriaResolvers The criteria resolvers corresponding to
      *                          the order.
      *
@@ -92,12 +102,13 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
         bytes32[] calldata priorOrderHashes,
         CriteriaResolver[] calldata criteriaResolvers
     ) external view override returns (bytes4 validOrderMagicValue) {
+        // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 
     /**
      * @notice Cancel an arbitrary number of orders that have agreed to use the
-     *         PausableZone as their zone.
+     *         contract as their zone.
      *
      * @param seaport  The Seaport address.
      * @param orders   The orders to cancel.
@@ -190,7 +201,7 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
     /**
      * @notice Pause this contract, safely stopping orders from using
      *         the contract as a zone. Orders with this address as a zone are
-     *         bricked until the Deployer makes a new zone with the same address
+     *         bricked until the deployer makes a new zone with the same address
      *         as this one.
      */
     function pause() external {
