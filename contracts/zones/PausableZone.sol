@@ -36,7 +36,7 @@ contract PausableZone is
     PausableZoneInterface
 {
     // Set an immutable controller that can pause the zone & update an operator.
-    address internal immutable controller;
+    address internal immutable _controller;
 
     // Set an operator that can instruct the zone to cancel or execute orders.
     address public operator;
@@ -46,7 +46,7 @@ contract PausableZone is
      */
     modifier isOperator() {
         // Ensure that the caller is either the operator or the controller.
-        if (msg.sender != operator && msg.sender != controller) {
+        if (msg.sender != operator && msg.sender != _controller) {
             revert InvalidOperator();
         }
 
@@ -59,7 +59,7 @@ contract PausableZone is
      */
     modifier isController() {
         // Ensure that the caller is the controller.
-        if (msg.sender != controller) {
+        if (msg.sender != _controller) {
             revert InvalidController();
         }
 
@@ -71,7 +71,7 @@ contract PausableZone is
      * @notice Set the deployer as the controller of the zone.
      */
     constructor() {
-        controller = msg.sender;
+        _controller = msg.sender;
     }
 
     /**
