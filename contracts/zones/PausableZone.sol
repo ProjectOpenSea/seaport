@@ -10,14 +10,7 @@ import {
 
 import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
 
-import {
-    AdvancedOrder,
-    CriteriaResolver,
-    Order,
-    OrderComponents,
-    Fulfillment,
-    Execution
-} from "../lib/ConsiderationStructs.sol";
+import { AdvancedOrder, CriteriaResolver, Order, OrderComponents, Fulfillment, Execution } from "../lib/ConsiderationStructs.sol";
 
 /**
  * @title  PausableZone
