@@ -2,22 +2,31 @@
 pragma solidity >=0.8.7;
 
 /**
- * This deployer is designed to be owned by a gnosis safe, DAO, or trusted party.
- * It can deploy new PausableZone contracts, which can be used as a zone.
- *
+ * This deployer is designed to be owned by a gnosis safe, DAO, or trusted
+ * party. It can deploy new PausableZone contracts, which can be used as a zone.
  */
 
 import { PausableZone } from "./PausableZone.sol";
 
 // prettier-ignore
 import {
-    GlobalPausableEventsAndErrors
-} from "./interfaces/GlobalPausableEventsAndErrors.sol";
+    PausableZoneEventsAndErrors
+} from "./interfaces/PausableZoneEventsAndErrors.sol";
 
-import { Order, Fulfillment, OrderComponents, AdvancedOrder, CriteriaResolver, Execution } from "../lib/ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    Order,
+    Fulfillment,
+    OrderComponents,
+    AdvancedOrder,
+    CriteriaResolver,
+    Execution
+} from "../lib/ConsiderationStructs.sol";
 
-contract PausableZoneController is GlobalPausableEventsAndErrors {
-    //owns this deployer and can activate the kill switch for the PausableZone
+import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
+
+contract PausableZoneController is PausableZoneEventsAndErrors {
+    // Owns this deployer and can activate the kill switch for the PausableZone.
     address public deployerOwner;
 
     // Address of the new potential owner of the zone.
@@ -25,6 +34,8 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
 
     // Address with the ability to pause the zone.
     address public pauserAddress;
+
+    bytes32 public immutable zoneCreationCode;
 
     /**
      * @dev Throws if called by any account other than the owner or pauser.
@@ -36,11 +47,13 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
         _;
     }
 
-    constructor(address _deployerOwner, bytes32 _salt) {
+    constructor(address _deployerOwner) {
         deployerOwner = _deployerOwner;
+
+        zoneCreationCode = keccak256(type(PausableZone).creationCode);
     }
 
-    //Deploy a PausableZone at. Should be an efficient address
+    // Deploy a PausableZone.
     function createZone(bytes32 salt)
         external
         returns (address derivedAddress)
@@ -50,9 +63,7 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
             "Only owner can create new Zones from here."
         );
 
-        // This complicated expression just tells you how the address
-        // can be pre-computed. It is just there for illustration.
-        // You actually only need ``new D{salt: salt}(arg)``.
+        // This expression demonstrates address computation but is not required.
         derivedAddress = address(
             uint160(
                 uint256(
@@ -61,35 +72,38 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
                             bytes1(0xff),
                             address(this),
                             salt,
-                            keccak256(
-                                abi.encodePacked(
-                                    type(PausableZone).creationCode,
-                                    abi.encode(address(this)) //PausableZone takes an address as a constructor param.
-                                )
-                            )
+                            zoneCreationCode
                         )
                     )
                 )
             )
         );
 
-        PausableZone zone = new PausableZone{ salt: salt }(address(this));
-        require(address(zone) == derivedAddress, "Unexpected Derived address");
-        emit ZoneCreated(derivedAddress);
+        // Revert if a zone is currently deployed to the derived address.
+        if (derivedAddress.code.length != 0) {
+            revert ZoneAlreadyExists(derivedAddress);
+        }
+
+        // Deploy the zone using the supplied salt.
+        new PausableZone{ salt: salt }();
+
+        // Emit an event signifying that the zone was created.
+        emit ZoneCreated(derivedAddress, salt);
     }
 
-    //pause Seaport by self destructing GlobalPausable
-    function killSwitch(address _zone) external isPauser returns (bool) {
-        PausableZone zone = PausableZone(_zone);
-        zone.pause();
+    // Pause Seaport by self destructing GlobalPausable.
+    function pause(address zone) external isPauser returns (bool success) {
+        PausableZone(zone).pause();
+
+        success = true;
     }
 
     /**
-     * @notice Uses a zone to cancel a restricted Seaport offer
+     * @notice Uses a zone to cancel Seaport orders.
      */
     function cancelOrderZone(
-        address _globalPausableAddress,
-        address _seaportAddress,
+        address globalPausableAddress,
+        SeaportInterface seaportAddress,
         OrderComponents[] calldata orders
     ) external {
         require(
@@ -97,13 +111,13 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
             "Only the owner can cancel orders with the zone."
         );
 
-        PausableZone gp = PausableZone(_globalPausableAddress);
-        gp.cancelOrder(_seaportAddress, orders);
+        PausableZone gp = PausableZone(globalPausableAddress);
+        gp.cancelOrders(seaportAddress, orders);
     }
 
     function executeMatchOrdersZone(
-        address _globalPausableAddress,
-        address _seaportAddress,
+        address globalPausableAddress,
+        SeaportInterface seaportAddress,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
     ) external payable returns (Execution[] memory executions) {
@@ -112,17 +126,17 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
             "Only the owner can execute orders with the zone."
         );
 
-        PausableZone gp = PausableZone(_globalPausableAddress);
+        PausableZone gp = PausableZone(globalPausableAddress);
         executions = gp.executeMatchOrders{ value: msg.value }(
-            _seaportAddress,
+            seaportAddress,
             orders,
             fulfillments
         );
     }
 
     function executeMatchAdvancedOrdersZone(
-        address _globalPausableAddress,
-        address _seaportAddress,
+        address globalPausableAddress,
+        SeaportInterface seaportAddress,
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
@@ -132,9 +146,9 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
             "Only the owner can execute advanced orders with the zone."
         );
 
-        PausableZone gp = PausableZone(_globalPausableAddress);
+        PausableZone gp = PausableZone(globalPausableAddress);
         executions = gp.executeMatchAdvancedOrders{ value: msg.value }(
-            _seaportAddress,
+            seaportAddress,
             orders,
             criteriaResolvers,
             fulfillments
@@ -147,7 +161,8 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
      *         may call `acceptOwnership` to claim ownership.
      *         Only the owner in question may call this function.
      *
-     * @param newPotentialOwner The address for which to initiate ownership transfer to.
+     * @param newPotentialOwner The address for which to initiate ownership
+     *                          transfer to.
      */
     function transferOwnership(address newPotentialOwner) external {
         require(
@@ -211,7 +226,7 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
      *
      * @param pauserToAssign Address to assign role.
      */
-    function assignPauser(address pauserToAssign) public {
+    function assignPauser(address pauserToAssign) external {
         require(msg.sender == deployerOwner, "Can only be set by the deployer");
         require(
             pauserToAssign != address(0),
@@ -219,7 +234,7 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
         );
         pauserAddress = pauserToAssign;
 
-        // Emit the epvent
+        // Emit an event.
         emit PauserUpdated(pauserAddress);
     }
 
@@ -227,15 +242,15 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
      * @notice Assigns the given address with the ability to operate the
      *         give zone.
      *
-     * @param _globalPausableAddress Zone Address to assign operator role.
-     * @param operatorToAssign       Address to assign role.
+     * @param globalPausableAddress Zone Address to assign operator role.
+     * @param operatorToAssign      Address to assign role.
      */
     function assignOperatorOfZone(
-        address _globalPausableAddress,
+        address globalPausableAddress,
         address operatorToAssign
     ) external {
         require(msg.sender == deployerOwner, "Can only be set by the deployer");
-        PausableZone gp = PausableZone(_globalPausableAddress);
+        PausableZone gp = PausableZone(globalPausableAddress);
         gp.assignOperator(operatorToAssign);
     }
 }

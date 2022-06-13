@@ -3,69 +3,102 @@ pragma solidity >=0.8.7;
 
 import { ZoneInterface } from "../interfaces/ZoneInterface.sol";
 import { ZoneInteractionErrors } from "../interfaces/ZoneInteractionErrors.sol";
+
 // prettier-ignore
 import {
-    GlobalPausableEventsAndErrors
-} from "./interfaces/GlobalPausableEventsAndErrors.sol";
+    PausableZoneEventsAndErrors
+} from "./interfaces/PausableZoneEventsAndErrors.sol";
 
-import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
+import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 
-import { AdvancedOrder, CriteriaResolver, Order, OrderComponents, Fulfillment, Execution } from "../lib/ConsiderationStructs.sol";
+// prettier-ignore
+import {
+    AdvancedOrder,
+    CriteriaResolver,
+    Order,
+    OrderComponents,
+    Fulfillment,
+    Execution
+} from "../lib/ConsiderationStructs.sol";
+
+import { PausableZoneInterface } from "./interfaces/PausableZoneInterface.sol";
 
 /**
  * @title  PausableZone
  * @author cupOJoseph, BCLeFevre, ryanio
- * @notice PausableZone is a basic example zone that approves every order.
- *         It can be self-destructed by its deployer to pause orders
- *         using it as a zone.
+ * @notice PausableZone is a simple zone implementation that approves every
+ *         order. It can be self-destructed by its controller to pause
+ *         restricted orders that have it set as their zone.
  */
-contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
-    // Set an immutable deployer that can pause orders on the zone.
-    address internal immutable deployer;
+contract PausableZone is
+    PausableZoneEventsAndErrors,
+    ZoneInterface,
+    PausableZoneInterface
+{
+    // Set an immutable controller that can pause the zone & update an operator.
+    address internal immutable controller;
 
-    // Set an operator that can call operations on the zone.
+    // Set an operator that can instruct the zone to cancel or execute orders.
     address public operator;
 
     /**
-     * @dev Ensure that the caller is either the operator or deployer.
+     * @dev Ensure that the caller is either the operator or controller.
      */
     modifier isOperator() {
-        // Check if the caller is either the operator or deployer.
-        if (msg.sender != operator && msg.sender != deployer) {
+        // Ensure that the caller is either the operator or the controller.
+        if (msg.sender != operator && msg.sender != controller) {
             revert InvalidOperator();
         }
+
+        // Continue with function execution.
         _;
     }
 
     /**
-     * @notice Set the owner as the deployer of the zone.
-     *
-     * @param owner The owner to be set as the deployer.
+     * @dev Ensure that the caller is either the operator or controller.
      */
-    constructor(address owner) {
-        deployer = owner;
+    modifier isController() {
+        // Ensure that the caller is the controller.
+        if (msg.sender != controller) {
+            revert InvalidController();
+        }
+
+        // Continue with function execution.
+        _;
+    }
+
+    /**
+     * @notice Set the deployer as the controller of the zone.
+     */
+    constructor() {
+        controller = msg.sender;
     }
 
     /**
      * @notice Check if a given order is currently valid.
      *
-     * @dev This function is called by Seaport whenever extraData
-     *      is not provided by the caller.
+     * @dev This function is called by Seaport whenever extraData is not
+     *      provided by the caller.
      *
      * @param orderHash The hash of the order.
      * @param caller    The caller in question.
      * @param offerer   The offerer in question.
      * @param zoneHash  The hash to provide upon calling the zone.
      *
-     * @return validOrderMagicValue A magic value indicating if the order
-     *         is currently valid.
+     * @return validOrderMagicValue A magic value indicating if the order is
+     *                              currently valid.
      */
     function isValidOrder(
         bytes32 orderHash,
         address caller,
         address offerer,
         bytes32 zoneHash
-    ) external view override returns (bytes4 validOrderMagicValue) {
+    ) external pure override returns (bytes4 validOrderMagicValue) {
+        orderHash;
+        caller;
+        offerer;
+        zoneHash;
+
         // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
@@ -73,8 +106,8 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
     /**
      * @notice Check if a given order including extraData is currently valid.
      *
-     * @dev This function is called by Seaport whenever any extraData
-     *      is provided by the caller.
+     * @dev This function is called by Seaport whenever any extraData is
+     *      provided by the caller.
      *
      * @param orderHash         The hash of the order.
      * @param caller            The caller in question.
@@ -85,8 +118,8 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
      * @param criteriaResolvers The criteria resolvers corresponding to
      *                          the order.
      *
-     * @return validOrderMagicValue A magic value indicating if the order
-     *         is currently valid.
+     * @return validOrderMagicValue A magic value indicating if the order is
+     *                              currently valid.
      */
     function isValidOrderIncludingExtraData(
         bytes32 orderHash,
@@ -94,7 +127,13 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
         AdvancedOrder calldata order,
         bytes32[] calldata priorOrderHashes,
         CriteriaResolver[] calldata criteriaResolvers
-    ) external view override returns (bytes4 validOrderMagicValue) {
+    ) external pure override returns (bytes4 validOrderMagicValue) {
+        orderHash;
+        caller;
+        order;
+        priorOrderHashes;
+        criteriaResolvers;
+
         // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
@@ -109,16 +148,12 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
      * @return cancelled A boolean indicating whether the supplied orders have
      *                   been successfully cancelled.
      */
-    function cancelOrder(address seaport, OrderComponents[] calldata orders)
-        external
-        isOperator
-        returns (bool cancelled)
-    {
-        // Create a seaport object.
-        ConsiderationInterface seaportObject = ConsiderationInterface(seaport);
-
-        // Call cancel on the seaport object and return its boolean value.
-        cancelled = seaportObject.cancel(orders);
+    function cancelOrders(
+        SeaportInterface seaport,
+        OrderComponents[] calldata orders
+    ) external override isOperator returns (bool cancelled) {
+        // Call cancel on Seaport and return its boolean value.
+        cancelled = seaport.cancel(orders);
     }
 
     /**
@@ -137,16 +172,19 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
      *                    orders.
      */
     function executeMatchOrders(
-        address seaport,
+        SeaportInterface seaport,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable isOperator returns (Execution[] memory executions) {
-        // Create a seaport object.
-        ConsiderationInterface seaportObject = ConsiderationInterface(seaport);
-
-        // Call matchOrders on the seaport object and return the sequence
-        // of transfers performed as part of matching the given orders.
-        executions = seaportObject.matchOrders{ value: msg.value }(
+    )
+        external
+        payable
+        override
+        isOperator
+        returns (Execution[] memory executions)
+    {
+        // Call matchOrders on Seaport and return the sequence of transfers
+        // performed as part of matching the given orders.
+        executions = seaport.matchOrders{ value: msg.value }(
             orders,
             fulfillments
         );
@@ -173,18 +211,20 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
      *                    orders.
      */
     function executeMatchAdvancedOrders(
-        address seaport,
+        SeaportInterface seaport,
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable isOperator returns (Execution[] memory executions) {
-        // Create a seaport object.
-        ConsiderationInterface seaportObject = ConsiderationInterface(seaport);
-
-        // Call matchAdvancedOrders on the seaport object and return
-        // the sequence of transfers performed as part of matching
-        // the given orders
-        executions = seaportObject.matchAdvancedOrders{ value: msg.value }(
+    )
+        external
+        payable
+        override
+        isOperator
+        returns (Execution[] memory executions)
+    {
+        // Call matchAdvancedOrders on Seaport and return the sequence of
+        // transfers performed as part of matching the given orders.
+        executions = seaport.matchAdvancedOrders{ value: msg.value }(
             orders,
             criteriaResolvers,
             fulfillments
@@ -193,19 +233,12 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
 
     /**
      * @notice Pause this contract, safely stopping orders from using
-     *         the contract as a zone. Orders with this address as a zone are
-     *         bricked until the deployer makes a new zone with the same address
-     *         as this one.
+     *         the contract as a zone. Restricted orders with this address as a
+     *         zone will not be fulfillable unless the zone is redeployed to the
+     *         same address.
      */
-    function pause() external {
-        // Ensure the deployer is pausing the contract.
-        require(
-            msg.sender == deployer,
-            "Only the owner can kill this contract."
-        );
-
-        // In case there is Ether on the zone, send it to the deployer
-        // caller address.
+    function pause() external override isController {
+        // Destroy the zone, sending any ether to the transaction submitter.
         selfdestruct(payable(tx.origin));
     }
 
@@ -214,10 +247,11 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
      *
      * @param operatorToAssign The address to assign as the operator.
      */
-    function assignOperator(address operatorToAssign) external {
-        // Ensure the deployer is assigning the operator.
-        require(msg.sender == deployer, "Can only be set by the deployer");
-
+    function assignOperator(address operatorToAssign)
+        external
+        override
+        isController
+    {
         // Ensure the operator being assigned is not the null address.
         require(
             operatorToAssign != address(0),
