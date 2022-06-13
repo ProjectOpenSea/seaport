@@ -47,7 +47,7 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
     }
 
     /**
-     * @notice Checks that a given order is currently valid.
+     * @notice Check if a given order is currently valid.
      *
      * @dev This function is called by Seaport whenever extraData
      *      is not provided by the caller.
@@ -70,7 +70,7 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
     }
 
     /**
-     * @notice Checks that a given order is currently valid.
+     * @notice Check if a given order including extraData is currently valid.
      *
      * @dev This function is called by Seaport whenever any extraData
      *      is provided by the caller.
@@ -95,15 +95,24 @@ contract PausableZone is GlobalPausableEventsAndErrors, ZoneInterface {
         validOrderMagicValue = ZoneInterface.isValidOrder.selector;
     }
 
-    //The zone can cancel orders which have agreed to use it as a zone
+    /**
+     * @notice Cancel a list of orders that have agreed to use the
+     *         PausableZone as their zone.
+     *
+     * @param _seaport The Seaport address.
+     * @param orders   The list of orders to be cancelled.
+     *
+     * @return cancelled A boolean indicating if the orders have been cancelled.
+     */
     function cancelOrder(address _seaport, OrderComponents[] calldata orders)
         external
         isOperator
         returns (bool cancelled)
     {
-        //Create seaport object
+        // Create a seaport object.
         ConsiderationInterface seaport = ConsiderationInterface(_seaport);
 
+        // Call seaport's cancel function and return its boolean value.
         cancelled = seaport.cancel(orders);
     }
 
