@@ -3,7 +3,7 @@ pragma solidity >=0.8.7;
 
 /**
  * This deployer is designed to be owned by a gnosis safe, DAO, or trusted party.
- * It can deploy new GlobalPausable contracts, which can be used as a zone.
+ * It can deploy new PausableZone contracts, which can be used as a zone.
  *
  */
 
@@ -17,7 +17,7 @@ import {
 import { Order, Fulfillment, OrderComponents, AdvancedOrder, CriteriaResolver, Execution } from "../lib/ConsiderationStructs.sol";
 
 contract PausableZoneController is GlobalPausableEventsAndErrors {
-    //owns this deployer and can activate the kill switch for the GlobalPausable
+    //owns this deployer and can activate the kill switch for the PausableZone
     address public deployerOwner;
 
     // Address of the new potential owner of the zone.
@@ -40,7 +40,7 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
         deployerOwner = _deployerOwner;
     }
 
-    //Deploy a GlobalPausable at. Should be an efficient address
+    //Deploy a PausableZone at. Should be an efficient address
     function createZone(bytes32 salt)
         external
         returns (address derivedAddress)
@@ -64,7 +64,7 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
                             keccak256(
                                 abi.encodePacked(
                                     type(PausableZone).creationCode,
-                                    abi.encode(address(this)) //GlobalPausable takes an address as a constructor param.
+                                    abi.encode(address(this)) //PausableZone takes an address as a constructor param.
                                 )
                             )
                         )
@@ -101,7 +101,7 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
         gp.cancelOrder(_seaportAddress, orders);
     }
 
-    function executeRestrictedMatchOrderZone(
+    function executeMatchOrdersZone(
         address _globalPausableAddress,
         address _seaportAddress,
         Order[] calldata orders,
@@ -120,7 +120,7 @@ contract PausableZoneController is GlobalPausableEventsAndErrors {
         );
     }
 
-    function executeRestrictedMatchAdvancedOrderZone(
+    function executeMatchAdvancedOrdersZone(
         address _globalPausableAddress,
         address _seaportAddress,
         AdvancedOrder[] calldata orders,
