@@ -190,7 +190,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Fulfills an order with a global pausable zone", async () => {
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -244,7 +244,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Fulfills an advanced order with criteria with a global pausable zone", async () => {
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -315,10 +315,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    it("Fulfills an order with executeRestrictedMatchOrderZone", async () => {
-      // Create Global Pausable Deployer
+    it("Fulfills an order with executeMatchOrdersZone", async () => {
+      // Create Pausable Zone Controller
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -326,7 +326,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ethers.utils.formatBytes32String("0")
       );
 
-      // Deploy Global Pausable zone
+      // Deploy Pausable Zone
       const zoneAddr = await createZone(gpDeployer);
       const zone = { address: zoneAddr };
 
@@ -423,7 +423,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await expect(
         gpDeployer
           .connect(buyer)
-          .callStatic.executeRestrictedMatchOrderZone(
+          .callStatic.executeMatchOrdersZone(
             zoneAddr,
             marketplaceContract.address,
             [orderOne, orderTwo, orderThree],
@@ -436,7 +436,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // is equal to the number of fulfillments
       const executions = await gpDeployer
         .connect(owner)
-        .callStatic.executeRestrictedMatchOrderZone(
+        .callStatic.executeMatchOrdersZone(
           zoneAddr,
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
@@ -448,7 +448,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Perform the match orders with zone
       const tx = await gpDeployer
         .connect(owner)
-        .executeRestrictedMatchOrderZone(
+        .executeMatchOrdersZone(
           zoneAddr,
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
@@ -487,10 +487,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
-    it("Fulfills an order with executeRestrictedMatchAdvancedOrderZone", async () => {
+    it("Fulfills an order with executeMatchAdvancedOrdersZone", async () => {
       // Create Global Pausable Deployer
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -595,7 +595,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await expect(
         gpDeployer
           .connect(buyer)
-          .executeRestrictedMatchAdvancedOrderZone(
+          .executeMatchAdvancedOrdersZone(
             zoneAddr,
             marketplaceContract.address,
             [orderOne, orderTwo, orderThree],
@@ -611,7 +611,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // is equal to the number of fulfillments
       const executions = await gpDeployer
         .connect(owner)
-        .callStatic.executeRestrictedMatchAdvancedOrderZone(
+        .callStatic.executeMatchAdvancedOrdersZone(
           zoneAddr,
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
@@ -624,7 +624,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Perform the match advanced orders with zone
       const tx = await gpDeployer
         .connect(owner)
-        .executeRestrictedMatchAdvancedOrderZone(
+        .executeMatchAdvancedOrdersZone(
           zoneAddr,
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
@@ -667,7 +667,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Only the deployer owner can create a zone", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
 
@@ -689,7 +689,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Assign pauser and self destruct the zone", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -700,9 +700,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // deploy GP
       const zoneAddr = await createZone(gpDeployer);
 
-      // Attach to GlobalPausable zone
+      // Attach to Pausable Zone
       const gpZoneContract = await ethers.getContractFactory(
-        "GlobalPausable",
+        "PausableZone",
         owner
       );
 
@@ -715,7 +715,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("InvalidPauser");
 
       // Try to nuke the zone directly before being assigned pauser
-      await expect(gpZone.connect(buyer).kill()).to.be.revertedWith(
+      await expect(gpZone.connect(buyer).pause()).to.be.revertedWith(
         "Only the owner can kill this contract."
       );
 
@@ -734,10 +734,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await gpDeployer.connect(buyer).killSwitch(zoneAddr);
     });
 
-    it("Revert on an order with a global pausable zone if zone has been self destructed", async () => {
+    it("Revert on an order with a pausable zone if zone has been self destructed", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -785,7 +785,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts if non-owner tries to self destruct the zone", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -804,7 +804,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Zone can cancel restricted orders.", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -812,7 +812,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ethers.utils.formatBytes32String("0")
       );
 
-      // deploy GlobalPausable
+      // deploy PausableZone
       const zoneAddress = await createZone(gpDeployer);
 
       const nftId = await mintAndApprove721(
@@ -853,7 +853,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Operator of zone can cancel restricted orders.", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -861,12 +861,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ethers.utils.formatBytes32String("0")
       );
 
-      // deploy GlobalPausable
+      // deploy PausableZone
       const zoneAddress = await createZone(gpDeployer);
 
-      // Attach to GlobalPausable zone
+      // Attach to PausableZone zone
       const gpZoneContract = await ethers.getContractFactory(
-        "GlobalPausable",
+        "PausableZone",
         owner
       );
 
@@ -921,7 +921,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts trying to assign operator as non-deployer", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -929,12 +929,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         ethers.utils.formatBytes32String("0")
       );
 
-      // deploy GlobalPausable
+      // deploy PausableZone
       const zoneAddress = await createZone(gpDeployer);
 
-      // Attach to GlobalPausable zone
+      // Attach to pausable zone
       const gpZoneContract = await ethers.getContractFactory(
-        "GlobalPausable",
+        "PausableZone",
         owner
       );
 
@@ -957,7 +957,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts if non-Zone tries to cancel restricted orders.", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -995,7 +995,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Reverts if non-owner tries to use the zone to cancel restricted orders.", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(
@@ -1037,7 +1037,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     it("Lets the Zone Deployer owner transfer ownership via a two-stage process", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
-        "DeployerGlobalPausable",
+        "PausableZoneController",
         owner
       );
       const gpDeployer = await GPDeployer.deploy(

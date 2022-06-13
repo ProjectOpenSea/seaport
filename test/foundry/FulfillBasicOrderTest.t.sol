@@ -8,18 +8,13 @@ import { AdditionalRecipient, Order } from "../../contracts/lib/ConsiderationStr
 import { ConsiderationInterface } from "../../contracts/interfaces/ConsiderationInterface.sol";
 import { OfferItem, ConsiderationItem, OrderComponents, BasicOrderParameters } from "../../contracts/lib/ConsiderationStructs.sol";
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
-
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
-
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
-
 import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { ArithmeticUtil } from "./utils/ArithmeticUtil.sol";
-
 import { OrderParameters } from "./utils/reentrancy/ReentrantStructs.sol";
-
-import { DeployerGlobalPausable } from "../../contracts/zones/DeployerGlobalPausable.sol";
-import { GlobalPausable } from "../../contracts/zones/GlobalPausable.sol";
+import { PausableZoneController } from "../../contracts/zones/PausableZoneController.sol";
+import { PausableZone } from "../../contracts/zones/PausableZone.sol";
 
 contract FulfillBasicOrderTest is BaseOrderTest {
     using ArithmeticUtil for uint128;
