@@ -16,7 +16,7 @@ import {
 
 import { Order, Fulfillment, OrderComponents, AdvancedOrder, CriteriaResolver, Execution } from "../lib/ConsiderationStructs.sol";
 
-contract DeployerGlobalPausable is GlobalPausableEventsAndErrors {
+contract PausableZoneController is GlobalPausableEventsAndErrors {
     //owns this deployer and can activate the kill switch for the GlobalPausable
     address public deployerOwner;
 
