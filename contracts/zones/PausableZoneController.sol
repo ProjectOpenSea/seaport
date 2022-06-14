@@ -1,11 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.7;
-
-/**
- * This deployer is designed to be owned by a gnosis safe, DAO, or trusted
- * party. It can deploy new PausableZone contracts, which can be used as a zone.
- */
-
 import { PausableZone } from "./PausableZone.sol";
 
 // prettier-ignore
@@ -28,8 +22,9 @@ import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 /**
  * @title  PausableZoneController
  * @author cupOJoseph, BCLeFevre, stuckinaboot
- * @notice PausableZoneController enables deploying, pausing
- *         and executing orders on PausableZones.
+ * @notice PausableZoneController enables deploying, pausing and executing
+ *         orders on PausableZones. This deployer is designed to be owned
+ *         by a gnosis safe, DAO, or trusted party.
  */
 contract PausableZoneController is PausableZoneEventsAndErrors {
     // Set the owner that can deploy, pause and execute orders on PausableZones.
