@@ -72,6 +72,7 @@ contract PausableZone is
      */
     constructor() {
         _controller = msg.sender;
+        emit Unpaused();
     }
 
     /**
@@ -239,6 +240,7 @@ contract PausableZone is
      */
     function pause() external override isController {
         // Destroy the zone, sending any ether to the transaction submitter.
+        emit Paused();
         selfdestruct(payable(tx.origin));
     }
 

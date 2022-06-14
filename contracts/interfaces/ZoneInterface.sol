@@ -8,6 +8,16 @@ import {
 } from "../lib/ConsiderationStructs.sol";
 
 interface ZoneInterface {
+    /**
+     * @dev Emit an event whenever a zone is successfully paused.
+     */
+    event Paused();
+
+    /**
+     * @dev Emit an event whenever a zone is successfully unpaused (created).
+     */
+    event Unpaused();
+
     // Called by Consideration whenever extraData is not provided by the caller.
     function isValidOrder(
         bytes32 orderHash,
