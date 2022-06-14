@@ -28,10 +28,11 @@ import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 /**
  * @title  PausableZoneController
  * @author cupOJoseph, BCLeFevre, stuckinaboot
- * @notice PausableZoneController enables deploying, pausing and executing orders on PausableZones.
+ * @notice PausableZoneController enables deploying, pausing
+ *         and executing orders on PausableZones.
  */
 contract PausableZoneController is PausableZoneEventsAndErrors {
-    // Set the owner that can deploy, pause and execute orders on a PausableZone.
+    // Set the owner that can deploy, pause and execute orders on PausableZones.
     address internal _owner;
 
     // Set the address of the new potential owner of the zone.
@@ -65,33 +66,6 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
 
         // Hash and store the zone creation code.
         zoneCreationCode = keccak256(type(PausableZone).creationCode);
-    }
-
-    /**
-     * @notice An external view function that returns the owner.
-     *
-     * @return The address of the owner.
-     */
-    function owner() external view returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @notice An external view function that return the potential owner.
-     *
-     * @return The address of the potential owner.
-     */
-    function potentialOwner() external view returns (address) {
-        return _potentialOwner;
-    }
-
-    /**
-     * @notice An external view function that returns the pauser.
-     *
-     * @return The address of the pauser.
-     */
-    function pauser() external view returns (address) {
-        return _pauser;
     }
 
     /**
@@ -368,5 +342,32 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
 
         // Call assignOperator on the zone by passing in the given operator address.
         zone.assignOperator(operatorToAssign);
+    }
+
+    /**
+     * @notice An external view function that returns the owner.
+     *
+     * @return The address of the owner.
+     */
+    function owner() external view returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @notice An external view function that return the potential owner.
+     *
+     * @return The address of the potential owner.
+     */
+    function potentialOwner() external view returns (address) {
+        return _potentialOwner;
+    }
+
+    /**
+     * @notice An external view function that returns the pauser.
+     *
+     * @return The address of the pauser.
+     */
+    function pauser() external view returns (address) {
+        return _pauser;
     }
 }
