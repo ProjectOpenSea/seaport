@@ -25,15 +25,20 @@ import {
 
 import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 
+/**
+ * @title  PausableZoneController
+ * @author cupOJoseph, BCLeFevre, stuckinaboot
+ * @notice PausableZoneController enables deploying, pausing and executing orders on PausableZones.
+ */
 contract PausableZoneController is PausableZoneEventsAndErrors {
-    // Owns this deployer and can activate the kill switch for the PausableZone.
-    address public deployerOwner;
+    // Set the deployer owner that can deploy, pause and execute orders on a PausableZone.
+    address internal _deployerOwner;
 
-    // Address of the new potential owner of the zone.
+    // Set the address of the new potential owner of the zone.
     address private _potentialOwner;
 
-    // Address with the ability to pause the zone.
-    address public pauserAddress;
+    // Set the address with the ability to pause the zone.
+    address internal _pauserAddress;
 
     bytes32 public immutable zoneCreationCode;
 
@@ -41,28 +46,41 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      * @dev Throws if called by any account other than the owner or pauser.
      */
     modifier isPauser() {
-        if (msg.sender != pauserAddress && msg.sender != deployerOwner) {
+        if (msg.sender != _pauserAddress && msg.sender != _deployerOwner) {
             revert InvalidPauser();
         }
         _;
     }
 
-    constructor(address _deployerOwner) {
-        deployerOwner = _deployerOwner;
+    /**
+     * @notice Set the owner as the deployer of the controller.
+     *
+     * @param deployerOwner The deployer to be set as the owner.
+     */
+    constructor(address deployerOwner) {
+        _deployerOwner = deployerOwner;
 
         zoneCreationCode = keccak256(type(PausableZone).creationCode);
     }
 
-    // Deploy a PausableZone.
+    /**
+     * @notice Deploy a PausableZone to a precomputed address.
+     *
+     * @param salt The salt to be used to derive the zone address
+     *
+     * @return derivedAddress The derived address for the zone.
+     */
     function createZone(bytes32 salt)
         external
         returns (address derivedAddress)
     {
+        // Ensure the caller is the deployer owner.
         require(
-            msg.sender == deployerOwner,
+            msg.sender == _deployerOwner,
             "Only owner can create new Zones from here."
         );
 
+        // Derive the PausableZone address.
         // This expression demonstrates address computation but is not required.
         derivedAddress = address(
             uint160(
@@ -91,7 +109,14 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         emit ZoneCreated(derivedAddress, salt);
     }
 
-    // Pause Seaport by self destructing GlobalPausable.
+    /**
+     * @notice Pause orders on a given zone.
+     *
+     * @param zone The address of the zone to be paused.
+     *
+     * @return success A boolean indicating the zone has been paused.
+     */
+    // TODO: ask about bool return and rename to pauseZone
     function pause(address zone) external isPauser returns (bool success) {
         PausableZone(zone).pause();
 
@@ -99,55 +124,104 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
     }
 
     /**
-     * @notice Uses a zone to cancel Seaport orders.
+     * @notice Use a zone to cancel a restricted Seaport offer.
+     *
+     * @param pausableZoneAddress The zone that manages the orders to be cancelled.
+     * @param seaportAddress      The Seaport address.
+     * @param orders              The orders to cancel.
      */
     function cancelOrderZone(
-        address globalPausableAddress,
+        address pausableZoneAddress,
         SeaportInterface seaportAddress,
         OrderComponents[] calldata orders
     ) external {
+        // Ensure the caller is the deployer owner.
         require(
-            msg.sender == deployerOwner,
+            msg.sender == _deployerOwner,
             "Only the owner can cancel orders with the zone."
         );
 
-        PausableZone gp = PausableZone(globalPausableAddress);
-        gp.cancelOrders(seaportAddress, orders);
+        // Create a zone object from the zone address.
+        PausableZone zone = PausableZone(pausableZoneAddress);
+
+        // Cancel the orders.
+        zone.cancelOrders(seaportAddress, orders);
     }
 
+    /**
+     * @notice Execute an arbitrary number of matched orders on a given zone.
+     *
+     * @param pausableZoneAddress The zone that manages the orders to be cancelled.
+     * @param seaportAddress      The Seaport address.
+     * @param orders              The orders to match.
+     * @param fulfillments        An array of elements allocating offer components
+     *                            to consideration components.
+     *
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
+     */
     function executeMatchOrdersZone(
-        address globalPausableAddress,
+        address pausableZoneAddress,
         SeaportInterface seaportAddress,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
     ) external payable returns (Execution[] memory executions) {
+        // Ensure the caller is the deployer owner.
         require(
-            msg.sender == deployerOwner,
+            msg.sender == _deployerOwner,
             "Only the owner can execute orders with the zone."
         );
 
-        PausableZone gp = PausableZone(globalPausableAddress);
-        executions = gp.executeMatchOrders{ value: msg.value }(
+        // Create a zone object from the zone address.
+        PausableZone zone = PausableZone(pausableZoneAddress);
+
+        // Call executeMatchOrders on the given zone and return the sequence
+        // of transfers performed as part of matching the given orders.
+        executions = zone.executeMatchOrders{ value: msg.value }(
             seaportAddress,
             orders,
             fulfillments
         );
     }
 
+    /**
+     * @notice Execute an arbitrary number of matched advanced orders on a given zone.
+     *
+     * @param pausableZoneAddress The zone that manages the orders to be cancelled.
+     * @param seaportAddress      The Seaport address.
+     * @param orders              The orders to match.
+     * @param criteriaResolvers   An array where each element contains a reference
+     *                            to a specific order as well as that order's
+     *                            offer or consideration, a token identifier, and
+     *                            a proof that the supplied token identifier is
+     *                            contained in the order's merkle root.
+     * @param fulfillments        An array of elements allocating offer components
+     *                            to consideration components.
+     *
+     * @return executions An array of elements indicating the sequence of
+     *                    transfers performed as part of matching the given
+     *                    orders.
+     */
     function executeMatchAdvancedOrdersZone(
-        address globalPausableAddress,
+        address pausableZoneAddress,
         SeaportInterface seaportAddress,
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
     ) external payable returns (Execution[] memory executions) {
+        // Ensure the caller is the deployer owner.
         require(
-            msg.sender == deployerOwner,
+            msg.sender == _deployerOwner,
             "Only the owner can execute advanced orders with the zone."
         );
 
-        PausableZone gp = PausableZone(globalPausableAddress);
-        executions = gp.executeMatchAdvancedOrders{ value: msg.value }(
+        // Create a zone object from the zone address.
+        PausableZone zone = PausableZone(pausableZoneAddress);
+
+        // Call executeMatchOrders on the given zone and return the sequence
+        // of transfers performed as part of matching the given orders.
+        executions = zone.executeMatchAdvancedOrders{ value: msg.value }(
             seaportAddress,
             orders,
             criteriaResolvers,
@@ -166,7 +240,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      */
     function transferOwnership(address newPotentialOwner) external {
         require(
-            msg.sender == deployerOwner,
+            msg.sender == _deployerOwner,
             "Only Owner can transfer Ownership."
         );
 
@@ -188,7 +262,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      */
     function cancelOwnershipTransfer() external {
         // Ensure the caller is the current owner.
-        require(msg.sender == deployerOwner, "Only Owner can cancel.");
+        require(msg.sender == _deployerOwner, "Only Owner can cancel.");
 
         // Emit an event indicating that the potential owner has been cleared.
         emit PotentialOwnerUpdated(address(0));
@@ -215,10 +289,10 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         delete _potentialOwner;
 
         // Emit an event indicating ownership has been transferred.
-        emit OwnershipTransferred(deployerOwner, msg.sender);
+        emit OwnershipTransferred(_deployerOwner, msg.sender);
 
         // Set the caller as the owner of this contract.
-        deployerOwner = msg.sender;
+        _deployerOwner = msg.sender;
     }
 
     /**
@@ -227,15 +301,18 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      * @param pauserToAssign Address to assign role.
      */
     function assignPauser(address pauserToAssign) external {
-        require(msg.sender == deployerOwner, "Can only be set by the deployer");
+        require(
+            msg.sender == _deployerOwner,
+            "Can only be set by the deployer"
+        );
         require(
             pauserToAssign != address(0),
             "Pauser can not be set to the null address"
         );
-        pauserAddress = pauserToAssign;
+        _pauserAddress = pauserToAssign;
 
         // Emit an event.
-        emit PauserUpdated(pauserAddress);
+        emit PauserUpdated(_pauserAddress);
     }
 
     /**
@@ -249,7 +326,10 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         address globalPausableAddress,
         address operatorToAssign
     ) external {
-        require(msg.sender == deployerOwner, "Can only be set by the deployer");
+        require(
+            msg.sender == _deployerOwner,
+            "Can only be set by the deployer"
+        );
         PausableZone gp = PausableZone(globalPausableAddress);
         gp.assignOperator(operatorToAssign);
     }
