@@ -309,7 +309,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       });
     });
 
-    it("Fulfills an order with executeMatchOrdersZone", async () => {
+    it("Fulfills an order with executeMatchOrders", async () => {
       // Create Pausable Zone Controller
       const GPDeployer = await ethers.getContractFactory(
         "PausableZoneController",
@@ -414,7 +414,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await expect(
         gpDeployer
           .connect(buyer)
-          .callStatic.executeMatchOrdersZone(
+          .callStatic.executeMatchOrders(
             zoneAddr,
             marketplaceContract.address,
             [orderOne, orderTwo, orderThree],
@@ -427,7 +427,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // is equal to the number of fulfillments
       const executions = await gpDeployer
         .connect(owner)
-        .callStatic.executeMatchOrdersZone(
+        .callStatic.executeMatchOrders(
           zoneAddr,
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
@@ -439,7 +439,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Perform the match orders with zone
       const tx = await gpDeployer
         .connect(owner)
-        .executeMatchOrdersZone(
+        .executeMatchOrders(
           zoneAddr,
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
@@ -478,7 +478,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
     });
 
-    it("Fulfills an order with executeMatchAdvancedOrdersZone", async () => {
+    it("Fulfills an order with executeMatchAdvancedOrders", async () => {
       // Create Global Pausable Deployer
       const GPDeployer = await ethers.getContractFactory(
         "PausableZoneController",
@@ -583,7 +583,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await expect(
         gpDeployer
           .connect(buyer)
-          .executeMatchAdvancedOrdersZone(
+          .executeMatchAdvancedOrders(
             zoneAddr,
             marketplaceContract.address,
             [orderOne, orderTwo, orderThree],
@@ -599,7 +599,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // is equal to the number of fulfillments
       const executions = await gpDeployer
         .connect(owner)
-        .callStatic.executeMatchAdvancedOrdersZone(
+        .callStatic.executeMatchAdvancedOrders(
           zoneAddr,
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
@@ -612,7 +612,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Perform the match advanced orders with zone
       const tx = await gpDeployer
         .connect(owner)
-        .executeMatchAdvancedOrdersZone(
+        .executeMatchAdvancedOrders(
           zoneAddr,
           marketplaceContract.address,
           [orderOne, orderTwo, orderThree],
@@ -710,7 +710,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("Pauser can not be set to the null address");
 
       // owner assigns the pauser of the zone
-      gpDeployer.connect(owner).assignPauser(buyer.address);
+      await gpDeployer.connect(owner).assignPauser(buyer.address);
+
+      // Check pauser owner
+      expect(await gpDeployer.pauser()).to.equal(buyer.address);
 
       // Now as pauser, nuke the zone
       await gpDeployer.connect(buyer).pause(zoneAddr);
@@ -828,16 +831,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await expect(
         gpDeployer
           .connect(buyer)
-          .cancelOrderZone(zoneAddress, marketplaceContract.address, [
+          .cancelOrders(zoneAddress, marketplaceContract.address, [
             orderComponents,
           ])
       ).to.be.revertedWith("Only the owner can cancel orders with the zone.");
 
-      await gpDeployer.cancelOrderZone(
-        zoneAddress,
-        marketplaceContract.address,
-        [orderComponents]
-      );
+      await gpDeployer.cancelOrders(zoneAddress, marketplaceContract.address, [
+        orderComponents,
+      ]);
     });
 
     it("Operator of zone can cancel restricted orders.", async () => {
@@ -890,7 +891,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Approve operator
       await gpDeployer
         .connect(owner)
-        .assignOperatorOfZone(zoneAddress, seller.address);
+        .assignOperator(zoneAddress, seller.address);
 
       // Now allowed to operate the zone
       await gpZone
@@ -899,9 +900,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Cannot assign operator to zero address
       await expect(
-        gpDeployer
-          .connect(owner)
-          .assignOperatorOfZone(zoneAddress, toAddress(0))
+        gpDeployer.connect(owner).assignOperator(zoneAddress, toAddress(0))
       ).to.be.revertedWith("Operator can not be set to the null address");
     });
 
@@ -927,9 +926,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Try to approve operator without permission
       await expect(
-        gpDeployer
-          .connect(seller)
-          .assignOperatorOfZone(zoneAddress, seller.address)
+        gpDeployer.connect(seller).assignOperator(zoneAddress, seller.address)
       ).to.be.revertedWith("Can only be set by the deployer");
 
       // Try to approve operator directly without permission
@@ -1008,7 +1005,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await expect(
         gpDeployer
           .connect(buyer)
-          .cancelOrderZone(zoneAddr, marketplaceContract.address, order)
+          .cancelOrders(zoneAddr, marketplaceContract.address, order)
       ).to.be.reverted;
     });
 
@@ -1041,11 +1038,15 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // just get any random address as the next potential owner.
       await gpDeployer.connect(owner).transferOwnership(buyer.address);
+
+      // Check potential owner
+      expect(await gpDeployer.potentialOwner()).to.equal(buyer.address);
+
       await gpDeployer.connect(owner).cancelOwnershipTransfer();
       await gpDeployer.connect(owner).transferOwnership(buyer.address);
       await gpDeployer.connect(buyer).acceptOwnership();
 
-      expect(await gpDeployer.deployerOwner()).to.equal(buyer.address);
+      expect(await gpDeployer.owner()).to.equal(buyer.address);
     });
   });
 

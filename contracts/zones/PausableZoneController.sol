@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.7;
-
-/**
- * This deployer is designed to be owned by a gnosis safe, DAO, or trusted
- * party. It can deploy new PausableZone contracts, which can be used as a zone.
- */
-
 import { PausableZone } from "./PausableZone.sol";
+
+// prettier-ignore
+import {
+    PausableZoneControllerInterface
+} from "./interfaces/PausableZoneControllerInterface.sol";
 
 // prettier-ignore
 import {
@@ -27,39 +26,48 @@ import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 
 /**
  * @title  PausableZoneController
- * @author cupOJoseph, BCLeFevre, stuckinaboot
- * @notice PausableZoneController enables deploying, pausing and executing orders on PausableZones.
+ * @author cupOJoseph, BCLeFevre, stuckinaboot, stephankmin
+ * @notice PausableZoneController enables deploying, pausing and executing
+ *         orders on PausableZones. This deployer is designed to be owned
+ *         by a gnosis safe, DAO, or trusted party.
  */
-contract PausableZoneController is PausableZoneEventsAndErrors {
-    // Set the deployer owner that can deploy, pause and execute orders on a PausableZone.
-    address internal _deployerOwner;
+contract PausableZoneController is
+    PausableZoneControllerInterface,
+    PausableZoneEventsAndErrors
+{
+    // Set the owner that can deploy, pause and execute orders on PausableZones.
+    address internal _owner;
 
     // Set the address of the new potential owner of the zone.
     address private _potentialOwner;
 
     // Set the address with the ability to pause the zone.
-    address internal _pauserAddress;
+    address internal _pauser;
 
+    // Set the immutable zone creation code.
     bytes32 public immutable zoneCreationCode;
 
     /**
      * @dev Throws if called by any account other than the owner or pauser.
      */
     modifier isPauser() {
-        if (msg.sender != _pauserAddress && msg.sender != _deployerOwner) {
+        if (msg.sender != _pauser && msg.sender != _owner) {
             revert InvalidPauser();
         }
         _;
     }
 
     /**
-     * @notice Set the owner as the deployer of the controller.
+     * @notice Set the owner of the controller and store
+     *         the zone creation code.
      *
-     * @param deployerOwner The deployer to be set as the owner.
+     * @param ownerAddress The deployer to be set as the owner.
      */
-    constructor(address deployerOwner) {
-        _deployerOwner = deployerOwner;
+    constructor(address ownerAddress) {
+        // Set the owner address as the owner.
+        _owner = ownerAddress;
 
+        // Hash and store the zone creation code.
         zoneCreationCode = keccak256(type(PausableZone).creationCode);
     }
 
@@ -72,11 +80,12 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      */
     function createZone(bytes32 salt)
         external
+        override
         returns (address derivedAddress)
     {
-        // Ensure the caller is the deployer owner.
+        // Ensure the caller is the owner.
         require(
-            msg.sender == _deployerOwner,
+            msg.sender == _owner,
             "Only owner can create new Zones from here."
         );
 
@@ -116,35 +125,41 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      *
      * @return success A boolean indicating the zone has been paused.
      */
-    // TODO: ask about bool return and rename to pauseZone
-    function pause(address zone) external isPauser returns (bool success) {
+    function pause(address zone)
+        external
+        override
+        isPauser
+        returns (bool success)
+    {
+        // Call pause on the given zone.
         PausableZone(zone).pause();
 
+        // Return a boolean indicating the pause was successful.
         success = true;
     }
 
     /**
-     * @notice Use a zone to cancel a restricted Seaport offer.
+     * @notice Cancel Seaport orders on a given zone.
      *
      * @param pausableZoneAddress The zone that manages the orders to be cancelled.
      * @param seaportAddress      The Seaport address.
      * @param orders              The orders to cancel.
      */
-    function cancelOrderZone(
+    function cancelOrders(
         address pausableZoneAddress,
         SeaportInterface seaportAddress,
         OrderComponents[] calldata orders
-    ) external {
-        // Ensure the caller is the deployer owner.
+    ) external override {
+        // Ensure the caller is the owner.
         require(
-            msg.sender == _deployerOwner,
+            msg.sender == _owner,
             "Only the owner can cancel orders with the zone."
         );
 
         // Create a zone object from the zone address.
         PausableZone zone = PausableZone(pausableZoneAddress);
 
-        // Cancel the orders.
+        // Call cancelOrders on the given zone.
         zone.cancelOrders(seaportAddress, orders);
     }
 
@@ -161,15 +176,15 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      *                    transfers performed as part of matching the given
      *                    orders.
      */
-    function executeMatchOrdersZone(
+    function executeMatchOrders(
         address pausableZoneAddress,
         SeaportInterface seaportAddress,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (Execution[] memory executions) {
-        // Ensure the caller is the deployer owner.
+    ) external payable override returns (Execution[] memory executions) {
+        // Ensure the caller is the owner.
         require(
-            msg.sender == _deployerOwner,
+            msg.sender == _owner,
             "Only the owner can execute orders with the zone."
         );
 
@@ -203,16 +218,16 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      *                    transfers performed as part of matching the given
      *                    orders.
      */
-    function executeMatchAdvancedOrdersZone(
+    function executeMatchAdvancedOrders(
         address pausableZoneAddress,
         SeaportInterface seaportAddress,
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (Execution[] memory executions) {
-        // Ensure the caller is the deployer owner.
+    ) external payable override returns (Execution[] memory executions) {
+        // Ensure the caller is the owner.
         require(
-            msg.sender == _deployerOwner,
+            msg.sender == _owner,
             "Only the owner can execute advanced orders with the zone."
         );
 
@@ -238,11 +253,9 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      * @param newPotentialOwner The address for which to initiate ownership
      *                          transfer to.
      */
-    function transferOwnership(address newPotentialOwner) external {
-        require(
-            msg.sender == _deployerOwner,
-            "Only Owner can transfer Ownership."
-        );
+    function transferOwnership(address newPotentialOwner) external override {
+        // Ensure the caller is the owner.
+        require(msg.sender == _owner, "Only Owner can transfer Ownership.");
 
         // Ensure the new potential owner is not an invalid address.
         require(
@@ -253,6 +266,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         // Emit an event indicating that the potential owner has been updated.
         emit PotentialOwnerUpdated(newPotentialOwner);
 
+        // Set the new potential owner as the potential owner.
         _potentialOwner = newPotentialOwner;
     }
 
@@ -260,9 +274,9 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      * @notice Clear the currently set potential owner, if any.
      *         Only the owner of this contract may call this function.
      */
-    function cancelOwnershipTransfer() external {
+    function cancelOwnershipTransfer() external override {
         // Ensure the caller is the current owner.
-        require(msg.sender == _deployerOwner, "Only Owner can cancel.");
+        require(msg.sender == _owner, "Only Owner can cancel.");
 
         // Emit an event indicating that the potential owner has been cleared.
         emit PotentialOwnerUpdated(address(0));
@@ -272,11 +286,12 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
     }
 
     /**
-     * @notice Accept ownership of this contract. Only accounts that the
+     * @notice Accept ownership of this contract. Only the account that the
      *         current owner has set as the new potential owner may call this
      *         function.
      */
-    function acceptOwnership() external {
+    function acceptOwnership() external override {
+        // Ensure the caller is the potential owner.
         require(
             msg.sender == _potentialOwner,
             "Only Potential Owner can claim."
@@ -289,48 +304,79 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         delete _potentialOwner;
 
         // Emit an event indicating ownership has been transferred.
-        emit OwnershipTransferred(_deployerOwner, msg.sender);
+        emit OwnershipTransferred(_owner, msg.sender);
 
         // Set the caller as the owner of this contract.
-        _deployerOwner = msg.sender;
+        _owner = msg.sender;
     }
 
     /**
-     * @notice Assigns the given address with the ability to pause the zone.
+     * @notice Assign the given address with the ability to pause the zone.
      *
-     * @param pauserToAssign Address to assign role.
+     * @param pauserToAssign The address to assign the pauser role.
      */
-    function assignPauser(address pauserToAssign) external {
-        require(
-            msg.sender == _deployerOwner,
-            "Can only be set by the deployer"
-        );
+    function assignPauser(address pauserToAssign) external override {
+        // Ensure the caller is the owner.
+        require(msg.sender == _owner, "Can only be set by the deployer");
+
+        // Ensure the pauser to assign is not an invalid address.
         require(
             pauserToAssign != address(0),
             "Pauser can not be set to the null address"
         );
-        _pauserAddress = pauserToAssign;
 
-        // Emit an event.
-        emit PauserUpdated(_pauserAddress);
+        // Set the given account as the pauser.
+        _pauser = pauserToAssign;
+
+        // Emit an event indicating the pauser has been assigned.
+        emit PauserUpdated(_pauser);
     }
 
     /**
-     * @notice Assigns the given address with the ability to operate the
-     *         give zone.
+     * @notice Assign the given address with the ability to operate the
+     *         given zone.
      *
-     * @param globalPausableAddress Zone Address to assign operator role.
-     * @param operatorToAssign      Address to assign role.
+     * @param pausableZoneAddress The zone address to assign operator role.
+     * @param operatorToAssign    The address to assign as operator.
      */
-    function assignOperatorOfZone(
-        address globalPausableAddress,
+    function assignOperator(
+        address pausableZoneAddress,
         address operatorToAssign
-    ) external {
-        require(
-            msg.sender == _deployerOwner,
-            "Can only be set by the deployer"
-        );
-        PausableZone gp = PausableZone(globalPausableAddress);
-        gp.assignOperator(operatorToAssign);
+    ) external override {
+        // Ensure the caller is the owner.
+        require(msg.sender == _owner, "Can only be set by the deployer");
+
+        // Create a zone object from the zone address.
+        PausableZone zone = PausableZone(pausableZoneAddress);
+
+        // Call assignOperator on the zone by passing in the given operator address.
+        zone.assignOperator(operatorToAssign);
+    }
+
+    /**
+     * @notice An external view function that returns the owner.
+     *
+     * @return The address of the owner.
+     */
+    function owner() external view override returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @notice An external view function that return the potential owner.
+     *
+     * @return The address of the potential owner.
+     */
+    function potentialOwner() external view override returns (address) {
+        return _potentialOwner;
+    }
+
+    /**
+     * @notice An external view function that returns the pauser.
+     *
+     * @return The address of the pauser.
+     */
+    function pauser() external view override returns (address) {
+        return _pauser;
     }
 }
