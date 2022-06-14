@@ -55,7 +55,7 @@ contract PausableZone is
     }
 
     /**
-     * @dev Ensure that the caller is either the operator or controller.
+     * @dev Ensure that the caller is the controller.
      */
     modifier isController() {
         // Ensure that the caller is the controller.
@@ -71,7 +71,11 @@ contract PausableZone is
      * @notice Set the deployer as the controller of the zone.
      */
     constructor() {
+        // Set the controller to the deployer.
         _controller = msg.sender;
+
+        // Emit an event signifying that the zone is unpaused.
+        emit Unpaused();
     }
 
     /**
@@ -238,6 +242,9 @@ contract PausableZone is
      *         same address.
      */
     function pause() external override isController {
+        // Emit an event signifying that the zone is paused.
+        emit Paused();
+
         // Destroy the zone, sending any ether to the transaction submitter.
         selfdestruct(payable(tx.origin));
     }
