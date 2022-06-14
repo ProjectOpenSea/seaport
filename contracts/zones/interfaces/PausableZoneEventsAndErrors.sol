@@ -2,10 +2,10 @@
 pragma solidity >=0.8.7;
 
 /**
- * @notice GlobalPausableEventsAndErrors contains errors and events
+ * @notice PausableZoneEventsAndErrors contains errors and events
  *         related to zone interaction.
  */
-interface GlobalPausableEventsAndErrors {
+interface PausableZoneEventsAndErrors {
     /**
      * @dev Emit an event whenever a zone owner registers a new potential
      *      owner for that zone.
@@ -25,9 +25,10 @@ interface GlobalPausableEventsAndErrors {
     /**
      * @dev Emit an event whenever a new zone is created.
      *
-     * @param zoneAddress The address of the zone.
+     * @param zone The address of the zone.
+     * @param salt The salt used to deploy the zone.
      */
-    event ZoneCreated(address zoneAddress);
+    event ZoneCreated(address zone, bytes32 salt);
 
     /**
      * @dev Emit an event whenever a zone owner assigns a new pauser
@@ -51,7 +52,18 @@ interface GlobalPausableEventsAndErrors {
 
     /**
      * @dev Revert with an error when attempting to call an operation
-     *      while the caller is not the owner or operator of the zone.
+     *      while the caller is not the controller or operator of the zone.
      */
     error InvalidOperator();
+
+    /**
+     * @dev Revert with an error when attempting to pause the zone or update the
+     *      operator while the caller is not the controller of the zone.
+     */
+    error InvalidController();
+    /**
+     * @dev Revert with an error when attempting to deploy a zone that is
+     *      currently deployed.
+     */
+    error ZoneAlreadyExists(address zone);
 }
