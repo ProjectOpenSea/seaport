@@ -13,7 +13,7 @@ The `GlobalPausable` contract can be used by its deployer to cancel specific ord
 
 We could use something like this, to allow the owner of the zone to execute restricted orders, but its not entirely necessary
 
-```
+```solidity
 function executeRestrictedOrderZone(
     address _globalPausableAddress,
     address _seaportAddress,
