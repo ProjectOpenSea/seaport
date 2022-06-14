@@ -64,7 +64,7 @@ contract PausableZoneController is
      * @param ownerAddress The deployer to be set as the owner.
      */
     constructor(address ownerAddress) {
-        // Set the deployer as the owner.
+        // Set the owner address as the owner.
         _owner = ownerAddress;
 
         // Hash and store the zone creation code.
@@ -139,7 +139,7 @@ contract PausableZoneController is
     }
 
     /**
-     * @notice Cancel Seaport offers on a given zone.
+     * @notice Cancel Seaport orders on a given zone.
      *
      * @param pausableZoneAddress The zone that manages the orders to be cancelled.
      * @param seaportAddress      The Seaport address.
