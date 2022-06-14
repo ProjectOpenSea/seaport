@@ -80,6 +80,7 @@ contract PausableZoneController is
      */
     function createZone(bytes32 salt)
         external
+        override
         returns (address derivedAddress)
     {
         // Ensure the caller is the owner.
@@ -124,7 +125,12 @@ contract PausableZoneController is
      *
      * @return success A boolean indicating the zone has been paused.
      */
-    function pause(address zone) external isPauser returns (bool success) {
+    function pause(address zone)
+        external
+        override
+        isPauser
+        returns (bool success)
+    {
         // Call pause on the given zone.
         PausableZone(zone).pause();
 
@@ -175,7 +181,7 @@ contract PausableZoneController is
         SeaportInterface seaportAddress,
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (Execution[] memory executions) {
+    ) external payable override returns (Execution[] memory executions) {
         // Ensure the caller is the owner.
         require(
             msg.sender == _owner,
@@ -218,7 +224,7 @@ contract PausableZoneController is
         AdvancedOrder[] calldata orders,
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
-    ) external payable returns (Execution[] memory executions) {
+    ) external payable override returns (Execution[] memory executions) {
         // Ensure the caller is the owner.
         require(
             msg.sender == _owner,
@@ -247,7 +253,7 @@ contract PausableZoneController is
      * @param newPotentialOwner The address for which to initiate ownership
      *                          transfer to.
      */
-    function transferOwnership(address newPotentialOwner) external {
+    function transferOwnership(address newPotentialOwner) external override {
         // Ensure the caller is the owner.
         require(msg.sender == _owner, "Only Owner can transfer Ownership.");
 
@@ -268,7 +274,7 @@ contract PausableZoneController is
      * @notice Clear the currently set potential owner, if any.
      *         Only the owner of this contract may call this function.
      */
-    function cancelOwnershipTransfer() external {
+    function cancelOwnershipTransfer() external override {
         // Ensure the caller is the current owner.
         require(msg.sender == _owner, "Only Owner can cancel.");
 
@@ -284,7 +290,7 @@ contract PausableZoneController is
      *         current owner has set as the new potential owner may call this
      *         function.
      */
-    function acceptOwnership() external {
+    function acceptOwnership() external override {
         // Ensure the caller is the potential owner.
         require(
             msg.sender == _potentialOwner,
@@ -309,7 +315,7 @@ contract PausableZoneController is
      *
      * @param pauserToAssign The address to assign the pauser role.
      */
-    function assignPauser(address pauserToAssign) external {
+    function assignPauser(address pauserToAssign) external override {
         // Ensure the caller is the owner.
         require(msg.sender == _owner, "Can only be set by the deployer");
 
@@ -336,7 +342,7 @@ contract PausableZoneController is
     function assignOperator(
         address pausableZoneAddress,
         address operatorToAssign
-    ) external {
+    ) external override {
         // Ensure the caller is the owner.
         require(msg.sender == _owner, "Can only be set by the deployer");
 
@@ -352,7 +358,7 @@ contract PausableZoneController is
      *
      * @return The address of the owner.
      */
-    function owner() external view returns (address) {
+    function owner() external view override returns (address) {
         return _owner;
     }
 
@@ -361,7 +367,7 @@ contract PausableZoneController is
      *
      * @return The address of the potential owner.
      */
-    function potentialOwner() external view returns (address) {
+    function potentialOwner() external view override returns (address) {
         return _potentialOwner;
     }
 
@@ -370,7 +376,7 @@ contract PausableZoneController is
      *
      * @return The address of the pauser.
      */
-    function pauser() external view returns (address) {
+    function pauser() external view override returns (address) {
         return _pauser;
     }
 }
