@@ -48,7 +48,8 @@ interface PausableZoneController {
     /**
      * @notice Cancel Seaport offers on a given zone.
      *
-     * @param pausableZoneAddress The zone that manages the orders to be cancelled.
+     * @param pausableZoneAddress The zone that manages the orders to be
+     *                            cancelled.
      * @param seaportAddress      The Seaport address.
      * @param orders              The orders to cancel.
      */
@@ -61,7 +62,8 @@ interface PausableZoneController {
     /**
      * @notice Execute an arbitrary number of matched orders on a given zone.
      *
-     * @param pausableZoneAddress The zone that manages the orders to be cancelled.
+     * @param pausableZoneAddress The zone that manages the orders to be
+     *                            cancelled.
      * @param seaportAddress      The Seaport address.
      * @param orders              The orders to match.
      * @param fulfillments        An array of elements allocating offer components
@@ -79,18 +81,21 @@ interface PausableZoneController {
     ) external payable returns (Execution[] memory executions);
 
     /**
-     * @notice Execute an arbitrary number of matched advanced orders on a given zone.
+     * @notice Execute an arbitrary number of matched advanced orders on a
+     *         given zone.
      *
-     * @param pausableZoneAddress The zone that manages the orders to be cancelled.
+     * @param pausableZoneAddress The zone that manages the orders to be
+     *                            cancelled.
      * @param seaportAddress      The Seaport address.
      * @param orders              The orders to match.
-     * @param criteriaResolvers   An array where each element contains a reference
-     *                            to a specific order as well as that order's
-     *                            offer or consideration, a token identifier, and
-     *                            a proof that the supplied token identifier is
+     * @param criteriaResolvers   An array where each element contains a
+     *                            reference to a specific order as well as
+     *                            that order's offer or consideration,
+     *                            a token identifier, and a proof that
+     *                            the supplied token identifier is
      *                            contained in the order's merkle root.
-     * @param fulfillments        An array of elements allocating offer components
-     *                            to consideration components.
+     * @param fulfillments        An array of elements allocating offer
+     *                            components to consideration components.
      *
      * @return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
