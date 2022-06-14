@@ -55,7 +55,7 @@ contract PausableZone is
     }
 
     /**
-     * @dev Ensure that the caller is either the operator or controller.
+     * @dev Ensure that the caller is the controller.
      */
     modifier isController() {
         // Ensure that the caller is the controller.
