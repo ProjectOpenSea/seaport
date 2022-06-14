@@ -758,9 +758,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       );
 
       // owner nukes the zone
-      await whileImpersonating(owner.address, provider, async () => {
-        gpDeployer.pause(zoneAddr);
-      });
+      gpDeployer.pause(zoneAddr);
 
       await expect(
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
@@ -6480,46 +6478,44 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         expect(executions.length).to.equal(4);
 
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(owner)
-            .matchAdvancedOrders(
-              [order, mirrorOrder],
-              criteriaResolvers,
-              fulfillments,
-              {
-                value,
-              }
-            );
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order,
-                orderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions,
-            criteriaResolvers
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchAdvancedOrders(
+            [order, mirrorOrder],
+            criteriaResolvers,
+            fulfillments,
+            {
+              value,
+            }
           );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions,
+          criteriaResolvers
+        );
 
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order: mirrorOrder,
-                orderHash: mirrorOrderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions
-          );
-          return receipt;
-        });
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
       });
       it("Criteria-based offer item ERC1155 (match)", async () => {
         // Seller mints nfts
@@ -6578,46 +6574,44 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         expect(executions.length).to.equal(4);
 
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(owner)
-            .matchAdvancedOrders(
-              [order, mirrorOrder],
-              criteriaResolvers,
-              fulfillments,
-              {
-                value,
-              }
-            );
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order,
-                orderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions,
-            criteriaResolvers
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchAdvancedOrders(
+            [order, mirrorOrder],
+            criteriaResolvers,
+            fulfillments,
+            {
+              value,
+            }
           );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions,
+          criteriaResolvers
+        );
 
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order: mirrorOrder,
-                orderHash: mirrorOrderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions
-          );
-          return receipt;
-        });
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
       });
       it("Criteria-based offer item (match, collection-level)", async () => {
         // Seller mints nfts
@@ -6680,46 +6674,44 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         expect(executions.length).to.equal(4);
 
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(owner)
-            .matchAdvancedOrders(
-              [order, mirrorOrder],
-              criteriaResolvers,
-              fulfillments,
-              {
-                value,
-              }
-            );
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order,
-                orderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions,
-            criteriaResolvers
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchAdvancedOrders(
+            [order, mirrorOrder],
+            criteriaResolvers,
+            fulfillments,
+            {
+              value,
+            }
           );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions,
+          criteriaResolvers
+        );
 
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order: mirrorOrder,
-                orderHash: mirrorOrderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions
-          );
-          return receipt;
-        });
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
       });
       it("Criteria-based consideration item (standard)", async () => {
         // buyer mints nfts
@@ -8037,32 +8029,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         expect(executions.length).to.equal(5);
 
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(owner)
-            .matchOrders([order, mirrorOrder], fulfillments, {
-              value,
-            });
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order,
-                orderHash,
-                fulfiller: constants.AddressZero,
-              },
-              {
-                order: mirrorOrder,
-                orderHash: mirrorOrderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions
-          );
-          return receipt;
-        });
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value,
+          });
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: constants.AddressZero,
+            },
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
       });
       it("ERC1155 <=> ETH (match, three items)", async () => {
         // Seller mints first nft
@@ -8123,32 +8113,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         expect(executions.length).to.equal(6);
 
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(owner)
-            .matchOrders([order, mirrorOrder], fulfillments, {
-              value,
-            });
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order,
-                orderHash,
-                fulfiller: constants.AddressZero,
-              },
-              {
-                order: mirrorOrder,
-                orderHash: mirrorOrderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions
-          );
-          return receipt;
-        });
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value,
+          });
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: constants.AddressZero,
+            },
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
       });
       it("ERC1155 <=> ETH (match via conduit)", async () => {
         // Seller mints first nft
@@ -8207,32 +8195,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         expect(executions.length).to.equal(5);
 
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(owner)
-            .matchOrders([order, mirrorOrder], fulfillments, {
-              value,
-            });
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order,
-                orderHash,
-                fulfiller: constants.AddressZero,
-              },
-              {
-                order: mirrorOrder,
-                orderHash: mirrorOrderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions
-          );
-          return receipt;
-        });
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value,
+          });
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: constants.AddressZero,
+            },
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
       });
       it("ERC1155 <=> ETH (match, single item)", async () => {
         // Seller mints first nft
@@ -8270,32 +8256,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         expect(executions.length).to.equal(1);
 
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(owner)
-            .matchOrders([order, mirrorOrder], fulfillments, {
-              value,
-            });
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order,
-                orderHash,
-                fulfiller: constants.AddressZero,
-              },
-              {
-                order: mirrorOrder,
-                orderHash: mirrorOrderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions
-          );
-          return receipt;
-        });
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value,
+          });
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: constants.AddressZero,
+            },
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
       });
       it("ERC1155 <=> ETH (match, single 1155)", async () => {
         // Seller mints first nft
@@ -8344,32 +8328,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         expect(executions.length).to.equal(4);
 
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(owner)
-            .matchOrders([order, mirrorOrder], fulfillments, {
-              value,
-            });
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order,
-                orderHash,
-                fulfiller: constants.AddressZero,
-              },
-              {
-                order: mirrorOrder,
-                orderHash: mirrorOrderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions
-          );
-          return receipt;
-        });
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value,
+          });
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: constants.AddressZero,
+            },
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
       });
       it("ERC1155 <=> ETH (match, two different 1155 contracts)", async () => {
         // Seller mints first nft
@@ -9661,11 +9643,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Adds a channel, and executes transfers (ERC1155 with batch)", async () => {
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       const { nftId, amount } = await mint1155(owner, 2);
 
@@ -9700,11 +9680,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Adds a channel, and executes only batch transfers (ERC1155 with batch)", async () => {
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       const { nftId, amount } = await mint1155(owner, 2);
 
@@ -9737,11 +9715,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Adds a channel, and executes transfers (ERC721)", async () => {
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       // Seller mints nft
       const nftId = randomBN();
@@ -9790,11 +9766,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Adds a channel, and executes transfers (ERC721 + ERC20)", async () => {
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       // Seller mints nft
       const nftId = randomBN();
@@ -9860,11 +9834,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Adds a channel, and executes transfers (ERC721 + ERC1155)", async () => {
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       // Seller mints nft
       const nftId = randomBN();
@@ -9936,11 +9908,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Adds a channel, and executes transfers (ERC20 + ERC1155)", async () => {
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       // Seller mints nft
       const tokenAmount = minRandom(100).div(100);
@@ -10010,11 +9980,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Adds a channel, and executes transfers (ERC20 + ERC721 + ERC1155)", async () => {
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       // Create/Approve X amount of  ERC20s
       const erc20Transfer = await createTransferWithApproval(
@@ -10070,11 +10038,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("Adds a channel, and executes transfers (many token types)", async () => {
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       // Get 3 Numbers that's value adds to Item Amount and minimum 1.
       const itemsToCreate = 64;
@@ -10182,11 +10148,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Reverts on calls to batch transfer 1155 items with no contract on a conduit", async () => {
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, owner.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, owner.address, true);
 
       const { nftId, amount } = await mint1155(owner, 2);
 
@@ -10214,11 +10178,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Reverts on calls to only batch transfer 1155 items with no contract on a conduit", async () => {
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, owner.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, owner.address, true);
 
       const { nftId, amount } = await mint1155(owner, 2);
 
@@ -10244,11 +10206,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
     it("ERC1155 batch transfer reverts with revert data if it has sufficient gas", async () => {
       // Owner updates conduit channel to allow seller access
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, seller.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, seller.address, true);
 
       await expect(
         tempConduit.connect(seller).executeWithBatch1155(
@@ -10269,11 +10229,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       it("ERC1155 batch transfer sends no data", async () => {
         const receiver = await deployContract("ERC1155BatchRecipient", owner);
         // Owner updates conduit channel to allow seller access
-        await whileImpersonating(owner.address, provider, async () => {
-          await conduitController
-            .connect(owner)
-            .updateChannel(tempConduit.address, seller.address, true);
-        });
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
 
         const { nftId, amount } = await mint1155(owner, 2);
 
@@ -10322,11 +10280,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           owner
         );
         // Owner updates conduit channel to allow seller access
-        await whileImpersonating(owner.address, provider, async () => {
-          await conduitController
-            .connect(owner)
-            .updateChannel(tempConduit.address, seller.address, true);
-        });
+        await conduitController
+          .connect(owner)
+          .updateChannel(tempConduit.address, seller.address, true);
 
         await expect(
           tempConduit.connect(seller).executeWithBatch1155(
@@ -11058,11 +11014,9 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         conduitController.address
       );
 
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, tempTransferHelper.address, true);
-      });
+      await conduitController
+        .connect(owner)
+        .updateChannel(tempConduit.address, tempTransferHelper.address, true);
     });
 
     it("Executes transfers (many token types) with a conduit", async () => {
@@ -15373,32 +15327,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             })
         ).to.be.revertedWith("InsufficientEtherSupplied");
 
-        await whileImpersonating(owner.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(owner)
-            .matchOrders([order, mirrorOrder], fulfillments, {
-              value,
-            });
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order,
-                orderHash,
-                fulfiller: constants.AddressZero,
-              },
-              {
-                order: mirrorOrder,
-                orderHash: mirrorOrderHash,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions
-          );
-          return receipt;
-        });
+        const tx = marketplaceContract
+          .connect(owner)
+          .matchOrders([order, mirrorOrder], fulfillments, {
+            value,
+          });
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: constants.AddressZero,
+            },
+            {
+              order: mirrorOrder,
+              orderHash: mirrorOrderHash,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions
+        );
+        return receipt;
       });
       it("Reverts when ether is supplied to a non-payable route (basic)", async () => {
         // Seller mints nft
