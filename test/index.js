@@ -169,7 +169,33 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       const tx = await gpDeployer.createZone(actualSalt);
       const receipt = await tx.wait();
 
-      const zoneAddress = receipt.events[0].args[0];
+      const gpZoneContract = await ethers.getContractFactory(
+        "PausableZone",
+        owner
+      );
+
+      const foundUnpauseEvents = receipt.events
+        .map((event) => {
+          // Attempt to decode each event to Unpaused.
+          // If the event is not successfully decoded (e.g. if the
+          // event is not an Unpaused event), the catch will be hit
+          // and we return null
+          try {
+            return gpZoneContract.interface.decodeEventLog(
+              "Unpaused",
+              event.data,
+              event.topics
+            );
+          } catch {
+            return null;
+          }
+        })
+        // Filter out all nulls so that at the end we are left with
+        // only Unpause events (e.g. events that were successfully decoded)
+        .filter(Boolean);
+      expect(foundUnpauseEvents.length).to.equal(1);
+
+      const zoneAddress = receipt.events[1].args.zone;
       return zoneAddress;
     }
 
@@ -716,7 +742,30 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(await gpDeployer.pauser()).to.equal(buyer.address);
 
       // Now as pauser, nuke the zone
-      await gpDeployer.connect(buyer).pause(zoneAddr);
+      const tx = await gpDeployer.connect(buyer).pause(zoneAddr);
+
+      // Check paused event was emitted
+      const receipt = await tx.wait();
+      const foundPauseEvents = receipt.events
+        .map((event) => {
+          // Attempt to decode each event to Paused.
+          // If the event is not successfully decoded (e.g. if the
+          // event is not an OrderFulfilled event), the catch will be hit
+          // and we return null
+          try {
+            return gpZoneContract.interface.decodeEventLog(
+              "Paused",
+              event.data,
+              event.topics
+            );
+          } catch {
+            return null;
+          }
+        })
+        // Filter out all nulls so that at the end we are left with
+        // only Pause events (e.g. events that were successfully decoded)
+        .filter(Boolean);
+      expect(foundPauseEvents.length).to.equal(1);
     });
 
     it("Revert on deploying a zone with the same salt", async () => {
