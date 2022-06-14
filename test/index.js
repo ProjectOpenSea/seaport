@@ -716,6 +716,24 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       await gpDeployer.connect(buyer).pause(zoneAddr);
     });
 
+    it("Revert on deploying a zone with the same salt", async () => {
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      const salt = randomHex();
+
+      // Create zone with salt
+      await gpDeployer.createZone(salt);
+
+      // Create zone with same salt
+      await expect(gpDeployer.createZone(salt)).to.be.revertedWith(
+        "ZoneAlreadyExists"
+      );
+    });
+
     it("Revert on an order with a pausable zone if zone has been self destructed", async () => {
       // deploy GPD
       const GPDeployer = await ethers.getContractFactory(
