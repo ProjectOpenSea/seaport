@@ -26,7 +26,7 @@ import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
 
 /**
  * @title  PausableZoneController
- * @author cupOJoseph, BCLeFevre, stuckinaboot
+ * @author cupOJoseph, BCLeFevre, stuckinaboot, stephankmin
  * @notice PausableZoneController enables deploying, pausing and executing
  *         orders on PausableZones. This deployer is designed to be owned
  *         by a gnosis safe, DAO, or trusted party.
