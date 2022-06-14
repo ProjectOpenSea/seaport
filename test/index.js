@@ -710,7 +710,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("Pauser can not be set to the null address");
 
       // owner assigns the pauser of the zone
-      gpDeployer.connect(owner).assignPauser(buyer.address);
+      await gpDeployer.connect(owner).assignPauser(buyer.address);
+
+      // Check pauser owner
+      expect(await gpDeployer.pauser()).to.equal(buyer.address);
 
       // Now as pauser, nuke the zone
       await gpDeployer.connect(buyer).pause(zoneAddr);
@@ -1035,6 +1038,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // just get any random address as the next potential owner.
       await gpDeployer.connect(owner).transferOwnership(buyer.address);
+
+      // Check potential owner
+      expect(await gpDeployer.potentialOwner()).to.equal(buyer.address);
+
       await gpDeployer.connect(owner).cancelOwnershipTransfer();
       await gpDeployer.connect(owner).transferOwnership(buyer.address);
       await gpDeployer.connect(buyer).acceptOwnership();
