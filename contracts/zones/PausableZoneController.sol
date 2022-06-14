@@ -38,7 +38,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
     address private _potentialOwner;
 
     // Set the address with the ability to pause the zone.
-    address internal _pauserAddress;
+    address internal _pauser;
 
     // Set the immutable zone creation code.
     bytes32 public immutable zoneCreationCode;
@@ -47,7 +47,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      * @dev Throws if called by any account other than the owner or pauser.
      */
     modifier isPauser() {
-        if (msg.sender != _pauserAddress && msg.sender != _deployerOwner) {
+        if (msg.sender != _pauser && msg.sender != _deployerOwner) {
             revert InvalidPauser();
         }
         _;
@@ -65,6 +65,33 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
 
         // Hash and store the zone creation code.
         zoneCreationCode = keccak256(type(PausableZone).creationCode);
+    }
+
+    /**
+     * @notice An external view function that returns the owner.
+     *
+     * @return The address of the owner.
+     */
+    function deployerOwner() external view returns (address) {
+        return _deployerOwner;
+    }
+
+    /**
+     * @notice An external view function that return the potential owner.
+     *
+     * @return The address of the potential owner.
+     */
+    function potentialOwner() external view returns (address) {
+        return _potentialOwner;
+    }
+
+    /**
+     * @notice An external view function that returns the pauser.
+     *
+     * @return The address of the pauser.
+     */
+    function pauser() external view returns (address) {
+        return _pauser;
     }
 
     /**
@@ -322,10 +349,10 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         );
 
         // Set the given account as the pauser.
-        _pauserAddress = pauserToAssign;
+        _pauser = pauserToAssign;
 
         // Emit an event indicating the pauser has been assigned.
-        emit PauserUpdated(_pauserAddress);
+        emit PauserUpdated(_pauser);
     }
 
     /**
