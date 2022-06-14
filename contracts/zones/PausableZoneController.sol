@@ -31,7 +31,7 @@ import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
  * @notice PausableZoneController enables deploying, pausing and executing orders on PausableZones.
  */
 contract PausableZoneController is PausableZoneEventsAndErrors {
-    // Set the deployer owner that can deploy, pause and execute orders on a PausableZone.
+    // Set the owner that can deploy, pause and execute orders on a PausableZone.
     address internal _deployerOwner;
 
     // Set the address of the new potential owner of the zone.
@@ -53,13 +53,16 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
     }
 
     /**
-     * @notice Set the owner as the deployer of the controller.
+     * @notice Set the owner of the controller and store
+     *         the zone creation code.
      *
      * @param deployerOwner The deployer to be set as the owner.
      */
     constructor(address deployerOwner) {
+        // Set the deployer as the own
         _deployerOwner = deployerOwner;
 
+        // Hash and store the zone creation code.
         zoneCreationCode = keccak256(type(PausableZone).creationCode);
     }
 
@@ -74,7 +77,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         external
         returns (address derivedAddress)
     {
-        // Ensure the caller is the deployer owner.
+        // Ensure the caller is the owner.
         require(
             msg.sender == _deployerOwner,
             "Only owner can create new Zones from here."
@@ -116,10 +119,11 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      *
      * @return success A boolean indicating the zone has been paused.
      */
-    // TODO: ask about bool return and rename to pauseZone
     function pause(address zone) external isPauser returns (bool success) {
+        // Call pause on the given zone.
         PausableZone(zone).pause();
 
+        // Return a boolean indicating the pause was successful.
         success = true;
     }
 
@@ -135,7 +139,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         SeaportInterface seaportAddress,
         OrderComponents[] calldata orders
     ) external {
-        // Ensure the caller is the deployer owner.
+        // Ensure the caller is the owner.
         require(
             msg.sender == _deployerOwner,
             "Only the owner can cancel orders with the zone."
@@ -167,7 +171,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         Order[] calldata orders,
         Fulfillment[] calldata fulfillments
     ) external payable returns (Execution[] memory executions) {
-        // Ensure the caller is the deployer owner.
+        // Ensure the caller is the owner.
         require(
             msg.sender == _deployerOwner,
             "Only the owner can execute orders with the zone."
@@ -210,7 +214,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         CriteriaResolver[] calldata criteriaResolvers,
         Fulfillment[] calldata fulfillments
     ) external payable returns (Execution[] memory executions) {
-        // Ensure the caller is the deployer owner.
+        // Ensure the caller is the owner.
         require(
             msg.sender == _deployerOwner,
             "Only the owner can execute advanced orders with the zone."
@@ -239,6 +243,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      *                          transfer to.
      */
     function transferOwnership(address newPotentialOwner) external {
+        // Ensure the caller is the owner.
         require(
             msg.sender == _deployerOwner,
             "Only Owner can transfer Ownership."
@@ -253,6 +258,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         // Emit an event indicating that the potential owner has been updated.
         emit PotentialOwnerUpdated(newPotentialOwner);
 
+        // Set the new potential owner as the potential owner.
         _potentialOwner = newPotentialOwner;
     }
 
@@ -277,6 +283,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      *         function.
      */
     function acceptOwnership() external {
+        // Ensure the caller is the potential owner.
         require(
             msg.sender == _potentialOwner,
             "Only Potential Owner can claim."
@@ -296,22 +303,27 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
     }
 
     /**
-     * @notice Assigns the given address with the ability to pause the zone.
+     * @notice Assign the given address with the ability to pause the zone.
      *
-     * @param pauserToAssign Address to assign role.
+     * @param pauserToAssign The address to assign the pauser role.
      */
     function assignPauser(address pauserToAssign) external {
+        // Ensure the caller is the owner.
         require(
             msg.sender == _deployerOwner,
             "Can only be set by the deployer"
         );
+
+        // Ensure the pauser to assign is not an invalid address.
         require(
             pauserToAssign != address(0),
             "Pauser can not be set to the null address"
         );
+
+        // Set the given account as the pauser.
         _pauserAddress = pauserToAssign;
 
-        // Emit an event.
+        // Emit an event indicating the pauser has been assigned.
         emit PauserUpdated(_pauserAddress);
     }
 
