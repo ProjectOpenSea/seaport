@@ -44,7 +44,7 @@ contract PausableZoneController is
     // Set the address with the ability to pause the zone.
     address internal _pauser;
 
-    // Set the immutable zone code hash.
+    // Set the immutable zone creation code hash.
     bytes32 public immutable zoneCreationCode;
 
     /**
