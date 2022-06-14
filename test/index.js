@@ -157,6 +157,899 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     } = await seaportFixture(owner));
   });
 
+  describe("Zone - Global Pausable", async () => {
+    let seller;
+    let sellerContract;
+    let buyerContract;
+    let buyer;
+
+    // Create zone and get zone address
+    async function createZone(gpDeployer, salt) {
+      const actualSalt = salt || randomHex();
+      const tx = await gpDeployer.createZone(actualSalt);
+      const receipt = await tx.wait();
+
+      const zoneAddress = receipt.events[0].args[0];
+      return zoneAddress;
+    }
+
+    beforeEach(async () => {
+      // Setup basic buyer/seller wallets with ETH
+      seller = new ethers.Wallet(randomHex(32), provider);
+      buyer = new ethers.Wallet(randomHex(32), provider);
+
+      sellerContract = await EIP1271WalletFactory.deploy(seller.address);
+      buyerContract = await EIP1271WalletFactory.deploy(buyer.address);
+
+      await Promise.all(
+        [seller, buyer, sellerContract, buyerContract].map((wallet) =>
+          faucet(wallet.address, provider)
+        )
+      );
+    });
+
+    it("Fulfills an order with a global pausable zone", async () => {
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      const zoneAddr = await createZone(gpDeployer);
+
+      // create basic order using GP as zone
+      // execute basic 721 <=> ETH order
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        { address: zoneAddr },
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED
+      );
+
+      await withBalanceChecks([order], 0, null, async () => {
+        const tx = await marketplaceContract
+          .connect(buyer)
+          .fulfillOrder(order, toKey(false), {
+            value,
+          });
+
+        const receipt = await tx.wait();
+        await checkExpectedEvents(tx, receipt, [
+          {
+            order,
+            orderHash,
+            fulfiller: buyer.address,
+            fulfillerConduitKey: toKey(false),
+          },
+        ]);
+        return receipt;
+      });
+    });
+
+    it("Fulfills an advanced order with criteria with a global pausable zone", async () => {
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      const zoneAddr = await createZone(gpDeployer);
+
+      // create basic order using GP as zone
+      // execute basic 721 <=> ETH order
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const { root, proofs } = merkleTree([nftId]);
+
+      const offer = [getTestItem721WithCriteria(root, toBN(1), toBN(1))];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const criteriaResolvers = [
+        buildResolver(0, 0, 0, nftId, proofs[nftId.toString()]),
+      ];
+
+      const { order, orderHash, value } = await createOrder(
+        seller,
+        { address: zoneAddr },
+        offer,
+        consideration,
+        2, // FULL_RESTRICTED
+        criteriaResolvers
+      );
+
+      await withBalanceChecks([order], 0, criteriaResolvers, async () => {
+        const tx = await marketplaceContract
+          .connect(buyer)
+          .fulfillAdvancedOrder(
+            order,
+            criteriaResolvers,
+            toKey(false),
+            constants.AddressZero,
+            {
+              value,
+            }
+          );
+
+        const receipt = await tx.wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order,
+              orderHash,
+              fulfiller: buyer.address,
+              fulfillerConduitKey: toKey(false),
+            },
+          ],
+          null,
+          criteriaResolvers
+        );
+        return receipt;
+      });
+    });
+
+    it("Fulfills an order with executeMatchOrders", async () => {
+      // Create Pausable Zone Controller
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // Deploy Pausable Zone
+      const zoneAddr = await createZone(gpDeployer);
+      const zone = { address: zoneAddr };
+
+      // Mint NFTs for use in orders
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+      const secondNFTId = await mintAndApprove721(
+        buyer,
+        marketplaceContract.address
+      );
+      const thirdNFTId = await mintAndApprove721(
+        owner,
+        marketplaceContract.address
+      );
+
+      // Define orders
+      const offerOne = [
+        getTestItem721(nftId, toBN(1), toBN(1), undefined, testERC721.address),
+      ];
+      const considerationOne = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          seller.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderOne, orderHash: orderHashOne } = await createOrder(
+        seller,
+        zone,
+        offerOne,
+        considerationOne,
+        2
+      );
+
+      const offerTwo = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+      const considerationTwo = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          buyer.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+        buyer,
+        zone,
+        offerTwo,
+        considerationTwo,
+        2
+      );
+
+      const offerThree = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+      const considerationThree = [
+        getTestItem721(
+          nftId,
+          toBN(1),
+          toBN(1),
+          owner.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderThree, orderHash: orderHashThree } =
+        await createOrder(owner, zone, offerThree, considerationThree, 2);
+
+      const fulfillments = [
+        [[[1, 0]], [[0, 0]]],
+        [[[0, 0]], [[2, 0]]],
+        [[[2, 0]], [[1, 0]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      await expect(
+        gpDeployer
+          .connect(buyer)
+          .callStatic.executeMatchOrders(
+            zoneAddr,
+            marketplaceContract.address,
+            [orderOne, orderTwo, orderThree],
+            fulfillments,
+            { value: 0 }
+          )
+      ).to.be.revertedWith("Only the owner can execute orders with the zone.");
+
+      // Ensure that the number of executions from matching orders with zone
+      // is equal to the number of fulfillments
+      const executions = await gpDeployer
+        .connect(owner)
+        .callStatic.executeMatchOrders(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          fulfillments,
+          { value: 0 }
+        );
+      expect(executions.length).to.equal(fulfillments.length);
+
+      // Perform the match orders with zone
+      const tx = await gpDeployer
+        .connect(owner)
+        .executeMatchOrders(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          fulfillments
+        );
+
+      // Decode all events and get the order hashes
+      const receipt = await tx.wait();
+      const foundOrderHashesFromEvents = receipt.events
+        .map((event) => {
+          // Attempt to decode each event to OrderFulfilled.
+          // If the event is not successfully decoded (e.g. if the
+          // event is not an OrderFulfilled event), the catch will be hit
+          // and we return null
+          try {
+            return marketplaceContract.interface.decodeEventLog(
+              "OrderFulfilled",
+              event.data,
+              event.topics
+            ).orderHash;
+          } catch {
+            return null;
+          }
+        })
+        // Filter out all nulls so that at the end we are left with
+        // only order hashes from OrderFulfilled events
+        // (e.g. events that were successfully decoded)
+        .filter(Boolean);
+
+      expect(foundOrderHashesFromEvents.length).to.equal(fulfillments.length);
+
+      // Check that the actual order hashes match those from the events, in order
+      const actualOrderHashes = [orderHashOne, orderHashTwo, orderHashThree];
+      foundOrderHashesFromEvents.forEach((foundOrderHash, i) =>
+        expect(foundOrderHash).to.be.equal(actualOrderHashes[i])
+      );
+    });
+
+    it("Fulfills an order with executeMatchAdvancedOrders", async () => {
+      // Create Global Pausable Deployer
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // Deploy Global Pausable zone
+      const zoneAddr = await createZone(gpDeployer);
+      const zone = { address: zoneAddr };
+
+      // Mint NFTs for use in orders
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+      const secondNFTId = await mintAndApprove721(
+        buyer,
+        marketplaceContract.address
+      );
+      const thirdNFTId = await mintAndApprove721(
+        owner,
+        marketplaceContract.address
+      );
+
+      // Define orders
+      const offerOne = [
+        getTestItem721(nftId, toBN(1), toBN(1), undefined, testERC721.address),
+      ];
+      const considerationOne = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          seller.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderOne, orderHash: orderHashOne } = await createOrder(
+        seller,
+        zone,
+        offerOne,
+        considerationOne,
+        2
+      );
+
+      const offerTwo = [
+        getTestItem721(
+          secondNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+      const considerationTwo = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          buyer.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderTwo, orderHash: orderHashTwo } = await createOrder(
+        buyer,
+        zone,
+        offerTwo,
+        considerationTwo,
+        2
+      );
+
+      const offerThree = [
+        getTestItem721(
+          thirdNFTId,
+          toBN(1),
+          toBN(1),
+          undefined,
+          testERC721.address
+        ),
+      ];
+      const considerationThree = [
+        getTestItem721(
+          nftId,
+          toBN(1),
+          toBN(1),
+          owner.address,
+          testERC721.address
+        ),
+      ];
+      const { order: orderThree, orderHash: orderHashThree } =
+        await createOrder(owner, zone, offerThree, considerationThree, 2);
+
+      const fulfillments = [
+        [[[1, 0]], [[0, 0]]],
+        [[[0, 0]], [[2, 0]]],
+        [[[2, 0]], [[1, 0]]],
+      ].map(([offerArr, considerationArr]) =>
+        toFulfillment(offerArr, considerationArr)
+      );
+
+      await expect(
+        gpDeployer
+          .connect(buyer)
+          .executeMatchAdvancedOrders(
+            zoneAddr,
+            marketplaceContract.address,
+            [orderOne, orderTwo, orderThree],
+            [],
+            fulfillments,
+            { value: 0 }
+          )
+      ).to.be.revertedWith(
+        "Only the owner can execute advanced orders with the zone."
+      );
+
+      // Ensure that the number of executions from matching advanced orders with zone
+      // is equal to the number of fulfillments
+      const executions = await gpDeployer
+        .connect(owner)
+        .callStatic.executeMatchAdvancedOrders(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          [],
+          fulfillments,
+          { value: 0 }
+        );
+      expect(executions.length).to.equal(fulfillments.length);
+
+      // Perform the match advanced orders with zone
+      const tx = await gpDeployer
+        .connect(owner)
+        .executeMatchAdvancedOrders(
+          zoneAddr,
+          marketplaceContract.address,
+          [orderOne, orderTwo, orderThree],
+          [],
+          fulfillments
+        );
+
+      // Decode all events and get the order hashes
+      const receipt = await tx.wait();
+      const foundOrderHashesFromEvents = receipt.events
+        .map((event) => {
+          // Attempt to decode each event to OrderFulfilled.
+          // If the event is not successfully decoded (e.g. if the
+          // event is not an OrderFulfilled event), the catch will be hit
+          // and we return null
+          try {
+            return marketplaceContract.interface.decodeEventLog(
+              "OrderFulfilled",
+              event.data,
+              event.topics
+            ).orderHash;
+          } catch {
+            return null;
+          }
+        })
+        // Filter out all nulls so that at the end we are left with
+        // only order hashes from OrderFulfilled events
+        // (e.g. events that were successfully decoded)
+        .filter(Boolean);
+
+      expect(foundOrderHashesFromEvents.length).to.equal(fulfillments.length);
+
+      // Check that the actual order hashes match those from the events, in order
+      const actualOrderHashes = [orderHashOne, orderHashTwo, orderHashThree];
+      foundOrderHashesFromEvents.forEach((foundOrderHash, i) =>
+        expect(foundOrderHash).to.be.equal(actualOrderHashes[i])
+      );
+    });
+
+    it("Only the deployer owner can create a zone", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy GP from non-deployer owner
+      const salt = randomHex();
+      await expect(
+        gpDeployer.connect(seller).createZone(salt)
+      ).to.be.revertedWith("Only owner can create new Zones from here.");
+
+      // deploy GP from owner
+      await createZone(gpDeployer);
+    });
+
+    it("Assign pauser and self destruct the zone", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy GP
+      const zoneAddr = await createZone(gpDeployer);
+
+      // Attach to Pausable Zone
+      const gpZoneContract = await ethers.getContractFactory(
+        "PausableZone",
+        owner
+      );
+
+      // Attach to zone
+      const gpZone = await gpZoneContract.attach(zoneAddr);
+
+      // Try to nuke the zone through the deployer before being assigned pauser
+      await expect(
+        gpDeployer.connect(buyer).pause(zoneAddr)
+      ).to.be.revertedWith("InvalidPauser");
+
+      // Try to nuke the zone directly before being assigned pauser
+      await expect(gpZone.connect(buyer).pause()).to.be.revertedWith(
+        "InvalidController"
+      );
+
+      await expect(
+        gpDeployer.connect(buyer).assignPauser(seller.address)
+      ).to.be.revertedWith("Can only be set by the deployer");
+
+      await expect(
+        gpDeployer.connect(owner).assignPauser(toAddress(0))
+      ).to.be.revertedWith("Pauser can not be set to the null address");
+
+      // owner assigns the pauser of the zone
+      await gpDeployer.connect(owner).assignPauser(buyer.address);
+
+      // Check pauser owner
+      expect(await gpDeployer.pauser()).to.equal(buyer.address);
+
+      // Now as pauser, nuke the zone
+      await gpDeployer.connect(buyer).pause(zoneAddr);
+    });
+
+    it("Revert on deploying a zone with the same salt", async () => {
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      const salt = randomHex();
+
+      // Create zone with salt
+      await gpDeployer.createZone(salt);
+
+      // Create zone with same salt
+      await expect(gpDeployer.createZone(salt)).to.be.revertedWith(
+        "ZoneAlreadyExists"
+      );
+    });
+
+    it("Revert on an order with a pausable zone if zone has been self destructed", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy GP
+      const zoneAddr = await createZone(gpDeployer);
+
+      // create basic order using GP as zone
+      // execute basic 721 <=> ETH order
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order, value } = await createOrder(
+        seller,
+        { address: zoneAddr },
+        offer,
+        consideration,
+        2
+      );
+
+      // owner nukes the zone
+      await whileImpersonating(owner.address, provider, async () => {
+        gpDeployer.pause(zoneAddr);
+      });
+
+      await expect(
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          value,
+        })
+      ).to.be.reverted;
+    });
+
+    it("Reverts if non-owner tries to self destruct the zone", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy GP
+      const zoneAddr = await createZone(gpDeployer);
+
+      // non owner tries to use GPD to nuke the zone, reverts
+      await expect(gpDeployer.connect(buyer).pause(zoneAddr)).to.be.reverted;
+    });
+
+    it("Zone can cancel restricted orders.", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy PausableZone
+      const zoneAddress = await createZone(gpDeployer);
+
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { orderComponents } = await createOrder(
+        seller,
+        { address: zoneAddress },
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED, zone can execute or cancel
+      );
+
+      await expect(
+        gpDeployer
+          .connect(buyer)
+          .cancelOrders(zoneAddress, marketplaceContract.address, [
+            orderComponents,
+          ])
+      ).to.be.revertedWith("Only the owner can cancel orders with the zone.");
+
+      await gpDeployer.cancelOrders(zoneAddress, marketplaceContract.address, [
+        orderComponents,
+      ]);
+    });
+
+    it("Operator of zone can cancel restricted orders.", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy PausableZone
+      const zoneAddress = await createZone(gpDeployer);
+
+      // Attach to PausableZone zone
+      const gpZoneContract = await ethers.getContractFactory(
+        "PausableZone",
+        owner
+      );
+
+      // Attach to zone
+      const gpZone = await gpZoneContract.attach(zoneAddress);
+
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { orderComponents } = await createOrder(
+        seller,
+        { address: zoneAddress },
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED, zone can execute or cancel
+      );
+
+      // Non operator address should not be allowed to operate the zone
+      await expect(
+        gpZone
+          .connect(seller)
+          .cancelOrders(marketplaceContract.address, [orderComponents])
+      ).to.be.revertedWith("InvalidOperator");
+
+      // Approve operator
+      await gpDeployer
+        .connect(owner)
+        .assignOperator(zoneAddress, seller.address);
+
+      // Now allowed to operate the zone
+      await gpZone
+        .connect(seller)
+        .cancelOrders(marketplaceContract.address, [orderComponents]);
+
+      // Cannot assign operator to zero address
+      await expect(
+        gpDeployer.connect(owner).assignOperator(zoneAddress, toAddress(0))
+      ).to.be.revertedWith("Operator can not be set to the null address");
+    });
+
+    it("Reverts trying to assign operator as non-deployer", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy PausableZone
+      const zoneAddress = await createZone(gpDeployer);
+
+      // Attach to pausable zone
+      const gpZoneContract = await ethers.getContractFactory(
+        "PausableZone",
+        owner
+      );
+
+      // Attach to zone
+      const gpZone = await gpZoneContract.attach(zoneAddress);
+
+      // Try to approve operator without permission
+      await expect(
+        gpDeployer.connect(seller).assignOperator(zoneAddress, seller.address)
+      ).to.be.revertedWith("Can only be set by the deployer");
+
+      // Try to approve operator directly without permission
+      await expect(
+        gpZone.connect(seller).assignOperator(seller.address)
+      ).to.be.revertedWith("InvalidController");
+    });
+
+    it("Reverts if non-Zone tries to cancel restricted orders.", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy GP
+      await createZone(gpDeployer);
+
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order } = await createOrder(
+        seller,
+        stubZone,
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED
+      );
+
+      await expect(marketplaceContract.connect(buyer).cancel(order)).to.be
+        .reverted;
+    });
+
+    it("Reverts if non-owner tries to use the zone to cancel restricted orders.", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy GP
+      const zoneAddr = await createZone(gpDeployer);
+
+      const nftId = await mintAndApprove721(
+        seller,
+        marketplaceContract.address
+      );
+
+      const offer = [getTestItem721(nftId)];
+
+      const consideration = [
+        getItemETH(parseEther("10"), parseEther("10"), seller.address),
+        getItemETH(parseEther("1"), parseEther("1"), owner.address),
+      ];
+
+      const { order } = await createOrder(
+        seller,
+        stubZone,
+        offer,
+        consideration,
+        2 // FULL_RESTRICTED
+      );
+
+      // buyer calls zone owner to cancel an order through the zone
+      await expect(
+        gpDeployer
+          .connect(buyer)
+          .cancelOrders(zoneAddr, marketplaceContract.address, order)
+      ).to.be.reverted;
+    });
+
+    it("Lets the Zone Deployer owner transfer ownership via a two-stage process", async () => {
+      // deploy GPD
+      const GPDeployer = await ethers.getContractFactory(
+        "PausableZoneController",
+        owner
+      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
+
+      // deploy GP
+      await createZone(gpDeployer);
+
+      await expect(
+        gpDeployer.connect(buyer).transferOwnership(buyer.address)
+      ).to.be.revertedWith("Only Owner can transfer Ownership.");
+
+      await expect(
+        gpDeployer.connect(owner).transferOwnership(toAddress(0))
+      ).to.be.revertedWith("New Owner can not be 0 address.");
+
+      await expect(
+        gpDeployer.connect(seller).cancelOwnershipTransfer()
+      ).to.be.revertedWith("Only Owner can cancel.");
+
+      await expect(
+        gpDeployer.connect(buyer).acceptOwnership()
+      ).to.be.revertedWith("Only Potential Owner can claim.");
+
+      // just get any random address as the next potential owner.
+      await gpDeployer.connect(owner).transferOwnership(buyer.address);
+
+      // Check potential owner
+      expect(await gpDeployer.potentialOwner()).to.equal(buyer.address);
+
+      await gpDeployer.connect(owner).cancelOwnershipTransfer();
+      await gpDeployer.connect(owner).transferOwnership(buyer.address);
+      await gpDeployer.connect(buyer).acceptOwnership();
+
+      expect(await gpDeployer.owner()).to.equal(buyer.address);
+    });
+  });
+
   describe("Getter tests", async () => {
     it("gets correct name", async () => {
       const name = await marketplaceContract.name();
@@ -4347,12 +5240,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const expectedRevertReason =
             getCustomRevertSelector("InvalidSigner()");
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillOrder(order, toKey(false), {
               value,
             });
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
@@ -4452,12 +5345,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const expectedRevertReason =
             getCustomRevertSelector("InvalidSigner()");
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillOrder(order, toKey(false), {
               value,
             });
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
@@ -4557,12 +5450,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           const expectedRevertReason =
             getCustomRevertSelector("InvalidSigner()");
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillOrder(order, toKey(false), {
               value,
             });
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
@@ -9779,12 +10672,14 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Reverts when attempting to execute transfers on a conduit when not called from a channel", async () => {
-      let expectedRevertReason =
+      const expectedRevertReason =
         getCustomRevertSelector("ChannelClosed(address)") +
         owner.address.slice(2).padStart(64, "0").toLowerCase();
 
-      let tx = await conduitOne.connect(owner).populateTransaction.execute([]);
-      let returnData = await provider.call(tx);
+      const tx = await conduitOne
+        .connect(owner)
+        .populateTransaction.execute([]);
+      const returnData = await provider.call(tx);
       expect(returnData).to.equal(expectedRevertReason);
 
       await expect(conduitOne.connect(owner).execute([])).to.be.reverted;
@@ -10978,7 +11873,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             })
         ).to.be.revertedWith(`UnusedItemParameters`);
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11023,7 +11918,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             })
         ).to.be.revertedWith(`UnusedItemParameters`);
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11055,7 +11950,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11101,7 +11996,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11147,7 +12042,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           0 // FULL_OPEN
         );
 
-        let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
+        const orderStatus = await marketplaceContract.getOrderStatus(orderHash);
 
         expect({ ...orderStatus }).to.deep.equal(
           buildOrderStatus(false, false, 0, 0)
@@ -11341,7 +12236,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .populateTransaction.fulfillBasicOrder(basicOrderParameters, {
             value,
           });
-        let returnData = await provider.call(tx);
+        const returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
 
         await expect(
@@ -11583,10 +12478,10 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             "BadContractSignature()"
           );
 
-          let tx = await marketplaceContract
+          const tx = await marketplaceContract
             .connect(buyer)
             .populateTransaction.fulfillBasicOrder(basicOrderParameters);
-          let returnData = await provider.call(tx);
+          const returnData = await provider.call(tx);
           expect(returnData).to.equal(expectedRevertReason);
 
           await expect(
