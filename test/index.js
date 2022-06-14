@@ -693,12 +693,12 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // Try to nuke the zone through the deployer before being assigned pauser
       await expect(
-        gpDeployer.connect(buyer).killSwitch(zoneAddr)
+        gpDeployer.connect(buyer).pause(zoneAddr)
       ).to.be.revertedWith("InvalidPauser");
 
       // Try to nuke the zone directly before being assigned pauser
       await expect(gpZone.connect(buyer).pause()).to.be.revertedWith(
-        "Only the owner can kill this contract."
+        "InvalidController"
       );
 
       await expect(
@@ -713,7 +713,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       gpDeployer.connect(owner).assignPauser(buyer.address);
 
       // Now as pauser, nuke the zone
-      await gpDeployer.connect(buyer).killSwitch(zoneAddr);
+      await gpDeployer.connect(buyer).pause(zoneAddr);
     });
 
     it("Revert on an order with a pausable zone if zone has been self destructed", async () => {
@@ -751,7 +751,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       // owner nukes the zone
       await whileImpersonating(owner.address, provider, async () => {
-        gpDeployer.killSwitch(zoneAddr);
+        gpDeployer.pause(zoneAddr);
       });
 
       await expect(
@@ -773,8 +773,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       const zoneAddr = await createZone(gpDeployer);
 
       // non owner tries to use GPD to nuke the zone, reverts
-      await expect(gpDeployer.connect(buyer).killSwitch(zoneAddr)).to.be
-        .reverted;
+      await expect(gpDeployer.connect(buyer).pause(zoneAddr)).to.be.reverted;
     });
 
     it("Zone can cancel restricted orders.", async () => {
