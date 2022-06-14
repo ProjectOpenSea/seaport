@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.13;
-import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
+pragma solidity >=0.8.7;
+import { ConsiderationInterface } from "contracts/interfaces/ConsiderationInterface.sol";
 
 /**
  * @title DigestHelper
@@ -8,25 +8,20 @@ import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol
  * @notice DigestHelper contains an internal pure view function
  *         related to deriving a digest.
  */
-contract DigestHelper {
+contract ReferenceDigestHelper {
     // Immutables
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
     address internal immutable _MARKETPLACE_ADDRESS;
-    // Cached constants from ConsiderationConstants
-    uint256 constant EIP712_DomainSeparator_offset = 0x02;
-    uint256 constant EIP712_OrderHash_offset = 0x22;
-    uint256 constant EIP_712_PREFIX = (
-        0x1901000000000000000000000000000000000000000000000000000000000000
-    );
-    uint256 constant EIP712_DigestPayload_size = 0x42;
     // Derived typehash constants
     bytes32 constant EIP_712_DOMAIN_TYPEHASH =
         0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
+    // Name should be 'Seaport', but for reference it's 'Consideration'
     bytes32 constant NAME_HASH =
-        0x32b5c112df393a49218d7552f96b2eeb829dfb4272f4f24eef510a586b85feef;
+        0x64987f6373075400d7cbff689f2b7bc23753c7e6ce20688196489b8f5d9d7e6c;
+    // Version should be '1.1', but in reference it's 'rc.1.1'
     bytes32 constant VERSION_HASH =
-        0x722c0e0c80487266e8c6a45e3a1a803aab23378a9c32e6ebe029d4fad7bfc965;
+        0x07818ab36f449d2a17c3e3c5f9e05f1658eeb540ad3752e0c708d77cabd20dec;
     error BadDomainSeparator();
 
     /**
@@ -35,18 +30,28 @@ contract DigestHelper {
      * @param marketplaceAddress Address for the seaport marketplace
      *
      */
+
     constructor(address marketplaceAddress) {
         // Store the current chainId and derive the current domain separator.
+        bytes32 derivedDomainSeparator = keccak256(
+            abi.encode(
+                EIP_712_DOMAIN_TYPEHASH,
+                NAME_HASH,
+                VERSION_HASH,
+                block.chainid,
+                marketplaceAddress
+            )
+        );
         _CHAIN_ID = block.chainid;
         _MARKETPLACE_ADDRESS = marketplaceAddress;
-        _DOMAIN_SEPARATOR = _deriveDomainSeparator();
+        _DOMAIN_SEPARATOR = derivedDomainSeparator;
 
-        // Get the marketplace domainSeparator and verify that ours matches
+        // Get the marketplace domainSeparator and verify that ours
         ConsiderationInterface marketplace = ConsiderationInterface(
             marketplaceAddress
         );
         (, bytes32 domainSeparator, ) = marketplace.information();
-        if (domainSeparator != _DOMAIN_SEPARATOR) {
+        if (domainSeparator != derivedDomainSeparator) {
             revert BadDomainSeparator();
         }
     }
@@ -97,26 +102,8 @@ contract DigestHelper {
         view
         returns (bytes32 value)
     {
-        // Leverage scratch space to perform an efficient hash.
-        bytes32 domainSeparator = _domainSeparator();
-        assembly {
-            // Place the EIP-712 prefix at the start of scratch space.
-            mstore(0, EIP_712_PREFIX)
-
-            // Place the domain separator in the next region of scratch space.
-            mstore(EIP712_DomainSeparator_offset, domainSeparator)
-
-            // Place the order hash in scratch space, spilling into the first
-            // two bytes of the free memory pointer — this should never be set
-            // as memory cannot be expanded to that size, and will be zeroed out
-            // after the hash is performed.
-            mstore(EIP712_OrderHash_offset, orderHash)
-
-            // Hash the relevant region (65 bytes).
-            value := keccak256(0, EIP712_DigestPayload_size)
-
-            // Clear out the dirtied bits in the memory pointer.
-            mstore(EIP712_OrderHash_offset, 0)
-        }
+        value = keccak256(
+            abi.encodePacked(uint16(0x1901), _domainSeparator(), orderHash)
+        );
     }
 }

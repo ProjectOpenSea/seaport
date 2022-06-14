@@ -10,8 +10,11 @@ import { ConsiderationInterface } from "../../contracts/interfaces/Consideration
 import { Test } from "forge-std/Test.sol";
 
 import { GettersAndDerivers } from "../../contracts/lib/GettersAndDerivers.sol";
-import { DigestHelper } from  "../../contracts/helpers/DigestHelper.sol";
-import { OrderHashHelper } from  "../../contracts/helpers/OrderHashHelper.sol";
+import { ReferenceDigestHelper } from "../../reference/lib/ReferenceDigestHelper.sol";
+import { DigestHelper } from "../../contracts/helpers/DigestHelper.sol";
+import { ReferenceOrderHashHelper } from "../../reference/lib/ReferenceOrderHashHelper.sol";
+import { OrderHashHelper } from "../../contracts/helpers/OrderHashHelper.sol";
+import { ReferenceGettersAndDerivers } from "../../reference/lib/ReferenceGettersAndDerivers.sol";
 
 interface GetterAndDeriver {
     function deriveOrderHash(
@@ -19,11 +22,20 @@ interface GetterAndDeriver {
         uint256 counter
     ) external returns (bytes32 orderHash);
 
-    function domainSeparator() external returns (bytes32);
+    function getDomainSeparator() external returns (bytes32);
 
     function deriveEIP712Digest(bytes32 _domainSeparator_, bytes32 orderHash)
         external
         returns (bytes32 value);
+
+    function information()
+        external
+        view
+        returns (
+            string memory version,
+            bytes32 domainSeparator,
+            address conduitController
+        );
 }
 
 contract GettersAndDeriversImpl is GetterAndDeriver, GettersAndDerivers {
@@ -43,7 +55,7 @@ contract GettersAndDeriversImpl is GetterAndDeriver, GettersAndDerivers {
         return _deriveOrderHash(orderParameters, counter);
     }
 
-    function domainSeparator() public view returns (bytes32) {
+    function getDomainSeparator() public view returns (bytes32) {
         return _domainSeparator();
     }
 
@@ -53,6 +65,105 @@ contract GettersAndDeriversImpl is GetterAndDeriver, GettersAndDerivers {
         returns (bytes32 value)
     {
         return _deriveEIP712Digest(_domainSeparator_, orderHash);
+    }
+
+    function information()
+        external
+        view
+        returns (
+            string memory version,
+            bytes32 domainSeparator,
+            address conduitController
+        )
+    {
+        return _information();
+    }
+}
+
+contract ReferenceGettersAndDeriversImpl is
+    GetterAndDeriver,
+    ReferenceGettersAndDerivers
+{
+    constructor(address conduitController)
+        ReferenceGettersAndDerivers(conduitController)
+    {}
+
+    function deriveOrderHash(
+        OrderParameters memory orderParameters,
+        uint256 counter
+    ) public view returns (bytes32 orderHash) {
+        return _deriveOrderHash(orderParameters, counter);
+    }
+
+    function getDomainSeparator() public view returns (bytes32) {
+        return _domainSeparator();
+    }
+
+    function deriveEIP712Digest(bytes32 _domainSeparator_, bytes32 orderHash)
+        public
+        pure
+        returns (bytes32 value)
+    {
+        return _deriveEIP712Digest(_domainSeparator_, orderHash);
+    }
+
+    function information()
+        external
+        view
+        returns (
+            string memory version,
+            bytes32 domainSeparator,
+            address conduitController
+        )
+    {
+        return _information();
+    }
+}
+
+contract ReferenceOrderDigestHelper is
+    BaseOrderTest,
+    ReferenceOrderHashHelper,
+    ReferenceDigestHelper
+{
+    GetterAndDeriver getterAndDeriver;
+
+    constructor(
+        GetterAndDeriver _getterAndDeriver,
+        ConsiderationInterface _consideration
+    ) ReferenceDigestHelper(address(_getterAndDeriver)) {
+        getterAndDeriver = _getterAndDeriver;
+        vm.label(address(getterAndDeriver), "getterAndDeriver");
+        consideration = _consideration;
+    }
+
+    function testOrderHash() public {
+        // configure baseOrderParameters with null address as offerer
+        configureOrderParameters(alice);
+        uint256 counter = consideration.getCounter(alice);
+        _configureOrderComponents(counter);
+        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
+
+        bytes32 referenceHelperOrderHash = _deriveOrderHash(
+            baseOrderParameters,
+            counter
+        );
+        assertEq(orderHash, referenceHelperOrderHash);
+    }
+
+    function testDigest() public {
+        // create order where alice is offerer
+        configureOrderParameters(alice);
+        _configureOrderComponents(consideration.getCounter(alice));
+        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
+
+        (, bytes32 domainSeparator, ) = getterAndDeriver.information();
+        bytes32 digest = getterAndDeriver.deriveEIP712Digest(
+            domainSeparator,
+            orderHash
+        );
+
+        bytes32 helperDigest = _deriveEIP712Digest(orderHash);
+        assertEq(digest, helperDigest);
     }
 }
 
@@ -73,11 +184,9 @@ contract OrderDigestHelper is BaseOrderTest, OrderHashHelper, DigestHelper {
         configureOrderParameters(alice);
         uint256 counter = consideration.getCounter(alice);
         _configureOrderComponents(counter);
-        bytes32 orderHash = consideration.getOrderHash(
-            baseOrderComponents
-        );
-        bytes32 helperOrderHash = OrderHashHelper.deriveOrderHash(
-            baseOrderParameters, 
+        bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
+        bytes32 helperOrderHash = _deriveOrderHash(
+            baseOrderParameters,
             counter
         );
         assertEq(orderHash, helperOrderHash);
@@ -89,13 +198,13 @@ contract OrderDigestHelper is BaseOrderTest, OrderHashHelper, DigestHelper {
         _configureOrderComponents(consideration.getCounter(alice));
         bytes32 orderHash = consideration.getOrderHash(baseOrderComponents);
 
-        bytes32 domainSeparator = getterAndDeriver.domainSeparator();
+        (, bytes32 domainSeparator, ) = getterAndDeriver.information();
         bytes32 digest = getterAndDeriver.deriveEIP712Digest(
             domainSeparator,
             orderHash
         );
 
-        bytes32 helperDigest = deriveEIP712Digest(orderHash);
+        bytes32 helperDigest = _deriveEIP712Digest(orderHash);
         assertEq(digest, helperDigest);
     }
 }
@@ -116,6 +225,17 @@ contract OrderDigestHelperTest is BaseOrderTest {
             consideration
         );
         logic.testDigest();
+
+        GetterAndDeriver refGetterAndDeriver = GetterAndDeriver(
+            new ReferenceGettersAndDeriversImpl(
+                address(referenceConduitController)
+            )
+        );
+        ReferenceOrderDigestHelper referenceLogic = new ReferenceOrderDigestHelper(
+                refGetterAndDeriver,
+                referenceConsideration
+            );
+        referenceLogic.testDigest();
     }
 
     function testOrderHash() public {
@@ -127,5 +247,16 @@ contract OrderDigestHelperTest is BaseOrderTest {
             consideration
         );
         logic.testOrderHash();
+
+        GetterAndDeriver refGetterAndDeriver = GetterAndDeriver(
+            new ReferenceGettersAndDeriversImpl(
+                address(referenceConduitController)
+            )
+        );
+        ReferenceOrderDigestHelper referenceLogic = new ReferenceOrderDigestHelper(
+                refGetterAndDeriver,
+                referenceConsideration
+            );
+        referenceLogic.testOrderHash();
     }
 }

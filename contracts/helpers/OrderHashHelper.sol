@@ -3,8 +3,6 @@ pragma solidity >=0.8.13;
 
 import { OrderParameters } from "../lib/ConsiderationStructs.sol";
 
-import { ConsiderationBase } from "../lib/ConsiderationBase.sol";
-
 /**
  * @title OrderHashHelper
  * @author iamameme
@@ -22,9 +20,12 @@ contract OrderHashHelper {
     uint256 constant FreeMemoryPointerSlot = 0x40;
     uint256 constant EIP712_Order_size = 0x180;
     // Compiled typehash constants
-    bytes32 constant OFFER_ITEM_TYPEHASH = 0xa66999307ad1bb4fde44d13a5d710bd7718e0c87c1eef68a571629fbf5b93d02;
-    bytes32 constant CONSIDERATION_ITEM_TYPEHASH = 0x42d81c6929ffdc4eb27a0808e40e82516ad42296c166065de7f812492304ff6e;
-    bytes32 constant ORDER_TYPEHASH = 0xfa445660b7e21515a59617fcd68910b487aa5808b8abda3d78bc85df364b2c2f;
+    bytes32 constant OFFER_ITEM_TYPEHASH =
+        0xa66999307ad1bb4fde44d13a5d710bd7718e0c87c1eef68a571629fbf5b93d02;
+    bytes32 constant CONSIDERATION_ITEM_TYPEHASH =
+        0x42d81c6929ffdc4eb27a0808e40e82516ad42296c166065de7f812492304ff6e;
+    bytes32 constant ORDER_TYPEHASH =
+        0xfa445660b7e21515a59617fcd68910b487aa5808b8abda3d78bc85df364b2c2f;
 
     /**
      * @dev Internal pure function to derive the order hash for a given order.
@@ -37,7 +38,7 @@ contract OrderHashHelper {
      *
      * @return orderHash The hash.
      */
-    function deriveOrderHash(
+    function _deriveOrderHash(
         OrderParameters memory orderParameters,
         uint256 counter
     ) internal pure returns (bytes32 orderHash) {
