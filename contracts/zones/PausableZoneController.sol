@@ -40,6 +40,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
     // Set the address with the ability to pause the zone.
     address internal _pauserAddress;
 
+    // Set the immutable zone creation code.
     bytes32 public immutable zoneCreationCode;
 
     /**
@@ -59,7 +60,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
      * @param deployerOwner The deployer to be set as the owner.
      */
     constructor(address deployerOwner) {
-        // Set the deployer as the own
+        // Set the deployer as the owner.
         _deployerOwner = deployerOwner;
 
         // Hash and store the zone creation code.
@@ -128,7 +129,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
     }
 
     /**
-     * @notice Use a zone to cancel a restricted Seaport offer.
+     * @notice Cancel Seaport offers on a given zone.
      *
      * @param pausableZoneAddress The zone that manages the orders to be cancelled.
      * @param seaportAddress      The Seaport address.
@@ -148,7 +149,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
         // Create a zone object from the zone address.
         PausableZone zone = PausableZone(pausableZoneAddress);
 
-        // Cancel the orders.
+        // Call cancelOrders on the given zone.
         zone.cancelOrders(seaportAddress, orders);
     }
 
@@ -278,7 +279,7 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
     }
 
     /**
-     * @notice Accept ownership of this contract. Only accounts that the
+     * @notice Accept ownership of this contract. Only the account that the
      *         current owner has set as the new potential owner may call this
      *         function.
      */
@@ -328,21 +329,26 @@ contract PausableZoneController is PausableZoneEventsAndErrors {
     }
 
     /**
-     * @notice Assigns the given address with the ability to operate the
-     *         give zone.
+     * @notice Assign the given address with the ability to operate the
+     *         given zone.
      *
-     * @param globalPausableAddress Zone Address to assign operator role.
-     * @param operatorToAssign      Address to assign role.
+     * @param pausableZoneAddress The zone address to assign operator role.
+     * @param operatorToAssign    The address to assign as operator.
      */
     function assignOperatorOfZone(
-        address globalPausableAddress,
+        address pausableZoneAddress,
         address operatorToAssign
     ) external {
+        // Ensure the caller is the owner.
         require(
             msg.sender == _deployerOwner,
             "Can only be set by the deployer"
         );
-        PausableZone gp = PausableZone(globalPausableAddress);
-        gp.assignOperator(operatorToAssign);
+
+        // Create a zone object from the zone address.
+        PausableZone zone = PausableZone(pausableZoneAddress);
+
+        // Call assignOperator on the zone by passing in the given operator address.
+        zone.assignOperator(operatorToAssign);
     }
 }
