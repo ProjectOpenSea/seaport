@@ -7,6 +7,16 @@ pragma solidity >=0.8.7;
  */
 interface PausableZoneEventsAndErrors {
     /**
+     * @dev Emit an event whenever a zone is successfully paused.
+     */
+    event Paused();
+
+    /**
+     * @dev Emit an event whenever a zone is successfully unpaused (created).
+     */
+    event Unpaused();
+
+    /**
      * @dev Emit an event whenever a zone owner registers a new potential
      *      owner for that zone.
      *
