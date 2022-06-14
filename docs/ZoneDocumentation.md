@@ -19,7 +19,7 @@ function executeRestrictedOrderZone(
     address _seaportAddress,
     OrderComponents[] calldata orders
 ) external {
-    require(msg.sender == deployerOwner);
+    require(msg.sender == deployerOwner, "Only the owner can execute orders with the zone.");
 
     GlobalPausable gp = GlobalPausable(_globalPausableAddress);
     gp.executeRestrictedOffer(_seaportAddress, orders);
