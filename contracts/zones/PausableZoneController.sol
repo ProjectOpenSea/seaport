@@ -149,7 +149,7 @@ contract PausableZoneController is
         address pausableZoneAddress,
         SeaportInterface seaportAddress,
         OrderComponents[] calldata orders
-    ) external {
+    ) external override {
         // Ensure the caller is the owner.
         require(
             msg.sender == _owner,
