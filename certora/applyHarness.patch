@@ -1,0 +1,6 @@
+diff -ruN .gitignore .gitignore
+--- .gitignore	1969-12-31 19:00:00.000000000 -0500
++++ .gitignore	2021-10-08 13:02:06.081882262 -0400
+@@ -0,0 +1,2 @@
++*
++!.gitignore

@@ -24,3 +24,9 @@ reference-working
 # VScode
 .vscode
 __pycache__
+
+# Certora
+.certora*
+.last_confs
+certora_*
+resource_errors.json
