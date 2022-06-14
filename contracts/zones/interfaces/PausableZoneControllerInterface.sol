@@ -26,7 +26,7 @@ import { SeaportInterface } from "../../interfaces/SeaportInterface.sol";
  *         orders on PausableZones. This deployer is designed to be owned
  *         by a gnosis safe, DAO, or trusted party.
  */
-interface PausableZoneController {
+interface PausableZoneControllerInterface {
     /**
      * @notice Deploy a PausableZone to a precomputed address.
      *

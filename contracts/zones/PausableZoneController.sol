@@ -4,6 +4,11 @@ import { PausableZone } from "./PausableZone.sol";
 
 // prettier-ignore
 import {
+    PausableZoneControllerInterface
+} from "./interfaces/PausableZoneControllerInterface.sol";
+
+// prettier-ignore
+import {
     PausableZoneEventsAndErrors
 } from "./interfaces/PausableZoneEventsAndErrors.sol";
 
@@ -26,7 +31,10 @@ import { SeaportInterface } from "../interfaces/SeaportInterface.sol";
  *         orders on PausableZones. This deployer is designed to be owned
  *         by a gnosis safe, DAO, or trusted party.
  */
-contract PausableZoneController is PausableZoneEventsAndErrors {
+contract PausableZoneController is
+    PausableZoneControllerInterface,
+    PausableZoneEventsAndErrors
+{
     // Set the owner that can deploy, pause and execute orders on PausableZones.
     address internal _owner;
 
