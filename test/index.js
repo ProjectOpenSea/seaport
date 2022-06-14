@@ -5,11 +5,7 @@ const {
   utils: { parseEther, keccak256, toUtf8Bytes },
 } = require("ethers");
 const { ethers, network } = require("hardhat");
-const {
-  faucet,
-  whileImpersonating,
-  getWalletWithEther,
-} = require("./utils/impersonate");
+const { faucet, getWalletWithEther } = require("./utils/impersonate");
 const { merkleTree } = require("./utils/criteria");
 const {
   randomHex,
@@ -1884,15 +1880,13 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           await testERC721.mint(seller.address, nftId);
 
           // Seller approves marketplace contract to transfer NFT
-          await whileImpersonating(seller.address, provider, async () => {
-            await expect(
-              testERC721
-                .connect(seller)
-                .setApprovalForAll(marketplaceContract.address, true)
-            )
-              .to.emit(testERC721, "ApprovalForAll")
-              .withArgs(seller.address, marketplaceContract.address, true);
-          });
+          await expect(
+            testERC721
+              .connect(seller)
+              .setApprovalForAll(marketplaceContract.address, true)
+          )
+            .to.emit(testERC721, "ApprovalForAll")
+            .withArgs(seller.address, marketplaceContract.address, true);
 
           const offer = [getTestItem721(nftId)];
 
@@ -1936,18 +1930,16 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             order
           );
 
-          await whileImpersonating(buyer.address, provider, async () => {
-            await withBalanceChecks([order], 0, null, async () => {
-              const tx = marketplaceContract
-                .connect(buyer)
-                .fulfillBasicOrder(basicOrderParameters, { value });
-              const receipt = await (await tx).wait();
-              await checkExpectedEvents(tx, receipt, [
-                { order, orderHash, fulfiller: buyer.address },
-              ]);
+          await withBalanceChecks([order], 0, null, async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillBasicOrder(basicOrderParameters, { value });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(tx, receipt, [
+              { order, orderHash, fulfiller: buyer.address },
+            ]);
 
-              return receipt;
-            });
+            return receipt;
           });
         });
         it("ERC721 <=> ETH (basic, already validated)", async () => {
@@ -7932,47 +7924,45 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
         expect(executions.length).to.equal(fulfillments.length);
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          const tx = marketplaceContract
-            .connect(buyer)
-            .matchAdvancedOrders(
-              [orderOne, orderTwo, orderThree],
-              [],
-              fulfillments,
-              {
-                value: 0,
-              }
-            );
-          const receipt = await (await tx).wait();
-          await checkExpectedEvents(
-            tx,
-            receipt,
-            [
-              {
-                order: orderOne,
-                orderHash: orderHashOne,
-                fulfiller: constants.AddressZero,
-              },
-              {
-                order: orderTwo,
-                orderHash: orderHashTwo,
-                fulfiller: constants.AddressZero,
-              },
-              {
-                order: orderThree,
-                orderHash: orderHashThree,
-                fulfiller: constants.AddressZero,
-              },
-            ],
-            executions,
+        const tx = marketplaceContract
+          .connect(buyer)
+          .matchAdvancedOrders(
+            [orderOne, orderTwo, orderThree],
             [],
-            true
+            fulfillments,
+            {
+              value: 0,
+            }
           );
+        const receipt = await (await tx).wait();
+        await checkExpectedEvents(
+          tx,
+          receipt,
+          [
+            {
+              order: orderOne,
+              orderHash: orderHashOne,
+              fulfiller: constants.AddressZero,
+            },
+            {
+              order: orderTwo,
+              orderHash: orderHashTwo,
+              fulfiller: constants.AddressZero,
+            },
+            {
+              order: orderThree,
+              orderHash: orderHashThree,
+              fulfiller: constants.AddressZero,
+            },
+          ],
+          executions,
+          [],
+          true
+        );
 
-          // TODO: include balance checks on the duplicate ERC20 transfers
+        // TODO: include balance checks on the duplicate ERC20 transfers
 
-          return receipt;
-        });
+        return receipt;
       });
     });
 
@@ -8836,50 +8826,48 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ],
         ].map(toFulfillmentComponents);
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await withBalanceChecks(
-            [orderOne, orderTwo],
-            0,
-            null,
-            async () => {
-              const tx = marketplaceContract
-                .connect(buyer)
-                .fulfillAvailableOrders(
-                  [orderOne, orderTwo],
-                  offerComponents,
-                  considerationComponents,
-                  toKey(false),
-                  100,
-                  {
-                    value: value.mul(2),
-                  }
-                );
-              const receipt = await (await tx).wait();
-              await checkExpectedEvents(
-                tx,
-                receipt,
-                [
-                  {
-                    order: orderOne,
-                    orderHash: orderHashOne,
-                    fulfiller: buyer.address,
-                  },
-                  {
-                    order: orderTwo,
-                    orderHash: orderHashTwo,
-                    fulfiller: buyer.address,
-                  },
-                ],
-                [],
-                [],
-                false,
-                2
+        await withBalanceChecks(
+          [orderOne, orderTwo],
+          0,
+          null,
+          async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillAvailableOrders(
+                [orderOne, orderTwo],
+                offerComponents,
+                considerationComponents,
+                toKey(false),
+                100,
+                {
+                  value: value.mul(2),
+                }
               );
-              return receipt;
-            },
-            2
-          );
-        });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order: orderOne,
+                  orderHash: orderHashOne,
+                  fulfiller: buyer.address,
+                },
+                {
+                  order: orderTwo,
+                  orderHash: orderHashTwo,
+                  fulfiller: buyer.address,
+                },
+              ],
+              [],
+              [],
+              false,
+              2
+            );
+            return receipt;
+          },
+          2
+        );
       });
       it("Can fulfill and aggregate multiple orders via fulfillAvailableAdvancedOrders", async () => {
         // Seller mints nft
@@ -8941,52 +8929,50 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ],
         ].map(toFulfillmentComponents);
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await withBalanceChecks(
-            [orderOne, orderTwo],
-            0,
-            null,
-            async () => {
-              const tx = marketplaceContract
-                .connect(buyer)
-                .fulfillAvailableAdvancedOrders(
-                  [orderOne, orderTwo],
-                  [],
-                  offerComponents,
-                  considerationComponents,
-                  toKey(false),
-                  constants.AddressZero,
-                  100,
-                  {
-                    value: value.mul(2),
-                  }
-                );
-              const receipt = await (await tx).wait();
-              await checkExpectedEvents(
-                tx,
-                receipt,
-                [
-                  {
-                    order: orderOne,
-                    orderHash: orderHashOne,
-                    fulfiller: buyer.address,
-                  },
-                  {
-                    order: orderTwo,
-                    orderHash: orderHashTwo,
-                    fulfiller: buyer.address,
-                  },
-                ],
+        await withBalanceChecks(
+          [orderOne, orderTwo],
+          0,
+          null,
+          async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillAvailableAdvancedOrders(
+                [orderOne, orderTwo],
                 [],
-                [],
-                false,
-                2
+                offerComponents,
+                considerationComponents,
+                toKey(false),
+                constants.AddressZero,
+                100,
+                {
+                  value: value.mul(2),
+                }
               );
-              return receipt;
-            },
-            2
-          );
-        });
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order: orderOne,
+                  orderHash: orderHashOne,
+                  fulfiller: buyer.address,
+                },
+                {
+                  order: orderTwo,
+                  orderHash: orderHashTwo,
+                  fulfiller: buyer.address,
+                },
+              ],
+              [],
+              [],
+              false,
+              2
+            );
+            return receipt;
+          },
+          2
+        );
       });
       it("Can fulfill and aggregate a max number of multiple orders via fulfillAvailableOrders", async () => {
         // Seller mints nft
@@ -9048,55 +9034,53 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ],
         ];
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await withBalanceChecks(
-            [orderOne],
-            0,
-            null,
-            async () => {
-              const { executions } = await marketplaceContract
-                .connect(buyer)
-                .callStatic.fulfillAvailableOrders(
-                  [orderOne, orderTwo],
-                  offerComponents,
-                  considerationComponents,
-                  toKey(false),
-                  1,
-                  {
-                    value: value.mul(2),
-                  }
-                );
-              const tx = marketplaceContract
-                .connect(buyer)
-                .fulfillAvailableOrders(
-                  [orderOne, orderTwo],
-                  offerComponents,
-                  considerationComponents,
-                  toKey(false),
-                  1,
-                  {
-                    value: value.mul(2),
-                  }
-                );
-              const receipt = await (await tx).wait();
-              await checkExpectedEvents(
-                tx,
-                receipt,
-                [
-                  {
-                    order: orderOne,
-                    orderHash: orderHashOne,
-                    fulfiller: buyer.address,
-                  },
-                ],
-                executions
+        await withBalanceChecks(
+          [orderOne],
+          0,
+          null,
+          async () => {
+            const { executions } = await marketplaceContract
+              .connect(buyer)
+              .callStatic.fulfillAvailableOrders(
+                [orderOne, orderTwo],
+                offerComponents,
+                considerationComponents,
+                toKey(false),
+                1,
+                {
+                  value: value.mul(2),
+                }
               );
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillAvailableOrders(
+                [orderOne, orderTwo],
+                offerComponents,
+                considerationComponents,
+                toKey(false),
+                1,
+                {
+                  value: value.mul(2),
+                }
+              );
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order: orderOne,
+                  orderHash: orderHashOne,
+                  fulfiller: buyer.address,
+                },
+              ],
+              executions
+            );
 
-              return receipt;
-            },
-            1
-          );
-        });
+            return receipt;
+          },
+          1
+        );
       });
       it("Can fulfill and aggregate a max number of multiple orders via fulfillAvailableAdvancedOrders", async () => {
         // Seller mints nft
@@ -9158,48 +9142,46 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           ],
         ];
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await withBalanceChecks(
-            [orderOne],
-            0,
-            null,
-            async () => {
-              const tx = marketplaceContract
-                .connect(buyer)
-                .fulfillAvailableAdvancedOrders(
-                  [orderOne, orderTwo],
-                  [],
-                  offerComponents,
-                  considerationComponents,
-                  toKey(false),
-                  constants.AddressZero,
-                  1,
-                  {
-                    value: value.mul(2),
-                  }
-                );
-              const receipt = await (await tx).wait();
-              await checkExpectedEvents(
-                tx,
-                receipt,
-                [
-                  {
-                    order: orderOne,
-                    orderHash: orderHashOne,
-                    fulfiller: buyer.address,
-                  },
-                ],
+        await withBalanceChecks(
+          [orderOne],
+          0,
+          null,
+          async () => {
+            const tx = marketplaceContract
+              .connect(buyer)
+              .fulfillAvailableAdvancedOrders(
+                [orderOne, orderTwo],
                 [],
-                [],
-                false,
-                1
+                offerComponents,
+                considerationComponents,
+                toKey(false),
+                constants.AddressZero,
+                1,
+                {
+                  value: value.mul(2),
+                }
               );
+            const receipt = await (await tx).wait();
+            await checkExpectedEvents(
+              tx,
+              receipt,
+              [
+                {
+                  order: orderOne,
+                  orderHash: orderHashOne,
+                  fulfiller: buyer.address,
+                },
+              ],
+              [],
+              [],
+              false,
+              1
+            );
 
-              return receipt;
-            },
-            1
-          );
-        });
+            return receipt;
+          },
+          1
+        );
       });
       it("Can fulfill and aggregate multiple orders via fulfillAvailableOrders with failing orders", async () => {
         // Seller mints nft
@@ -9730,15 +9712,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(await testERC721.ownerOf(nftId)).to.equal(seller.address);
       expect(await testERC721.ownerOf(secondNftId)).to.equal(seller.address);
 
-      await whileImpersonating(seller.address, provider, async () => {
-        await expect(
-          testERC721
-            .connect(seller)
-            .setApprovalForAll(tempConduit.address, true)
-        )
-          .to.emit(testERC721, "ApprovalForAll")
-          .withArgs(seller.address, tempConduit.address, true);
-      });
+      await expect(
+        testERC721.connect(seller).setApprovalForAll(tempConduit.address, true)
+      )
+        .to.emit(testERC721, "ApprovalForAll")
+        .withArgs(seller.address, tempConduit.address, true);
 
       await tempConduit.connect(seller).execute([
         {
@@ -9778,15 +9756,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(await testERC721.ownerOf(nftId)).to.equal(seller.address);
 
       // Set approval of nft
-      await whileImpersonating(seller.address, provider, async () => {
-        await expect(
-          testERC721
-            .connect(seller)
-            .setApprovalForAll(tempConduit.address, true)
-        )
-          .to.emit(testERC721, "ApprovalForAll")
-          .withArgs(seller.address, tempConduit.address, true);
-      });
+      await expect(
+        testERC721.connect(seller).setApprovalForAll(tempConduit.address, true)
+      )
+        .to.emit(testERC721, "ApprovalForAll")
+        .withArgs(seller.address, tempConduit.address, true);
 
       const tokenAmount = minRandom(100);
       await testERC20.mint(seller.address, tokenAmount);
@@ -9795,13 +9769,11 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(await testERC20.balanceOf(seller.address)).to.equal(tokenAmount);
 
       // Seller approves conduit contract to transfer tokens
-      await whileImpersonating(seller.address, provider, async () => {
-        await expect(
-          testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
-        )
-          .to.emit(testERC20, "Approval")
-          .withArgs(seller.address, tempConduit.address, tokenAmount);
-      });
+      await expect(
+        testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
+      )
+        .to.emit(testERC20, "Approval")
+        .withArgs(seller.address, tempConduit.address, tokenAmount);
 
       // Send an ERC721 and (token amount - 100) ERC20 tokens
       await tempConduit.connect(seller).execute([
@@ -9846,29 +9818,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(await testERC721.ownerOf(nftId)).to.equal(seller.address);
 
       // Set approval of nft
-      await whileImpersonating(seller.address, provider, async () => {
-        await expect(
-          testERC721
-            .connect(seller)
-            .setApprovalForAll(tempConduit.address, true)
-        )
-          .to.emit(testERC721, "ApprovalForAll")
-          .withArgs(seller.address, tempConduit.address, true);
-      });
+      await expect(
+        testERC721.connect(seller).setApprovalForAll(tempConduit.address, true)
+      )
+        .to.emit(testERC721, "ApprovalForAll")
+        .withArgs(seller.address, tempConduit.address, true);
 
       const secondNftId = random128();
       const amount = random128().add(1);
       await testERC1155.mint(seller.address, secondNftId, amount);
 
-      await whileImpersonating(seller.address, provider, async () => {
-        await expect(
-          testERC1155
-            .connect(seller)
-            .setApprovalForAll(tempConduit.address, true)
-        )
-          .to.emit(testERC1155, "ApprovalForAll")
-          .withArgs(seller.address, tempConduit.address, true);
-      });
+      await expect(
+        testERC1155.connect(seller).setApprovalForAll(tempConduit.address, true)
+      )
+        .to.emit(testERC1155, "ApprovalForAll")
+        .withArgs(seller.address, tempConduit.address, true);
 
       // Check ownership
       expect(await testERC1155.balanceOf(seller.address, secondNftId)).to.equal(
@@ -9920,27 +9884,21 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       expect(await testERC20.balanceOf(seller.address)).to.equal(tokenAmount);
 
       // Seller approves conduit contract to transfer tokens
-      await whileImpersonating(seller.address, provider, async () => {
-        await expect(
-          testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
-        )
-          .to.emit(testERC20, "Approval")
-          .withArgs(seller.address, tempConduit.address, tokenAmount);
-      });
+      await expect(
+        testERC20.connect(seller).approve(tempConduit.address, tokenAmount)
+      )
+        .to.emit(testERC20, "Approval")
+        .withArgs(seller.address, tempConduit.address, tokenAmount);
 
       const nftId = random128();
       const erc1155amount = random128().add(1);
       await testERC1155.mint(seller.address, nftId, erc1155amount);
 
-      await whileImpersonating(seller.address, provider, async () => {
-        await expect(
-          testERC1155
-            .connect(seller)
-            .setApprovalForAll(tempConduit.address, true)
-        )
-          .to.emit(testERC1155, "ApprovalForAll")
-          .withArgs(seller.address, tempConduit.address, true);
-      });
+      await expect(
+        testERC1155.connect(seller).setApprovalForAll(tempConduit.address, true)
+      )
+        .to.emit(testERC1155, "ApprovalForAll")
+        .withArgs(seller.address, tempConduit.address, true);
 
       // Check ownership
       expect(await testERC1155.balanceOf(seller.address, nftId)).to.equal(
