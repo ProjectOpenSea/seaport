@@ -193,10 +193,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       const zoneAddr = await createZone(gpDeployer);
 
@@ -247,10 +244,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       const zoneAddr = await createZone(gpDeployer);
 
@@ -321,10 +315,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // Deploy Pausable Zone
       const zoneAddr = await createZone(gpDeployer);
@@ -493,10 +484,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // Deploy Global Pausable zone
       const zoneAddr = await createZone(gpDeployer);
@@ -671,10 +659,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         owner
       );
 
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy GP from non-deployer owner
       const salt = randomHex();
@@ -692,10 +677,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy GP
       const zoneAddr = await createZone(gpDeployer);
@@ -740,10 +722,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy GP
       const zoneAddr = await createZone(gpDeployer);
@@ -788,10 +767,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy GP
       const zoneAddr = await createZone(gpDeployer);
@@ -807,10 +783,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy PausableZone
       const zoneAddress = await createZone(gpDeployer);
@@ -856,10 +829,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy PausableZone
       const zoneAddress = await createZone(gpDeployer);
@@ -924,10 +894,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy PausableZone
       const zoneAddress = await createZone(gpDeployer);
@@ -960,10 +927,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy GP
       await createZone(gpDeployer);
@@ -998,10 +962,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy GP
       const zoneAddr = await createZone(gpDeployer);
@@ -1040,10 +1001,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         "PausableZoneController",
         owner
       );
-      const gpDeployer = await GPDeployer.deploy(
-        owner.address,
-        ethers.utils.formatBytes32String("0")
-      );
+      const gpDeployer = await GPDeployer.deploy(owner.address);
 
       // deploy GP
       await createZone(gpDeployer);
