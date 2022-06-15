@@ -87,6 +87,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     if (item.itemType == ConduitItemType.NATIVE) {
                         revert InvalidItemType();
                     } else if (item.itemType == ConduitItemType.ERC20) {
+                        // Transfer ERC20 token.
                         _performERC20Transfer(
                             item.token,
                             msg.sender,
@@ -94,13 +95,20 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                             item.amount
                         );
                     } else if (item.itemType == ConduitItemType.ERC721) {
+                        // Ensure that exactly one 721 item is being transferred.
+                        if (item.amount != 1) {
+                            revert InvalidERC721TransferAmount();
+                        }
+
+                        // Transfer ERC721 token.
                         _performERC721Transfer(
                             item.token,
                             msg.sender,
                             recipient,
                             item.identifier
                         );
-                    } else {
+                    } else if (item.itemType == ConduitItemType.ERC1155) {
+                        // Transfer ERC1155 token.
                         _performERC1155Transfer(
                             item.token,
                             msg.sender,
@@ -108,6 +116,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                             item.identifier,
                             item.amount
                         );
+                    } else {
+                        // Throw with an error.
+                        revert InvalidItemType();
                     }
                 }
             }
