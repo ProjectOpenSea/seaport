@@ -3,6 +3,8 @@ pragma solidity >=0.8.7;
 
 import "./TransferHelperStructs.sol";
 
+import { ERC721TokenReceiver } from "@rari-capital/solmate/src/tokens/ERC721.sol";
+
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
 import { TokenTransferrerErrors } from "../interfaces/TokenTransferrerErrors.sol";
@@ -97,7 +99,22 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                             item.amount
                         );
                     } else if (item.itemType == ConduitItemType.ERC721) {
-                        // Ensure that exactly one 721 item is being transferred.
+                        // If recipient is a contract, ensure it can receive
+                        // 721 tokens.
+                        if (recipient.code.length != 0) {
+                            if (
+                                ERC721TokenReceiver(recipient).onERC721Received(
+                                    msg.sender,
+                                    msg.sender,
+                                    item.identifier,
+                                    ""
+                                ) !=
+                                ERC721TokenReceiver.onERC721Received.selector
+                            ) {
+                                revert InvalidRecipient();
+                            }
+                        }
+                        // Ensure that the amount for 721 token transfers is 1.
                         if (item.amount != 1) {
                             revert InvalidERC721TransferAmount();
                         }

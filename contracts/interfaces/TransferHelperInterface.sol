@@ -11,6 +11,12 @@ interface TransferHelperInterface {
     error InvalidItemType();
 
     /**
+     * @dev Revert with an error when attempting to execute transfers to an
+            invalid recipient.
+     */
+    error InvalidRecipient();
+
+    /**
      * @notice Transfer multiple items to a single recipient.
      *
      * @param items The items to transfer.
