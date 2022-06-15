@@ -585,6 +585,29 @@ contract TransferHelperTest is BaseOrderTest {
 
     // Test reverts
 
+    function testRevertBulkTransferERC20InvalidIdentifier(
+        FuzzInputsCommon memory inputs
+    ) public {
+        TransferHelperItem memory item = _getFuzzedTransferItem(
+            ConduitItemType.ERC20,
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
+        // Ensure ERC20 identifier is at least 1
+        item.identifier += 1;
+
+        _performSingleItemTransferAndCheckBalances(
+            item,
+            alice,
+            bob,
+            false,
+            abi.encodePacked(
+                TransferHelperInterface.InvalidERC20Identifier.selector
+            )
+        );
+    }
+
     function testRevertBulkTransferETHonly(FuzzInputsCommon memory inputs)
         public
     {
@@ -722,7 +745,9 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             true,
-            REVERT_DATA_NO_MSG
+            abi.encodePacked(
+                TransferHelperInterface.ConduitDoesNotExist.selector
+            )
         );
     }
 }
