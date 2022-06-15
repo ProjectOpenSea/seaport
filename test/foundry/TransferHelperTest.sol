@@ -608,6 +608,27 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
+    function testRevertBulkTransferERC721InvalidRecipient(
+        FuzzInputsCommon memory inputs
+    ) public {
+        TransferHelperItem memory item = _getFuzzedTransferItem(
+            ConduitItemType.ERC721,
+            inputs.amounts[0],
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
+
+        _performSingleItemTransferAndCheckBalances(
+            item,
+            alice,
+            item.token,
+            false,
+            abi.encodePacked(
+                TransferHelperInterface.InvalidERC721Recipient.selector
+            )
+        );
+    }
+
     function testRevertBulkTransferETHonly(FuzzInputsCommon memory inputs)
         public
     {
