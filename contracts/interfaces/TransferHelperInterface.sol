@@ -11,12 +11,6 @@ interface TransferHelperInterface {
     error InvalidItemType();
 
     /**
-     * @dev Revert with an error when attempting to transfer an amount of
-     *      721 tokens other than 1.
-     */
-    error InvalidERC721TransferAmount();
-
-    /**
      * @notice Transfer multiple items to a single recipient.
      *
      * @param items The items to transfer.

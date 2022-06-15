@@ -5,6 +5,8 @@ import "./TransferHelperStructs.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
+import { TokenTransferrerErrors } from "../interfaces/TokenTransferrerErrors.sol";
+
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
 // prettier-ignore
