@@ -4,12 +4,16 @@ pragma solidity >=0.8.7;
 import "./TransferHelperStructs.sol";
 
 // prettier-ignore
-import { ERC721TokenReceiver } from "@rari-capital/solmate/src/tokens/ERC721.sol";
+import {
+    ERC721TokenReceiver
+} from "@rari-capital/solmate/src/tokens/ERC721.sol";
 
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
 // prettier-ignore
-import { TokenTransferrerErrors } from "../interfaces/TokenTransferrerErrors.sol";
+import {
+    TokenTransferrerErrors
+} from "../interfaces/TokenTransferrerErrors.sol";
 
 import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
 
