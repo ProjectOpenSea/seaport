@@ -35,8 +35,9 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
     // Allow for interaction with the conduit controller.
     ConduitControllerInterface internal immutable _CONDUIT_CONTROLLER;
 
-    // Cache the conduit creation hash used by the conduit controller.
+    // Set conduit creation code and runtime code hashes as immutable arguments.
     bytes32 internal immutable _CONDUIT_CREATION_CODE_HASH;
+    bytes32 internal immutable _CONDUIT_RUNTIME_CODE_HASH;
 
     /**
      * @dev Set the supplied conduit controller and retrieve its
@@ -48,12 +49,13 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
      *                          ERC20/721/1155 tokens.
      */
     constructor(address conduitController) {
-        // Get the conduit creation code hash from the supplied conduit
-        // controller and set it as an immutable.
+        // Get the conduit creation code and runtime code hashes from the
+        // supplied conduit controller and set them as an immutable.
         ConduitControllerInterface controller = ConduitControllerInterface(
             conduitController
         );
-        (_CONDUIT_CREATION_CODE_HASH, ) = controller.getConduitCodeHashes();
+        (_CONDUIT_CREATION_CODE_HASH, _CONDUIT_RUNTIME_CODE_HASH) = controller
+            .getConduitCodeHashes();
 
         // Set the supplied conduit controller as an immutable.
         _CONDUIT_CONTROLLER = controller;
@@ -91,6 +93,11 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     if (item.itemType == ConduitItemType.NATIVE) {
                         revert InvalidItemType();
                     } else if (item.itemType == ConduitItemType.ERC20) {
+                        // Ensure that the identifier for an ERC20 token is 0.
+                        if (item.identifier != 0) {
+                            revert InvalidERC20Identifier();
+                        }
+
                         // Transfer ERC20 token.
                         _performERC20Transfer(
                             item.token,
@@ -111,10 +118,10 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                                 ) !=
                                 ERC721TokenReceiver.onERC721Received.selector
                             ) {
-                                revert InvalidRecipient();
+                                revert InvalidERC721Recipient();
                             }
                         }
-                        // Ensure that the amount for 721 token transfers is 1.
+                        // Ensure that the amount for an ERC721 transfer is 1.
                         if (item.amount != 1) {
                             revert InvalidERC721TransferAmount();
                         }
@@ -160,6 +167,11 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     )
                 )
             );
+
+            // Check that a conduit exists at the derived address.
+            if (conduit.codehash != _CONDUIT_RUNTIME_CODE_HASH) {
+                revert ConduitDoesNotExist();
+            }
 
             // Declare a new array to populate with each token transfer.
             ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](

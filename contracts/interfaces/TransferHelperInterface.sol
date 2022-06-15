@@ -11,10 +11,20 @@ interface TransferHelperInterface {
     error InvalidItemType();
 
     /**
-     * @dev Revert with an error when attempting to execute transfers to an
-            invalid recipient.
+     * @dev Revert with an error when attempting to execute an ERC721 transfer
+            to an invalid recipient.
      */
-    error InvalidRecipient();
+    error InvalidERC721Recipient();
+
+    /**
+     * @dev Revert with an error when an ERC20 token has an invalid identifier.
+     */
+    error InvalidERC20Identifier();
+
+    /**
+     * @dev Revert with an error when attempting to use a nonexisting conduit.
+     */
+    error ConduitDoesNotExist();
 
     /**
      * @notice Transfer multiple items to a single recipient.
