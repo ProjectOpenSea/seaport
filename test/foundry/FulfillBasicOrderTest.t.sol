@@ -19,8 +19,9 @@ import { PausableZone } from "../../contracts/zones/PausableZone.sol";
 contract FulfillBasicOrderTest is BaseOrderTest {
     using ArithmeticUtil for uint128;
 
+    uint256 badIdentifier;
+    address badToken;
     BasicOrderParameters basicOrderParameters;
-    OrderComponents orderComponents;
 
     struct FuzzInputsCommon {
         address zone;
@@ -42,6 +43,7 @@ contract FulfillBasicOrderTest is BaseOrderTest {
 
     modifier validateInputsWithAmount(Context memory context) {
         vm.assume(context.args.paymentAmount > 0);
+        vm.assume(context.args.tokenId > 0);
         vm.assume(context.tokenAmount > 0);
         _;
     }
@@ -183,6 +185,318 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         );
     }
 
+    function testRevertUnusedItemParametersAddressSetOnNativeConsideration(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount,
+        address _badToken
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
+        vm.assume(_badToken != address(0));
+        badToken = _badToken;
+
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addEthConsiderationItem(alice, 100);
+        test(
+            this.revertUnusedItemParametersAddressSetOnNativeConsideration,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this.revertUnusedItemParametersAddressSetOnNativeConsideration,
+            Context(referenceConsideration, inputs, tokenAmount)
+        );
+    }
+
+    function revertUnusedItemParametersAddressSetOnNativeConsideration(
+        Context memory context
+    ) external stateless {
+        test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
+
+        considerationItems[0].token = badToken;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        _configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder{ value: 100 }(
+            _basicOrderParameters
+        );
+    }
+
+    function testRevertUnusedItemParametersIdentifierSetOnErc20Offer(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount,
+        uint256 _badIdentifier
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
+        vm.assume(_badIdentifier != 0);
+        badIdentifier = _badIdentifier;
+
+        addErc20OfferItem(100);
+        addErc721ConsiderationItem(alice, inputs.tokenId);
+
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnErc20Offer,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnErc20Offer,
+            Context(referenceConsideration, inputs, tokenAmount)
+        );
+    }
+
+    function revertUnusedItemParametersIdentifierSetOnErc20Offer(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(address(this), context.args.tokenId);
+
+        offerItems[0].identifierOrCriteria = 69;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        _configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ERC721_TO_ERC20_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder(_basicOrderParameters);
+    }
+
+    function testRevertUnusedItemParametersIdentifierSetOnNativeConsideration(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount,
+        uint256 _badIdentifier
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
+        vm.assume(_badIdentifier != 0);
+        badIdentifier = _badIdentifier;
+
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addEthConsiderationItem(alice, 100);
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnNativeConsideration,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnNativeConsideration,
+            Context(referenceConsideration, inputs, tokenAmount)
+        );
+    }
+
+    function revertUnusedItemParametersIdentifierSetOnNativeConsideration(
+        Context memory context
+    ) external stateless {
+        test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
+
+        considerationItems[0].identifierOrCriteria = badIdentifier;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        _configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder{ value: 100 }(
+            _basicOrderParameters
+        );
+    }
+
+    function testRevertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount,
+        uint256 _badIdentifier,
+        address _badToken
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
+        vm.assume(_badIdentifier != 0 || _badToken != address(0));
+        badIdentifier = _badIdentifier;
+        badToken = _badToken;
+
+        addErc1155OfferItem(inputs.tokenId, tokenAmount);
+        addEthConsiderationItem(alice, 100);
+        test(
+            this
+                .revertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this
+                .revertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration,
+            Context(referenceConsideration, inputs, tokenAmount)
+        );
+    }
+
+    function revertUnusedItemParametersAddressAndIdentifierSetOnNativeConsideration(
+        Context memory context
+    ) external stateless {
+        test1155_1.mint(alice, context.args.tokenId, context.tokenAmount);
+
+        considerationItems[0].identifierOrCriteria = badIdentifier;
+        considerationItems[0].token = badToken;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        _configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ETH_TO_ERC1155_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder{ value: 100 }(
+            _basicOrderParameters
+        );
+    }
+
+    function testRevertUnusedItemParametersIdentifierSetOnErc20Consideration(
+        FuzzInputsCommon memory inputs,
+        uint128 tokenAmount,
+        uint256 _badIdentifier
+    )
+        public
+        validateInputsWithAmount(Context(consideration, inputs, tokenAmount))
+    {
+        vm.assume(_badIdentifier != 0);
+        badIdentifier = _badIdentifier;
+
+        addErc721OfferItem(inputs.tokenId);
+        addErc20ConsiderationItem(alice, 100);
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnErc20Consideration,
+            Context(consideration, inputs, tokenAmount)
+        );
+        test(
+            this.revertUnusedItemParametersIdentifierSetOnErc20Consideration,
+            Context(referenceConsideration, inputs, tokenAmount)
+        );
+    }
+
+    function revertUnusedItemParametersIdentifierSetOnErc20Consideration(
+        Context memory context
+    ) external stateless {
+        test721_1.mint(alice, context.args.tokenId);
+
+        considerationItems[0].identifierOrCriteria = badIdentifier;
+
+        _configureOrderParameters(
+            alice,
+            address(0),
+            bytes32(0),
+            globalSalt++,
+            false
+        );
+        _configureOrderComponents(context.consideration.getCounter(alice));
+
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
+
+        bytes memory signature = signOrder(
+            context.consideration,
+            alicePk,
+            orderHash
+        );
+
+        BasicOrderParameters
+            memory _basicOrderParameters = toBasicOrderParameters(
+                baseOrderComponents,
+                BasicOrderType.ERC20_TO_ERC721_FULL_OPEN,
+                signature
+            );
+
+        vm.expectRevert(abi.encodeWithSignature("UnusedItemParameters()"));
+        context.consideration.fulfillBasicOrder(_basicOrderParameters);
+    }
+
     function prepareBasicOrder(uint256 tokenId)
         internal
         returns (
@@ -208,8 +522,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
-        orderComponents.counter = counter;
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
@@ -234,8 +550,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
-        orderComponents.counter = counter;
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
@@ -262,8 +580,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
-        orderComponents.counter = counter;
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
@@ -287,8 +607,10 @@ contract FulfillBasicOrderTest is BaseOrderTest {
             bytes32(0)
         );
         uint256 counter = context.consideration.getCounter(alice);
-        orderComponents.counter = counter;
-        bytes32 orderHash = context.consideration.getOrderHash(orderComponents);
+        baseOrderComponents.counter = counter;
+        bytes32 orderHash = context.consideration.getOrderHash(
+            baseOrderComponents
+        );
         bytes memory signature = signOrder(
             context.consideration,
             alicePk,
@@ -378,16 +700,16 @@ contract FulfillBasicOrderTest is BaseOrderTest {
         uint256 salt,
         bytes32 conduitKey
     ) internal {
-        orderComponents.offerer = alice;
-        orderComponents.zone = zone;
-        orderComponents.offer = offerItems;
-        orderComponents.consideration = considerationItems;
-        orderComponents.orderType = OrderType.FULL_OPEN;
-        orderComponents.startTime = block.timestamp;
-        orderComponents.endTime = block.timestamp + 100;
-        orderComponents.zoneHash = zoneHash;
-        orderComponents.salt = salt;
-        orderComponents.conduitKey = conduitKey;
+        baseOrderComponents.offerer = alice;
+        baseOrderComponents.zone = zone;
+        baseOrderComponents.offer = offerItems;
+        baseOrderComponents.consideration = considerationItems;
+        baseOrderComponents.orderType = OrderType.FULL_OPEN;
+        baseOrderComponents.startTime = block.timestamp;
+        baseOrderComponents.endTime = block.timestamp + 100;
+        baseOrderComponents.zoneHash = zoneHash;
+        baseOrderComponents.salt = salt;
+        baseOrderComponents.conduitKey = conduitKey;
         // don't set counter
     }
 }

@@ -52,8 +52,35 @@ contract OfferConsiderationItemAdder is TestTokenMinter {
         addOfferItem(itemType, identifier, amt, amt);
     }
 
-    function addErc721OfferItem(uint256 tokenId) internal {
-        addOfferItem(ItemType.ERC721, address(test721_1), tokenId, 1, 1);
+    function addErc721OfferItem(uint256 identifier) internal {
+        addErc721OfferItem(address(test721_1), identifier);
+    }
+
+    function addErc721OfferItem(address token, uint256 identifier) internal {
+        addErc721OfferItem(token, identifier, 1, 1);
+    }
+
+    function addErc721OfferItem(
+        address token,
+        uint256 identifier,
+        uint256 amount
+    ) internal {
+        addErc721OfferItem(token, identifier, amount, amount);
+    }
+
+    function addErc721OfferItem(
+        address token,
+        uint256 identifier,
+        uint256 startAmount,
+        uint256 endAmount
+    ) internal {
+        addOfferItem(
+            ItemType.ERC721,
+            token,
+            identifier,
+            startAmount,
+            endAmount
+        );
     }
 
     function addErc1155OfferItem(uint256 tokenId, uint256 amount) internal {
