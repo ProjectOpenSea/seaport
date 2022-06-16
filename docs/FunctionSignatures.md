@@ -6,8 +6,8 @@
 0xa8174404 = matchOrders\
 0x55944a42 = matchAdvancedOrders\
 0xed98a574 = fulfillAvailableOrders\
-0x87201b41 = fulfillAvailableAdvancedOrders\
+0x87201b41 = fulfillAvailableAdvancedOrders
 
 0xfd9f1e10 = cancel\
 0x88147732 = validate\
-0x5b34b966 = incrementCounter\
+0x5b34b966 = incrementCounter
