@@ -22,7 +22,7 @@ interface TransferHelperInterface {
     error InvalidERC20Identifier();
 
     /**
-     * @dev Revert with an error when attempting to use a nonexisting conduit.
+     * @dev Revert with an error when attempting to call a nonexistent conduit.
      */
     error ConduitDoesNotExist();
 

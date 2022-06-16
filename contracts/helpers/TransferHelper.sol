@@ -113,17 +113,27 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                         );
                     } else if (item.itemType == ConduitItemType.ERC721) {
                         // If recipient is a contract, ensure it can receive
-                        // 721 tokens.
+                        // ERC721 tokens.
                         if (recipient.code.length != 0) {
-                            if (
+                            // Check if recipient can receive ERC721 tokens
+                            try
                                 ERC721TokenReceiver(recipient).onERC721Received(
                                     msg.sender,
                                     msg.sender,
                                     item.identifier,
                                     ""
-                                ) !=
-                                ERC721TokenReceiver.onERC721Received.selector
-                            ) {
+                                )
+                            returns (bytes4 selector) {
+                                if (
+                                    selector !=
+                                    ERC721TokenReceiver
+                                        .onERC721Received
+                                        .selector
+                                ) {
+                                    revert InvalidERC721Recipient();
+                                }
+                                // Revert if recipient cannot accept ERC721 tokens.
+                            } catch {
                                 revert InvalidERC721Recipient();
                             }
                         }
