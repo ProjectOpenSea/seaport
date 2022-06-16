@@ -159,9 +159,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                             item.identifier,
                             item.amount
                         );
-                    } else {
-                        // Throw with an error.
-                        revert InvalidItemType();
                     }
                 }
             }

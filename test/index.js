@@ -10482,32 +10482,6 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("InvalidERC721TransferAmount");
     });
 
-    it("Reverts on invalid item type", async () => {
-      const invalidTransferHelperItems = [
-        {
-          itemType: 4,
-          token: ethers.constants.AddressZero,
-          identifier: 1,
-          amount: 10,
-        },
-        {
-          itemType: 4,
-          token: ethers.constants.AddressZero,
-          identifier: 2,
-          amount: 20,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(
-            invalidTransferHelperItems,
-            recipient.address,
-            ethers.utils.formatBytes32String("")
-          )
-      ).to.be.revertedWith("InvalidItemType");
-    });
-
     it("Reverts on invalid ERC721 recipient", async () => {
       // Deploy Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
