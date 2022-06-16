@@ -124,6 +124,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                                     ""
                                 )
                             returns (bytes4 selector) {
+                                // Check if onERC721Received selector is valid.
                                 if (
                                     selector !=
                                     ERC721TokenReceiver

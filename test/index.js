@@ -10537,6 +10537,39 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("InvalidERC721Recipient");
     });
 
+    it("Reverts on invalid function selector", async () => {
+      const invalidRecipientFactory = await ethers.getContractFactory(
+        "InvalidERC721Recipient"
+      );
+      invalidRecipient = await invalidRecipientFactory.deploy();
+
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+
+      const erc721TransferHelperItems = [
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 1,
+          amount: 1,
+        },
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 2,
+          amount: 1,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            erc721TransferHelperItems,
+            invalidRecipient.address,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith("InvalidERC721Recipient");
+    });
+
     it("Reverts on nonexistent conduit", async () => {
       // Deploy Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
