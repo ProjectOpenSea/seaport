@@ -10426,6 +10426,157 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           )
       ).to.be.revertedWith("InvalidItemType");
     });
+
+    it("Reverts on invalid ERC20 identifier", async () => {
+      const erc20TransferHelperItems = [
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 5,
+          amount: 10,
+        },
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 4,
+          amount: 20,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            erc20TransferHelperItems,
+            recipient.address,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith("InvalidERC20Identifier");
+    });
+
+    it("Reverts on invalid ERC721 transfer amount", async () => {
+      // Deploy Contract
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+
+      const erc721TransferHelperItems = [
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 1,
+          amount: 10,
+        },
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 2,
+          amount: 20,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            erc721TransferHelperItems,
+            recipient.address,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith("InvalidERC721TransferAmount");
+    });
+
+    it("Reverts on invalid item type", async () => {
+      const invalidTransferHelperItems = [
+        {
+          itemType: 4,
+          token: ethers.constants.AddressZero,
+          identifier: 1,
+          amount: 10,
+        },
+        {
+          itemType: 4,
+          token: ethers.constants.AddressZero,
+          identifier: 2,
+          amount: 20,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            invalidTransferHelperItems,
+            recipient.address,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith("InvalidItemType");
+    });
+
+    it("Reverts on invalid ERC721 recipient", async () => {
+      // Deploy Contract
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+
+      const erc721TransferHelperItems = [
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 1,
+          amount: 1,
+        },
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 2,
+          amount: 1,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            erc721TransferHelperItems,
+            tempERC721Contract.address,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith("InvalidERC721Recipient");
+    });
+
+    it("Reverts on nonexistent conduit", async () => {
+      // Deploy Contract
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+
+      const transferHelperItems = [
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 1,
+          amount: 1,
+        },
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 2,
+          amount: 1,
+        },
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 10,
+        },
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 20,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            transferHelperItems,
+            recipient.address,
+            ethers.utils.formatBytes32String("0xabc")
+          )
+      ).to.be.revertedWith("ConduitDoesNotExist");
+    });
   });
 
   describe("Reverts", async () => {
