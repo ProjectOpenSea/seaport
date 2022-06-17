@@ -325,7 +325,7 @@ contract TransferHelperTest is BaseOrderTest {
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            0
         );
 
         _performSingleItemTransferAndCheckBalances(
@@ -435,7 +435,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
         items[1] = _getFuzzedTransferItem(
             ConduitItemType.ERC721,
-            inputs.amounts[1],
+            1,
             inputs.tokenIndex[1],
             inputs.identifiers[1]
         );
@@ -443,7 +443,7 @@ contract TransferHelperTest is BaseOrderTest {
             ConduitItemType.ERC20,
             inputs.amounts[2],
             inputs.tokenIndex[2],
-            inputs.identifiers[2]
+            0
         );
 
         _performMultiItemTransferAndCheckBalances(
@@ -550,25 +550,26 @@ contract TransferHelperTest is BaseOrderTest {
         );
     }
 
-    function testBulkTransferERC721AmountMoreThan1NotUsingConduit(
+    function testBulkTransferERC7211NotUsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
-        TransferHelperItem
-            memory item = _getFuzzedERC721TransferItemWithAmountGreaterThan1(
-                inputs.amounts[0],
-                inputs.tokenIndex[0],
-                inputs.identifiers[0]
-            );
+        TransferHelperItem memory item = _getFuzzedTransferItem(
+            ConduitItemType.ERC721,
+            1,
+            inputs.tokenIndex[0],
+            inputs.identifiers[0]
+        );
 
         _performSingleItemTransferAndCheckBalances(item, alice, bob, false, "");
     }
 
-    function testBulkTransferERC721AmountMoreThan1AndERC20NotUsingConduit(
+    function testBulkTransferERC721AndERC20NotUsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
         TransferHelperItem[] memory items = new TransferHelperItem[](2);
-        items[0] = _getFuzzedERC721TransferItemWithAmountGreaterThan1(
-            inputs.amounts[0],
+        items[0] = _getFuzzedTransferItem(
+            ConduitItemType.ERC721,
+            1,
             inputs.tokenIndex[0],
             inputs.identifiers[0]
         );
@@ -577,7 +578,7 @@ contract TransferHelperTest is BaseOrderTest {
             ConduitItemType.ERC20,
             inputs.amounts[1],
             inputs.tokenIndex[1],
-            inputs.identifiers[1]
+            0
         );
 
         _performMultiItemTransferAndCheckBalances(items, alice, bob, false, "");
@@ -613,7 +614,7 @@ contract TransferHelperTest is BaseOrderTest {
     ) public {
         TransferHelperItem memory item = _getFuzzedTransferItem(
             ConduitItemType.ERC721,
-            inputs.amounts[0],
+            1,
             inputs.tokenIndex[0],
             inputs.identifiers[0]
         );
@@ -660,7 +661,7 @@ contract TransferHelperTest is BaseOrderTest {
         );
         items[1] = _getFuzzedTransferItem(
             ConduitItemType.ERC721,
-            inputs.amounts[1],
+            1,
             inputs.tokenIndex[1],
             inputs.identifiers[1]
         );
@@ -675,11 +676,14 @@ contract TransferHelperTest is BaseOrderTest {
     }
 
     function testRevertBulkTransferERC721AmountMoreThan1UsingConduit(
-        FuzzInputsCommon memory inputs
+        FuzzInputsCommon memory inputs,
+        uint256 invalidAmount
     ) public {
+        vm.assume(invalidAmount > 1);
+
         TransferHelperItem
             memory item = _getFuzzedERC721TransferItemWithAmountGreaterThan1(
-                inputs.amounts[0],
+                invalidAmount,
                 inputs.tokenIndex[0],
                 inputs.identifiers[0]
             );
@@ -698,6 +702,8 @@ contract TransferHelperTest is BaseOrderTest {
     function testRevertBulkTransferERC721AmountMoreThan1AndERC20UsingConduit(
         FuzzInputsCommon memory inputs
     ) public {
+        vm.assume(inputs.amounts[0] > 0);
+
         TransferHelperItem[] memory items = new TransferHelperItem[](2);
         items[0] = _getFuzzedERC721TransferItemWithAmountGreaterThan1(
             inputs.amounts[0],
