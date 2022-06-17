@@ -17,6 +17,8 @@ import { TestERC20 } from "../../contracts/test/TestERC20.sol";
 import { TestERC721 } from "../../contracts/test/TestERC721.sol";
 import { TestERC1155 } from "../../contracts/test/TestERC1155.sol";
 
+import { InvalidERC721Recipient } from "../../contracts/test/InvalidERC721Recipient.sol";
+
 import { TokenTransferrerErrors } from "../../contracts/interfaces/TokenTransferrerErrors.sol";
 
 import { TransferHelperInterface } from "../../contracts/interfaces/TransferHelperInterface.sol";
@@ -593,7 +595,7 @@ contract TransferHelperTest is BaseOrderTest {
             ConduitItemType.ERC20,
             inputs.amounts[0],
             inputs.tokenIndex[0],
-            inputs.identifiers[0]
+            5
         );
         // Ensure ERC20 identifier is at least 1
         item.identifier += 1;
@@ -612,6 +614,8 @@ contract TransferHelperTest is BaseOrderTest {
     function testRevertBulkTransferERC721InvalidRecipient(
         FuzzInputsCommon memory inputs
     ) public {
+        InvalidERC721Recipient invalidRecipient = new InvalidERC721Recipient();
+
         TransferHelperItem memory item = _getFuzzedTransferItem(
             ConduitItemType.ERC721,
             1,
@@ -622,7 +626,7 @@ contract TransferHelperTest is BaseOrderTest {
         _performSingleItemTransferAndCheckBalances(
             item,
             alice,
-            item.token,
+            address(invalidRecipient),
             false,
             abi.encodePacked(
                 TransferHelperInterface.InvalidERC721Recipient.selector
