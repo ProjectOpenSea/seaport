@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.8.13;
+pragma solidity ^0.8.13;
 
 import { OneWord } from "../../contracts/lib/ConsiderationConstants.sol";
 import { OrderType, ItemType } from "../../contracts/lib/ConsiderationEnums.sol";
