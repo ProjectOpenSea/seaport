@@ -27,6 +27,8 @@ import { ReferenceFulfillmentApplier } from "./ReferenceFulfillmentApplier.sol";
 
 import "contracts/lib/ConsiderationConstants.sol";
 
+import { SeaportInterface } from "contracts/interfaces/SeaportInterface.sol";
+
 /**
  * @title OrderCombiner
  * @author 0age
@@ -195,7 +197,9 @@ contract ReferenceOrderCombiner is
         bytes32[] memory orderHashes = new bytes32[](totalOrders);
 
         // Check if we are in a match function
-        bool nonMatchFn = msg.sig != 0x55944a42 && msg.sig != 0xa8174404;
+        bool nonMatchFn = msg.sig !=
+            SeaportInterface.matchAdvancedOrders.selector &&
+            msg.sig != SeaportInterface.matchOrders.selector;
         bool anyNativeOfferItems;
 
         // Iterate over each order.
