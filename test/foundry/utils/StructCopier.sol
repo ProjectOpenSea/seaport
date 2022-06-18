@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.13;
+pragma solidity ^0.8.13;
 import { BasicOrderParameters, CriteriaResolver, AdvancedOrder, AdditionalRecipient, OfferItem, Order, ConsiderationItem, Fulfillment, FulfillmentComponent, OrderParameters, OrderComponents } from "../../../contracts/lib/ConsiderationStructs.sol";
 import { ConsiderationInterface } from "../../../contracts/interfaces/ConsiderationInterface.sol";
 

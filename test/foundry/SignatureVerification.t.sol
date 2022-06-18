@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.13;
+pragma solidity ^0.8.13;
 
 import { SignatureVerification } from "../../contracts/lib/SignatureVerification.sol";
 import { ReferenceSignatureVerification } from "../../reference/lib/ReferenceSignatureVerification.sol";
