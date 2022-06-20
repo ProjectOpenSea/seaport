@@ -11,20 +11,20 @@ import { OrderParameters } from "../lib/ConsiderationStructs.sol";
  */
 contract OrderHashHelper {
     // Cached constants from ConsiderationConstants
-    uint256 constant OrderParameters_offer_head_offset = 0x40;
-    uint256 constant OneWord = 0x20;
-    uint256 constant EIP712_OfferItem_size = 0xc0;
-    uint256 constant OrderParameters_consideration_head_offset = 0x60;
-    uint256 constant EIP712_ConsiderationItem_size = 0xe0;
-    uint256 constant OrderParameters_counter_offset = 0x140;
-    uint256 constant FreeMemoryPointerSlot = 0x40;
-    uint256 constant EIP712_Order_size = 0x180;
+    uint256 internal constant _ORDERPARAMETERS_OFFER_HEAD_OFFSET = 0x40;
+    uint256 internal constant _ONE_WORD = 0x20;
+    uint256 internal constant _EIP712_OFFERITEM_SIZE = 0xc0;
+    uint256 internal constant _ORDERPARAMETERS_CONSIDERATION_HEAD_OFFSET = 0x60;
+    uint256 internal constant _EIP712_CONSIDERATIONITEM_SIZE = 0xe0;
+    uint256 internal constant _ORDER_PARAMETERS_COUNTER_OFFSET = 0x140;
+    uint256 internal constant _FREE_MEMORY_POINTER_SLOT = 0x40;
+    uint256 internal constant _EIP712_ORDER_SIZE = 0x180;
     // Compiled typehash constants
-    bytes32 constant OFFER_ITEM_TYPEHASH =
+    bytes32 internal constant _OFFER_ITEM_TYPEHASH =
         0xa66999307ad1bb4fde44d13a5d710bd7718e0c87c1eef68a571629fbf5b93d02;
-    bytes32 constant CONSIDERATION_ITEM_TYPEHASH =
+    bytes32 internal constant _CONSIDERATION_ITEM_TYPEHASH =
         0x42d81c6929ffdc4eb27a0808e40e82516ad42296c166065de7f812492304ff6e;
-    bytes32 constant ORDER_TYPEHASH =
+    bytes32 internal constant _ORDER_TYPEHASH =
         0xfa445660b7e21515a59617fcd68910b487aa5808b8abda3d78bc85df364b2c2f;
 
     /**
@@ -58,23 +58,23 @@ contract OrderHashHelper {
         bytes32 offerHash;
 
         // Read offer item EIP-712 typehash from runtime code & place on stack.
-        bytes32 typeHash = OFFER_ITEM_TYPEHASH;
+        bytes32 typeHash = _OFFER_ITEM_TYPEHASH;
 
         // Utilize assembly so that memory regions can be reused across hashes.
         assembly {
             // Retrieve the free memory pointer and place on the stack.
-            let hashArrPtr := mload(FreeMemoryPointerSlot)
+            let hashArrPtr := mload(_FREE_MEMORY_POINTER_SLOT)
 
             // Get the pointer to the offers array.
             let offerArrPtr := mload(
-                add(orderParameters, OrderParameters_offer_head_offset)
+                add(orderParameters, _ORDERPARAMETERS_OFFER_HEAD_OFFSET)
             )
 
             // Load the length.
             let offerLength := mload(offerArrPtr)
 
             // Set the pointer to the first offer's head.
-            offerArrPtr := add(offerArrPtr, OneWord)
+            offerArrPtr := add(offerArrPtr, _ONE_WORD)
 
             // Iterate over the offer items.
             // prettier-ignore
@@ -83,7 +83,7 @@ contract OrderHashHelper {
             } {
                 // Read the pointer to the offer data and subtract one word
                 // to get typeHash pointer.
-                let ptr := sub(mload(offerArrPtr), OneWord)
+                let ptr := sub(mload(offerArrPtr), _ONE_WORD)
 
                 // Read the current value before the offer data.
                 let value := mload(ptr)
@@ -92,20 +92,20 @@ contract OrderHashHelper {
                 mstore(ptr, typeHash)
 
                 // Take the EIP712 hash and store it in the hash array.
-                mstore(hashArrPtr, keccak256(ptr, EIP712_OfferItem_size))
+                mstore(hashArrPtr, keccak256(ptr, _EIP712_OFFERITEM_SIZE))
 
                 // Restore the previous word.
                 mstore(ptr, value)
 
                 // Increment the array pointers by one word.
-                offerArrPtr := add(offerArrPtr, OneWord)
-                hashArrPtr := add(hashArrPtr, OneWord)
+                offerArrPtr := add(offerArrPtr, _ONE_WORD)
+                hashArrPtr := add(hashArrPtr, _ONE_WORD)
             }
 
             // Derive the offer hash using the hashes of each item.
             offerHash := keccak256(
-                mload(FreeMemoryPointerSlot),
-                mul(offerLength, OneWord)
+                mload(_FREE_MEMORY_POINTER_SLOT),
+                mul(offerLength, _ONE_WORD)
             )
         }
 
@@ -113,22 +113,22 @@ contract OrderHashHelper {
         bytes32 considerationHash;
 
         // Read consideration item typehash from runtime code & place on stack.
-        typeHash = CONSIDERATION_ITEM_TYPEHASH;
+        typeHash = _CONSIDERATION_ITEM_TYPEHASH;
 
         // Utilize assembly so that memory regions can be reused across hashes.
         assembly {
             // Retrieve the free memory pointer and place on the stack.
-            let hashArrPtr := mload(FreeMemoryPointerSlot)
+            let hashArrPtr := mload(_FREE_MEMORY_POINTER_SLOT)
 
             // Get the pointer to the consideration array.
             let considerationArrPtr := add(
                 mload(
                     add(
                         orderParameters,
-                        OrderParameters_consideration_head_offset
+                        _ORDERPARAMETERS_CONSIDERATION_HEAD_OFFSET
                     )
                 ),
-                OneWord
+                _ONE_WORD
             )
 
             // Iterate over the consideration items (not including tips).
@@ -138,7 +138,7 @@ contract OrderHashHelper {
             } {
                 // Read the pointer to the consideration data and subtract one
                 // word to get typeHash pointer.
-                let ptr := sub(mload(considerationArrPtr), OneWord)
+                let ptr := sub(mload(considerationArrPtr), _ONE_WORD)
 
                 // Read the current value before the consideration data.
                 let value := mload(ptr)
@@ -149,31 +149,31 @@ contract OrderHashHelper {
                 // Take the EIP712 hash and store it in the hash array.
                 mstore(
                     hashArrPtr,
-                    keccak256(ptr, EIP712_ConsiderationItem_size)
+                    keccak256(ptr, _EIP712_CONSIDERATIONITEM_SIZE)
                 )
 
                 // Restore the previous word.
                 mstore(ptr, value)
 
                 // Increment the array pointers by one word.
-                considerationArrPtr := add(considerationArrPtr, OneWord)
-                hashArrPtr := add(hashArrPtr, OneWord)
+                considerationArrPtr := add(considerationArrPtr, _ONE_WORD)
+                hashArrPtr := add(hashArrPtr, _ONE_WORD)
             }
 
             // Derive the consideration hash using the hashes of each item.
             considerationHash := keccak256(
-                mload(FreeMemoryPointerSlot),
-                mul(originalConsiderationLength, OneWord)
+                mload(_FREE_MEMORY_POINTER_SLOT),
+                mul(originalConsiderationLength, _ONE_WORD)
             )
         }
 
         // Read order item EIP-712 typehash from runtime code & place on stack.
-        typeHash = ORDER_TYPEHASH;
+        typeHash = _ORDER_TYPEHASH;
 
         // Utilize assembly to access derived hashes & other arguments directly.
         assembly {
             // Retrieve pointer to the region located just behind parameters.
-            let typeHashPtr := sub(orderParameters, OneWord)
+            let typeHashPtr := sub(orderParameters, _ONE_WORD)
 
             // Store the value at that pointer location to restore later.
             let previousValue := mload(typeHashPtr)
@@ -184,7 +184,7 @@ contract OrderHashHelper {
             // Retrieve the pointer for the offer array head.
             let offerHeadPtr := add(
                 orderParameters,
-                OrderParameters_offer_head_offset
+                _ORDERPARAMETERS_OFFER_HEAD_OFFSET
             )
 
             // Retrieve the data pointer referenced by the offer head.
@@ -196,7 +196,7 @@ contract OrderHashHelper {
             // Retrieve the pointer for the consideration array head.
             let considerationHeadPtr := add(
                 orderParameters,
-                OrderParameters_consideration_head_offset
+                _ORDERPARAMETERS_CONSIDERATION_HEAD_OFFSET
             )
 
             // Retrieve the data pointer referenced by the consideration head.
@@ -208,14 +208,14 @@ contract OrderHashHelper {
             // Retrieve the pointer for the counter.
             let counterPtr := add(
                 orderParameters,
-                OrderParameters_counter_offset
+                _ORDER_PARAMETERS_COUNTER_OFFSET
             )
 
             // Store the counter at the retrieved memory location.
             mstore(counterPtr, counter)
 
             // Derive the order hash using the full range of order parameters.
-            orderHash := keccak256(typeHashPtr, EIP712_Order_size)
+            orderHash := keccak256(typeHashPtr, _EIP712_ORDER_SIZE)
 
             // Restore the value previously held at typehash pointer location.
             mstore(typeHashPtr, previousValue)

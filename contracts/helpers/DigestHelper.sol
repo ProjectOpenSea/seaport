@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.13;
-import { ConsiderationInterface } from "../interfaces/ConsiderationInterface.sol";
+// prettier-ignore
+import { 
+    ConsiderationInterface 
+} from "../interfaces/ConsiderationInterface.sol";
 
 /**
  * @title DigestHelper
@@ -14,23 +17,24 @@ contract DigestHelper {
     bytes32 internal immutable _DOMAIN_SEPARATOR;
     address internal immutable _MARKETPLACE_ADDRESS;
     // Cached constants from ConsiderationConstants
-    uint256 constant EIP712_DomainSeparator_offset = 0x02;
-    uint256 constant EIP712_OrderHash_offset = 0x22;
-    uint256 constant EIP_712_PREFIX = (
+    uint256 internal constant _EIP712_DOMAINSEPARATOR_OFFSET = 0x02;
+    uint256 internal constant _EIP712_ORDERHASH_OFFSET = 0x22;
+    uint256 internal constant _EIP_712_PREFIX = (
         0x1901000000000000000000000000000000000000000000000000000000000000
     );
-    uint256 constant EIP712_DigestPayload_size = 0x42;
+    uint256 internal constant _EIP712_DIGESTPAYLOAD_SIZE = 0x42;
     // Derived typehash constants
-    bytes32 constant EIP_712_DOMAIN_TYPEHASH =
+    bytes32 internal constant _EIP_712_DOMAIN_TYPEHASH =
         0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
-    bytes32 constant NAME_HASH =
+    bytes32 internal constant _NAME_HASH =
         0x32b5c112df393a49218d7552f96b2eeb829dfb4272f4f24eef510a586b85feef;
-    bytes32 constant VERSION_HASH =
+    bytes32 internal constant _VERSION_HASH =
         0x722c0e0c80487266e8c6a45e3a1a803aab23378a9c32e6ebe029d4fad7bfc965;
     error BadDomainSeparator();
 
     /**
-     * @dev Derive the digest from the domain separator for current chain with given marketplace address
+     * @dev Derive the digest from the domain separator for
+     *      current chain with given marketplace address
      *
      * @param marketplaceAddress Address for the seaport marketplace
      *
@@ -75,9 +79,9 @@ contract DigestHelper {
         // prettier-ignore
         return keccak256(
             abi.encode(
-                EIP_712_DOMAIN_TYPEHASH,
-                NAME_HASH,
-                VERSION_HASH,
+                _EIP_712_DOMAIN_TYPEHASH,
+                _NAME_HASH,
+                _VERSION_HASH,
                 block.chainid,
                 _MARKETPLACE_ADDRESS
             )
@@ -101,22 +105,22 @@ contract DigestHelper {
         bytes32 domainSeparator = _domainSeparator();
         assembly {
             // Place the EIP-712 prefix at the start of scratch space.
-            mstore(0, EIP_712_PREFIX)
+            mstore(0, _EIP_712_PREFIX)
 
             // Place the domain separator in the next region of scratch space.
-            mstore(EIP712_DomainSeparator_offset, domainSeparator)
+            mstore(_EIP712_DOMAINSEPARATOR_OFFSET, domainSeparator)
 
             // Place the order hash in scratch space, spilling into the first
             // two bytes of the free memory pointer — this should never be set
             // as memory cannot be expanded to that size, and will be zeroed out
             // after the hash is performed.
-            mstore(EIP712_OrderHash_offset, orderHash)
+            mstore(_EIP712_ORDERHASH_OFFSET, orderHash)
 
             // Hash the relevant region (65 bytes).
-            value := keccak256(0, EIP712_DigestPayload_size)
+            value := keccak256(0, _EIP712_DIGESTPAYLOAD_SIZE)
 
             // Clear out the dirtied bits in the memory pointer.
-            mstore(EIP712_OrderHash_offset, 0)
+            mstore(_EIP712_ORDERHASH_OFFSET, 0)
         }
     }
 }

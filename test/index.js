@@ -10272,6 +10272,24 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       expect(digest).to.equal(digestHelped);
     });
+
+    it("DigestHelper Test: Digest Helper gets the correct domain separator", async () => {
+      // Deploy a new DomainHelper
+      const contract = process.env.REFERENCE
+        ? "ReferenceTestOrderHashDigestHelper"
+        : "TestOrderHashDigestHelper";
+      const digestHelperFactory = await ethers.getContractFactory(contract);
+      tempHelper = await digestHelperFactory.deploy(
+        marketplaceContract.address
+      );
+
+      const { domainSeparator } = await marketplaceContract.information();
+
+      const domainSeparatorHelpered =
+        await tempHelper.testDeriveDomainSeparator();
+
+      expect(domainSeparator).to.equal(domainSeparatorHelpered);
+    });
   });
 
   describe("TransferHelper tests", async () => {

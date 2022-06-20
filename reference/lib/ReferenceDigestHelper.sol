@@ -14,13 +14,13 @@ contract ReferenceDigestHelper {
     bytes32 internal immutable _DOMAIN_SEPARATOR;
     address internal immutable _MARKETPLACE_ADDRESS;
     // Derived typehash constants
-    bytes32 constant EIP_712_DOMAIN_TYPEHASH =
+    bytes32 constant _EIP_712_DOMAIN_TYPEHASH =
         0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
     // Name should be 'Seaport', but for reference it's 'Consideration'
-    bytes32 constant NAME_HASH =
+    bytes32 constant _NAME_HASH =
         0x64987f6373075400d7cbff689f2b7bc23753c7e6ce20688196489b8f5d9d7e6c;
     // Version should be '1.1', but in reference it's 'rc.1.1'
-    bytes32 constant VERSION_HASH =
+    bytes32 constant _VERSION_HASH =
         0x07818ab36f449d2a17c3e3c5f9e05f1658eeb540ad3752e0c708d77cabd20dec;
     error BadDomainSeparator();
 
@@ -35,9 +35,9 @@ contract ReferenceDigestHelper {
         // Store the current chainId and derive the current domain separator.
         bytes32 derivedDomainSeparator = keccak256(
             abi.encode(
-                EIP_712_DOMAIN_TYPEHASH,
-                NAME_HASH,
-                VERSION_HASH,
+                _EIP_712_DOMAIN_TYPEHASH,
+                _NAME_HASH,
+                _VERSION_HASH,
                 block.chainid,
                 marketplaceAddress
             )
@@ -80,9 +80,9 @@ contract ReferenceDigestHelper {
         // prettier-ignore
         return keccak256(
             abi.encode(
-                EIP_712_DOMAIN_TYPEHASH,
-                NAME_HASH,
-                VERSION_HASH,
+                _EIP_712_DOMAIN_TYPEHASH,
+                _NAME_HASH,
+                _VERSION_HASH,
                 block.chainid,
                 _MARKETPLACE_ADDRESS
             )

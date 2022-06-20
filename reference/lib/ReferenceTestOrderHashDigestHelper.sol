@@ -27,4 +27,12 @@ contract ReferenceTestOrderHashDigestHelper is
     {
         return ReferenceDigestHelper._deriveEIP712Digest(orderHash);
     }
+
+    function testDeriveDomainSeparator()
+        external
+        view
+        returns (bytes32 domainSeparator)
+    {
+        return ReferenceDigestHelper._deriveDomainSeparator();
+    }
 }

@@ -11,11 +11,11 @@ import { ConsiderationItem, OfferItem, OrderParameters } from "../../contracts/l
  */
 contract ReferenceOrderHashHelper {
     // Compiled typehash constants
-    bytes32 constant OFFER_ITEM_TYPEHASH =
+    bytes32 constant _OFFER_ITEM_TYPEHASH =
         0xa66999307ad1bb4fde44d13a5d710bd7718e0c87c1eef68a571629fbf5b93d02;
-    bytes32 constant CONSIDERATION_ITEM_TYPEHASH =
+    bytes32 constant _CONSIDERATION_ITEM_TYPEHASH =
         0x42d81c6929ffdc4eb27a0808e40e82516ad42296c166065de7f812492304ff6e;
-    bytes32 constant ORDER_TYPEHASH =
+    bytes32 constant _ORDER_TYPEHASH =
         0xfa445660b7e21515a59617fcd68910b487aa5808b8abda3d78bc85df364b2c2f;
 
     /**
@@ -33,7 +33,7 @@ contract ReferenceOrderHashHelper {
         return
             keccak256(
                 abi.encode(
-                    OFFER_ITEM_TYPEHASH,
+                    _OFFER_ITEM_TYPEHASH,
                     offerItem.itemType,
                     offerItem.token,
                     offerItem.identifierOrCriteria,
@@ -59,7 +59,7 @@ contract ReferenceOrderHashHelper {
         return
             keccak256(
                 abi.encode(
-                    CONSIDERATION_ITEM_TYPEHASH,
+                    _CONSIDERATION_ITEM_TYPEHASH,
                     considerationItem.itemType,
                     considerationItem.token,
                     considerationItem.identifierOrCriteria,
@@ -115,7 +115,7 @@ contract ReferenceOrderHashHelper {
         return
             keccak256(
                 abi.encode(
-                    ORDER_TYPEHASH,
+                    _ORDER_TYPEHASH,
                     orderParameters.offerer,
                     orderParameters.zone,
                     keccak256(abi.encodePacked(offerHashes)),

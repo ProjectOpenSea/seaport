@@ -21,4 +21,12 @@ contract TestOrderHashDigestHelper is DigestHelper, OrderHashHelper {
     {
         return DigestHelper._deriveEIP712Digest(orderHash);
     }
+
+    function testDeriveDomainSeparator()
+        external
+        view
+        returns (bytes32 domainSeparator)
+    {
+        return DigestHelper._deriveDomainSeparator();
+    }
 }
