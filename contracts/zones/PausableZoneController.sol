@@ -131,7 +131,7 @@ contract PausableZoneController is
         returns (bool success)
     {
         // Call pause on the given zone.
-        PausableZone(zone).pause();
+        PausableZone(zone).pause(msg.sender);
 
         // Return a boolean indicating the pause was successful.
         success = true;

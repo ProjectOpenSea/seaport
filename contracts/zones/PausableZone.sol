@@ -102,12 +102,12 @@ contract PausableZone is
      *         zone will not be fulfillable unless the zone is redeployed to the
      *         same address.
      */
-    function pause() external override isController {
+    function pause(address payee) external override isController {
         // Emit an event signifying that the zone is paused.
         emit Paused();
 
         // Destroy the zone, sending any ether to the transaction submitter.
-        selfdestruct(payable(tx.origin));
+        selfdestruct(payable(payee));
     }
 
     /**

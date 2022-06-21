@@ -90,7 +90,7 @@ interface PausableZoneInterface {
      *         zone will not be fulfillable unless the zone is redeployed to the
      *         same address.
      */
-    function pause() external;
+    function pause(address payee) external;
 
     /**
      * @notice Assign the given address with the ability to operate the zone.
