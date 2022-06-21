@@ -84,10 +84,9 @@ contract PausableZoneController is
         returns (address derivedAddress)
     {
         // Ensure the caller is the owner.
-        require(
-            msg.sender == _owner,
-            "Only owner can create new Zones from here."
-        );
+        if (msg.sender != _owner) {
+            revert CallerIsNotOwner();
+        }
 
         // Derive the PausableZone address.
         // This expression demonstrates address computation but is not required.
@@ -152,10 +151,9 @@ contract PausableZoneController is
         OrderComponents[] calldata orders
     ) external override {
         // Ensure the caller is the owner.
-        require(
-            msg.sender == _owner,
-            "Only the owner can cancel orders with the zone."
-        );
+        if (msg.sender != _owner) {
+            revert CallerIsNotOwner();
+        }
 
         // Create a zone object from the zone address.
         PausableZone zone = PausableZone(pausableZoneAddress);
@@ -227,10 +225,9 @@ contract PausableZoneController is
         Fulfillment[] calldata fulfillments
     ) external payable override returns (Execution[] memory executions) {
         // Ensure the caller is the owner.
-        require(
-            msg.sender == _owner,
-            "Only the owner can execute advanced orders with the zone."
-        );
+        if (msg.sender != _owner) {
+            revert CallerIsNotOwner();
+        }
 
         // Create a zone object from the zone address.
         PausableZone zone = PausableZone(pausableZoneAddress);
@@ -256,13 +253,13 @@ contract PausableZoneController is
      */
     function transferOwnership(address newPotentialOwner) external override {
         // Ensure the caller is the owner.
-        require(msg.sender == _owner, "Only Owner can transfer Ownership.");
-
+        if (msg.sender != _owner) {
+            revert CallerIsNotOwner();
+        }
         // Ensure the new potential owner is not an invalid address.
-        require(
-            newPotentialOwner != address(0),
-            "New Owner can not be 0 address."
-        );
+        if (newPotentialOwner == address(0)) {
+            revert OwnerCanNotBeSetAsZero();
+        }
 
         // Emit an event indicating that the potential owner has been updated.
         emit PotentialOwnerUpdated(newPotentialOwner);
@@ -277,7 +274,9 @@ contract PausableZoneController is
      */
     function cancelOwnershipTransfer() external override {
         // Ensure the caller is the current owner.
-        require(msg.sender == _owner, "Only Owner can cancel.");
+        if (msg.sender != _owner) {
+            revert CallerIsNotOwner();
+        }
 
         // Emit an event indicating that the potential owner has been cleared.
         emit PotentialOwnerUpdated(address(0));
@@ -293,10 +292,9 @@ contract PausableZoneController is
      */
     function acceptOwnership() external override {
         // Ensure the caller is the potential owner.
-        require(
-            msg.sender == _potentialOwner,
-            "Only Potential Owner can claim."
-        );
+        if (msg.sender != _potentialOwner) {
+            revert CallerIsNotPotentialOwner();
+        }
 
         // Emit an event indicating that the potential owner has been cleared.
         emit PotentialOwnerUpdated(address(0));
@@ -318,13 +316,13 @@ contract PausableZoneController is
      */
     function assignPauser(address pauserToAssign) external override {
         // Ensure the caller is the owner.
-        require(msg.sender == _owner, "Can only be set by the deployer");
-
+        if (msg.sender != _owner) {
+            revert CallerIsNotOwner();
+        }
         // Ensure the pauser to assign is not an invalid address.
-        require(
-            pauserToAssign != address(0),
-            "Pauser can not be set to the null address"
-        );
+        if (pauserToAssign == address(0)) {
+            revert PauserCanNotBeSetAsZero();
+        }
 
         // Set the given account as the pauser.
         _pauser = pauserToAssign;
@@ -345,8 +343,9 @@ contract PausableZoneController is
         address operatorToAssign
     ) external override {
         // Ensure the caller is the owner.
-        require(msg.sender == _owner, "Can only be set by the deployer");
-
+        if (msg.sender != _owner) {
+            revert CallerIsNotOwner();
+        }
         // Create a zone object from the zone address.
         PausableZone zone = PausableZone(pausableZoneAddress);
 

@@ -88,4 +88,24 @@ interface PausableZoneEventsAndErrors {
      *
      */
     error CallerIsNotOperator();
+
+    /**
+     * @dev Revert with an error when attempting to set the new potential owner
+     *      as the 0 address.
+     *
+     */
+    error OwnerCanNotBeSetAsZero();
+
+    /**
+     * @dev Revert with an error when attempting to set the new potential pauser
+     *      as the 0 address.
+     *
+     */
+    error PauserCanNotBeSetAsZero();
+
+    /**
+     * @dev Revert with an error when the caller does not have
+     *      the potentialOwner role.
+     */
+    error CallerIsNotPotentialOwner();
 }

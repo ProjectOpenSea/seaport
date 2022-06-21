@@ -121,10 +121,9 @@ contract PausableZone is
         isController
     {
         // Ensure the operator being assigned is not the null address.
-        require(
-            operatorToAssign != address(0),
-            "Operator can not be set to the null address"
-        );
+        if (operatorToAssign == address(0)) {
+            revert CallerIsNotOperator();
+        }
 
         // Set the given address as the new operator.
         operator = operatorToAssign;
