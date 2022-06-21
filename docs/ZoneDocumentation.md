@@ -21,4 +21,4 @@ Zones are a powerful addition to the idea of simple marketplaces. By adding addi
 - Track extra incentives for users completing valid orders
 - And more.
 
-Anyone in the world can build and deploy their own unique zones and help decentralize Seaport as a platform.
+Anyone in the world can build and deploy their own unique zones and help decentralize Seaport as a protocol.
