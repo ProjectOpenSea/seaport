@@ -432,7 +432,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             fulfillments,
             { value: 0 }
           )
-      ).to.be.revertedWith("Only the owner can execute orders with the zone.");
+      ).to.be.revertedWith("CallerIsNotOwner");
 
       // Ensure that the number of executions from matching orders with zone
       // is equal to the number of fulfillments
@@ -585,9 +585,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             fulfillments,
             { value: 0 }
           )
-      ).to.be.revertedWith(
-        "Only the owner can execute advanced orders with the zone."
-      );
+      ).to.be.revertedWith("CallerIsNotOwner");
 
       // Ensure that the number of executions from matching advanced orders with zone
       // is equal to the number of fulfillments
@@ -642,7 +640,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       const salt = randomHex();
       await expect(
         gpDeployer.connect(seller).createZone(salt)
-      ).to.be.revertedWith("Only owner can create new Zones from here.");
+      ).to.be.revertedWith("CallerIsNotOwner");
 
       // deploy GP from owner
       await createZone(gpDeployer);
@@ -674,17 +672,17 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("InvalidPauser");
 
       // Try to nuke the zone directly before being assigned pauser
-      await expect(gpZone.connect(buyer).pause()).to.be.revertedWith(
+      await expect(gpZone.connect(buyer).pause(zoneAddr)).to.be.revertedWith(
         "InvalidController"
       );
 
       await expect(
         gpDeployer.connect(buyer).assignPauser(seller.address)
-      ).to.be.revertedWith("Can only be set by the deployer");
+      ).to.be.revertedWith("CallerIsNotOwner");
 
       await expect(
         gpDeployer.connect(owner).assignPauser(toAddress(0))
-      ).to.be.revertedWith("Pauser can not be set to the null address");
+      ).to.be.revertedWith("PauserCanNotBeSetAsZero");
 
       // owner assigns the pauser of the zone
       await gpDeployer.connect(owner).assignPauser(buyer.address);
@@ -745,7 +743,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         getItemETH(parseEther("1"), parseEther("1"), owner.address),
       ];
 
-      const { order, value } = await createOrder(
+      const { order, orderHash, value } = await createOrder(
         seller,
         { address: zoneAddr },
         offer,
@@ -815,7 +813,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .cancelOrders(zoneAddress, marketplaceContract.address, [
             orderComponents,
           ])
-      ).to.be.revertedWith("Only the owner can cancel orders with the zone.");
+      ).to.be.revertedWith("CallerIsNotOwner");
 
       await gpDeployer.cancelOrders(zoneAddress, marketplaceContract.address, [
         orderComponents,
@@ -882,7 +880,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Cannot assign operator to zero address
       await expect(
         gpDeployer.connect(owner).assignOperator(zoneAddress, toAddress(0))
-      ).to.be.revertedWith("Operator can not be set to the null address");
+      ).to.be.revertedWith("PauserCanNotBeSetAsZero");
     });
 
     it("Reverts trying to assign operator as non-deployer", async () => {
@@ -908,7 +906,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       // Try to approve operator without permission
       await expect(
         gpDeployer.connect(seller).assignOperator(zoneAddress, seller.address)
-      ).to.be.revertedWith("Can only be set by the deployer");
+      ).to.be.revertedWith("CallerIsNotOwner");
 
       // Try to approve operator directly without permission
       await expect(
@@ -1003,19 +1001,19 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
 
       await expect(
         gpDeployer.connect(buyer).transferOwnership(buyer.address)
-      ).to.be.revertedWith("Only Owner can transfer Ownership.");
+      ).to.be.revertedWith("CallerIsNotOwner");
 
       await expect(
         gpDeployer.connect(owner).transferOwnership(toAddress(0))
-      ).to.be.revertedWith("New Owner can not be 0 address.");
+      ).to.be.revertedWith("OwnerCanNotBeSetAsZero");
 
       await expect(
         gpDeployer.connect(seller).cancelOwnershipTransfer()
-      ).to.be.revertedWith("Only Owner can cancel.");
+      ).to.be.revertedWith("CallerIsNotOwner");
 
       await expect(
         gpDeployer.connect(buyer).acceptOwnership()
-      ).to.be.revertedWith("Only Potential Owner can claim.");
+      ).to.be.revertedWith("CallerIsNotPotentialOwner");
 
       // just get any random address as the next potential owner.
       await gpDeployer.connect(owner).transferOwnership(buyer.address);
