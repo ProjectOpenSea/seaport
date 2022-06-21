@@ -79,6 +79,61 @@ contract PausableZone is
     }
 
     /**
+     * @notice Cancel an arbitrary number of orders that have agreed to use the
+     *         contract as their zone.
+     *
+     * @param seaport  The Seaport address.
+     * @param orders   The orders to cancel.
+     *
+     * @return cancelled A boolean indicating whether the supplied orders have
+     *                   been successfully cancelled.
+     */
+    function cancelOrders(
+        SeaportInterface seaport,
+        OrderComponents[] calldata orders
+    ) external override isOperator returns (bool cancelled) {
+        // Call cancel on Seaport and return its boolean value.
+        cancelled = seaport.cancel(orders);
+    }
+
+    /**
+     * @notice Pause this contract, safely stopping orders from using
+     *         the contract as a zone. Restricted orders with this address as a
+     *         zone will not be fulfillable unless the zone is redeployed to the
+     *         same address.
+     */
+    function pause() external override isController {
+        // Emit an event signifying that the zone is paused.
+        emit Paused();
+
+        // Destroy the zone, sending any ether to the transaction submitter.
+        selfdestruct(payable(tx.origin));
+    }
+
+    /**
+     * @notice Assign the given address with the ability to operate the zone.
+     *
+     * @param operatorToAssign The address to assign as the operator.
+     */
+    function assignOperator(address operatorToAssign)
+        external
+        override
+        isController
+    {
+        // Ensure the operator being assigned is not the null address.
+        require(
+            operatorToAssign != address(0),
+            "Operator can not be set to the null address"
+        );
+
+        // Set the given address as the new operator.
+        operator = operatorToAssign;
+
+        // Emit an event indicating the operator has been updated.
+        emit OperatorUpdated(operator);
+    }
+
+    /**
      * @notice Check if a given order is currently valid.
      *
      * @dev This function is called by Seaport whenever extraData is not
@@ -140,24 +195,6 @@ contract PausableZone is
 
         // Return the selector of isValidOrder as the magic value.
         validOrderMagicValue = ZoneInterface.isValidOrder.selector;
-    }
-
-    /**
-     * @notice Cancel an arbitrary number of orders that have agreed to use the
-     *         contract as their zone.
-     *
-     * @param seaport  The Seaport address.
-     * @param orders   The orders to cancel.
-     *
-     * @return cancelled A boolean indicating whether the supplied orders have
-     *                   been successfully cancelled.
-     */
-    function cancelOrders(
-        SeaportInterface seaport,
-        OrderComponents[] calldata orders
-    ) external override isOperator returns (bool cancelled) {
-        // Call cancel on Seaport and return its boolean value.
-        cancelled = seaport.cancel(orders);
     }
 
     /**
@@ -233,42 +270,5 @@ contract PausableZone is
             criteriaResolvers,
             fulfillments
         );
-    }
-
-    /**
-     * @notice Pause this contract, safely stopping orders from using
-     *         the contract as a zone. Restricted orders with this address as a
-     *         zone will not be fulfillable unless the zone is redeployed to the
-     *         same address.
-     */
-    function pause() external override isController {
-        // Emit an event signifying that the zone is paused.
-        emit Paused();
-
-        // Destroy the zone, sending any ether to the transaction submitter.
-        selfdestruct(payable(tx.origin));
-    }
-
-    /**
-     * @notice Assign the given address with the ability to operate the zone.
-     *
-     * @param operatorToAssign The address to assign as the operator.
-     */
-    function assignOperator(address operatorToAssign)
-        external
-        override
-        isController
-    {
-        // Ensure the operator being assigned is not the null address.
-        require(
-            operatorToAssign != address(0),
-            "Operator can not be set to the null address"
-        );
-
-        // Set the given address as the new operator.
-        operator = operatorToAssign;
-
-        // Emit an event indicating the operator has been updated.
-        emit OperatorUpdated(operator);
     }
 }

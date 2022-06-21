@@ -154,7 +154,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     } = await seaportFixture(owner));
   });
 
-  describe("Zone - Global Pausable", async () => {
+  describe("Zone - PausableZone", async () => {
     let seller;
     let sellerContract;
     let buyerContract;
@@ -760,7 +760,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
         marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
           value,
         })
-      ).to.be.reverted;
+      ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
     });
 
     it("Reverts if non-owner tries to self destruct the zone", async () => {

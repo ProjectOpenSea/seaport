@@ -76,4 +76,16 @@ interface PausableZoneEventsAndErrors {
      *      currently deployed.
      */
     error ZoneAlreadyExists(address zone);
+
+    /**
+     * @dev Revert with an error when the caller does not have the _owner role
+     *
+     */
+    error CallerIsNotOwner();
+
+    /**
+     * @dev Revert with an error when the caller does not have the operator role
+     *
+     */
+    error CallerIsNotOperator();
 }

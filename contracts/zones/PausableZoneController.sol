@@ -141,7 +141,8 @@ contract PausableZoneController is
     /**
      * @notice Cancel Seaport orders on a given zone.
      *
-     * @param pausableZoneAddress The zone that manages the orders to be cancelled.
+     * @param pausableZoneAddress The zone that manages the
+     * orders to be cancelled.
      * @param seaportAddress      The Seaport address.
      * @param orders              The orders to cancel.
      */
@@ -166,11 +167,12 @@ contract PausableZoneController is
     /**
      * @notice Execute an arbitrary number of matched orders on a given zone.
      *
-     * @param pausableZoneAddress The zone that manages the orders to be cancelled.
+     * @param pausableZoneAddress The zone that manages the orders
+     * to be cancelled.
      * @param seaportAddress      The Seaport address.
      * @param orders              The orders to match.
-     * @param fulfillments        An array of elements allocating offer components
-     *                            to consideration components.
+     * @param fulfillments        An array of elements allocating offer
+     *                            components to consideration components.
      *
      * @return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
@@ -183,10 +185,9 @@ contract PausableZoneController is
         Fulfillment[] calldata fulfillments
     ) external payable override returns (Execution[] memory executions) {
         // Ensure the caller is the owner.
-        require(
-            msg.sender == _owner,
-            "Only the owner can execute orders with the zone."
-        );
+        if (msg.sender != _owner) {
+            revert CallerIsNotOwner();
+        }
 
         // Create a zone object from the zone address.
         PausableZone zone = PausableZone(pausableZoneAddress);

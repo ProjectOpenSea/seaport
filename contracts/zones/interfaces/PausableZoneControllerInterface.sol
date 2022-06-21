@@ -66,8 +66,8 @@ interface PausableZoneControllerInterface {
      *                            cancelled.
      * @param seaportAddress      The Seaport address.
      * @param orders              The orders to match.
-     * @param fulfillments        An array of elements allocating offer components
-     *                            to consideration components.
+     * @param fulfillments        An array of elements allocating offer
+     *                            components to consideration components.
      *
      * @return executions An array of elements indicating the sequence of
      *                    transfers performed as part of matching the given
