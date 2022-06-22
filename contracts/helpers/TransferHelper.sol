@@ -3,11 +3,6 @@ pragma solidity >=0.8.7;
 
 import "./TransferHelperStructs.sol";
 
-// prettier-ignore
-import {
-    ERC721TokenReceiver
-} from "@rari-capital/solmate/src/tokens/ERC721.sol";
-
 import { TokenTransferrer } from "../lib/TokenTransferrer.sol";
 
 // prettier-ignore
@@ -118,7 +113,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                             // Check if recipient can receive ERC721 tokens
                             try
                                 ERC721TokenReceiver(recipient).onERC721Received(
-                                    msg.sender,
+                                    address(this),
                                     msg.sender,
                                     item.identifier,
                                     ""
@@ -134,10 +129,11 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                                     revert InvalidERC721Recipient();
                                 }
                                 // Revert if recipient cannot accept ERC721 tokens.
-                            } catch {
+                            } catch Error(string memory) {
                                 revert InvalidERC721Recipient();
                             }
                         }
+
                         // Ensure that the amount for an ERC721 transfer is 1.
                         if (item.amount != 1) {
                             revert InvalidERC721TransferAmount();
@@ -182,11 +178,6 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 )
             );
 
-            // Check that a conduit exists at the derived address.
-            if (conduit.codehash != _CONDUIT_RUNTIME_CODE_HASH) {
-                revert ConduitDoesNotExist();
-            }
-
             // Declare a new array to populate with each token transfer.
             ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
                 totalTransfers
@@ -213,10 +204,29 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
             }
 
             // Call the conduit and execute bulk transfers.
-            ConduitInterface(conduit).execute(conduitTransfers);
+            bytes4 conduitMagicValue = ConduitInterface(conduit).execute(
+                conduitTransfers
+            );
+
+            // Revert if the magic value returned by the conduit call does not
+            // equal the expected value.
+            if (
+                conduitMagicValue != ConduitInterface(conduit).execute.selector
+            ) {
+                revert InvalidConduit();
+            }
         }
 
         // Return a magic value indicating that the transfers were performed.
         magicValue = this.bulkTransfer.selector;
     }
+}
+
+interface ERC721TokenReceiver {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external returns (bytes4);
 }

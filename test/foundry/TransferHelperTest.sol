@@ -776,9 +776,7 @@ contract TransferHelperTest is BaseOrderTest {
             alice,
             bob,
             true,
-            abi.encodePacked(
-                TransferHelperInterface.ConduitDoesNotExist.selector
-            )
+            abi.encodePacked(TransferHelperInterface.InvalidConduit.selector)
         );
     }
 }

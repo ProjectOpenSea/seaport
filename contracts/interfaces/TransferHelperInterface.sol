@@ -22,9 +22,10 @@ interface TransferHelperInterface {
     error InvalidERC20Identifier();
 
     /**
-     * @dev Revert with an error when attempting to call a nonexistent conduit.
+     * @dev Revert with an error when a call to a conduit returns an invalid
+     *      magic value.
      */
-    error ConduitDoesNotExist();
+    error InvalidConduit();
 
     /**
      * @notice Transfer multiple items to a single recipient.

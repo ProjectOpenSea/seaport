@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.7;
 
-import { ERC721TokenReceiver } from "@rari-capital/solmate/src/tokens/ERC721.sol";
+interface ERC721TokenReceiver {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external returns (bytes4);
+}
 
 contract InvalidERC721Recipient is ERC721TokenReceiver {
     function onERC721Received(
