@@ -82,6 +82,14 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
 
         // If no conduitKey is given, use TokenTransferrer to perform transfers.
         if (conduitKey == bytes32(0)) {
+            // Create a boolean that reflects whether recipient is a contract.
+            bool recipientIsContract;
+
+            // Check if recipient is a contract.
+            if (recipient.code.length != 0) {
+                recipientIsContract = true;
+            }
+
             // Skip overflow checks: all for loops are indexed starting at zero.
             unchecked {
                 // Iterate over each transfer.
@@ -109,8 +117,8 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                     } else if (item.itemType == ConduitItemType.ERC721) {
                         // If recipient is a contract, ensure it can receive
                         // ERC721 tokens.
-                        if (recipient.code.length != 0) {
-                            // Check if recipient can receive ERC721 tokens
+                        if (recipientIsContract) {
+                            // Check if recipient can receive ERC721 tokens.
                             try
                                 ERC721TokenReceiver(recipient).onERC721Received(
                                     address(this),
@@ -129,11 +137,18 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                                     revert InvalidERC721Recipient();
                                 }
                                 // Revert if recipient cannot accept ERC721 tokens.
-                            } catch Error(string memory) {
-                                revert InvalidERC721Recipient();
+                            } catch (bytes memory data) {
+                                // Bubble up recipient's revert reasons if present.
+                                if (data.length != 0) {
+                                    assembly {
+                                        returndatacopy(0, 0, returndatasize())
+                                        revert(0, returndatasize())
+                                    }
+                                } else {
+                                    revert InvalidERC721Recipient();
+                                }
                             }
                         }
-
                         // Ensure that the amount for an ERC721 transfer is 1.
                         if (item.amount != 1) {
                             revert InvalidERC721TransferAmount();
