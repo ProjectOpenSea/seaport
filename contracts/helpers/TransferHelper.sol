@@ -26,6 +26,15 @@ import {
     TransferHelperInterface
 } from "../interfaces/TransferHelperInterface.sol";
 
+interface ERC721TokenReceiver {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external returns (bytes4);
+}
+
 /**
  * @title TransferHelper
  * @author stuckinaboot, stephankmin
@@ -138,7 +147,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                                 }
                                 // Revert if recipient cannot accept ERC721 tokens.
                             } catch (bytes memory data) {
-                                // Bubble up recipient's revert reasons if present.
+                                // Bubble up recipient's revert reason if present.
                                 if (data.length != 0) {
                                     assembly {
                                         returndatacopy(0, 0, returndatasize())
@@ -218,30 +227,28 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 }
             }
 
-            // Call the conduit and execute bulk transfers.
-            bytes4 conduitMagicValue = ConduitInterface(conduit).execute(
-                conduitTransfers
-            );
-
             // Revert if the magic value returned by the conduit call does not
             // equal the expected value.
-            if (
-                conduitMagicValue != ConduitInterface(conduit).execute.selector
+            try ConduitInterface(conduit).execute(conduitTransfers) returns (
+                bytes4 selector
             ) {
-                revert InvalidConduit();
+                if (selector != ConduitInterface(conduit).execute.selector) {
+                    revert InvalidConduit();
+                }
+            } catch (bytes memory data) {
+                // Bubble up the conduit's revert reason if present.
+                if (data.length != 0) {
+                    assembly {
+                        returndatacopy(0, 0, returndatasize())
+                        revert(0, returndatasize())
+                    }
+                } else {
+                    revert InvalidConduit();
+                }
             }
         }
 
         // Return a magic value indicating that the transfers were performed.
         magicValue = this.bulkTransfer.selector;
     }
-}
-
-interface ERC721TokenReceiver {
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external returns (bytes4);
 }

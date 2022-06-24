@@ -10582,7 +10582,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             recipient.address,
             ethers.utils.formatBytes32String("0xabc")
           )
-      ).to.be.revertedWith("ConduitDoesNotExist");
+      ).to.be.revertedWith("InvalidConduit");
     });
   });
 
