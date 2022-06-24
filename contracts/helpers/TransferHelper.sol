@@ -202,6 +202,21 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 )
             );
 
+            // Create a variable to store the codehash of the conduit.
+            bytes32 codeHash;
+
+            // Retrieve the codehash of the conduit and assign it to codeHash.
+            assembly {
+                codeHash := extcodehash(conduit)
+            }
+
+            // Ensure codeHash equals the immutable conduit runtime codehash
+            // to ensure the conduit implements `execute` for the subsequent
+            // external call.
+            if (codeHash != _CONDUIT_RUNTIME_CODE_HASH) {
+                revert InvalidConduit();
+            }
+
             // Declare a new array to populate with each token transfer.
             ConduitTransfer[] memory conduitTransfers = new ConduitTransfer[](
                 totalTransfers
@@ -227,15 +242,11 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 }
             }
 
-            // Revert if the magic value returned by the conduit call does not
-            // equal the expected value.
-            try ConduitInterface(conduit).execute(conduitTransfers) returns (
-                bytes4 selector
+            // If the external call fails, revert with the conduit's
+            // custom error.
+            try ConduitInterface(conduit).execute(conduitTransfers) {} catch (
+                bytes memory data
             ) {
-                if (selector != ConduitInterface(conduit).execute.selector) {
-                    revert InvalidConduit();
-                }
-            } catch (bytes memory data) {
                 // Bubble up the conduit's revert reason if present.
                 if (data.length != 0) {
                     assembly {
@@ -245,6 +256,12 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                 } else {
                     revert InvalidConduit();
                 }
+                // Revert if the error provides a reason string.
+            } catch Error(string memory reason) {
+                revert InvalidConduit();
+                // Revert if the error was caused by a panic.
+            } catch Panic(uint256 errorCode) {
+                revert InvalidConduit();
             }
         }
 
