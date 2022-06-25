@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { BigNumber, constants, Wallet } from "ethers";
 import { network } from "hardhat";
+
 import {
   ConsiderationInterface,
   TestERC20,
@@ -10,6 +11,7 @@ import { buildResolver, toBN, toKey } from "../utils/encoding";
 import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
 import { getWalletWithEther } from "../utils/impersonate";
 import { AdvancedOrder } from "../utils/types";
+
 const { merkleTree } = require("../utils/criteria");
 
 const IS_FIXED = true;

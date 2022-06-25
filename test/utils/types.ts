@@ -12,6 +12,11 @@ export type FulfillmentComponent = {
   itemIndex: number;
 };
 
+export type Fulfillment = {
+  offerComponents: FulfillmentComponent[];
+  considerationComponents: FulfillmentComponent[];
+};
+
 export type CriteriaResolver = {
   orderIndex: number;
   side: 0 | 1;

@@ -1,5 +1,9 @@
 import { expect } from "chai";
 import { constants, Wallet } from "ethers";
+import { hexZeroPad } from "ethers/lib/utils";
+import { network } from "hardhat";
+import { getScuffedContract } from "scuffed-abi";
+
 import {
   ConsiderationInterface,
   TestERC20,
@@ -9,9 +13,6 @@ import { buildOrderStatus, getBasicOrderParameters } from "../utils/encoding";
 import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
 import { getWalletWithEther } from "../utils/impersonate";
 import { AdvancedOrder, ConsiderationItem } from "../utils/types";
-import { getScuffedContract } from "scuffed-abi";
-import { hexZeroPad } from "ethers/lib/utils";
-import { network } from "hardhat";
 
 const IS_FIXED = true;
 

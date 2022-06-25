@@ -63,8 +63,8 @@
     "profile": "REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
     "coverage": "hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",
     "coverage:ref": "REFERENCE=true hardhat coverage --config ./hardhat-reference-coverage.config.ts --solcoverjs ./config/.solcover-reference.js",
-    "lint:check": "prettier --check **.sol && prettier --check **.js && prettier --check **.ts && hardhat compile --config ./hardhat.config.ts && npx solhint --config ./config/.solhint.json --ignore-path ./config/.solhintignore 'contracts/**/*.sol'",
-    "lint:fix": "prettier --write **.sol && prettier --write **.js && prettier --write **.ts",
+    "lint:check": "prettier --check **.sol && prettier --check **.js && prettier --check **.ts && hardhat compile --config ./hardhat.config.ts && npx solhint --config ./config/.solhint.json --ignore-path ./config/.solhintignore 'contracts/**/*.sol' && eslint **/*.ts",
+    "lint:fix": "prettier --write **.sol && prettier --write **.js && prettier --write **.ts && eslint **/*.ts --fix",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
     "test:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
     "prepare": "husky install"
@@ -109,20 +109,38 @@
       "ecmaVersion": 12
     },
     "rules": {
-      "node/no-unsupported-features/es-syntax": [
+      "import/order": [
         "error",
         {
-          "ignores": [
-            "modules"
-          ]
+          "alphabetize": {
+            "order": "asc"
+          },
+          "groups": [
+            "object",
+            ["builtin", "external"],
+            "parent",
+            "sibling",
+            "index",
+            "type"
+          ],
+          "newlines-between": "always"
         }
       ]
-    }
+    },
+    "overrides": [
+      {
+        "files": ["test/**/*.ts"],
+        "rules": {
+          "no-unused-expressions": "off"
+        }
+      }
+    ]
   },
   "eslintIgnore": [
     "node_modules",
     "artifacts",
     "cache",
-    "coverage"
+    "coverage",
+    "lib/murky"
   ]
 }

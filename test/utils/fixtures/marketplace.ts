@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { constants, Wallet } from "ethers";
 import { keccak256, recoverAddress } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
+
 import {
   ConduitInterface,
   ConduitControllerInterface,
@@ -24,8 +25,8 @@ import {
   OrderComponents,
 } from "../types";
 
-const { orderType } = require("../../../eip-712-types/order");
 const deployConstants = require("../../../constants/constants");
+const { orderType } = require("../../../eip-712-types/order");
 
 const VERSION = !process.env.REFERENCE ? "1.1" : "rc.1.1";
 
@@ -84,7 +85,7 @@ export const marketplaceFixture = async (
   const domainData = {
     name: process.env.REFERENCE ? "Consideration" : "Seaport",
     version: VERSION,
-    chainId: chainId,
+    chainId,
     verifyingContract: marketplaceContract.address,
   };
 

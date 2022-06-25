@@ -1,11 +1,13 @@
 import { randomBytes as nodeRandomBytes } from "crypto";
 import { utils, BigNumber, constants, ContractTransaction } from "ethers";
 import { getAddress, keccak256, toUtf8Bytes } from "ethers/lib/utils";
+
 import {
   BasicOrderParameters,
   BigNumberish,
   ConsiderationItem,
   CriteriaResolver,
+  Fulfillment,
   FulfillmentComponent,
   OfferItem,
   Order,
@@ -80,8 +82,8 @@ export const convertSignatureToEIP2098 = (signature: string) => {
 export const getBasicOrderParameters = (
   basicOrderRouteType: number,
   order: Order,
-  fulfillerConduitKey = false,
-  tips = []
+  fulfillerConduitKey: string | boolean = false,
+  tips: { amount: BigNumber; recipient: string }[] = []
 ): BasicOrderParameters => ({
   offerer: order.parameters.offerer,
   zone: order.parameters.zone,
@@ -189,10 +191,7 @@ export const toFulfillmentComponents = (
 export const toFulfillment = (
   offerArr: number[][],
   considerationsArr: number[][]
-): {
-  offerComponents: FulfillmentComponent[];
-  considerationComponents: FulfillmentComponent[];
-} => ({
+): Fulfillment => ({
   offerComponents: toFulfillmentComponents(offerArr),
   considerationComponents: toFulfillmentComponents(considerationsArr),
 });
@@ -322,8 +321,8 @@ export const getBasicOrderExecutions = (
         amount: offerItem.endAmount,
         recipient: fulfiller,
       },
-      offerer: offerer,
-      conduitKey: conduitKey,
+      offerer,
+      conduitKey,
     },
     {
       item: {

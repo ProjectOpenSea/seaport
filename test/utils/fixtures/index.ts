@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-expressions */
 import { expect } from "chai";
 import {
   BigNumber,
@@ -9,9 +8,11 @@ import {
   Wallet,
 } from "ethers";
 import { ethers } from "hardhat";
+
 import { deployContract } from "../contracts";
 import { toBN } from "../encoding";
 import { AdvancedOrder, CriteriaResolver } from "../types";
+
 import { conduitFixture } from "./conduit";
 import { create2FactoryFixture } from "./create2";
 import { marketplaceFixture } from "./marketplace";
@@ -642,9 +643,9 @@ export const seaportFixture = async (owner: Wallet) => {
             );
 
           expect(transferLogs.length).to.be.above(0);
-          for (const transferLog of transferLogs) {
-            // TODO: check each transferred amount
-          }
+          // TODO: check each transferred amount
+          // for (const transferLog of transferLogs) {
+          // }
         } else if (offer.itemType === 2) {
           // ERC721
           // search for transfer

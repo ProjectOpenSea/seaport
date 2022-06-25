@@ -1,8 +1,9 @@
 /* eslint-disable camelcase */
 import { JsonRpcSigner } from "@ethersproject/providers";
 import { expect } from "chai";
-import { BigNumber, constants, Wallet } from "ethers";
-import { ethers } from "hardhat";
+import { BigNumber, constants, ethers, Wallet } from "ethers";
+import { ethers as hardhatEthers } from "hardhat";
+
 import { TestERC1155, TestERC20, TestERC721 } from "../../../typechain-types";
 import { deployContract } from "../contracts";
 import {
@@ -14,7 +15,7 @@ import {
 } from "../encoding";
 import { whileImpersonating } from "../impersonate";
 
-export const fixtureERC20 = async (signer: JsonRpcSigner) => {
+export const fixtureERC20 = async (signer: JsonRpcSigner | ethers.Wallet) => {
   const testERC20: TestERC20 = await deployContract("TestERC20", signer);
 
   const mintAndApproveERC20 = async (
@@ -47,7 +48,7 @@ export const fixtureERC20 = async (signer: JsonRpcSigner) => {
   };
 };
 
-export const fixtureERC721 = async (signer: JsonRpcSigner) => {
+export const fixtureERC721 = async (signer: JsonRpcSigner | ethers.Wallet) => {
   const testERC721: TestERC721 = await deployContract("TestERC721", signer);
 
   const set721ApprovalForAll = (
@@ -124,7 +125,7 @@ export const fixtureERC721 = async (signer: JsonRpcSigner) => {
   };
 };
 
-export const fixtureERC1155 = async (signer: JsonRpcSigner) => {
+export const fixtureERC1155 = async (signer: JsonRpcSigner | ethers.Wallet) => {
   const testERC1155: TestERC1155 = await deployContract("TestERC1155", signer);
 
   const set1155ApprovalForAll = (
@@ -247,7 +248,7 @@ export const tokensFixture = async (signer: JsonRpcSigner) => {
         // Receiver approves contract to transfer tokens
         await whileImpersonating(
           receiver.address,
-          ethers.provider,
+          hardhatEthers.provider,
           async () => {
             await expect(
               (contract as TestERC20)
