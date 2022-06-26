@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { BigNumber, constants, ethers, utils as ethersUtils } from "ethers";
-import hre, { ethers as hardhatEthers, network } from "hardhat";
+import hre, { ethers, network } from "hardhat";
 
 import { merkleTree } from "./utils/criteria";
 import {
@@ -27,23 +26,25 @@ import {
   whileImpersonating,
   getWalletWithEther,
 } from "./utils/impersonate";
-import { ConsiderationItem, Fulfillment, OfferItem } from "./utils/types";
 
-const { parseEther } = ethersUtils;
+import type { ConsiderationItem, Fulfillment, OfferItem } from "./utils/types";
+import type { BigNumber, Contract, ContractFactory, Wallet } from "ethers";
+
+const { parseEther } = ethers.utils;
 
 describe(`Reverts (Seaport ${VERSION})`, function () {
-  const { provider } = hardhatEthers;
-  let zone: ethers.Wallet;
-  let marketplaceContract: ethers.Contract;
-  let testERC20: ethers.Contract;
-  let testERC721: ethers.Contract;
-  let testERC1155: ethers.Contract;
-  let owner: ethers.Wallet;
+  const { provider } = ethers;
+  let zone: Wallet;
+  let marketplaceContract: Contract;
+  let testERC20: Contract;
+  let testERC721: Contract;
+  let testERC1155: Contract;
+  let owner: Wallet;
   let withBalanceChecks: Function;
-  let EIP1271WalletFactory: ethers.ContractFactory;
-  let reenterer: ethers.Contract;
-  let stubZone: ethers.Contract;
-  let conduitOne: ethers.Contract;
+  let EIP1271WalletFactory: ContractFactory;
+  let reenterer: Contract;
+  let stubZone: Contract;
+  let conduitOne: Contract;
   let conduitKeyOne: string;
   let mintAndApproveERC20: Function;
   let getTestItem20: Function;
@@ -101,10 +102,10 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
     } = await seaportFixture(owner));
   });
 
-  let seller: ethers.Wallet;
-  let buyer: ethers.Wallet;
-  let sellerContract: ethers.Contract;
-  let buyerContract: ethers.Contract;
+  let seller: Wallet;
+  let buyer: Wallet;
+  let sellerContract: Contract;
+  let buyerContract: Contract;
 
   beforeEach(async () => {
     // Setup basic buyer/seller wallets with ETH
@@ -160,8 +161,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -183,8 +184,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -206,8 +207,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -229,8 +230,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -244,7 +245,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -299,8 +300,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -322,8 +323,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -337,7 +338,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -392,8 +393,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -415,8 +416,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -430,7 +431,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -485,8 +486,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -500,7 +501,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -568,8 +569,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -583,7 +584,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -605,8 +606,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -741,8 +742,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -787,8 +788,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -833,8 +834,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -882,8 +883,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -962,12 +963,12 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -1307,13 +1308,13 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
 
       if (!process.env.REFERENCE) {
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
       } else {
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -1328,8 +1329,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             .fulfillAdvancedOrder(
               order,
               [],
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -1342,8 +1343,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             .fulfillAdvancedOrder(
               order,
               [],
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -1403,13 +1404,13 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
 
       if (!process.env.REFERENCE) {
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
       } else {
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -1424,8 +1425,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             .fulfillAdvancedOrder(
               order,
               [],
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -1438,8 +1439,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             .fulfillAdvancedOrder(
               order,
               [],
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -1552,12 +1553,12 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -1630,12 +1631,12 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -1904,7 +1905,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [order],
             offerComponents,
             considerationComponents,
-            toKey(false),
+            toKey(0),
             100,
             {
               value,
@@ -1956,7 +1957,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [order],
             offerComponents,
             considerationComponents,
-            toKey(false),
+            toKey(0),
             100,
             {
               value,
@@ -2011,7 +2012,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [order],
             offerComponents,
             considerationComponents,
-            toKey(false),
+            toKey(0),
             100,
             {
               value,
@@ -2139,8 +2140,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value,
@@ -2192,8 +2193,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value,
@@ -2245,8 +2246,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value,
@@ -2294,8 +2295,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value,
@@ -2344,8 +2345,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value,
@@ -2399,8 +2400,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value,
@@ -2468,7 +2469,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       await withBalanceChecks([orderThree], 0, null, async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillOrder(orderThree, toKey(false), {
+          .fulfillOrder(orderThree, toKey(0), {
             value,
           });
         const receipt = await (await tx).wait();
@@ -2517,8 +2518,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value: value.mul(3),
@@ -2570,8 +2571,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -2588,8 +2589,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -2606,8 +2607,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -2624,8 +2625,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -2639,7 +2640,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -2785,8 +2786,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -2803,8 +2804,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -2822,8 +2823,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -2837,7 +2838,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -2978,8 +2979,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -3047,22 +3048,22 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       // Buyer mints nfts
       const nftId = await mintAndApprove721(buyer, marketplaceContract.address);
 
-      await testERC20Two.mint(seller.address, constants.MaxUint256);
+      await testERC20Two.mint(seller.address, ethers.constants.MaxUint256);
       // Seller approves marketplace contract to transfer NFTs
       await testERC20Two
         .connect(seller)
-        .approve(marketplaceContract.address, constants.MaxUint256);
+        .approve(marketplaceContract.address, ethers.constants.MaxUint256);
 
       const offer = [
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           undefined,
           testERC20Two.address
         ),
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           undefined,
           testERC20Two.address
         ),
@@ -3073,8 +3074,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       const offer2 = [getTestItem721(nftId, 1, 1)];
       const consideration2 = [
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           buyer.address,
           testERC20Two.address
         ),
@@ -3121,22 +3122,22 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       // Buyer mints nfts
       const nftId = await mintAndApprove721(buyer, marketplaceContract.address);
 
-      await testERC20Two.mint(seller.address, constants.MaxUint256);
+      await testERC20Two.mint(seller.address, ethers.constants.MaxUint256);
       // Seller approves marketplace contract to transfer NFTs
       await testERC20Two
         .connect(seller)
-        .approve(marketplaceContract.address, constants.MaxUint256);
+        .approve(marketplaceContract.address, ethers.constants.MaxUint256);
 
       const offer = [
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           undefined,
           testERC20Two.address
         ),
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           undefined,
           testERC20Two.address
         ),
@@ -3148,8 +3149,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       const offer2 = [getTestItem721(nftId, 1, 1)];
       const consideration2 = [
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           buyer.address,
           testERC20Two.address
         ),
@@ -3197,24 +3198,24 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       // Buyer mints nfts
       const nftId = await mintAndApprove721(buyer, marketplaceContract.address);
 
-      await testERC20Two.mint(seller.address, constants.MaxUint256);
+      await testERC20Two.mint(seller.address, ethers.constants.MaxUint256);
       // Seller approves marketplace contract to transfer NFTs
       await testERC20Two
         .connect(seller)
-        .approve(marketplaceContract.address, constants.MaxUint256);
+        .approve(marketplaceContract.address, ethers.constants.MaxUint256);
 
       const offer = [getTestItem721(nftId, 1, 1)];
 
       const consideration = [
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           seller.address,
           testERC20Two.address
         ),
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           seller.address,
           testERC20Two.address
         ),
@@ -3222,8 +3223,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
 
       const offer2 = [
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           undefined,
           testERC20Two.address
         ),
@@ -3274,24 +3275,24 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
         marketplaceContract.address
       );
 
-      await testERC20Two.mint(buyer.address, constants.MaxUint256);
+      await testERC20Two.mint(buyer.address, ethers.constants.MaxUint256);
       // Seller approves marketplace contract to transfer NFTs
       await testERC20Two
         .connect(buyer)
-        .approve(marketplaceContract.address, constants.MaxUint256);
+        .approve(marketplaceContract.address, ethers.constants.MaxUint256);
 
       const offer = [getTestItem721(nftId, 1, 1)];
 
       const consideration = [
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           seller.address,
           testERC20Two.address
         ),
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           seller.address,
           testERC20Two.address
         ),
@@ -3300,8 +3301,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
 
       const offer2 = [
         getTestItem20(
-          constants.MaxUint256,
-          constants.MaxUint256,
+          ethers.constants.MaxUint256,
+          ethers.constants.MaxUint256,
           undefined,
           testERC20Two.address
         ),
@@ -3393,8 +3394,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -3409,8 +3410,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -3424,7 +3425,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -3460,7 +3461,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       );
 
       await expect(
-        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
       ).to.be.revertedWith("InvalidERC721TransferAmount");
@@ -3525,12 +3526,12 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
         [],
         null,
         seller,
-        constants.HashZero,
+        ethers.constants.HashZero,
         conduitKeyOne
       );
 
       await expect(
-        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
       ).to.be.revertedWith("InvalidERC721TransferAmount");
@@ -3564,7 +3565,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       );
 
       await expect(
-        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
       ).to.be.revertedWith("InvalidTime");
@@ -3595,7 +3596,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       );
 
       await expect(
-        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
       ).to.be.revertedWith("InvalidTime");
@@ -3955,8 +3956,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value: toBN(1),
             }
@@ -3975,8 +3976,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value: value.sub(1),
             }
@@ -3996,8 +3997,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value: value.add(1),
             }
@@ -4011,7 +4012,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -4098,12 +4099,12 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -4156,7 +4157,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       }
 
       const recipient = await (
-        await hardhatEthers.getContractFactory("ExcessReturnDataRecipient")
+        await ethers.getContractFactory("ExcessReturnDataRecipient")
       ).deploy();
       const setup = async () => {
         const nftId = await mintAndApprove721(
@@ -4319,8 +4320,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4348,8 +4349,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4363,7 +4364,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -4402,8 +4403,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4429,7 +4430,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
         [],
         null,
         seller,
-        constants.HashZero,
+        ethers.constants.HashZero,
         conduitKeyOne
       );
 
@@ -4439,8 +4440,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4452,7 +4453,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
     if (!process.env.REFERENCE) {
       it("Reverts when 1155 token transfer reverts (via conduit, returndata)", async () => {
         const recipient = await (
-          await hardhatEthers.getContractFactory("ExcessReturnDataRecipient")
+          await ethers.getContractFactory("ExcessReturnDataRecipient")
         ).deploy();
 
         const setup = async () => {
@@ -4502,7 +4503,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [],
             null,
             seller,
-            constants.HashZero,
+            ethers.constants.HashZero,
             conduitKeyOne
           );
 
@@ -4519,7 +4520,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             initialOrder,
             [],
             conduitKeyOne,
-            constants.AddressZero,
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4535,7 +4536,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               [],
               conduitKeyOne,
-              constants.AddressZero,
+              ethers.constants.AddressZero,
               {
                 value,
                 gasLimit: baseGas.add(74000),
@@ -4589,8 +4590,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4646,8 +4647,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4670,8 +4671,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4685,7 +4686,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -4749,8 +4750,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4764,7 +4765,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -4827,7 +4828,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
         [],
         null,
         seller,
-        constants.HashZero,
+        ethers.constants.HashZero,
         conduitKeyOne
       );
 
@@ -4842,7 +4843,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               [],
               conduitKeyOne,
-              constants.AddressZero,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -4860,7 +4861,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
               order,
               [],
               conduitKeyOne,
-              constants.AddressZero,
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -4883,7 +4884,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             order,
             [],
             conduitKeyOne,
-            constants.AddressZero,
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -4955,18 +4956,24 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
         [],
         null,
         seller,
-        constants.HashZero,
+        ethers.constants.HashZero,
         conduitKeyOne
       );
 
-      const badKey = constants.HashZero.slice(0, -1) + "2";
+      const badKey = ethers.constants.HashZero.slice(0, -1) + "2";
 
       await expect(
         marketplaceContract
           .connect(buyer)
-          .fulfillAdvancedOrder(order, [], badKey, constants.AddressZero, {
-            value,
-          })
+          .fulfillAdvancedOrder(
+            order,
+            [],
+            badKey,
+            ethers.constants.AddressZero,
+            {
+              value,
+            }
+          )
       ).to.be.revertedWith("InvalidConduit");
 
       let orderStatus = await marketplaceContract.getOrderStatus(orderHash);
@@ -4982,7 +4989,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             order,
             [],
             conduitKeyOne,
-            constants.AddressZero,
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -5144,12 +5151,12 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -5166,7 +5173,12 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       const offer = [getTestItem1155(nftId, amount, amount, undefined)];
 
       const consideration = [
-        getTestItem20(amount, amount, seller.address, constants.AddressZero),
+        getTestItem20(
+          amount,
+          amount,
+          seller.address,
+          ethers.constants.AddressZero
+        ),
       ];
 
       const { order, value } = await createOrder(
@@ -5183,8 +5195,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -5213,8 +5225,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             { value }
           )
       ).to.be.revertedWith(`NoContract("${buyer.address}")`);
@@ -5222,7 +5234,9 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
     it("Reverts when 1155 account with no code is supplied", async () => {
       const amount = toBN(randomBN(2));
 
-      const offer = [getTestItem1155(0, amount, amount, constants.AddressZero)];
+      const offer = [
+        getTestItem1155(0, amount, amount, ethers.constants.AddressZero),
+      ];
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
@@ -5242,18 +5256,20 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
           )
-      ).to.be.revertedWith(`NoContract("${constants.AddressZero}")`);
+      ).to.be.revertedWith(`NoContract("${ethers.constants.AddressZero}")`);
     });
     it("Reverts when 1155 account with no code is supplied (via conduit)", async () => {
       const amount = toBN(randomBN(2));
 
-      const offer = [getTestItem1155(0, amount, amount, constants.AddressZero)];
+      const offer = [
+        getTestItem1155(0, amount, amount, ethers.constants.AddressZero),
+      ];
 
       const consideration = [
         getItemETH(parseEther("10"), parseEther("10"), seller.address),
@@ -5268,7 +5284,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
         [],
         null,
         seller,
-        constants.HashZero,
+        ethers.constants.HashZero,
         conduitKeyOne
       );
 
@@ -5278,13 +5294,13 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
           )
-      ).to.be.revertedWith(`NoContract("${constants.AddressZero}")`);
+      ).to.be.revertedWith(`NoContract("${ethers.constants.AddressZero}")`);
     });
     it("Reverts when non-token account is supplied as the token", async () => {
       // Seller mints nft
@@ -5318,8 +5334,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -5363,7 +5379,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             order,
             [],
             conduitKeyOne,
-            constants.AddressZero,
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -5400,8 +5416,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             .fulfillAdvancedOrder(
               order,
               [],
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -5418,8 +5434,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             .fulfillAdvancedOrder(
               order,
               [],
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -5461,7 +5477,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
         [],
         null,
         seller,
-        constants.HashZero,
+        ethers.constants.HashZero,
         conduitKeyOne
       );
 
@@ -5501,12 +5517,12 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       const secondAmount = toBN(randomBN(4));
 
       const offer = [
-        getTestItem1155(nftId, amount, amount, constants.AddressZero),
+        getTestItem1155(nftId, amount, amount, ethers.constants.AddressZero),
         getTestItem1155(
           secondNftId,
           secondAmount,
           secondAmount,
-          constants.AddressZero
+          ethers.constants.AddressZero
         ),
       ];
 
@@ -5525,7 +5541,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
         [],
         null,
         seller,
-        constants.HashZero,
+        ethers.constants.HashZero,
         conduitKeyOne
       );
 
@@ -5603,7 +5619,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
 
   describe("Basic Order Calldata", () => {
     let calldata: string | undefined;
-    let value: ethers.BigNumber;
+    let value: BigNumber;
 
     before(async () => {
       // Seller mints nft
@@ -5708,7 +5724,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       // prepare the reentrant call on the reenterer
       const callData = marketplaceContract.interface.encodeFunctionData(
         "fulfillOrder",
-        [order, toKey(false)]
+        [order, toKey(0)]
       );
       const tx = await reenterer.prepare(
         marketplaceContract.address,
@@ -5719,13 +5735,13 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
 
       if (!process.env.REFERENCE) {
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.revertedWith("NoReentrantCalls");
       } else {
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -5738,8 +5754,8 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
     const tokenAmount = minRandom(100);
     let offer: OfferItem[];
     let consideration: ConsiderationItem[];
-    let seller: ethers.Wallet;
-    let buyer: ethers.Wallet;
+    let seller: Wallet;
+    let buyer: Wallet;
 
     before(async () => {
       ethAmount = parseEther("1");
@@ -5762,7 +5778,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       await expect(
         marketplaceContract
           .connect(buyer)
-          .fulfillOrder(order, toKey(false), { value })
+          .fulfillOrder(order, toKey(0), { value })
       ).to.be.revertedWith("InvalidNativeOfferItem");
     });
 
@@ -5778,7 +5794,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
       await expect(
         marketplaceContract
           .connect(buyer)
-          .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+          .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value: ethAmount,
           })
       ).to.be.revertedWith("InvalidNativeOfferItem");
@@ -5800,7 +5816,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [order],
             [[[0, 0]]],
             [[[0, 0]]],
-            toKey(false),
+            toKey(0),
             100,
             { value: ethAmount }
           )
@@ -5824,7 +5840,7 @@ describe(`Reverts (Seaport ${VERSION})`, function () {
             [],
             [[[0, 0]]],
             [[[0, 0]]],
-            toKey(false),
+            toKey(0),
             buyer.address,
             100,
             { value: ethAmount }

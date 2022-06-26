@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { ethers, utils as ethersUtils } from "ethers";
-import { ethers as hardhatEthers, network } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import {
   randomHex,
@@ -13,13 +12,15 @@ import { seaportFixture } from "./utils/fixtures";
 import { VERSION, getCustomRevertSelector } from "./utils/helpers";
 import { faucet } from "./utils/impersonate";
 
-const { parseEther } = ethersUtils;
+import type { Contract, Wallet } from "ethers";
+
+const { parseEther } = ethers.utils;
 
 describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, function () {
-  const { provider } = hardhatEthers;
-  let zone: ethers.Wallet;
-  let marketplaceContract: ethers.Contract;
-  let owner: ethers.Wallet;
+  const { provider } = ethers;
+  let zone: Wallet;
+  let marketplaceContract: Contract;
+  let owner: Wallet;
   let withBalanceChecks: Function;
   let mintAndApprove721: Function;
   let getTestItem721: Function;
@@ -47,8 +48,8 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
     } = await seaportFixture(owner));
   });
 
-  let seller: ethers.Wallet;
-  let buyer: ethers.Wallet;
+  let seller: Wallet;
+  let buyer: Wallet;
 
   beforeEach(async () => {
     // Setup basic buyer/seller wallets with ETH
@@ -101,14 +102,14 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
         let tx = await marketplaceContract
           .connect(buyer)
-          .populateTransaction.fulfillOrder(order, toKey(false), {
+          .populateTransaction.fulfillOrder(order, toKey(0), {
             value,
           });
         let returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
 
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -119,14 +120,14 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
         tx = await marketplaceContract
           .connect(owner)
-          .populateTransaction.fulfillOrder(order, toKey(false), {
+          .populateTransaction.fulfillOrder(order, toKey(0), {
             value,
           });
         returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
       } else {
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -153,7 +154,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       await withBalanceChecks([order], 0, null, async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillOrder(order, toKey(false), {
+          .fulfillOrder(order, toKey(0), {
             value,
           });
         const receipt = await (await tx).wait();
@@ -162,7 +163,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
             order,
             orderHash,
             fulfiller: buyer.address,
-            fulfillerConduitKey: toKey(false),
+            fulfillerConduitKey: toKey(0),
           },
         ]);
 
@@ -216,14 +217,14 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
         let tx = await marketplaceContract
           .connect(buyer)
-          .populateTransaction.fulfillOrder(order, toKey(false), {
+          .populateTransaction.fulfillOrder(order, toKey(0), {
             value,
           });
         let returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
 
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -240,7 +241,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       } else {
         // cannot fill it with no signature yet
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -263,7 +264,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       await withBalanceChecks([order], 0, null, async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillOrder(order, toKey(false), {
+          .fulfillOrder(order, toKey(0), {
             value,
           });
         const receipt = await (await tx).wait();
@@ -272,7 +273,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
             order,
             orderHash,
             fulfiller: buyer.address,
-            fulfillerConduitKey: toKey(false),
+            fulfillerConduitKey: toKey(0),
           },
         ]);
 
@@ -320,14 +321,14 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
         let tx = await marketplaceContract
           .connect(buyer)
-          .populateTransaction.fulfillOrder(order, toKey(false), {
+          .populateTransaction.fulfillOrder(order, toKey(0), {
             value,
           });
         let returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
 
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -344,7 +345,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       } else {
         // cannot fill it with no signature yet
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -420,7 +421,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
       // cannot fill the order anymore
       await expect(
-        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
       ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
@@ -480,7 +481,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
       // cannot fill the order anymore
       await expect(
-        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
       ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
@@ -530,7 +531,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
       // cannot fill the order anymore
       await expect(
-        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
       ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
@@ -590,7 +591,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
       // cannot fill the order anymore
       await expect(
-        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
           value,
         })
       ).to.be.revertedWith(`OrderIsCancelled("${orderHash}")`);
@@ -644,21 +645,21 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
         const tx = await marketplaceContract
           .connect(buyer)
-          .populateTransaction.fulfillOrder(order, toKey(false), {
+          .populateTransaction.fulfillOrder(order, toKey(0), {
             value,
           });
         const returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
 
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
       } else {
         // Cannot fill order anymore
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -683,7 +684,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       await withBalanceChecks([order], 0, null, async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillOrder(order, toKey(false), {
+          .fulfillOrder(order, toKey(0), {
             value,
           });
         const receipt = await (await tx).wait();
@@ -692,7 +693,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
             order,
             orderHash,
             fulfiller: buyer.address,
-            fulfillerConduitKey: toKey(false),
+            fulfillerConduitKey: toKey(0),
           },
         ]);
 
@@ -744,21 +745,21 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
         const tx = await marketplaceContract
           .connect(buyer)
-          .populateTransaction.fulfillOrder(order, toKey(false), {
+          .populateTransaction.fulfillOrder(order, toKey(0), {
             value,
           });
         const returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
 
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
       } else {
         // Cannot fill order anymore
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -783,7 +784,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       await withBalanceChecks([order], 0, null, async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillOrder(order, toKey(false), {
+          .fulfillOrder(order, toKey(0), {
             value,
           });
         const receipt = await (await tx).wait();
@@ -792,7 +793,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
             order,
             orderHash,
             fulfiller: buyer.address,
-            fulfillerConduitKey: toKey(false),
+            fulfillerConduitKey: toKey(0),
           },
         ]);
 
@@ -844,21 +845,21 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
         const tx = await marketplaceContract
           .connect(buyer)
-          .populateTransaction.fulfillOrder(order, toKey(false), {
+          .populateTransaction.fulfillOrder(order, toKey(0), {
             value,
           });
         const returnData = await provider.call(tx);
         expect(returnData).to.equal(expectedRevertReason);
 
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
       } else {
         // Cannot fill order anymore
         await expect(
-          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(false), {
+          marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
             value,
           })
         ).to.be.reverted;
@@ -883,7 +884,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       await withBalanceChecks([order], 0, null, async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillOrder(order, toKey(false), {
+          .fulfillOrder(order, toKey(0), {
             value,
           });
         const receipt = await (await tx).wait();
@@ -892,7 +893,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
             order,
             orderHash,
             fulfiller: buyer.address,
-            fulfillerConduitKey: toKey(false),
+            fulfillerConduitKey: toKey(0),
           },
         ]);
 

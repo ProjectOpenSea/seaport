@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { ethers, constants, utils as ethersUtils } from "ethers";
-import { ethers as hardhatEthers, network } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import { deployContract } from "./utils/contracts";
 import {
@@ -21,23 +20,25 @@ import { seaportFixture } from "./utils/fixtures";
 import { VERSION, minRandom, simulateMatchOrders } from "./utils/helpers";
 import { faucet, whileImpersonating } from "./utils/impersonate";
 
-const { parseEther, keccak256 } = ethersUtils;
+import type { Contract, ContractFactory, Wallet } from "ethers";
+
+const { parseEther, keccak256 } = ethers.utils;
 
 /**
  * Buy now or accept offer for a single ERC721 or ERC1155 in exchange for
  * ETH, WETH or ERC20
  */
 describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function () {
-  const { provider } = hardhatEthers;
-  let zone: ethers.Wallet;
-  let marketplaceContract: ethers.Contract;
-  let testERC20: ethers.Contract;
-  let testERC721: ethers.Contract;
-  let owner: ethers.Wallet;
+  const { provider } = ethers;
+  let zone: Wallet;
+  let marketplaceContract: Contract;
+  let testERC20: Contract;
+  let testERC721: Contract;
+  let owner: Wallet;
   let withBalanceChecks: Function;
-  let EIP1271WalletFactory: ethers.ContractFactory;
-  let stubZone: ethers.Contract;
-  let conduitOne: ethers.Contract;
+  let EIP1271WalletFactory: ContractFactory;
+  let stubZone: Contract;
+  let conduitOne: Contract;
   let conduitKeyOne: string;
   let mintAndApproveERC20: Function;
   let getTestItem20: Function;
@@ -87,10 +88,10 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
     } = await seaportFixture(owner));
   });
 
-  let seller: ethers.Wallet;
-  let sellerContract: ethers.Contract;
-  let buyerContract: ethers.Contract;
-  let buyer: ethers.Wallet;
+  let seller: Wallet;
+  let sellerContract: Contract;
+  let buyerContract: Contract;
+  let buyer: Wallet;
 
   beforeEach(async () => {
     // Setup basic buyer/seller wallets with ETH
@@ -133,7 +134,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false), {
+            .fulfillOrder(order, toKey(0), {
               value,
             });
           const receipt = await (await tx).wait();
@@ -167,14 +168,14 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false), {
+            .fulfillOrder(order, toKey(0), {
               value,
             });
           const receipt = await (await tx).wait();
@@ -183,7 +184,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -219,7 +220,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false), {
+            .fulfillOrder(order, toKey(0), {
               value: value.add(parseEther("1")),
             });
           const receipt = await (await tx).wait();
@@ -259,7 +260,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false), {
+            .fulfillOrder(order, toKey(0), {
               value,
             });
           const receipt = await (await tx).wait();
@@ -268,7 +269,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -305,8 +306,8 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             .fulfillAdvancedOrder(
               order,
               [],
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -349,7 +350,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillAdvancedOrder(order, [], toKey(false), owner.address, {
+            .fulfillAdvancedOrder(order, [], toKey(0), owner.address, {
               value,
             });
           const receipt = await (await tx).wait();
@@ -422,15 +423,15 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
 
         const { order, orderHash, value } = await createOrder(
           seller,
-          constants.AddressZero,
+          ethers.constants.AddressZero,
           offer,
           consideration,
           0, // FULL_OPEN
           [],
           null,
           seller,
-          constants.HashZero,
-          constants.HashZero,
+          ethers.constants.HashZero,
+          ethers.constants.HashZero,
           true // extraCheap
         );
 
@@ -470,22 +471,22 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
 
         const { order, orderHash, value } = await createOrder(
           seller,
-          constants.AddressZero,
+          ethers.constants.AddressZero,
           offer,
           consideration,
           0, // FULL_OPEN
           [],
           null,
           seller,
-          constants.HashZero,
-          constants.HashZero,
+          ethers.constants.HashZero,
+          ethers.constants.HashZero,
           true // extraCheap
         );
 
         // Validate the order from any account
         await expect(marketplaceContract.connect(owner).validate([order]))
           .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, constants.AddressZero);
+          .withArgs(orderHash, seller.address, ethers.constants.AddressZero);
 
         const basicOrderParameters = getBasicOrderParameters(
           0, // EthForERC721
@@ -523,22 +524,22 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
 
         const { order, orderHash, value } = await createOrder(
           seller,
-          constants.AddressZero,
+          ethers.constants.AddressZero,
           offer,
           consideration,
           0, // FULL_OPEN
           [],
           null,
           seller,
-          constants.HashZero,
-          constants.HashZero,
+          ethers.constants.HashZero,
+          ethers.constants.HashZero,
           true // extraCheap
         );
 
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false), {
+            .fulfillOrder(order, toKey(0), {
               value,
             });
           const receipt = await (await tx).wait();
@@ -547,7 +548,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -564,32 +565,32 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         const offer = [getTestItem721(nftId)];
 
         const consideration = [
-          getItemETH(toBN(1), toBN(1), constants.AddressZero),
+          getItemETH(toBN(1), toBN(1), ethers.constants.AddressZero),
         ];
 
         const { order, orderHash, value } = await createOrder(
           seller,
-          constants.AddressZero,
+          ethers.constants.AddressZero,
           offer,
           consideration,
           0, // FULL_OPEN
           [],
           null,
           seller,
-          constants.HashZero,
-          constants.HashZero,
+          ethers.constants.HashZero,
+          ethers.constants.HashZero,
           true // extraCheap
         );
 
         // Validate the order from any account
         await expect(marketplaceContract.connect(owner).validate([order]))
           .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, constants.AddressZero);
+          .withArgs(orderHash, seller.address, ethers.constants.AddressZero);
 
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false), {
+            .fulfillOrder(order, toKey(0), {
               value,
             });
           const receipt = await (await tx).wait();
@@ -598,7 +599,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -618,15 +619,15 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
 
         const { order, orderHash, value } = await createOrder(
           seller,
-          constants.AddressZero,
+          ethers.constants.AddressZero,
           offer,
           consideration,
           0, // FULL_OPEN
           [],
           null,
           seller,
-          constants.HashZero,
-          constants.HashZero,
+          ethers.constants.HashZero,
+          ethers.constants.HashZero,
           true // extraCheap
         );
 
@@ -636,8 +637,8 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             .fulfillAdvancedOrder(
               order,
               [],
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -667,22 +668,22 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
 
         const { order, orderHash, value } = await createOrder(
           seller,
-          constants.AddressZero,
+          ethers.constants.AddressZero,
           offer,
           consideration,
           0, // FULL_OPEN
           [],
           null,
           seller,
-          constants.HashZero,
-          constants.HashZero,
+          ethers.constants.HashZero,
+          ethers.constants.HashZero,
           true // extraCheap
         );
 
         // Validate the order from any account
         await expect(marketplaceContract.connect(owner).validate([order]))
           .to.emit(marketplaceContract, "OrderValidated")
-          .withArgs(orderHash, seller.address, constants.AddressZero);
+          .withArgs(orderHash, seller.address, ethers.constants.AddressZero);
 
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
@@ -690,8 +691,8 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             .fulfillAdvancedOrder(
               order,
               [],
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -812,7 +813,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
@@ -905,7 +906,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         const consideration = [
           {
             itemType: 0, // ETH
-            token: constants.AddressZero,
+            token: ethers.constants.AddressZero,
             identifierOrCriteria: 0, // ignored for ETH
             startAmount: ethers.utils.parseEther("10"),
             endAmount: ethers.utils.parseEther("10"),
@@ -913,7 +914,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           },
           {
             itemType: 0, // ETH
-            token: constants.AddressZero,
+            token: ethers.constants.AddressZero,
             identifierOrCriteria: 0, // ignored for ETH
             startAmount: ethers.utils.parseEther("1"),
             endAmount: ethers.utils.parseEther("1"),
@@ -921,7 +922,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           },
           {
             itemType: 0, // ETH
-            token: constants.AddressZero,
+            token: ethers.constants.AddressZero,
             identifierOrCriteria: 0, // ignored for ETH
             startAmount: ethers.utils.parseEther("1"),
             endAmount: ethers.utils.parseEther("1"),
@@ -1153,12 +1154,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -1185,7 +1186,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
@@ -1220,12 +1221,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -1285,12 +1286,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -1334,14 +1335,14 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false));
+            .fulfillOrder(order, toKey(0));
           const receipt = await (await tx).wait();
           await checkExpectedEvents(tx, receipt, [
             {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
           return receipt;
@@ -1379,21 +1380,21 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false));
+            .fulfillOrder(order, toKey(0));
           const receipt = await (await tx).wait();
           await checkExpectedEvents(tx, receipt, [
             {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -1487,7 +1488,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
@@ -1896,12 +1897,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -1940,7 +1941,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
@@ -1973,12 +1974,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -2033,14 +2034,14 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false));
+            .fulfillOrder(order, toKey(0));
           const receipt = await (await tx).wait();
           await checkExpectedEvents(tx, receipt, [
             {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -2086,21 +2087,21 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false));
+            .fulfillOrder(order, toKey(0));
           const receipt = await (await tx).wait();
           await checkExpectedEvents(tx, receipt, [
             {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -2256,7 +2257,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
@@ -2408,12 +2409,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -2487,12 +2488,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -2530,7 +2531,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false), {
+            .fulfillOrder(order, toKey(0), {
               value,
             });
           const receipt = await (await tx).wait();
@@ -2539,7 +2540,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -2570,14 +2571,14 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false), {
+            .fulfillOrder(order, toKey(0), {
               value,
             });
           const receipt = await (await tx).wait();
@@ -2586,7 +2587,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -2663,7 +2664,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
@@ -2744,12 +2745,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -2780,7 +2781,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
@@ -2815,12 +2816,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -2865,14 +2866,14 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false));
+            .fulfillOrder(order, toKey(0));
           const receipt = await (await tx).wait();
           await checkExpectedEvents(tx, receipt, [
             {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -2915,21 +2916,21 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false));
+            .fulfillOrder(order, toKey(0));
           const receipt = await (await tx).wait();
           await checkExpectedEvents(tx, receipt, [
             {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -3033,7 +3034,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
@@ -3119,12 +3120,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -3167,7 +3168,7 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
           [],
           null,
           seller,
-          constants.HashZero,
+          ethers.constants.HashZero,
           conduitKeyOne
         );
 
@@ -3200,12 +3201,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -3260,14 +3261,14 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
         await withBalanceChecks([order], 0, null, async () => {
           const tx = marketplaceContract
             .connect(buyer)
-            .fulfillOrder(order, toKey(false));
+            .fulfillOrder(order, toKey(0));
           const receipt = await (await tx).wait();
           await checkExpectedEvents(tx, receipt, [
             {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ]);
 
@@ -3518,12 +3519,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -3597,12 +3598,12 @@ describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function ()
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions

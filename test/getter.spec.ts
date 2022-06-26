@@ -1,20 +1,21 @@
 import { expect } from "chai";
-import { ethers, utils as ethersUtils } from "ethers";
-import { ethers as hardhatEthers, network } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import { randomHex } from "./utils/encoding";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
 import { faucet } from "./utils/impersonate";
 
-const { keccak256, toUtf8Bytes } = ethersUtils;
+import type { Contract, Wallet } from "ethers";
+
+const { keccak256, toUtf8Bytes } = ethers.utils;
 
 describe(`Getter tests (Seaport ${VERSION})`, function () {
-  const { provider } = hardhatEthers;
-  let marketplaceContract: ethers.Contract;
-  let owner: ethers.Wallet;
-  let conduitController: ethers.Contract;
-  let directMarketplaceContract: ethers.Contract;
+  const { provider } = ethers;
+  let marketplaceContract: Contract;
+  let owner: Wallet;
+  let conduitController: Contract;
+  let directMarketplaceContract: Contract;
 
   after(async () => {
     await network.provider.request({

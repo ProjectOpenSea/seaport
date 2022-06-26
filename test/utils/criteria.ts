@@ -1,6 +1,6 @@
-import { ethers, utils as ethersUtils } from "ethers";
+import { ethers } from "ethers";
 
-const { keccak256 } = ethersUtils;
+const { keccak256 } = ethers.utils;
 
 type BufferElementPositionIndex = { [key: string]: number };
 

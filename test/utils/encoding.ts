@@ -1,10 +1,9 @@
 import { randomBytes as nodeRandomBytes } from "crypto";
-import { utils, BigNumber, constants, ContractTransaction } from "ethers";
+import { utils, BigNumber, constants } from "ethers";
 import { getAddress, keccak256, toUtf8Bytes } from "ethers/lib/utils";
 
-import {
+import type {
   BasicOrderParameters,
-  BigNumberish,
   ConsiderationItem,
   CriteriaResolver,
   Fulfillment,
@@ -13,8 +12,7 @@ import {
   Order,
   OrderComponents,
 } from "./types";
-
-export { BigNumberish };
+import type { BigNumberish, ContractTransaction } from "ethers";
 
 const SeededRNG = require("./seeded-rng");
 
@@ -42,8 +40,8 @@ export const toHex = (n: BigNumberish, numBytes: number = 0) => {
     : typeof n === "string"
     ? hexRegex.test(n)
       ? n.replace(/0x/, "")
-      : (+n).toString(16)
-    : (+n).toString(16);
+      : Number(n).toString(16)
+    : Number(n).toString(16);
   return `0x${asHexString.padStart(numBytes * 2, "0")}`;
 };
 
@@ -104,7 +102,9 @@ export const getBasicOrderParameters = (
   ),
   signature: order.signature,
   offererConduitKey: order.parameters.conduitKey,
-  fulfillerConduitKey: toKey(fulfillerConduitKey),
+  fulfillerConduitKey: toKey(
+    typeof fulfillerConduitKey === "string" ? fulfillerConduitKey : 0
+  ),
   additionalRecipients: [
     ...order.parameters.consideration
       .slice(1)

@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { constants, ethers, utils as ethersUtils } from "ethers";
-import { ethers as hardhatEthers, network } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import { merkleTree } from "./utils/criteria";
 import {
@@ -25,21 +24,23 @@ import {
   simulateAdvancedMatchOrders,
 } from "./utils/helpers";
 import { faucet, whileImpersonating } from "./utils/impersonate";
-import { AdvancedOrder, ConsiderationItem } from "./utils/types";
 
-const { parseEther } = ethersUtils;
+import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
+import type { Contract, Wallet } from "ethers";
+
+const { parseEther } = ethers.utils;
 
 describe(`Advanced orders (Seaport ${VERSION})`, function () {
-  const { provider } = hardhatEthers;
-  let zone: ethers.Wallet;
-  let marketplaceContract: ethers.Contract;
-  let testERC20: ethers.Contract;
-  let testERC721: ethers.Contract;
-  let testERC1155: ethers.Contract;
-  let testERC1155Two: ethers.Contract;
-  let owner: ethers.Wallet;
+  const { provider } = ethers;
+  let zone: Wallet;
+  let marketplaceContract: Contract;
+  let testERC20: Contract;
+  let testERC721: Contract;
+  let testERC1155: Contract;
+  let testERC1155Two: Contract;
+  let owner: Wallet;
   let withBalanceChecks: Function;
-  let conduitOne: ethers.Contract;
+  let conduitOne: Contract;
   let conduitKeyOne: string;
   let mintAndApproveERC20: Function;
   let getTestItem20: Function;
@@ -99,8 +100,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
     } = await seaportFixture(owner));
   });
 
-  let seller: ethers.Wallet;
-  let buyer: ethers.Wallet;
+  let seller: Wallet;
+  let buyer: Wallet;
 
   beforeEach(async () => {
     // Setup basic buyer/seller wallets with ETH
@@ -152,8 +153,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -167,7 +168,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -192,8 +193,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -207,7 +208,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -258,8 +259,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -326,8 +327,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -341,7 +342,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -366,8 +367,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -381,7 +382,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -432,8 +433,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -527,7 +528,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -540,7 +541,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order: mirrorObject.mirrorOrder,
             orderHash: mirrorObject.mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -582,12 +583,12 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: mirrorObject.mirrorOrder,
             orderHash: mirrorObject.mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -630,12 +631,12 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: mirrorObject.mirrorOrder,
             orderHash: mirrorObject.mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -692,7 +693,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       await withBalanceChecks([order], 0, [], async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+          .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           });
         const receipt = await (await tx).wait();
@@ -704,7 +705,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -725,7 +726,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
 
       await marketplaceContract
         .connect(buyer)
-        .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+        .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
           value,
         });
 
@@ -780,7 +781,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       await withBalanceChecks([order], 0, [], async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+          .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           });
         const receipt = await (await tx).wait();
@@ -792,7 +793,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -814,7 +815,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       await expect(
         marketplaceContract
           .connect(buyer)
-          .fulfillAdvancedOrder(order, [], toKey(false), buyer.address, {
+          .fulfillAdvancedOrder(order, [], toKey(0), buyer.address, {
             value,
           })
       ).to.be.revertedWith(
@@ -862,8 +863,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -877,7 +878,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -923,8 +924,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -938,7 +939,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -962,7 +963,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       await set721ApprovalForAll(seller, marketplaceContract.address, true);
 
       const offer = [
-        getTestItem721WithCriteria(constants.HashZero, toBN(1), toBN(1)),
+        getTestItem721WithCriteria(ethers.constants.HashZero, toBN(1), toBN(1)),
       ];
 
       const consideration = [
@@ -988,8 +989,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             criteriaResolvers,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -1003,7 +1004,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -1098,7 +1099,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions,
@@ -1112,7 +1113,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -1197,7 +1198,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions,
@@ -1211,7 +1212,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -1233,7 +1234,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       await set721ApprovalForAll(seller, marketplaceContract.address, true);
 
       const offer = [
-        getTestItem721WithCriteria(constants.HashZero, toBN(1), toBN(1)),
+        getTestItem721WithCriteria(ethers.constants.HashZero, toBN(1), toBN(1)),
       ];
 
       const consideration = [
@@ -1300,7 +1301,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions,
@@ -1314,7 +1315,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -1373,8 +1374,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             .fulfillAdvancedOrder(
               order,
               criteriaResolvers,
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -1388,7 +1389,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 order,
                 orderHash,
                 fulfiller: buyer.address,
-                fulfillerConduitKey: toKey(false),
+                fulfillerConduitKey: toKey(0),
               },
             ],
             null,
@@ -1442,8 +1443,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             .fulfillAdvancedOrder(
               order,
               criteriaResolvers,
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -1457,7 +1458,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 order,
                 orderHash,
                 fulfiller: buyer.address,
-                fulfillerConduitKey: toKey(false),
+                fulfillerConduitKey: toKey(0),
               },
             ],
             null,
@@ -1481,7 +1482,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
 
       const consideration = [
         getTestItem721WithCriteria(
-          constants.HashZero,
+          ethers.constants.HashZero,
           toBN(1),
           toBN(1),
           seller.address
@@ -1509,8 +1510,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             .fulfillAdvancedOrder(
               order,
               criteriaResolvers,
-              toKey(false),
-              constants.AddressZero,
+              toKey(0),
+              ethers.constants.AddressZero,
               {
                 value,
               }
@@ -1524,7 +1525,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 order,
                 orderHash,
                 fulfiller: buyer.address,
-                fulfillerConduitKey: toKey(false),
+                fulfillerConduitKey: toKey(0),
               },
             ],
             null,
@@ -1630,7 +1631,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions,
@@ -1644,7 +1645,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -1746,7 +1747,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions,
@@ -1760,7 +1761,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -1809,8 +1810,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -1824,7 +1825,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -1901,8 +1902,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           .fulfillAdvancedOrder(
             order,
             [],
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             {
               value,
             }
@@ -1916,7 +1917,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               order,
               orderHash,
               fulfiller: buyer.address,
-              fulfillerConduitKey: toKey(false),
+              fulfillerConduitKey: toKey(0),
             },
           ],
           null,
@@ -1996,12 +1997,12 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order,
             orderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: mirrorOrder,
             orderHash: mirrorOrderHash,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -2146,7 +2147,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order: orderOne,
             orderHash: orderHashOne,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -2159,7 +2160,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order: orderTwo,
             orderHash: orderHashTwo,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -2171,7 +2172,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order: orderThree,
             orderHash: orderHashThree,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -2289,17 +2290,17 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order: orderOne,
             orderHash: orderHashOne,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: orderTwo,
             orderHash: orderHashTwo,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: orderThree,
             orderHash: orderHashThree,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions
@@ -2419,17 +2420,17 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           {
             order: orderOne,
             orderHash: orderHashOne,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: orderTwo,
             orderHash: orderHashTwo,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
           {
             order: orderThree,
             orderHash: orderHashThree,
-            fulfiller: constants.AddressZero,
+            fulfiller: ethers.constants.AddressZero,
           },
         ],
         executions,
@@ -2548,17 +2549,17 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order: orderOne,
               orderHash: orderHashOne,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: orderTwo,
               orderHash: orderHashTwo,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: orderThree,
               orderHash: orderHashThree,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions,
@@ -2641,12 +2642,12 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -2728,12 +2729,12 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -2769,7 +2770,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         [],
         null,
         seller,
-        constants.HashZero,
+        ethers.constants.HashZero,
         conduitKeyOne
       );
 
@@ -2813,12 +2814,12 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -2877,12 +2878,12 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -2952,12 +2953,12 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             {
               order,
               orderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
             {
               order: mirrorOrder,
               orderHash: mirrorOrderHash,
-              fulfiller: constants.AddressZero,
+              fulfiller: ethers.constants.AddressZero,
             },
           ],
           executions
@@ -3248,7 +3249,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             [order],
             offerComponents,
             considerationComponents,
-            toKey(false),
+            toKey(0),
             100,
             {
               value,
@@ -3302,8 +3303,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value,
@@ -3355,7 +3356,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
+            toKey(0),
             owner.address,
             100,
             {
@@ -3447,7 +3448,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 [orderOne, orderTwo],
                 offerComponents,
                 considerationComponents,
-                toKey(false),
+                toKey(0),
                 100,
                 {
                   value: value.mul(2),
@@ -3553,8 +3554,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 [],
                 offerComponents,
                 considerationComponents,
-                toKey(false),
-                constants.AddressZero,
+                toKey(0),
+                ethers.constants.AddressZero,
                 100,
                 {
                   value: value.mul(2),
@@ -3659,7 +3660,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 [orderOne, orderTwo],
                 offerComponents,
                 considerationComponents,
-                toKey(false),
+                toKey(0),
                 1,
                 {
                   value: value.mul(2),
@@ -3671,7 +3672,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 [orderOne, orderTwo],
                 offerComponents,
                 considerationComponents,
-                toKey(false),
+                toKey(0),
                 1,
                 {
                   value: value.mul(2),
@@ -3770,8 +3771,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 [],
                 offerComponents,
                 considerationComponents,
-                toKey(false),
-                constants.AddressZero,
+                toKey(0),
+                ethers.constants.AddressZero,
                 1,
                 {
                   value: value.mul(2),
@@ -3874,7 +3875,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       await withBalanceChecks([orderFour], 0, null, async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillOrder(orderFour, toKey(false), {
+          .fulfillOrder(orderFour, toKey(0), {
             value,
           });
         const receipt = await (await tx).wait();
@@ -3926,7 +3927,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             [orderOne, orderTwo, orderThree, orderFour],
             offerComponents,
             considerationComponents,
-            toKey(false),
+            toKey(0),
             100,
             {
               value: value.mul(4),
@@ -4018,7 +4019,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       await withBalanceChecks([orderFour], 0, null, async () => {
         const tx = marketplaceContract
           .connect(buyer)
-          .fulfillOrder(orderFour, toKey(false), {
+          .fulfillOrder(orderFour, toKey(0), {
             value,
           });
         const receipt = await (await tx).wait();
@@ -4071,8 +4072,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             [],
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value: value.mul(4),
@@ -4180,8 +4181,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
             criteriaResolvers,
             offerComponents,
             considerationComponents,
-            toKey(false),
-            constants.AddressZero,
+            toKey(0),
+            ethers.constants.AddressZero,
             100,
             {
               value: value.mul(2),

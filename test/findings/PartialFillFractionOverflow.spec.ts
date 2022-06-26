@@ -1,16 +1,19 @@
 import { expect } from "chai";
-import { constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { network } from "hardhat";
 
-import {
+import { buildOrderStatus, toBN, toKey } from "../utils/encoding";
+import { seaportFixture } from "../utils/fixtures";
+import { getWalletWithEther } from "../utils/impersonate";
+
+import type {
   ConsiderationInterface,
   TestERC1155,
   TestERC20,
 } from "../../typechain-types";
-import { buildOrderStatus, toBN, toKey } from "../utils/encoding";
-import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
-import { getWalletWithEther } from "../utils/impersonate";
-import { AdvancedOrder, ConsiderationItem } from "../utils/types";
+import type { SeaportFixtures } from "../utils/fixtures";
+import type { AdvancedOrder, ConsiderationItem } from "../utils/types";
+import type { Wallet } from "ethers";
 
 const IS_FIXED = true;
 
@@ -108,7 +111,7 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
       order.denominator = 2;
       await marketplaceContract
         .connect(bob)
-        .fulfillAdvancedOrder(order, [], toKey(false), bob.address);
+        .fulfillAdvancedOrder(order, [], toKey(0), bob.address);
       expect(await testERC1155.balanceOf(bob.address, 1)).to.eq(1);
     });
 
@@ -123,7 +126,7 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
       order.denominator = toBN(2).pow(119);
       await marketplaceContract
         .connect(carol)
-        .fulfillAdvancedOrder(order, [], toKey(false), carol.address);
+        .fulfillAdvancedOrder(order, [], toKey(0), carol.address);
     });
 
     it("Carol receives one 1155 token from Alice", async () => {
@@ -150,12 +153,12 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
           order.denominator = toBN(2).pow(2);
           await marketplaceContract
             .connect(carol)
-            .fulfillAdvancedOrder(order, [], toKey(false), carol.address);
+            .fulfillAdvancedOrder(order, [], toKey(0), carol.address);
           order.numerator = toBN(2).pow(118);
           order.denominator = toBN(2).pow(119);
           await marketplaceContract
             .connect(carol)
-            .fulfillAdvancedOrder(order, [], toKey(false), carol.address);
+            .fulfillAdvancedOrder(order, [], toKey(0), carol.address);
         }
       });
 

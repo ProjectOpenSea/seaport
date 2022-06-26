@@ -1,15 +1,8 @@
 import { expect } from "chai";
-import { constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { keccak256, recoverAddress } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
 
-import {
-  ConduitInterface,
-  ConduitControllerInterface,
-  ImmutableCreate2FactoryInterface,
-  ConsiderationInterface,
-  TestZone,
-} from "../../../typechain-types";
 import { deployContract } from "../contracts";
 import {
   calculateOrderHash,
@@ -17,13 +10,22 @@ import {
   randomHex,
   toBN,
 } from "../encoding";
-import {
+
+import type {
+  ConduitInterface,
+  ConduitControllerInterface,
+  ImmutableCreate2FactoryInterface,
+  ConsiderationInterface,
+  TestZone,
+} from "../../../typechain-types";
+import type {
   AdvancedOrder,
   ConsiderationItem,
   CriteriaResolver,
   OfferItem,
   OrderComponents,
 } from "../types";
+import type { Wallet } from "ethers";
 
 const deployConstants = require("../../../constants/constants");
 const { orderType } = require("../../../eip-712-types/order");

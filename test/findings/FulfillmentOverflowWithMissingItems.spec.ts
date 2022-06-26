@@ -1,16 +1,19 @@
 import { expect } from "chai";
-import { constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { network } from "hardhat";
 
-import {
+import { toFulfillment } from "../utils/encoding";
+import { seaportFixture } from "../utils/fixtures";
+import { getWalletWithEther } from "../utils/impersonate";
+
+import type {
   ConsiderationInterface,
   TestERC20,
   TestERC721,
 } from "../../typechain-types";
-import { toFulfillment } from "../utils/encoding";
-import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
-import { getWalletWithEther } from "../utils/impersonate";
-import { AdvancedOrder, OfferItem } from "../utils/types";
+import type { SeaportFixtures } from "../utils/fixtures";
+import type { AdvancedOrder, OfferItem } from "../utils/types";
+import type { Wallet } from "ethers";
 
 const IS_FIXED = true;
 

@@ -1,6 +1,4 @@
-import { BigNumber } from "ethers";
-
-export type BigNumberish = string | BigNumber | number | boolean;
+import type { BigNumber } from "ethers";
 
 export type AdditionalRecipient = {
   amount: BigNumber;

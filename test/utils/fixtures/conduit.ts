@@ -1,16 +1,17 @@
-/* eslint-disable camelcase */
 import { expect } from "chai";
-import { constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { getCreate2Address, keccak256 } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
 
-import {
-  ConduitControllerInterface,
-  ImmutableCreate2FactoryInterface,
-} from "../../../typechain-types";
 import { deployContract } from "../contracts";
 import { randomHex } from "../encoding";
 import { whileImpersonating } from "../impersonate";
+
+import type {
+  ConduitControllerInterface,
+  ImmutableCreate2FactoryInterface,
+} from "../../../typechain-types";
+import type { Wallet } from "ethers";
 
 const deployConstants = require("../../../constants/constants");
 

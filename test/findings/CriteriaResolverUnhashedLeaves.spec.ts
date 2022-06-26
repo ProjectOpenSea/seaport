@@ -1,16 +1,19 @@
 import { expect } from "chai";
-import { BigNumber, constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { network } from "hardhat";
 
-import {
+import { buildResolver, toBN, toKey } from "../utils/encoding";
+import { seaportFixture } from "../utils/fixtures";
+import { getWalletWithEther } from "../utils/impersonate";
+
+import type {
   ConsiderationInterface,
   TestERC20,
   TestERC721,
 } from "../../typechain-types";
-import { buildResolver, toBN, toKey } from "../utils/encoding";
-import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
-import { getWalletWithEther } from "../utils/impersonate";
-import { AdvancedOrder } from "../utils/types";
+import type { SeaportFixtures } from "../utils/fixtures";
+import type { AdvancedOrder } from "../utils/types";
+import type { BigNumber, Wallet } from "ethers";
 
 const { merkleTree } = require("../utils/criteria");
 
@@ -100,7 +103,7 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
           .fulfillAdvancedOrder(
             order,
             [criteriaResolver],
-            toKey(false),
+            toKey(0),
             carol.address
           );
       });
@@ -122,7 +125,7 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
             .fulfillAdvancedOrder(
               order,
               [criteriaResolver],
-              toKey(false),
+              toKey(0),
               carol.address
             )
         ).to.be.revertedWith("InvalidProof");

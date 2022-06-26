@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { randomInt } from "crypto";
-import { ethers } from "ethers";
-import { ethers as hardhatEthers, network } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import { randomHex } from "./utils/encoding";
 import {
@@ -13,12 +12,14 @@ import {
 import { VERSION } from "./utils/helpers";
 import { faucet, whileImpersonating } from "./utils/impersonate";
 
+import type { Contract, ContractFactory, Wallet } from "ethers";
+
 describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
-  const { provider } = hardhatEthers;
-  let zone: ethers.Wallet;
-  let owner: ethers.Wallet;
-  let EIP1271WalletFactory: ethers.ContractFactory;
-  let conduitController: ethers.Contract;
+  const { provider } = ethers;
+  let zone: Wallet;
+  let owner: Wallet;
+  let EIP1271WalletFactory: ContractFactory;
+  let conduitController: Contract;
   let deployNewConduit: Function;
   let createTransferWithApproval: Function;
 
@@ -41,12 +42,12 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
     } = await seaportFixture(owner));
   });
 
-  let sender: ethers.Wallet;
-  let recipient: ethers.Wallet;
-  let senderContract: ethers.Contract;
-  let recipientContract: ethers.Contract;
-  let tempTransferHelper: ethers.Contract;
-  let tempConduit: ethers.Contract;
+  let sender: Wallet;
+  let recipient: Wallet;
+  let senderContract: Contract;
+  let recipientContract: Contract;
+  let tempTransferHelper: Contract;
+  let tempConduit: Contract;
   let tempConduitKey: string;
 
   beforeEach(async () => {
@@ -68,7 +69,7 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
     );
 
     // Deploy a new TransferHelper with the tempConduitController address
-    const transferHelperFactory = await hardhatEthers.getContractFactory(
+    const transferHelperFactory = await ethers.getContractFactory(
       "TransferHelper"
     );
     tempTransferHelper = await transferHelperFactory.deploy(

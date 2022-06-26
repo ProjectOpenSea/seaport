@@ -1,18 +1,21 @@
 import { expect } from "chai";
-import { constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { hexZeroPad } from "ethers/lib/utils";
 import { network } from "hardhat";
 import { getScuffedContract } from "scuffed-abi";
 
-import {
+import { buildOrderStatus, getBasicOrderParameters } from "../utils/encoding";
+import { seaportFixture } from "../utils/fixtures";
+import { getWalletWithEther } from "../utils/impersonate";
+
+import type {
   ConsiderationInterface,
   TestERC20,
   TestERC721,
 } from "../../typechain-types";
-import { buildOrderStatus, getBasicOrderParameters } from "../utils/encoding";
-import { seaportFixture, SeaportFixtures } from "../utils/fixtures";
-import { getWalletWithEther } from "../utils/impersonate";
-import { AdvancedOrder, ConsiderationItem } from "../utils/types";
+import type { SeaportFixtures } from "../utils/fixtures";
+import type { AdvancedOrder, ConsiderationItem } from "../utils/types";
+import type { Wallet } from "ethers";
 
 const IS_FIXED = true;
 

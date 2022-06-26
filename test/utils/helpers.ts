@@ -1,9 +1,19 @@
 import { ethers } from "ethers";
 
-import { randomBN } from "./encoding";
-import { Order, AdvancedOrder, CriteriaResolver, Fulfillment } from "./types";
+import packageJSON from "../../package.json";
 
-export const VERSION = !process.env.REFERENCE ? "v1.1" : "v1.1-reference";
+import { randomBN } from "./encoding";
+
+import type {
+  Order,
+  AdvancedOrder,
+  CriteriaResolver,
+  Fulfillment,
+} from "./types";
+
+export const VERSION = `v${packageJSON.version}${
+  process.env.REFERENCE ? "-reference" : ""
+}`;
 
 export const minRandom = (min: ethers.BigNumberish) => randomBN(10).add(min);
 

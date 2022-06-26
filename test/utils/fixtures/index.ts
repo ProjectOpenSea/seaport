@@ -1,22 +1,22 @@
 import { expect } from "chai";
-import {
-  BigNumber,
-  constants,
-  Contract,
-  ContractReceipt,
-  ContractTransaction,
-  Wallet,
-} from "ethers";
+import { constants, Contract } from "ethers";
 import { ethers } from "hardhat";
 
 import { deployContract } from "../contracts";
 import { toBN } from "../encoding";
-import { AdvancedOrder, CriteriaResolver } from "../types";
 
 import { conduitFixture } from "./conduit";
 import { create2FactoryFixture } from "./create2";
 import { marketplaceFixture } from "./marketplace";
 import { tokensFixture } from "./tokens";
+
+import type { AdvancedOrder, CriteriaResolver } from "../types";
+import type {
+  BigNumber,
+  ContractReceipt,
+  ContractTransaction,
+  Wallet,
+} from "ethers";
 
 export { conduitFixture } from "./conduit";
 export {
@@ -685,7 +685,7 @@ export const seaportFixture = async (owner: Wallet) => {
                     : true))
             );
 
-          expect(transferLogs.length > 0).to.be.true;
+          expect(transferLogs.length).to.be.above(0);
 
           let found = false;
           for (const transferLog of transferLogs) {
@@ -702,6 +702,7 @@ export const seaportFixture = async (owner: Wallet) => {
             }
           }
 
+          // eslint-disable-next-line no-unused-expressions
           expect(found).to.be.true;
         }
       }
@@ -732,13 +733,12 @@ export const seaportFixture = async (owner: Wallet) => {
             );
 
           expect(transferLogs.length).to.be.above(0);
-          for (const transferLog of transferLogs) {
-            // TODO: check each transferred amount
-          }
+          // TODO: check each transferred amount
+          // for (const transferLog of transferLogs) {
+          // }
         } else if (consideration.itemType === 2) {
           // ERC721
           // search for transfer
-
           const transferLogs = (tokenEvents || [])
             .map((x) => testERC721.interface.parseLog(x))
             .filter(
@@ -766,7 +766,7 @@ export const seaportFixture = async (owner: Wallet) => {
                   x.args.to === consideration.recipient)
             );
 
-          expect(transferLogs.length > 0).to.be.true;
+          expect(transferLogs.length).to.be.above(0);
 
           let found = false;
           for (const transferLog of transferLogs) {
@@ -784,6 +784,7 @@ export const seaportFixture = async (owner: Wallet) => {
             }
           }
 
+          // eslint-disable-next-line no-unused-expressions
           expect(found).to.be.true;
         }
       }

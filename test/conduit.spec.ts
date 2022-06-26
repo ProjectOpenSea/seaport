@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { randomInt } from "crypto";
-import { ethers, constants, utils as ethersUtils } from "ethers";
-import { ethers as hardhatEthers, network } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import { deployContract } from "./utils/contracts";
 import {
@@ -27,21 +26,23 @@ import {
 } from "./utils/helpers";
 import { faucet, whileImpersonating } from "./utils/impersonate";
 
-const { parseEther } = ethersUtils;
+import type { Contract, ContractFactory, Wallet } from "ethers";
+
+const { parseEther } = ethers.utils;
 
 describe(`Conduit tests (Seaport ${VERSION})`, function () {
-  const { provider } = hardhatEthers;
-  let zone: ethers.Wallet;
-  let marketplaceContract: ethers.Contract;
-  let testERC20: ethers.Contract;
-  let testERC721: ethers.Contract;
-  let testERC1155: ethers.Contract;
-  let testERC1155Two: ethers.Contract;
-  let owner: ethers.Wallet;
-  let EIP1271WalletFactory: ethers.ContractFactory;
-  let conduitController: ethers.Contract;
-  let conduitImplementation: ethers.Contract;
-  let conduitOne: ethers.Contract;
+  const { provider } = ethers;
+  let zone: Wallet;
+  let marketplaceContract: Contract;
+  let testERC20: Contract;
+  let testERC721: Contract;
+  let testERC1155: Contract;
+  let testERC1155Two: Contract;
+  let owner: Wallet;
+  let EIP1271WalletFactory: ContractFactory;
+  let conduitController: Contract;
+  let conduitImplementation: Contract;
+  let conduitOne: Contract;
   let conduitKeyOne: string;
   let mintAndApproveERC20: Function;
   let set721ApprovalForAll: Function;
@@ -89,11 +90,11 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
     } = await seaportFixture(owner));
   });
 
-  let seller: ethers.Wallet;
-  let buyer: ethers.Wallet;
-  let sellerContract: ethers.Contract;
-  let buyerContract: ethers.Contract;
-  let tempConduit: ethers.Contract;
+  let seller: Wallet;
+  let buyer: Wallet;
+  let sellerContract: Contract;
+  let buyerContract: Contract;
+  let tempConduit: Contract;
 
   beforeEach(async () => {
     // Setup basic buyer/seller wallets with ETH
@@ -655,7 +656,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
         [],
         [
           {
-            token: constants.AddressZero,
+            token: ethers.constants.AddressZero,
             from: owner.address,
             to: buyer.address,
             ids: [nftId, secondNftId],
@@ -685,7 +686,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
     await expect(
       tempConduit.connect(owner).executeBatch1155([
         {
-          token: constants.AddressZero,
+          token: ethers.constants.AddressZero,
           from: owner.address,
           to: buyer.address,
           ids: [nftId, secondNftId],
@@ -1095,7 +1096,9 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
 
   it("Reverts when attempting to update a conduit channel when call is not from controller", async () => {
     await expect(
-      conduitOne.connect(owner).updateChannel(constants.AddressZero, true)
+      conduitOne
+        .connect(owner)
+        .updateChannel(ethers.constants.AddressZero, true)
     ).to.be.revertedWith("InvalidController");
   });
 
@@ -1313,7 +1316,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
         [
           {
             itemType: 0, // NATIVE (invalid)
-            token: constants.AddressZero,
+            token: ethers.constants.AddressZero,
             from: conduitOne.address,
             to: seller.address,
             identifier: 0,
@@ -1329,7 +1332,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
     await expect(
       conduitController
         .connect(owner)
-        .createConduit(constants.HashZero, owner.address)
+        .createConduit(ethers.constants.HashZero, owner.address)
     ).to.be.revertedWith("InvalidCreator");
   });
 
@@ -1353,7 +1356,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
     const potentialOwner = await conduitController.getPotentialOwner(
       conduitOne.address
     );
-    expect(potentialOwner).to.equal(constants.AddressZero);
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
 
     await expect(
       conduitController.connect(owner).getPotentialOwner(buyer.address)
@@ -1370,7 +1373,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
     await expect(
       conduitController
         .connect(owner)
-        .transferOwnership(conduitOne.address, constants.AddressZero)
+        .transferOwnership(conduitOne.address, ethers.constants.AddressZero)
     ).to.be.revertedWith("NewPotentialOwnerIsZeroAddress");
 
     await expect(
@@ -1382,7 +1385,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
     let potentialOwner = await conduitController.getPotentialOwner(
       conduitOne.address
     );
-    expect(potentialOwner).to.equal(constants.AddressZero);
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
 
     await conduitController.transferOwnership(
       conduitOne.address,
@@ -1415,7 +1418,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
     potentialOwner = await conduitController.getPotentialOwner(
       conduitOne.address
     );
-    expect(potentialOwner).to.equal(constants.AddressZero);
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
 
     await expect(
       conduitController
@@ -1446,7 +1449,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
     potentialOwner = await conduitController.getPotentialOwner(
       conduitOne.address
     );
-    expect(potentialOwner).to.equal(constants.AddressZero);
+    expect(potentialOwner).to.equal(ethers.constants.AddressZero);
 
     const ownerOf = await conduitController.ownerOf(conduitOne.address);
     expect(ownerOf).to.equal(buyer.address);
