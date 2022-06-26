@@ -4,21 +4,28 @@
 
 Seaport is a new marketplace protocol for safely and efficiently buying and selling NFTs.
 
-## Deployment Instructions
+## Deployment instructions
 `npm run deploy:rinkeby`
 
-### Etherscan Verification
+### Etherscan verification
 ConduitController:
+
 `npx hardhat verify --network rinkeby 0xBf320C8539386d7eEc20C547F4d0456354a9f2c5`
 
 Seaport:
+
 `npx hardhat verify --network rinkeby 0x8644e0f67c55a8db5d89D92371ED842fff16A5c5 "0xBf320C8539386d7eEc20C547F4d0456354a9f2c5"`
+
+### Latest test deployments
+ConduitController: https://rinkeby.etherscan.io/address/0xBf320C8539386d7eEc20C547F4d0456354a9f2c5
+Seaport: https://rinkeby.etherscan.io/address/0x8644e0f67c55a8db5d89D92371ED842fff16A5c5
 
 ## Table of Contents
 
 - [Seaport](#seaport)
-  - [Deployment Instructions](#deployment-instructions)
-    - [Etherscan Verification](#etherscan-verification)
+  - [Deployment instructions](#deployment-instructions)
+    - [Etherscan verification](#etherscan-verification)
+    - [Latest test deployments](#latest-test-deployments)
   - [Table of Contents](#table-of-contents)
   - [Background](#background)
   - [Deployments](#deployments)
