@@ -60,7 +60,13 @@ const config: any = {
     },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: {
+      mainnet: process.env.ETHERSCAN_API_KEY,
+      optimisticKovan: process.env.OPTIMISM_API_KEY,
+      rinkeby: process.env.ETHERSCAN_API_KEY,
+      polygonMumbai: process.env.POLYGON_API_KEY,
+      // cronosTestnet: process.env.CRONOS_API_KEY,
+    },
   },
   networks: {
     mainnet: {
@@ -69,6 +75,26 @@ const config: any = {
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
+      accounts: process.env.MNEMONIC
+        ? { mnemonic: process.env.MNEMONIC }
+        : [process.env.WALLET_PRIVATE_KEY!].filter(Boolean),
+    },
+    optimisticKovan: {
+      url: `https://opt-kovan.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
+      accounts: process.env.MNEMONIC
+        ? { mnemonic: process.env.MNEMONIC }
+        : [process.env.WALLET_PRIVATE_KEY!].filter(Boolean),
+    },
+    polygonMumbai: {
+      chainId: 80001,
+      url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
+      accounts: process.env.MNEMONIC
+        ? { mnemonic: process.env.MNEMONIC }
+        : [process.env.WALLET_PRIVATE_KEY!].filter(Boolean),
+    },
+    cronosTestnet: {
+      chainId: 338,
+      url: `https://cro-croeseid.g.alchemy.com/${process.env.ALCHEMY_KEY_CRONOS}/cosmos-rest/`,
       accounts: process.env.MNEMONIC
         ? { mnemonic: process.env.MNEMONIC }
         : [process.env.WALLET_PRIVATE_KEY!].filter(Boolean),

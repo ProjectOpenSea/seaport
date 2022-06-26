@@ -71,6 +71,8 @@
     "prepare": "husky install",
     "deploy:rinkeby": "npx hardhat run scripts/deploy.ts --network rinkeby",
     "deploy:hardhat": "npx hardhat run scripts/deploy.ts --network hardhat",
+    "deploy:optimism-kovan": "npx hardhat run scripts/deploy.ts --network optimism_kovan",
+    "deploy:polygonMumbai": "npx hardhat run scripts/deploy.ts --network polygonMumbai",
     "verify:rinkeby": "npx hardhat run scripts/verify.ts --network rinkeby"
   },
   "lint-staged": {

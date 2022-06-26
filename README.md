@@ -17,8 +17,17 @@ Seaport:
 `npx hardhat verify --network rinkeby 0x8644e0f67c55a8db5d89D92371ED842fff16A5c5 "0xBf320C8539386d7eEc20C547F4d0456354a9f2c5"`
 
 ### Latest test deployments
-ConduitController: https://rinkeby.etherscan.io/address/0xBf320C8539386d7eEc20C547F4d0456354a9f2c5
-Seaport: https://rinkeby.etherscan.io/address/0x8644e0f67c55a8db5d89D92371ED842fff16A5c5
+Rinkeby:
+- ConduitController: https://rinkeby.etherscan.io/address/0xBf320C8539386d7eEc20C547F4d0456354a9f2c5
+- Seaport: https://rinkeby.etherscan.io/address/0x8644e0f67c55a8db5d89D92371ED842fff16A5c5
+
+Optimism Kovan:
+- ConduitController: https://kovan-optimistic.etherscan.io/address/0xB94Ad2559dCC53Da3a51B9f62eB9254fd0fB389D
+- Seaport: https://kovan-optimistic.etherscan.io/address/0x5d603b86fA18de1e6a95a2f890cE1aEf2f641839
+
+Polygon Mumbai
+- ConduitController: https://mumbai.polygonscan.com/address/0xB94Ad2559dCC53Da3a51B9f62eB9254fd0fB389D
+- Seaport: https://mumbai.polygonscan.com/address/0x5d603b86fA18de1e6a95a2f890cE1aEf2f641839
 
 ## Table of Contents
 
