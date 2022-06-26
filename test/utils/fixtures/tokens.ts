@@ -3,10 +3,10 @@ import { ethers } from "hardhat";
 
 import { deployContract } from "../contracts";
 import {
-  randomBN,
-  toBN,
   getOfferOrConsiderationItem,
   random128,
+  randomBN,
+  toBN,
 } from "../encoding";
 import { whileImpersonating } from "../impersonate";
 
@@ -16,7 +16,7 @@ import type {
   TestERC721,
 } from "../../../typechain-types";
 import type { JsonRpcSigner } from "@ethersproject/providers";
-import type { BigNumber, BigNumberish, Wallet } from "ethers";
+import type { BigNumber, BigNumberish, Contract, Wallet } from "ethers";
 
 export const fixtureERC20 = async (signer: JsonRpcSigner | Wallet) => {
   const testERC20: TestERC20 = await deployContract("TestERC20", signer);
@@ -65,13 +65,13 @@ export const fixtureERC721 = async (signer: JsonRpcSigner | Wallet) => {
       .withArgs(signer.address, spender, approved);
   };
 
-  const mint721 = async (signer: Wallet, id?: BigNumberish) => {
+  const mint721 = async (signer: Wallet | Contract, id?: BigNumberish) => {
     const nftId = id ? toBN(id) : randomBN();
     await testERC721.mint(signer.address, nftId);
     return nftId;
   };
 
-  const mint721s = async (signer: Wallet, count: number) => {
+  const mint721s = async (signer: Wallet | Contract, count: number) => {
     const arr = [];
     for (let i = 0; i < count; i++) arr.push(await mint721(signer));
     return arr;

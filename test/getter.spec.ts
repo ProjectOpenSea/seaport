@@ -6,16 +6,20 @@ import { seaportFixture } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
 import { faucet } from "./utils/impersonate";
 
-import type { Contract, Wallet } from "ethers";
+import type {
+  ConduitController,
+  ConsiderationInterface,
+} from "../typechain-types";
+import type { Wallet } from "ethers";
 
 const { keccak256, toUtf8Bytes } = ethers.utils;
 
 describe(`Getter tests (Seaport ${VERSION})`, function () {
   const { provider } = ethers;
-  let marketplaceContract: Contract;
+  let marketplaceContract: ConsiderationInterface;
   let owner: Wallet;
-  let conduitController: Contract;
-  let directMarketplaceContract: Contract;
+  let conduitController: ConduitController;
+  let directMarketplaceContract: ConsiderationInterface;
 
   after(async () => {
     await network.provider.request({

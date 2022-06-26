@@ -4,24 +4,32 @@ import { ethers, network } from "hardhat";
 
 import { randomHex } from "./utils/encoding";
 import {
+  fixtureERC1155,
   fixtureERC20,
   fixtureERC721,
-  fixtureERC1155,
   seaportFixture,
 } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
 import { faucet, whileImpersonating } from "./utils/impersonate";
 
-import type { Contract, ContractFactory, Wallet } from "ethers";
+import type {
+  ConduitController,
+  ConduitInterface,
+  EIP1271Wallet,
+  EIP1271Wallet__factory, // eslint-disable-line camelcase
+  TransferHelper,
+} from "../typechain-types";
+import type { SeaportFixtures } from "./utils/fixtures";
+import type { Wallet } from "ethers";
 
 describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
   const { provider } = ethers;
   let zone: Wallet;
   let owner: Wallet;
-  let EIP1271WalletFactory: ContractFactory;
-  let conduitController: Contract;
-  let deployNewConduit: Function;
-  let createTransferWithApproval: Function;
+  let EIP1271WalletFactory: EIP1271Wallet__factory; // eslint-disable-line camelcase
+  let conduitController: ConduitController;
+  let deployNewConduit: SeaportFixtures["deployNewConduit"];
+  let createTransferWithApproval: SeaportFixtures["createTransferWithApproval"];
 
   after(async () => {
     await network.provider.request({
@@ -44,10 +52,10 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
 
   let sender: Wallet;
   let recipient: Wallet;
-  let senderContract: Contract;
-  let recipientContract: Contract;
-  let tempTransferHelper: Contract;
-  let tempConduit: Contract;
+  let senderContract: EIP1271Wallet;
+  let recipientContract: EIP1271Wallet;
+  let tempTransferHelper: TransferHelper;
+  let tempConduit: ConduitInterface;
   let tempConduitKey: string;
 
   beforeEach(async () => {
@@ -108,7 +116,9 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
         tempERC20Contract,
         sender,
         1,
-        tempConduit.address
+        tempConduit.address,
+        sender.address,
+        recipient.address
       );
       erc20Contracts[i] = tempERC20Contract;
       erc20Transfers[i] = erc20Transfer;
@@ -123,7 +133,9 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
         tempERC721Contract,
         sender,
         2,
-        tempConduit.address
+        tempConduit.address,
+        sender.address,
+        recipient.address
       );
       erc721Contracts[i] = tempERC721Contract;
       erc721Transfers[i] = erc721Transfer;
@@ -138,7 +150,9 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
         tempERC1155Contract,
         sender,
         3,
-        tempConduit.address
+        tempConduit.address,
+        sender.address,
+        recipient.address
       );
       erc1155Contracts[i] = tempERC1155Contract;
       erc1155Transfers[i] = erc1155Transfer;
@@ -219,7 +233,9 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
         tempERC20Contract,
         sender,
         1,
-        tempTransferHelper.address
+        tempTransferHelper.address,
+        sender.address,
+        recipient.address
       );
       erc20Contracts[i] = tempERC20Contract;
       erc20Transfers[i] = erc20Transfer;
@@ -234,7 +250,9 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
         tempERC721Contract,
         sender,
         2,
-        tempTransferHelper.address
+        tempTransferHelper.address,
+        sender.address,
+        recipient.address
       );
       erc721Contracts[i] = tempERC721Contract;
       erc721Transfers[i] = erc721Transfer;
@@ -249,7 +267,9 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
         tempERC1155Contract,
         sender,
         3,
-        tempTransferHelper.address
+        tempTransferHelper.address,
+        sender.address,
+        recipient.address
       );
       erc1155Contracts[i] = tempERC1155Contract;
       erc1155Transfers[i] = erc1155Transfer;

@@ -3,62 +3,70 @@ import { ethers, network } from "hardhat";
 
 import { merkleTree } from "./utils/criteria";
 import {
-  randomHex,
-  random128,
-  toKey,
+  buildOrderStatus,
+  buildResolver,
+  defaultAcceptOfferMirrorFulfillment,
+  defaultBuyNowMirrorFulfillment,
   getItemETH,
-  toBN,
+  random128,
   randomBN,
+  randomHex,
+  toBN,
   toFulfillment,
   toFulfillmentComponents,
-  buildResolver,
-  buildOrderStatus,
-  defaultBuyNowMirrorFulfillment,
-  defaultAcceptOfferMirrorFulfillment,
+  toKey,
 } from "./utils/encoding";
 import { seaportFixture } from "./utils/fixtures";
 import {
   VERSION,
   minRandom,
-  simulateMatchOrders,
   simulateAdvancedMatchOrders,
+  simulateMatchOrders,
 } from "./utils/helpers";
 import { faucet, whileImpersonating } from "./utils/impersonate";
 
+import type {
+  ConduitInterface,
+  ConsiderationInterface,
+  TestERC1155,
+  TestERC20,
+  TestERC721,
+} from "../typechain-types";
+import type { SeaportFixtures } from "./utils/fixtures";
 import type { AdvancedOrder, ConsiderationItem } from "./utils/types";
-import type { Contract, Wallet } from "ethers";
+import type { Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
 
 describe(`Advanced orders (Seaport ${VERSION})`, function () {
   const { provider } = ethers;
   let zone: Wallet;
-  let marketplaceContract: Contract;
-  let testERC20: Contract;
-  let testERC721: Contract;
-  let testERC1155: Contract;
-  let testERC1155Two: Contract;
+  let marketplaceContract: ConsiderationInterface;
+  let testERC20: TestERC20;
+  let testERC721: TestERC721;
+  let testERC1155: TestERC1155;
+  let testERC1155Two: TestERC1155;
   let owner: Wallet;
-  let withBalanceChecks: Function;
-  let conduitOne: Contract;
+  let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
+  let conduitOne: ConduitInterface;
   let conduitKeyOne: string;
-  let mintAndApproveERC20: Function;
-  let getTestItem20: Function;
-  let set721ApprovalForAll: Function;
-  let mint721: Function;
-  let mint721s: Function;
-  let mintAndApprove721: Function;
-  let getTestItem721: Function;
-  let getTestItem721WithCriteria: Function;
-  let set1155ApprovalForAll: Function;
-  let mint1155: Function;
-  let mintAndApprove1155: Function;
-  let getTestItem1155WithCriteria: Function;
-  let getTestItem1155: Function;
-  let createOrder: Function;
-  let createMirrorBuyNowOrder: Function;
-  let createMirrorAcceptOfferOrder: Function;
-  let checkExpectedEvents: Function;
+  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+  let getTestItem20: SeaportFixtures["getTestItem20"];
+  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
+  let mint721: SeaportFixtures["mint721"];
+  let mint721s: SeaportFixtures["mint721s"];
+  let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let getTestItem721: SeaportFixtures["getTestItem721"];
+  let getTestItem721WithCriteria: SeaportFixtures["getTestItem721WithCriteria"];
+  let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
+  let mint1155: SeaportFixtures["mint1155"];
+  let mintAndApprove1155: SeaportFixtures["mintAndApprove1155"];
+  let getTestItem1155WithCriteria: SeaportFixtures["getTestItem1155WithCriteria"];
+  let getTestItem1155: SeaportFixtures["getTestItem1155"];
+  let createOrder: SeaportFixtures["createOrder"];
+  let createMirrorBuyNowOrder: SeaportFixtures["createMirrorBuyNowOrder"];
+  let createMirrorAcceptOfferOrder: SeaportFixtures["createMirrorAcceptOfferOrder"];
+  let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
 
   after(async () => {
     await network.provider.request({
@@ -171,7 +179,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -211,7 +219,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -236,17 +244,17 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         for (const [j, offerItem] of Object.entries(
           clonedOrder.parameters.offer
         )) {
-          offerItem.startAmount = order.parameters.offer[j].startAmount;
-          offerItem.endAmount = order.parameters.offer[j].endAmount;
+          offerItem.startAmount = order.parameters.offer[+j].startAmount;
+          offerItem.endAmount = order.parameters.offer[+j].endAmount;
         }
 
         for (const [j, considerationItem] of Object.entries(
           clonedOrder.parameters.consideration
         )) {
           considerationItem.startAmount =
-            order.parameters.consideration[j].startAmount;
+            order.parameters.consideration[+j].startAmount;
           considerationItem.endAmount =
-            order.parameters.consideration[j].endAmount;
+            order.parameters.consideration[+j].endAmount;
         }
       }
 
@@ -276,7 +284,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfiller: buyer.address,
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -345,7 +353,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -385,7 +393,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -410,17 +418,17 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         for (const [j, offerItem] of Object.entries(
           clonedOrder.parameters.offer
         )) {
-          offerItem.startAmount = order.parameters.offer[j].startAmount;
-          offerItem.endAmount = order.parameters.offer[j].endAmount;
+          offerItem.startAmount = order.parameters.offer[+j].startAmount;
+          offerItem.endAmount = order.parameters.offer[+j].endAmount;
         }
 
         for (const [j, considerationItem] of Object.entries(
           clonedOrder.parameters.consideration
         )) {
           considerationItem.startAmount =
-            order.parameters.consideration[j].startAmount;
+            order.parameters.consideration[+j].startAmount;
           considerationItem.endAmount =
-            order.parameters.consideration[j].endAmount;
+            order.parameters.consideration[+j].endAmount;
         }
       }
 
@@ -450,7 +458,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfiller: buyer.address,
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -687,8 +695,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       );
 
       // 1/2
-      order.numerator = numer1;
-      order.denominator = denom1;
+      order.numerator = numer1 as any;
+      order.denominator = denom1 as any;
 
       await withBalanceChecks([order], 0, [], async () => {
         const tx = marketplaceContract
@@ -708,7 +716,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -721,8 +729,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         buildOrderStatus(true, false, numer1, denom1)
       );
 
-      order.numerator = numer2;
-      order.denominator = denom2;
+      order.numerator = +numer2;
+      order.denominator = +denom2;
 
       await marketplaceContract
         .connect(buyer)
@@ -776,7 +784,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
 
       // 1/2
       order.numerator = 1;
-      order.denominator = prime2;
+      order.denominator = prime2 as any;
 
       await withBalanceChecks([order], 0, [], async () => {
         const tx = marketplaceContract
@@ -796,7 +804,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -809,8 +817,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         buildOrderStatus(true, false, toBN(1), prime2)
       );
 
-      order.numerator = prime1;
-      order.denominator = prime3;
+      order.numerator = prime1 as any;
+      order.denominator = prime3 as any;
 
       await expect(
         marketplaceContract
@@ -881,7 +889,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           criteriaResolvers
         );
 
@@ -942,7 +950,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           criteriaResolvers
         );
 
@@ -1007,7 +1015,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           criteriaResolvers
         );
 
@@ -1392,7 +1400,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 fulfillerConduitKey: toKey(0),
               },
             ],
-            null,
+            undefined,
             criteriaResolvers
           );
 
@@ -1461,7 +1469,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 fulfillerConduitKey: toKey(0),
               },
             ],
-            null,
+            undefined,
             criteriaResolvers
           );
 
@@ -1528,7 +1536,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
                 fulfillerConduitKey: toKey(0),
               },
             ],
-            null,
+            undefined,
             criteriaResolvers
           );
 
@@ -1570,7 +1578,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         {
           itemType: 4, // ERC721WithCriteria
           token: testERC721.address,
-          identifierOrCriteria: root,
+          identifierOrCriteria: toBN(root),
           startAmount: toBN(1),
           endAmount: toBN(1),
           recipient: seller.address,
@@ -1686,7 +1694,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         {
           itemType: 5, // ERC1155_WITH_CRITERIA
           token: testERC1155.address,
-          identifierOrCriteria: root,
+          identifierOrCriteria: toBN(root),
           startAmount: toBN(1),
           endAmount: toBN(1),
           recipient: seller.address,
@@ -1828,7 +1836,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -1920,7 +1928,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
               fulfillerConduitKey: toKey(0),
             },
           ],
-          null,
+          undefined,
           []
         );
 
@@ -2438,9 +2446,9 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         true
       );
 
-      expect(toBN("0x" + receipt.events[3].data.slice(66)).toString()).to.equal(
-        amount.mul(2).toString()
-      );
+      expect(
+        toBN("0x" + receipt.events![3].data.slice(66)).toString()
+      ).to.equal(amount.mul(2).toString());
 
       return receipt;
     });
@@ -3242,7 +3250,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         toFulfillmentComponents
       );
 
-      await withBalanceChecks([order], 0, null, async () => {
+      await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillAvailableOrders(
@@ -3291,11 +3299,10 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents = [[[0, 0]]];
+      const offerComponents: any = [[[0, 0]]];
+      const considerationComponents: any = [[[0, 0]], [[0, 1]], [[0, 2]]];
 
-      const considerationComponents = [[[0, 0]], [[0, 1]], [[0, 2]]];
-
-      await withBalanceChecks([order], 0, null, async () => {
+      await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillAvailableAdvancedOrders(
@@ -3344,11 +3351,10 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents = [[[0, 0]]];
+      const offerComponents: any = [[[0, 0]]];
+      const considerationComponents: any = [[[0, 0]], [[0, 1]]];
 
-      const considerationComponents = [[[0, 0]], [[0, 1]]];
-
-      await withBalanceChecks([order], 0, null, async () => {
+      await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillAvailableAdvancedOrders(
@@ -3440,7 +3446,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         await withBalanceChecks(
           [orderOne, orderTwo],
           0,
-          null,
+          undefined,
           async () => {
             const tx = marketplaceContract
               .connect(buyer)
@@ -3545,7 +3551,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         await withBalanceChecks(
           [orderOne, orderTwo],
           0,
-          null,
+          undefined,
           async () => {
             const tx = marketplaceContract
               .connect(buyer)
@@ -3626,14 +3632,13 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents = [
+      const offerComponents: any = [
         [
           [0, 0],
           [1, 0],
         ],
       ];
-
-      const considerationComponents = [
+      const considerationComponents: any = [
         [
           [0, 0],
           [1, 0],
@@ -3652,7 +3657,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         await withBalanceChecks(
           [orderOne],
           0,
-          null,
+          undefined,
           async () => {
             const { executions } = await marketplaceContract
               .connect(buyer)
@@ -3736,14 +3741,13 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents = [
+      const offerComponents: any = [
         [
           [0, 0],
           [1, 0],
         ],
       ];
-
-      const considerationComponents = [
+      const considerationComponents: any = [
         [
           [0, 0],
           [1, 0],
@@ -3762,7 +3766,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         await withBalanceChecks(
           [orderOne],
           0,
-          null,
+          undefined,
           async () => {
             const tx = marketplaceContract
               .connect(buyer)
@@ -3872,7 +3876,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       );
 
       // can fill it
-      await withBalanceChecks([orderFour], 0, null, async () => {
+      await withBalanceChecks([orderFour], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillOrder(orderFour, toKey(0), {
@@ -3890,7 +3894,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         return receipt;
       });
 
-      const offerComponents = [
+      const offerComponents: any = [
         [
           [0, 0],
           [1, 0],
@@ -3898,8 +3902,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           [3, 0],
         ],
       ];
-
-      const considerationComponents = [
+      const considerationComponents: any = [
         [
           [0, 0],
           [1, 0],
@@ -3920,7 +3923,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         ],
       ];
 
-      await withBalanceChecks([orderOne], 0, null, async () => {
+      await withBalanceChecks([orderOne], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillAvailableOrders(
@@ -4016,7 +4019,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
       );
 
       // can fill it
-      await withBalanceChecks([orderFour], 0, null, async () => {
+      await withBalanceChecks([orderFour], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillOrder(orderFour, toKey(0), {
@@ -4034,7 +4037,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         return receipt;
       });
 
-      const offerComponents = [
+      const offerComponents: any = [
         [
           [0, 0],
           [1, 0],
@@ -4042,8 +4045,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
           [3, 0],
         ],
       ];
-
-      const considerationComponents = [
+      const considerationComponents: any = [
         [
           [0, 0],
           [1, 0],
@@ -4064,7 +4066,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         ],
       ];
 
-      await withBalanceChecks([orderOne], 0, null, async () => {
+      await withBalanceChecks([orderOne], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillAvailableAdvancedOrders(
@@ -4156,9 +4158,8 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         "EXPIRED"
       );
 
-      const offerComponents = [[[0, 0]], [[1, 0]]];
-
-      const considerationComponents = [
+      const offerComponents: any = [[[0, 0]], [[1, 0]]];
+      const considerationComponents: any = [
         [
           [0, 0],
           [1, 0],
@@ -4173,7 +4174,7 @@ describe(`Advanced orders (Seaport ${VERSION})`, function () {
         ],
       ];
 
-      await withBalanceChecks([orderOne], 0, null, async () => {
+      await withBalanceChecks([orderOne], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillAvailableAdvancedOrders(

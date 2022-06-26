@@ -23,7 +23,7 @@ export const conduitFixture = async (
   let conduitImplementation: any;
   if (process.env.REFERENCE) {
     conduitImplementation = await ethers.getContractFactory("ReferenceConduit");
-    conduitController = await deployContract("ConduitController", owner as any);
+    conduitController = await deployContract("ConduitController", owner);
   } else {
     conduitImplementation = await ethers.getContractFactory("Conduit");
 
@@ -84,7 +84,7 @@ export const conduitFixture = async (
   const deployNewConduit = async (owner: Wallet, conduitKey?: string) => {
     // Create a conduit key with a random salt
     const assignedConduitKey =
-      conduitKey || owner.address + randomHex(12).slice(2);
+      conduitKey ?? owner.address + randomHex(12).slice(2);
 
     const { conduit: tempConduitAddress } = await conduitController.getConduit(
       assignedConduitKey

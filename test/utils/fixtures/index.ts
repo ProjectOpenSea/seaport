@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { constants, Contract } from "ethers";
+import { Contract, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { deployContract } from "../contracts";
@@ -10,6 +10,7 @@ import { create2FactoryFixture } from "./create2";
 import { marketplaceFixture } from "./marketplace";
 import { tokensFixture } from "./tokens";
 
+import type { Reenterer } from "../../../typechain-types";
 import type { AdvancedOrder, CriteriaResolver } from "../types";
 import type {
   BigNumber,
@@ -30,7 +31,7 @@ const { provider } = ethers;
 
 export const seaportFixture = async (owner: Wallet) => {
   const EIP1271WalletFactory = await ethers.getContractFactory("EIP1271Wallet");
-  const reenterer = await deployContract("Reenterer", owner as any);
+  const reenterer = await deployContract<Reenterer>("Reenterer", owner);
   const { chainId } = await provider.getNetwork();
   const create2Factory = await create2FactoryFixture(owner);
   const {
@@ -382,7 +383,7 @@ export const seaportFixture = async (owner: Wallet) => {
       amount,
       recipient,
     } = item;
-    const identifier = id1 || id2;
+    const identifier = id1 ?? id2;
     const sender = getTransferSender(offerer, conduitKey);
     if ([1, 2, 5].includes(itemType)) {
       const contract = new Contract(
@@ -403,7 +404,7 @@ export const seaportFixture = async (owner: Wallet) => {
   };
 
   const checkExpectedEvents = async (
-    tx: Promise<ContractTransaction>,
+    tx: Promise<ContractTransaction> | ContractTransaction,
     receipt: ContractReceipt,
     orderGroups: Array<{
       order: AdvancedOrder;
@@ -631,7 +632,7 @@ export const seaportFixture = async (owner: Wallet) => {
         if (offer.itemType === 1) {
           // ERC20
           // search for transfer
-          const transferLogs = (tokenEvents || [])
+          const transferLogs = (tokenEvents ?? [])
             .map((x) => testERC20.interface.parseLog(x))
             .filter(
               (x) =>
@@ -649,7 +650,7 @@ export const seaportFixture = async (owner: Wallet) => {
         } else if (offer.itemType === 2) {
           // ERC721
           // search for transfer
-          const transferLogs = (tokenEvents || [])
+          const transferLogs = (tokenEvents ?? [])
             .map((x) => testERC721.interface.parseLog(x))
             .filter(
               (x) =>
@@ -667,7 +668,7 @@ export const seaportFixture = async (owner: Wallet) => {
           );
         } else if (offer.itemType === 3) {
           // search for transfer
-          const transferLogs = (tokenEvents || [])
+          const transferLogs = (tokenEvents ?? [])
             .map((x) => testERC1155.interface.parseLog(x))
             .filter(
               (x) =>
@@ -724,7 +725,7 @@ export const seaportFixture = async (owner: Wallet) => {
         if (consideration.itemType === 1) {
           // ERC20
           // search for transfer
-          const transferLogs = (tokenEvents || [])
+          const transferLogs = (tokenEvents ?? [])
             .map((x) => testERC20.interface.parseLog(x))
             .filter(
               (x) =>
@@ -739,7 +740,7 @@ export const seaportFixture = async (owner: Wallet) => {
         } else if (consideration.itemType === 2) {
           // ERC721
           // search for transfer
-          const transferLogs = (tokenEvents || [])
+          const transferLogs = (tokenEvents ?? [])
             .map((x) => testERC721.interface.parseLog(x))
             .filter(
               (x) =>
@@ -754,7 +755,7 @@ export const seaportFixture = async (owner: Wallet) => {
           );
         } else if (consideration.itemType === 3) {
           // search for transfer
-          const transferLogs = (tokenEvents || [])
+          const transferLogs = (tokenEvents ?? [])
             .map((x) => testERC1155.interface.parseLog(x))
             .filter(
               (x) =>

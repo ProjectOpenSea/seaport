@@ -18,7 +18,7 @@ export const deployContract = async <C extends Contract>(
 
   const nameWithReference =
     process.env.REFERENCE && references.has(name)
-      ? references.get(name) || name
+      ? references.get(name) ?? name
       : name;
 
   const f = await ethers.getContractFactory(nameWithReference, signer);

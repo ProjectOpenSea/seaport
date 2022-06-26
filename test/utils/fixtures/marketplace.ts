@@ -10,12 +10,13 @@ import {
   randomHex,
   toBN,
 } from "../encoding";
+import { VERSION } from "../helpers";
 
 import type {
-  ConduitInterface,
   ConduitControllerInterface,
-  ImmutableCreate2FactoryInterface,
+  ConduitInterface,
   ConsiderationInterface,
+  ImmutableCreate2FactoryInterface,
   TestZone,
 } from "../../../typechain-types";
 import type {
@@ -25,12 +26,10 @@ import type {
   OfferItem,
   OrderComponents,
 } from "../types";
-import type { Wallet } from "ethers";
+import type { Contract, Wallet } from "ethers";
 
 const deployConstants = require("../../../constants/constants");
 const { orderType } = require("../../../eip-712-types/order");
-
-const VERSION = !process.env.REFERENCE ? "1.1" : "rc.1.1";
 
 export const marketplaceFixture = async (
   create2Factory: ImmutableCreate2FactoryInterface,
@@ -44,11 +43,12 @@ export const marketplaceFixture = async (
     process.env.REFERENCE ? "ReferenceConsideration" : "Seaport"
   );
 
-  const directMarketplaceContract = await deployContract(
-    process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
-    owner as any,
-    conduitController.address
-  );
+  const directMarketplaceContract =
+    await deployContract<ConsiderationInterface>(
+      process.env.REFERENCE ? "ReferenceConsideration" : "Consideration",
+      owner,
+      conduitController.address
+    );
 
   const marketplaceContractAddress = await create2Factory.findCreate2Address(
     deployConstants.MARKETPLACE_CONTRACT_CREATION_SALT,
@@ -81,20 +81,18 @@ export const marketplaceFixture = async (
     .connect(owner)
     .updateChannel(conduitOne.address, marketplaceContract.address, true);
 
-  const stubZone: TestZone = await deployContract("TestZone", owner as any);
+  const stubZone = await deployContract<TestZone>("TestZone", owner);
 
   // Required for EIP712 signing
   const domainData = {
     name: process.env.REFERENCE ? "Consideration" : "Seaport",
-    version: VERSION,
+    version: VERSION.slice(1),
     chainId,
     verifyingContract: marketplaceContract.address,
   };
 
   const getAndVerifyOrderHash = async (orderComponents: OrderComponents) => {
-    const orderHash = await marketplaceContract.getOrderHash(
-      orderComponents as any
-    );
+    const orderHash = await marketplaceContract.getOrderHash(orderComponents);
     const derivedOrderHash = calculateOrderHash(orderComponents);
     expect(orderHash).to.equal(derivedOrderHash);
     return orderHash;
@@ -103,7 +101,7 @@ export const marketplaceFixture = async (
   // Returns signature
   const signOrder = async (
     orderComponents: OrderComponents,
-    signer: Wallet
+    signer: Wallet | Contract
   ) => {
     const signature = await signer._signTypedData(
       domainData,
@@ -125,8 +123,8 @@ export const marketplaceFixture = async (
   };
 
   const createOrder = async (
-    offerer: Wallet,
-    zone: Wallet | undefined | string = undefined,
+    offerer: Wallet | Contract,
+    zone: TestZone | Wallet | undefined | string = undefined,
     offer: OfferItem[],
     consideration: ConsiderationItem[],
     orderType: number,
@@ -148,7 +146,7 @@ export const marketplaceFixture = async (
     const orderParameters = {
       offerer: offerer.address,
       zone: !extraCheap
-        ? (zone as Wallet).address || (zone as string)
+        ? (zone as Wallet).address ?? zone
         : constants.AddressZero,
       offer,
       consideration,
@@ -180,7 +178,7 @@ export const marketplaceFixture = async (
       totalSize,
     };
 
-    const flatSig = await signOrder(orderComponents, signer || offerer);
+    const flatSig = await signOrder(orderComponents, signer ?? offerer);
 
     const order = {
       parameters: orderParameters,
@@ -436,9 +434,9 @@ export const marketplaceFixture = async (
       counter,
     };
 
-    const flatSig = await signOrder(orderComponents as any, offerer);
+    const flatSig = await signOrder(orderComponents, offerer);
 
-    const mirrorOrderHash = await getAndVerifyOrderHash(orderComponents as any);
+    const mirrorOrderHash = await getAndVerifyOrderHash(orderComponents);
 
     const mirrorOrder = {
       parameters: orderParameters,

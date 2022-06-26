@@ -18,6 +18,7 @@ module.exports = {
     ecmaVersion: 12,
   },
   rules: {
+    "@typescript-eslint/consistent-type-imports": "error",
     "import/order": [
       "error",
       {
@@ -36,7 +37,7 @@ module.exports = {
       },
     ],
     "prefer-const": "error",
-    "@typescript-eslint/consistent-type-imports": "error",
+    "sort-imports": ["error", { ignoreDeclarationSort: true }],
   },
   overrides: [
     {

@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { constants } from "ethers";
 import { network } from "hardhat";
 
+import { merkleTree } from "../utils/criteria";
 import { buildResolver, toBN, toKey } from "../utils/encoding";
 import { seaportFixture } from "../utils/fixtures";
 import { getWalletWithEther } from "../utils/impersonate";
@@ -14,8 +15,6 @@ import type {
 import type { SeaportFixtures } from "../utils/fixtures";
 import type { AdvancedOrder } from "../utils/types";
 import type { BigNumber, Wallet } from "ethers";
-
-const { merkleTree } = require("../utils/criteria");
 
 const IS_FIXED = true;
 

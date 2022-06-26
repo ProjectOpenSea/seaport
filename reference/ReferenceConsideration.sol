@@ -29,7 +29,7 @@ import { OrderToExecute, AccumulatorStruct } from "./lib/ReferenceConsiderationS
  * @author 0age
  * @custom:coauthor d1ll0n
  * @custom:coauthor transmissions11
- * @custom:version rc-1.1
+ * @custom:version 1.1-reference
  * @notice Consideration is a generalized ETH/ERC20/ERC721/ERC1155 marketplace.
  *         It minimizes external calls to the greatest extent possible and
  *         provides lightweight methods for common routes as well as more

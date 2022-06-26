@@ -2,30 +2,32 @@ import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
 import {
-  randomHex,
-  toKey,
+  buildOrderStatus,
   getItemETH,
   randomBN,
-  buildOrderStatus,
+  randomHex,
+  toKey,
 } from "./utils/encoding";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION, getCustomRevertSelector } from "./utils/helpers";
 import { faucet } from "./utils/impersonate";
 
-import type { Contract, Wallet } from "ethers";
+import type { ConsiderationInterface } from "../typechain-types";
+import type { SeaportFixtures } from "./utils/fixtures";
+import type { Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
 
 describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, function () {
   const { provider } = ethers;
   let zone: Wallet;
-  let marketplaceContract: Contract;
+  let marketplaceContract: ConsiderationInterface;
   let owner: Wallet;
-  let withBalanceChecks: Function;
-  let mintAndApprove721: Function;
-  let getTestItem721: Function;
-  let createOrder: Function;
-  let checkExpectedEvents: Function;
+  let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
+  let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let getTestItem721: SeaportFixtures["getTestItem721"];
+  let createOrder: SeaportFixtures["createOrder"];
+  let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
 
   after(async () => {
     await network.provider.request({
@@ -151,7 +153,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
       // Fulfill the order without a signature
       order.signature = "0x";
-      await withBalanceChecks([order], 0, null, async () => {
+      await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillOrder(order, toKey(0), {
@@ -261,7 +263,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
 
       // Fulfill the order without a signature
       order.signature = "0x";
-      await withBalanceChecks([order], 0, null, async () => {
+      await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillOrder(order, toKey(0), {
@@ -681,7 +683,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       expect(orderComponents.counter).to.equal(newCounter);
 
       // Can fill order with new counter
-      await withBalanceChecks([order], 0, null, async () => {
+      await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillOrder(order, toKey(0), {
@@ -781,7 +783,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       expect(orderComponents.counter).to.equal(newCounter);
 
       // Can fill order with new counter
-      await withBalanceChecks([order], 0, null, async () => {
+      await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillOrder(order, toKey(0), {
@@ -881,7 +883,7 @@ describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, f
       expect(orderComponents.counter).to.equal(newCounter);
 
       // Can fill order with new counter
-      await withBalanceChecks([order], 0, null, async () => {
+      await withBalanceChecks([order], 0, undefined, async () => {
         const tx = marketplaceContract
           .connect(buyer)
           .fulfillOrder(order, toKey(0), {
