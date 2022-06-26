@@ -1,4 +1,4 @@
-# @version 0.3.3
+# @version 0.3.4
 
 MAX_DYN_ARRAY_LENGTH: constant(uint8) = 100
 

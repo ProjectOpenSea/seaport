@@ -17,7 +17,7 @@ subtask(TASK_COMPILE_VYPER_RUN_BINARY).setAction(compileHook);
 
 const config: HardhatUserConfig = {
   vyper: {
-    version: "0.3.3",
+    version: "0.3.4",
   },
   networks: {
     hardhat: {
