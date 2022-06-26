@@ -27,7 +27,7 @@ import {
 import { faucet, whileImpersonating } from "./utils/impersonate";
 
 import type {
-  ConduitController,
+  ConduitControllerInterface,
   ConduitInterface,
   ConsiderationInterface,
   EIP1271Wallet,
@@ -51,7 +51,7 @@ describe(`Conduit tests (Seaport ${VERSION})`, function () {
   let testERC1155Two: TestERC1155;
   let owner: Wallet;
   let EIP1271WalletFactory: EIP1271Wallet__factory; // eslint-disable-line camelcase
-  let conduitController: ConduitController;
+  let conduitController: ConduitControllerInterface;
   let conduitImplementation: ConduitInterface;
   let conduitOne: ConduitInterface;
   let conduitKeyOne: string;

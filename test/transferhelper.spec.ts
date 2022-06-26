@@ -13,7 +13,7 @@ import { VERSION } from "./utils/helpers";
 import { faucet, whileImpersonating } from "./utils/impersonate";
 
 import type {
-  ConduitController,
+  ConduitControllerInterface,
   ConduitInterface,
   EIP1271Wallet,
   EIP1271Wallet__factory, // eslint-disable-line camelcase
@@ -27,7 +27,7 @@ describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
   let zone: Wallet;
   let owner: Wallet;
   let EIP1271WalletFactory: EIP1271Wallet__factory; // eslint-disable-line camelcase
-  let conduitController: ConduitController;
+  let conduitController: ConduitControllerInterface;
   let deployNewConduit: SeaportFixtures["deployNewConduit"];
   let createTransferWithApproval: SeaportFixtures["createTransferWithApproval"];
 

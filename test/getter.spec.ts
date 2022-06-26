@@ -7,7 +7,7 @@ import { VERSION } from "./utils/helpers";
 import { faucet } from "./utils/impersonate";
 
 import type {
-  ConduitController,
+  ConduitControllerInterface,
   ConsiderationInterface,
 } from "../typechain-types";
 import type { Wallet } from "ethers";
@@ -18,7 +18,7 @@ describe(`Getter tests (Seaport ${VERSION})`, function () {
   const { provider } = ethers;
   let marketplaceContract: ConsiderationInterface;
   let owner: Wallet;
-  let conduitController: ConduitController;
+  let conduitController: ConduitControllerInterface;
   let directMarketplaceContract: ConsiderationInterface;
 
   after(async () => {
