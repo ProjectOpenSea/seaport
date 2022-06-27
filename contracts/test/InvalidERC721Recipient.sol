@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.7;
 
-interface ERC721TokenReceiver {
+interface IERC721Receiver {
     function onERC721Received(
         address,
         address,
@@ -10,7 +10,7 @@ interface ERC721TokenReceiver {
     ) external returns (bytes4);
 }
 
-contract InvalidERC721Recipient is ERC721TokenReceiver {
+contract InvalidERC721Recipient is IERC721Receiver {
     function onERC721Received(
         address,
         address,

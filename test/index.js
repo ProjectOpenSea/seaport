@@ -10545,7 +10545,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
 
     it("Reverts on nonexistent conduit", async () => {
-      // Deploy Contract
+      // Deploy ERC721 Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
       const transferHelperItems = [
@@ -10583,6 +10583,56 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
             ethers.utils.formatBytes32String("0xabc")
           )
       ).to.be.revertedWith("InvalidConduit");
+    });
+
+    it("Reverts on error in ERC721 receiver", async () => {
+      // Deploy ERC721 Contract
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+
+      // Deploy mock ERC721 receiver
+      const mockERC721ReceiverFactory = await ethers.getContractFactory(
+        "ERC721ReceiverMock"
+      );
+      mockERC721Receiver = await mockERC721ReceiverFactory.deploy(
+        0xabcd0000,
+        1
+      );
+
+      const transferHelperItems = [
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 1,
+          amount: 1,
+        },
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 2,
+          amount: 1,
+        },
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 10,
+        },
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 20,
+        },
+      ];
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(
+            transferHelperItems,
+            mockERC721Receiver.address,
+            ethers.utils.formatBytes32String("")
+          )
+      ).to.be.revertedWith("ERC721ReceiverMock: reverting");
     });
   });
 
