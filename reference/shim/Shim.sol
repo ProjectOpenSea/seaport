@@ -14,6 +14,7 @@ import { TestERC1155 } from "contracts/test/TestERC1155.sol";
 import { TestZone } from "contracts/test/TestZone.sol";
 import { TransferHelper } from "contracts/helpers/TransferHelper.sol";
 import { InvalidERC721Recipient } from "contracts/test/InvalidERC721Recipient.sol";
+import { ERC721ReceiverMock } from "contracts/test/ERC721ReceiverMock.sol";
 
 // prettier-ignore
 import {
