@@ -16,7 +16,7 @@ import type {
   ConduitControllerInterface,
   ConduitInterface,
   EIP1271Wallet,
-  EIP1271Wallet__factory, // eslint-disable-line camelcase
+  EIP1271Wallet__factory,
   TransferHelper,
 } from "../typechain-types";
 import type { SeaportFixtures } from "./utils/fixtures";
@@ -24,12 +24,13 @@ import type { Wallet } from "ethers";
 
 describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
-  let zone: Wallet;
-  let owner: Wallet;
-  let EIP1271WalletFactory: EIP1271Wallet__factory; // eslint-disable-line camelcase
+  const owner = new ethers.Wallet(randomHex(32), provider);
+
   let conduitController: ConduitControllerInterface;
-  let deployNewConduit: SeaportFixtures["deployNewConduit"];
+  let EIP1271WalletFactory: EIP1271Wallet__factory;
+
   let createTransferWithApproval: SeaportFixtures["createTransferWithApproval"];
+  let deployNewConduit: SeaportFixtures["deployNewConduit"];
 
   after(async () => {
     await network.provider.request({
@@ -38,8 +39,6 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
   });
 
   before(async () => {
-    owner = new ethers.Wallet(randomHex(32), provider);
-
     await faucet(owner.address, provider);
 
     ({
@@ -52,11 +51,14 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
 
   let sender: Wallet;
   let recipient: Wallet;
+  let zone: Wallet;
+
   let senderContract: EIP1271Wallet;
   let recipientContract: EIP1271Wallet;
-  let tempTransferHelper: TransferHelper;
+
   let tempConduit: ConduitInterface;
   let tempConduitKey: string;
+  let tempTransferHelper: TransferHelper;
 
   beforeEach(async () => {
     // Setup basic buyer/seller wallets with ETH
@@ -70,11 +72,15 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
     tempConduitKey = owner.address + randomHex(12).slice(2);
     tempConduit = await deployNewConduit(owner, tempConduitKey);
 
-    await Promise.all(
-      [sender, recipient, zone, senderContract, recipientContract].map(
-        (wallet) => faucet(wallet.address, provider)
-      )
-    );
+    for (const wallet of [
+      sender,
+      recipient,
+      zone,
+      senderContract,
+      recipientContract,
+    ]) {
+      await faucet(wallet.address, provider);
+    }
 
     // Deploy a new TransferHelper with the tempConduitController address
     const transferHelperFactory = await ethers.getContractFactory(

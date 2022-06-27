@@ -31,7 +31,7 @@ import type {
   ConduitInterface,
   ConsiderationInterface,
   EIP1271Wallet,
-  EIP1271Wallet__factory, // eslint-disable-line camelcase
+  EIP1271Wallet__factory,
   Reenterer,
   TestERC1155,
   TestERC20,
@@ -46,33 +46,34 @@ const { parseEther } = ethers.utils;
 
 describe(`Reverts (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
-  let zone: Wallet;
+  const owner = new ethers.Wallet(randomHex(32), provider);
+
+  let conduitKeyOne: string;
+  let conduitOne: ConduitInterface;
+  let EIP1271WalletFactory: EIP1271Wallet__factory;
   let marketplaceContract: ConsiderationInterface;
-  let testERC20: TestERC20;
-  let testERC721: TestERC721;
-  let testERC1155: TestERC1155;
-  let owner: Wallet;
-  let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
-  let EIP1271WalletFactory: EIP1271Wallet__factory; // eslint-disable-line camelcase
   let reenterer: Reenterer;
   let stubZone: TestZone;
-  let conduitOne: ConduitInterface;
-  let conduitKeyOne: string;
-  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+  let testERC1155: TestERC1155;
+  let testERC20: TestERC20;
+  let testERC721: TestERC721;
+
+  let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
+  let createMirrorAcceptOfferOrder: SeaportFixtures["createMirrorAcceptOfferOrder"];
+  let createMirrorBuyNowOrder: SeaportFixtures["createMirrorBuyNowOrder"];
+  let createOrder: SeaportFixtures["createOrder"];
+  let getTestItem1155: SeaportFixtures["getTestItem1155"];
   let getTestItem20: SeaportFixtures["getTestItem20"];
-  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
-  let mint721: SeaportFixtures["mint721"];
-  let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
   let getTestItem721: SeaportFixtures["getTestItem721"];
   let getTestItem721WithCriteria: SeaportFixtures["getTestItem721WithCriteria"];
-  let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
   let mint1155: SeaportFixtures["mint1155"];
+  let mint721: SeaportFixtures["mint721"];
   let mintAndApprove1155: SeaportFixtures["mintAndApprove1155"];
-  let getTestItem1155: SeaportFixtures["getTestItem1155"];
-  let createOrder: SeaportFixtures["createOrder"];
-  let createMirrorBuyNowOrder: SeaportFixtures["createMirrorBuyNowOrder"];
-  let createMirrorAcceptOfferOrder: SeaportFixtures["createMirrorAcceptOfferOrder"];
-  let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
+  let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+  let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
+  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
+  let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
 
   after(async () => {
     await network.provider.request({
@@ -81,41 +82,41 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
   });
 
   before(async () => {
-    owner = new ethers.Wallet(randomHex(32), provider);
-
     await faucet(owner.address, provider);
 
     ({
-      EIP1271WalletFactory,
-      reenterer,
+      checkExpectedEvents,
       conduitKeyOne,
       conduitOne,
-      testERC20,
-      mintAndApproveERC20,
+      createMirrorAcceptOfferOrder,
+      createMirrorBuyNowOrder,
+      createOrder,
+      EIP1271WalletFactory,
+      getTestItem1155,
       getTestItem20,
-      testERC721,
-      set721ApprovalForAll,
-      mint721,
-      mintAndApprove721,
       getTestItem721,
       getTestItem721WithCriteria,
-      testERC1155,
-      set1155ApprovalForAll,
-      mint1155,
-      mintAndApprove1155,
-      getTestItem1155,
       marketplaceContract,
+      mint1155,
+      mint721,
+      mintAndApprove1155,
+      mintAndApprove721,
+      mintAndApproveERC20,
+      reenterer,
+      set1155ApprovalForAll,
+      set721ApprovalForAll,
       stubZone,
-      createOrder,
-      createMirrorBuyNowOrder,
-      createMirrorAcceptOfferOrder,
+      testERC1155,
+      testERC20,
+      testERC721,
       withBalanceChecks,
-      checkExpectedEvents,
     } = await seaportFixture(owner));
   });
 
   let seller: Wallet;
   let buyer: Wallet;
+  let zone: Wallet;
+
   let sellerContract: EIP1271Wallet;
   let buyerContract: EIP1271Wallet;
 
@@ -1901,13 +1902,17 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents: any = [
+      const offerComponents = [
         [
-          [5, 0],
-          [0, 0],
+          { orderIndex: 5, itemIndex: 0 },
+          { orderIndex: 0, itemIndex: 0 },
         ],
       ];
-      const considerationComponents: any = [[[0, 0]], [[0, 1]], [[0, 2]]];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 0, itemIndex: 1 }],
+        [{ orderIndex: 0, itemIndex: 2 }],
+      ];
 
       await expect(
         marketplaceContract
@@ -1950,13 +1955,17 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents: any = [
+      const offerComponents = [
         [
-          [0, 5],
-          [0, 0],
+          { orderIndex: 0, itemIndex: 5 },
+          { orderIndex: 0, itemIndex: 0 },
         ],
       ];
-      const considerationComponents: any = [[[0, 0]], [[0, 1]], [[0, 2]]];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 0, itemIndex: 1 }],
+        [{ orderIndex: 0, itemIndex: 2 }],
+      ];
 
       let success = false;
 
@@ -2006,13 +2015,17 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents: any = [
+      const offerComponents = [
         [
-          [0, 0],
-          [0, 5],
+          { orderIndex: 0, itemIndex: 0 },
+          { orderIndex: 0, itemIndex: 5 },
         ],
       ];
-      const considerationComponents: any = [[[0, 0]], [[0, 1]], [[0, 2]]];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 0, itemIndex: 1 }],
+        [{ orderIndex: 0, itemIndex: 2 }],
+      ];
 
       await expect(
         marketplaceContract
@@ -2138,7 +2151,11 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
       );
 
       const offerComponents = [[]];
-      const considerationComponents: any = [[[0, 0]], [[0, 1]], [[0, 2]]];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 0, itemIndex: 1 }],
+        [{ orderIndex: 0, itemIndex: 2 }],
+      ];
 
       await expect(
         marketplaceContract
@@ -2184,13 +2201,17 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents: any = [
+      const offerComponents = [
         [
-          [2, 0],
-          [0, 0],
+          { orderIndex: 2, itemIndex: 0 },
+          { orderIndex: 0, itemIndex: 0 },
         ],
       ];
-      const considerationComponents: any = [[[0, 0]], [[0, 1]], [[0, 2]]];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 0, itemIndex: 1 }],
+        [{ orderIndex: 0, itemIndex: 2 }],
+      ];
 
       await expect(
         marketplaceContract
@@ -2236,13 +2257,17 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents: any = [
+      const offerComponents = [
         [
-          [0, 0],
-          [2, 0],
+          { orderIndex: 0, itemIndex: 0 },
+          { orderIndex: 2, itemIndex: 0 },
         ],
       ];
-      const considerationComponents: any = [[[0, 0]], [[0, 1]], [[0, 2]]];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 0, itemIndex: 1 }],
+        [{ orderIndex: 0, itemIndex: 2 }],
+      ];
 
       await expect(
         marketplaceContract
@@ -2284,13 +2309,17 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents: any = [
+      const offerComponents = [
         [
-          [0, 0],
-          [0, 1],
+          { orderIndex: 0, itemIndex: 0 },
+          { orderIndex: 0, itemIndex: 1 },
         ],
       ];
-      const considerationComponents: any = [[[0, 0]], [[0, 1]], [[0, 2]]];
+      const considerationComponents = [
+        [{ orderIndex: 0, itemIndex: 0 }],
+        [{ orderIndex: 0, itemIndex: 1 }],
+        [{ orderIndex: 0, itemIndex: 2 }],
+      ];
 
       await expect(
         marketplaceContract
@@ -2332,13 +2361,13 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents: any = [[[0, 0]]];
-      const considerationComponents: any = [
+      const offerComponents = [[{ orderIndex: 0, itemIndex: 0 }]];
+      const considerationComponents = [
         [
-          [0, 0],
-          [2, 1],
+          { orderIndex: 0, itemIndex: 0 },
+          { orderIndex: 2, itemIndex: 1 },
         ],
-        [[2, 2]],
+        [{ orderIndex: 2, itemIndex: 2 }],
       ];
 
       await expect(
@@ -2387,11 +2416,11 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         0 // FULL_OPEN
       );
 
-      const offerComponents: any = [[[0, 0]]];
-      const considerationComponents: any = [
+      const offerComponents = [[{ orderIndex: 0, itemIndex: 0 }]];
+      const considerationComponents = [
         [
-          [0, 0],
-          [0, 1],
+          { orderIndex: 0, itemIndex: 0 },
+          { orderIndex: 0, itemIndex: 1 },
         ],
       ];
 
@@ -2487,28 +2516,28 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
         return receipt;
       });
 
-      const offerComponents: any = [
+      const offerComponents = [
         [
-          [0, 0],
-          [1, 0],
-          [2, 0],
+          { orderIndex: 0, itemIndex: 0 },
+          { orderIndex: 1, itemIndex: 0 },
+          { orderIndex: 2, itemIndex: 0 },
         ],
       ];
-      const considerationComponents: any = [
+      const considerationComponents = [
         [
-          [0, 0],
-          [1, 0],
-          [2, 0],
+          { orderIndex: 0, itemIndex: 0 },
+          { orderIndex: 1, itemIndex: 0 },
+          { orderIndex: 2, itemIndex: 0 },
         ],
         [
-          [0, 1],
-          [1, 1],
-          [2, 1],
+          { orderIndex: 0, itemIndex: 1 },
+          { orderIndex: 1, itemIndex: 1 },
+          { orderIndex: 2, itemIndex: 1 },
         ],
         [
-          [0, 2],
-          [1, 2],
-          [2, 2],
+          { orderIndex: 0, itemIndex: 2 },
+          { orderIndex: 1, itemIndex: 2 },
+          { orderIndex: 2, itemIndex: 2 },
         ],
       ];
 
@@ -5816,8 +5845,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .connect(buyer)
           .fulfillAvailableOrders(
             [order],
-            [[[0, 0]]] as any,
-            [[[0, 0]]] as any,
+            [[{ orderIndex: 0, itemIndex: 0 }]],
+            [[{ orderIndex: 0, itemIndex: 0 }]],
             toKey(0),
             100,
             { value: ethAmount }
@@ -5840,8 +5869,8 @@ describe(`Reverts (Seaport v${VERSION})`, function () {
           .fulfillAvailableAdvancedOrders(
             [order],
             [],
-            [[[0, 0]]] as any,
-            [[[0, 0]]] as any,
+            [[{ orderIndex: 0, itemIndex: 0 }]],
+            [[{ orderIndex: 0, itemIndex: 0 }]],
             toKey(0),
             buyer.address,
             100,

@@ -9,6 +9,7 @@ import { whileImpersonating } from "../impersonate";
 
 import type {
   ConduitControllerInterface,
+  Conduit__factory,
   ImmutableCreate2FactoryInterface,
 } from "../../../typechain-types";
 import type { Wallet } from "ethers";
@@ -20,9 +21,11 @@ export const conduitFixture = async (
   owner: Wallet
 ) => {
   let conduitController: ConduitControllerInterface;
-  let conduitImplementation: any;
+  let conduitImplementation: Conduit__factory;
   if (process.env.REFERENCE) {
-    conduitImplementation = await ethers.getContractFactory("ReferenceConduit");
+    conduitImplementation = (await ethers.getContractFactory(
+      "ReferenceConduit"
+    )) as Conduit__factory;
     conduitController = await deployContract("ConduitController", owner);
   } else {
     conduitImplementation = await ethers.getContractFactory("Conduit");

@@ -22,16 +22,20 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
   let alice: Wallet;
   let bob: Wallet;
   let carol: Wallet;
+
   let order: AdvancedOrder;
+
+  let marketplaceContract: ConsiderationInterface;
   let testERC20: TestERC20;
   let testERC721: TestERC721;
-  let marketplaceContract: ConsiderationInterface;
-  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
-  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+
+  let createOrder: SeaportFixtures["createOrder"];
   let getTestItem20: SeaportFixtures["getTestItem20"];
   let getTestItem721WithCriteria: SeaportFixtures["getTestItem721WithCriteria"];
-  let createOrder: SeaportFixtures["createOrder"];
   let mint721s: SeaportFixtures["mint721s"];
+  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
+
   let tokenIds: BigNumber[];
   let root: string;
 
@@ -48,20 +52,23 @@ describe("Criteria resolver allows root hash to be given as a leaf", async () =>
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
     carol = await getWalletWithEther();
+
     ({
-      mintAndApproveERC20,
-      marketplaceContract,
+      createOrder,
       getTestItem20,
       getTestItem721WithCriteria,
+      marketplaceContract,
+      mint721s,
+      mintAndApproveERC20,
       set721ApprovalForAll,
-      createOrder,
       testERC20,
       testERC721,
-      mint721s,
     } = await seaportFixture(await getWalletWithEther()));
+
     await mintAndApproveERC20(alice, marketplaceContract.address, 1000);
     await set721ApprovalForAll(bob, marketplaceContract.address);
     await set721ApprovalForAll(carol, marketplaceContract.address);
+
     tokenIds = await mint721s(bob, 10);
     ({ root } = merkleTree(tokenIds));
   });

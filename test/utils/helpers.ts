@@ -24,13 +24,12 @@ export const simulateMatchOrders = async (
   fulfillments: Fulfillment[],
   caller: ethers.Wallet,
   value: ethers.BigNumberish
-) => {
-  return marketplaceContract
+) =>
+  marketplaceContract
     .connect(caller)
     .callStatic.matchOrders(orders, fulfillments, {
       value,
     });
-};
 
 export const simulateAdvancedMatchOrders = async (
   marketplaceContract: ethers.Contract,
@@ -39,10 +38,9 @@ export const simulateAdvancedMatchOrders = async (
   fulfillments: Fulfillment[],
   caller: ethers.Wallet,
   value: ethers.BigNumberish
-) => {
-  return marketplaceContract
+) =>
+  marketplaceContract
     .connect(caller)
     .callStatic.matchAdvancedOrders(orders, criteriaResolvers, fulfillments, {
       value,
     });
-};

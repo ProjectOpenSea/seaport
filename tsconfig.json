@@ -8,6 +8,6 @@
     "declaration": true,
     "resolveJsonModule": true
   },
-  "include": ["./scripts", "./test", "./typechain-types"],
+  "include": ["./scripts", "./test", "./typechain-types", "./eip-712-types", "./*.config.ts"],
   "files": ["./hardhat.config.ts"]
 }

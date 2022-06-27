@@ -11,9 +11,15 @@ import { marketplaceFixture } from "./marketplace";
 import { tokensFixture } from "./tokens";
 
 import type { Reenterer } from "../../../typechain-types";
-import type { AdvancedOrder, CriteriaResolver } from "../types";
+import type {
+  AdvancedOrder,
+  ConsiderationItem,
+  CriteriaResolver,
+  OfferItem,
+} from "../types";
 import type {
   BigNumber,
+  BigNumberish,
   ContractReceipt,
   ContractTransaction,
   Wallet,
@@ -371,9 +377,17 @@ export const seaportFixture = async (owner: Wallet) => {
   };
 
   const checkTransferEvent = async (
-    tx: any,
-    item: any,
-    { offerer, conduitKey, target }: any
+    tx: ContractTransaction | Promise<ContractTransaction>,
+    item: (OfferItem | ConsiderationItem) & {
+      identifier?: string;
+      amount?: BigNumberish;
+      recipient?: string;
+    },
+    {
+      offerer,
+      conduitKey,
+      target,
+    }: { offerer: string; conduitKey: string; target: string }
   ) => {
     const {
       itemType,
@@ -514,7 +528,7 @@ export const seaportFixture = async (owner: Wallet) => {
       const { offerer, conduitKey, consideration, offer } = order.parameters;
       const compareEventItems = async (
         item: any,
-        orderItem: any,
+        orderItem: OfferItem | ConsiderationItem,
         isConsiderationItem: boolean
       ) => {
         expect(item.itemType).to.equal(
@@ -587,7 +601,7 @@ export const seaportFixture = async (owner: Wallet) => {
             { ...item, amount },
             {
               offerer: receipt.from,
-              conduitKey: fulfillerConduitKey,
+              conduitKey: fulfillerConduitKey!,
               target: receipt.to,
             }
           );

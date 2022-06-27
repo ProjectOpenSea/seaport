@@ -1,5 +1,7 @@
 node_modules
+.eslintrc*
 artifacts
 cache
+constants
 coverage
 lib/murky
