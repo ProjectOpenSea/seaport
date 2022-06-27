@@ -3,6 +3,7 @@ import { randomInt } from "crypto";
 import { ethers, network } from "hardhat";
 
 import { randomHex } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import {
   fixtureERC1155,
   fixtureERC20,
@@ -10,7 +11,6 @@ import {
   seaportFixture,
 } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
-import { faucet, whileImpersonating } from "./utils/impersonate";
 
 import type {
   ConduitControllerInterface,
@@ -90,11 +90,9 @@ describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
       conduitController.address
     );
 
-    await whileImpersonating(owner.address, provider, async () => {
-      await conduitController
-        .connect(owner)
-        .updateChannel(tempConduit.address, tempTransferHelper.address, true);
-    });
+    await conduitController
+      .connect(owner)
+      .updateChannel(tempConduit.address, tempTransferHelper.address, true);
   });
 
   it("Executes transfers (many token types) with a conduit", async () => {

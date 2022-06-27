@@ -16,9 +16,9 @@ import {
   toBN,
   toKey,
 } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION, minRandom, simulateMatchOrders } from "./utils/helpers";
-import { faucet, whileImpersonating } from "./utils/impersonate";
 
 import type {
   ConduitInterface,
@@ -902,15 +902,13 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
         await testERC721.mint(seller.address, nftId);
 
         // Seller approves marketplace contract to transfer NFT
-        await whileImpersonating(seller.address, provider, async () => {
-          await expect(
-            testERC721
-              .connect(seller)
-              .setApprovalForAll(marketplaceContract.address, true)
-          )
-            .to.emit(testERC721, "ApprovalForAll")
-            .withArgs(seller.address, marketplaceContract.address, true);
-        });
+        await expect(
+          testERC721
+            .connect(seller)
+            .setApprovalForAll(marketplaceContract.address, true)
+        )
+          .to.emit(testERC721, "ApprovalForAll")
+          .withArgs(seller.address, marketplaceContract.address, true);
 
         const offer = [getTestItem721(nftId)];
 
@@ -954,18 +952,16 @@ describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function (
           order
         );
 
-        await whileImpersonating(buyer.address, provider, async () => {
-          await withBalanceChecks([order], 0, undefined, async () => {
-            const tx = marketplaceContract
-              .connect(buyer)
-              .fulfillBasicOrder(basicOrderParameters, { value });
-            const receipt = await (await tx).wait();
-            await checkExpectedEvents(tx, receipt, [
-              { order, orderHash, fulfiller: buyer.address },
-            ]);
+        await withBalanceChecks([order], 0, undefined, async () => {
+          const tx = marketplaceContract
+            .connect(buyer)
+            .fulfillBasicOrder(basicOrderParameters, { value });
+          const receipt = await (await tx).wait();
+          await checkExpectedEvents(tx, receipt, [
+            { order, orderHash, fulfiller: buyer.address },
+          ]);
 
-            return receipt;
-          });
+          return receipt;
         });
       });
       it("ERC721 <=> ETH (basic, already validated)", async () => {

@@ -2,9 +2,9 @@ import { expect } from "chai";
 import { ethers, network } from "hardhat";
 
 import { randomHex } from "./utils/encoding";
+import { faucet } from "./utils/faucet";
 import { seaportFixture } from "./utils/fixtures";
 import { VERSION } from "./utils/helpers";
-import { faucet } from "./utils/impersonate";
 
 import type {
   ConduitControllerInterface,
