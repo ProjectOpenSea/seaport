@@ -656,11 +656,19 @@ describe(`Zone - PausableZone (Seaport v${VERSION})`, function () {
     // owner nukes the zone
     pausableZoneController.pause(zoneAddr);
 
-    await expect(
-      marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
-        value,
-      })
-    ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+    if (!process.env.REFERENCE) {
+      await expect(
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
+          value,
+        })
+      ).to.be.revertedWith(`InvalidRestrictedOrder("${orderHash}")`);
+    } else {
+      await expect(
+        marketplaceContract.connect(buyer).fulfillOrder(order, toKey(0), {
+          value,
+        })
+      ).to.be.reverted;
+    }
   });
 
   it("Reverts if non-owner tries to self destruct the zone", async () => {
