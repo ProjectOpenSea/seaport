@@ -10634,6 +10634,45 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           )
       ).to.be.revertedWith("ERC721ReceiverMock: reverting");
     });
+
+    it("Reverts on error in conduit", async () => {
+      // Deploy ERC721 Contract
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+
+      const transferHelperItems = [
+        // Invalid item type
+        {
+          itemType: 0,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 1,
+        },
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 2,
+          amount: 1,
+        },
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 10,
+        },
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 20,
+        },
+      ];
+
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
+      ).to.be.revertedWith("InvalidItemType");
+    });
   });
 
   describe("Reverts", async () => {
