@@ -18,7 +18,7 @@ import type { Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
 
-describe(`Validate, cancel, and increment counter flows (Seaport ${VERSION})`, function () {
+describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   let zone: Wallet;
   let marketplaceContract: ConsiderationInterface;

@@ -44,7 +44,7 @@ import type { BigNumber, Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
 
-describe(`Reverts (Seaport ${VERSION})`, function () {
+describe(`Reverts (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   let zone: Wallet;
   let marketplaceContract: ConsiderationInterface;

@@ -38,7 +38,7 @@ import type { Wallet } from "ethers";
 
 const { parseEther } = ethers.utils;
 
-describe(`Advanced orders (Seaport ${VERSION})`, function () {
+describe(`Advanced orders (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   let zone: Wallet;
   let marketplaceContract: ConsiderationInterface;

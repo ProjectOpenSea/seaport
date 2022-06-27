@@ -22,7 +22,7 @@ import type {
 import type { SeaportFixtures } from "./utils/fixtures";
 import type { Wallet } from "ethers";
 
-describe(`TransferHelper tests (Seaport ${VERSION})`, function () {
+describe(`TransferHelper tests (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   let zone: Wallet;
   let owner: Wallet;

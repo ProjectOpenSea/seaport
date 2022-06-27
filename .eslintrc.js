@@ -36,6 +36,7 @@ module.exports = {
         "newlines-between": "always",
       },
     ],
+    "object-shorthand": "error",
     "prefer-const": "error",
     "sort-imports": ["error", { ignoreDeclarationSort: true }],
   },

@@ -38,7 +38,7 @@ const { parseEther, keccak256 } = ethers.utils;
  * Buy now or accept offer for a single ERC721 or ERC1155 in exchange for
  * ETH, WETH or ERC20
  */
-describe(`Basic buy now or accept offer flows (Seaport ${VERSION})`, function () {
+describe(`Basic buy now or accept offer flows (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   let zone: Wallet;
   let marketplaceContract: ConsiderationInterface;

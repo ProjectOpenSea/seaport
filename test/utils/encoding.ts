@@ -26,8 +26,6 @@ if (GAS_REPORT_MODE) {
   randomBytes = (n: number) => nodeRandomBytes(n).toString("hex");
 }
 
-// const randomBytes
-
 export const randomHex = (bytes = 32) => `0x${randomBytes(bytes)}`;
 
 export const random128 = () => toBN(randomHex(16));

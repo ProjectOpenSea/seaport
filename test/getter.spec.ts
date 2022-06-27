@@ -14,7 +14,7 @@ import type { Wallet } from "ethers";
 
 const { keccak256, toUtf8Bytes } = ethers.utils;
 
-describe(`Getter tests (Seaport ${VERSION})`, function () {
+describe(`Getter tests (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
   let marketplaceContract: ConsiderationInterface;
   let owner: Wallet;

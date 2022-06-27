@@ -86,7 +86,7 @@ export const marketplaceFixture = async (
   // Required for EIP712 signing
   const domainData = {
     name: process.env.REFERENCE ? "Consideration" : "Seaport",
-    version: VERSION.slice(1),
+    version: VERSION,
     chainId,
     verifyingContract: marketplaceContract.address,
   };
