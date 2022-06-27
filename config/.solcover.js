@@ -30,6 +30,8 @@ module.exports = {
     "test/TestERC20.sol",
     "test/TestERC721.sol",
     "test/TestZone.sol",
+    "test/TestERC20Panic.sol",
+    "test/ERC721ReceiverMock",
   ],
   configureYulOptimizer: true,
   solcOptimizerDetails: {
