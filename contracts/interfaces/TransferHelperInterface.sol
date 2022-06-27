@@ -28,6 +28,18 @@ interface TransferHelperInterface {
     error InvalidConduit();
 
     /**
+     * @dev Revert with an error when a call to a conduit reverts with a
+     *      reason string.
+     */
+    error ConduitErrorString(string reason);
+
+    /**
+     * @dev Revert with an error when a call to a conduit reverts with a
+     *      panic error.
+     */
+    error ConduitErrorPanic(uint256 errorCode);
+
+    /**
      * @notice Transfer multiple items to a single recipient.
      *
      * @param items The items to transfer.

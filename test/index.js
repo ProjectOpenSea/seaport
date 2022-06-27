@@ -10635,7 +10635,7 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
       ).to.be.revertedWith("ERC721ReceiverMock: reverting");
     });
 
-    it("Reverts on error in conduit", async () => {
+    it("Reverts with custom error in conduit", async () => {
       // Deploy ERC721 Contract
       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
@@ -10672,6 +10672,74 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
           .connect(sender)
           .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
       ).to.be.revertedWith("InvalidItemType");
+    });
+
+    it("Reverts with bubbled up string error from call to conduit", async () => {
+      // Deploy ERC721 Contract
+      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+
+      // Call will revert since ERC721 tokens have not been minted
+      const transferHelperItems = [
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 1,
+          amount: 1,
+        },
+        {
+          itemType: 2,
+          token: tempERC721Contract.address,
+          identifier: 2,
+          amount: 1,
+        },
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 10,
+        },
+        {
+          itemType: 1,
+          token: ethers.constants.AddressZero,
+          identifier: 0,
+          amount: 20,
+        },
+      ];
+
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
+      ).to.be.revertedWith('ConduitErrorString("WRONG_FROM")');
+    });
+
+    it("Reverts with bubbled up panic error from call to conduit", async () => {
+      // Deploy mock ERC20
+      const mockERC20PanicFactory = await ethers.getContractFactory(
+        "TestERC20Panic"
+      );
+      mockERC20Panic = await mockERC20PanicFactory.deploy();
+
+      const transferHelperItems = [
+        {
+          itemType: 1,
+          token: mockERC20Panic.address,
+          identifier: 0,
+          amount: 10,
+        },
+        {
+          itemType: 1,
+          token: mockERC20Panic.address,
+          identifier: 0,
+          amount: 20,
+        },
+      ];
+
+      await expect(
+        tempTransferHelper
+          .connect(sender)
+          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
+      ).to.be.revertedWith("ConduitErrorPanic(18)");
     });
   });
 
