@@ -10145,603 +10145,603 @@ describe(`Consideration (version: ${VERSION}) — initial test suite`, function 
     });
   });
 
-  describe("TransferHelper tests", async () => {
-    let sender;
-    let recipient;
-    let senderContract;
-    let recipientContract;
-    let tempTransferHelper;
-    let tempConduit;
-    let tempConduitKey;
+  // describe("TransferHelper tests", async () => {
+  //   let sender;
+  //   let recipient;
+  //   let senderContract;
+  //   let recipientContract;
+  //   let tempTransferHelper;
+  //   let tempConduit;
+  //   let tempConduitKey;
 
-    beforeEach(async () => {
-      // Setup basic buyer/seller wallets with ETH
-      sender = new ethers.Wallet(randomHex(32), provider);
-      recipient = new ethers.Wallet(randomHex(32), provider);
-      zone = new ethers.Wallet(randomHex(32), provider);
+  //   beforeEach(async () => {
+  //     // Setup basic buyer/seller wallets with ETH
+  //     sender = new ethers.Wallet(randomHex(32), provider);
+  //     recipient = new ethers.Wallet(randomHex(32), provider);
+  //     zone = new ethers.Wallet(randomHex(32), provider);
 
-      senderContract = await EIP1271WalletFactory.deploy(sender.address);
-      recipientContract = await EIP1271WalletFactory.deploy(recipient.address);
+  //     senderContract = await EIP1271WalletFactory.deploy(sender.address);
+  //     recipientContract = await EIP1271WalletFactory.deploy(recipient.address);
 
-      tempConduitKey = owner.address + randomHex(12).slice(2);
-      tempConduit = await deployNewConduit(owner, tempConduitKey);
+  //     tempConduitKey = owner.address + randomHex(12).slice(2);
+  //     tempConduit = await deployNewConduit(owner, tempConduitKey);
 
-      await Promise.all(
-        [sender, recipient, zone, senderContract, recipientContract].map(
-          (wallet) => faucet(wallet.address, provider)
-        )
-      );
+  //     await Promise.all(
+  //       [sender, recipient, zone, senderContract, recipientContract].map(
+  //         (wallet) => faucet(wallet.address, provider)
+  //       )
+  //     );
 
-      // Deploy a new TransferHelper with the tempConduitController address
-      const transferHelperFactory = await ethers.getContractFactory(
-        "TransferHelper"
-      );
-      tempTransferHelper = await transferHelperFactory.deploy(
-        conduitController.address
-      );
+  //     // Deploy a new TransferHelper with the tempConduitController address
+  //     const transferHelperFactory = await ethers.getContractFactory(
+  //       "TransferHelper"
+  //     );
+  //     tempTransferHelper = await transferHelperFactory.deploy(
+  //       conduitController.address
+  //     );
 
-      await whileImpersonating(owner.address, provider, async () => {
-        await conduitController
-          .connect(owner)
-          .updateChannel(tempConduit.address, tempTransferHelper.address, true);
-      });
-    });
+  //     await whileImpersonating(owner.address, provider, async () => {
+  //       await conduitController
+  //         .connect(owner)
+  //         .updateChannel(tempConduit.address, tempTransferHelper.address, true);
+  //     });
+  //   });
 
-    it("Executes transfers (many token types) with a conduit", async () => {
-      // Get 3 Numbers that's value adds to Item Amount and minimum 1.
-      const itemsToCreate = 10;
-      const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
-      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
-      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+  //   it("Executes transfers (many token types) with a conduit", async () => {
+  //     // Get 3 Numbers that's value adds to Item Amount and minimum 1.
+  //     const itemsToCreate = 10;
+  //     const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
+  //     const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+  //     const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
-      const erc20Contracts = [numERC20s];
-      const erc20Transfers = [numERC20s];
+  //     const erc20Contracts = [numERC20s];
+  //     const erc20Transfers = [numERC20s];
 
-      const erc721Contracts = [numEC721s];
-      const erc721Transfers = [numEC721s];
+  //     const erc721Contracts = [numEC721s];
+  //     const erc721Transfers = [numEC721s];
 
-      const erc1155Contracts = [numERC1155s];
-      const erc1155Transfers = [numERC1155s];
+  //     const erc1155Contracts = [numERC1155s];
+  //     const erc1155Transfers = [numERC1155s];
 
-      // Create numERC20s amount of ERC20 objects
-      for (let i = 0; i < numERC20s; i++) {
-        // Deploy Contract
-        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-        // Create/Approve X amount of  ERC20s
-        const erc20Transfer = await createTransferWithApproval(
-          tempERC20Contract,
-          sender,
-          1,
-          tempConduit.address
-        );
-        erc20Contracts[i] = tempERC20Contract;
-        erc20Transfers[i] = erc20Transfer;
-      }
+  //     // Create numERC20s amount of ERC20 objects
+  //     for (let i = 0; i < numERC20s; i++) {
+  //       // Deploy Contract
+  //       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+  //       // Create/Approve X amount of  ERC20s
+  //       const erc20Transfer = await createTransferWithApproval(
+  //         tempERC20Contract,
+  //         sender,
+  //         1,
+  //         tempConduit.address
+  //       );
+  //       erc20Contracts[i] = tempERC20Contract;
+  //       erc20Transfers[i] = erc20Transfer;
+  //     }
 
-      // Create numEC721s amount of ERC20 objects
-      for (let i = 0; i < numEC721s; i++) {
-        // Deploy Contract
-        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-        // Create/Approve numEC721s amount of  ERC721s
-        const erc721Transfer = await createTransferWithApproval(
-          tempERC721Contract,
-          sender,
-          2,
-          tempConduit.address
-        );
-        erc721Contracts[i] = tempERC721Contract;
-        erc721Transfers[i] = erc721Transfer;
-      }
+  //     // Create numEC721s amount of ERC20 objects
+  //     for (let i = 0; i < numEC721s; i++) {
+  //       // Deploy Contract
+  //       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+  //       // Create/Approve numEC721s amount of  ERC721s
+  //       const erc721Transfer = await createTransferWithApproval(
+  //         tempERC721Contract,
+  //         sender,
+  //         2,
+  //         tempConduit.address
+  //       );
+  //       erc721Contracts[i] = tempERC721Contract;
+  //       erc721Transfers[i] = erc721Transfer;
+  //     }
 
-      // Create numERC1155s amount of ERC1155 objects
-      for (let i = 0; i < numERC1155s; i++) {
-        // Deploy Contract
-        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
-          owner
-        );
-        // Create/Approve numERC1155s amount of ERC1155s
-        const erc1155Transfer = await createTransferWithApproval(
-          tempERC1155Contract,
-          sender,
-          3,
-          tempConduit.address
-        );
-        erc1155Contracts[i] = tempERC1155Contract;
-        erc1155Transfers[i] = erc1155Transfer;
-      }
+  //     // Create numERC1155s amount of ERC1155 objects
+  //     for (let i = 0; i < numERC1155s; i++) {
+  //       // Deploy Contract
+  //       const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
+  //         owner
+  //       );
+  //       // Create/Approve numERC1155s amount of ERC1155s
+  //       const erc1155Transfer = await createTransferWithApproval(
+  //         tempERC1155Contract,
+  //         sender,
+  //         3,
+  //         tempConduit.address
+  //       );
+  //       erc1155Contracts[i] = tempERC1155Contract;
+  //       erc1155Transfers[i] = erc1155Transfer;
+  //     }
 
-      const transfers = erc20Transfers.concat(
-        erc721Transfers,
-        erc1155Transfers
-      );
-      const contracts = erc20Contracts.concat(
-        erc721Contracts,
-        erc1155Contracts
-      );
-      // Send the bulk transfers
-      await tempTransferHelper
-        .connect(sender)
-        .bulkTransfer(transfers, recipient.address, tempConduitKey);
-      // Loop through all transfer to do ownership/balance checks
-      for (let i = 0; i < transfers.length; i++) {
-        // Get Itemtype, token, amount, identifier
-        const { itemType, amount, identifier } = transfers[i];
-        const token = contracts[i];
+  //     const transfers = erc20Transfers.concat(
+  //       erc721Transfers,
+  //       erc1155Transfers
+  //     );
+  //     const contracts = erc20Contracts.concat(
+  //       erc721Contracts,
+  //       erc1155Contracts
+  //     );
+  //     // Send the bulk transfers
+  //     await tempTransferHelper
+  //       .connect(sender)
+  //       .bulkTransfer(transfers, recipient.address, tempConduitKey);
+  //     // Loop through all transfer to do ownership/balance checks
+  //     for (let i = 0; i < transfers.length; i++) {
+  //       // Get Itemtype, token, amount, identifier
+  //       const { itemType, amount, identifier } = transfers[i];
+  //       const token = contracts[i];
 
-        switch (itemType) {
-          case 1: // ERC20
-            // Check balance
-            expect(await token.balanceOf(sender.address)).to.equal(0);
-            expect(await token.balanceOf(recipient.address)).to.equal(amount);
-            break;
-          case 2: // ERC721
-          case 4: // ERC721_WITH_CRITERIA
-            expect(await token.ownerOf(identifier)).to.equal(recipient.address);
-            break;
-          case 3: // ERC1155
-          case 5: // ERC1155_WITH_CRITERIA
-            // Check balance
-            expect(await token.balanceOf(sender.address, identifier)).to.equal(
-              0
-            );
-            expect(
-              await token.balanceOf(recipient.address, identifier)
-            ).to.equal(amount);
-            break;
-        }
-      }
-    });
+  //       switch (itemType) {
+  //         case 1: // ERC20
+  //           // Check balance
+  //           expect(await token.balanceOf(sender.address)).to.equal(0);
+  //           expect(await token.balanceOf(recipient.address)).to.equal(amount);
+  //           break;
+  //         case 2: // ERC721
+  //         case 4: // ERC721_WITH_CRITERIA
+  //           expect(await token.ownerOf(identifier)).to.equal(recipient.address);
+  //           break;
+  //         case 3: // ERC1155
+  //         case 5: // ERC1155_WITH_CRITERIA
+  //           // Check balance
+  //           expect(await token.balanceOf(sender.address, identifier)).to.equal(
+  //             0
+  //           );
+  //           expect(
+  //             await token.balanceOf(recipient.address, identifier)
+  //           ).to.equal(amount);
+  //           break;
+  //       }
+  //     }
+  //   });
 
-    it("Executes transfers (many token types) without a conduit", async () => {
-      // Get 3 Numbers that's value adds to Item Amount and minimum 1.
-      const itemsToCreate = 10;
-      const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
-      const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
-      const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
+  //   it("Executes transfers (many token types) without a conduit", async () => {
+  //     // Get 3 Numbers that's value adds to Item Amount and minimum 1.
+  //     const itemsToCreate = 10;
+  //     const numERC20s = Math.max(1, randomInt(itemsToCreate - 2));
+  //     const numEC721s = Math.max(1, randomInt(itemsToCreate - numERC20s - 1));
+  //     const numERC1155s = Math.max(1, itemsToCreate - numERC20s - numEC721s);
 
-      const erc20Contracts = [numERC20s];
-      const erc20Transfers = [numERC20s];
+  //     const erc20Contracts = [numERC20s];
+  //     const erc20Transfers = [numERC20s];
 
-      const erc721Contracts = [numEC721s];
-      const erc721Transfers = [numEC721s];
+  //     const erc721Contracts = [numEC721s];
+  //     const erc721Transfers = [numEC721s];
 
-      const erc1155Contracts = [numERC1155s];
-      const erc1155Transfers = [numERC1155s];
+  //     const erc1155Contracts = [numERC1155s];
+  //     const erc1155Transfers = [numERC1155s];
 
-      // Create numERC20s amount of ERC20 objects
-      for (let i = 0; i < numERC20s; i++) {
-        // Deploy Contract
-        const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
-        // Create/Approve X amount of  ERC20s
-        const erc20Transfer = await createTransferWithApproval(
-          tempERC20Contract,
-          sender,
-          1,
-          tempTransferHelper.address
-        );
-        erc20Contracts[i] = tempERC20Contract;
-        erc20Transfers[i] = erc20Transfer;
-      }
+  //     // Create numERC20s amount of ERC20 objects
+  //     for (let i = 0; i < numERC20s; i++) {
+  //       // Deploy Contract
+  //       const { testERC20: tempERC20Contract } = await fixtureERC20(owner);
+  //       // Create/Approve X amount of  ERC20s
+  //       const erc20Transfer = await createTransferWithApproval(
+  //         tempERC20Contract,
+  //         sender,
+  //         1,
+  //         tempTransferHelper.address
+  //       );
+  //       erc20Contracts[i] = tempERC20Contract;
+  //       erc20Transfers[i] = erc20Transfer;
+  //     }
 
-      // Create numEC721s amount of ERC20 objects
-      for (let i = 0; i < numEC721s; i++) {
-        // Deploy Contract
-        const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
-        // Create/Approve numEC721s amount of  ERC721s
-        const erc721Transfer = await createTransferWithApproval(
-          tempERC721Contract,
-          sender,
-          2,
-          tempTransferHelper.address
-        );
-        erc721Contracts[i] = tempERC721Contract;
-        erc721Transfers[i] = erc721Transfer;
-      }
+  //     // Create numEC721s amount of ERC20 objects
+  //     for (let i = 0; i < numEC721s; i++) {
+  //       // Deploy Contract
+  //       const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+  //       // Create/Approve numEC721s amount of  ERC721s
+  //       const erc721Transfer = await createTransferWithApproval(
+  //         tempERC721Contract,
+  //         sender,
+  //         2,
+  //         tempTransferHelper.address
+  //       );
+  //       erc721Contracts[i] = tempERC721Contract;
+  //       erc721Transfers[i] = erc721Transfer;
+  //     }
 
-      // Create numERC1155s amount of ERC1155 objects
-      for (let i = 0; i < numERC1155s; i++) {
-        // Deploy Contract
-        const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
-          owner
-        );
-        // Create/Approve numERC1155s amount of ERC1155s
-        const erc1155Transfer = await createTransferWithApproval(
-          tempERC1155Contract,
-          sender,
-          3,
-          tempTransferHelper.address
-        );
-        erc1155Contracts[i] = tempERC1155Contract;
-        erc1155Transfers[i] = erc1155Transfer;
-      }
+  //     // Create numERC1155s amount of ERC1155 objects
+  //     for (let i = 0; i < numERC1155s; i++) {
+  //       // Deploy Contract
+  //       const { testERC1155: tempERC1155Contract } = await fixtureERC1155(
+  //         owner
+  //       );
+  //       // Create/Approve numERC1155s amount of ERC1155s
+  //       const erc1155Transfer = await createTransferWithApproval(
+  //         tempERC1155Contract,
+  //         sender,
+  //         3,
+  //         tempTransferHelper.address
+  //       );
+  //       erc1155Contracts[i] = tempERC1155Contract;
+  //       erc1155Transfers[i] = erc1155Transfer;
+  //     }
 
-      const transfers = erc20Transfers.concat(
-        erc721Transfers,
-        erc1155Transfers
-      );
-      const contracts = erc20Contracts.concat(
-        erc721Contracts,
-        erc1155Contracts
-      );
-      // Send the bulk transfers
-      await tempTransferHelper
-        .connect(sender)
-        .bulkTransfer(
-          transfers,
-          recipient.address,
-          ethers.utils.formatBytes32String("")
-        );
-      // Loop through all transfer to do ownership/balance checks
-      for (let i = 0; i < transfers.length; i++) {
-        // Get Itemtype, token, amount, identifier
-        const { itemType, amount, identifier } = transfers[i];
-        const token = contracts[i];
+  //     const transfers = erc20Transfers.concat(
+  //       erc721Transfers,
+  //       erc1155Transfers
+  //     );
+  //     const contracts = erc20Contracts.concat(
+  //       erc721Contracts,
+  //       erc1155Contracts
+  //     );
+  //     // Send the bulk transfers
+  //     await tempTransferHelper
+  //       .connect(sender)
+  //       .bulkTransfer(
+  //         transfers,
+  //         recipient.address,
+  //         ethers.utils.formatBytes32String("")
+  //       );
+  //     // Loop through all transfer to do ownership/balance checks
+  //     for (let i = 0; i < transfers.length; i++) {
+  //       // Get Itemtype, token, amount, identifier
+  //       const { itemType, amount, identifier } = transfers[i];
+  //       const token = contracts[i];
 
-        switch (itemType) {
-          case 1: // ERC20
-            // Check balance
-            expect(await token.balanceOf(sender.address)).to.equal(0);
-            expect(await token.balanceOf(recipient.address)).to.equal(amount);
-            break;
-          case 2: // ERC721
-          case 4: // ERC721_WITH_CRITERIA
-            expect(await token.ownerOf(identifier)).to.equal(recipient.address);
-            break;
-          case 3: // ERC1155
-          case 5: // ERC1155_WITH_CRITERIA
-            // Check balance
-            expect(await token.balanceOf(sender.address, identifier)).to.equal(
-              0
-            );
-            expect(
-              await token.balanceOf(recipient.address, identifier)
-            ).to.equal(amount);
-            break;
-        }
-      }
-    });
+  //       switch (itemType) {
+  //         case 1: // ERC20
+  //           // Check balance
+  //           expect(await token.balanceOf(sender.address)).to.equal(0);
+  //           expect(await token.balanceOf(recipient.address)).to.equal(amount);
+  //           break;
+  //         case 2: // ERC721
+  //         case 4: // ERC721_WITH_CRITERIA
+  //           expect(await token.ownerOf(identifier)).to.equal(recipient.address);
+  //           break;
+  //         case 3: // ERC1155
+  //         case 5: // ERC1155_WITH_CRITERIA
+  //           // Check balance
+  //           expect(await token.balanceOf(sender.address, identifier)).to.equal(
+  //             0
+  //           );
+  //           expect(
+  //             await token.balanceOf(recipient.address, identifier)
+  //           ).to.equal(amount);
+  //           break;
+  //       }
+  //     }
+  //   });
 
-    it("Reverts on native token transfers", async () => {
-      const ethTransferHelperItems = [
-        {
-          itemType: 0,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 0,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 20,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(
-            ethTransferHelperItems,
-            recipient.address,
-            ethers.utils.formatBytes32String("")
-          )
-      ).to.be.revertedWith("InvalidItemType");
-    });
+  //   it("Reverts on native token transfers", async () => {
+  //     const ethTransferHelperItems = [
+  //       {
+  //         itemType: 0,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 10,
+  //       },
+  //       {
+  //         itemType: 0,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 20,
+  //       },
+  //     ];
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(
+  //           ethTransferHelperItems,
+  //           recipient.address,
+  //           ethers.utils.formatBytes32String("")
+  //         )
+  //     ).to.be.revertedWith("InvalidItemType");
+  //   });
 
-    it("Reverts on invalid ERC20 identifier", async () => {
-      const erc20TransferHelperItems = [
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 5,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 4,
-          amount: 20,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(
-            erc20TransferHelperItems,
-            recipient.address,
-            ethers.utils.formatBytes32String("")
-          )
-      ).to.be.revertedWith("InvalidERC20Identifier");
-    });
+  //   it("Reverts on invalid ERC20 identifier", async () => {
+  //     const erc20TransferHelperItems = [
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 5,
+  //         amount: 10,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 4,
+  //         amount: 20,
+  //       },
+  //     ];
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(
+  //           erc20TransferHelperItems,
+  //           recipient.address,
+  //           ethers.utils.formatBytes32String("")
+  //         )
+  //     ).to.be.revertedWith("InvalidERC20Identifier");
+  //   });
 
-    it("Reverts on invalid ERC721 transfer amount", async () => {
-      // Deploy Contract
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+  //   it("Reverts on invalid ERC721 transfer amount", async () => {
+  //     // Deploy Contract
+  //     const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      const erc721TransferHelperItems = [
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 10,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 20,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(
-            erc721TransferHelperItems,
-            recipient.address,
-            ethers.utils.formatBytes32String("")
-          )
-      ).to.be.revertedWith("InvalidERC721TransferAmount");
-    });
+  //     const erc721TransferHelperItems = [
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 1,
+  //         amount: 10,
+  //       },
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 2,
+  //         amount: 20,
+  //       },
+  //     ];
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(
+  //           erc721TransferHelperItems,
+  //           recipient.address,
+  //           ethers.utils.formatBytes32String("")
+  //         )
+  //     ).to.be.revertedWith("InvalidERC721TransferAmount");
+  //   });
 
-    it("Reverts on invalid ERC721 recipient", async () => {
-      // Deploy Contract
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+  //   it("Reverts on invalid ERC721 recipient", async () => {
+  //     // Deploy Contract
+  //     const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      const erc721TransferHelperItems = [
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(
-            erc721TransferHelperItems,
-            tempERC721Contract.address,
-            ethers.utils.formatBytes32String("")
-          )
-      ).to.be.revertedWith("InvalidERC721Recipient");
-    });
+  //     const erc721TransferHelperItems = [
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 1,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 2,
+  //         amount: 1,
+  //       },
+  //     ];
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(
+  //           erc721TransferHelperItems,
+  //           tempERC721Contract.address,
+  //           ethers.utils.formatBytes32String("")
+  //         )
+  //     ).to.be.revertedWith("InvalidERC721Recipient");
+  //   });
 
-    it("Reverts on invalid function selector", async () => {
-      const invalidRecipientFactory = await ethers.getContractFactory(
-        "InvalidERC721Recipient"
-      );
-      invalidRecipient = await invalidRecipientFactory.deploy();
+  //   it("Reverts on invalid function selector", async () => {
+  //     const invalidRecipientFactory = await ethers.getContractFactory(
+  //       "InvalidERC721Recipient"
+  //     );
+  //     invalidRecipient = await invalidRecipientFactory.deploy();
 
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+  //     const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      const erc721TransferHelperItems = [
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(
-            erc721TransferHelperItems,
-            invalidRecipient.address,
-            ethers.utils.formatBytes32String("")
-          )
-      ).to.be.revertedWith("InvalidERC721Recipient");
-    });
+  //     const erc721TransferHelperItems = [
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 1,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 2,
+  //         amount: 1,
+  //       },
+  //     ];
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(
+  //           erc721TransferHelperItems,
+  //           invalidRecipient.address,
+  //           ethers.utils.formatBytes32String("")
+  //         )
+  //     ).to.be.revertedWith("InvalidERC721Recipient");
+  //   });
 
-    it("Reverts on nonexistent conduit", async () => {
-      // Deploy ERC721 Contract
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+  //   it("Reverts on nonexistent conduit", async () => {
+  //     // Deploy ERC721 Contract
+  //     const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      const transferHelperItems = [
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 20,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(
-            transferHelperItems,
-            recipient.address,
-            ethers.utils.formatBytes32String("0xabc")
-          )
-      ).to.be.revertedWith("InvalidConduit");
-    });
+  //     const transferHelperItems = [
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 1,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 2,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 10,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 20,
+  //       },
+  //     ];
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(
+  //           transferHelperItems,
+  //           recipient.address,
+  //           ethers.utils.formatBytes32String("0xabc")
+  //         )
+  //     ).to.be.revertedWith("InvalidConduit");
+  //   });
 
-    it("Reverts on error in ERC721 receiver", async () => {
-      // Deploy ERC721 Contract
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+  //   it("Reverts on error in ERC721 receiver", async () => {
+  //     // Deploy ERC721 Contract
+  //     const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      // Deploy mock ERC721 receiver
-      const mockERC721ReceiverFactory = await ethers.getContractFactory(
-        "ERC721ReceiverMock"
-      );
-      mockERC721Receiver = await mockERC721ReceiverFactory.deploy(
-        0xabcd0000,
-        1
-      );
+  //     // Deploy mock ERC721 receiver
+  //     const mockERC721ReceiverFactory = await ethers.getContractFactory(
+  //       "ERC721ReceiverMock"
+  //     );
+  //     mockERC721Receiver = await mockERC721ReceiverFactory.deploy(
+  //       0xabcd0000,
+  //       1
+  //     );
 
-      const transferHelperItems = [
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 20,
-        },
-      ];
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(
-            transferHelperItems,
-            mockERC721Receiver.address,
-            ethers.utils.formatBytes32String("")
-          )
-      ).to.be.revertedWith("ERC721ReceiverMock: reverting");
-    });
+  //     const transferHelperItems = [
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 1,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 2,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 10,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 20,
+  //       },
+  //     ];
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(
+  //           transferHelperItems,
+  //           mockERC721Receiver.address,
+  //           ethers.utils.formatBytes32String("")
+  //         )
+  //     ).to.be.revertedWith("ERC721ReceiverMock: reverting");
+  //   });
 
-    it("Reverts with custom error in conduit", async () => {
-      // Deploy ERC721 Contract
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+  //   it("Reverts with custom error in conduit", async () => {
+  //     // Deploy ERC721 Contract
+  //     const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      const transferHelperItems = [
-        // Invalid item type
-        {
-          itemType: 0,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 20,
-        },
-      ];
+  //     const transferHelperItems = [
+  //       // Invalid item type
+  //       {
+  //         itemType: 0,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 2,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 10,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 20,
+  //       },
+  //     ];
 
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.revertedWith("InvalidItemType");
-    });
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
+  //     ).to.be.revertedWith("InvalidItemType");
+  //   });
 
-    it("Reverts with bubbled up string error from call to conduit", async () => {
-      // Deploy ERC721 Contract
-      const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
+  //   it("Reverts with bubbled up string error from call to conduit", async () => {
+  //     // Deploy ERC721 Contract
+  //     const { testERC721: tempERC721Contract } = await fixtureERC721(owner);
 
-      // Call will revert since ERC721 tokens have not been minted
-      const transferHelperItems = [
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 1,
-          amount: 1,
-        },
-        {
-          itemType: 2,
-          token: tempERC721Contract.address,
-          identifier: 2,
-          amount: 1,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: ethers.constants.AddressZero,
-          identifier: 0,
-          amount: 20,
-        },
-      ];
+  //     // Call will revert since ERC721 tokens have not been minted
+  //     const transferHelperItems = [
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 1,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 2,
+  //         token: tempERC721Contract.address,
+  //         identifier: 2,
+  //         amount: 1,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 10,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: ethers.constants.AddressZero,
+  //         identifier: 0,
+  //         amount: 20,
+  //       },
+  //     ];
 
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.revertedWith('ConduitErrorString("WRONG_FROM")');
-    });
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
+  //     ).to.be.revertedWith('ConduitErrorString("WRONG_FROM")');
+  //   });
 
-    it("Reverts with bubbled up panic error from call to conduit", async () => {
-      // Deploy mock ERC20
-      const mockERC20PanicFactory = await ethers.getContractFactory(
-        "TestERC20Panic"
-      );
-      mockERC20Panic = await mockERC20PanicFactory.deploy();
+  //   it("Reverts with bubbled up panic error from call to conduit", async () => {
+  //     // Deploy mock ERC20
+  //     const mockERC20PanicFactory = await ethers.getContractFactory(
+  //       "TestERC20Panic"
+  //     );
+  //     mockERC20Panic = await mockERC20PanicFactory.deploy();
 
-      const transferHelperItems = [
-        {
-          itemType: 1,
-          token: mockERC20Panic.address,
-          identifier: 0,
-          amount: 10,
-        },
-        {
-          itemType: 1,
-          token: mockERC20Panic.address,
-          identifier: 0,
-          amount: 20,
-        },
-      ];
+  //     const transferHelperItems = [
+  //       {
+  //         itemType: 1,
+  //         token: mockERC20Panic.address,
+  //         identifier: 0,
+  //         amount: 10,
+  //       },
+  //       {
+  //         itemType: 1,
+  //         token: mockERC20Panic.address,
+  //         identifier: 0,
+  //         amount: 20,
+  //       },
+  //     ];
 
-      await expect(
-        tempTransferHelper
-          .connect(sender)
-          .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
-      ).to.be.revertedWith("ConduitErrorPanic(18)");
-    });
-  });
+  //     await expect(
+  //       tempTransferHelper
+  //         .connect(sender)
+  //         .bulkTransfer(transferHelperItems, recipient.address, tempConduitKey)
+  //     ).to.be.revertedWith("ConduitErrorPanic(18)");
+  //   });
+  // });
 
   describe("Reverts", async () => {
     let seller;

@@ -26,7 +26,7 @@ import {
     TransferHelperInterface
 } from "../interfaces/TransferHelperInterface.sol";
 
-interface ERC721TokenReceiver {
+interface IERC721Receiver {
     function onERC721Received(
         address,
         address,
@@ -129,7 +129,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                         if (recipientIsContract) {
                             // Check if recipient can receive ERC721 tokens.
                             try
-                                ERC721TokenReceiver(recipient).onERC721Received(
+                                IERC721Receiver(recipient).onERC721Received(
                                     address(this),
                                     msg.sender,
                                     item.identifier,
@@ -139,9 +139,7 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                                 // Check if onERC721Received selector is valid.
                                 if (
                                     selector !=
-                                    ERC721TokenReceiver
-                                        .onERC721Received
-                                        .selector
+                                    IERC721Receiver.onERC721Received.selector
                                 ) {
                                     revert InvalidERC721Recipient();
                                 }
