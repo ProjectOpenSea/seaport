@@ -1,14 +1,14 @@
-import * as dotenv from "dotenv";
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
+import { subtask } from "hardhat/config";
 
-import { HardhatUserConfig, subtask } from "hardhat/config";
+import type { HardhatUserConfig } from "hardhat/config";
+
+import "dotenv/config";
+import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-
-import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
-
-dotenv.config();
 
 // Filter Reference Contracts
 subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(

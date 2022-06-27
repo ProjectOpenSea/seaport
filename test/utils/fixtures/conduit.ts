@@ -1,15 +1,17 @@
-/* eslint-disable camelcase */
 import { expect } from "chai";
-import { constants, Wallet } from "ethers";
+import { constants } from "ethers";
 import { getCreate2Address, keccak256 } from "ethers/lib/utils";
 import hre, { ethers } from "hardhat";
-import {
-  ConduitControllerInterface,
-  ImmutableCreate2FactoryInterface,
-} from "../../../typechain-types";
+
 import { deployContract } from "../contracts";
 import { randomHex } from "../encoding";
 import { whileImpersonating } from "../impersonate";
+
+import type {
+  ConduitControllerInterface,
+  ImmutableCreate2FactoryInterface,
+} from "../../../typechain-types";
+import type { Wallet } from "ethers";
 
 const deployConstants = require("../../../constants/constants");
 
@@ -21,7 +23,7 @@ export const conduitFixture = async (
   let conduitImplementation: any;
   if (process.env.REFERENCE) {
     conduitImplementation = await ethers.getContractFactory("ReferenceConduit");
-    conduitController = await deployContract("ConduitController", owner as any);
+    conduitController = await deployContract("ConduitController", owner);
   } else {
     conduitImplementation = await ethers.getContractFactory("Conduit");
 
@@ -82,7 +84,7 @@ export const conduitFixture = async (
   const deployNewConduit = async (owner: Wallet, conduitKey?: string) => {
     // Create a conduit key with a random salt
     const assignedConduitKey =
-      conduitKey || owner.address + randomHex(12).slice(2);
+      conduitKey ?? owner.address + randomHex(12).slice(2);
 
     const { conduit: tempConduitAddress } = await conduitController.getConduit(
       assignedConduitKey
