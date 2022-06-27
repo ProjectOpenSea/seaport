@@ -16,9 +16,15 @@ module.exports = {
   parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaVersion: 12,
+    project: "./tsconfig.json",
   },
   rules: {
     "@typescript-eslint/consistent-type-imports": "error",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
+    camelcase: [
+      "error",
+      { allow: ["Conduit__factory", "EIP1271Wallet__factory"] },
+    ],
     "import/order": [
       "error",
       {

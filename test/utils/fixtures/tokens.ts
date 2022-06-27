@@ -216,7 +216,7 @@ export const fixtureERC1155 = async (signer: JsonRpcSigner | Wallet) => {
 
 const minRandom = (min: number) => randomBN(10).add(min);
 
-export const tokensFixture = async (signer: JsonRpcSigner) => {
+export const tokensFixture = async (signer: JsonRpcSigner | Wallet) => {
   const erc20 = await fixtureERC20(signer);
   const erc721 = await fixtureERC721(signer);
   const erc1155 = await fixtureERC1155(signer);

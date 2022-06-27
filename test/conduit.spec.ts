@@ -29,9 +29,10 @@ import { faucet, whileImpersonating } from "./utils/impersonate";
 import type {
   ConduitControllerInterface,
   ConduitInterface,
+  Conduit__factory,
   ConsiderationInterface,
   EIP1271Wallet,
-  EIP1271Wallet__factory, // eslint-disable-line camelcase
+  EIP1271Wallet__factory,
   TestERC1155,
   TestERC20,
   TestERC721,
@@ -43,28 +44,29 @@ const { parseEther } = ethers.utils;
 
 describe(`Conduit tests (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
-  let zone: Wallet;
+  const owner = new ethers.Wallet(randomHex(32), provider);
+
+  let conduitController: ConduitControllerInterface;
+  let conduitImplementation: Conduit__factory;
+  let conduitKeyOne: string;
+  let conduitOne: ConduitInterface;
+  let EIP1271WalletFactory: EIP1271Wallet__factory;
   let marketplaceContract: ConsiderationInterface;
-  let testERC20: TestERC20;
-  let testERC721: TestERC721;
   let testERC1155: TestERC1155;
   let testERC1155Two: TestERC1155;
-  let owner: Wallet;
-  let EIP1271WalletFactory: EIP1271Wallet__factory; // eslint-disable-line camelcase
-  let conduitController: ConduitControllerInterface;
-  let conduitImplementation: ConduitInterface;
-  let conduitOne: ConduitInterface;
-  let conduitKeyOne: string;
-  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
-  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
-  let mint721: SeaportFixtures["mint721"];
-  let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
-  let mint1155: SeaportFixtures["mint1155"];
-  let getTestItem1155: SeaportFixtures["getTestItem1155"];
-  let deployNewConduit: SeaportFixtures["deployNewConduit"];
-  let createTransferWithApproval: SeaportFixtures["createTransferWithApproval"];
-  let createOrder: SeaportFixtures["createOrder"];
+  let testERC20: TestERC20;
+  let testERC721: TestERC721;
+
   let createMirrorBuyNowOrder: SeaportFixtures["createMirrorBuyNowOrder"];
+  let createOrder: SeaportFixtures["createOrder"];
+  let createTransferWithApproval: SeaportFixtures["createTransferWithApproval"];
+  let deployNewConduit: SeaportFixtures["deployNewConduit"];
+  let getTestItem1155: SeaportFixtures["getTestItem1155"];
+  let mint1155: SeaportFixtures["mint1155"];
+  let mint721: SeaportFixtures["mint721"];
+  let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
+  let set1155ApprovalForAll: SeaportFixtures["set1155ApprovalForAll"];
+  let set721ApprovalForAll: SeaportFixtures["set721ApprovalForAll"];
 
   after(async () => {
     await network.provider.request({
@@ -73,38 +75,39 @@ describe(`Conduit tests (Seaport v${VERSION})`, function () {
   });
 
   before(async () => {
-    owner = new ethers.Wallet(randomHex(32), provider);
-
     await faucet(owner.address, provider);
 
     ({
-      EIP1271WalletFactory,
       conduitController,
       conduitImplementation,
       conduitKeyOne,
       conduitOne,
-      deployNewConduit,
-      testERC20,
-      mintAndApproveERC20,
-      testERC721,
-      set721ApprovalForAll,
-      mint721,
-      testERC1155,
-      set1155ApprovalForAll,
-      mint1155,
-      getTestItem1155,
-      testERC1155Two,
-      createTransferWithApproval,
-      marketplaceContract,
-      createOrder,
       createMirrorBuyNowOrder,
+      createOrder,
+      createTransferWithApproval,
+      deployNewConduit,
+      EIP1271WalletFactory,
+      getTestItem1155,
+      marketplaceContract,
+      mint1155,
+      mint721,
+      mintAndApproveERC20,
+      set1155ApprovalForAll,
+      set721ApprovalForAll,
+      testERC1155,
+      testERC1155Two,
+      testERC20,
+      testERC721,
     } = await seaportFixture(owner));
   });
 
   let seller: Wallet;
   let buyer: Wallet;
+  let zone: Wallet;
+
   let sellerContract: EIP1271Wallet;
   let buyerContract: EIP1271Wallet;
+
   let tempConduit: ConduitInterface;
 
   beforeEach(async () => {

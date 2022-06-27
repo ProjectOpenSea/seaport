@@ -21,16 +21,19 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
   let alice: Wallet;
   let bob: Wallet;
   let carol: Wallet;
+
   let order: AdvancedOrder;
   let orderHash: string;
-  let testERC20: TestERC20;
-  let testERC1155: TestERC1155;
+
   let marketplaceContract: ConsiderationInterface;
+  let testERC1155: TestERC1155;
+  let testERC20: TestERC20;
+
+  let createOrder: SeaportFixtures["createOrder"];
+  let getTestItem1155: SeaportFixtures["getTestItem1155"];
+  let getTestItem20: SeaportFixtures["getTestItem20"];
   let mintAndApprove1155: SeaportFixtures["mintAndApprove1155"];
   let mintAndApproveERC20: SeaportFixtures["mintAndApproveERC20"];
-  let getTestItem20: SeaportFixtures["getTestItem20"];
-  let getTestItem1155: SeaportFixtures["getTestItem1155"];
-  let createOrder: SeaportFixtures["createOrder"];
 
   after(async () => {
     await network.provider.request({
@@ -42,19 +45,22 @@ describe("Partial fill fractions can overflow to reset an order", async () => {
     if (process.env.REFERENCE) {
       this.skip();
     }
+
     alice = await getWalletWithEther();
     bob = await getWalletWithEther();
     carol = await getWalletWithEther();
+
     ({
+      createOrder,
+      getTestItem1155,
+      getTestItem20,
+      marketplaceContract,
       mintAndApprove1155,
       mintAndApproveERC20,
-      marketplaceContract,
-      getTestItem20,
-      getTestItem1155,
-      createOrder,
-      testERC20,
       testERC1155,
+      testERC20,
     } = await seaportFixture(await getWalletWithEther()));
+
     await mintAndApprove1155(alice, marketplaceContract.address, 1, 1, 10);
     await mintAndApproveERC20(bob, marketplaceContract.address, 500);
     await mintAndApproveERC20(carol, marketplaceContract.address, 4500);

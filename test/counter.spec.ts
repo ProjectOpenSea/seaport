@@ -20,14 +20,15 @@ const { parseEther } = ethers.utils;
 
 describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
-  let zone: Wallet;
+  const owner = new ethers.Wallet(randomHex(32), provider);
+
   let marketplaceContract: ConsiderationInterface;
-  let owner: Wallet;
-  let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
-  let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
-  let getTestItem721: SeaportFixtures["getTestItem721"];
-  let createOrder: SeaportFixtures["createOrder"];
+
   let checkExpectedEvents: SeaportFixtures["checkExpectedEvents"];
+  let createOrder: SeaportFixtures["createOrder"];
+  let getTestItem721: SeaportFixtures["getTestItem721"];
+  let mintAndApprove721: SeaportFixtures["mintAndApprove721"];
+  let withBalanceChecks: SeaportFixtures["withBalanceChecks"];
 
   after(async () => {
     await network.provider.request({
@@ -36,22 +37,21 @@ describe(`Validate, cancel, and increment counter flows (Seaport v${VERSION})`, 
   });
 
   before(async () => {
-    owner = new ethers.Wallet(randomHex(32), provider);
-
     await faucet(owner.address, provider);
 
     ({
-      mintAndApprove721,
+      checkExpectedEvents,
+      createOrder,
       getTestItem721,
       marketplaceContract,
-      createOrder,
+      mintAndApprove721,
       withBalanceChecks,
-      checkExpectedEvents,
     } = await seaportFixture(owner));
   });
 
   let seller: Wallet;
   let buyer: Wallet;
+  let zone: Wallet;
 
   beforeEach(async () => {
     // Setup basic buyer/seller wallets with ETH

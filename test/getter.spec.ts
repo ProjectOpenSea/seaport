@@ -10,16 +10,16 @@ import type {
   ConduitControllerInterface,
   ConsiderationInterface,
 } from "../typechain-types";
-import type { Wallet } from "ethers";
 
 const { keccak256, toUtf8Bytes } = ethers.utils;
 
 describe(`Getter tests (Seaport v${VERSION})`, function () {
   const { provider } = ethers;
-  let marketplaceContract: ConsiderationInterface;
-  let owner: Wallet;
+  const owner = new ethers.Wallet(randomHex(32), provider);
+
   let conduitController: ConduitControllerInterface;
   let directMarketplaceContract: ConsiderationInterface;
+  let marketplaceContract: ConsiderationInterface;
 
   after(async () => {
     await network.provider.request({
@@ -28,11 +28,9 @@ describe(`Getter tests (Seaport v${VERSION})`, function () {
   });
 
   before(async () => {
-    owner = new ethers.Wallet(randomHex(32), provider);
-
     await faucet(owner.address, provider);
 
-    ({ conduitController, marketplaceContract, directMarketplaceContract } =
+    ({ conduitController, directMarketplaceContract, marketplaceContract } =
       await seaportFixture(owner));
   });
 
