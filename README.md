@@ -60,7 +60,7 @@ To be deployed on other EVM chains, such as:
 - Klaytn
 - Baobab
 
-Feel free to pick one of these up and deploy using the [steps outlined here](docs/Deployment.md).
+To deploy to a new EVM chain, follow the [steps outlined here](docs/Deployment.md).
 
 ## Diagram
 
