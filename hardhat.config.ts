@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
     },
     verificationNetwork: {
       url: process.env.NETWORK_RPC ?? "",
-    }
+    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

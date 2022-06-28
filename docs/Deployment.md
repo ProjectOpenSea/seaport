@@ -85,12 +85,12 @@ After `Seaport` and `ConduitController` are deployed, you should verify them.
 2. Verify `ConduitController` by calling:
 
 ```
-npx hardhat verify npx hardhat verify --network verificationNetwork "0x00000000F9490004C11Cef243f5400493c00Ad63"
+npx hardhat verify --network verificationNetwork "0x00000000F9490004C11Cef243f5400493c00Ad63"
 ```
 
 3. Verify `Seaport` by calling:
 
 ```
-npx hardhat verify npx hardhat verify --network verificationNetwork "0x00000000006c3852cbEf3e08E8dF289169EdE581" "0x00000000F9490004C11Cef243f5400493c00Ad63"
+npx hardhat verify --network verificationNetwork "0x00000000006c3852cbEf3e08E8dF289169EdE581" "0x00000000F9490004C11Cef243f5400493c00Ad63"
 ```
 
