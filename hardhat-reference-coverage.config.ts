@@ -1,12 +1,10 @@
-import * as dotenv from "dotenv";
+import type { HardhatUserConfig } from "hardhat/config";
 
-import { HardhatUserConfig, task } from "hardhat/config";
+import "dotenv/config";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-
-dotenv.config();
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more

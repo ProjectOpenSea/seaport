@@ -15,7 +15,8 @@
     "hardhat": "https://github.com/0age/hardhat/releases/download/viaIR-2.9.3/hardhat-v2.9.3.tgz"
   },
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.4",
+    "@nomiclabs/hardhat-ethers": "^2.0.6",
+    "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@rari-capital/solmate": "^6.2.0",
     "@typechain/ethers-v5": "^10.0.0",
@@ -63,66 +64,20 @@
     "profile": "REPORT_GAS=true hardhat test --config ./hardhat.config.ts",
     "coverage": "hardhat coverage --config ./hardhat-coverage.config.ts --solcoverjs ./config/.solcover.js",
     "coverage:ref": "REFERENCE=true hardhat coverage --config ./hardhat-reference-coverage.config.ts --solcoverjs ./config/.solcover-reference.js",
-    "lint:check": "prettier --check **.sol && prettier --check **.js && prettier --check **.ts && hardhat compile --config ./hardhat.config.ts && npx solhint --config ./config/.solhint.json --ignore-path ./config/.solhintignore 'contracts/**/*.sol'",
-    "lint:fix": "prettier --write **.sol && prettier --write **.js && prettier --write **.ts",
+    "lint:check": "yarn lint:check:format && yarn lint:check:solhint && yarn lint:check:eslint",
+    "lint:check:format": "prettier --check **.{sol,js,ts}",
+    "lint:check:solhint": "yarn build && solhint --config ./config/.solhint.json --ignore-path ./config/.solhintignore contracts/**/*.sol",
+    "lint:check:eslint": "eslint . --ext js,ts",
+    "lint:fix": "yarn lint:fix:format && yarn lint:fix:eslint",
+    "lint:fix:format": "prettier --write **.{sol,js,ts}",
+    "lint:fix:eslint": "eslint --fix . --ext js,ts",
     "test:forge": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=optimized forge build; FOUNDRY_PROFILE=test forge test -vvv",
-    "test:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
+    "test:forge:lite": "FOUNDRY_PROFILE=reference forge build; FOUNDRY_PROFILE=lite forge test -vvv",
     "prepare": "husky install"
   },
   "lint-staged": {
     "*.sol": "prettier --write",
     "*.js": "prettier --write",
     "*.ts": "prettier --write"
-  },
-  "prettier": {
-    "overrides": [
-      {
-        "files": "*.sol",
-        "options": {
-          "tabWidth": 4,
-          "printWidth": 80,
-          "bracketSpacing": true
-        }
-      }
-    ]
-  },
-  "eslintConfig": {
-    "env": {
-      "browser": false,
-      "es2021": true,
-      "mocha": true,
-      "node": true
-    },
-    "plugins": [
-      "@typescript-eslint",
-      "import"
-    ],
-    "extends": [
-      "standard",
-      "plugin:prettier/recommended",
-      "eslint:recommended",
-      "plugin:import/recommended",
-      "plugin:import/typescript"
-    ],
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-      "ecmaVersion": 12
-    },
-    "rules": {
-      "node/no-unsupported-features/es-syntax": [
-        "error",
-        {
-          "ignores": [
-            "modules"
-          ]
-        }
-      ]
-    }
-  },
-  "eslintIgnore": [
-    "node_modules",
-    "artifacts",
-    "cache",
-    "coverage"
-  ]
+  }
 }

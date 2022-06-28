@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.8.13;
+pragma solidity ^0.8.13;
 
 import { BaseOrderTest } from "./utils/BaseOrderTest.sol";
 import { Merkle } from "murky/Merkle.sol";

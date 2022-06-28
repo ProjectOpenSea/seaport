@@ -1,5 +1,5 @@
-//SPDX-License-Identifier: Unlicense
-pragma solidity >=0.8.7;
+// SPDX-License-Identifier: Unlicense
+pragma solidity ^0.8.7;
 
 import "@rari-capital/solmate/src/tokens/ERC1155.sol";
 

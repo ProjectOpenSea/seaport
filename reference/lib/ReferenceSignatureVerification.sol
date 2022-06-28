@@ -19,8 +19,8 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
     /**
      * @dev Internal view function to verify the signature of an order. An
      *      ERC-1271 fallback will be attempted if either the signature length
-     *      is not 32 or 33 bytes or if the recovered signer does not match the
-     *      supplied signer. Note that in cases where a 32 or 33 byte signature
+     *      is not 64 or 65 bytes or if the recovered signer does not match the
+     *      supplied signer. Note that in cases where a 64 or 65 byte signature
      *      is supplied, only standard ECDSA signatures that recover to a
      *      non-zero address are supported.
      *
@@ -71,12 +71,9 @@ contract ReferenceSignatureVerification is SignatureVerificationErrors {
         address recoveredSigner = ecrecover(digest, v, r, s);
 
         // Disallow invalid signers.
-        if (recoveredSigner == address(0)) {
+        if (recoveredSigner == address(0) || recoveredSigner != signer) {
             revert InvalidSigner();
             // Should a signer be recovered, but it doesn't match the signer...
-        } else if (recoveredSigner != signer) {
-            // Attempt EIP-1271 static call to signer in case it's a contract.
-            _assertValidEIP1271Signature(signer, digest, signature);
         }
     }
 

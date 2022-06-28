@@ -580,7 +580,7 @@ contract ReferenceBasicOrderFulfiller is ReferenceOrderValidator {
         // Verify that calldata offsets for all dynamic types were produced by
         // default encoding. This is only required on the optimized contract,
         // but is included here to maintain parity.
-        _assertValidBasicOrderParameterOffsets();
+        _assertValidBasicOrderParameters();
 
         // Ensure supplied consideration array length is not less than original.
         _assertConsiderationLengthIsNotLessThanOriginalConsiderationLength(

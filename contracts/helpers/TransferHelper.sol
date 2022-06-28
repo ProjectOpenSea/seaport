@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.7;
+pragma solidity ^0.8.7;
 
 import "./TransferHelperStructs.sol";
 
@@ -141,11 +141,13 @@ contract TransferHelper is TransferHelperInterface, TokenTransferrer {
                                     selector !=
                                     IERC721Receiver.onERC721Received.selector
                                 ) {
+                                    // Revert if recipient cannot accept
+                                    // ERC721 tokens.
                                     revert InvalidERC721Recipient();
                                 }
-                                // Revert if recipient cannot accept ERC721 tokens.
                             } catch (bytes memory data) {
-                                // Bubble up recipient's revert reason if present.
+                                // Bubble up recipient's revert reason
+                                // if present.
                                 if (data.length != 0) {
                                     assembly {
                                         returndatacopy(0, 0, returndatasize())

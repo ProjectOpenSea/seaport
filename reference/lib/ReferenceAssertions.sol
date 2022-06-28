@@ -95,23 +95,27 @@ contract ReferenceAssertions is
 
     /**
      * @dev Internal pure function to validate calldata offsets for dynamic
-     *      types in BasicOrderParameters. This ensures that functions using the
-     *      calldata object normally will be using the same data as optimized
-     *      functions. Note that no parameters are supplied as all basic order
-     *      functions use the same calldata encoding.
+     *      types in BasicOrderParameters and other parameters. This ensures
+     *      that functions using the calldata object normally will be using the
+     *      same data as the assembly functions and that values that are bound
+     *      to a given range are within that range. Note that no parameters are
+     *      supplied as all basic order functions use the same calldata
+     *      encoding.
      */
-    function _assertValidBasicOrderParameterOffsets() internal pure {
+    function _assertValidBasicOrderParameters() internal pure {
         /*
          * Checks:
          * 1. Order parameters struct offset == 0x20
          * 2. Additional recipients arr offset == 0x200
          * 3. Signature offset == 0x240 + (recipients.length * 0x40)
+         * 4. BasicOrderType between 0 and 23 (i.e. < 24)
          */
         // Declare a boolean designating basic order parameter offset validity.
         bool validOffsets = (abi.decode(msg.data[4:36], (uint256)) == 32 &&
             abi.decode(msg.data[548:580], (uint256)) == 576 &&
             abi.decode(msg.data[580:612], (uint256)) ==
-            608 + 64 * abi.decode(msg.data[612:644], (uint256)));
+            608 + 64 * abi.decode(msg.data[612:644], (uint256))) &&
+            abi.decode(msg.data[292:324], (uint256)) < 24;
 
         // Revert with an error if basic order parameter offsets are invalid.
         if (!validOffsets) {
